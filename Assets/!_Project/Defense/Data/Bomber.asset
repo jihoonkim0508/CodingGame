@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: edcc99cf8b3b0cd458ba8145cc320c0e, type: 3}
+  m_Name: Bomber
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.RobotDefinition
+  displayName: "\uD3ED\uD0C4\uD615"
+  description: "\uD3ED\uD0C4\uC744 \uB358\uC838 \uCC29\uD0C4 \uC9C0\uC810 \uC8FC\uBCC0\uC744
+    \uACF5\uACA9\uD569\uB2C8\uB2E4."
+  color: {r: 0.9, g: 0.56, b: 0.35, a: 1}
+  stats:
+    role: 3
+    range: 4.8
+    damage: 8
+    interval: 1.6
+    radius: 0.45
+    health: 100
+    blockRadius: 1.1
+    blockCapacity: 3
+    effectRadius: 1.7
+    duration: 2
+    slowMultiplier: 0.5
+    projectileSpeed: 4
+    buffDamage: 1.25
+    buffRange: 1.15
+    buffInterval: 0.8
+  prefab: {fileID: 3400027157710270019, guid: 6b48159cdb3bf62479a6616d2dd541fb, type: 3}

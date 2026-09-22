@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54b331f6175a49043999eb0bbda985bf, type: 3}
+  m_Name: Heavy
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.EnemyDefinition
+  displayName: "\uD0F1\uCEE4\uBCD1"
+  description: "\uB290\uB9AC\uC9C0\uB9CC \uCCB4\uB825\uC774 \uB192\uC544 \uC9D1\uC911
+    \uACF5\uACA9\uC774 \uD544\uC694\uD569\uB2C8\uB2E4."
+  stats:
+    health: 110
+    speed: 1.15
+    damage: 16
+    attackInterval: 1.2
+    leakDamage: 1
+  prefab: {fileID: 8292641712839652615, guid: ed407c76a0f580e4ebe2c4735f5d5317, type: 3}
