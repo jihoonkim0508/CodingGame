@@ -227,7 +227,8 @@ namespace CodingGame.Defense
         {
             if (Simulation == null) return;
             var mouse = Mouse.current; var keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.f1Key.wasPressedThisFrame) ToggleDeveloper();
+            // Keep F1 and offer F2 when a recording overlay intercepts the help key.
+            if (keyboard != null && (keyboard.f1Key.wasPressedThisFrame || keyboard.f2Key.wasPressedThisFrame)) ToggleDeveloper();
             if (keyboard != null && keyboard.tabKey.wasPressedThisFrame && !codeEditor.IsOpen)
             {
                 if (DeveloperMode) ToggleDeveloper();
@@ -311,7 +312,7 @@ namespace CodingGame.Defense
             foreach (var bot in Simulation.Robots)
             {
                 var view = robotViews[bot.Id];
-                view.Sync(World(bot.Position), bot.Health, bot.Spec.health, false, false, bot.Buffs.Count > 0, battleCamera.transform.rotation); view.TickVisual(elapsed);
+                view.Sync(World(bot.Position), bot.Health, bot.MaxHealth, false, false, bot.Buffs.Count > 0, battleCamera.transform.rotation); view.TickVisual(elapsed);
             }
             foreach (var enemy in Simulation.Enemies)
             {
@@ -340,7 +341,7 @@ namespace CodingGame.Defense
             bool ended = Simulation.Phase == BattlePhase.Victory || Simulation.Phase == BattlePhase.Defeat;
             if (ended) speed = 1;
             string phase = Simulation.Phase == BattlePhase.Ready ? "준비" : Simulation.Phase == BattlePhase.Running ? "전투 중" :
-                Simulation.Phase == BattlePhase.Paused ? "일시정지" : Simulation.Phase == BattlePhase.Reward ? "보상 수령 대기 · F1 사용자 화면" : Simulation.Phase == BattlePhase.Victory ? "방어 성공" : "방어 실패";
+                Simulation.Phase == BattlePhase.Paused ? "일시정지" : Simulation.Phase == BattlePhase.Reward ? "보상 수령 대기 · F1/F2 사용자 화면" : Simulation.Phase == BattlePhase.Victory ? "방어 성공" : "방어 실패";
             header.text = $"WAVE {Simulation.WaveIndex + 1:00} / {Simulation.Setup.Waves.Length:00}    |    CORE {Simulation.BaseHealth:00}    |    KILL {Simulation.Kills:00}  LEAK {Simulation.Leaks:00}";
             stateText.text = $"{phase}   ·   {Simulation.Time:0.0}s   ·   적 {Simulation.Enemies.Count}   ·   로봇 {Simulation.Robots.Count}/{robotLimit}";
             pauseLabel.text = Simulation.Phase == BattlePhase.Paused ? "재개" : "일시정지";
@@ -357,7 +358,7 @@ namespace CodingGame.Defense
             removeButton.interactable = bot != null && Simulation.CanPrepare;
             if (bot != null)
             {
-                string health = bot.Health.HasValue ? $"HP {bot.Health:0}/{bot.Spec.health:0} · 저지 {Simulation.Enemies.Count(e => e.BlockedBy == bot.Id)}/{bot.Spec.blockCapacity}" : "체력 없음 · 적 피해 대상 제외";
+                string health = bot.Health.HasValue ? $"HP {bot.Health:0}/{bot.MaxHealth:0} · 저지 {Simulation.Enemies.Count(e => e.BlockedBy == bot.Id)}/{bot.Spec.blockCapacity}" : "체력 없음 · 적 피해 대상 제외";
                 string control = bot.Program == null || bot.Program.CopyBlocks().Count == 0 ? "빈 로봇 · 코드 필요" : bot.Program.Fault == null ? "코드: " + bot.Program.Name : "코드 중지: " + bot.Program.Fault;
                 selectionText.text = $"{robots[bot.DefinitionIndex].displayName}  #{bot.Id}\n\n{health}\n사거리 {bot.Range:0.00}    피해 {Simulation.ActionDamage(bot, bot.Action):0.0}\n공격 간격 {Simulation.ActionInterval(bot, bot.Action):0.00}s\n\n{Rules.ActionName(bot.Action)}\n{CompatibilityText(bot)}\n{control}\n실행 {bot.Executions}회 · 버프 {bot.Buffs.Count}개";
             }

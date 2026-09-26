@@ -18,6 +18,8 @@ namespace CodingGame.Defense
         [SerializeField] Button closeButton, automaticButton, recallButton;
         int editingId;
         DefenseSimulation editingSession;
+        DefenseSimulation draftSession;
+        readonly Dictionary<int, CommandCodingPanel.EditHistory> drafts = new Dictionary<int, CommandCodingPanel.EditHistory>();
         public bool IsOpen => editorRoot && editorRoot.activeSelf;
         public int EditingId => editingId;
         public CommandCodingPanel Panel => panel;
@@ -42,12 +44,15 @@ namespace CodingGame.Defense
             if (robot == null || !sim.CanEdit) return;
             if (IsOpen && editingId == id && editingSession == sim) return;
             Close(); editingSession = sim; editingId = id;
+            if (draftSession != sim) { drafts.Clear(); draftSession = sim; }
+            foreach (int removed in drafts.Keys.Where(key => !sim.Robots.Exists(r => r.Id == key)).ToArray()) drafts.Remove(removed);
             title.text = battle.RobotName(id) + " #" + id;
             battle.BeginCodeView(robot);
             editorRoot.SetActive(true);
-            panel.LoadProgram(robot.Program?.Name ?? "robot_" + id, robot.Program?.CopyBlocks() ?? Array.Empty<CodeBlock>());
+            if (drafts.TryGetValue(id, out var history)) panel.LoadHistory(history);
+            else panel.LoadProgram(robot.Program?.Name ?? "robot_" + id, robot.Program?.CopyBlocks() ?? Array.Empty<CodeBlock>());
             panel.ShowCategory(1); RefreshInventory();
-            panel.ShowMessage(robot.Program == null || robot.Program.CopyBlocks().Count == 0 ? "블록을 넣으면 자동 적용됩니다." : "자동 적용됨");
+            if (panel.IsApplied) panel.ShowMessage("자동 적용됨 · Ctrl+Z 실행 취소 · Ctrl+Y 다시 실행");
         }
         void RefreshInventory()
         {
@@ -63,6 +68,8 @@ namespace CodingGame.Defense
         }
         public void Close(bool resume = true)
         {
+            if (IsOpen && editingSession != null && editingSession == battle.Simulation && editingSession.Robots.Exists(r => r.Id == editingId))
+                drafts[editingId] = panel.History;
             if (IsOpen) battle.EndCodeView();
             if (editorRoot) editorRoot.SetActive(false);
             editingId = 0; editingSession = null;
@@ -71,17 +78,25 @@ namespace CodingGame.Defense
         public void RestoreAutomatic()
         {
             if (!IsOpen || editingSession != battle.Simulation) return;
-            editingSession.ApplyProgram(editingId, "robot_" + editingId, Array.Empty<CodeBlock>());
-            battle.NotifyCodeApplied(editingId, true);
-            panel.LoadProgram("robot_" + editingId, Array.Empty<CodeBlock>());
-            RefreshInventory(); panel.ShowMessage("코드를 비웠습니다. 블록 예약이 해제됩니다.");
+            panel.ClearProgram();
+            RefreshInventory();
+            if (panel.IsApplied) panel.ShowMessage("코드를 비웠습니다. 블록 예약이 해제됩니다.");
         }
         void Update()
         {
             var sim = battle.Simulation;
             if (!IsOpen) return;
             if (editingSession != sim || !sim.CanEdit || !sim.Robots.Exists(r => r.Id == editingId)) { Close(false); return; }
-            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) Close();
+            var keyboard = Keyboard.current;
+            if (keyboard == null) return;
+            if (keyboard.escapeKey.wasPressedThisFrame) { Close(); return; }
+            // Text fields keep their own editing shortcuts; block history acts on the workspace.
+            if (panel.TextInputFocused || keyboard.altKey.isPressed || keyboard.leftMetaKey.isPressed || keyboard.rightMetaKey.isPressed) return;
+            if (keyboard.ctrlKey.isPressed)
+            {
+                if (keyboard.zKey.wasPressedThisFrame) { if (keyboard.shiftKey.isPressed) panel.Redo(); else panel.Undo(); }
+                else if (keyboard.yKey.wasPressedThisFrame) panel.Redo();
+            }
         }
         void OnDestroy() { if (battle) battle.RobotSelected -= Open; if (panel) { panel.ApplyToTarget = null; panel.IsAvailable = null; panel.Remaining = null; } }
     }

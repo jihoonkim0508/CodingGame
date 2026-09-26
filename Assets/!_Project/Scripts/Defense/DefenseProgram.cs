@@ -24,6 +24,8 @@ namespace CodingGame.Defense
         public string Source { get; }
         public string Fault { get; private set; }
         public int StepsLastTick { get; private set; }
+        public bool IsEmpty => blocks.Count == 0;
+        public double WaitRemaining(double time) => Math.Max(0, wakeTime - time);
         public IReadOnlyList<CodeBlock> CopyBlocks() => blocks.Select(Clone).ToList();
         public const int InstructionBudget = 64;
 

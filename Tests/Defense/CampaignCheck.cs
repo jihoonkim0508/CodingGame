@@ -18,8 +18,65 @@ static class CampaignCheck
     static RobotState Place(DefenseSimulation sim, RobotRole role, float x=-8) => sim.Place(Spec(role),(int)role,new Vector2(x,role==RobotRole.Tank?0:2),out _);
     static void RunWave(DefenseSimulation sim) { for(int i=0;i<6000&&sim.Phase==BattlePhase.Running;i++)sim.Advance(1.0/60); }
     static void Reject(Action action,string label) { bool rejected=false;try{action();}catch(FormatException){rejected=true;}Assert(rejected,label); }
+    static void CheckUpgrades()
+    {
+        foreach (RobotRole role in Enum.GetValues(typeof(RobotRole)))
+        {
+            var sim = new DefenseSimulation(Setup()); var bot = Place(sim,role);
+            float damage = bot.Damage;
+            Assert(sim.Coins==100&&bot.Level==1&&!bot.IsMaxLevel,"initial coins and level "+role);
+            Assert(sim.UpgradeRobot(bot.Id)&&sim.Coins==50&&bot.Level==2&&bot.IsMaxLevel,"single paid upgrade "+role);
+            Assert(Math.Abs(bot.Damage-damage*1.2f)<.001f,"upgrade damage "+role);
+            Assert(!sim.UpgradeRobot(bot.Id)&&sim.Coins==50,"max level cannot charge again "+role);
+            Assert(bot.Program==null&&!bot.AutoExecute&&!bot.BlockingEnabled,"upgrade grants no automatic abilities "+role);
+            Assert(bot.Health.HasValue==(role==RobotRole.Tank),"upgrade does not give non-tanks health "+role);
+            sim.RemoveRobot(bot.Id);
+            Assert(sim.Coins==100&&Place(sim,role).Level==1,"recall refunds upgrade and returns level one item "+role);
+        }
+        var setup=Setup();setup.Progression.initialCoins=49;
+        var poor=new DefenseSimulation(setup);var poorBot=Place(poor,RobotRole.Warrior);
+        Assert(!poor.UpgradeRobot(poorBot.Id)&&poor.Coins==49&&poorBot.Level==1,"insufficient coins leave robot unchanged");
+        Assert(!poor.UpgradeRobot(-1)&&poor.Coins==49,"invalid robot leaves coins unchanged");
+
+        var battle=new DefenseSimulation(Setup());var tank=Place(battle,RobotRole.Tank);
+        tank.Health=50; battle.UpgradeRobot(tank.Id);
+        Assert(Math.Abs(tank.MaxHealth-120)<.001f&&Math.Abs(tank.Health.Value-60)<.001f,"tank upgrade preserves health ratio");
+        battle.ApplyProgram(tank.Id,"guard",new[]{new CodeBlock(BlockKind.Block)});
+        var shooter=Place(battle,RobotRole.Shooter,-5);
+        battle.ApplyProgram(shooter.Id,"fire",new[]{new CodeBlock(BlockKind.Shot)});
+        battle.Start();
+        Assert(!battle.UpgradeRobot(shooter.Id)&&battle.Coins==50,"combat upgrade locked");
+        battle.TogglePause();Assert(!battle.UpgradeRobot(shooter.Id),"paused combat upgrade locked");battle.TogglePause();
+        RunWave(battle);
+        Assert(battle.Coins==60&&battle.Kills==2,"each defeated enemy awards coins once");
+        Assert(!battle.UpgradeRobot(shooter.Id),"reward phase upgrade locked");
+        battle.ClaimRewards();
+        Assert(tank.Level==2&&Math.Abs(tank.Health.Value-tank.MaxHealth)<.001f&&battle.Coins==60,"upgrade and coins survive wave transition");
+        Assert(!battle.ClaimRewards()&&battle.Coins==60,"reward claim does not duplicate coins");
+        battle.Start();battle.DamageRobot(tank.Id,10000);
+        Assert(battle.Coins==60&&!battle.RemoveRobot(tank.Id),"destroyed tank has no upgrade refund");
+
+        var buffs=new DefenseSimulation(Setup());var buffer=Place(buffs,RobotRole.Buffer);
+        var ally=Place(buffs,RobotRole.Warrior,-5);buffs.UpgradeRobot(buffer.Id);buffs.Start();buffs.Advance(.2);
+        buffs.RequestAction(buffer.Id,RobotAction.Buff);
+        Assert(Math.Abs(ally.Buffs.Single().Damage-1.3f)<.001f&&Math.Abs(ally.Buffs.Single().Range-1.18f)<.001f&&Math.Abs(ally.Buffs.Single().Interval-.76f)<.001f,
+            "buffer upgrade strengthens bonus portions by twenty percent");
+
+        var timeoutSetup=Setup();timeoutSetup.WaveSeconds=.2f;
+        var timeout=new DefenseSimulation(timeoutSetup);Place(timeout,RobotRole.Tank);timeout.Start();RunWave(timeout);
+        Assert(timeout.Kills==0&&timeout.Coins==100,"timeout cleanup awards no coins");
+        var leakSetup=Setup();leakSetup.Waves=new[]{new[]{new SpawnGroup{Count=1,Interval=1,Enemy=new EnemySpec{speed=500}}}};
+        var leak=new DefenseSimulation(leakSetup);Place(leak,RobotRole.Warrior);leak.Start();RunWave(leak);
+        Assert(leak.Leaks==1&&leak.Coins==100,"leaked enemies award no coins");
+        var overflowSetup=Setup();overflowSetup.Progression.initialCoins=int.MaxValue;
+        var overflow=new DefenseSimulation(overflowSetup);var armed=Place(overflow,RobotRole.Shooter);
+        overflow.ApplyProgram(armed.Id,"fire",new[]{new CodeBlock(BlockKind.Shot)});overflow.Start();RunWave(overflow);
+        Assert(overflow.Coins==int.MaxValue,"coin rewards saturate safely at storage limit");
+        Assert(new DefenseSimulation(Setup()).Coins==100,"new run resets coins");
+    }
     public static void Run()
     {
+        CheckUpgrades();
         var sim=new DefenseSimulation(Setup()); sim.Start();Assert(sim.Phase==BattlePhase.Ready,"no robots start rejected");
         var bot=Place(sim,RobotRole.Shooter);
         Assert(bot.Program==null&&!bot.AutoExecute&&!bot.BlockingEnabled,"placed robot is empty");

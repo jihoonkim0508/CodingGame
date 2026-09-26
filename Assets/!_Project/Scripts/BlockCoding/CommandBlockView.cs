@@ -8,7 +8,7 @@ using UnityEngine.UI;
 namespace CodingGame.BlockCoding
 {
     public sealed class CommandBlockView : MonoBehaviour, ILayoutElement, ILayoutGroup,
-        IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler
+        IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler, IPointerDownHandler
     {
         [SerializeField] BlockKind kind;
         [SerializeField] RectTransform rect;
@@ -33,6 +33,7 @@ namespace CodingGame.BlockCoding
         public RectTransform Rect => rect;
         public string VariableName => kind == BlockKind.DeclareVariable ? input.text : variableName;
         public string RetainedName { get; private set; }
+        public bool TextInputFocused => input && input.isFocused;
         bool initialized;
         // Expressions share a fixed height even when nested; only their width grows.
         float headHeight => PythonTreeCompiler.OutputSlot(Kind) == BlockSlotKind.Statement ? 46 : 32;
@@ -142,7 +143,8 @@ namespace CodingGame.BlockCoding
                 if (data.Kind == BlockKind.Variable) return;
                 skip = 1;
             }
-            for (int i = 0; i < data.Arguments.Count - skip; i++) arguments[i].Load(new[] { data.Arguments[i + skip] });
+            for (int i = 0; i < data.Arguments.Count - skip; i++)
+                arguments[i].Load(data.Arguments[i + skip] == null ? Array.Empty<CodeBlock>() : new[] { data.Arguments[i + skip] });
             if (body) body.Load(data.Body);
         }
 
@@ -172,6 +174,9 @@ namespace CodingGame.BlockCoding
             var copy = Instantiate(this, parent);
             copy.Bind(Panel, null);
             copy.gameObject.SetActive(true);
+            // LayoutGroup measurements are not copied by Instantiate. Measure the
+            // header and nested slots before placement or the drag ghost reads them.
+            LayoutRebuilder.ForceRebuildLayoutImmediate(copy.Rect);
             return copy;
         }
         public void SetDragAppearance(bool dragged)
@@ -197,7 +202,15 @@ namespace CodingGame.BlockCoding
             child.anchoredPosition = new Vector2(x, -y);
             child.sizeDelta = new Vector2(width, height);
         }
-        public void OnBeginDrag(PointerEventData e) { if (e.button == PointerEventData.InputButton.Left) Panel.BeginDrag(this, e); }
+        public void BringToFront()
+        {
+            if (IsPalette) return;
+            var outer = this;
+            while (outer.Owner && outer.Owner.ParentBlock) outer = outer.Owner.ParentBlock;
+            outer.Owner?.BringToFront(outer);
+        }
+        public void OnPointerDown(PointerEventData e) => BringToFront();
+        public void OnBeginDrag(PointerEventData e) { if (e.button == PointerEventData.InputButton.Left) { BringToFront(); Panel.BeginDrag(this, e); } }
         public void OnDrag(PointerEventData e) => Panel.MoveDrag(e);
         public void OnEndDrag(PointerEventData e)
         {

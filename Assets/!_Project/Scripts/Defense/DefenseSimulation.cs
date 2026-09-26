@@ -210,6 +210,13 @@ namespace CodingGame.Defense
     }
     public sealed class RobotState
     {
+        public const int MaxLevel = 2;
+        public const float UpgradeMultiplier = 1.2f;
+        public int Level { get; internal set; } = 1;
+        public bool IsMaxLevel => Level >= MaxLevel;
+        public float LevelMultiplier => Level == 1 ? 1 : UpgradeMultiplier;
+        public float MaxHealth => Spec.health * LevelMultiplier;
+        internal int UpgradeCostPaid;
         public int Id, DefinitionIndex;
         public Vector2 Position;
         public RobotSpec Spec;
@@ -225,7 +232,7 @@ namespace CodingGame.Defense
         public DefenseProgram Program;
         public float Range => RangeSetting * Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Range));
         public float DamageMultiplier => (Spec.role == RobotRole.Shooter ? Spec.range / Range : 1) *
-            Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Damage));
+            Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Damage)) * LevelMultiplier;
         public float Damage => Spec.damage * DamageMultiplier;
         public float Interval => Spec.interval * Buffs.Aggregate(1f, (v, b) => Math.Min(v, b.Interval));
     }
@@ -269,6 +276,8 @@ namespace CodingGame.Defense
         public double Time { get; private set; }
         public int WaveIndex { get; private set; }
         public int BaseHealth { get; private set; }
+        public int Coins { get; private set; }
+        public int UpgradeCost => Setup.Progression.upgradeCost;
         public int Kills { get; private set; }
         public int Leaks { get; private set; }
         public int Spawned { get; private set; }
@@ -323,6 +332,7 @@ namespace CodingGame.Defense
         public DefenseSimulation(BattleSetup setup)
         {
             setup.Validate(); Setup = setup; BaseHealth = setup.BaseHealth;
+            Coins = setup.PlayerFlow ? setup.Progression.initialCoins : 0;
             dropRandom = new Random(setup.DropSeed);
             if (setup.PlayerFlow) foreach (var stock in setup.Progression.initial)
             { var kind = DefenseProgression.Canonical(stock.kind); Inventory.TryGetValue(kind, out int old); Inventory[kind] = old + stock.count; }
@@ -352,7 +362,7 @@ namespace CodingGame.Defense
             foreach (var bot in Robots)
             {
                 bot.Buffs.Clear(); bot.BlockingEnabled = false; bot.NextAction = Time + bot.Spec.interval;
-                if (bot.Health.HasValue) bot.Health = bot.Spec.health;
+                if (bot.Health.HasValue) bot.Health = bot.MaxHealth;
                 if (bot.Program != null) bot.Program = new DefenseProgram(bot.Program.Name, bot.Program.CopyBlocks());
             }
             Phase = BattlePhase.Ready; return true;
@@ -396,7 +406,27 @@ namespace CodingGame.Defense
             var bot = Robots.Find(r => r.Id == id);
             if (bot == null) return false;
             if (Setup.PlayerFlow) GrantRobot(bot.Spec.role, 1);
+            // Inventory stores role counts. Return the paid upgrade cost before returning a Lv.1 item.
+            Coins = (int)Math.Min(int.MaxValue, (long)Coins + bot.UpgradeCostPaid);
             return RemoveRobotInternal(id);
+        }
+        public string UpgradeError(int id)
+        {
+            var bot = Robots.Find(r => r.Id == id);
+            if (bot == null) return "로봇을 선택하세요.";
+            if (bot.IsMaxLevel) return "최고레벨";
+            if (!CanPrepare) return "정비 중에만 레벨업할 수 있습니다.";
+            if (Coins < UpgradeCost) return "코인이 부족합니다.";
+            return null;
+        }
+        public bool UpgradeRobot(int id)
+        {
+            if (UpgradeError(id) != null) return false;
+            var bot = Robots.Find(r => r.Id == id);
+            float healthRatio = bot.Health.HasValue ? bot.Health.Value / bot.MaxHealth : 0;
+            Coins -= UpgradeCost; bot.UpgradeCostPaid = UpgradeCost; bot.Level++;
+            if (bot.Health.HasValue) bot.Health = bot.MaxHealth * healthRatio;
+            return true;
         }
         bool RemoveRobotInternal(int id)
         {
@@ -464,6 +494,9 @@ namespace CodingGame.Defense
             var compatibility = Compatibility(bot, action);
             if (compatibility == ActionCompatibility.Ineffective) return bot.LastResult = ActionResult.Ineffective;
             if (compatibility == ActionCompatibility.Undecided) return bot.LastResult = ActionResult.Undecided;
+            // Taking a blocking stance is immediate once the program reaches block().
+            // Only its stun/damage waits for the shared action cooldown.
+            if (action == RobotAction.Block && bot.Spec.role == RobotRole.Tank) bot.BlockingEnabled = true;
             if (Time + .000001 < bot.NextAction) return bot.LastResult = ActionResult.CoolingDown;
             float strength = Strength(bot, action);
             var profile = Profile(bot, action);
@@ -474,8 +507,9 @@ namespace CodingGame.Defense
                 foreach (var r in targets)
                 {
                     r.Buffs.RemoveAll(b => b.Source == bot.Id);
-                    r.Buffs.Add(new BuffState { Source = bot.Id, Until = Time + profile.duration, Damage = 1 + (profile.buffDamage - 1) * strength,
-                        Range = 1 + (profile.buffRange - 1) * strength, Interval = 1 - (1 - profile.buffInterval) * strength });
+                    float buffStrength = strength * bot.LevelMultiplier;
+                    r.Buffs.Add(new BuffState { Source = bot.Id, Until = Time + profile.duration, Damage = 1 + (profile.buffDamage - 1) * buffStrength,
+                        Range = 1 + (profile.buffRange - 1) * buffStrength, Interval = Math.Max(.01f, 1 - (1 - profile.buffInterval) * buffStrength) });
                 }
                 Emit("buff", bot.Id, 0, bot.Position, 0, bot.Range);
             }
@@ -486,7 +520,6 @@ namespace CodingGame.Defense
                 if (target == null) return bot.LastResult = ActionResult.NoTarget;
                 if (action == RobotAction.Block)
                 {
-                    if (bot.Spec.role == RobotRole.Tank) bot.BlockingEnabled = true;
                     foreach (var e in targets.ToArray()) Effect(e, bot.Id).StunUntil = Math.Max(Effect(e, bot.Id).StunUntil, Time + profile.duration * strength);
                     Hit(target, profile.damage * bot.DamageMultiplier * strength, bot.Id);
                     Emit("stun", bot.Id, target.Id, bot.Position, 0, bot.Range);
@@ -529,6 +562,7 @@ namespace CodingGame.Defense
                 e.Active = false; e.BlockedBy = 0; Kills++; Emit("killed", source, e.Id, e.Position);
                 if (Setup.PlayerFlow)
                 {
+                    Coins = (int)Math.Min(int.MaxValue, (long)Coins + Setup.Progression.coinsPerKill);
                     var pool = Setup.Progression.drops.Where(d => d.firstWave <= WaveIndex + 1).ToArray();
                     int roll = dropRandom.Next(pool.Sum(d => d.weight)); var drop = pool[0].kind;
                     foreach (var entry in pool) { roll -= entry.weight; if (roll < 0) { drop = entry.kind; break; } }
@@ -625,9 +659,11 @@ namespace CodingGame.Defense
             point = end; RobotState chosen = null; float nearest = float.MaxValue;
             foreach (var bot in Robots)
             {
-                if (bot.Spec.role != RobotRole.Tank || !bot.BlockingEnabled || Enemies.Count(other => other.Active && other.BlockedBy == bot.Id) >= bot.Spec.blockCapacity) continue;
-                if (Rules.CircleEntry(start, end, bot.Position, bot.Spec.blockRadius, out float t) && t < nearest)
-                { nearest = t; chosen = bot; }
+                if (bot.Spec.role != RobotRole.Tank || !bot.BlockingEnabled) continue;
+                // Only count occupied slots for a tank this movement can actually reach.
+                if (!Rules.CircleEntry(start, end, bot.Position, bot.Spec.blockRadius, out float t) || t >= nearest) continue;
+                if (Enemies.Count(other => other.Active && other.BlockedBy == bot.Id) >= bot.Spec.blockCapacity) continue;
+                nearest = t; chosen = bot;
             }
             if (chosen == null) return false;
             e.BlockedBy = chosen.Id; e.NextAttack = Time + e.Spec.attackInterval;

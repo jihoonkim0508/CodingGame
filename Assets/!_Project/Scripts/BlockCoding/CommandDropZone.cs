@@ -8,7 +8,7 @@ using UnityEngine.UI;
 
 namespace CodingGame.BlockCoding
 {
-    public sealed class CommandDropZone : MonoBehaviour, IDropHandler, IPointerClickHandler,
+    public sealed class CommandDropZone : MonoBehaviour, IDropHandler, IPointerClickHandler, IPointerDownHandler,
         IPointerEnterHandler, IPointerExitHandler, ILayoutElement, ILayoutGroup
     {
         [SerializeField] RectTransform rect;
@@ -22,6 +22,7 @@ namespace CodingGame.BlockCoding
         // Only the workspace has free roots; nested bodies and argument slots keep their layout.
         readonly Dictionary<CommandBlockView, CommandBlockView> next = new Dictionary<CommandBlockView, CommandBlockView>();
         static readonly Vector2 FirstPosition = new Vector2(24, -24);
+        const float SnapDistance = 30;
         public bool FreePlacement => freePlacement;
         public RectTransform Rect => rect;
         public BlockSlotKind Slot => slot;
@@ -83,6 +84,44 @@ namespace CodingGame.BlockCoding
             Refresh(); SetLayoutHorizontal();
         }
         IEnumerable<CommandBlockView> Roots() => blocks.Where(b => !next.ContainsValue(b));
+        internal void BringToFront(CommandBlockView block)
+        {
+            if (!freePlacement) return;
+            var root = Roots().FirstOrDefault(candidate => Group(candidate).Contains(block));
+            if (!root) return;
+            // Sibling order controls drawing only. Keep the execution list and links intact.
+            foreach (var member in Group(root)) member.transform.SetAsLastSibling();
+        }
+        [Serializable]
+        public sealed class DraftGroup
+        {
+            public Vector2 position;
+            public List<CodeBlock> blocks = new List<CodeBlock>();
+        }
+        // Read() deliberately rejects disconnected roots. Drafts must retain them.
+        public List<DraftGroup> CaptureDraft() => Roots().Select(root => new DraftGroup {
+            position = root.Rect.anchoredPosition,
+            blocks = Group(root).Select(block => block.Read()).ToList()
+        }).ToList();
+        public void RestoreDraft(IReadOnlyList<DraftGroup> groups)
+        {
+            Load(Array.Empty<CodeBlock>());
+            foreach (var group in groups)
+            {
+                CommandBlockView previous = null;
+                foreach (var data in group.blocks)
+                {
+                    var view = Panel.CreateBlock(data, rect);
+                    view.Bind(Panel, this);
+                    blocks.Add(view);
+                    if (previous) next[previous] = view;
+                    else view.Rect.anchoredPosition = group.position;
+                    previous = view;
+                }
+            }
+            Refresh();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
+        }
         public CodeBlock ReadArgument() => blocks.Count == 1 ? blocks[0].Read() : null;
         public IEnumerable<CommandBlockView> AllBlocks() => (freePlacement ? Roots().SelectMany(Group) : blocks).SelectMany(b => b.Descendants());
         public List<CommandBlockView> Group(CommandBlockView first)
@@ -141,6 +180,7 @@ namespace CodingGame.BlockCoding
                 placed.Bind(Panel, this);
             }
             Refresh();
+            blocks[index - 1].BringToFront();
             Panel.Changed();
             return true;
         }
@@ -171,8 +211,8 @@ namespace CodingGame.BlockCoding
             for (int i = 1; i < placed.Count; i++) next[placed[i - 1]] = placed[i];
             var first = placed[0];
             var last = placed[placed.Count - 1];
-            if (source.IsPalette && blocks.Count == placed.Count && PythonTreeCompiler.OutputSlot(first.Kind) == BlockSlotKind.Statement) position = FirstPosition;
             position = new Vector2(Mathf.Max(4, position.x), Mathf.Min(-4, position.y));
+            if (SnapsToFirstPosition(placed, position)) position = FirstPosition;
             CommandBlockView.Place(first.Rect, position.x, -position.y, first.preferredWidth, first.preferredHeight);
 
             FindSnap(placed, position, out var attachAfter, out var attachBefore);
@@ -185,13 +225,18 @@ namespace CodingGame.BlockCoding
             }
             Refresh();
             SetLayoutHorizontal();
+            first.BringToFront();
             Panel.Changed();
             return true;
         }
+        bool SnapsToFirstPosition(List<CommandBlockView> moved, Vector2 position) =>
+            moved.All(block => PythonTreeCompiler.OutputSlot(block.Kind) == BlockSlotKind.Statement) &&
+            !blocks.Any(block => !moved.Contains(block)) && Vector2.Distance(position, FirstPosition) < SnapDistance;
+
         void FindSnap(List<CommandBlockView> placed, Vector2 position, out CommandBlockView attachAfter, out CommandBlockView attachBefore)
         {
             var first = placed[0];
-            float nearest = 30;
+            float nearest = SnapDistance;
             attachAfter = null; attachBefore = null;
             if (placed.All(b => PythonTreeCompiler.OutputSlot(b.Kind) == BlockSlotKind.Statement))
                 foreach (var target in blocks.Where(b => !placed.Contains(b) && PythonTreeCompiler.OutputSlot(b.Kind) == BlockSlotKind.Statement))
@@ -221,14 +266,15 @@ namespace CodingGame.BlockCoding
             if (moved.Any(b => transform.IsChildOf(b.transform))) return false;
             if (freePlacement)
             {
-                if (!blocks.Any(b => !moved.Contains(b)) && PythonTreeCompiler.OutputSlot(source.Kind) == BlockSlotKind.Statement)
+                var position = Panel.DropPosition(e);
+                position = new Vector2(Mathf.Max(4, position.x), Mathf.Min(-4, position.y));
+                // Share the drop rule: the first-line anchor is a snap target only nearby.
+                if (SnapsToFirstPosition(moved, position))
                 {
-                    var first = source.IsPalette ? FirstPosition : Panel.DropPosition(e);
+                    var first = FirstPosition;
                     preview = new Rect(Mathf.Max(4, first.x), Mathf.Min(-4, first.y) + 3, source.preferredWidth, 6);
                     return true;
                 }
-                var position = Panel.DropPosition(e);
-                position = new Vector2(Mathf.Max(4, position.x), Mathf.Min(-4, position.y));
                 FindSnap(moved, position, out var after, out var before);
                 var target = after ? after : before;
                 if (!target) return false;
@@ -338,6 +384,7 @@ namespace CodingGame.BlockCoding
             else Panel.ShowMessage("이 위치에는 연결할 수 없습니다. 슬롯 모양과 분기 순서를 확인하세요.");
             e.Use();
         }
+        public void OnPointerDown(PointerEventData e) { if (ParentBlock) ParentBlock.BringToFront(); }
         public void OnPointerClick(PointerEventData e)
         {
             if (Panel && e.button == PointerEventData.InputButton.Right && ParentBlock && !ParentBlock.IsPalette) Panel.DeleteOne(ParentBlock);

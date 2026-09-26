@@ -34,6 +34,21 @@ namespace CodingGame.BlockCoding
         bool updating;
         bool initialized;
         bool loading;
+        bool restoringHistory;
+        internal sealed class Draft
+        {
+            public string name;
+            public List<CommandDropZone.DraftGroup> groups;
+        }
+        public sealed class EditHistory
+        {
+            internal readonly List<Draft> states = new List<Draft>();
+            internal int index = -1;
+        }
+        public EditHistory History { get; private set; } = new EditHistory();
+        public bool CanUndo => History.index > 0;
+        public bool CanRedo => History.index + 1 < History.states.Count;
+        public bool TextInputFocused => functionName.isFocused || program.AllBlocks().Any(b => b.TextInputFocused);
         public Func<string, IReadOnlyList<CodeBlock>, string> ApplyToTarget { get; set; }
         public Func<BlockKind, bool> IsAvailable { get; set; }
         public Func<BlockKind, int> Remaining { get; set; }
@@ -179,7 +194,51 @@ namespace CodingGame.BlockCoding
                 updating = false;
                 RefreshPalette();
                 LayoutRebuilder.MarkLayoutForRebuild(program.Rect);
+                if (!loading && !restoringHistory) RecordHistory();
             }
+        }
+        void RecordHistory()
+        {
+            var state = new Draft { name = functionName.text, groups = program.CaptureDraft() };
+            if (History.index >= 0 && SameDraft(History.states[History.index], state)) return;
+            History.states.RemoveRange(History.index + 1, History.states.Count - History.index - 1);
+            History.states.Add(state);
+            if (History.states.Count > 100) History.states.RemoveAt(0);
+            History.index = History.states.Count - 1;
+        }
+        static bool SameDraft(Draft left, Draft right) => left.name == right.name && left.groups.Count == right.groups.Count &&
+            left.groups.Zip(right.groups, (a, b) => a.position == b.position && SameBlocks(a.blocks, b.blocks)).All(equal => equal);
+        static bool SameBlocks(IReadOnlyList<CodeBlock> left, IReadOnlyList<CodeBlock> right) =>
+            left.Count == right.Count && left.Zip(right, SameBlock).All(equal => equal);
+        static bool SameBlock(CodeBlock left, CodeBlock right) => left == null || right == null ? left == right :
+            left.Kind == right.Kind && left.Value == right.Value && SameBlocks(left.Arguments, right.Arguments) && SameBlocks(left.Body, right.Body);
+        public void Undo() { if (CanUndo && !Dragged) { History.index--; RestoreHistory(); } }
+        public void Redo() { if (CanRedo && !Dragged) { History.index++; RestoreHistory(); } }
+        public void LoadHistory(EditHistory history)
+        {
+            if (history == null || history.index < 0) throw new ArgumentException("편집 기록이 비어 있습니다.");
+            Initialize(); History = history; RestoreHistory();
+        }
+        void RestoreHistory()
+        {
+            EndDrag(); restoringHistory = true; updating = true;
+            try
+            {
+                var draft = History.states[History.index];
+                functionName.SetTextWithoutNotify(draft.name);
+                selected = program;
+                program.RestoreDraft(draft.groups);
+                updating = false;
+                Changed(); // Revalidate syntax and current inventory before applying.
+            }
+            finally { updating = false; restoringHistory = false; }
+        }
+        public void ClearProgram()
+        {
+            EndDrag(); updating = true;
+            try { selected = program; program.Load(Array.Empty<CodeBlock>()); }
+            finally { updating = false; }
+            Changed();
         }
         public void Apply()
         {
@@ -202,6 +261,7 @@ namespace CodingGame.BlockCoding
         public void LoadProgram(string name, IReadOnlyList<CodeBlock> blocks)
         {
             loading = true;
+            History = new EditHistory();
             try
             {
                 Initialize(); EndDrag(); updating = true;

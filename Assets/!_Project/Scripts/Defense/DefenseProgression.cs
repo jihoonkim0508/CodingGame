@@ -10,6 +10,7 @@ namespace CodingGame.Defense
     [Serializable] public sealed class BlockDrop { public BlockKind kind; public int firstWave = 1, weight = 1; }
     [Serializable] public sealed class DefenseProgression
     {
+        public int initialCoins = 100, coinsPerKill = 5, upgradeCost = 50;
         public RobotStock[] robots = {
             new RobotStock { role = RobotRole.Buffer }, new RobotStock { role = RobotRole.Warrior, count = 2 },
             new RobotStock { role = RobotRole.Tank, count = 2 }, new RobotStock { role = RobotRole.Bomber, count = 2 },
@@ -36,6 +37,8 @@ namespace CodingGame.Defense
         };
         public void Validate()
         {
+            if (initialCoins < 0 || coinsPerKill < 0 || upgradeCost < 1)
+                throw new ArgumentException("코인 초기량·처치 보상은 0 이상, 강화 비용은 양수여야 합니다.");
             if (robots == null || robots.Any(r => r == null || !Enum.IsDefined(typeof(RobotRole), r.role) || r.count < 0) ||
                 initial == null || drops == null || drops.Length == 0 || !drops.Any(d => d != null && d.firstWave == 1) ||
                 initial.Any(s => s == null || !Consumes(s.kind) || s.count < 0) ||
