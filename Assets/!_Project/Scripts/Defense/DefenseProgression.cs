@@ -54,7 +54,7 @@ namespace CodingGame.Defense
             {
                 if (block == null) continue;
                 if (Consumes(block.Kind)) yield return Canonical(block.Kind);
-                // Method receiver belongs to the same variable block in the editor.
+                // 메서드 수신자는 편집기에서 같은 변수 블록이므로 아이템을 중복 차감하지 않습니다.
                 foreach (var kind in Used(block.Kind == BlockKind.Distance ? block.Arguments.Skip(1) : block.Arguments)) yield return kind;
                 foreach (var kind in Used(block.Body)) yield return kind;
             }

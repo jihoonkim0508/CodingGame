@@ -263,7 +263,7 @@ namespace CodingGame.Defense
         public float Amount, Radius;
     }
 
-    /// <summary>Standalone battle rules. No scene discovery or Unity state; all configuration is supplied.</summary>
+    /// <summary>Unity 화면과 분리된 전투 규칙입니다. 필요한 설정은 생성 시 전달받습니다.</summary>
     public sealed class DefenseSimulation
     {
         public const double TickDuration = 1.0 / 60;
@@ -288,7 +288,7 @@ namespace CodingGame.Defense
             {
                 if (Setup.WaveSeconds <= 0) return double.PositiveInfinity;
                 double remaining = Setup.WaveSeconds - (Phase == BattlePhase.Ready ? 0 : Time - waveStart);
-                // Match the deadline tolerance so a completed wave cannot display one extra second.
+                // 종료 판정과 같은 오차 범위를 사용해 종료된 웨이브에 1초가 남아 보이지 않게 합니다.
                 return remaining <= 1e-8 ? 0 : remaining;
             }
         }
@@ -322,7 +322,8 @@ namespace CodingGame.Defense
             kind = DefenseProgression.Canonical(kind);
             if (!Setup.PlayerFlow || !DefenseProgression.Consumes(kind)) return int.MaxValue;
             Inventory.TryGetValue(kind, out int owned);
-            int used = Robots.Where(r => r.Id != editingRobot && r.Program != null).Sum(r => DefenseProgression.Used(r.Program.CopyBlocks()).Count(k => k == kind));
+            // 편집 중인 로봇의 기존 예약은 제외하고, 다른 로봇이 사용하는 수량만 차감합니다.
+            int used = Robots.Where(r => r.Id != editingRobot && r.Program != null).Sum(r => r.Program.BlockCount(kind));
             return owned - used;
         }
         int nextId = 1;
@@ -406,7 +407,7 @@ namespace CodingGame.Defense
             var bot = Robots.Find(r => r.Id == id);
             if (bot == null) return false;
             if (Setup.PlayerFlow) GrantRobot(bot.Spec.role, 1);
-            // Inventory stores role counts. Return the paid upgrade cost before returning a Lv.1 item.
+            // 인벤토리는 종류별 수량만 보관하므로 강화 비용을 환급하고 Lv.1 로봇으로 돌려줍니다.
             Coins = (int)Math.Min(int.MaxValue, (long)Coins + bot.UpgradeCostPaid);
             return RemoveRobotInternal(id);
         }
@@ -457,6 +458,7 @@ namespace CodingGame.Defense
             if (bot == null || !CanEdit)
                 throw new FormatException("코드를 적용할 로봇이 없거나 전투가 종료되었습니다.");
             var program = new DefenseProgram(name, blocks);
+            // 문법과 재고 검증이 모두 끝난 뒤 교체해야 실패 시 이전 코드와 예약 수량이 유지됩니다.
             if (Setup.PlayerFlow) foreach (var group in DefenseProgression.Used(blocks).GroupBy(k => k))
                 if (group.Count() > Available(group.Key, id)) throw new FormatException(DefenseProgression.Label(group.Key) + " 블록 수량이 부족합니다. 다른 로봇의 예약 수량도 확인하세요.");
             bot.Program = program; bot.AutoExecute = false;
@@ -494,8 +496,7 @@ namespace CodingGame.Defense
             var compatibility = Compatibility(bot, action);
             if (compatibility == ActionCompatibility.Ineffective) return bot.LastResult = ActionResult.Ineffective;
             if (compatibility == ActionCompatibility.Undecided) return bot.LastResult = ActionResult.Undecided;
-            // Taking a blocking stance is immediate once the program reaches block().
-            // Only its stun/damage waits for the shared action cooldown.
+            // block()에 도달하면 즉시 몸으로 저지합니다. 스턴과 피해만 공통 재사용 시간을 따릅니다.
             if (action == RobotAction.Block && bot.Spec.role == RobotRole.Tank) bot.BlockingEnabled = true;
             if (Time + .000001 < bot.NextAction) return bot.LastResult = ActionResult.CoolingDown;
             float strength = Strength(bot, action);
@@ -526,7 +527,7 @@ namespace CodingGame.Defense
                 }
                 else if (action == RobotAction.Boom)
                 {
-                    // Snapshot the aim point and damage at launch. Projectiles never track a moving target.
+                    // 발사 시점의 위치와 피해를 저장합니다. 투사체는 움직이는 적을 추적하지 않습니다.
                     Projectiles.Add(new ProjectileState { Id = nextId++, Source = bot.Id, Origin = bot.Position, Destination = target.Position,
                         LaunchedAt = Time, ImpactAt = Time + Math.Max(TickDuration, Vector2.Distance(bot.Position, target.Position) / profile.projectileSpeed),
                         Damage = profile.damage * bot.DamageMultiplier * strength, Radius = profile.effectRadius });
@@ -574,7 +575,7 @@ namespace CodingGame.Defense
         {
             if (Phase != BattlePhase.Running || double.IsNaN(elapsed) || double.IsInfinity(elapsed) || elapsed < 0) return;
             accumulated += elapsed;
-            // Retain backlog rather than skipping spawns/movement after a slow rendered frame.
+            // 느린 프레임의 미처리 시간을 남겨 스폰과 이동 계산이 생략되지 않게 합니다.
             int budget = 600;
             while (accumulated + 1e-9 >= TickDuration && Phase == BattlePhase.Running && budget-- > 0)
             { accumulated -= TickDuration; Tick((float)TickDuration); }
@@ -614,14 +615,16 @@ namespace CodingGame.Defense
                 if (e.BlockedBy == 0) Move(e, e.Speed(Time) * dt);
             }
             if (BaseHealth <= 0) { Enemies.RemoveAll(e => !e.Active); Projectiles.Clear(); Phase = BattlePhase.Defeat; return; }
-            // Expiring waves cancel in-flight attacks before damage/drop resolution.
+            // 시간 종료 시 비행 중인 투사체를 취소해 종료 후 피해나 드랍이 발생하지 않게 합니다.
             bool timedOut = Setup.WaveSeconds > 0 && Time - waveStart + 1e-8 >= Setup.WaveSeconds;
             if (!timedOut) ResolveProjectiles();
             Enemies.RemoveAll(e => !e.Active);
-            if (RemainingEnemies == 0 || Setup.WaveSeconds > 0 && Time - waveStart + 1e-8 >= Setup.WaveSeconds)
+            int remaining = RemainingEnemies;
+            if (remaining == 0 || timedOut)
             {
-                LastWaveTimedOut = RemainingEnemies > 0;
-                LastSurvivors = RemainingEnemies; WaveSurvivors.Add(LastSurvivors);
+                LastWaveTimedOut = remaining > 0;
+                LastSurvivors = remaining; WaveSurvivors.Add(LastSurvivors);
+                // 살아 있는 적과 아직 생성되지 않은 적을 다음 웨이브로 이월하며 처치 보상은 주지 않습니다.
                 carry.Clear();
                 foreach (var group in Enemies.Where(e => e.Active).GroupBy(e => (e.DefinitionIndex, e.RouteIndex)))
                     carry.Add(new SpawnGroup { Enemy = group.First().Spec.Copy(), DefinitionIndex = group.Key.DefinitionIndex, RouteIndex = group.Key.RouteIndex, Count = group.Count(), Interval = .4f });
@@ -660,7 +663,7 @@ namespace CodingGame.Defense
             foreach (var bot in Robots)
             {
                 if (bot.Spec.role != RobotRole.Tank || !bot.BlockingEnabled) continue;
-                // Only count occupied slots for a tank this movement can actually reach.
+                // 이번 이동으로 닿는 탱커에 대해서만 저지 인원수를 계산합니다.
                 if (!Rules.CircleEntry(start, end, bot.Position, bot.Spec.blockRadius, out float t) || t >= nearest) continue;
                 if (Enemies.Count(other => other.Active && other.BlockedBy == bot.Id) >= bot.Spec.blockCapacity) continue;
                 nearest = t; chosen = bot;

@@ -123,6 +123,8 @@ static class ProgramCheck
         Assert(other.Program==null&&other.Executions==0,"apply only changes selected robot");
         var copied=robot.Program.CopyBlocks();copied[0].Kind=BlockKind.Buff;
         Assert(robot.Program.CopyBlocks()[0].Kind==BlockKind.Shot,"editing copy does not mutate applied program");
+        Assert(robot.Program.BlockCount(BlockKind.Shot)==1&&robot.Program.BlockCount(BlockKind.Attack)==1&&robot.Program.BlockCount(BlockKind.Buff)==0,
+            "cached inventory counts remain canonical and isolated from source and editable copies");
         var previous=robot.Program; bool rejected=false;
         try{sim.ApplyProgram(robot.Id,"bad",new[]{new CodeBlock(BlockKind.Break)});}catch(FormatException){rejected=true;}
         Assert(rejected&&robot.Program==previous,"invalid replacement keeps previous applied code");
@@ -162,6 +164,12 @@ static class ProgramCheck
         condition.Body.Add(new CodeBlock(BlockKind.Attack,"0",new CodeBlock(BlockKind.Variable,"enemy")));
         sim.ApplyProgram(robot.Id,"targeted",new[]{declaration,condition,new CodeBlock(BlockKind.Wait,"0",N("100"))});sim.Start();Tick(sim,10);
         Assert(robot.Executions==1&&robot.Program.Fault==null,"enemy variables, distances, coordinates and targeted attack execute");
+        // 본문과 매개변수를 모두 세되 get_distance()의 수신자는 변수 아이템 하나로 취급합니다.
+        var used = DefenseProgression.Used(robot.Program.CopyBlocks()).ToArray();
+        Assert(Enum.GetValues(typeof(BlockKind)).Cast<BlockKind>().All(kind => robot.Program.BlockCount(kind)==used.Count(k=>k==DefenseProgression.Canonical(kind))),
+            "cached counts match nested bodies, parameters and canonical aliases");
+        Assert(robot.Program.BlockCount(BlockKind.Variable)==2&&robot.Program.BlockCount(BlockKind.Number)==2,
+            "method receiver is not charged twice and nested parameters are counted");
 
         sim.ApplyProgram(robot.Id,"invalid_wait",new[]{new CodeBlock(BlockKind.Wait,"0",N("-1"))});Tick(sim,1);
         Assert(robot.Program.Fault!=null&&sim.Phase==BattlePhase.Running,"runtime diagnostic stops only offending program");

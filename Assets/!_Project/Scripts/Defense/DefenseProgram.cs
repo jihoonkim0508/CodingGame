@@ -7,7 +7,7 @@ using CodingGame.BlockCoding;
 
 namespace CodingGame.Defense
 {
-    /// <summary>Executes the validated block tree with a bounded budget on the battle clock.</summary>
+    /// <summary>검증된 블록 코드를 전투 시간에 맞춰 실행하며, 틱당 명령 수를 제한합니다.</summary>
     public sealed class DefenseProgram
     {
         enum Op { Statement, Condition, Jump, ForInit, ForTest, ForNext }
@@ -15,6 +15,7 @@ namespace CodingGame.Defense
         sealed class LoopState { public double Count, Index; }
         sealed class EnemyValue { public int Id; }
         readonly List<CodeBlock> blocks;
+        readonly Dictionary<BlockKind, int> blockCounts;
         readonly List<Instruction> code = new List<Instruction>();
         readonly Dictionary<string, object> variables = new Dictionary<string, object>();
         readonly Dictionary<int, LoopState> loops = new Dictionary<int, LoopState>();
@@ -25,6 +26,7 @@ namespace CodingGame.Defense
         public string Fault { get; private set; }
         public int StepsLastTick { get; private set; }
         public bool IsEmpty => blocks.Count == 0;
+        public int BlockCount(BlockKind kind) => blockCounts.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0;
         public double WaitRemaining(double time) => Math.Max(0, wakeTime - time);
         public IReadOnlyList<CodeBlock> CopyBlocks() => blocks.Select(Clone).ToList();
         public const int InstructionBudget = 64;
@@ -34,6 +36,8 @@ namespace CodingGame.Defense
             Source = PythonTreeCompiler.Compile(name, program);
             Name = PythonTreeCompiler.NormalizeIdentifier(name);
             blocks = program.Select(Clone).ToList();
+            // 적용된 코드는 수정되지 않으므로 아이템 수량도 한 번만 계산합니다.
+            blockCounts = DefenseProgression.Used(blocks).GroupBy(kind => kind).ToDictionary(group => group.Key, group => group.Count());
             EmitSuite(blocks, null, null);
         }
         static CodeBlock Clone(CodeBlock b) => new CodeBlock(b.Kind, b.Value, b.Arguments.Select(Clone).ToArray()) { Body = b.Body.Select(Clone).ToList() };
@@ -88,6 +92,7 @@ namespace CodingGame.Defense
             if (Fault != null || sim.Phase != BattlePhase.Running || sim.Time + 1e-9 < wakeTime) return;
             try
             {
+                // 무한 반복문도 한 틱을 독점하지 못하도록 실행 예산을 나눕니다.
                 while (StepsLastTick++ < InstructionBudget)
                 {
                     if (pc == code.Count) { pc = 0; variables.Clear(); loops.Clear(); return; }
@@ -121,11 +126,12 @@ namespace CodingGame.Defense
                             if (block.Kind == BlockKind.Attack)
                             {
                                 target = ((EnemyValue)Value(block.Arguments[0], sim, robot)).Id;
-                                // A missing/stale explicit target never silently selects a different enemy.
+                                // 지정한 적이 사라져도 다른 적으로 자동 교체하지 않습니다.
                                 if (target == 0 || !sim.Enemies.Any(e => e.Id == target && e.Active))
                                 { robot.LastResult = ActionResult.NoTarget; pc++; return; }
                             }
                             var result = sim.RequestAction(robot.Id, action, target);
+                            // 재사용 대기 중에는 같은 명령에서 기다리고, 실행 결과가 나오면 다음으로 이동합니다.
                             if (result != ActionResult.CoolingDown) pc++;
                             return;
                     }

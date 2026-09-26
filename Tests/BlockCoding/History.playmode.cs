@@ -62,6 +62,18 @@ try
     Check(battle.PlaceRobot(4, new UnityEngine.Vector3(-8, 0, 6)), "place after restart");
     battle.SelectRobot(battle.SelectedId);
     Check(panel.Program.Blocks.Count == 0 && !panel.CanUndo, "restart clears drafts even if robot id is reused");
+    // 도메인 리로드 직후처럼 UI는 열려 있지만 두 세션이 모두 사라진 상태를 재현합니다.
+    var session = battle.Simulation;
+    var simulationProperty = battle.GetType().GetProperty("Simulation");
+    var privateInstance = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+    try
+    {
+        simulationProperty.SetValue(battle, null);
+        editor.GetType().GetField("editingSession", privateInstance).SetValue(editor, null);
+        editor.GetType().GetMethod("Update", privateInstance).Invoke(editor, null);
+        Check(!editor.IsOpen, "missing sessions close editor without dereferencing null");
+    }
+    finally { simulationProperty.SetValue(battle, session); }
     return "PASS: " + checks + " editor history and draft checks";
 }
 finally { battle.Restart(); }

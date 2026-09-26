@@ -8,7 +8,7 @@ using Point = System.Numerics.Vector2;
 
 namespace CodingGame.Defense
 {
-    // An isolated copy of the selected program: no inventory, rewards or battle state is shared.
+    // 선택한 코드의 복사본을 시연합니다. 실제 전투의 인벤토리·보상·상태와 분리합니다.
     public sealed class DefenseAttackPreview : MonoBehaviour
     {
         [SerializeField] DefenseBattle battle;
@@ -108,7 +108,7 @@ namespace CodingGame.Defense
             bool wasEmpty = simulation.RemainingEnemies == 0;
             simulation.Advance(dt);
             if (simulation.RemainingEnemies > 0) { emptyElapsed = 0; return; }
-            // Count a full second after the last enemy disappears, including after the battle clock stops.
+            // 마지막 적이 사라진 뒤 실제 시간으로 1초를 기다립니다. 전투 시계가 멈춰도 재시작합니다.
             if (wasEmpty) emptyElapsed += dt;
             if (emptyElapsed + .000001f >= 1) ResetPreview();
         }

@@ -23,6 +23,7 @@ namespace CodingGame.Defense
         public bool IsOpen => editorRoot && editorRoot.activeSelf;
         public int EditingId => editingId;
         public CommandCodingPanel Panel => panel;
+        bool HasCurrentSession => editingSession != null && editingSession == battle.Simulation;
         void Start()
         {
             if (!battle || !panel || !editorRoot || !title || !inventory || !closeButton || !automaticButton || !recallButton)
@@ -61,23 +62,23 @@ namespace CodingGame.Defense
         }
         string Apply(string name, IReadOnlyList<CodeBlock> blocks)
         {
-            if (!IsOpen || editingSession != battle.Simulation) throw new FormatException("로봇을 다시 선택하세요.");
+            if (!IsOpen || !HasCurrentSession) throw new FormatException("로봇을 다시 선택하세요.");
             editingSession.ApplyProgram(editingId, name, blocks); RefreshInventory();
             battle.NotifyCodeApplied(editingId, blocks.Count == 0);
             return blocks.Count == 0 ? "코드 없음 · 행동하지 않음" : "자동 적용됨";
         }
         public void Close(bool resume = true)
         {
-            if (IsOpen && editingSession != null && editingSession == battle.Simulation && editingSession.Robots.Exists(r => r.Id == editingId))
+            if (IsOpen && HasCurrentSession && editingSession.Robots.Exists(r => r.Id == editingId))
                 drafts[editingId] = panel.History;
             if (IsOpen) battle.EndCodeView();
             if (editorRoot) editorRoot.SetActive(false);
             editingId = 0; editingSession = null;
         }
-        // Retains the serialized button connection; the player operation now clears code.
+        // 기존 Inspector 버튼 연결은 유지하고, 실제 동작은 코드 비우기로 사용합니다.
         public void RestoreAutomatic()
         {
-            if (!IsOpen || editingSession != battle.Simulation) return;
+            if (!IsOpen || !HasCurrentSession) return;
             panel.ClearProgram();
             RefreshInventory();
             if (panel.IsApplied) panel.ShowMessage("코드를 비웠습니다. 블록 예약이 해제됩니다.");
@@ -86,11 +87,12 @@ namespace CodingGame.Defense
         {
             var sim = battle.Simulation;
             if (!IsOpen) return;
-            if (editingSession != sim || !sim.CanEdit || !sim.Robots.Exists(r => r.Id == editingId)) { Close(false); return; }
+            // 재시작이나 도메인 리로드로 세션이 사라지면 이전 로봇 편집을 즉시 종료합니다.
+            if (!HasCurrentSession || !sim.CanEdit || !sim.Robots.Exists(r => r.Id == editingId)) { Close(false); return; }
             var keyboard = Keyboard.current;
             if (keyboard == null) return;
             if (keyboard.escapeKey.wasPressedThisFrame) { Close(); return; }
-            // Text fields keep their own editing shortcuts; block history acts on the workspace.
+            // 텍스트 입력 중에는 입력창 단축키를 유지하고, 그 밖에서만 블록 실행 취소를 처리합니다.
             if (panel.TextInputFocused || keyboard.altKey.isPressed || keyboard.leftMetaKey.isPressed || keyboard.rightMetaKey.isPressed) return;
             if (keyboard.ctrlKey.isPressed)
             {
