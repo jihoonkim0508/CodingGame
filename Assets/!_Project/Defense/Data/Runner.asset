@@ -16,8 +16,9 @@ MonoBehaviour:
   description: "\uCCB4\uB825\uC740 \uB0AE\uC9C0\uB9CC \uBE60\uB974\uAC8C \uC774\uB3D9\uD569\uB2C8\uB2E4.
     \uD3ED\uD0C4\uC744 \uD53C\uD558\uAE30 \uC27D\uC2B5\uB2C8\uB2E4."
   stats:
-    health: 28
-    speed: 2.8
+    type: 1
+    health: 35
+    speed: 1.5
     damage: 6
     attackInterval: 1.2
     leakDamage: 1

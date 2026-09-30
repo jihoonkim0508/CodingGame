@@ -77,6 +77,42 @@ static class CampaignCheck
     public static void Run()
     {
         CheckUpgrades();
+        var scaledSetup=Setup();scaledSetup.Stage=2;scaledSetup.WaveSeconds=.2f;
+        var scaled=new DefenseSimulation(scaledSetup);
+        Assert(Math.Abs(scaled.UpcomingWave[0].Enemy.health-11.3625f)<.001f&&
+            Math.Abs(scaled.UpcomingWave[0].Enemy.speed-1.02375f)<.001f,"stage and first-wave enemy scaling");
+        Assert(scaledSetup.Waves[0][0].Enemy.health==10&&scaledSetup.Waves[0][0].Enemy.speed==1,"base enemy stats remain unchanged");
+        scaledSetup.Waves[0][0].Enemy.type=EnemyType.Fast;
+        var runner=new DefenseSimulation(scaledSetup);
+        Assert(Math.Abs(runner.UpcomingWave[0].Enemy.health-8.521875f)<.001f&&
+            Math.Abs(runner.UpcomingWave[0].Enemy.speed-1.330875f)<.001f,"fast enemy type multipliers");
+        scaledSetup.Waves[0][0].Enemy.type=EnemyType.Tank;
+        var heavy=new DefenseSimulation(scaledSetup);
+        Assert(Math.Abs(heavy.UpcomingWave[0].Enemy.health-17.04375f)<.001f&&
+            Math.Abs(heavy.UpcomingWave[0].Enemy.speed-.7678125f)<.001f,"tank enemy type multipliers");
+        scaledSetup.Waves[0][0].Enemy.type=EnemyType.Normal;
+        Place(scaled,RobotRole.Tank);scaled.Start();RunWave(scaled);scaled.ClaimRewards();
+        Assert(scaled.UpcomingWave.Sum(g=>g.Count)==5&&
+            Math.Abs(scaled.UpcomingWave.Single(g=>g.Count==2).Enemy.health-11.3625f)<.001f&&
+            Math.Abs(scaled.UpcomingWave.Single(g=>g.Count==3).Enemy.health-13.24f)<.001f,
+            "carried enemies keep prior stats while new enemies use next-wave scaling");
+        var cappedSetup=Setup();cappedSetup.Stage=4;cappedSetup.WaveSeconds=.1f;
+        var capped=new DefenseSimulation(cappedSetup);Place(capped,RobotRole.Tank);
+        for(int wave=0;wave<4;wave++) { capped.Start();RunWave(capped);capped.ClaimRewards(); }
+        Assert(Math.Abs(capped.UpcomingWave[0].Enemy.health-23.965f)<.001f&&
+            Math.Abs(capped.UpcomingWave[0].Enemy.speed-1.6555f)<.001f,
+            "final wave uses tuned stage progress formula");
+        var carriedSetup=Setup();carriedSetup.Stage=2;carriedSetup.WaveSeconds=1.1f;
+        var carried=new DefenseSimulation(carriedSetup);Place(carried,RobotRole.Tank);
+        for(int wave=0;wave<2;wave++) { carried.Start();RunWave(carried);carried.ClaimRewards(); }
+        Assert(carried.UpcomingWave.Any(g=>g.Count==2&&Math.Abs(g.Enemy.health-11.3625f)<.001f)&&
+            carried.UpcomingWave.Any(g=>g.Count==3&&Math.Abs(g.Enemy.health-13.24f)<.001f),
+            "carried enemies from separate waves retain their own stats");
+        var neededSetup=Setup();neededSetup.Waves[0][0].Count=5;
+        var needed=new DefenseSimulation(neededSetup);var neededBot=Place(needed,RobotRole.Shooter);
+        needed.ApplyProgram(neededBot.Id,"fire",new[]{new CodeBlock(BlockKind.Shot)});needed.Start();RunWave(needed);
+        Assert(needed.PendingDrops.Take(4).SequenceEqual(new[]{BlockKind.Boom,BlockKind.Buff,BlockKind.Block,BlockKind.Boom}),
+            "drops fill missing native actions before surplus blocks");
         var sim=new DefenseSimulation(Setup()); sim.Start();Assert(sim.Phase==BattlePhase.Ready,"no robots start rejected");
         var bot=Place(sim,RobotRole.Shooter);
         Assert(bot.Program==null&&!bot.AutoExecute&&!bot.BlockingEnabled,"placed robot is empty");

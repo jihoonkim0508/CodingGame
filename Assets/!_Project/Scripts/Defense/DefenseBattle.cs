@@ -125,7 +125,7 @@ namespace CodingGame.Defense
         BattleSetup MakeSetup()
         {
             var bounds = deploymentArea.bounds;
-            return new BattleSetup { PlayerFlow = true, WaveSeconds = waveSeconds, Progression = progression, DropSeed = Environment.TickCount,
+            return new BattleSetup { PlayerFlow = true, Stage = stage, WaveSeconds = waveSeconds, Progression = progression, DropSeed = Environment.TickCount,
                 Min = new Point(bounds.min.x, bounds.min.z), Max = new Point(bounds.max.x, bounds.max.z),
                 Routes = routes.Select(r => r.Read()).ToArray(), BaseHealth = baseHealth, RobotLimit = robotLimit,
                 ActionProfiles = robots.GroupBy(r => r.stats.role).Select(g => g.First().stats.Copy()).ToArray(),

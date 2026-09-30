@@ -6,263 +6,6 @@ using CodingGame.BlockCoding;
 
 namespace CodingGame.Defense
 {
-    public enum RobotRole { Buffer, Warrior, Tank, Bomber, Shooter, Utility }
-    public enum RobotAction { Buff, Slash, Block, Boom, Attack, Slow }
-    public enum ActionCompatibility { Native, Reduced, Ineffective, Undecided }
-    public enum BattlePhase { Ready, Running, Paused, Victory, Defeat, Reward }
-    public enum ActionResult { Executed, CoolingDown, NoTarget, Ineffective, Undecided, Unavailable }
-
-    [Serializable]
-    public sealed class RobotSpec
-    {
-        public RobotRole role;
-        public float range = 4, damage = 12, interval = 1, radius = .45f;
-        public float health = 100, blockRadius = 1.1f;
-        public int blockCapacity = 3;
-        public float effectRadius = 2, duration = 2, slowMultiplier = .5f;
-        public float projectileSpeed = 4;
-        public float buffDamage = 1.25f, buffRange = 1.15f, buffInterval = .8f;
-        public RobotSpec Copy() => (RobotSpec)MemberwiseClone();
-        public RobotAction NativeAction => Rules.NativeAction(role);
-        public void Validate()
-        {
-            if (!Enum.IsDefined(typeof(RobotRole), role) || !Rules.Positive(range) || !Rules.Nonnegative(damage) ||
-                !Rules.Positive(interval) || !Rules.Positive(radius) || !Rules.Positive(effectRadius) || !Rules.Positive(projectileSpeed) ||
-                !Rules.Positive(duration) || !Rules.Positive(slowMultiplier) || slowMultiplier > 1 ||
-                !Rules.Positive(buffDamage) || buffDamage < 1 || !Rules.Positive(buffRange) || buffRange < 1 ||
-                !Rules.Positive(buffInterval) || buffInterval > 1 ||
-                (role == RobotRole.Tank && (!Rules.Positive(health) || !Rules.Positive(blockRadius) || blockCapacity < 1)))
-                throw new ArgumentException("로봇 수치가 올바르지 않습니다: " + role);
-        }
-    }
-
-    [Serializable]
-    public sealed class EnemySpec
-    {
-        public float health = 40, speed = 1.7f, damage = 8, attackInterval = 1;
-        public int leakDamage = 1;
-        public EnemySpec Copy() => (EnemySpec)MemberwiseClone();
-        public void Validate()
-        {
-            if (!Rules.Positive(health) || !Rules.Positive(speed) || !Rules.Nonnegative(damage) ||
-                !Rules.Positive(attackInterval) || leakDamage < 1) throw new ArgumentException("적 수치가 올바르지 않습니다.");
-        }
-    }
-
-    [Serializable]
-    public sealed class ActionPermission
-    {
-        public RobotRole role;
-        public RobotAction action;
-        public float strength = .5f;
-    }
-
-    public static class Rules
-    {
-        public static bool Nonnegative(float v) => !float.IsNaN(v) && !float.IsInfinity(v) && v >= 0;
-        public static bool Positive(float v) => Nonnegative(v) && v > 0;
-        public static bool Finite(float v) => !float.IsNaN(v) && !float.IsInfinity(v);
-        public static RobotAction NativeAction(RobotRole role) => (RobotAction)(int)role;
-        public static ActionCompatibility Compatibility(RobotRole role, RobotAction action, IReadOnlyList<ActionPermission> permissions = null)
-        {
-            if (NativeAction(role) == action) return ActionCompatibility.Native;
-            if ((role == RobotRole.Bomber || role == RobotRole.Shooter) && action == RobotAction.Block ||
-                role == RobotRole.Tank && action == RobotAction.Buff) return ActionCompatibility.Ineffective;
-            if (action != RobotAction.Block && action != RobotAction.Buff) return ActionCompatibility.Reduced;
-            if (permissions != null)
-                foreach (var entry in permissions)
-                    if (entry.role == role && entry.action == action) return ActionCompatibility.Reduced;
-            return ActionCompatibility.Undecided;
-        }
-        public static float SegmentDistance(Vector2 p, Vector2 a, Vector2 b)
-        {
-            var d = b - a;
-            var t = d.LengthSquared() > .000001f ? Vector2.Dot(p - a, d) / d.LengthSquared() : 0;
-            return Vector2.Distance(p, a + d * Math.Max(0, Math.Min(1, t)));
-        }
-        public static bool CircleEntry(Vector2 a, Vector2 b, Vector2 center, float radius, out float t)
-        {
-            var f = a - center; var d = b - a;
-            t = 0;
-            if (f.LengthSquared() <= radius * radius) return true;
-            var aa = d.LengthSquared();
-            if (aa < .000001f) return false;
-            var bb = 2 * Vector2.Dot(f, d); var c = f.LengthSquared() - radius * radius;
-            var discriminant = bb * bb - 4 * aa * c;
-            if (discriminant < 0) return false;
-            t = (-bb - (float)Math.Sqrt(discriminant)) / (2 * aa);
-            return t >= 0 && t <= 1;
-        }
-        public static string ActionName(RobotAction action)
-        {
-            switch (action)
-            {
-                case RobotAction.Buff: return "buff()";
-                case RobotAction.Slash: return "slash()";
-                case RobotAction.Block: return "block()";
-                case RobotAction.Boom: return "Boom()";
-                case RobotAction.Attack: return "Attack()";
-                default: return "slow()";
-            }
-        }
-    }
-
-    public sealed class Route
-    {
-        public readonly Vector2[] Points;
-        public readonly float HalfWidth;
-        public Route(IEnumerable<Vector2> points, float halfWidth)
-        {
-            Points = points.ToArray(); HalfWidth = halfWidth;
-            if (Points.Length < 2 || !Rules.Positive(halfWidth)) throw new ArgumentException("경로에는 2개 이상의 지점과 양수 폭이 필요합니다.");
-            for (int i = 0; i < Points.Length; i++)
-            {
-                if (float.IsNaN(Points[i].X) || float.IsInfinity(Points[i].X) || float.IsNaN(Points[i].Y) || float.IsInfinity(Points[i].Y))
-                    throw new ArgumentException("경로 좌표가 유효하지 않습니다.");
-                if (i > 0 && Vector2.DistanceSquared(Points[i - 1], Points[i]) < .0001f)
-                    throw new ArgumentException("연속 경로 지점은 달라야 합니다.");
-            }
-        }
-        public float Distance(Vector2 p)
-        {
-            float distance = float.MaxValue;
-            for (int i = 1; i < Points.Length; i++) distance = Math.Min(distance, Rules.SegmentDistance(p, Points[i - 1], Points[i]));
-            return distance;
-        }
-    }
-
-    public sealed class SpawnGroup
-    {
-        public EnemySpec Enemy;
-        public int DefinitionIndex, RouteIndex, Count;
-        public float Delay, Interval;
-    }
-
-    public sealed class BattleSetup
-    {
-        public Vector2 Min, Max;
-        public Route[] Routes;
-        public SpawnGroup[][] Waves;
-        public int BaseHealth = 12, RobotLimit = 18;
-        public bool PlayerFlow;
-        public float WaveSeconds;
-        public int DropSeed;
-        public DefenseProgression Progression = new DefenseProgression();
-        public ActionPermission[] Permissions = Array.Empty<ActionPermission>();
-        public RobotSpec[] ActionProfiles = Array.Empty<RobotSpec>();
-        public PlacementObstacle[] Obstacles = Array.Empty<PlacementObstacle>();
-        public void Validate()
-        {
-            if (!Rules.Nonnegative(WaveSeconds)) throw new ArgumentException("웨이브 시간은 0 이상이어야 합니다.");
-            if (PlayerFlow) { if (Progression == null) throw new ArgumentException("보상 설정 누락"); Progression.Validate(); }
-            if (!Rules.Finite(Min.X) || !Rules.Finite(Min.Y) || !Rules.Finite(Max.X) || !Rules.Finite(Max.Y) ||
-                Min.X >= Max.X || Min.Y >= Max.Y || BaseHealth < 1 || RobotLimit < 1 || Routes == null || Routes.Length == 0 ||
-                Routes.Any(r => r == null) || Waves == null || Waves.Length == 0 || Permissions == null || Obstacles == null)
-                throw new ArgumentException("전장 영역·경로·웨이브·제한 설정을 확인하세요.");
-            foreach (var area in Obstacles)
-                if (area == null || !Rules.Finite(area.Min.X) || !Rules.Finite(area.Min.Y) || !Rules.Finite(area.Max.X) ||
-                    !Rules.Finite(area.Max.Y) || area.Min.X >= area.Max.X || area.Min.Y >= area.Max.Y)
-                    throw new ArgumentException("설치 금지 영역을 확인하세요.");
-            if (ActionProfiles == null || ActionProfiles.Any(p => p == null) ||
-                ActionProfiles.Select(p => p.role).Distinct().Count() != 6 || ActionProfiles.Length != 6)
-                throw new ArgumentException("행동 기준 수치는 역할별로 하나씩 연결하세요.");
-            foreach (var profile in ActionProfiles) profile.Validate();
-            foreach (var wave in Waves)
-            {
-                if (wave == null || wave.Length == 0) throw new ArgumentException("빈 웨이브는 허용하지 않습니다.");
-                foreach (var g in wave)
-                {
-                    if (g == null || g.Enemy == null || g.Count < 1 || g.RouteIndex < 0 || g.RouteIndex >= Routes.Length ||
-                        !Rules.Nonnegative(g.Delay) || !Rules.Positive(g.Interval)) throw new ArgumentException("스폰 항목이 올바르지 않습니다.");
-                    g.Enemy.Validate();
-                }
-            }
-            var seen = new HashSet<string>();
-            foreach (var p in Permissions)
-                if (p == null || !Enum.IsDefined(typeof(RobotRole), p.role) || !Enum.IsDefined(typeof(RobotAction), p.action) ||
-                    !Rules.Positive(p.strength) || p.strength >= 1 || !seen.Add(p.role + ":" + p.action) ||
-                    Rules.Compatibility(p.role, p.action) != ActionCompatibility.Undecided)
-                    throw new ArgumentException("비전문 허용표는 미정 조합에 0~1 미만 효율로만 추가하세요.");
-        }
-    }
-
-    public sealed class PlacementObstacle
-    {
-        public Vector2 Min, Max;
-        public bool Overlaps(Vector2 position, float radius)
-        {
-            var nearest = Vector2.Clamp(position, Min, Max);
-            return Vector2.DistanceSquared(position, nearest) <= radius * radius;
-        }
-    }
-
-    public sealed class BuffState
-    {
-        public int Source;
-        public double Until;
-        public float Damage, Range, Interval;
-    }
-    public sealed class MovementEffect
-    {
-        public int Source;
-        public double SlowUntil, StunUntil;
-        public float Multiplier = 1;
-    }
-    public sealed class RobotState
-    {
-        public const int MaxLevel = 2;
-        public const float UpgradeMultiplier = 1.2f;
-        public int Level { get; internal set; } = 1;
-        public bool IsMaxLevel => Level >= MaxLevel;
-        public float LevelMultiplier => Level == 1 ? 1 : UpgradeMultiplier;
-        public float MaxHealth => Spec.health * LevelMultiplier;
-        internal int UpgradeCostPaid;
-        public int Id, DefinitionIndex;
-        public Vector2 Position;
-        public RobotSpec Spec;
-        public RobotAction Action;
-        public float RangeSetting;
-        public float? Health;
-        public double NextAction;
-        public bool AutoExecute;
-        public bool BlockingEnabled;
-        public ActionResult LastResult;
-        public int Executions;
-        public readonly List<BuffState> Buffs = new List<BuffState>();
-        public DefenseProgram Program;
-        public float Range => RangeSetting * Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Range));
-        public float DamageMultiplier => (Spec.role == RobotRole.Shooter ? Spec.range / Range : 1) *
-            Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Damage)) * LevelMultiplier;
-        public float Damage => Spec.damage * DamageMultiplier;
-        public float Interval => Spec.interval * Buffs.Aggregate(1f, (v, b) => Math.Min(v, b.Interval));
-    }
-    public sealed class EnemyState
-    {
-        public int Id, DefinitionIndex, RouteIndex, NextPoint = 1, BlockedBy;
-        public Vector2 Position;
-        public EnemySpec Spec;
-        public float Health;
-        public double NextAttack;
-        public bool Active = true;
-        public readonly List<MovementEffect> Effects = new List<MovementEffect>();
-        public bool Stunned(double time) => Effects.Any(e => e.StunUntil > time);
-        public float Speed(double time) => Spec.speed * Effects.Where(e => e.SlowUntil > time).Aggregate(1f, (v, e) => Math.Min(v, e.Multiplier));
-    }
-    public sealed class ProjectileState
-    {
-        public int Id, Source;
-        public Vector2 Origin, Destination;
-        public double LaunchedAt, ImpactAt;
-        public float Damage, Radius;
-    }
-    public sealed class CombatEvent
-    {
-        public string Kind;
-        public int Source, Target;
-        public Vector2 Position;
-        public float Amount, Radius;
-    }
-
     /// <summary>Unity 화면과 분리된 전투 규칙입니다. 필요한 설정은 생성 시 전달받습니다.</summary>
     public sealed class DefenseSimulation
     {
@@ -297,9 +40,9 @@ namespace CodingGame.Defense
         public bool LastWaveTimedOut { get; private set; }
         public readonly List<int> WaveSurvivors = new List<int>();
         readonly List<SpawnGroup> carry = new List<SpawnGroup>();
-        SpawnGroup[] currentWave;
+        SpawnGroup[] currentWave, nextWave;
         public IReadOnlyList<SpawnGroup> UpcomingWave => Phase == BattlePhase.Ready ? currentWave :
-            WaveIndex + 1 < Setup.Waves.Length ? Setup.Waves[WaveIndex + 1].Concat(carry).ToArray() : Array.Empty<SpawnGroup>();
+            nextWave;
         public readonly Dictionary<BlockKind, int> Inventory = new Dictionary<BlockKind, int>();
         public readonly Dictionary<RobotRole, int> RobotInventory = new Dictionary<RobotRole, int>();
         public int RobotAvailable(RobotRole role) => !Setup.PlayerFlow ? int.MaxValue : RobotInventory.TryGetValue(role, out int count) ? count : 0;
@@ -314,7 +57,6 @@ namespace CodingGame.Defense
             kind = DefenseProgression.Canonical(kind); Inventory.TryGetValue(kind, out int old); Inventory[kind] = checked(old + count);
         }
         public readonly List<BlockKind> PendingDrops = new List<BlockKind>();
-        readonly Random dropRandom;
         public bool CanPrepare => Phase == BattlePhase.Ready;
         public bool CanEdit => !Setup.PlayerFlow ? Phase != BattlePhase.Victory && Phase != BattlePhase.Defeat : CanPrepare;
         public int Available(BlockKind kind, int editingRobot = 0)
@@ -334,7 +76,6 @@ namespace CodingGame.Defense
         {
             setup.Validate(); Setup = setup; BaseHealth = setup.BaseHealth;
             Coins = setup.PlayerFlow ? setup.Progression.initialCoins : 0;
-            dropRandom = new Random(setup.DropSeed);
             if (setup.PlayerFlow) foreach (var stock in setup.Progression.initial)
             { var kind = DefenseProgression.Canonical(stock.kind); Inventory.TryGetValue(kind, out int old); Inventory[kind] = old + stock.count; }
             if (setup.PlayerFlow) foreach (var stock in setup.Progression.robots)
@@ -343,8 +84,27 @@ namespace CodingGame.Defense
         }
         void PrepareWave()
         {
-            currentWave = Setup.Waves[WaveIndex].Concat(carry).ToArray();
+            currentWave = nextWave ?? ScaledWave(WaveIndex);
+            nextWave = WaveIndex + 1 < Setup.Waves.Length ? ScaledWave(WaveIndex + 1) : Array.Empty<SpawnGroup>();
             carry.Clear(); groupCounts = new int[currentWave.Length]; waveStart = Time;
+        }
+        SpawnGroup[] ScaledWave(int waveIndex)
+        {
+            if (Setup.Stage == 0) return Setup.Waves[waveIndex];
+            int progress = (Setup.Stage - 1) * 5 + waveIndex;
+            // 5웨이브 보스 배율은 기획서에서 미정이므로 별도 보정을 적용하지 않습니다.
+            float waveMultiplier = waveIndex < 4 ? new[] { .9f, 1f, 1.05f, 1.15f }[waveIndex] : 1f;
+            return Setup.Waves[waveIndex].Select(group =>
+            {
+                var enemy = group.Enemy.Copy();
+                float typeHealth = enemy.type == EnemyType.Fast ? .75f : enemy.type == EnemyType.Tank ? 1.5f : 1f;
+                float typeSpeed = enemy.type == EnemyType.Fast ? 1.3f : enemy.type == EnemyType.Tank ? .75f : 1f;
+                enemy.health *= (1 + .045f * progress + .0015f * progress * progress) * typeHealth * waveMultiplier;
+                enemy.speed = Math.Min(enemy.speed * (1 + .025f * progress + .0005f * progress * progress) * typeSpeed * waveMultiplier,
+                    group.Enemy.speed * 1.7f);
+                return new SpawnGroup { Enemy = enemy, DefinitionIndex = group.DefinitionIndex, RouteIndex = group.RouteIndex,
+                    Count = group.Count, Delay = group.Delay, Interval = group.Interval };
+            }).ToArray();
         }
         public string StartError()
         {
@@ -564,12 +324,37 @@ namespace CodingGame.Defense
                 if (Setup.PlayerFlow)
                 {
                     Coins = (int)Math.Min(int.MaxValue, (long)Coins + Setup.Progression.coinsPerKill);
-                    var pool = Setup.Progression.drops.Where(d => d.firstWave <= WaveIndex + 1).ToArray();
-                    int roll = dropRandom.Next(pool.Sum(d => d.weight)); var drop = pool[0].kind;
-                    foreach (var entry in pool) { roll -= entry.weight; if (roll < 0) { drop = entry.kind; break; } }
+                    var drop = NeededDrop();
                     PendingDrops.Add(DefenseProgression.Canonical(drop)); Emit("drop", 0, e.Id, e.Position, (int)drop);
                 }
             }
+        }
+        BlockKind NeededDrop()
+        {
+            var pool = Setup.Progression.drops.Where(d => d.firstWave <= WaveIndex + 1).ToArray();
+            int Owned(BlockKind kind)
+            {
+                kind = DefenseProgression.Canonical(kind); Inventory.TryGetValue(kind, out int count);
+                return count + PendingDrops.Count(k => DefenseProgression.Canonical(k) == kind);
+            }
+            BlockKind ActionBlock(RobotRole role)
+            {
+                switch (role)
+                {
+                    case RobotRole.Buffer: return BlockKind.Buff;
+                    case RobotRole.Warrior: return BlockKind.Slash;
+                    case RobotRole.Tank: return BlockKind.Block;
+                    case RobotRole.Bomber: return BlockKind.Boom;
+                    case RobotRole.Shooter: return BlockKind.Shot;
+                    default: return BlockKind.Slow;
+                }
+            }
+            foreach (var stock in Setup.Progression.robots.OrderBy(r => Owned(ActionBlock(r.role)) - r.count))
+            {
+                var kind = ActionBlock(stock.role);
+                if (Owned(kind) < stock.count && pool.Any(d => DefenseProgression.Canonical(d.kind) == kind)) return kind;
+            }
+            return pool.OrderBy(d => Owned(d.kind)).ThenByDescending(d => d.weight).First().kind;
         }
         public void Advance(double elapsed)
         {
@@ -626,7 +411,10 @@ namespace CodingGame.Defense
                 LastSurvivors = remaining; WaveSurvivors.Add(LastSurvivors);
                 // 살아 있는 적과 아직 생성되지 않은 적을 다음 웨이브로 이월하며 처치 보상은 주지 않습니다.
                 carry.Clear();
-                foreach (var group in Enemies.Where(e => e.Active).GroupBy(e => (e.DefinitionIndex, e.RouteIndex)))
+                // 같은 적이라도 등장 웨이브가 달라 스탯이 다르면 별도로 이월합니다.
+                foreach (var group in Enemies.Where(e => e.Active).GroupBy(e =>
+                    (e.DefinitionIndex, e.RouteIndex, e.Spec.type, e.Spec.health, e.Spec.speed,
+                        e.Spec.damage, e.Spec.attackInterval, e.Spec.leakDamage)))
                     carry.Add(new SpawnGroup { Enemy = group.First().Spec.Copy(), DefinitionIndex = group.Key.DefinitionIndex, RouteIndex = group.Key.RouteIndex, Count = group.Count(), Interval = .4f });
                 for (int i = 0; i < currentWave.Length; i++)
                 {
@@ -634,6 +422,7 @@ namespace CodingGame.Defense
                     if (left > 0) carry.Add(new SpawnGroup { Enemy = g.Enemy.Copy(), DefinitionIndex = g.DefinitionIndex, RouteIndex = g.RouteIndex, Count = left, Interval = .4f });
                     groupCounts[i] = g.Count;
                 }
+                if (WaveIndex + 1 < Setup.Waves.Length) nextWave = nextWave.Concat(carry).ToArray();
                 Enemies.Clear();
                 Projectiles.Clear();
                 Emit("wave-completed", 0, WaveIndex, Vector2.Zero);

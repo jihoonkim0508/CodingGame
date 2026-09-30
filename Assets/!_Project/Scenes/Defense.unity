@@ -5831,10 +5831,10 @@ MonoBehaviour:
       firstWave: 1
       weight: 1
     - kind: 24
-      firstWave: 2
+      firstWave: 1
       weight: 2
     - kind: 20
-      firstWave: 2
+      firstWave: 1
       weight: 1
     - kind: 16
       firstWave: 2

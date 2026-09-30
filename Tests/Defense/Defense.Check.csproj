@@ -10,6 +10,7 @@
     <Compile Include="ProgramCheck.cs" />
     <Compile Include="CampaignCheck.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseProgression.cs" />
+    <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseModels.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseSimulation.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseProgram.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/BlockCoding/BlockProgram.cs" />
