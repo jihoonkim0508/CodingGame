@@ -7,6 +7,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Check.cs" />
+    <Compile Include="FixtureProgression.cs" />
+    <Compile Include="LearningCheck.cs" />
+    <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseCurriculum.cs" />
     <Compile Include="ProgramCheck.cs" />
     <Compile Include="CampaignCheck.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseProgression.cs" />

@@ -11,7 +11,7 @@ static class ProgramCheck
     static CodeBlock N(string n) => new CodeBlock(BlockKind.Number,n);
     static DefenseSimulation Make()
     {
-        return new DefenseSimulation(new BattleSetup {
+        return new DefenseSimulation(new BattleSetup { Progression = FixtureProgression.Create(),
             Min=new Vector2(-20,-10),Max=new Vector2(20,10),
             ActionProfiles=Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(r=>new RobotSpec{role=r,damage=20,interval=.1f,range=6}).ToArray(),
             Routes=new[]{new Route(new[]{new Vector2(-10,0),new Vector2(15,0)},1)},
@@ -23,7 +23,7 @@ static class ProgramCheck
     static void Tick(DefenseSimulation sim,int frames) { for(int i=0;i<frames;i++)sim.Advance(1.0/60); }
     static void CheckTankLifecycle()
     {
-        DefenseSimulation Scenario(int count) => new DefenseSimulation(new BattleSetup {
+        DefenseSimulation Scenario(int count) => new DefenseSimulation(new BattleSetup { Progression = FixtureProgression.Create(),
             Min = new Vector2(-50,-50), Max = new Vector2(50,50),
             ActionProfiles = Make().Setup.ActionProfiles,
             Routes = new[]{new Route(new[]{new Vector2(2,0),new Vector2(-20,0)},1.2f)},
@@ -68,7 +68,7 @@ static class ProgramCheck
     {
         CheckTankLifecycle();
         // Same close spawn and cooldown as the authored tank preview.
-        var tankSetup = new BattleSetup {
+        var tankSetup = new BattleSetup { Progression = FixtureProgression.Create(),
             Min = new Vector2(-50,-50), Max = new Vector2(50,50),
             ActionProfiles = Make().Setup.ActionProfiles,
             Routes = new[]{new Route(new[]{new Vector2(2,0),new Vector2(-20,0)},1.2f)},

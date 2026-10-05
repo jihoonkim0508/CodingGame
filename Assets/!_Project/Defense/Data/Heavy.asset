@@ -17,9 +17,9 @@ MonoBehaviour:
     \uACF5\uACA9\uC774 \uD544\uC694\uD569\uB2C8\uB2E4."
   stats:
     type: 2
-    health: 35
-    speed: 1.5
-    damage: 16
+    health: 55
+    speed: 1.65
+    damage: 20
     attackInterval: 1.2
     leakDamage: 1
   prefab: {fileID: 8292641712839652615, guid: ed407c76a0f580e4ebe2c4735f5d5317, type: 3}

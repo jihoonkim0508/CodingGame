@@ -178,6 +178,7 @@ namespace CodingGame.BlockCoding
                 placed.transform.SetParent(rect, false);
                 blocks.Insert(index++, placed);
                 placed.Bind(Panel, this);
+                if (source.IsPalette) Panel.FillNewLoop(placed);
             }
             Refresh();
             blocks[index - 1].BringToFront();
@@ -207,6 +208,7 @@ namespace CodingGame.BlockCoding
                 block.Bind(Panel, this);
                 blocks.Add(block);
                 placed.Add(block);
+                if (source.IsPalette) Panel.FillNewLoop(block);
             }
             for (int i = 1; i < placed.Count; i++) next[placed[i - 1]] = placed[i];
             var first = placed[0];

@@ -8,24 +8,20 @@ namespace CodingGame.Defense
     [Serializable] public sealed class BlockStock { public BlockKind kind; public int count = 1; }
     [Serializable] public sealed class RobotStock { public RobotRole role; public int count = 1; }
     [Serializable] public sealed class BlockDrop { public BlockKind kind; public int firstWave = 1, weight = 1; }
+    [Serializable] public sealed class WaveLesson
+    {
+        public int stage, wave;
+        public string topic;
+        public RobotStock[] robots = Array.Empty<RobotStock>();
+        public BlockStock[] blocks = Array.Empty<BlockStock>();
+        public BlockStock[] rewards = Array.Empty<BlockStock>();
+    }
     [Serializable] public sealed class DefenseProgression
     {
         public int initialCoins = 100, coinsPerKill = 5, upgradeCost = 50;
-        public RobotStock[] robots = {
-            new RobotStock { role = RobotRole.Buffer }, new RobotStock { role = RobotRole.Warrior, count = 2 },
-            new RobotStock { role = RobotRole.Tank, count = 2 }, new RobotStock { role = RobotRole.Bomber, count = 2 },
-            new RobotStock { role = RobotRole.Shooter, count = 3 }, new RobotStock { role = RobotRole.Utility, count = 2 }
-        };
-        public BlockStock[] initial = {
-            new BlockStock { kind = BlockKind.Shot, count = 3 }, new BlockStock { kind = BlockKind.Slash, count = 2 },
-            new BlockStock { kind = BlockKind.Block }, new BlockStock { kind = BlockKind.Slow },
-            new BlockStock { kind = BlockKind.If }, new BlockStock { kind = BlockKind.Else },
-            new BlockStock { kind = BlockKind.Wait, count = 6 }, new BlockStock { kind = BlockKind.Number, count = 12 },
-            new BlockStock { kind = BlockKind.Comparison, count = 4 }, new BlockStock { kind = BlockKind.True, count = 3 },
-            new BlockStock { kind = BlockKind.False, count = 3 }, new BlockStock { kind = BlockKind.DeclareVariable, count = 4 },
-            new BlockStock { kind = BlockKind.Variable, count = 8 }, new BlockStock { kind = BlockKind.NearestEnemy, count = 4 },
-            new BlockStock { kind = BlockKind.PositionX, count = 4 }, new BlockStock { kind = BlockKind.PositionY, count = 4 }
-        };
+        public WaveLesson[] lessons = DefenseCurriculum.Create();
+        public RobotStock[] robots = Array.Empty<RobotStock>();
+        public BlockStock[] initial = Array.Empty<BlockStock>();
         public BlockDrop[] drops = {
             new BlockDrop { kind = BlockKind.Boom, weight = 3 }, new BlockDrop { kind = BlockKind.Slow, weight = 2 },
             new BlockDrop { kind = BlockKind.Shot, weight = 2 }, new BlockDrop { kind = BlockKind.Slash },
@@ -37,6 +33,12 @@ namespace CodingGame.Defense
         };
         public void Validate()
         {
+            if (lessons == null || lessons.Any(l => l == null || l.stage < 1 || l.stage > DefenseCurriculum.StageCount || l.wave < 1 || l.wave > 5 ||
+                string.IsNullOrWhiteSpace(l.topic) || l.robots == null || l.blocks == null || l.rewards == null ||
+                l.robots.Any(r => r == null || !Enum.IsDefined(typeof(RobotRole), r.role) || r.count < 1) ||
+                l.blocks.Concat(l.rewards).Any(b => b == null || !Consumes(b.kind) || b.count < 1)) ||
+                lessons.GroupBy(l => (l.stage, l.wave)).Any(g => g.Count() != 1))
+                throw new ArgumentException("스테이지별 보급·보상 설정을 확인하세요.");
             if (initialCoins < 0 || coinsPerKill < 0 || upgradeCost < 1)
                 throw new ArgumentException("코인 초기량·처치 보상은 0 이상, 강화 비용은 양수여야 합니다.");
             if (robots == null || robots.Any(r => r == null || !Enum.IsDefined(typeof(RobotRole), r.role) || r.count < 0) ||
@@ -68,7 +70,7 @@ namespace CodingGame.Defense
                 case BlockKind.Slow: return "slow()"; case BlockKind.Buff: return "buff()";
                 case BlockKind.Wait: return "wait()"; case BlockKind.Number: return "0";
                 case BlockKind.Comparison: return "<"; case BlockKind.DeclareVariable: return "variable =";
-                case BlockKind.Variable: return "variable / get_distance()"; case BlockKind.NearestEnemy: return "get_nearest_enemy()";
+                case BlockKind.Variable: return "variable"; case BlockKind.NearestEnemy: return "get_nearest_enemy()";
                 case BlockKind.PositionX: return "get_pos_x()"; case BlockKind.PositionY: return "get_pos_y()";
                 case BlockKind.True: return "True"; case BlockKind.False: return "False";
                 default: return kind.ToString().ToLowerInvariant();

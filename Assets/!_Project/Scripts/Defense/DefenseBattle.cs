@@ -69,6 +69,7 @@ namespace CodingGame.Defense
         readonly List<Transform> dropViews = new List<Transform>();
         readonly DefenseProjectileVisuals projectileViews = new DefenseProjectileVisuals();
         public bool DeveloperMode { get; private set; }
+        public bool HelpOpen { get; internal set; }
         int palette = -1, selected;
         bool draggingRobot;
         float speed = 1, effectTime;
@@ -77,13 +78,12 @@ namespace CodingGame.Defense
         public int SelectedId => selected;
         public float BattleSpeed => speed;
         public string StatusMessage => shownMessage;
-        public event Action<int> RobotSelected;
+        public bool CanShowRobotActions => Simulation != null && Simulation.CanPrepare && !DeveloperMode && !HelpOpen && !codeEditor.IsOpen && !inventoryUI.IsOpen;
         public string DefinitionName(int index) => robots[index].displayName;
         public RobotRole DefinitionRole(int index) => robots[index].stats.role;
         public void BeginCodeView(RobotState robot)
         {
             inventoryUI.Close(); playerHUD.SetVisible(false); developerRoot.SetActive(false);
-            selectionCamera.Focus(World(robot.Position));
             attackPreview.Open(robot);
         }
         public void EndCodeView()
@@ -158,15 +158,31 @@ namespace CodingGame.Defense
             string error = Simulation.StartError();
             if (error != null) { Tell(error); return; }
             palette = -1; placementMarker.gameObject.SetActive(false);
-            Simulation.Start(); Tell("전투 중 · 처치한 적이 블록을 드랍합니다. 웨이브 종료 후 수령하세요."); RefreshHUD();
+            Trace("wave-start " + string.Join(", ", Simulation.UpcomingWave.Select(g => $"{enemies[g.DefinitionIndex].name} x{g.Count} HP={g.Enemy.health:0.0} speed={g.Enemy.speed:0.00}")));
+            Simulation.Start(); Tell("전투 중 · 웨이브 종료 후 지정 보상을 수령하세요."); RefreshHUD();
         }
         public void ClaimRewards()
         {
+            if (Simulation.Phase == BattlePhase.Reward) Trace($"wave-end kills={Simulation.Kills} leaks={Simulation.Leaks} survivors={Simulation.LastSurvivors} rewards={Simulation.PendingDrops.Count}");
             if (!Simulation.ClaimRewards()) return;
             selected = 0; rangeRing.Hide(); ClearCombatVisuals();
-            ClearDrops(); Tell("보상을 수령했습니다. 로봇과 코드를 정비하고 다음 전투를 시작하세요."); RefreshHUD();
+            ClearDrops(); Tell(Simulation.Phase == BattlePhase.Victory ? Simulation.CanAdvanceStage ?
+                "스테이지 완료 · 다음 스테이지로 진행하세요." : "모든 스테이지를 완료했습니다." :
+                "보상을 수령했습니다. 로봇과 코드를 정비하고 다음 전투를 시작하세요."); RefreshHUD();
         }
         void ClearDrops() { foreach (var drop in dropViews) if (drop) Destroy(drop.gameObject); dropViews.Clear(); }
+        public void ContinueCampaign()
+        {
+            if (Simulation.Phase == BattlePhase.Reward) { ClaimRewards(); return; }
+            if (Simulation.CanAdvanceStage)
+            {
+                codeEditor.Close(false); inventoryUI.Close();
+                Simulation.AdvanceStage(); stage = Simulation.Setup.Stage;
+                selected = 0; ClearDrops(); ClearCombatVisuals();
+                Tell($"STAGE {stage} · {Simulation.Lesson?.topic}"); RefreshHUD();
+            }
+            else if (Simulation.Phase == BattlePhase.Defeat) Restart();
+        }
         public void NotifyCodeApplied(int id, bool empty)
             => Tell(RobotName(id) + (empty ? " · 코드 없음" : " · 적용 완료"));
         public void ToggleDeveloper()
@@ -183,7 +199,8 @@ namespace CodingGame.Defense
         public void ChooseRobot(int index)
         {
             if (!Simulation.CanPrepare || index < 0 || index >= robots.Length) return;
-            if (Simulation.RobotAvailable(robots[index].stats.role) == 0) { Tell("보유 로봇이 없습니다."); return; }
+            string error = Simulation.DeploymentError(robots[index].stats.role);
+            if (error != null) { palette = -1; RejectPlacement(index, error); return; }
             palette = index; selected = 0;
             Tell(robots[index].displayName + " 배치 · 허용 위치 클릭 / 우클릭 또는 ESC 취소");
             RefreshHUD();
@@ -208,14 +225,21 @@ namespace CodingGame.Defense
         {
             if (index < 0 || index >= robots.Length) return false;
             var bot = Simulation.Place(robots[index].stats, index, new Point(position.x, position.z), out var error);
-            if (bot == null) { Tell(error); return false; }
+            if (bot == null) { RejectPlacement(index, error); return false; }
             var view = Instantiate(robots[index].prefab, World(bot.Position), Quaternion.identity, actorsRoot);
             view.Id = bot.Id; robotViews.Add(bot.Id, view);
             selected = bot.Id; palette = -1; placementMarker.gameObject.SetActive(false);
-            Tell(robots[index].displayName + " 배치 완료 · 클릭하여 코드 작성");
+            Tell(robots[index].displayName + " 배치 완료 · 개발 버튼으로 코드 작성");
             SyncViews(0); RefreshHUD(); return true;
         }
-        public void SelectRobot(int id) { selected = id; palette = -1; placementMarker.gameObject.SetActive(false); RefreshHUD(); RobotSelected?.Invoke(id); }
+        public void SelectRobot(int id) { selected = id; palette = -1; placementMarker.gameObject.SetActive(false); RefreshHUD(); }
+        public void DevelopSelected() => codeEditor.OpenSelected();
+        public void UpgradeSelected()
+        {
+            string error = Simulation.UpgradeError(selected);
+            if (error != null) { Tell(error); return; }
+            if (Simulation.UpgradeRobot(selected)) Tell(RobotName(selected) + " · 레벨업 완료");
+        }
         public void RemoveSelected()
         {
             if (!Simulation.CanPrepare) return;
@@ -225,7 +249,7 @@ namespace CodingGame.Defense
         }
         void Update()
         {
-            if (Simulation == null) return;
+            if (Simulation == null || HelpOpen) return;
             var mouse = Mouse.current; var keyboard = Keyboard.current;
             // Keep F1 and offer F2 when a recording overlay intercepts the help key.
             if (keyboard != null && (keyboard.f1Key.wasPressedThisFrame || keyboard.f2Key.wasPressedThisFrame)) ToggleDeveloper();
@@ -280,7 +304,8 @@ namespace CodingGame.Defense
             if (effectTime <= 0) effectRing.Hide();
             if (Simulation.Phase != BattlePhase.Running && Simulation.Phase != BattlePhase.Paused) ClearCombatVisuals();
             var current = Simulation.Robots.Find(r => r.Id == selected);
-            if (current != null && palette < 0 && codeEditor.IsOpen) rangeRing.Show(World(current.Position), current.Range, robots[current.DefinitionIndex].color);
+            if (current != null && palette < 0 && !codeEditor.IsOpen && !inventoryUI.IsOpen && !DeveloperMode)
+                rangeRing.Show(World(current.Position), current.Range, robots[current.DefinitionIndex].color);
             else if (palette < 0) rangeRing.Hide();
             if (current == null) selected = 0;
             RefreshHUD();
@@ -371,6 +396,13 @@ namespace CodingGame.Defense
                 resultText.text = (Simulation.Phase == BattlePhase.Victory ? "DEFENSE COMPLETE\n방어 성공" : "CORE LOST\n방어 실패") + $"\n\n처치 {Simulation.Kills} · 돌파 {Simulation.Leaks}\n상단 초기화로 다시 시작";
             }
         }
-        void Tell(string text) { shownMessage = text; message.text = text; }
+        void RejectPlacement(int index, string error)
+        {
+            Tell($"{robots[index].displayName} · {error}");
+            playerHUD.ShowPlacementError(error);
+        }
+        [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        void Trace(string text) => Debug.Log($"[Defense] S{stage} W{Simulation.WaveIndex + 1} {Simulation.Phase} robots={Simulation.Robots.Count}/{Simulation.Setup.RobotLimit} core={Simulation.BaseHealth} | {text}", this);
+        void Tell(string text) { shownMessage = text; message.text = text; Trace(text); }
     }
 }

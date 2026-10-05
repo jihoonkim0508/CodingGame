@@ -22,16 +22,18 @@ namespace CodingGame.BlockCoding
         [SerializeField] CommandDropZone body;
         [SerializeField] TMP_Text stockLabel;
         [SerializeField] RectTransform stockColumn;
-        [SerializeField] string variableName = "enemy";
+        [SerializeField] string variableName = "variable";
         public CommandCodingPanel Panel { get; private set; }
         public CommandDropZone Owner { get; private set; }
         public bool IsPalette { get; private set; }
-        public BlockKind Kind => kind == BlockKind.Variable && dropdown.value == 1 ? BlockKind.Distance : kind;
+        bool HasDot => kind == BlockKind.Variable && input && input.text.EndsWith(".", StringComparison.Ordinal);
+        public BlockKind Kind => HasDot && dropdown.value == 1 ? BlockKind.Distance : kind;
         public BlockKind BaseKind => kind;
         public CommandDropZone Body => body;
         public IReadOnlyList<CommandDropZone> Arguments => arguments;
         public RectTransform Rect => rect;
-        public string VariableName => kind == BlockKind.DeclareVariable ? input.text : variableName;
+        public string VariableName => kind == BlockKind.DeclareVariable ? input.text :
+            kind == BlockKind.Variable ? (HasDot ? input.text.Substring(0, input.text.Length - 1) : input.text) : variableName;
         public string RetainedName { get; private set; }
         public bool TextInputFocused => input && input.isFocused;
         bool initialized;
@@ -50,7 +52,7 @@ namespace CodingGame.BlockCoding
         public void Bind(CommandCodingPanel panel, CommandDropZone owner, bool palette = false)
         {
             if (!rect || !header || !canvasGroup || !shape ||
-                ((kind == BlockKind.Number || kind == BlockKind.DeclareVariable) && !input) ||
+                ((kind == BlockKind.Number || kind == BlockKind.DeclareVariable || kind == BlockKind.Variable) && !input) ||
                 ((kind == BlockKind.Variable || kind == BlockKind.Comparison) && !dropdown) ||
                 (PythonTreeCompiler.HasBody(kind) && !body))
                 throw new InvalidOperationException(name + ": Inspector 참조가 누락되었습니다.");
@@ -76,13 +78,14 @@ namespace CodingGame.BlockCoding
                 try { RetainedName = PythonTreeCompiler.NormalizeIdentifier(input.text); }
                 catch (FormatException) { }
             }
-            if (methodArguments) methodArguments.SetActive(dropdown.value == 1);
+            if (methodArguments) methodArguments.SetActive(Kind == BlockKind.Distance);
             shape.Configure(PythonTreeCompiler.OutputSlot(Kind), body);
             SetDragAppearance(false);
         }
 
         void InputChanged(string value)
         {
+            if (kind == BlockKind.Variable) RefreshVariableOptions();
             if (kind == BlockKind.DeclareVariable)
             {
                 try
@@ -97,25 +100,34 @@ namespace CodingGame.BlockCoding
         }
         void SelectionChanged(int value)
         {
-            if (methodArguments) methodArguments.SetActive(value == 1);
+            if (kind == BlockKind.Variable) RefreshVariableOptions();
+            shape.Configure(PythonTreeCompiler.OutputSlot(Kind), body);
             if (!IsPalette) Panel.Changed();
             LayoutRebuilder.MarkLayoutForRebuild(rect);
         }
         public void SetVariable(string value)
         {
             variableName = value;
-            if (kind == BlockKind.Variable) RefreshVariableOptions();
+            if (kind == BlockKind.Variable)
+            {
+                input.SetTextWithoutNotify(value + (HasDot ? "." : ""));
+                RefreshVariableOptions();
+            }
         }
         public void RefreshVariableOptions()
         {
             int selection = dropdown.value;
-            var options = new List<string> { variableName };
-            if (selection == 1 || (Panel && Panel.IsEnemyVariable(variableName))) options.Add(variableName + ".get_distance(");
+            var options = new List<string> { "메서드 선택" };
+            if (selection == 1 || (Panel && Panel.IsEnemyVariable(VariableName))) options.Add("get_distance(");
+            else options[0] = "사용 가능한 메서드 없음";
             dropdown.ClearOptions();
             dropdown.AddOptions(options);
-            dropdown.SetValueWithoutNotify(Mathf.Min(selection, options.Count - 1));
+            dropdown.SetValueWithoutNotify(HasDot ? Mathf.Min(selection, options.Count - 1) : 0);
             dropdown.RefreshShownValue();
-            if (methodArguments) methodArguments.SetActive(dropdown.value == 1);
+            dropdown.gameObject.SetActive(HasDot);
+            if (methodArguments) methodArguments.SetActive(Kind == BlockKind.Distance);
+            shape.Configure(PythonTreeCompiler.OutputSlot(Kind), body);
+            LayoutRebuilder.MarkLayoutForRebuild(rect);
         }
         public void SetText(string value) { input.text = value; }
         public void SetStock(int count) { if (stockLabel) { stockLabel.text = count.ToString(); stockLabel.gameObject.SetActive(IsPalette && Panel.Remaining != null); } }
@@ -137,9 +149,10 @@ namespace CodingGame.BlockCoding
             if (kind == BlockKind.Variable)
             {
                 variableName = data.Kind == BlockKind.Distance ? data.Arguments[0].Value : data.Value;
-                dropdown.ClearOptions(); dropdown.AddOptions(new List<string> { variableName, variableName + ".get_distance(" });
+                input.SetTextWithoutNotify(variableName + (data.Kind == BlockKind.Distance ? "." : ""));
+                dropdown.ClearOptions(); dropdown.AddOptions(new List<string> { "메서드 선택", "get_distance(" });
                 dropdown.SetValueWithoutNotify(data.Kind == BlockKind.Distance ? 1 : 0);
-                methodArguments.SetActive(data.Kind == BlockKind.Distance);
+                RefreshVariableOptions();
                 if (data.Kind == BlockKind.Variable) return;
                 skip = 1;
             }
@@ -155,8 +168,8 @@ namespace CodingGame.BlockCoding
             if (kind == BlockKind.Comparison) block.Value = PythonBlockCompiler.Comparisons[dropdown.value];
             if (kind == BlockKind.Variable)
             {
-                if (Kind == BlockKind.Variable) { block.Value = variableName; return block; }
-                block.Arguments.Add(new CodeBlock(BlockKind.Variable, variableName));
+                if (Kind == BlockKind.Variable) { block.Value = input.text; return block; }
+                block.Arguments.Add(new CodeBlock(BlockKind.Variable, VariableName));
             }
             foreach (var argument in arguments) block.Arguments.Add(argument.ReadArgument());
             if (body) block.Body.AddRange(body.Read());
@@ -165,6 +178,7 @@ namespace CodingGame.BlockCoding
         public IEnumerable<CommandBlockView> Descendants()
         {
             yield return this;
+            if (kind == BlockKind.Variable && Kind != BlockKind.Distance) yield break;
             foreach (var zone in arguments)
                 foreach (var child in zone.AllBlocks()) yield return child;
             if (body) foreach (var child in body.AllBlocks()) yield return child;

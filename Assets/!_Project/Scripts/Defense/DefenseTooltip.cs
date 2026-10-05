@@ -18,6 +18,9 @@ namespace CodingGame.Defense
         {
             title.text = name; description.text = detail;
             panelRect.gameObject.SetActive(true);
+            // Keep the authored width; grow vertically to fit wrapped descriptions.
+            float height = description.GetPreferredValues(detail, panelRect.rect.width - 32, 0).y;
+            panelRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height + 68);
             var edge = anchor.TransformPoint(new Vector3(rightOfAnchor ? anchor.rect.xMax : anchor.rect.center.x, anchor.rect.yMax, 0));
             Vector2 point = canvasRect.InverseTransformPoint(edge);
             var bounds = canvasRect.rect;

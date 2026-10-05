@@ -12,9 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: edcc99cf8b3b0cd458ba8145cc320c0e, type: 3}
   m_Name: Shooter
   m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.RobotDefinition
-  displayName: "\uC5F0\uC0AC\uD615 \xB7 \uB2E8\uBC1C"
-  description: "\uC0AC\uAC70\uB9AC \uC548\uC758 \uC801\uC5D0\uAC8C \uB2E8\uBC1C \uD655\uC815
-    \uACF5\uACA9\uC744 \uD569\uB2C8\uB2E4."
+  displayName: "\uC6D0\uAC70\uB9AC"
+  description: "\uAC00\uAE4C\uC6B4 \uC801\uC77C\uC218\uB85D \uAC15\uD55C \uD53C\uD574\uB97C
+    \uC90D\uB2C8\uB2E4. \uD53C\uD574\uB294 \uC2E4\uC81C \uAC70\uB9AC\uC640 \uBC18\uBE44\uB840\uD558\uBA70
+    1m \uC774\uD558\uC5D0\uC11C\uB294 \uCD5C\uB300 \uD53C\uD574\uB85C \uC81C\uD55C\uB429\uB2C8\uB2E4."
   color: {r: 0.92, g: 0.44, b: 0.61, a: 1}
   stats:
     role: 4

@@ -16,11 +16,9 @@ namespace CodingGame.Defense
         [SerializeField] Camera previewCamera;
         [SerializeField] RawImage previewImage;
         [SerializeField] GameObject previewPanel;
-        [SerializeField] Button previewButton;
-        [SerializeField] TMP_Text previewButtonLabel;
         [SerializeField] TMP_Text stats, status;
-        [SerializeField] Button upgradeButton;
-        [SerializeField] TMP_Text upgradeLabel, upgradePrice, coinLabel;
+        [SerializeField] TMP_Text coinLabel;
+        [SerializeField] DefensePreviewCameraControl cameraControl;
         [SerializeField] DefenseRangeRing effectRing;
         [SerializeField] Transform projectilePrefab;
         readonly DefenseProjectileVisuals projectileViews = new DefenseProjectileVisuals();
@@ -35,10 +33,8 @@ namespace CodingGame.Defense
         public bool IsShowing => selected != null && previewPanel.activeSelf;
         void Start()
         {
-            if (!upgradeButton || !upgradeLabel || !upgradePrice || !coinLabel || !projectilePrefab || !battle || !arena || !previewCamera || !previewImage || !previewPanel || !previewButton || !previewButtonLabel || !stats || !status || !effectRing)
+            if (!cameraControl || !coinLabel || !projectilePrefab || !battle || !arena || !previewCamera || !previewImage || !previewPanel || !stats || !status || !effectRing)
                 throw new InvalidOperationException("공격 미리보기 Inspector 참조를 연결하세요.");
-            previewButton.onClick.AddListener(TogglePreview);
-            upgradeButton.onClick.AddListener(UpgradeSelected);
             Close();
         }
         public void Open(RobotState robot)
@@ -46,30 +42,18 @@ namespace CodingGame.Defense
             HidePreview();
             selected = robot;
             RefreshStats();
-        }
-        public void TogglePreview()
-        {
-            if (selected == null) return;
-            if (IsShowing) { HidePreview(); return; }
+            cameraControl.ResetView();
             if (!previewTexture)
             {
-                previewTexture = new RenderTexture(960, 720, 24) { name = "Robot code preview" };
+                previewTexture = new RenderTexture(640, 720, 24) { name = "Robot code preview" };
                 previewCamera.targetTexture = previewTexture; previewImage.texture = previewTexture;
             }
             ResetPreview(); previewPanel.SetActive(true); previewCamera.enabled = true;
-            previewButtonLabel.text = "코드로 돌아가기";
-        }
-        void UpgradeSelected()
-        {
-            if (selected == null || !battle.Simulation.UpgradeRobot(selected.Id)) return;
-            if (IsShowing) ResetPreview();
-            RefreshStats();
         }
         void HidePreview()
         {
             ClearActors(); simulation = null; source = null;
             previewPanel.SetActive(false); previewCamera.enabled = false;
-            previewButtonLabel.text = "미리보기";
         }
         void ClearActors()
         {
@@ -117,6 +101,8 @@ namespace CodingGame.Defense
             if (selected == null) return;
             RefreshStats();
             if (!IsShowing) return;
+            var rect = previewImage.rectTransform.rect;
+            if (rect.width > 0 && rect.height > 0) previewCamera.aspect = rect.width / rect.height;
             float dt = Time.unscaledDeltaTime;
             AdvancePreview(dt);
             projectileViews.Sync(simulation, projectilePrefab, arena, arena.position);
@@ -186,10 +172,7 @@ namespace CodingGame.Defense
                     $"\n버프 간격  {UpgradeValue(Math.Max(.01f,1-(1-s.buffInterval)*selected.LevelMultiplier),Math.Max(.01f,1-(1-s.buffInterval)*nextMultiplier))}배" : "");
             var sim = battle.Simulation;
             coinLabel.text = $"코인  {sim.Coins:N0}";
-            upgradeLabel.text = selected.IsMaxLevel ? "최고레벨" : "레벨업";
-            upgradePrice.text = selected.IsMaxLevel ? "" : $"{sim.UpgradeCost:N0} 코인";
-            if (!selected.IsMaxLevel && sim.Coins < sim.UpgradeCost) upgradePrice.text += $" · {sim.UpgradeCost-sim.Coins:N0} 부족";
-            upgradeButton.interactable = sim.UpgradeError(selected.Id) == null;
+
         }
         string UpgradeValue(float current, float upgraded) => selected.IsMaxLevel || Mathf.Approximately(current, upgraded)
             ? $"{current:0.##}" : $"{current:0.##} <color=#6FFFD2>→ {upgraded:0.##}</color>";

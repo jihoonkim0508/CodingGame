@@ -83,6 +83,8 @@ namespace CodingGame.BlockCoding
             functionName.onValueChanged.AddListener(_ => Changed());
             program.Bind(this, null);
             foreach (var item in palette) item.view.Bind(this, null, true);
+            variablePrefab.Bind(this, null, true);
+            variables.Add("variable", variablePrefab);
             for (int i = 0; i < categoryButtons.Length; i++)
             {
                 int category = i;
@@ -100,7 +102,8 @@ namespace CodingGame.BlockCoding
                 item.view.gameObject.SetActive(item.category == category && (IsAvailable?.Invoke(item.view.Kind) ?? true));
                 item.view.SetStock(Remaining?.Invoke(item.view.Kind) ?? 0);
             }
-            foreach (var view in variables.Values) view.SetStock(Remaining?.Invoke(view.Kind) ?? 0);
+            variablePrefab.SetStock(Remaining?.Invoke(BlockKind.Variable) ?? 0);
+            variablePrefab.gameObject.SetActive(IsAvailable?.Invoke(BlockKind.Variable) ?? true);
             variablePalette.gameObject.SetActive(category == 2);
             for (int i = 0; i < categoryButtons.Length; i++)
                 categoryButtons[i].targetGraphic.color = i == category ? new Color(0.15f, 0.45f, 0.65f) : new Color(0.13f, 0.17f, 0.24f);
@@ -118,7 +121,7 @@ namespace CodingGame.BlockCoding
             if (PythonTreeCompiler.OutputSlot(source.Kind) == BlockSlotKind.Statement && target.Slot != BlockSlotKind.Statement) target = program;
             if (target == program && program.FreePlacement)
             {
-                if (PythonTreeCompiler.OutputSlot(source.Kind) != BlockSlotKind.Statement)
+                if (PythonTreeCompiler.OutputSlot(source.Kind) != BlockSlotKind.Statement && source.BaseKind != BlockKind.Variable)
                 { ShowMessage("값을 넣을 빈 슬롯을 선택하세요."); return; }
                 program.Insert(source, program.Blocks.Count);
                 return;
@@ -126,6 +129,13 @@ namespace CodingGame.BlockCoding
             if (!target.Insert(source, target.Blocks.Count)) ShowMessage("먼저 맞는 모양의 빈 슬롯을 선택하거나, 블록을 원하는 위치로 드래그하세요.");
         }
         public void ShowMessage(string text) => status.text = text;
+        internal void FillNewLoop(CommandBlockView block)
+        {
+            if (block.Kind != BlockKind.For || block.Arguments[0].Blocks.Count != 0) return;
+            var number = palette.FirstOrDefault(item => item.view.BaseKind == BlockKind.Number).view;
+            if (number && (IsAvailable?.Invoke(BlockKind.Number) ?? true) && CanTake(number))
+                block.Arguments[0].Load(new[] { new CodeBlock(BlockKind.Number, "10") });
+        }
         public bool IsEnemyVariable(string name) => enemyVariables.Contains(name);
         public void RenameVariable(string previous, string current)
         {
@@ -136,44 +146,20 @@ namespace CodingGame.BlockCoding
         }
         void SyncVariables()
         {
-            var names = new HashSet<string>();
             enemyVariables.Clear();
             foreach (var block in program.AllBlocks())
             {
-                if (block.Kind == BlockKind.For) names.Add("i");
                 if (block.BaseKind != BlockKind.DeclareVariable) continue;
                 string name;
                 try { name = PythonTreeCompiler.NormalizeIdentifier(block.VariableName); }
                 catch (FormatException) { name = block.RetainedName; }
                 if (string.IsNullOrEmpty(name)) continue;
-                names.Add(name);
                 var value = block.Arguments[0].ReadArgument();
                 if (value != null && (value.Kind == BlockKind.NearestEnemy || value.Kind == BlockKind.Variable && enemyVariables.Contains(value.Value))) enemyVariables.Add(name);
                 else enemyVariables.Remove(name);
             }
-            foreach (var block in program.AllBlocks().ToArray())
-                if (block.BaseKind == BlockKind.Variable && !names.Contains(block.VariableName)) RemoveSingle(block);
-            foreach (string name in variables.Keys.ToArray())
-            {
-                if (names.Contains(name)) continue;
-                var entry = variables[name];
-                variables.Remove(name);
-                entry.gameObject.SetActive(false);
-                Destroy(entry.gameObject);
-            }
-            foreach (string name in names.OrderBy(n => n))
-            {
-                if (!variables.TryGetValue(name, out var entry))
-                {
-                    entry = Instantiate(variablePrefab, variablePalette);
-                    entry.Bind(this, null, true);
-                    entry.SetVariable(name);
-                    variables.Add(name, entry);
-                }
-                entry.RefreshVariableOptions();
-            }
             foreach (var block in program.AllBlocks()) if (block.BaseKind == BlockKind.Variable) block.RefreshVariableOptions();
-            variableEmptyHint.SetActive(variables.Count == 0);
+            variableEmptyHint.SetActive(false);
         }
         public void Changed()
         {
@@ -272,6 +258,7 @@ namespace CodingGame.BlockCoding
         }
         internal CommandBlockView CreateBlock(CodeBlock data, Transform parent)
         {
+            if (data.Kind == BlockKind.Attack) data = new CodeBlock(BlockKind.Shot);
             bool variable = data.Kind == BlockKind.Variable || data.Kind == BlockKind.Distance;
             var template = variable ? variablePrefab : palette.FirstOrDefault(item => item.view.BaseKind == data.Kind).view;
             if (!template) throw new FormatException("블록 프리팹이 연결되지 않았습니다: " + data.Kind);

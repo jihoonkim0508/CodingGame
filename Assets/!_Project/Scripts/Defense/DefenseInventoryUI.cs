@@ -18,7 +18,7 @@ namespace CodingGame.Defense
         [SerializeField] TMP_Text[] robotLabels = Array.Empty<TMP_Text>();
         [SerializeField] BlockSlot[] blockSlots = Array.Empty<BlockSlot>();
         [Header("Developer item grant")]
-        [SerializeField] Button categoryButton, previousButton, nextButton, grantButton;
+        [SerializeField] Button categoryButton, previousButton, nextButton, grantButton, grantAllButton;
         [SerializeField] TMP_Text categoryLabel, itemLabel, feedback;
         [SerializeField] TMP_InputField quantity;
         readonly BlockKind[] kinds = DefenseProgression.ItemKinds;
@@ -29,13 +29,14 @@ namespace CodingGame.Defense
         {
             if (!battle || !inventoryRoot || !closeButton || robotButtons.Length != 6 || robotLabels.Length != 6 ||
                 robotButtons.Any(b => !b) || robotLabels.Any(t => !t) || blockSlots.Length != kinds.Length || blockSlots.Any(s => !s.label || !s.count) ||
-                !categoryButton || !previousButton || !nextButton || !grantButton || !categoryLabel || !itemLabel || !feedback || !quantity)
+                !categoryButton || !previousButton || !nextButton || !grantButton || !grantAllButton || !categoryLabel || !itemLabel || !feedback || !quantity)
                 throw new InvalidOperationException("인벤토리 Inspector 참조를 연결하세요.");
             closeButton.onClick.AddListener(Close);
             for (int i = 0; i < robotButtons.Length; i++) { int index = i; robotButtons[i].onClick.AddListener(() => { battle.ChooseRobot(index); Close(); }); }
             categoryButton.onClick.AddListener(() => { blocks = !blocks; item = 0; RefreshGrant(); });
             previousButton.onClick.AddListener(() => Change(-1)); nextButton.onClick.AddListener(() => Change(1));
             grantButton.onClick.AddListener(Grant); RefreshGrant(); Close();
+            grantAllButton.onClick.AddListener(GrantAll);
         }
         public void Close() { if (inventoryRoot) inventoryRoot.SetActive(false); }
         public void Toggle() => inventoryRoot.SetActive(!inventoryRoot.activeSelf);
@@ -51,6 +52,19 @@ namespace CodingGame.Defense
             catch (OverflowException) { feedback.text = "저장 가능한 정수 범위를 넘었습니다."; return; }
             feedback.text = itemLabel.text + " +" + count;
         }
+        public void GrantAll()
+        {
+            if (!battle.DeveloperMode) return;
+            var sim = battle.Simulation;
+            var roles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().ToArray();
+            if (roles.Any(r => sim.RobotAvailable(r) > int.MaxValue - 10) ||
+                kinds.Any(k => sim.Inventory.TryGetValue(k, out int count) && count > int.MaxValue - 50))
+            { feedback.text = "저장 가능한 정수 범위를 넘었습니다."; return; }
+            foreach (var role in roles) sim.GrantRobot(role, 10);
+            foreach (var kind in kinds) sim.GrantBlock(kind, 50);
+            feedback.text = "전체 추가 완료 · 각 로봇 +10 · 모든 블록 +50";
+            Debug.Log("[Defense] Developer grant: each robot +10, each block +50", this);
+        }
         void LateUpdate()
         {
             var sim = battle.Simulation;
@@ -59,7 +73,8 @@ namespace CodingGame.Defense
             for (int i = 0; i < robotButtons.Length; i++)
             {
                 int count = sim.RobotAvailable(battle.DefinitionRole(i));
-                robotLabels[i].text = battle.DefinitionName(i) + "   × " + count;
+                robotButtons[i].gameObject.SetActive(sim.RobotUnlocked(battle.DefinitionRole(i)));
+                robotLabels[i].text = battle.DefinitionName(i) + "   x" + count;
                 robotButtons[i].interactable = sim.CanPrepare && count > 0;
             }
             foreach (var slot in blockSlots)

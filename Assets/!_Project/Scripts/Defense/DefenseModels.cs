@@ -235,8 +235,7 @@ namespace CodingGame.Defense
         public readonly List<BuffState> Buffs = new List<BuffState>();
         public DefenseProgram Program;
         public float Range => RangeSetting * Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Range));
-        public float DamageMultiplier => (Spec.role == RobotRole.Shooter ? Spec.range / Range : 1) *
-            Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Damage)) * LevelMultiplier;
+        public float DamageMultiplier => Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Damage)) * LevelMultiplier;
         public float Damage => Spec.damage * DamageMultiplier;
         public float Interval => Spec.interval * Buffs.Aggregate(1f, (v, b) => Math.Min(v, b.Interval));
     }

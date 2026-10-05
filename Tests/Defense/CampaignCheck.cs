@@ -8,7 +8,7 @@ static class CampaignCheck
 {
     static int checks;
     static void Assert(bool value, string label) { if (!value) throw new Exception(label); checks++; }
-    static BattleSetup Setup() => new BattleSetup {
+    static BattleSetup Setup() => new BattleSetup { Progression = FixtureProgression.Create(),
         PlayerFlow = true, DropSeed = 42, Min = new Vector2(-20,-10), Max = new Vector2(20,10), BaseHealth = 20,
         Routes = new[]{new Route(new[]{new Vector2(-10,0),new Vector2(10,0)},1.1f)},
         ActionProfiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(Spec).ToArray(),
@@ -51,7 +51,7 @@ static class CampaignCheck
         Assert(battle.Coins==60&&battle.Kills==2,"each defeated enemy awards coins once");
         Assert(!battle.UpgradeRobot(shooter.Id),"reward phase upgrade locked");
         battle.ClaimRewards();
-        Assert(tank.Level==2&&Math.Abs(tank.Health.Value-tank.MaxHealth)<.001f&&battle.Coins==60,"upgrade and coins survive wave transition");
+        Assert(tank.Level==2&&Math.Abs(tank.Health.Value-60)<.001f&&battle.Coins==60,"upgrade and coins survive wave transition");
         Assert(!battle.ClaimRewards()&&battle.Coins==60,"reward claim does not duplicate coins");
         battle.Start();battle.DamageRobot(tank.Id,10000);
         Assert(battle.Coins==60&&!battle.RemoveRobot(tank.Id),"destroyed tank has no upgrade refund");
@@ -76,6 +76,7 @@ static class CampaignCheck
     }
     public static void Run()
     {
+        LearningCheck.Run();
         CheckUpgrades();
         var scaledSetup=Setup();scaledSetup.Stage=2;scaledSetup.WaveSeconds=.2f;
         var scaled=new DefenseSimulation(scaledSetup);

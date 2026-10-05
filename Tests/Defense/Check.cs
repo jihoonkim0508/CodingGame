@@ -8,7 +8,7 @@ static class Check
     static int checks;
     static void Assert(bool value, string message) { if (!value) throw new Exception(message); checks++; }
     static BattleSetup Setup(float health = 100, float speed = 1, int count = 1, int baseHealth = 10)
-        => new BattleSetup { Min = new Vector2(-12, -8), Max = new Vector2(12, 8), BaseHealth = baseHealth,
+        => new BattleSetup { Progression = FixtureProgression.Create(), Min = new Vector2(-12, -8), Max = new Vector2(12, 8), BaseHealth = baseHealth,
             ActionProfiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(Spec).ToArray(),
             Routes = new[] { new Route(new[] { new Vector2(-10, 0), new Vector2(10, 0) }, 1.1f) },
             Waves = new[] { new[] { new SpawnGroup { Enemy = new EnemySpec { health = health, speed = speed }, Count = count, Interval = .1f } } } };
@@ -70,7 +70,7 @@ static class Check
         var shooter = Place(shooterSim, RobotRole.Shooter, -8, 3);
         float damage = shooter.Damage;
         shooterSim.SetShooterRange(shooter.Id, 7);
-        Assert(shooter.Damage < damage, "shooter damage inversely follows range");
+        Assert(shooter.Damage == damage, "range setting does not change base damage");
 
         var blastSim = new DefenseSimulation(Setup(health: 20, count: 3));
         var bomb = Place(blastSim, RobotRole.Bomber, -8, 3); bomb.AutoExecute = false;
@@ -94,7 +94,7 @@ static class Check
         {
             var direct=new DefenseSimulation(Setup(speed:8));var attacker=Place(direct,role,-8,3);attacker.AutoExecute=false;
             direct.Start();Advance(direct,.2);direct.RequestAction(attacker.Id,attacker.Spec.NativeAction);
-            Assert(direct.Projectiles.Count==0&&direct.Enemies[0].Health==95,"direct action hits fast in-range target immediately: "+role);
+            Assert(direct.Projectiles.Count==0&&Math.Abs(direct.Enemies[0].Health-(100-direct.ActionDamage(attacker,attacker.Spec.NativeAction,Vector2.Distance(attacker.Position,direct.Enemies[0].Position))))<.001f,"direct action hits fast in-range target immediately: "+role);
         }
         var crossBomb=new DefenseSimulation(Setup());var crossThrower=Place(crossBomb,RobotRole.Warrior,-8,3);crossThrower.AutoExecute=false;
         crossBomb.Start();Advance(crossBomb,.2);crossBomb.RequestAction(crossThrower.Id,RobotAction.Boom);crossBomb.RemoveRobot(crossThrower.Id);Advance(crossBomb,1);

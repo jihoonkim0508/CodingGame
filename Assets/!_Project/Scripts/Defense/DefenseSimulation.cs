@@ -46,6 +46,7 @@ namespace CodingGame.Defense
         public readonly Dictionary<BlockKind, int> Inventory = new Dictionary<BlockKind, int>();
         public readonly Dictionary<RobotRole, int> RobotInventory = new Dictionary<RobotRole, int>();
         public int RobotAvailable(RobotRole role) => !Setup.PlayerFlow ? int.MaxValue : RobotInventory.TryGetValue(role, out int count) ? count : 0;
+        public bool RobotUnlocked(RobotRole role) => !Setup.PlayerFlow || RobotInventory.ContainsKey(role);
         public void GrantRobot(RobotRole role, int count)
         {
             if (!Enum.IsDefined(typeof(RobotRole), role) || count < 1) throw new ArgumentException("아이템 종류와 양수 수량을 확인하세요.");
@@ -58,6 +59,8 @@ namespace CodingGame.Defense
         }
         public readonly List<BlockKind> PendingDrops = new List<BlockKind>();
         public bool CanPrepare => Phase == BattlePhase.Ready;
+        public WaveLesson Lesson => Setup.Progression.lessons.FirstOrDefault(l => l.stage == Setup.Stage && l.wave == WaveIndex + 1);
+        public bool CanAdvanceStage => Phase == BattlePhase.Victory && Setup.Stage > 0 && Setup.Stage < DefenseCurriculum.StageCount;
         public bool CanEdit => !Setup.PlayerFlow ? Phase != BattlePhase.Victory && Phase != BattlePhase.Defeat : CanPrepare;
         public int Available(BlockKind kind, int editingRobot = 0)
         {
@@ -80,6 +83,7 @@ namespace CodingGame.Defense
             { var kind = DefenseProgression.Canonical(stock.kind); Inventory.TryGetValue(kind, out int old); Inventory[kind] = old + stock.count; }
             if (setup.PlayerFlow) foreach (var stock in setup.Progression.robots)
             { RobotInventory.TryGetValue(stock.role, out int old); RobotInventory[stock.role] = old + stock.count; }
+            if (setup.PlayerFlow) foreach (var lesson in setup.Progression.lessons.Where(l => l.stage < setup.Stage)) GrantSupply(lesson);
             PrepareWave();
         }
         void PrepareWave()
@@ -87,6 +91,27 @@ namespace CodingGame.Defense
             currentWave = nextWave ?? ScaledWave(WaveIndex);
             nextWave = WaveIndex + 1 < Setup.Waves.Length ? ScaledWave(WaveIndex + 1) : Array.Empty<SpawnGroup>();
             carry.Clear(); groupCounts = new int[currentWave.Length]; waveStart = Time;
+            if (Setup.PlayerFlow && Lesson != null) GrantSupply(Lesson);
+        }
+        void GrantSupply(WaveLesson lesson)
+        {
+            foreach (var stock in lesson.blocks) GrantBlock(stock.kind, stock.count);
+            foreach (var stock in lesson.robots) GrantRobot(stock.role, stock.count);
+        }
+        public bool AdvanceStage()
+        {
+            if (!CanAdvanceStage) return false;
+            Setup.Stage++; WaveIndex = 0; BaseHealth = Setup.BaseHealth;
+            nextWave = null; carry.Clear(); WaveSurvivors.Clear(); LastSurvivors = 0; LastWaveTimedOut = false;
+            PrepareWave(); ResetPrograms(); Phase = BattlePhase.Ready; return true;
+        }
+        void ResetPrograms()
+        {
+            foreach (var bot in Robots)
+            {
+                bot.Buffs.Clear(); bot.BlockingEnabled = false; bot.NextAction = Time + bot.Spec.interval;
+                if (bot.Program != null) bot.Program = new DefenseProgram(bot.Program.Name, bot.Program.CopyBlocks());
+            }
         }
         SpawnGroup[] ScaledWave(int waveIndex)
         {
@@ -120,12 +145,7 @@ namespace CodingGame.Defense
             PendingDrops.Clear(); accumulated = 0;
             if (WaveIndex + 1 == Setup.Waves.Length) { Phase = BattlePhase.Victory; return true; }
             WaveIndex++; PrepareWave();
-            foreach (var bot in Robots)
-            {
-                bot.Buffs.Clear(); bot.BlockingEnabled = false; bot.NextAction = Time + bot.Spec.interval;
-                if (bot.Health.HasValue) bot.Health = bot.MaxHealth;
-                if (bot.Program != null) bot.Program = new DefenseProgram(bot.Program.Name, bot.Program.CopyBlocks());
-            }
+            ResetPrograms();
             Phase = BattlePhase.Ready; return true;
         }
         public void TogglePause()
@@ -133,16 +153,22 @@ namespace CodingGame.Defense
             if (Phase == BattlePhase.Running) Phase = BattlePhase.Paused;
             else if (Phase == BattlePhase.Paused) Phase = BattlePhase.Running;
         }
-        public string PlacementError(RobotSpec spec, Vector2 point)
+        public string DeploymentError(RobotRole role)
         {
             if (Phase == BattlePhase.Victory || Phase == BattlePhase.Defeat) return "전투가 종료되었습니다.";
             if (Setup.PlayerFlow && !CanPrepare) return "로봇 배치는 웨이브 준비 중에만 가능합니다.";
-            if (RobotAvailable(spec.role) < 1) return "인벤토리에 해당 로봇이 없습니다.";
+            if (Robots.Count >= Setup.RobotLimit) return "설치개수 초과 · 기존 로봇을 회수하세요";
+            if (RobotAvailable(role) < 1) return "보유 로봇 없음";
+            if (role == RobotRole.Buffer && Robots.Any(bot => bot.Spec.role == RobotRole.Buffer)) return "버프형은 최대 1대";
+            return null;
+        }
+        public string PlacementError(RobotSpec spec, Vector2 point)
+        {
+            string error = DeploymentError(spec.role);
+            if (error != null) return error;
             float r = spec.radius;
             if (float.IsNaN(point.X) || float.IsNaN(point.Y) || point.X - r < Setup.Min.X || point.X + r > Setup.Max.X ||
                 point.Y - r < Setup.Min.Y || point.Y + r > Setup.Max.Y) return "설치 허용 영역 밖입니다.";
-            if (Robots.Count >= Setup.RobotLimit) return "시험 전장의 로봇 상한에 도달했습니다.";
-            if (spec.role == RobotRole.Buffer && Robots.Any(bot => bot.Spec.role == RobotRole.Buffer)) return "버프형은 맵에 한 대만 설치할 수 있습니다.";
             if (Robots.Any(bot => Vector2.Distance(bot.Position, point) < bot.Spec.radius + r + .12f)) return "다른 로봇과 겹칩니다.";
             if (Setup.Obstacles.Any(area => area.Overlaps(point, r))) return "장애물 또는 목표 시설과 겹칩니다.";
             bool pathFits = Setup.Routes.Any(route => route.Distance(point) + r <= route.HalfWidth);
@@ -248,6 +274,8 @@ namespace CodingGame.Defense
             return action != RobotAction.Block && action != RobotAction.Buff ? .1f : Setup.Permissions.First(p => p.role == bot.Spec.role && p.action == action).strength;
         }
         public float ActionDamage(RobotState bot, RobotAction action) => Profile(bot, action).damage * bot.DamageMultiplier * Strength(bot, action);
+        public float ActionDamage(RobotState bot, RobotAction action, float distance) => ActionDamage(bot, action) *
+            (bot.Spec.role == RobotRole.Shooter && action == RobotAction.Attack ? bot.Spec.range / Math.Max(1f, distance) : 1f);
         public float ActionInterval(RobotState bot, RobotAction action) => Profile(bot, action).interval * (bot.Interval / bot.Spec.interval);
         public ActionResult RequestAction(int robotId, RobotAction action, int targetId = 0)
         {
@@ -282,7 +310,7 @@ namespace CodingGame.Defense
                 if (action == RobotAction.Block)
                 {
                     foreach (var e in targets.ToArray()) Effect(e, bot.Id).StunUntil = Math.Max(Effect(e, bot.Id).StunUntil, Time + profile.duration * strength);
-                    Hit(target, profile.damage * bot.DamageMultiplier * strength, bot.Id);
+                    Hit(target, ActionDamage(bot, action, Vector2.Distance(bot.Position, target.Position)), bot.Id);
                     Emit("stun", bot.Id, target.Id, bot.Position, 0, bot.Range);
                 }
                 else if (action == RobotAction.Boom)
@@ -295,7 +323,7 @@ namespace CodingGame.Defense
                 }
                 else
                 {
-                    Hit(target, profile.damage * bot.DamageMultiplier * strength, bot.Id);
+                    Hit(target, ActionDamage(bot, action, Vector2.Distance(bot.Position, target.Position)), bot.Id);
                     if (action == RobotAction.Slow && target.Active)
                     {
                         var effect = Effect(target, bot.Id); effect.SlowUntil = Time + profile.duration;
@@ -324,8 +352,11 @@ namespace CodingGame.Defense
                 if (Setup.PlayerFlow)
                 {
                     Coins = (int)Math.Min(int.MaxValue, (long)Coins + Setup.Progression.coinsPerKill);
-                    var drop = NeededDrop();
-                    PendingDrops.Add(DefenseProgression.Canonical(drop)); Emit("drop", 0, e.Id, e.Position, (int)drop);
+                    if (Lesson == null)
+                    {
+                        var drop = NeededDrop();
+                        PendingDrops.Add(DefenseProgression.Canonical(drop)); Emit("drop", 0, e.Id, e.Position, (int)drop);
+                    }
                 }
             }
         }
@@ -426,7 +457,12 @@ namespace CodingGame.Defense
                 Enemies.Clear();
                 Projectiles.Clear();
                 Emit("wave-completed", 0, WaveIndex, Vector2.Zero);
-                if (Setup.PlayerFlow) { Phase = BattlePhase.Reward; accumulated = 0; }
+                if (Setup.PlayerFlow)
+                {
+                    if (Lesson != null) foreach (var stock in Lesson.rewards)
+                        for (int i = 0; i < stock.count; i++) PendingDrops.Add(DefenseProgression.Canonical(stock.kind));
+                    Phase = BattlePhase.Reward; accumulated = 0;
+                }
                 else if (WaveIndex + 1 == Setup.Waves.Length) Phase = BattlePhase.Victory;
                 else { WaveIndex++; PrepareWave(); }
             }

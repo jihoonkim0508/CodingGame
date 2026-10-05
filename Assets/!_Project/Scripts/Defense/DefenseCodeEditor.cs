@@ -15,7 +15,7 @@ namespace CodingGame.Defense
         [SerializeField] CommandCodingPanel panel;
         [SerializeField] GameObject editorRoot;
         [SerializeField] TMP_Text title, inventory;
-        [SerializeField] Button closeButton, automaticButton, recallButton;
+        [SerializeField] Button closeButton, automaticButton;
         int editingId;
         DefenseSimulation editingSession;
         DefenseSimulation draftSession;
@@ -26,15 +26,13 @@ namespace CodingGame.Defense
         bool HasCurrentSession => editingSession != null && editingSession == battle.Simulation;
         void Start()
         {
-            if (!battle || !panel || !editorRoot || !title || !inventory || !closeButton || !automaticButton || !recallButton)
+            if (!battle || !panel || !editorRoot || !title || !inventory || !closeButton || !automaticButton)
                 throw new InvalidOperationException("DefenseCodeEditor Inspector 참조를 연결하세요.");
             panel.ApplyToTarget = Apply;
             panel.IsAvailable = kind => editingSession == null || editingSession.Available(kind, editingId) > 0;
             panel.Remaining = kind => editingSession == null ? 0 : Math.Max(0, editingSession.Available(kind, editingId) - panel.Program.AllBlocks().Count(b => DefenseProgression.Canonical(b.Kind) == DefenseProgression.Canonical(kind)));
-            battle.RobotSelected += Open;
             closeButton.onClick.AddListener(() => Close());
             automaticButton.onClick.AddListener(RestoreAutomatic);
-            recallButton.onClick.AddListener(battle.RemoveSelected);
             editorRoot.SetActive(false);
         }
         public void OpenSelected() => Open(battle.SelectedId);
@@ -47,7 +45,7 @@ namespace CodingGame.Defense
             Close(); editingSession = sim; editingId = id;
             if (draftSession != sim) { drafts.Clear(); draftSession = sim; }
             foreach (int removed in drafts.Keys.Where(key => !sim.Robots.Exists(r => r.Id == key)).ToArray()) drafts.Remove(removed);
-            title.text = battle.RobotName(id) + " #" + id;
+            title.text = "미리보기 · " + battle.RobotName(id);
             battle.BeginCodeView(robot);
             editorRoot.SetActive(true);
             if (drafts.TryGetValue(id, out var history)) panel.LoadHistory(history);
@@ -85,6 +83,7 @@ namespace CodingGame.Defense
         }
         void Update()
         {
+            if (battle.HelpOpen) return;
             var sim = battle.Simulation;
             if (!IsOpen) return;
             // 재시작이나 도메인 리로드로 세션이 사라지면 이전 로봇 편집을 즉시 종료합니다.
@@ -100,6 +99,6 @@ namespace CodingGame.Defense
                 else if (keyboard.yKey.wasPressedThisFrame) panel.Redo();
             }
         }
-        void OnDestroy() { if (battle) battle.RobotSelected -= Open; if (panel) { panel.ApplyToTarget = null; panel.IsAvailable = null; panel.Remaining = null; } }
+        void OnDestroy() { if (panel) { panel.ApplyToTarget = null; panel.IsAvailable = null; panel.Remaining = null; } }
     }
 }
