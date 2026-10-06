@@ -21,6 +21,7 @@ namespace CodingGame.Defense
         [SerializeField] DefensePreviewCameraControl cameraControl;
         [SerializeField] DefenseRangeRing effectRing;
         [SerializeField] Transform projectilePrefab;
+        [SerializeField] DefenseHitVisuals hitEffects = new DefenseHitVisuals();
         readonly DefenseProjectileVisuals projectileViews = new DefenseProjectileVisuals();
         DefenseSimulation simulation;
         RobotState selected;
@@ -33,6 +34,7 @@ namespace CodingGame.Defense
         public bool IsShowing => selected != null && previewPanel.activeSelf;
         void Start()
         {
+            if (!hitEffects.IsConfigured) throw new InvalidOperationException("미리보기 피격 이펙트 프리팹을 Inspector에 연결하세요.");
             if (!cameraControl || !coinLabel || !projectilePrefab || !battle || !arena || !previewCamera || !previewImage || !previewPanel || !stats || !status || !effectRing)
                 throw new InvalidOperationException("공격 미리보기 Inspector 참조를 연결하세요.");
             Close();
@@ -58,6 +60,7 @@ namespace CodingGame.Defense
         void ClearActors()
         {
             projectileViews.Clear();
+            hitEffects.Clear();
             foreach (var view in views.Values) if (view) { view.gameObject.SetActive(false); Destroy(view.gameObject); }
             views.Clear(); effectRing.Hide();
         }
@@ -105,6 +108,7 @@ namespace CodingGame.Defense
             if (rect.width > 0 && rect.height > 0) previewCamera.aspect = rect.width / rect.height;
             float dt = Time.unscaledDeltaTime;
             AdvancePreview(dt);
+            hitEffects.Tick(dt);
             projectileViews.Sync(simulation, projectilePrefab, arena, arena.position);
             foreach (var id in views.Keys.Where(id => !simulation.Robots.Any(r => r.Id == id) && !simulation.Enemies.Any(e => e.Id == id)).ToArray())
             { Destroy(views[id].gameObject); views.Remove(id); }
@@ -118,6 +122,7 @@ namespace CodingGame.Defense
             foreach (var view in views.Values) view.TickVisual(dt);
             foreach (var e in simulation.Events)
             {
+                hitEffects.Show(e, arena, arena.position, previewCamera.transform.rotation);
                 if (views.TryGetValue(e.Source,out var view))
                 {
                     if (e.Kind == "launch") view.AimAt(World(e.Position));

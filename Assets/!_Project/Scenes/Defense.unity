@@ -7578,6 +7578,9 @@ MonoBehaviour:
   placementMarker: {fileID: 1744987556}
   blockDropPrefab: {fileID: 5273386662266066841, guid: 5af05bafd4f898047a1e9caddbef53ed, type: 3}
   projectilePrefab: {fileID: 5101280866201362435, guid: b9454c1812db1074bb7030fbdafd2e4b, type: 3}
+  hitEffects:
+    prefab: {fileID: 8443315704496310908, guid: b8a43a26812e02d4e94a8deab7fec8d2, type: 3}
+    lifetime: 1.5
   progression:
     initialCoins: 100
     coinsPerKill: 5
@@ -8219,6 +8222,9 @@ MonoBehaviour:
   cameraControl: {fileID: 601451432}
   effectRing: {fileID: 2049661171}
   projectilePrefab: {fileID: 5101280866201362435, guid: b9454c1812db1074bb7030fbdafd2e4b, type: 3}
+  hitEffects:
+    prefab: {fileID: 8443315704496310908, guid: b8a43a26812e02d4e94a8deab7fec8d2, type: 3}
+    lifetime: 1.5
 --- !u!114 &420160343
 MonoBehaviour:
   m_ObjectHideFlags: 0

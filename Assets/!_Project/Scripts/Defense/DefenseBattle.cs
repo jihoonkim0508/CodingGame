@@ -35,6 +35,7 @@ namespace CodingGame.Defense
         [SerializeField] Transform placementMarker;
         [SerializeField] Transform blockDropPrefab;
         [SerializeField] Transform projectilePrefab;
+        [SerializeField] DefenseHitVisuals hitEffects = new DefenseHitVisuals();
         [SerializeField] DefenseProgression progression = new DefenseProgression();
         [SerializeField] GameObject developerRoot;
         [SerializeField] DefensePlayerHUD playerHUD;
@@ -108,6 +109,7 @@ namespace CodingGame.Defense
         }
         void ValidateReferences()
         {
+            if (!hitEffects.IsConfigured) throw new InvalidOperationException("피격 이펙트 프리팹을 Inspector에 연결하세요.");
             if (!selectionCamera || !inventoryUI || !attackPreview) throw new InvalidOperationException("선택 카메라·인벤토리·미리보기 참조를 연결하세요.");
             if (!projectilePrefab || !blockDropPrefab || !developerRoot || !playerHUD || !battleCamera || !eventSystem || !codeEditor || !deploymentArea || !actorsRoot || !rangeRing || !effectRing || !placementMarker ||
                 !header || !selectionText || !message || !stateText || !resultText || !resultPanel || !startButton || !pauseButton ||
@@ -147,6 +149,7 @@ namespace CodingGame.Defense
             robotViews.Clear(); enemyViews.Clear();
             ClearDrops();
             projectileViews.Clear();
+            hitEffects.Clear();
             Simulation = new DefenseSimulation(MakeSetup());
             selected = 0; palette = -1; speed = 1; effectTime = 0;
             placementMarker.gameObject.SetActive(false); rangeRing.Hide(); effectRing.Hide(); resultPanel.SetActive(false);
@@ -290,8 +293,11 @@ namespace CodingGame.Defense
             Simulation.Advance(UnityEngine.Time.deltaTime * speed);
             float elapsed = (float)(Simulation.Time - previous);
             SyncViews(elapsed);
+            hitEffects.Tick(Simulation.Phase == BattlePhase.Paused ? 0 :
+                Simulation.Phase == BattlePhase.Running ? elapsed : UnityEngine.Time.deltaTime * speed);
             foreach (var evt in Simulation.Events)
             {
+                hitEffects.Show(evt, actorsRoot, Vector3.zero, battleCamera.transform.rotation);
                 if (evt.Kind == "drop") dropViews.Add(Instantiate(blockDropPrefab, World(evt.Position) + Vector3.up * .35f, Quaternion.Euler(0, 45, 0), actorsRoot));
                 if (robotViews.TryGetValue(evt.Source, out var source))
                 {
