@@ -99,11 +99,11 @@ namespace CodingGame.Defense
             switch (action)
             {
                 case RobotAction.Buff: return "buff()";
-                case RobotAction.Slash: return "slash()";
-                case RobotAction.Block: return "block()";
-                case RobotAction.Boom: return "Boom()";
-                case RobotAction.Attack: return "Attack()";
-                default: return "slow()";
+                case RobotAction.Slash: return "slash(enemy)";
+                case RobotAction.Block: return "block(enemy)";
+                case RobotAction.Boom: return "boom(enemy)";
+                case RobotAction.Attack: return "attack(enemy)";
+                default: return "slow(enemy)";
             }
         }
     }
@@ -141,6 +141,7 @@ namespace CodingGame.Defense
 
     public sealed class BattleSetup
     {
+        public int FunctionRepeatLimit = 5;
         public Vector2 Min, Max;
         public Route[] Routes;
         public SpawnGroup[][] Waves;
@@ -261,6 +262,8 @@ namespace CodingGame.Defense
     public sealed class CombatEvent
     {
         public string Kind;
+        public bool Melee;
+        public Vector2 Origin;
         public int Source, Target;
         public Vector2 Position;
         public float Amount, Radius;

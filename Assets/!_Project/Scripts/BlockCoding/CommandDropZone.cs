@@ -375,14 +375,16 @@ namespace CodingGame.BlockCoding
         public void OnDrop(PointerEventData e)
         {
             if (!Panel || !Panel.Dragged) return;
+            var dragged = Panel.Dragged;
+            var source = dragged.Owner ? dragged.Owner.Rect : dragged.Rect;
             if (freePlacement)
             {
-                if (PlaceFree(Panel.Dragged, Panel.DropPosition(e))) Panel.AcceptDrop();
+                if (PlaceFree(dragged, Panel.DropPosition(e))) { Panel.ReportSuccessfulDrop(dragged, source, rect); Panel.AcceptDrop(); }
                 e.Use();
                 return;
             }
             int index = PointerIndex(e);
-            if (Insert(Panel.Dragged, index)) Panel.AcceptDrop();
+            if (Insert(dragged, index)) { Panel.ReportSuccessfulDrop(dragged, source, rect); Panel.AcceptDrop(); }
             else Panel.ShowMessage("이 위치에는 연결할 수 없습니다. 슬롯 모양과 분기 순서를 확인하세요.");
             e.Use();
         }

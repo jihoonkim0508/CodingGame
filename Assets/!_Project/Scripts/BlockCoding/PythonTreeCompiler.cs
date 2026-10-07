@@ -40,8 +40,12 @@ namespace CodingGame.BlockCoding
         public static bool HasBody(BlockKind kind) => kind == BlockKind.For || kind == BlockKind.While ||
             kind == BlockKind.If || kind == BlockKind.Elif || kind == BlockKind.Else;
 
+        public static bool HasEnemyArgument(BlockKind kind) => kind == BlockKind.Slash || kind == BlockKind.Block ||
+            kind == BlockKind.Boom || kind == BlockKind.Shot || kind == BlockKind.Attack || kind == BlockKind.Slow;
+
         public static int ArgumentCount(BlockKind kind)
         {
+            if (HasEnemyArgument(kind)) return 1;
             switch (kind)
             {
                 case BlockKind.For: case BlockKind.If: case BlockKind.Elif:
@@ -83,8 +87,8 @@ namespace CodingGame.BlockCoding
         {
             if (blocks == null) throw new ArgumentNullException(nameof(blocks));
             ValidateTree(blocks, new HashSet<CodeBlock>());
-            var source = new StringBuilder("def ").Append(NormalizeIdentifier(functionName)).Append("():\n");
-            EmitSuite(blocks, source, 1, 0, new Dictionary<string, ValueType>());
+            var source = new StringBuilder("def ").Append(NormalizeIdentifier(functionName)).Append("(enemy):\n");
+            EmitSuite(blocks, source, 1, 0, new Dictionary<string, ValueType> { ["enemy"] = ValueType.Enemy });
             return source.ToString();
         }
 
@@ -95,14 +99,16 @@ namespace CodingGame.BlockCoding
                 if (block == null) throw new FormatException("비어 있는 블록 슬롯이 있습니다.");
                 if (!path.Add(block)) throw new FormatException("블록을 자기 자신의 내부에 연결할 수 없습니다.");
                 OutputSlot(block.Kind);
-                if (block.Arguments == null || block.Arguments.Count != ArgumentCount(block.Kind))
+                if (block.Arguments == null || (block.Arguments.Count != ArgumentCount(block.Kind) &&
+                    !(HasEnemyArgument(block.Kind) && block.Arguments.Count == 0)))
                     throw new FormatException($"{block.Kind}: 입력 슬롯을 모두 채워 주세요.");
                 for (int i = 0; i < block.Arguments.Count; i++)
-                    if (block.Arguments[i] == null || !Accepts(ArgumentSlot(block.Kind, i), block.Arguments[i].Kind))
+                    if (!(HasEnemyArgument(block.Kind) && block.Arguments[i] == null) &&
+                        (block.Arguments[i] == null || !Accepts(ArgumentSlot(block.Kind, i), block.Arguments[i].Kind)))
                         throw new FormatException($"{block.Kind}: {i + 1}번째 슬롯에는 {ArgumentSlot(block.Kind, i)} 블록이 필요합니다.");
                 if (block.Body == null || (!HasBody(block.Kind) && block.Body.Count != 0))
                     throw new FormatException($"{block.Kind}: 내부 명령을 가질 수 없는 블록입니다.");
-                ValidateTree(block.Arguments, path);
+                ValidateTree(block.Arguments.Where(b => b != null).ToList(), path);
                 ValidateTree(block.Body, path);
                 path.Remove(block);
             }
@@ -210,6 +216,14 @@ namespace CodingGame.BlockCoding
         static string Expression(CodeBlock block, IReadOnlyDictionary<string, ValueType> variables)
         {
             string Arg(int index) => Expression(block.Arguments[index], variables);
+            if (HasEnemyArgument(block.Kind))
+            {
+                var target = block.Arguments.Count == 0 || block.Arguments[0] == null
+                    ? new CodeBlock(BlockKind.Variable, "enemy") : block.Arguments[0];
+                Require(target, variables, ValueType.Enemy, "공격 대상에는 enemy 객체가 필요합니다.");
+                string method = block.Kind == BlockKind.Shot || block.Kind == BlockKind.Attack ? "attack" : block.Kind.ToString().ToLowerInvariant();
+                return method + "(" + Expression(target, variables) + ")";
+            }
             switch (block.Kind)
             {
                 case BlockKind.Number: return NormalizeNumber(block.Value);
@@ -221,15 +235,7 @@ namespace CodingGame.BlockCoding
                 case BlockKind.NearestEnemy: return "get_nearest_enemy()";
                 case BlockKind.True: return "True";
                 case BlockKind.False: return "False";
-                case BlockKind.Slash: return "slash()";
-                case BlockKind.Block: return "block()";
-                case BlockKind.Boom: return "Boom()";
-                case BlockKind.Shot: return "Attack()";
-                case BlockKind.Slow: return "slow()";
                 case BlockKind.Buff: return "buff()";
-                case BlockKind.Attack:
-                    Require(block.Arguments[0], variables, ValueType.Enemy, "attack에는 Enemy 객체가 필요합니다.");
-                    return "attack(" + Arg(0) + ")";
                 case BlockKind.Wait:
                     Require(block.Arguments[0], variables, Numeric, "wait에는 초 단위의 숫자가 필요합니다.");
                     return "wait(" + Arg(0) + ")";

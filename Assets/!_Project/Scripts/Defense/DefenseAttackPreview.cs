@@ -32,6 +32,7 @@ namespace CodingGame.Defense
         int sourceLevel;
         public DefenseSimulation PreviewSimulation => simulation;
         public bool IsShowing => selected != null && previewPanel.activeSelf;
+        public void SetHitRangesVisible(bool visible) => hitEffects.SetHitRangesVisible(visible);
         void Start()
         {
             if (!hitEffects.IsConfigured) throw new InvalidOperationException("미리보기 피격 이펙트 프리팹을 Inspector에 연결하세요.");
@@ -70,6 +71,7 @@ namespace CodingGame.Defense
             sourceLevel = selected.Level;
             var enemy = battle.PreviewEnemy.stats.Copy(); enemy.damage = 0;
             simulation = new DefenseSimulation(new BattleSetup {
+                FunctionRepeatLimit = battle.Simulation.FunctionRepeatLimit,
                 Min = new Point(-50,-50), Max = new Point(50,50), BaseHealth = 100,
                 Routes = new[] { new Route(new[] { new Point(2,0), new Point(-20,0) }, 1.2f) },
                 ActionProfiles = battle.Simulation.Setup.ActionProfiles.Select(p => p.Copy()).ToArray(),
@@ -102,6 +104,7 @@ namespace CodingGame.Defense
         void Update()
         {
             if (selected == null) return;
+            if (battle.Tutorial && battle.Tutorial.BlocksGameplayInput && !battle.Tutorial.AllowPreview) return;
             RefreshStats();
             if (!IsShowing) return;
             var rect = previewImage.rectTransform.rect;
@@ -125,10 +128,10 @@ namespace CodingGame.Defense
                 hitEffects.Show(e, arena, arena.position, previewCamera.transform.rotation);
                 if (views.TryGetValue(e.Source,out var view))
                 {
-                    if (e.Kind == "launch") view.AimAt(World(e.Position));
-                    else if (e.Kind == "hit" || e.Kind == "buff" || e.Kind == "stun") view.FireAt(World(e.Position));
+                    if (e.Kind == "launch" || e.Kind == "slash") view.AimAt(World(e.Position));
+                    else if (!e.Melee && (e.Kind == "hit" || e.Kind == "buff" || e.Kind == "stun")) view.FireAt(World(e.Position));
                 }
-                if (e.Radius > 0) { effectRing.Show(World(e.Position),e.Radius,e.Kind=="buff"?Color.green:Color.yellow); effectSeconds=.3f; }
+                if (e.Radius > 0 && e.Kind != "slash") { effectRing.Show(World(e.Position),e.Radius,e.Kind=="buff"?Color.green:Color.yellow); effectSeconds=.3f; }
             }
             simulation.Events.Clear(); effectSeconds-=dt; if(effectSeconds<=0) effectRing.Hide();
             RefreshStatus();
@@ -142,6 +145,7 @@ namespace CodingGame.Defense
             string state;
             if (program == null || program.IsEmpty) state = "코드 없음 · 대기";
             else if (program.Fault != null) state = program.Fault;
+            else if (program.Completed(simulation)) state = $"함수 {program.CompletedRuns}/{simulation.FunctionRepeatLimit}회 완료";
             else if (program.WaitRemaining(simulation.Time) > 0)
                 state = $"wait · {program.WaitRemaining(simulation.Time):0.0}s";
             else if (program.StepsLastTick == 0) state = "코드 대기";

@@ -39,7 +39,7 @@ namespace CodingGame.Defense
         public void OnScroll(PointerEventData data)
         {
             Initialize();
-            float scale = Mathf.Pow(.85f, data.scrollDelta.y);
+            float scale = Mathf.Pow(.85f, data.scrollDelta.y * .5f);
             previewCamera.orthographicSize = Mathf.Clamp(previewCamera.orthographicSize * scale, 2, 16);
         }
     }

@@ -29,6 +29,7 @@ namespace CodingGame.Defense
             if (!battle || !panel || !editorRoot || !title || !inventory || !closeButton || !automaticButton)
                 throw new InvalidOperationException("DefenseCodeEditor Inspector 참조를 연결하세요.");
             panel.ApplyToTarget = Apply;
+            panel.BlockDropped += OnBlockDropped;
             panel.IsAvailable = kind => editingSession == null || editingSession.Available(kind, editingId) > 0;
             panel.Remaining = kind => editingSession == null ? 0 : Math.Max(0, editingSession.Available(kind, editingId) - panel.Program.AllBlocks().Count(b => DefenseProgression.Canonical(b.Kind) == DefenseProgression.Canonical(kind)));
             closeButton.onClick.AddListener(() => Close());
@@ -42,7 +43,7 @@ namespace CodingGame.Defense
             var robot = sim?.Robots.Find(r => r.Id == id);
             if (robot == null || !sim.CanEdit) return;
             if (IsOpen && editingId == id && editingSession == sim) return;
-            Close(); editingSession = sim; editingId = id;
+            Close(false); editingSession = sim; editingId = id;
             if (draftSession != sim) { drafts.Clear(); draftSession = sim; }
             foreach (int removed in drafts.Keys.Where(key => !sim.Robots.Exists(r => r.Id == key)).ToArray()) drafts.Remove(removed);
             title.text = "미리보기 · " + battle.RobotName(id);
@@ -65,21 +66,32 @@ namespace CodingGame.Defense
             battle.NotifyCodeApplied(editingId, blocks.Count == 0);
             return blocks.Count == 0 ? "코드 없음 · 행동하지 않음" : "자동 적용됨";
         }
+        void OnBlockDropped(BlockKind kind, RectTransform source, RectTransform destination)
+            => battle.ReportTutorialDrop(source, destination, "BlockDropped:" + DefenseProgression.Canonical(kind));
         public void Close(bool resume = true)
         {
+            if (resume && !battle.TutorialAllows("Editor.Close")) return;
+            bool wasOpen = IsOpen;
             if (IsOpen && HasCurrentSession && editingSession.Robots.Exists(r => r.Id == editingId))
                 drafts[editingId] = panel.History;
             if (IsOpen) battle.EndCodeView();
             if (editorRoot) editorRoot.SetActive(false);
             editingId = 0; editingSession = null;
+            if (resume && wasOpen)
+            {
+                battle.ReportTutorialAction("Editor.Close", "TargetClicked");
+                battle.ReportTutorialAction("Editor.Close", "EditorClosed");
+            }
         }
         // 기존 Inspector 버튼 연결은 유지하고, 실제 동작은 코드 비우기로 사용합니다.
         public void RestoreAutomatic()
         {
+            if (!battle.TutorialAllows("Editor.RestoreAutomatic")) return;
             if (!IsOpen || !HasCurrentSession) return;
             panel.ClearProgram();
             RefreshInventory();
             if (panel.IsApplied) panel.ShowMessage("코드를 비웠습니다. 블록 예약이 해제됩니다.");
+            if (panel.IsApplied) battle.ReportTutorialAction("Editor.RestoreAutomatic", "TargetClicked");
         }
         void Update()
         {
@@ -90,7 +102,8 @@ namespace CodingGame.Defense
             if (!HasCurrentSession || !sim.CanEdit || !sim.Robots.Exists(r => r.Id == editingId)) { Close(false); return; }
             var keyboard = Keyboard.current;
             if (keyboard == null) return;
-            if (keyboard.escapeKey.wasPressedThisFrame) { Close(); return; }
+            if (keyboard.escapeKey.wasPressedThisFrame) { if (battle.TutorialAllows("Editor.Close")) Close(); return; }
+            if (battle.Tutorial && battle.Tutorial.BlocksGameplayInput) return;
             // 텍스트 입력 중에는 입력창 단축키를 유지하고, 그 밖에서만 블록 실행 취소를 처리합니다.
             if (panel.TextInputFocused || keyboard.altKey.isPressed || keyboard.leftMetaKey.isPressed || keyboard.rightMetaKey.isPressed) return;
             if (keyboard.ctrlKey.isPressed)
@@ -99,6 +112,11 @@ namespace CodingGame.Defense
                 else if (keyboard.yKey.wasPressedThisFrame) panel.Redo();
             }
         }
-        void OnDestroy() { if (panel) { panel.ApplyToTarget = null; panel.IsAvailable = null; panel.Remaining = null; } }
+        void OnDestroy()
+        {
+            if (!panel) return;
+            panel.BlockDropped -= OnBlockDropped;
+            panel.ApplyToTarget = null; panel.IsAvailable = null; panel.Remaining = null;
+        }
     }
 }

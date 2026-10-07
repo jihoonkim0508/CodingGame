@@ -47,6 +47,9 @@ namespace CodingGame.Defense
         public readonly Dictionary<RobotRole, int> RobotInventory = new Dictionary<RobotRole, int>();
         public int RobotAvailable(RobotRole role) => !Setup.PlayerFlow ? int.MaxValue : RobotInventory.TryGetValue(role, out int count) ? count : 0;
         public bool RobotUnlocked(RobotRole role) => !Setup.PlayerFlow || RobotInventory.ContainsKey(role);
+        public int FunctionRepeatLimit => Setup.PlayerFlow
+            ? (Inventory.ContainsKey(BlockKind.For) || Inventory.ContainsKey(BlockKind.While) ? 1 : 5)
+            : Setup.FunctionRepeatLimit;
         public void GrantRobot(RobotRole role, int count)
         {
             if (!Enum.IsDefined(typeof(RobotRole), role) || count < 1) throw new ArgumentException("아이템 종류와 양수 수량을 확인하세요.");
@@ -321,6 +324,18 @@ namespace CodingGame.Defense
                         Damage = profile.damage * bot.DamageMultiplier * strength, Radius = profile.effectRadius });
                     Emit("launch", bot.Id, target.Id, target.Position);
                 }
+                else if (action == RobotAction.Slash)
+                {
+                    var direction = target.Position - bot.Position;
+                    if (direction.LengthSquared() < .000001f) direction = Vector2.UnitY;
+                    direction = Vector2.Normalize(direction);
+                    float damage = ActionDamage(bot, action);
+                    Events.Add(new CombatEvent { Kind = "slash", Source = bot.Id, Target = target.Id,
+                        Origin = bot.Position, Position = bot.Position + direction, Radius = bot.Range });
+                    foreach (var enemy in targets.ToArray())
+                        if (Vector2.Dot(enemy.Position - bot.Position, direction) >= -.00001f)
+                            Hit(enemy, damage, bot.Id, meleeSource: bot);
+                }
                 else
                 {
                     Hit(target, ActionDamage(bot, action, Vector2.Distance(bot.Position, target.Position)), bot.Id);
@@ -342,10 +357,13 @@ namespace CodingGame.Defense
         }
         void Emit(string kind, int source, int target, Vector2 point, float amount = 0, float radius = 0)
             => Events.Add(new CombatEvent { Kind = kind, Source = source, Target = target, Position = point, Amount = amount, Radius = radius });
-        void Hit(EnemyState e, float damage, int source, bool projectile = false)
+        void Hit(EnemyState e, float damage, int source, bool projectile = false, RobotState meleeSource = null)
         {
             if (!e.Active) return;
-            e.Health = Math.Max(0, e.Health - damage); Emit(projectile ? "projectile-hit" : "hit", source, e.Id, e.Position, damage);
+            e.Health = Math.Max(0, e.Health - damage);
+            Events.Add(new CombatEvent { Kind = projectile ? "projectile-hit" : "hit", Source = source,
+                Target = e.Id, Position = e.Position, Amount = damage, Melee = meleeSource != null,
+                Origin = meleeSource == null ? default : meleeSource.Position });
             if (e.Health <= 0)
             {
                 e.Active = false; e.BlockedBy = 0; Kills++; Emit("killed", source, e.Id, e.Position);

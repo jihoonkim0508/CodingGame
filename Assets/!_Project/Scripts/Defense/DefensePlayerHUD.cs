@@ -72,7 +72,7 @@ namespace CodingGame.Defense
             bool ended = sim.Phase == BattlePhase.Victory || sim.Phase == BattlePhase.Defeat;
             bool fighting = sim.Phase == BattlePhase.Running || sim.Phase == BattlePhase.Paused;
             string state = ended ? "작전 종료" : fighting ? "전투 중" : "정비 중";
-            counters.text = $"STAGE {battle.Stage}     {state}     WAVE {sim.WaveIndex + 1}/{sim.Setup.Waves.Length}     적 {sim.RemainingEnemies}     {Math.Ceiling(sim.WaveRemaining):00}s     코인 {sim.Coins:N0}";
+            counters.text = $"{battle.Stage}-{sim.WaveIndex + 1:00}     {state}     WAVE {sim.WaveIndex + 1}/{sim.Setup.Waves.Length}     적 {sim.RemainingEnemies}     {Math.Ceiling(sim.WaveRemaining):00}s     코인 {sim.Coins:N0}";
             combatControls.SetActive(fighting);
             upcoming.text = "다음 웨이브";
             var next = sim.UpcomingWave;

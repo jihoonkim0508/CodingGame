@@ -1,0 +1,130 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2dc0f812db1cf4f4e9be40ce42a77156, type: 3}
+  m_Name: SequenceTest
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.TutorialSequence
+  sequenceId: sequence-test-1-1-preparation
+  enabled: 1
+  stage: 1
+  wave: 1
+  entryPhase: 0
+  speakerName: "\uB3C4\uCE58"
+  speakerPortrait: {fileID: 0}
+  typeSpeed: 16.6
+  steps:
+  - stepId: greeting
+    kind: 0
+    texts:
+    - textId: hello
+      text: "\uC548\uB155! \uB09C \uB3C4\uCE58\uC57C. \uB85C\uBD07\uC744 \uBC30\uCE58\uD558\uACE0
+        \uAC1C\uBC1C \uD234\uC744 \uC5F4\uC5B4 \uC804\uD22C\uB97C \uC900\uBE44\uD574
+        \uBCF4\uC790."
+    targetKeys: []
+    completionMode: 0
+    completionSignal: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    allowPreview: 0
+    highlightPadding: 10
+  - stepId: place-robot
+    kind: 1
+    texts:
+    - textId: place
+      text: "\uC544\uB798 \uC288\uD130\uB97C \uC120\uD0DD\uD55C \uB4A4, \uBC30\uCE58
+        \uC601\uC5ED\uC744 \uB20C\uB7EC \uB85C\uBD07\uC744 \uBC30\uCE58\uD574."
+    targetKeys:
+    - Battle.Robot.4
+    - Battle.DeploymentArea
+    completionMode: 3
+    completionSignal: RobotPlaced
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    allowPreview: 0
+    highlightPadding: 10
+  - stepId: select-robot
+    kind: 1
+    texts:
+    - textId: select
+      text: "\uBC29\uAE08 \uBC30\uCE58\uD55C \uC288\uD130\uB97C \uB20C\uB7EC \uAC1C\uBC1C
+        \uBC84\uD2BC\uC744 \uC5F4\uC5B4."
+    targetKeys:
+    - Robot.Selected
+    completionMode: 1
+    completionSignal: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    allowPreview: 0
+    highlightPadding: 10
+  - stepId: open-editor
+    kind: 1
+    texts:
+    - textId: open
+      text: "\uAC1C\uBC1C \uBC84\uD2BC\uC744 \uB20C\uB7EC \uAC1C\uBC1C \uD234\uC744
+        \uC5F4\uC5B4."
+    targetKeys:
+    - Battle.Develop
+    completionMode: 3
+    completionSignal: EditorOpened
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    allowPreview: 0
+    highlightPadding: 10
+  - stepId: close-editor
+    kind: 1
+    texts:
+    - textId: close
+      text: "\uB2EB\uAE30 \uBC84\uD2BC\uC744 \uB20C\uB7EC \uAC1C\uBC1C \uD234\uC744
+        \uB2EB\uC544."
+    targetKeys:
+    - Editor.Close
+    completionMode: 3
+    completionSignal: EditorClosed
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    allowPreview: 0
+    highlightPadding: 10
+  - stepId: start-battle
+    kind: 1
+    texts:
+    - textId: start
+      text: "\uC804\uD22C \uC2DC\uC791\uC744 \uB20C\uB7EC \uCCAB \uC6E8\uC774\uBE0C\uB97C
+        \uC2DC\uC791\uD574."
+    targetKeys:
+    - Battle.Start
+    completionMode: 3
+    completionSignal: BattleStarted
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 0
+    allowPreview: 0
+    highlightPadding: 10
+  - stepId: battle-started
+    kind: 0
+    texts:
+    - textId: watch-wave
+      text: "\uC88B\uC544! \uCCAB \uC6E8\uC774\uBE0C\uAC00 \uC2DC\uC791\uB410\uC5B4.
+        \uB85C\uBD07\uC774 \uC801\uC744 \uB9C9\uB294 \uBAA8\uC2B5\uC744 \uC9C0\uCF1C\uBCF4\uC790.
+        \uB2E4\uC74C \uD654\uC0B4\uD45C\uB97C \uB204\uB974\uBA74 \uC548\uB0B4\uAC00
+        \uB05D\uB098."
+    targetKeys: []
+    completionMode: 0
+    completionSignal: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 0
+    allowPreview: 0
+    highlightPadding: 10

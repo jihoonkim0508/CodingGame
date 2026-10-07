@@ -19,13 +19,16 @@ namespace CodingGame.Defense
         readonly List<Instruction> code = new List<Instruction>();
         readonly Dictionary<string, object> variables = new Dictionary<string, object>();
         readonly Dictionary<int, LoopState> loops = new Dictionary<int, LoopState>();
-        int pc, nextLoop;
+        int pc, nextLoop, completedRuns;
+        bool invocationStarted;
         double wakeTime;
         public string Name { get; }
         public string Source { get; }
         public string Fault { get; private set; }
         public int StepsLastTick { get; private set; }
         public bool IsEmpty => blocks.Count == 0;
+        public int CompletedRuns => completedRuns;
+        public bool Completed(DefenseSimulation sim) => completedRuns >= sim.FunctionRepeatLimit;
         public int BlockCount(BlockKind kind) => blockCounts.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0;
         public double WaitRemaining(double time) => Math.Max(0, wakeTime - time);
         public IReadOnlyList<CodeBlock> CopyBlocks() => blocks.Select(Clone).ToList();
@@ -40,7 +43,7 @@ namespace CodingGame.Defense
             blockCounts = DefenseProgression.Used(blocks).GroupBy(kind => kind).ToDictionary(group => group.Key, group => group.Count());
             EmitSuite(blocks, null, null);
         }
-        static CodeBlock Clone(CodeBlock b) => new CodeBlock(b.Kind, b.Value, b.Arguments.Select(Clone).ToArray()) { Body = b.Body.Select(Clone).ToList() };
+        static CodeBlock Clone(CodeBlock b) => b == null ? null : new CodeBlock(b.Kind, b.Value, b.Arguments.Select(Clone).ToArray()) { Body = b.Body.Select(Clone).ToList() };
         int Emit(Op op, CodeBlock block = null, int jump = 0, int loop = 0)
         { code.Add(new Instruction { Op = op, Block = block, Jump = jump, Loop = loop }); return code.Count - 1; }
         void EmitSuite(IReadOnlyList<CodeBlock> suite, List<int> breaks, List<int> continues)
@@ -89,13 +92,21 @@ namespace CodingGame.Defense
         public void Tick(DefenseSimulation sim, RobotState robot)
         {
             StepsLastTick = 0;
-            if (Fault != null || sim.Phase != BattlePhase.Running || sim.Time + 1e-9 < wakeTime) return;
+            if (Fault != null || Completed(sim) || sim.Phase != BattlePhase.Running || sim.Time + 1e-9 < wakeTime) return;
+            if (!invocationStarted)
+            {
+                var nearest = sim.Enemies.Where(e => e.Active && Vector2.DistanceSquared(e.Position, robot.Position) <= robot.Range * robot.Range)
+                    .OrderBy(e => Vector2.DistanceSquared(e.Position, robot.Position)).ThenBy(e => e.Id).FirstOrDefault();
+                if (nearest == null && blocks.Any(UsesEnemy)) return;
+                variables["enemy"] = new EnemyValue { Id = nearest?.Id ?? 0 };
+                invocationStarted = true;
+            }
             try
             {
                 // 무한 반복문도 한 틱을 독점하지 못하도록 실행 예산을 나눕니다.
                 while (StepsLastTick++ < InstructionBudget)
                 {
-                    if (pc == code.Count) { pc = 0; variables.Clear(); loops.Clear(); return; }
+                    if (pc == code.Count) { completedRuns++; pc = 0; invocationStarted = false; variables.Clear(); loops.Clear(); return; }
                     var instruction = code[pc];
                     switch (instruction.Op)
                     {
@@ -123,9 +134,13 @@ namespace CodingGame.Defense
                             }
                             var action = Action(block.Kind); robot.Action = action;
                             int target = 0;
-                            if (block.Kind == BlockKind.Attack)
+                            if (PythonTreeCompiler.HasEnemyArgument(block.Kind))
                             {
-                                target = ((EnemyValue)Value(block.Arguments[0], sim, robot)).Id;
+                                var argument = block.Arguments.Count == 0 || block.Arguments[0] == null
+                                    ? new CodeBlock(BlockKind.Variable, "enemy") : block.Arguments[0];
+                                var enemy = Value(argument, sim, robot) as EnemyValue;
+                                if (enemy == null) throw new FormatException("공격 대상에는 enemy 객체가 필요합니다.");
+                                target = enemy.Id;
                                 // 지정한 적이 사라져도 다른 적으로 자동 교체하지 않습니다.
                                 if (target == 0 || !sim.Enemies.Any(e => e.Id == target && e.Active))
                                 { robot.LastResult = ActionResult.NoTarget; pc++; return; }
@@ -140,6 +155,8 @@ namespace CodingGame.Defense
             }
             catch (FormatException error) { Fault = error.Message; }
         }
+        static bool UsesEnemy(CodeBlock block) => block != null && (PythonTreeCompiler.HasEnemyArgument(block.Kind) ||
+            block.Kind == BlockKind.Variable && block.Value == "enemy" || block.Arguments.Any(UsesEnemy) || block.Body.Any(UsesEnemy));
         public static RobotAction Action(BlockKind kind)
         {
             switch (kind)

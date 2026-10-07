@@ -23,5 +23,19 @@ namespace CodingGame.Defense
             line.SetPositions(points); line.startColor = line.endColor = color;
         }
         public void Hide() { line.enabled = false; }
+        public void ShowSemicircle(Vector3 center, Vector3 forward, float radius, Color color)
+        {
+            forward.y = 0;
+            forward.Normalize();
+            var right = Vector3.Cross(Vector3.up, forward);
+            for (int i = 0; i < points.Length - 1; i++)
+            {
+                float angle = -Mathf.PI * .5f + i * Mathf.PI / (points.Length - 2);
+                points[i] = center + (forward * Mathf.Cos(angle) + right * Mathf.Sin(angle)) * radius;
+            }
+            points[points.Length - 1] = points[0];
+            line.useWorldSpace = true; line.positionCount = points.Length;
+            line.SetPositions(points); line.startColor = line.endColor = color; line.enabled = true;
+        }
     }
 }
