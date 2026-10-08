@@ -182,15 +182,17 @@ namespace CodingGame.Defense
             if (boundary == 0) Show(); else SetInput();
             dialogue.SetNavigation(false, false);
         }
-        // Guide boxes only while the player has something to do, and never over a running wave.
+        // Input stays locked to the allowed targets for the whole tutorial; outlines only mark the next action,
+        // and a running wave keeps its targets clickable without boxes over the map.
         void SetInput()
         {
-            if (!waiting || completed || Running) { step = null; bridge.SetStep(null); return; }
-            string[] keys = IsPlacement ? new[] { RobotKey, "Battle.DeploymentArea" } :
+            bool acting = waiting && !completed;
+            string[] keys = !acting ? Array.Empty<string>() : IsPlacement ? new[] { RobotKey, "Battle.DeploymentArea" } :
                 IsCodeSection ? new[] { "Editor.ProgramDropZone", "Editor.BlockPalette" } :
                 new[] { "Battle.Start", "Battle.Restart", RobotKey, "Battle.DeploymentArea", "Robot.Selected", "Battle.Develop", "Editor.ProgramDropZone", "Editor.BlockPalette", "Editor.Close" };
             step = new TutorialStep { kind = TutorialStepKind.ActionGuide, targetKeys = keys.Where(k => bridge.HasTarget(k)).ToArray(),
-                completionMode = TutorialCompletionMode.ExternalSignal, pauseBattle = Pause, allowPreview = Preview, dim = IsPlacement };
+                completionMode = TutorialCompletionMode.ExternalSignal, pauseBattle = Pause, allowPreview = Preview,
+                dim = acting && IsPlacement, blockInput = true, outline = acting && !Running };
             UpdateHighlight();
             bridge.SetStep(step, true);
         }

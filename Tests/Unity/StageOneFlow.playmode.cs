@@ -76,7 +76,7 @@ public static class StageOneFlowCheck
             var step = (TutorialStep)Get("step");
             if ((bool)Get("waiting"))
             {
-                Assert(step != null && step.highlightKeys.Length == 1, $"One outlined target while waiting at {wave}/{section}");
+                Assert(step != null && step.blockInput && step.highlightKeys.Length == 1, $"Locked input and one outlined target while waiting at {wave}/{section}");
                 guided++;
                 if (wave == 1 && section == 1)
                 {
@@ -102,7 +102,8 @@ public static class StageOneFlowCheck
                     Assert(!editor.IsOpen, "Waves are fought on the map");
                     Assert(step.highlightKeys[0] == "Battle.Start", "Battle step points at start");
                     battle.StartBattle(); Assert(sim.Phase == BattlePhase.Running, "Battle must start after teaching input"); Tick();
-                    Assert(Get("step") == null, "No guide boxes over a running wave");
+                    var running = (TutorialStep)Get("step");
+                    Assert(running != null && running.blockInput && !running.outline && running.targetKeys.Contains("Battle.Start"), "Running wave: input still limited, no boxes over the map");
                     for (int i = 0; i < 9000 && sim.Phase == BattlePhase.Running; i++) sim.Advance(1.0 / 60);
                     Tick();
                     Assert(sim.Phase == BattlePhase.Reward && sim.LastSurvivors == 0 && sim.Leaks == 0,
@@ -110,7 +111,12 @@ public static class StageOneFlowCheck
                     Assert(!(bool)Get("waiting"), "Actual wave clear must release teaching gate");
                 }
             }
-            else { battle.Tutorial.EditorView.FinishTyping(); tutorial.Next(); }
+            else
+            {
+                Assert(step != null && step.blockInput && step.targetKeys.Length == 0, $"Dialogue {wave}/{section}: game input locked, only the dialogue answers");
+                Assert(!battle.TutorialAllows("Battle.Start") && !battle.TutorialAllows("Battle.Develop"), "Dialogue sections refuse game actions");
+                battle.Tutorial.EditorView.FinishTyping(); tutorial.Next();
+            }
         }
         Assert(cleared == 5 && submitted == 8 && battle.Stage == 2, $"Flow incomplete: clears={cleared}, inputs={submitted}, stage={battle.Stage}");
         Assert(battle.Simulation.LoopsUnlocked && !battle.Simulation.Setup.StageOneLearning, "Stage 2 unlocks loops and ends Stage 1 rules");

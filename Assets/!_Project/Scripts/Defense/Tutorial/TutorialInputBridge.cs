@@ -36,7 +36,7 @@ namespace CodingGame.Defense
         public bool IsGuiding => director && director.IsActive;
         public bool PauseBattle => IsGuiding && currentStep != null && currentStep.pauseBattle;
         public bool AllowPreview => IsGuiding && currentStep != null && currentStep.allowPreview;
-        public void SetInputLimited(bool value) { if (spotlight) spotlight.raycastTarget = currentStep != null && currentStep.dim && value; }
+        public void SetInputLimited(bool value) { if (spotlight) spotlight.raycastTarget = currentStep != null && currentStep.blockInput && value; }
 
         public void Initialize(TutorialDirector owner)
         {
@@ -63,7 +63,7 @@ namespace CodingGame.Defense
             allowActions = enableActions;
             if (!spotlight) return;
             spotlight.enabled = step != null;
-            spotlight.raycastTarget = step != null && step.dim;
+            spotlight.raycastTarget = step != null && step.blockInput;
             RefreshAreas();
         }
 
@@ -81,7 +81,7 @@ namespace CodingGame.Defense
                     if (byKey.TryGetValue(key, out var binding))
                     {
                         int before = screenAreas.Count; AddArea(key, binding);
-                        bool outlined = currentStep.highlightKeys == null || currentStep.highlightKeys.Length == 0 || Array.IndexOf(currentStep.highlightKeys, key) >= 0;
+                        bool outlined = currentStep.outline && (currentStep.highlightKeys == null || currentStep.highlightKeys.Length == 0 || Array.IndexOf(currentStep.highlightKeys, key) >= 0);
                         if (outlined && screenAreas.Count > before) outlinedAreas.Add(screenAreas[screenAreas.Count - 1]);
                     }
             spotlight.SetHoles(screenAreas, outlinedAreas, currentStep?.highlightPadding ?? 0, currentStep == null || currentStep.dim);
