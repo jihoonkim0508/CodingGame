@@ -7,9 +7,9 @@ int checks = 0;
 void Check(bool condition, string name) { if (!condition) throw new System.Exception(name); checks++; }
 try
 {
-    battle.Restart();
+    battle.EditorStartSession(2, 1, false, new CodingGame.Defense.DefenseTestOptions { tutorial = false, tutorialInput = false, inventoryLimit = false, unlockAll = true }); // sandbox: Stage 1 locks robots and placement for teaching
     Check(battle.PlaceRobot(4, new UnityEngine.Vector3(-8, 0, 6)), "place robot");
-    battle.SelectRobot(battle.SelectedId);
+    battle.SelectRobot(battle.SelectedId); battle.DevelopSelected();
     var panel = editor.Panel;
     var program = panel.Program;
     var marker = (UnityEngine.RectTransform)typeof(CodingGame.BlockCoding.CommandCodingPanel)

@@ -28,7 +28,7 @@ namespace CodingGame.Defense
         [SerializeField] TMP_Text variableBox, comparison, hitResult;
         [SerializeField] AudioSource warningSource;
         [SerializeField, Tooltip("Optional code-example box hidden while a wave is running, so the lesson card stays clear of the map.")] GameObject examplesBox;
-        [SerializeField] Vector2 battleAnchorMin = new Vector2(.01f, .5f), battleAnchorMax = new Vector2(.2f, .88f);
+        [SerializeField] Vector2 battleAnchorMin = new Vector2(.01f, .4f), battleAnchorMax = new Vector2(.21f, .79f);
         Vector2 lessonAnchorMin, lessonAnchorMax;
         StageOneContent[] content;
         TutorialSequence presentation;
@@ -43,6 +43,7 @@ namespace CodingGame.Defense
         readonly HashSet<string> visitedText = new HashSet<string>();
         float diagramRange, diagramDistance;
         float bootUntil;
+        TutorialDialoguePosition shownBattlePosition;
         public bool OwnsSession => initialized && battle.Simulation != null && battle.Simulation.Setup.StageOneLearning && battle.Stage == 1 && battle.Simulation.Options.tutorial;
         public bool Active => OwnsSession && current != null;
         public bool Pause => Active && !(waiting && IsBattleSection);
@@ -83,6 +84,8 @@ namespace CodingGame.Defense
                 demonstration.SetActive(!editorWasOpen && !IsPlacement && !IsBattleSection);
                 Show();
             }
+            // Starting or ending a wave moves the dialogue off or back onto the map.
+            if (IsBattleSection && dialogue.IsVisible && shownBattlePosition != BattlePosition) { shownBattlePosition = BattlePosition; Show(false); }
             if(boot.activeSelf)
             {
                 bootFade.alpha=Mathf.Clamp01((bootUntil-Time.unscaledTime)/.6f);
@@ -91,9 +94,9 @@ namespace CodingGame.Defense
             if (wave == 1 && section == 0 && Time.unscaledTime < bootUntil) observation.text="SYSTEM START\n개발툴 오류 감지";
             else if (waiting && IsBattleSection)
             {
-                if (sim.Leaks > leaks) { leaks=sim.Leaks; feedback.text=current.interaction?.retry_hint; if(wave==1) EventDialogue(5); }
+                if (sim.Leaks > leaks) { leaks=sim.Leaks; feedback.text=Code(current.interaction?.retry_hint); if(wave==1) EventDialogue(5); }
                 if (sim.Kills > kills) { kills=sim.Kills; feedback.text="오류 코드 처리 · " + kills; if(wave==1 && kills==1) EventDialogue(4); }
-                if (sim.Phase == BattlePhase.Defeat) { notice=current.interaction?.retry_hint; feedback.text=notice; }
+                if (sim.Phase == BattlePhase.Defeat) { notice=Code(current.interaction?.retry_hint); feedback.text=notice; }
                 if(wave==5 && !bossHint && sim.Phase==BattlePhase.Running && sim.Leaks>leaksAtStart)
                 { bossHint=true; EventDialogue(0); }
                 if ((sim.Phase == BattlePhase.Reward || sim.Phase == BattlePhase.Victory) && sim.LastSurvivors == 0 && sim.Leaks == leaksAtStart)
@@ -114,7 +117,7 @@ namespace CodingGame.Defense
                             .Select(s=>s.Length>=4?s.Substring(4):s)).Replace("attack(enemy)","Attack()");
                         StageOneCode.Validate(source,wave,section); Complete();
                     }
-                    catch(FormatException error) { feedback.text=error.Message+"\n"+current.interaction?.retry_hint; }
+                    catch(FormatException error) { feedback.text=error.Message+"\n"+Code(current.interaction?.retry_hint); }
                 }
             }
             if (sim.Phase == BattlePhase.Running || sim.Phase == BattlePhase.Paused)
@@ -137,7 +140,7 @@ namespace CodingGame.Defense
             presentation.wave=wave;
             heading.text=current.section_title;
             examples.text=string.Join("\n\n",current.code_examples.Select(e=>e.code));
-            feedback.text=current.interaction?.prompt ?? "";
+            feedback.text=Code(current.interaction?.prompt ?? "");
             observation.text=wave == 5 && section == 0 ? "WARNING\nUNKNOWN ERROR DETECTED" : "";
             if(wave==5 && section==0) warningSource.Play();
             if(wave==5 && section==7) observation.text="STAGE CLEAR\nStage 2 · 반복 해금";
@@ -148,12 +151,17 @@ namespace CodingGame.Defense
             var frame = (RectTransform)lessonPanel.transform;
             frame.anchorMin = IsBattleSection ? battleAnchorMin : lessonAnchorMin; frame.anchorMax = IsBattleSection ? battleAnchorMax : lessonAnchorMax;
             if (examplesBox) examplesBox.SetActive(!IsBattleSection);
+            var observed = observation.rectTransform;
+            observed.anchorMin = new Vector2(0, IsBattleSection ? .2f : .36f); observed.anchorMax = new Vector2(1, IsBattleSection ? .86f : .49f);
             // Comparison demonstrations retain the supplied numbers and use the same <= rule as combat.
             if(wave==3 && section==2) observation.text="15 <= 10  False\n9 <= 10  True";
             if(wave==5 && section==3) observation.text="14 <= 10  False\n8 <= 10  True";
             if(wave==4 && section==1) observation.text="거리 5: 늦게 공격\n거리 10: 일찍 공격";
             if(boundary==0) Wait(); else Show();
         }
+        static string Code(string text) => Regex.Replace(text ?? "","`([^`]+)`","<color=#6FFFD2>$1</color>");
+        // A running wave needs the whole map, so dialogue drops to the bottom where the deck is idle anyway.
+        TutorialDialoguePosition BattlePosition => session != null && (session.Phase == BattlePhase.Running || session.Phase == BattlePhase.Paused) ? TutorialDialoguePosition.Bottom : TutorialDialoguePosition.Top;
         bool FirstVisit(int index,string text) => visitedText.Add(wave+"/"+section+"/"+index+"/"+text);
         void Show(bool allowAnimation = true)
         {
@@ -163,7 +171,7 @@ namespace CodingGame.Defense
             foreach(Match token in Regex.Matches(text,"`([^`]+)`")) sample=sample.Replace(token.Groups[1].Value,"<color=#6FFFD2>"+token.Groups[1].Value+"</color>");
             examples.text=sample;
             bool firstVisit=FirstVisit(line,text);
-            dialogue.Show(presentation, IsPlacement || IsBattleSection || codeEditor.IsOpen ? TutorialDialoguePosition.Top : TutorialDialoguePosition.Bottom, text,allowAnimation && firstVisit,null);
+            dialogue.Show(presentation, IsBattleSection ? BattlePosition : IsPlacement || codeEditor.IsOpen ? TutorialDialoguePosition.Top : TutorialDialoguePosition.Bottom, Code(text),allowAnimation && firstVisit,null);
             dialogue.SetNavigation(line>0,!waiting || completed);
             if(demonstration.activeSelf) DrawDemonstration();
             SetInput();
@@ -222,13 +230,13 @@ namespace CodingGame.Defense
                 session.ApplyProgram(robot.Id,"stage1",StageOneCode.Parse(source,true));
                 Complete();
             }
-            catch(FormatException error) { feedback.text=error.Message+"\n"+current.interaction?.retry_hint; }
+            catch(FormatException error) { feedback.text=error.Message+"\n"+Code(current.interaction?.retry_hint); }
         }
         void Complete()
         {
             if(completed) return;
             if(wave==5 && IsBattleSection) { section=7; EnterSection(); return; }
-            completed=true; waiting=false; notice=current.interaction?.success_feedback; feedback.text=notice;
+            completed=true; waiting=false; notice=Code(current.interaction?.success_feedback); feedback.text=notice;
             if(IsBattleSection) observation.text=wave==5?"STAGE CLEAR":"WAVE CLEAR";
             codeInput.gameObject.SetActive(false); submit.gameObject.SetActive(false);
             lessonPanel.SetActive(true);
@@ -237,7 +245,7 @@ namespace CodingGame.Defense
             Show();
         }
         void EventDialogue(int index)
-        { string text=current.dialogues[index].text;dialogue.Show(presentation,TutorialDialoguePosition.Top,text,FirstVisit(index,text),null); dialogue.SetNavigation(false,false); }
+        { string text=current.dialogues[index].text;dialogue.Show(presentation,BattlePosition,Code(text),FirstVisit(index,text),null); dialogue.SetNavigation(false,false); }
         void End()
         { current=null; lessonPanel.SetActive(false); demonstration.SetActive(false); boot.SetActive(false); bridge.SetStep(null); dialogue.Hide(); }
         void DrawDemonstration()
@@ -251,8 +259,9 @@ namespace CodingGame.Defense
             if(wave==1 && section==3) damage=completed ? 20 : 10;
             var robot=session.Robots.FirstOrDefault();
             if(completed && robot!=null) { damage=robot.DamageSetting ?? damage; range=robot.RangeSetting; }
-            diagramRange=(wave>=3?Mathf.Min(range,threshold):range)*20;
-            diagramDistance=distance*10;
+            // 16 px per world unit: large enough to read, small enough that a 15-unit ring fits the card.
+            diagramRange=(wave>=3?Mathf.Min(range,threshold):range)*32;
+            diagramDistance=distance*16;
             variableBox.text=$"<color=#6FFFD2>damage</color>  [ {damage:0} ]\n<color=#6FFFD2>range</color>  [ {range:0} ]"+(wave==5?$"\n<color=#6FFFD2>attackDistance</color>  [ {threshold:0} ]":"");
             // Run the illustration through combat, so the displayed result cannot diverge from <= and range rules.
             var setup=new BattleSetup { StageOneLearning=true, FunctionRepeatLimit=10,

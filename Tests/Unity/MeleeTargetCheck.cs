@@ -45,7 +45,7 @@ foreach (int limit in new[]{5,1})
     for(int i=0;i<600;i++) { bot.NextAction=0; bot.Program.Tick(sim,bot); }
     check(bot.Executions==limit && bot.Program.CompletedRuns==limit,"Function execution limit "+limit);
 }
-var unlock=make(5);unlock.Setup.PlayerFlow=true;
+var unlock=make(5);unlock.Setup.PlayerFlow=true;unlock.Setup.Stage=1; // player-flow limit comes from the stage: round(1 * 5.25)
 check(unlock.FunctionRepeatLimit==5,"Before loop unlock");unlock.GrantBlock(CodingGame.BlockCoding.BlockKind.For,1);
 check(unlock.FunctionRepeatLimit==1,"After loop unlock");
 var loopSim=make(1);var loopBot=loopSim.Robots[0];

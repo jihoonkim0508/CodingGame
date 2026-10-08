@@ -82,6 +82,7 @@ namespace CodingGame.Defense
             var next = sim.UpcomingWave;
             // Cards follow the wave's own enemy types (in spawn order), so tutorial enemies get cards too.
             var types = next.GroupBy(g => g.DefinitionIndex).Take(enemyCards.Length).ToArray();
+            upcoming.gameObject.SetActive(types.Length > 0);
             for (int i = 0; i < enemyCards.Length; i++)
             {
                 enemyCards[i].SetActive(i < types.Length);

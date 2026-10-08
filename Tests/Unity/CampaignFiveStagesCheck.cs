@@ -36,29 +36,32 @@ public static class CampaignFiveStagesCheck
     static void Program(DefenseSimulation sim, RobotState bot)
     {
         sim.ApplyProgram(bot.Id,"robot_"+bot.Id,Array.Empty<CodeBlock>());
+        var body=new System.Collections.Generic.List<CodeBlock>();
         CodeBlock command=new CodeBlock(Action(bot.Spec.role));
-        if(sim.Setup.Stage>=3 && sim.Available(BlockKind.For,bot.Id)>0 && sim.Available(BlockKind.Number,bot.Id)>0)
-        { var loop=new CodeBlock(BlockKind.For,"0",new CodeBlock(BlockKind.Number,"10"));loop.Body.Add(command);command=loop; }
         bool condition = sim.Setup.Stage>=2 && bot.Spec.role!=RobotRole.Buffer &&
             new[]{BlockKind.If,BlockKind.Comparison,BlockKind.DeclareVariable,BlockKind.Variable,BlockKind.NearestEnemy,BlockKind.PositionX,BlockKind.PositionY}
-                .All(k=>sim.Available(k,bot.Id)>0) && sim.Available(BlockKind.Number,bot.Id)>(sim.Setup.Stage>=3?1:0);
-        CodeBlock declaration = null;
+                .All(k=>sim.Available(k,bot.Id)>0) && sim.Available(BlockKind.Number,bot.Id)>1;
         if(condition)
         {
-            declaration=new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy));
+            // Declared inside the loop so each pass re-targets; a stale `enemy` stops attacking after the first kill.
+            body.Add(new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)));
             var distance=new CodeBlock(BlockKind.Distance,"0",new CodeBlock(BlockKind.Variable,"enemy"),new CodeBlock(BlockKind.PositionX),new CodeBlock(BlockKind.PositionY));
             var branch=new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,"<",distance,new CodeBlock(BlockKind.Number,"10")));
             branch.Body.Add(command);command=branch;
         }
-        sim.ApplyProgram(bot.Id,"robot_"+bot.Id,declaration==null?new[]{command}:new[]{declaration,command});
+        body.Add(command);
+        // Once loops unlock a function runs once per wave, so the whole body must repeat.
+        if(sim.LoopsUnlocked && sim.Available(BlockKind.For,bot.Id)>0 && sim.Available(BlockKind.Number,bot.Id)>0)
+        { var loop=new CodeBlock(BlockKind.For,"0",new CodeBlock(BlockKind.Number,"50"));loop.Body.AddRange(body);body=new System.Collections.Generic.List<CodeBlock>{loop}; }
+        sim.ApplyProgram(bot.Id,"robot_"+bot.Id,body.ToArray());
     }
     public static string Main()
     {
         var lines = new System.Collections.Generic.List<string>();
         if(!Application.isPlaying)throw new Exception("Enter Play Mode first");
         var battle=UnityEngine.Object.FindFirstObjectByType<DefenseBattle>();
-        if(battle.Stage!=1)throw new Exception("Start from stage 1");
-        battle.Restart();var sim=battle.Simulation;
+        // Real campaign from stage 1; the tutorial is off so the scripted player can act freely.
+        battle.EditorStartSession(1,1,false,new DefenseTestOptions{tutorial=false,tutorialInput=false});var sim=battle.Simulation;
         var hud=UnityEngine.Object.FindFirstObjectByType<DefensePlayerHUD>(FindObjectsInactive.Include);
         var button=(UnityEngine.UI.Button)new SerializedObject(hud).FindProperty("claimButton").objectReferenceValue;
         for(int stage=1;stage<=5;stage++)
@@ -87,7 +90,7 @@ public static class CampaignFiveStagesCheck
                 battle.StartBattle();int kills=sim.Kills;
                 for(int tick=0;tick<10000&&sim.Phase==BattlePhase.Running;tick++)sim.Advance(1.0/60);
                 lines.Add($"S{stage} W{wave}: {sim.Phase}, core={sim.BaseHealth}, kills={sim.Kills-kills}, survivors={sim.LastSurvivors}, robots={sim.Robots.Count}, rewards={sim.PendingDrops.Count}");
-                if(sim.Phase!=BattlePhase.Reward)throw new Exception("Campaign failed");
+                if(sim.Phase!=BattlePhase.Reward)throw new Exception("Campaign failed: "+string.Join(" | ",lines));
                 var tankHealth=sim.Robots.Where(r=>r.Health.HasValue).ToDictionary(r=>r.Id,r=>r.Health);
                 button.onClick.Invoke();
                 if(sim.Robots.Any(r=>tankHealth.ContainsKey(r.Id)&&r.Health!=tankHealth[r.Id]))throw new Exception("Tank healed between waves");

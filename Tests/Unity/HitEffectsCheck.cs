@@ -26,9 +26,9 @@ foreach (var owner in new UnityEngine.Object[] { battle, preview })
     type.GetMethod("Clear").Invoke(effects, null);
     foreach (var kind in new[] { "hit", "projectile-hit", "buff", "stun" })
         type.GetMethod("Show").Invoke(effects, new object[] {
-            new CodingGame.Defense.CombatEvent { Kind = kind, Amount = 10 }, parent, offset, camera.transform.rotation });
+            new CodingGame.Defense.CombatEvent { Kind = kind, Amount = 10 }, parent, offset, camera.transform.rotation, null, null }); // reflection needs the optional source/area too
     type.GetMethod("Show").Invoke(effects, new object[] {
-        new CodingGame.Defense.CombatEvent { Kind = "hit", Amount = 0 }, parent, offset, camera.transform.rotation });
+        new CodingGame.Defense.CombatEvent { Kind = "hit", Amount = 0 }, parent, offset, camera.transform.rotation, null, null }); // reflection needs the optional source/area too
     if (active.Count != 2) throw new System.Exception("Only damaging hit events should spawn effects");
     type.GetMethod("Tick").Invoke(effects, new object[] { .1f });
     var effect = ((System.ValueTuple<UnityEngine.ParticleSystem, float>)active[0]).Item1;
@@ -44,7 +44,7 @@ foreach (var owner in new UnityEngine.Object[] { battle, preview })
     type.GetMethod("Tick").Invoke(effects, new object[] { 3f });
     if (active.Count != 0) throw new System.Exception("Finished effects were not removed");
     type.GetMethod("Show").Invoke(effects, new object[] {
-        new CodingGame.Defense.CombatEvent { Kind = "hit", Amount = 10 }, parent, offset, camera.transform.rotation });
+        new CodingGame.Defense.CombatEvent { Kind = "hit", Amount = 10 }, parent, offset, camera.transform.rotation, null, null }); // reflection needs the optional source/area too
     var cleared = ((System.ValueTuple<UnityEngine.ParticleSystem, float>)active[0]).Item1;
     type.GetMethod("Clear").Invoke(effects, null);
     if (active.Count != 0 || cleared.gameObject.activeSelf) throw new System.Exception("Reset did not clear effects");

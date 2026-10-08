@@ -6,16 +6,20 @@ if (battle == null || editor == null) return "Defense scene required";
 int checks = 0;
 void Check(bool condition, string message) { if (!condition) throw new System.Exception(message); checks++; }
 CodingGame.BlockCoding.CommandBlockView Palette(CodingGame.BlockCoding.BlockKind kind) => editor.Panel.Palette.First(p => p.view.BaseKind == kind).view;
-var attackKind = CodingGame.BlockCoding.BlockKind.Attack;
+var draftKind = CodingGame.BlockCoding.BlockKind.Wait; // starts with an empty argument, so it stays a draft
 var shotKind = CodingGame.BlockCoding.BlockKind.Shot;
 try
 {
-    battle.Restart();
+    // Sandbox with exact stock: these checks count reservations, so the inventory limit stays on.
+    battle.EditorStartSession(2, 1, false, new CodingGame.Defense.DefenseTestOptions { tutorial = false, tutorialInput = false });
+    battle.Simulation.GrantRobot(CodingGame.Defense.RobotRole.Shooter, 1); battle.Simulation.GrantRobot(CodingGame.Defense.RobotRole.Warrior, 1);
+    battle.Simulation.GrantBlock(shotKind, 3);
+    if (CodingGame.Defense.DefenseProgression.Consumes(CodingGame.BlockCoding.BlockKind.Wait)) battle.Simulation.GrantBlock(CodingGame.BlockCoding.BlockKind.Wait, 2);
     Check(battle.PlaceRobot(4, new UnityEngine.Vector3(-8, 0, 6)), "place first robot");
     int firstId = battle.SelectedId;
-    battle.SelectRobot(firstId);
+    battle.SelectRobot(firstId); battle.DevelopSelected();
     var panel = editor.Panel;
-    panel.AddFromPalette(Palette(attackKind));
+    panel.AddFromPalette(Palette(draftKind));
     Check(!panel.IsApplied && panel.Program.Blocks.Count == 1, "unfinished attack remains a draft");
     editor.Close(); editor.OpenSelected();
     Check(panel.Program.Blocks.Count == 1 && panel.Program.Blocks[0].Read().Arguments[0] == null, "empty argument survives reopening");
@@ -51,16 +55,16 @@ try
     panel.ClearProgram(); editor.Close();
     Check(battle.PlaceRobot(1, new UnityEngine.Vector3(-6, 0, 6)), "place second robot");
     int secondId = battle.SelectedId;
-    battle.SelectRobot(secondId);
+    battle.SelectRobot(secondId); battle.DevelopSelected();
     panel.LoadProgram("second", new[] { new CodingGame.BlockCoding.CodeBlock(shotKind) });
-    editor.Close(); battle.SelectRobot(firstId); panel.Undo();
+    editor.Close(); battle.SelectRobot(firstId); battle.DevelopSelected(); panel.Undo();
     Check(!panel.IsApplied && panel.Program.Blocks.Count == 3, "over-stock undo remains a draft");
     Check(battle.Simulation.Available(shotKind) == 2 && battle.Simulation.Robots.Find(r => r.Id == firstId).Program.CopyBlocks().Count == 0, "failed undo preserves inventory and applied code");
-    editor.Close(); battle.SelectRobot(secondId);
+    editor.Close(); battle.SelectRobot(secondId); battle.DevelopSelected();
     Check(panel.Program.Blocks.Count == 1 && panel.FunctionName == "second", "histories isolated per robot");
     battle.Restart();
     Check(battle.PlaceRobot(4, new UnityEngine.Vector3(-8, 0, 6)), "place after restart");
-    battle.SelectRobot(battle.SelectedId);
+    battle.SelectRobot(battle.SelectedId); battle.DevelopSelected();
     Check(panel.Program.Blocks.Count == 0 && !panel.CanUndo, "restart clears drafts even if robot id is reused");
     // 도메인 리로드 직후처럼 UI는 열려 있지만 두 세션이 모두 사라진 상태를 재현합니다.
     var session = battle.Simulation;

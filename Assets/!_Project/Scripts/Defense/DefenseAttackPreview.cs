@@ -176,6 +176,8 @@ namespace CodingGame.Defense
             string state;
             if (program == null || program.IsEmpty) state = "코드 없음 · 대기";
             else if (program.Fault != null) state = program.Fault;
+            // Explain a wasted command before "completed", or a one-run function hides why nothing happened.
+            else if (bot.LastResult == ActionResult.Ineffective) state = "호환되지 않는 명령 · 이 로봇에서는 동작하지 않아요";
             else if (program.Completed(simulation)) state = $"함수 {program.CompletedRuns}/{simulation.FunctionRepeatLimit}회 완료";
             else if (program.WaitRemaining(simulation.Time) > 0)
                 state = $"wait · {program.WaitRemaining(simulation.Time):0.0}s";

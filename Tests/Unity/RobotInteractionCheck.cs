@@ -19,7 +19,8 @@ public static class RobotInteractionCheck
         var hud = UnityEngine.Object.FindFirstObjectByType<DefensePlayerHUD>();
         var inv = UnityEngine.Object.FindFirstObjectByType<DefenseInventoryUI>();
         var editor = UnityEngine.Object.FindFirstObjectByType<DefenseCodeEditor>();
-        battle.Restart(); var sim = battle.Simulation;
+        // Stage 1 rules (only the shooter unlocked) without the tutorial gating input.
+        battle.EditorStartSession(1, 1, false, new DefenseTestOptions { tutorial = false, tutorialInput = false }); var sim = battle.Simulation;
         hud.SendMessage("LateUpdate");
         var buttons = new SerializedObject(hud).FindProperty("robotButtons");
         for (int i = 0; i < 6; i++) Require(((Button)buttons.GetArrayElementAtIndex(i).objectReferenceValue).gameObject.activeSelf ==

@@ -19,9 +19,9 @@ void Status() => preview.SendMessage("RefreshStatus");
 void Advance(float seconds) => preview.SendMessage("AdvancePreview",seconds);
 try
 {
-    battle.Restart();
+    battle.EditorStartSession(2, 1, false, new CodingGame.Defense.DefenseTestOptions { tutorial = false, tutorialInput = false, inventoryLimit = false, unlockAll = true }); // sandbox: Stage 1 locks robots and placement for teaching
     Check(battle.PlaceRobot(2,new UnityEngine.Vector3(-8,0,4)),"place authored tank");
-    battle.SelectRobot(battle.SelectedId);
+    battle.SelectRobot(battle.SelectedId); battle.DevelopSelected();
     battle.Simulation.GrantBlock(CodingGame.BlockCoding.BlockKind.Buff,1);
     string stock = Stock(); var time = battle.Simulation.Time; var baseHealth = battle.Simulation.BaseHealth;
     var actualTank = battle.Simulation.Robots.Single(); var health = actualTank.Health;
@@ -55,9 +55,12 @@ try
     Check(preview.PreviewSimulation==empty&&label.text.Contains("후 다시 시작"),"preview remains through first 0.99 seconds after enemies disappear");
     Advance(.01f);
     Check(preview.PreviewSimulation!=empty&&preview.PreviewSimulation.RemainingEnemies==3&&preview.PreviewSimulation.Robots.Count==1,"preview restarts at one second with one robot");
-    Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block));
+    // A function runs once per wave, so loop the guard to clear every enemy.
+    var guard=new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.While); // no condition: while True
+    guard.Body.Add(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.NearestEnemy))); // re-target each pass
+    Show(guard);
     var killed=preview.PreviewSimulation;killed.Robots.Single().Spec.damage=10000;
-    for(int i=0;i<150&&killed.RemainingEnemies>0;i++) Advance(.1f);
+    for(int i=0;i<900&&killed.RemainingEnemies>0;i++) Advance(.1f);
     Check(killed.Kills==3&&preview.PreviewSimulation==killed,"last kill also waits before reset");
     Advance(.5f);TogglePreview();TogglePreview();var reopened=preview.PreviewSimulation;Advance(.6f);
     Check(preview.PreviewSimulation==reopened&&reopened.RemainingEnemies>0,"reopening clears previous restart countdown");
