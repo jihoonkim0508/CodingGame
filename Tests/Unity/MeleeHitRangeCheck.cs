@@ -43,6 +43,6 @@ foreach (var owner in new UnityEngine.Object[] { battle, preview })
 }
 var slash = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.GameObject>("Assets/!_Project/Defense/Effects/WarriorSlash.prefab");
 var graph = slash.GetComponent<UnityEngine.VFX.VisualEffect>().visualEffectAsset;
-if (UnityEditor.AssetDatabase.GetAssetPath(graph) != "Assets/slash5-HungNguyen/slash 5 visual vfx profiles/slash-white-yellow bolder.vfx")
+if (UnityEditor.AssetDatabase.GetAssetPath(graph) != "Assets/ThirdParty/slash5-HungNguyen/slash 5 visual vfx profiles/slash-white-yellow bolder.vfx")
     throw new System.Exception("Original slash mesh and rotation graph must be used.");
 return "PASS: visible developer toggle, battle/preview ON/OFF, robot pivot, damage range, pause and original slash graph";

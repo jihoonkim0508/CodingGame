@@ -25,7 +25,7 @@ internal class CommandScript : IRunCommand
                 throw new Exception("Battle/preview effect mismatch: " + field);
         var slashPrefab = (VisualEffect)previewSettings.FindProperty("hitEffects.slashPrefab").objectReferenceValue;
         if (AssetDatabase.GetAssetPath(slashPrefab.visualEffectAsset) !=
-            "Assets/slash5-HungNguyen/slash 5 visual vfx profiles/slash-white-yellow bolder.vfx")
+            "Assets/ThirdParty/slash5-HungNguyen/slash 5 visual vfx profiles/slash-white-yellow bolder.vfx")
             throw new Exception("Original slash mesh/rotation graph not restored");
         int index = Enumerable.Range(0, 6).First(i => battle.DefinitionRole(i) == RobotRole.Warrior);
         battle.Simulation.GrantRobot(RobotRole.Warrior, 1);
