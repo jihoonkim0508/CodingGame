@@ -24,6 +24,10 @@ namespace CodingGame.Defense
         public TutorialDialoguePosition dialoguePosition = TutorialDialoguePosition.Bottom;
         public TutorialText[] texts = Array.Empty<TutorialText>();
         public string[] targetKeys = Array.Empty<string>();
+        [Tooltip("Targets drawn with an outline. Empty: every target key. Other target keys stay clickable without an outline.")]
+        public string[] highlightKeys = Array.Empty<string>();
+        [Tooltip("Darken everything outside the targets and block clicks there.")]
+        public bool dim = true;
         public TutorialCompletionMode completionMode;
         public string completionSignal;
         public string sourceKey, destinationKey;

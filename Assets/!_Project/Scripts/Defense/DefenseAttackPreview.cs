@@ -22,7 +22,10 @@ namespace CodingGame.Defense
         [SerializeField] DefenseRangeRing effectRing;
         [SerializeField] Transform projectilePrefab;
         [SerializeField] DefenseHitVisuals hitEffects = new DefenseHitVisuals();
+        [SerializeField, Tooltip("Font for the damage numbers that pop over hit enemies in the preview.")] TMP_FontAsset damageFont;
         readonly DefenseProjectileVisuals projectileViews = new DefenseProjectileVisuals();
+        readonly List<(TextMeshPro text, float age)> damagePopups = new List<(TextMeshPro, float)>();
+        const float PopupSeconds = .9f;
         DefenseSimulation simulation;
         RobotState selected;
         DefenseProgram source;
@@ -80,7 +83,7 @@ namespace CodingGame.Defense
         void ClearActors()
         {
             projectileViews.Clear();
-            hitEffects.Clear();
+            hitEffects.Clear(); ClearDamage();
             foreach (var view in views.Values) if (view) { view.gameObject.SetActive(false); Destroy(view.gameObject); }
             views.Clear(); effectRing.Hide();
         }
@@ -114,6 +117,33 @@ namespace CodingGame.Defense
         void AddView(int id, DefenseActorView prefab)
         { var view = Instantiate(prefab, arena); view.Id = id; views.Add(id, view); }
         Vector3 World(Point p) => arena.position + new Vector3(p.X,0,p.Y);
+        // Floating "-N" over the hit enemy so the code's damage value is visible, not just inferred from a health bar.
+        void PopDamage(CombatEvent e)
+        {
+            var text = new GameObject("Damage", typeof(TextMeshPro)).GetComponent<TextMeshPro>();
+            text.gameObject.layer = arena.gameObject.layer; text.transform.SetParent(arena, true);
+            if (damageFont) text.font = damageFont;
+            text.text = "-" + e.Amount.ToString("0.#"); text.fontSize = 7; text.fontStyle = FontStyles.Bold;
+            text.alignment = TextAlignmentOptions.Center; text.color = new Color(1, .82f, .3f);
+            text.outlineWidth = .25f; text.outlineColor = new Color32(40, 10, 0, 255);
+            text.rectTransform.sizeDelta = new Vector2(6, 2);
+            text.transform.position = World(e.Position) + Vector3.up * 1.6f; text.transform.rotation = previewCamera.transform.rotation;
+            damagePopups.Add((text, 0));
+        }
+        void TickDamage(float dt)
+        {
+            for (int i = damagePopups.Count - 1; i >= 0; i--)
+            {
+                var (text, age) = damagePopups[i]; age += dt;
+                if (!text || age >= PopupSeconds) { if (text) Destroy(text.gameObject); damagePopups.RemoveAt(i); continue; }
+                float t = age / PopupSeconds;
+                text.transform.position += Vector3.up * dt * 1.4f;
+                text.transform.localScale = Vector3.one * (t < .15f ? Mathf.Lerp(1.6f, 1, t / .15f) : 1);
+                text.alpha = 1 - Mathf.Clamp01((t - .6f) / .4f);
+                damagePopups[i] = (text, age);
+            }
+        }
+        void ClearDamage() { foreach (var (text, _) in damagePopups) if (text) Destroy(text.gameObject); damagePopups.Clear(); }
         void AdvancePreview(float dt)
         {
             if (sourceLevel != selected.Level) ResetPreview();
@@ -163,8 +193,10 @@ namespace CodingGame.Defense
                 battle.EditorObserve("Preview",simulation,e); hitEffects.Options=battle.EditorOptions;
 #endif
                 hitEffects.Show(e, arena, arena.position, previewCamera.transform.rotation, view, effectRing);
+                if ((e.Kind == "hit" || e.Kind == "projectile-hit") && e.Amount > 0) PopDamage(e);
             }
             simulation.Events.Clear();
+            TickDamage(dt);
             RefreshStatus();
         }
         void RefreshStatus()

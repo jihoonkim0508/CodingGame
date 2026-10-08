@@ -82,6 +82,7 @@ namespace CodingGame.Defense
         string shownMessage;
         public DefenseSimulation Simulation { get; private set; }
         public int SelectedId => selected;
+        public bool IsPlacing => palette >= 0;
         public float BattleSpeed => speed;
         public string StatusMessage => shownMessage;
         public TutorialDirector Tutorial => tutorial;

@@ -19,6 +19,8 @@ namespace CodingGame.Defense
         RectTransform panelRect;
         Vector2 bottomAnchorMin, bottomAnchorMax, bottomPosition, bottomPivot;
         public bool IsTyping => isTyping;
+        // Extra gap above the bottom edge, e.g. to keep the code editor's status line readable.
+        public float BottomLift { get; set; }
         public bool IsVisible => panel && panel.activeSelf;
 
         public void Initialize(Action onPrevious, Action onNext)
@@ -43,7 +45,7 @@ namespace CodingGame.Defense
             panelRect.anchorMin = new Vector2(bottomAnchorMin.x, top ? 1 - bottomAnchorMax.y : bottomAnchorMin.y);
             panelRect.anchorMax = new Vector2(bottomAnchorMax.x, top ? 1 - bottomAnchorMin.y : bottomAnchorMax.y);
             panelRect.pivot = new Vector2(bottomPivot.x, top ? 1 - bottomPivot.y : bottomPivot.y);
-            panelRect.anchoredPosition = new Vector2(bottomPosition.x, top ? -bottomPosition.y - topInset : bottomPosition.y);
+            panelRect.anchoredPosition = new Vector2(bottomPosition.x, top ? -bottomPosition.y - topInset : bottomPosition.y + BottomLift);
             panel.SetActive(true);
             portrait.sprite = sequence.speakerPortrait;
             portrait.enabled = sequence.speakerPortrait;

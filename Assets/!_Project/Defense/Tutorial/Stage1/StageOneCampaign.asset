@@ -57,17 +57,17 @@ MonoBehaviour:
       wave: 1
       topic: "\uBCC0\uC218: damage \uAC12 \uBCC0\uACBD"
       robots:
-      - role: 4
+      - role: 1
         count: 2
       blocks:
-      - kind: 22
+      - kind: 19
         count: 2
       - kind: 14
         count: 4
       - kind: 10
         count: 4
       rewards:
-      - kind: 22
+      - kind: 19
         count: 1
     - stage: 1
       wave: 2
@@ -79,7 +79,7 @@ MonoBehaviour:
       - kind: 10
         count: 2
       rewards:
-      - kind: 22
+      - kind: 19
         count: 1
     - stage: 1
       wave: 3
@@ -117,7 +117,7 @@ MonoBehaviour:
       - kind: 10
         count: 2
       rewards:
-      - kind: 22
+      - kind: 19
         count: 1
     - stage: 2
       wave: 1
@@ -125,6 +125,8 @@ MonoBehaviour:
       robots:
       - role: 5
         count: 1
+      - role: 4
+        count: 2
       blocks:
       - kind: 16
         count: 2
@@ -146,6 +148,8 @@ MonoBehaviour:
         count: 4
       - kind: 23
         count: 1
+      - kind: 22
+        count: 2
       rewards:
       - kind: 16
         count: 1

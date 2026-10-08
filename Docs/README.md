@@ -8,7 +8,7 @@
 | [구조.md](구조.md) | 폴더, 주요 스크립트 책임, 데이터 asset, `Defense.unity` 오브젝트, 규칙 |
 | [튜토리얼.md](튜토리얼.md) | Stage 1(1-1~1-5) 학습 흐름, 진행 조건, JSON 콘텐츠, 대사 수정, UX 결정 |
 | [개발_테스트.md](개발_테스트.md) | 헤드리스·Unity 검사 실행, 개발 에디터 사용법, 알려진 공백 |
-| [stage1_flow/](stage1_flow/) | Stage 1 대사·연출 원문 Markdown 5개(검사 기준이므로 수정 시 JSON과 함께 변경)와 JSON 형식 안내서 |
+| [flow_stage1/](flow_stage1/) | Stage 1 대사 JSON 5개(게임이 쓰는 원본, 에디터가 Unity로 자동 동기화)와 같은 내용의 읽기용 Markdown, JSON 형식 안내서 |
 
 ## 원본 자료
 

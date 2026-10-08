@@ -26,6 +26,7 @@ namespace CodingGame.Defense
         [SerializeField] TutorialSpotlight spotlight;
         [SerializeField] TutorialTargetBinding[] targets = Array.Empty<TutorialTargetBinding>();
         readonly List<Rect> screenAreas = new List<Rect>();
+        readonly List<Rect> outlinedAreas = new List<Rect>();
         readonly Dictionary<string, TutorialTargetBinding> byKey = new Dictionary<string, TutorialTargetBinding>();
         readonly Dictionary<string, RuntimeTarget> runtimeTargets = new Dictionary<string, RuntimeTarget>();
         TutorialDirector director;
@@ -35,7 +36,7 @@ namespace CodingGame.Defense
         public bool IsGuiding => director && director.IsActive;
         public bool PauseBattle => IsGuiding && currentStep != null && currentStep.pauseBattle;
         public bool AllowPreview => IsGuiding && currentStep != null && currentStep.allowPreview;
-        public void SetInputLimited(bool value) { if (spotlight) spotlight.raycastTarget = currentStep != null && value; }
+        public void SetInputLimited(bool value) { if (spotlight) spotlight.raycastTarget = currentStep != null && currentStep.dim && value; }
 
         public void Initialize(TutorialDirector owner)
         {
@@ -62,7 +63,7 @@ namespace CodingGame.Defense
             allowActions = enableActions;
             if (!spotlight) return;
             spotlight.enabled = step != null;
-            spotlight.raycastTarget = step != null;
+            spotlight.raycastTarget = step != null && step.dim;
             RefreshAreas();
         }
 
@@ -74,11 +75,16 @@ namespace CodingGame.Defense
         void RefreshAreas()
         {
             if (!spotlight) return;
-            screenAreas.Clear();
+            screenAreas.Clear(); outlinedAreas.Clear();
             if (allowActions && currentStep != null)
                 foreach (var key in currentStep.targetKeys)
-                    if (byKey.TryGetValue(key, out var binding)) AddArea(key, binding);
-            spotlight.SetHoles(screenAreas, currentStep?.highlightPadding ?? 0);
+                    if (byKey.TryGetValue(key, out var binding))
+                    {
+                        int before = screenAreas.Count; AddArea(key, binding);
+                        bool outlined = currentStep.highlightKeys == null || currentStep.highlightKeys.Length == 0 || Array.IndexOf(currentStep.highlightKeys, key) >= 0;
+                        if (outlined && screenAreas.Count > before) outlinedAreas.Add(screenAreas[screenAreas.Count - 1]);
+                    }
+            spotlight.SetHoles(screenAreas, outlinedAreas, currentStep?.highlightPadding ?? 0, currentStep == null || currentStep.dim);
         }
 
         void AddArea(string key, TutorialTargetBinding binding)

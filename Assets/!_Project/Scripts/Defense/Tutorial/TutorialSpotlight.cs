@@ -9,18 +9,19 @@ namespace CodingGame.Defense
         readonly List<Rect> holes = new List<Rect>();
         readonly List<Rect> outlines = new List<Rect>();
         const float OutlineWidth = 3;
-        public void SetHoles(IEnumerable<Rect> areas, float padding)
+        bool dim = true;
+        public void SetHoles(IEnumerable<Rect> areas, float padding) => SetHoles(areas, areas, padding, true);
+        public void SetHoles(IEnumerable<Rect> areas, IEnumerable<Rect> outlined, float padding, bool darken)
         {
-            holes.Clear(); outlines.Clear();
-            var bounds = rectTransform.rect;
-            foreach (var area in areas)
-            {
-                var expanded = Rect.MinMaxRect(area.xMin - padding, area.yMin - padding,
-                    area.xMax + padding, area.yMax + padding);
-                expanded = Intersect(bounds, expanded);
-                if (expanded.width > 0 && expanded.height > 0) { holes.Add(expanded); outlines.Add(expanded); }
-            }
+            holes.Clear(); outlines.Clear(); dim = darken;
+            foreach (var area in areas) if (Expand(area, padding, out var r)) holes.Add(r);
+            foreach (var area in outlined) if (Expand(area, padding, out var r)) outlines.Add(r);
             SetVerticesDirty();
+        }
+        bool Expand(Rect area, float padding, out Rect expanded)
+        {
+            expanded = Intersect(rectTransform.rect, Rect.MinMaxRect(area.xMin - padding, area.yMin - padding, area.xMax + padding, area.yMax + padding));
+            return expanded.width > 0 && expanded.height > 0;
         }
 
         public bool IsRaycastLocationValid(Vector2 screenPoint, Camera eventCamera)
@@ -44,7 +45,7 @@ namespace CodingGame.Defense
                 float x0 = xs[x], x1 = xs[x + 1], y0 = ys[y], y1 = ys[y + 1];
                 if (x1 <= x0 || y1 <= y0) continue;
                 var center = new Vector2((x0 + x1) * .5f, (y0 + y1) * .5f);
-                if (holes.Exists(h => h.Contains(center))) continue;
+                if (!dim || holes.Exists(h => h.Contains(center))) continue;
                 AddQuad(vh, Rect.MinMaxRect(x0, y0, x1, y1), color);
             }
             var outline = new Color(1, .82f, .38f, 1);

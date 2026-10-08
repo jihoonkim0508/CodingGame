@@ -10,7 +10,8 @@ namespace CodingGame.Defense
     // The teaching notation becomes the same validated block tree used by the editor.
     public static class StageOneCode
     {
-        public static List<CodeBlock> Parse(string source, bool automaticAttack = false)
+        // `Attack()` becomes the teaching robot's own attack block (slash for the warrior, shot for the shooter).
+        public static List<CodeBlock> Parse(string source, bool automaticAttack = false, BlockKind attackKind = BlockKind.Shot)
         {
             var result = new List<CodeBlock>();
             CodeBlock condition = null;
@@ -20,7 +21,7 @@ namespace CodingGame.Defense
                 if (line.Length == 0 || line.StartsWith("#")) continue;
                 if (line == "Attack()" || line == "attack(enemy)")
                 {
-                    var attack = new CodeBlock(BlockKind.Shot);
+                    var attack = new CodeBlock(attackKind);
                     if (condition != null)
                     {
                         if (!char.IsWhiteSpace(raw[0])) throw new FormatException("조건의 공격 행동을 들여써 주세요.");
@@ -52,14 +53,14 @@ namespace CodingGame.Defense
                 throw new FormatException("변수 선언, 거리 조건, Attack() 코드를 확인하세요.");
             }
             if (result.Count == 0 || condition != null && condition.Body.Count != 1) throw new FormatException("코드를 완성하세요. 조건 안에는 Attack()이 필요합니다.");
-            if (automaticAttack && condition == null && !result.Any(b => b.Kind == BlockKind.Shot)) result.Add(new CodeBlock(BlockKind.Shot));
+            if (automaticAttack && condition == null && !result.Any(b => b.Kind == attackKind)) result.Add(new CodeBlock(attackKind));
             PythonTreeCompiler.Compile("tutorial", result);
             return result;
         }
 
-        public static void Validate(string source, int wave, int section)
+        public static void Validate(string source, int wave, int section, BlockKind attackKind = BlockKind.Shot)
         {
-            var blocks = Parse(source);
+            var blocks = Parse(source, false, attackKind);
             double? Setting(string name) => blocks.LastOrDefault(b => b.Kind == BlockKind.DeclareVariable && b.Value == name) is CodeBlock b
                 ? double.Parse(b.Arguments[0].Value, CultureInfo.InvariantCulture) : (double?)null;
             var condition = blocks.SingleOrDefault(b => b.Kind == BlockKind.If);
@@ -70,7 +71,7 @@ namespace CodingGame.Defense
                     (section != 3 || double.Parse(condition.Arguments[0].Arguments[1].Value, CultureInfo.InvariantCulture) == 8) :
                 wave == 5 && Setting("attackDistance") > 0 && (section != 4 || Setting("attackDistance") == 15) &&
                     condition != null && condition.Arguments[0].Arguments[1].Kind == BlockKind.Variable && condition.Arguments[0].Arguments[1].Value == "attackDistance";
-            if (!matches || wave >= 3 && blocks.Any(b => b.Kind == BlockKind.Shot))
+            if (!matches || wave >= 3 && blocks.Any(b => b.Kind == attackKind))
                 throw new FormatException("이번 학습 목표에 맞게 변수와 조건을 수정하세요.");
         }
     }
