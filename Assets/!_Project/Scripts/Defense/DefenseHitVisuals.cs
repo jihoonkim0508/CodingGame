@@ -48,8 +48,10 @@ namespace CodingGame.Defense
                 var origin = offset + new Vector3(evt.Origin.X, .1f, evt.Origin.Y);
                 var target = offset + new Vector3(evt.Position.X, .1f, evt.Position.Y);
                 var direction = target - origin;
-                var slash = Options.slashEffects ? UnityEngine.Object.Instantiate(slashPrefab, origin,
-                    direction.sqrMagnitude > .0001f ? Quaternion.LookRotation(direction) : Quaternion.identity, parent) : null;
+                // The slash graph sweeps 180° starting at its local forward; turning it +90° makes the sweep run
+                // from 90° right through the facing to 90° left, matching the half-plane the hit rule uses.
+                var facing = direction.sqrMagnitude > .0001f ? Quaternion.LookRotation(direction) : Quaternion.identity;
+                var slash = Options.slashEffects ? UnityEngine.Object.Instantiate(slashPrefab, origin, facing * Quaternion.Euler(0, 90, 0), parent) : null;
                 if (slash) { slash.transform.localScale *= evt.Radius;
                 slash.pause = true;
                 slash.Reinit();
