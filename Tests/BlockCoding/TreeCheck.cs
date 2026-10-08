@@ -120,6 +120,11 @@ static class TreeCheck
         foreach (string valid in new[] { "_x", "적", "enemy2", "match", "case", "ｘ", "℘", "a·b", "𐐀" })
             Assert(PythonTreeCompiler.NormalizeIdentifier(valid).Length > 0, "Python identifier rejected.");
         programs["tree_unicode"] = PythonTreeCompiler.Compile("tree_unicode", new[] { Set("적", nearest), B(BlockKind.Attack, V("적")) });
-        Console.WriteLine("PASS: nested block compiler, typed sockets, branch connections, variables, loops and validation.");
+        Assert(PythonTreeCompiler.HasStaleEnemyLoop(new[] { Body(B(BlockKind.While), B(BlockKind.Shot)) }), "Stale enemy loop not flagged.");
+        Assert(PythonTreeCompiler.HasStaleEnemyLoop(new[] { Body(B(BlockKind.If, trueBlock), Body(B(BlockKind.For, N("3")), B(BlockKind.Shot))) }), "Nested stale loop not flagged.");
+        Assert(!PythonTreeCompiler.HasStaleEnemyLoop(new[] { Body(B(BlockKind.While), Set("enemy", nearest), B(BlockKind.Shot)) }), "Re-targeting loop flagged.");
+        Assert(!PythonTreeCompiler.HasStaleEnemyLoop(new[] { Body(B(BlockKind.While), B(BlockKind.Shot, nearest)) }), "Explicit target flagged.");
+        Assert(!PythonTreeCompiler.HasStaleEnemyLoop(new[] { B(BlockKind.Shot) }), "Loop-free program flagged.");
+        Console.WriteLine("PASS: nested block compiler, typed sockets, branch connections, variables, loops, stale-target lint and validation.");
     }
 }

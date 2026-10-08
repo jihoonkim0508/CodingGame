@@ -134,7 +134,7 @@ namespace CodingGame.BlockCoding
         {
             if (!stockLabel) return;
             bool counted = IsPalette && Panel.Remaining != null;
-            stockLabel.text = count == int.MaxValue ? "∞" : "×" + count;
+            stockLabel.text = count >= int.MaxValue / 2 ? "∞" : "×" + count; // unlimited stock minus blocks in use is still unlimited
             stockLabel.gameObject.SetActive(counted);
             // Out-of-stock palette blocks stay visible (so players learn they exist) but read as unavailable.
             if (counted) canvasGroup.alpha = count > 0 ? 1 : .4f;

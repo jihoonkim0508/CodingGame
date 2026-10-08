@@ -98,6 +98,12 @@ namespace CodingGame.BlockCoding
             (HasEnemyArgument(block.Kind) && (block.Arguments.Count == 0 || block.Arguments[0] == null) ||
              block.Kind == BlockKind.Variable && (block.Value == "enemy" || block.Value == "enemyDistance") ||
              block.Arguments.Any(UsesDefaultEnemy) || block.Body.Any(UsesDefaultEnemy));
+        // A loop that acts on the implicit `enemy` without re-assigning it keeps aiming at the first target after it is gone.
+        public static bool HasStaleEnemyLoop(IReadOnlyList<CodeBlock> blocks) => blocks.Any(block => block != null &&
+            ((block.Kind == BlockKind.For || block.Kind == BlockKind.While) && block.Body.Any(UsesDefaultEnemy) && !block.Body.Any(AssignsEnemy)
+             || HasStaleEnemyLoop(block.Body)));
+        static bool AssignsEnemy(CodeBlock block) => block != null &&
+            (block.Kind == BlockKind.DeclareVariable && NormalizeIdentifier(block.Value) == "enemy" || block.Body.Any(AssignsEnemy));
         static bool UsesEnemyDistance(CodeBlock block) => block != null && (block.Kind == BlockKind.Variable && block.Value == "enemyDistance" ||
             block.Arguments.Any(UsesEnemyDistance) || block.Body.Any(UsesEnemyDistance));
 

@@ -253,7 +253,8 @@ namespace CodingGame.BlockCoding
         {
             string appliedMessage = ApplyToTarget?.Invoke(functionName.text, blocks);
             AppliedSource = source; IsApplied = true;
-            ShowMessage(appliedMessage ?? "자동 적용됨");
+            ShowMessage((appliedMessage ?? "자동 적용됨") + (PythonTreeCompiler.HasStaleEnemyLoop(blocks)
+                ? " · 주의: 반복문 안에서 enemy를 다시 정하지 않으면 첫 적이 사라진 뒤 멈춰요. 반복문 안에 enemy = get_nearest_enemy()를 넣어보세요." : ""));
             onApplied.Invoke(source);
         }
         public void LoadProgram(string name, IReadOnlyList<CodeBlock> blocks)

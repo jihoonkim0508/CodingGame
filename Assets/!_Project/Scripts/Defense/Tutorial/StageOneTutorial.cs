@@ -150,9 +150,11 @@ namespace CodingGame.Defense
             lessonPanel.SetActive(true); codeInput.gameObject.SetActive(false); submit.gameObject.SetActive(false);
             var frame = (RectTransform)lessonPanel.transform;
             frame.anchorMin = IsBattleSection ? battleAnchorMin : lessonAnchorMin; frame.anchorMax = IsBattleSection ? battleAnchorMax : lessonAnchorMax;
-            if (examplesBox) examplesBox.SetActive(!IsBattleSection);
+            // Without a code box (waves, intro sections) the observation text takes its space.
+            bool showExamples = !IsBattleSection && current.code_examples.Length > 0;
+            if (examplesBox) examplesBox.SetActive(showExamples);
             var observed = observation.rectTransform;
-            observed.anchorMin = new Vector2(0, IsBattleSection ? .2f : .36f); observed.anchorMax = new Vector2(1, IsBattleSection ? .86f : .49f);
+            observed.anchorMin = new Vector2(0, showExamples ? .36f : .2f); observed.anchorMax = new Vector2(1, showExamples ? .49f : .86f);
             // Comparison demonstrations retain the supplied numbers and use the same <= rule as combat.
             if(wave==3 && section==2) observation.text="15 <= 10  False\n9 <= 10  True";
             if(wave==5 && section==3) observation.text="14 <= 10  False\n8 <= 10  True";
