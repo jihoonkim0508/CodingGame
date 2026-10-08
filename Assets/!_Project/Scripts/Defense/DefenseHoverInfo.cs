@@ -24,6 +24,7 @@ namespace CodingGame.Defense
         public void OnPointerExit(PointerEventData data) => Clear();
         public void OnPointerDown(PointerEventData data) => Clear();
         void OnDisable() => Clear();
+        public void SetEnemy(EnemyDefinition definition) { if (enemy != definition) { Clear(); enemy = definition; } }
         void Clear() { if (hovered) { hovered = false; tooltip.Hide(); } }
     }
 }

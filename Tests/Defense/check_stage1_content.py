@@ -3,7 +3,8 @@ import tempfile
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
-sources = sorted((root / "Docs/stage1_flow").glob("*.json"))
+# The Unity asset is the single source; Docs keeps only the readable Markdown.
+sources = sorted((root / "Assets/!_Project/Defense/Tutorial/Stage1").glob("*.json"))
 assert len(sources) == 5
 sections = 0
 dialogues = 0
@@ -13,7 +14,7 @@ for wave, source in enumerate(sources, 1):
     assert data["implementation_contract"]["stage_order"] == [f"1-{n}" for n in range(1, 6)]
     assert data["implementation_contract"]["preserve_terms"] == ["damage", "range", "enemyDistance", "attackDistance", "if", "<=", "Attack()"]
     assert len(data["sections"]) == (8 if wave == 5 else 5)
-    markdown = source.with_suffix(".md").read_text(encoding="utf-8")
+    markdown = (root / "Docs/stage1_flow" / source.with_suffix(".md").name).read_text(encoding="utf-8")
     for section in data["sections"]:
         assert section["section_title"] in markdown
         assert section["direction"] in markdown
@@ -23,8 +24,6 @@ for wave, source in enumerate(sources, 1):
         for example in section["code_examples"]:
             assert example["code"] in markdown
         sections += 1
-    imported = root / "Assets/!_Project/Defense/Tutorial/Stage1" / source.name
-    assert source.read_bytes() == imported.read_bytes(), f"Imported content drift: {source.name}"
 assert sections == 28
 generated = (Path(tempfile.gettempdir()) / "CodingGame-StageOne-generated.py").read_text(encoding="utf-8")
 hits = []

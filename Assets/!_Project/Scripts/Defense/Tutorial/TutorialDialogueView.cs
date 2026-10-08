@@ -12,6 +12,7 @@ namespace CodingGame.Defense
         [SerializeField] Image portrait;
         [SerializeField] TMP_Text speaker, stageWave, dialogue;
         [SerializeField] Button previousText, nextText;
+        [SerializeField, Tooltip("Top position keeps this gap so the HUD header stays readable.")] float topInset = 96;
         Coroutine typing;
         Action previous, next;
         bool isTyping;
@@ -42,7 +43,7 @@ namespace CodingGame.Defense
             panelRect.anchorMin = new Vector2(bottomAnchorMin.x, top ? 1 - bottomAnchorMax.y : bottomAnchorMin.y);
             panelRect.anchorMax = new Vector2(bottomAnchorMax.x, top ? 1 - bottomAnchorMin.y : bottomAnchorMax.y);
             panelRect.pivot = new Vector2(bottomPivot.x, top ? 1 - bottomPivot.y : bottomPivot.y);
-            panelRect.anchoredPosition = new Vector2(bottomPosition.x, top ? -bottomPosition.y : bottomPosition.y);
+            panelRect.anchoredPosition = new Vector2(bottomPosition.x, top ? -bottomPosition.y - topInset : bottomPosition.y);
             panel.SetActive(true);
             portrait.sprite = sequence.speakerPortrait;
             portrait.enabled = sequence.speakerPortrait;

@@ -85,9 +85,11 @@ namespace CodingGame.Defense
         public float BattleSpeed => speed;
         public string StatusMessage => shownMessage;
         public TutorialDirector Tutorial => tutorial;
-        public bool CanShowRobotActions => Simulation != null && Simulation.CanPrepare && !DeveloperMode && !HelpOpen && !codeEditor.IsOpen && !inventoryUI.IsOpen;
+        public bool CanShowRobotActions => Simulation != null && Simulation.CanPrepare && !DeveloperMode && !HelpOpen && !codeEditor.IsOpen && !inventoryUI.IsOpen &&
+            (TutorialAllows("Battle.Develop") || TutorialAllows("Battle.Upgrade") || TutorialAllows("Battle.Recall"));
         public string DefinitionName(int index) => robots[index].displayName;
         public RobotRole DefinitionRole(int index) => robots[index].stats.role;
+        public EnemyDefinition EnemyAt(int index) => enemies[index];
         public void BeginCodeView(RobotState robot)
         {
             inventoryUI.Close(); playerHUD.SetVisible(false); developerRoot.SetActive(false);
@@ -512,6 +514,7 @@ namespace CodingGame.Defense
             startButton.interactable = Simulation.Phase == BattlePhase.Ready;
             pauseButton.interactable = Simulation.Phase == BattlePhase.Running || Simulation.Phase == BattlePhase.Paused;
             speedButton.interactable = !ended;
+            for (int i = 0; i < routes.Length; i++) routes[i].ShowVisual(Simulation.RouteInUse(i));
             for (int i = 0; i < robotButtons.Length; i++)
             {
                 robotButtons[i].interactable = true;

@@ -9,5 +9,6 @@ namespace CodingGame.Defense
         [TextArea] public string description;
         public EnemySpec stats = new EnemySpec();
         public DefenseActorView prefab;
+        public Texture icon;
     }
 }

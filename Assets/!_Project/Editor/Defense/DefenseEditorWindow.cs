@@ -327,7 +327,7 @@ namespace CodingGame.Defense.Editor
         void Diagnostics()
         {
             Buttons(("설정 검사",Validate),("캠페인 1~5 실행",BeginCampaignCheck),("선택 시나리오 검사",RunScenario),("검사 중단",()=>StopCheck("중단")),("결과 JSON 저장",SaveReport));
-            Buttons(("기존 전투 로직 검사",()=>RunLogicCheck("Tests/Defense/Defense.Check.csproj")),("기존 블록 컴파일 검사",()=>RunLogicCheck("Tests/BlockCoding/BlockCoding.Check.csproj")),("Editor 옵션 검사",()=>RunLogicCheck("Tests/Defense/EditorOptions.Check.csproj")));
+            Buttons(("기존 전투 로직 검사",()=>RunLogicCheck("Tests/Defense/Defense.Check.csproj")),("기존 블록 컴파일 검사",()=>RunLogicCheck("Tests/BlockCoding/BlockCoding.Check.csproj")),("Editor 옵션 검사",()=>RunLogicCheck("Tests/EditorOptions/EditorOptions.Check.csproj")));
             var seconds=new FloatField("검사 제한 시간 (실제 초)"){value=(float)timeout};seconds.RegisterValueChangedCallback(e=>timeout=Math.Max(1,e.newValue));content.Add(seconds);
             Heading("최근 1,000 이벤트");
             logView=new ListView{fixedItemHeight=22,virtualizationMethod=CollectionVirtualizationMethod.FixedHeight};

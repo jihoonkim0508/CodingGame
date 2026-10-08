@@ -9,6 +9,8 @@ var label=(TMPro.TMP_Text)fields.FindProperty("upgradeLabel").objectReferenceVal
 var price=(TMPro.TMP_Text)fields.FindProperty("upgradePrice").objectReferenceValue;
 var coins=(TMPro.TMP_Text)fields.FindProperty("coinLabel").objectReferenceValue;
 var stats=(TMPro.TMP_Text)fields.FindProperty("stats").objectReferenceValue;
+// Mirrors the robot panel: open the selected robot's preview, or close it.
+void TogglePreview() { if (preview.IsShowing) preview.Close(); else preview.Open(battle.Simulation.Robots.Single(r=>r.Id==battle.SelectedId)); }
 int checks=0;
 void Check(bool ok,string message) { if(!ok)throw new System.Exception(message);checks++; }
 try
@@ -29,11 +31,11 @@ try
     Check(!stats.text.Contains("→"),"max level shows current stats only");
     button.onClick.Invoke();Check(battle.Simulation.Coins==50,"duplicate callback cannot charge twice");
     editor.Panel.LoadProgram("guard",new[]{new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block)});
-    preview.TogglePreview();
+    TogglePreview();
     var clone=preview.PreviewSimulation.Robots.Single();
     Check(clone.Level==2&&System.Math.Abs(clone.Damage-tank.Damage)<.001f&&System.Math.Abs(clone.MaxHealth-168)<.001f,"preview copies upgraded stats");
     preview.SendMessage("ResetPreview");Check(preview.PreviewSimulation.Robots.Single().Level==2&&battle.Simulation.Coins==50,"preview loop does not purchase again");
-    preview.TogglePreview(); editor.Close();
+    TogglePreview(); editor.Close();
     Check(battle.PlaceRobot(4,new UnityEngine.Vector3(-8,0,6)),"place second robot");battle.SelectRobot(battle.SelectedId);
     Check(button.interactable&&label.text=="레벨업", "second robot has independent upgrade");
     Check(stats.text.Contains("22")&&stats.text.Contains("→ 26.4"),"shooter upgrade comparison");

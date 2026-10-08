@@ -27,6 +27,9 @@ namespace CodingGame.Defense
         [SerializeField] Image enemyGraphic;
         [SerializeField] TMP_Text variableBox, comparison, hitResult;
         [SerializeField] AudioSource warningSource;
+        [SerializeField, Tooltip("Optional code-example box hidden while a wave is running, so the lesson card stays clear of the map.")] GameObject examplesBox;
+        [SerializeField] Vector2 battleAnchorMin = new Vector2(.01f, .5f), battleAnchorMax = new Vector2(.2f, .88f);
+        Vector2 lessonAnchorMin, lessonAnchorMax;
         StageOneContent[] content;
         TutorialSequence presentation;
         DefenseSimulation session;
@@ -58,6 +61,7 @@ namespace CodingGame.Defense
             presentation = ScriptableObject.CreateInstance<TutorialSequence>();
             presentation.stage = 1; presentation.typeSpeed = 20; presentation.speakerName = "안내자";
             submit.onClick.AddListener(Submit);
+            var frame = (RectTransform)lessonPanel.transform; lessonAnchorMin = frame.anchorMin; lessonAnchorMax = frame.anchorMax;
             initialized = true; lessonPanel.SetActive(false); demonstration.SetActive(false); boot.SetActive(false);
         }
         void Update()
@@ -141,6 +145,9 @@ namespace CodingGame.Defense
             demonstration.SetActive(!IsPlacement && !IsBattleSection && !(wave==1 && section==0));
             if(demonstration.activeSelf) DrawDemonstration();
             lessonPanel.SetActive(true); codeInput.gameObject.SetActive(false); submit.gameObject.SetActive(false);
+            var frame = (RectTransform)lessonPanel.transform;
+            frame.anchorMin = IsBattleSection ? battleAnchorMin : lessonAnchorMin; frame.anchorMax = IsBattleSection ? battleAnchorMax : lessonAnchorMax;
+            if (examplesBox) examplesBox.SetActive(!IsBattleSection);
             // Comparison demonstrations retain the supplied numbers and use the same <= rule as combat.
             if(wave==3 && section==2) observation.text="15 <= 10  False\n9 <= 10  True";
             if(wave==5 && section==3) observation.text="14 <= 10  False\n8 <= 10  True";

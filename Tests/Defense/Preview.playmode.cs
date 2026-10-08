@@ -4,14 +4,16 @@ var battle = UnityEngine.GameObject.Find("DefenseBattle").GetComponent<CodingGam
 var editor = battle.GetComponent<CodingGame.Defense.DefenseCodeEditor>();
 var preview = battle.GetComponent<CodingGame.Defense.DefenseAttackPreview>();
 var label = (TMPro.TMP_Text)new UnityEditor.SerializedObject(preview).FindProperty("status").objectReferenceValue;
+// Mirrors the robot panel: open the selected robot's preview, or close it.
+void TogglePreview() { if (preview.IsShowing) preview.Close(); else preview.Open(battle.Simulation.Robots.Single(r=>r.Id==battle.SelectedId)); }
 int checks = 0;
 void Check(bool condition, string message) { if (!condition) throw new System.Exception(message); checks++; }
 string Stock() => string.Join(",", battle.Simulation.Inventory.OrderBy(p=>p.Key).Select(p=>p.Key+":"+p.Value));
 void Show(params CodingGame.BlockCoding.CodeBlock[] blocks)
 {
-    if (preview.IsShowing) preview.TogglePreview();
+    if (preview.IsShowing) TogglePreview();
     editor.Panel.LoadProgram("guard",blocks);
-    preview.TogglePreview();
+    TogglePreview();
 }
 void Status() => preview.SendMessage("RefreshStatus");
 void Advance(float seconds) => preview.SendMessage("AdvancePreview",seconds);
@@ -57,7 +59,7 @@ try
     var killed=preview.PreviewSimulation;killed.Robots.Single().Spec.damage=10000;
     for(int i=0;i<150&&killed.RemainingEnemies>0;i++) Advance(.1f);
     Check(killed.Kills==3&&preview.PreviewSimulation==killed,"last kill also waits before reset");
-    Advance(.5f);preview.TogglePreview();preview.TogglePreview();var reopened=preview.PreviewSimulation;Advance(.6f);
+    Advance(.5f);TogglePreview();TogglePreview();var reopened=preview.PreviewSimulation;Advance(.6f);
     Check(preview.PreviewSimulation==reopened&&reopened.RemainingEnemies>0,"reopening clears previous restart countdown");
     Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Wait,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Number,"5")),
         new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block));

@@ -130,7 +130,15 @@ namespace CodingGame.BlockCoding
             LayoutRebuilder.MarkLayoutForRebuild(rect);
         }
         public void SetText(string value) { input.text = value; }
-        public void SetStock(int count) { if (stockLabel) { stockLabel.text = count.ToString(); stockLabel.gameObject.SetActive(IsPalette && Panel.Remaining != null); } }
+        public void SetStock(int count)
+        {
+            if (!stockLabel) return;
+            bool counted = IsPalette && Panel.Remaining != null;
+            stockLabel.text = count == int.MaxValue ? "∞" : "×" + count;
+            stockLabel.gameObject.SetActive(counted);
+            // Out-of-stock palette blocks stay visible (so players learn they exist) but read as unavailable.
+            if (counted) canvasGroup.alpha = count > 0 ? 1 : .4f;
+        }
         void LateUpdate()
         {
             if (!IsPalette || !stockLabel || !stockLabel.gameObject.activeSelf) return;

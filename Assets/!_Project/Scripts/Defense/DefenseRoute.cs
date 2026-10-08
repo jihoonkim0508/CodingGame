@@ -9,6 +9,9 @@ namespace CodingGame.Defense
     {
         [SerializeField] Transform[] waypoints = Array.Empty<Transform>();
         [SerializeField, Min(.1f)] float halfWidth = 1.1f;
+        [Tooltip("Optional road mesh shown only while a wave uses this route; leave empty to always show.")]
+        [SerializeField] GameObject visual;
+        public void ShowVisual(bool show) { if (visual && visual.activeSelf != show) visual.SetActive(show); }
         public Route Read()
         {
             if (waypoints.Length < 2 || waypoints.Any(p => !p)) throw new InvalidOperationException(name + ": 경로 참조를 연결하세요.");

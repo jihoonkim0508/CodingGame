@@ -26,6 +26,8 @@ namespace CodingGame.Defense
         [SerializeField] RectTransform robotActions;
         [SerializeField] Button upgradeRobotButton, developRobotButton, recallRobotButton;
         [SerializeField] TMP_Text upgradeRobotLabel;
+        RawImage[] enemyImages;
+        DefenseHoverInfo[] enemyHovers;
         Coroutine placementFeedback;
         Vector2 toastPosition;
         BattlePhase shownRewardPhase;
@@ -45,6 +47,8 @@ namespace CodingGame.Defense
             toastPosition = ((RectTransform)placementToast.transform).anchoredPosition;
             placementToast.alpha = 0;
             for (int i = 0; i < robotButtons.Length; i++) { int index = i; robotButtons[i].onClick.AddListener(() => battle.ChooseRobot(index)); }
+            enemyImages = enemyCards.Select(c => c.GetComponentInChildren<RawImage>(true)).ToArray();
+            enemyHovers = enemyCards.Select(c => c.GetComponent<DefenseHoverInfo>()).ToArray();
         }
         public void SetVisible(bool visible) => canvasRoot.SetActive(visible);
         public void ShowPlacementError(string reason)
@@ -76,11 +80,16 @@ namespace CodingGame.Defense
             combatControls.SetActive(fighting);
             upcoming.text = "다음 웨이브";
             var next = sim.UpcomingWave;
+            // Cards follow the wave's own enemy types (in spawn order), so tutorial enemies get cards too.
+            var types = next.GroupBy(g => g.DefinitionIndex).Take(enemyCards.Length).ToArray();
             for (int i = 0; i < enemyCards.Length; i++)
             {
-                int count = next.Where(g => g.DefinitionIndex == i).Sum(g => g.Count);
-                enemyCards[i].SetActive(count > 0);
-                enemyCounts[i].text = "× " + count;
+                enemyCards[i].SetActive(i < types.Length);
+                if (i >= types.Length) continue;
+                var definition = battle.EnemyAt(types[i].Key);
+                if (definition.icon && enemyImages[i]) enemyImages[i].texture = definition.icon;
+                if (enemyHovers[i]) enemyHovers[i].SetEnemy(definition);
+                enemyCounts[i].text = "× " + types[i].Sum(g => g.Count);
             }
             guide.text = ready ? $"{sim.Lesson?.topic} · 로봇 배치 → 코드 작성 → 전투 시작" :
                 reward ? "WAVE CLEAR  ·  블록을 수령하고 다음 전투를 준비하세요" : ended ? "작전 종료" : "DEFENDING  ·  블록 드랍 " + sim.PendingDrops.Count + "개  /  전투 종료 후 수령";

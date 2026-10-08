@@ -38,7 +38,7 @@ namespace CodingGame.Defense
             tutorial?.EditorStop();
             EditorOptions = options.Copy();
             // Resolve content into a copy before altering the live session.
-            var setup = overrideCampaign ? MakeCampaignSetup(overrideCampaign,testStage) : MakeSetup();
+            var setup = overrideCampaign ? MakeCampaignSetup(overrideCampaign,testStage) : campaign ? MakeCampaignSetup(campaign,testStage) : MakeSetup();
             setup.StageOneLearning=tutorial && tutorial.StageOneEnabled && testStage==1;
             setup.Stage=testStage; setup.InitialWave=wave-1; setup.PreviousStageRewards=previousStageRewards;
             setup.TestOptions=EditorOptions; setup.Validate();

@@ -25,6 +25,7 @@ namespace CodingGame.BlockCoding
         [SerializeField] RectTransform variablePalette;
         [SerializeField] CommandBlockView variablePrefab;
         [SerializeField] GameObject variableEmptyHint;
+        [SerializeField, Tooltip("Optional hint shown while the program has no blocks.")] GameObject programEmptyHint;
         [SerializeField] UnityEvent<string> onApplied = new UnityEvent<string>();
         readonly Dictionary<string, CommandBlockView> variables = new Dictionary<string, CommandBlockView>();
         readonly HashSet<string> enemyVariables = new HashSet<string>();
@@ -188,6 +189,7 @@ namespace CodingGame.BlockCoding
             finally
             {
                 updating = false;
+                if (programEmptyHint) programEmptyHint.SetActive(program.Blocks.Count == 0);
                 RefreshPalette();
                 LayoutRebuilder.MarkLayoutForRebuild(program.Rect);
                 if (!loading && !restoringHistory) RecordHistory();

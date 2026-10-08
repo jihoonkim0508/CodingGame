@@ -44,6 +44,7 @@ namespace CodingGame.Defense
         SpawnGroup[] currentWave, nextWave;
         public IReadOnlyList<SpawnGroup> UpcomingWave => Phase == BattlePhase.Ready ? currentWave :
             nextWave;
+        public bool RouteInUse(int route) => currentWave.Any(g => g.RouteIndex == route) || Enemies.Any(e => e.Active && e.RouteIndex == route);
         public readonly Dictionary<BlockKind, int> Inventory = new Dictionary<BlockKind, int>();
         public readonly Dictionary<RobotRole, int> RobotInventory = new Dictionary<RobotRole, int>();
         public int RobotAvailable(RobotRole role) => !Setup.PlayerFlow || (!Options.inventoryLimit && RobotUnlocked(role)) ? int.MaxValue : RobotInventory.TryGetValue(role, out int count) ? count : 0;
