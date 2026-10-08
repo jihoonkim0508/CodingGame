@@ -35,6 +35,7 @@ namespace CodingGame.Defense
         public bool IsGuiding => director && director.IsActive;
         public bool PauseBattle => IsGuiding && currentStep != null && currentStep.pauseBattle;
         public bool AllowPreview => IsGuiding && currentStep != null && currentStep.allowPreview;
+        public void SetInputLimited(bool value) { if (spotlight) spotlight.raycastTarget = currentStep != null && value; }
 
         public void Initialize(TutorialDirector owner)
         {
@@ -232,9 +233,28 @@ namespace CodingGame.Defense
             if (complete) Completed?.Invoke(currentStep);
         }
 
-        public bool HasTarget(string key) => !string.IsNullOrWhiteSpace(key) && byKey.TryGetValue(key, out var binding) &&
-            (binding.allowRuntimeTarget || binding.uiTarget || binding.worldTarget);
+        public bool HasTarget(string key) => !string.IsNullOrWhiteSpace(key) && Array.Exists(targets, binding => binding != null && binding.key == key &&
+            (binding.allowRuntimeTarget || binding.uiTarget || binding.worldTarget));
         public bool HasRuntimeTarget(string key) => !string.IsNullOrWhiteSpace(key) && byKey.TryGetValue(key, out var binding) && binding.allowRuntimeTarget;
+
+#if UNITY_EDITOR
+        public IReadOnlyList<(string key, Rect area, RectTransform ui)> EditorAreas(TutorialStep step)
+        {
+            var result=new List<(string,Rect,RectTransform)>();
+            foreach(var key in step.targetKeys)
+            {
+                if(!byKey.TryGetValue(key,out var binding))throw new InvalidOperationException("대상 연결 누락: "+key);
+                screenAreas.Clear();AddArea(key,binding);
+                if(screenAreas.Count==0)throw new InvalidOperationException("대상 투영 불가: "+key);
+                var area=screenAreas[0];
+                var camera=canvas.renderMode==RenderMode.ScreenSpaceOverlay?null:canvas.worldCamera;
+                var min=RectTransformUtility.WorldToScreenPoint(camera,spotlight.transform.TransformPoint(area.min));
+                var max=RectTransformUtility.WorldToScreenPoint(camera,spotlight.transform.TransformPoint(area.max));
+                result.Add((key,Rect.MinMaxRect(min.x,min.y,max.x,max.y),binding.uiTarget));
+            }
+            RefreshAreas();return result;
+        }
+#endif
 
         bool ContainsKey(string key) => Array.Exists(currentStep.targetKeys ?? Array.Empty<string>(), k => k == key || k == "*");
     }

@@ -12,8 +12,11 @@
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseCurriculum.cs" />
     <Compile Include="ProgramCheck.cs" />
     <Compile Include="CampaignCheck.cs" />
+    <Compile Include="StageOneCheck.cs" />
+    <Compile Include="../../Assets/!_Project/Scripts/Defense/Tutorial/StageOneCode.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseProgression.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseModels.cs" />
+    <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseEditorSettings.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseSimulation.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseProgram.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/BlockCoding/BlockProgram.cs" />

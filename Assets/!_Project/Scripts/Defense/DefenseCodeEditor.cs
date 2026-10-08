@@ -30,7 +30,7 @@ namespace CodingGame.Defense
                 throw new InvalidOperationException("DefenseCodeEditor Inspector 참조를 연결하세요.");
             panel.ApplyToTarget = Apply;
             panel.BlockDropped += OnBlockDropped;
-            panel.IsAvailable = kind => editingSession == null || editingSession.Available(kind, editingId) > 0;
+            panel.IsAvailable = kind => editingSession == null || editingSession.Options.unlockAll || editingSession.Available(kind, editingId) > 0;
             panel.Remaining = kind => editingSession == null ? 0 : Math.Max(0, editingSession.Available(kind, editingId) - panel.Program.AllBlocks().Count(b => DefenseProgression.Canonical(b.Kind) == DefenseProgression.Canonical(kind)));
             closeButton.onClick.AddListener(() => Close());
             automaticButton.onClick.AddListener(RestoreAutomatic);

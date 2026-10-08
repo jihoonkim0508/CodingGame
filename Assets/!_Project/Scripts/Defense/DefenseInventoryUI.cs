@@ -55,13 +55,8 @@ namespace CodingGame.Defense
         public void GrantAll()
         {
             if (!battle.DeveloperMode) return;
-            var sim = battle.Simulation;
-            var roles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().ToArray();
-            if (roles.Any(r => sim.RobotAvailable(r) > int.MaxValue - 10) ||
-                kinds.Any(k => sim.Inventory.TryGetValue(k, out int count) && count > int.MaxValue - 50))
-            { feedback.text = "저장 가능한 정수 범위를 넘었습니다."; return; }
-            foreach (var role in roles) sim.GrantRobot(role, 10);
-            foreach (var kind in kinds) sim.GrantBlock(kind, 50);
+            try { battle.Simulation.GrantAll(); }
+            catch (OverflowException) { feedback.text = "저장 가능한 정수 범위를 넘었습니다."; return; }
             feedback.text = "전체 추가 완료 · 각 로봇 +10 · 모든 블록 +50";
             Debug.Log("[Defense] Developer grant: each robot +10, each block +50", this);
         }

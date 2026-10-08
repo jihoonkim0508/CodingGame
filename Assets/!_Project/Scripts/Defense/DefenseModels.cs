@@ -10,7 +10,7 @@ namespace CodingGame.Defense
     public enum EnemyType { Normal, Fast, Tank }
     public enum ActionCompatibility { Native, Reduced, Ineffective, Undecided }
     public enum BattlePhase { Ready, Running, Paused, Victory, Defeat, Reward }
-    public enum ActionResult { Executed, CoolingDown, NoTarget, Ineffective, Undecided, Unavailable }
+    public enum ActionResult { Executed, CoolingDown, NoTarget, Ineffective, Undecided, AttackLimitReached, Unavailable }
 
     [Serializable]
     public sealed class RobotSpec
@@ -64,6 +64,7 @@ namespace CodingGame.Defense
         public static bool Positive(float v) => Nonnegative(v) && v > 0;
         public static bool Finite(float v) => !float.IsNaN(v) && !float.IsInfinity(v);
         public static RobotAction NativeAction(RobotRole role) => (RobotAction)(int)role;
+        public static float RangedDamageFactor(float range, float distance) => range / Math.Max(1f, distance);
         public static ActionCompatibility Compatibility(RobotRole role, RobotAction action, IReadOnlyList<ActionPermission> permissions = null)
         {
             if (NativeAction(role) == action) return ActionCompatibility.Native;
@@ -141,7 +142,14 @@ namespace CodingGame.Defense
 
     public sealed class BattleSetup
     {
+        public DefenseBalanceRules RulesConfig = new DefenseBalanceRules();
+        public DefenseTestOptions TestOptions = new DefenseTestOptions();
+        public SpawnGroup[][][] CampaignWaves;
+        public float[] CampaignSeconds;
+        public int InitialWave;
+        public bool PreviousStageRewards = true;
         public int FunctionRepeatLimit = 5;
+        public int AttackLimitPerRobot = int.MaxValue;
         public Vector2 Min, Max;
         public Route[] Routes;
         public SpawnGroup[][] Waves;
@@ -149,14 +157,16 @@ namespace CodingGame.Defense
         public int Stage;
         public int BaseHealth = 12, RobotLimit = 18;
         public bool PlayerFlow;
+        public bool StageOneLearning;
         public float WaveSeconds;
-        public int DropSeed;
         public DefenseProgression Progression = new DefenseProgression();
         public ActionPermission[] Permissions = Array.Empty<ActionPermission>();
         public RobotSpec[] ActionProfiles = Array.Empty<RobotSpec>();
         public PlacementObstacle[] Obstacles = Array.Empty<PlacementObstacle>();
         public void Validate()
         {
+            RulesConfig.Validate();
+            if (TestOptions == null || InitialWave < 0) throw new ArgumentException("테스트 설정·초기 웨이브 오류");
             if (Stage < 0) throw new ArgumentException("스테이지는 0 이상이어야 합니다.");
             if (!Rules.Nonnegative(WaveSeconds)) throw new ArgumentException("웨이브 시간은 0 이상이어야 합니다.");
             if (PlayerFlow) { if (Progression == null) throw new ArgumentException("보상 설정 누락"); Progression.Validate(); }
@@ -181,6 +191,15 @@ namespace CodingGame.Defense
                         !Rules.Nonnegative(g.Delay) || !Rules.Positive(g.Interval)) throw new ArgumentException("스폰 항목이 올바르지 않습니다.");
                     g.Enemy.Validate();
                 }
+            }
+            if (InitialWave >= Waves.Length) throw new ArgumentException("초기 웨이브 범위 오류");
+            if (CampaignWaves != null)
+            {
+                if (CampaignSeconds == null || CampaignSeconds.Length != CampaignWaves.Length || Stage < 1 || Stage > CampaignWaves.Length)
+                    throw new ArgumentException("캠페인 단계·시간 설정 오류");
+                foreach (var stageWaves in CampaignWaves)
+                    if (stageWaves == null || stageWaves.Length == 0 || stageWaves.Any(w => w == null || w.Length == 0 || w.Any(g => g == null || g.RouteIndex < 0 || g.RouteIndex >= Routes.Length)))
+                        throw new ArgumentException("캠페인 경로·웨이브 설정 오류");
             }
             var seen = new HashSet<string>();
             foreach (var p in Permissions)
@@ -218,8 +237,10 @@ namespace CodingGame.Defense
         public const int MaxLevel = 2;
         public const float UpgradeMultiplier = 1.2f;
         public int Level { get; internal set; } = 1;
-        public bool IsMaxLevel => Level >= MaxLevel;
-        public float LevelMultiplier => Level == 1 ? 1 : UpgradeMultiplier;
+        public int LevelCap = MaxLevel;
+        public float UpgradeFactor = UpgradeMultiplier;
+        public bool IsMaxLevel => Level >= LevelCap;
+        public float LevelMultiplier => (float)Math.Pow(UpgradeFactor, Level - 1);
         public float MaxHealth => Spec.health * LevelMultiplier;
         internal int UpgradeCostPaid;
         public int Id, DefinitionIndex;
@@ -227,17 +248,18 @@ namespace CodingGame.Defense
         public RobotSpec Spec;
         public RobotAction Action;
         public float RangeSetting;
+        public float? DamageSetting;
         public float? Health;
         public double NextAction;
         public bool AutoExecute;
         public bool BlockingEnabled;
         public ActionResult LastResult;
-        public int Executions;
+        public int Executions, AttacksThisWave;
         public readonly List<BuffState> Buffs = new List<BuffState>();
         public DefenseProgram Program;
         public float Range => RangeSetting * Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Range));
         public float DamageMultiplier => Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Damage)) * LevelMultiplier;
-        public float Damage => Spec.damage * DamageMultiplier;
+        public float Damage => (DamageSetting ?? Spec.damage) * DamageMultiplier;
         public float Interval => Spec.interval * Buffs.Aggregate(1f, (v, b) => Math.Min(v, b.Interval));
     }
     public sealed class EnemyState
@@ -262,10 +284,11 @@ namespace CodingGame.Defense
     public sealed class CombatEvent
     {
         public string Kind;
+        public string Reason;
         public bool Melee;
         public Vector2 Origin;
         public int Source, Target;
         public Vector2 Position;
-        public float Amount, Radius;
+        public float Amount, AppliedAmount, Radius;
     }
 }

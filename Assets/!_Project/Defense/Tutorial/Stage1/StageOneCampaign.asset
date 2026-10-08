@@ -1,0 +1,643 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83ef920e278b572449e1b3b09f05d86b, type: 3}
+  m_Name: StageOneCampaign
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.DefenseCampaignDefinition
+  robots:
+  - {fileID: 11400000, guid: b76e43feb9140fb4c990f1a9cccda0c1, type: 2}
+  - {fileID: 11400000, guid: 555b893354686a048b947ce173a1fe96, type: 2}
+  - {fileID: 11400000, guid: 37b268531f66c7a49bd06e8896797a6f, type: 2}
+  - {fileID: 11400000, guid: 19709a862c354394c8b90f01ab956b39, type: 2}
+  - {fileID: 11400000, guid: 184c96b05a09845438c3febe6291b714, type: 2}
+  - {fileID: 11400000, guid: ac61e62d468bbeb418f909499837bff1, type: 2}
+  enemies:
+  - {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+  - {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
+  - {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
+  - {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
+  - {fileID: 11400000, guid: e108678b0a68fbc48aa7834bd228842c, type: 2}
+  - {fileID: 11400000, guid: cf273f278dd8c1d46a9cf5129cd7955d, type: 2}
+  baseHealth: 12
+  robotLimit: 6
+  rules:
+    attackCountFactor: 5.25
+    maxLevel: 2
+    upgradeMultiplier: 1.2
+    roleLimits: 010000001200000012000000120000001200000012000000
+    healthLinear: 0.045
+    healthQuadratic: 0.0015
+    speedLinear: 0.025
+    speedQuadratic: 0.0005
+    speedCap: 1.7
+    fastHealth: 0.75
+    tankHealth: 1.5
+    fastSpeed: 1.3
+    tankSpeed: 0.75
+    waveMultipliers:
+    - 0.9
+    - 1
+    - 1.05
+    - 1.15
+    - 1
+  progression:
+    initialCoins: 100
+    coinsPerKill: 5
+    upgradeCost: 50
+    lessons:
+    - stage: 1
+      wave: 1
+      topic: "\uBCC0\uC218: damage \uAC12 \uBCC0\uACBD"
+      robots:
+      - role: 4
+        count: 2
+      blocks:
+      - kind: 22
+        count: 2
+      - kind: 14
+        count: 4
+      - kind: 10
+        count: 4
+      rewards:
+      - kind: 22
+        count: 1
+    - stage: 1
+      wave: 2
+      topic: "\uC5EC\uB7EC \uBCC0\uC218: damage\uC640 range"
+      robots: []
+      blocks:
+      - kind: 14
+        count: 2
+      - kind: 10
+        count: 2
+      rewards:
+      - kind: 22
+        count: 1
+    - stage: 1
+      wave: 3
+      topic: "\uC870\uAC74: enemyDistance <= 10"
+      robots: []
+      blocks:
+      - kind: 3
+        count: 2
+      - kind: 11
+        count: 2
+      - kind: 15
+        count: 4
+      - kind: 10
+        count: 4
+      rewards:
+      - kind: 11
+        count: 1
+    - stage: 1
+      wave: 4
+      topic: "\uC870\uAC74\uAC12 \uBCC0\uACBD\uACFC \uBC30\uCE58 \uC804\uB7B5"
+      robots: []
+      blocks: []
+      rewards:
+      - kind: 10
+        count: 1
+    - stage: 1
+      wave: 5
+      topic: "attackDistance\uC640 \uC870\uAC74: \uBCF4\uC2A4 \uC885\uD569 \uC2E4\uC2B5"
+      robots: []
+      blocks:
+      - kind: 14
+        count: 2
+      - kind: 15
+        count: 2
+      - kind: 10
+        count: 2
+      rewards:
+      - kind: 22
+        count: 1
+    - stage: 2
+      wave: 1
+      topic: "\uBC18\uBCF5 \uD574\uAE08: for\uC640 \uBC18\uBCF5 \uD69F\uC218"
+      robots:
+      - role: 5
+        count: 1
+      blocks:
+      - kind: 16
+        count: 2
+      - kind: 3
+        count: 2
+      - kind: 11
+        count: 2
+      - kind: 14
+        count: 1
+      - kind: 15
+        count: 1
+      - kind: 6
+        count: 1
+      - kind: 8
+        count: 1
+      - kind: 9
+        count: 1
+      - kind: 10
+        count: 4
+      - kind: 23
+        count: 1
+      rewards:
+      - kind: 16
+        count: 1
+    - stage: 2
+      wave: 2
+      topic: "\uAC70\uB9AC \uAE30\uC900\uAC12 \uC870\uC815"
+      robots: []
+      blocks: []
+      rewards:
+      - kind: 11
+        count: 1
+    - stage: 2
+      wave: 3
+      topic: "\uAC70\uB9AC \uC870\uAC74\uACFC \uAC10\uC18D"
+      robots: []
+      blocks: []
+      rewards:
+      - kind: 23
+        count: 1
+    - stage: 2
+      wave: 4
+      topic: "if / elif / else \uBD84\uAE30"
+      robots:
+      - role: 0
+        count: 1
+      blocks:
+      - kind: 4
+        count: 1
+      - kind: 5
+        count: 1
+      - kind: 24
+        count: 1
+      - kind: 12
+        count: 1
+      - kind: 13
+        count: 1
+      rewards:
+      - kind: 11
+        count: 1
+    - stage: 2
+      wave: 5
+      topic: "\uAC70\uB9AC \uC870\uAC74\uACFC \uBD84\uAE30 \uC885\uD569"
+      robots: []
+      blocks: []
+      rewards:
+      - kind: 3
+        count: 1
+    - stage: 3
+      wave: 1
+      topic: "for\uB85C \uC815\uD574\uC9C4 \uD69F\uC218 \uBC18\uBCF5"
+      robots:
+      - role: 3
+        count: 1
+      blocks:
+      - kind: 16
+        count: 2
+      - kind: 10
+        count: 3
+      - kind: 21
+        count: 1
+      rewards:
+      - kind: 16
+        count: 1
+    - stage: 3
+      wave: 2
+      topic: "\uBC18\uBCF5 \uD69F\uC218 \uBCC0\uACBD"
+      robots: []
+      blocks: []
+      rewards:
+      - kind: 10
+        count: 1
+    - stage: 3
+      wave: 3
+      topic: "\uBC18\uBCF5\uACFC \uACF5\uACA9 \uD6A8\uC728"
+      robots: []
+      blocks: []
+      rewards:
+      - kind: 16
+        count: 1
+    - stage: 3
+      wave: 4
+      topic: "while\uACFC for\uC758 \uCC28\uC774"
+      robots: []
+      blocks:
+      - kind: 2
+        count: 1
+      - kind: 17
+        count: 1
+      - kind: 18
+        count: 1
+      rewards:
+      - kind: 1
+        count: 1
+    - stage: 3
+      wave: 5
+      topic: "\uBC18\uBCF5\uBB38 \uC120\uD0DD\uACFC \uC751\uC6A9"
+      robots: []
+      blocks: []
+      rewards:
+      - kind: 16
+        count: 1
+    - stage: 4
+      wave: 1
+      topic: "\uC870\uAC74\uBB38 \uC548\uC758 \uBC18\uBCF5\uBB38"
+      robots:
+      - role: 2
+        count: 1
+      blocks:
+      - kind: 20
+        count: 1
+      - kind: 3
+        count: 1
+      - kind: 16
+        count: 1
+      rewards:
+      - kind: 10
+        count: 1
+    - stage: 4
+      wave: 2
+      topic: "\uC870\uAC74\uC5D0 \uB530\uB978 \uBC18\uBCF5\uACFC \uD589\uB3D9"
+      robots: []
+      blocks: []
+      rewards:
+      - kind: 15
+        count: 1
+    - stage: 4
+      wave: 3
+      topic: "\uBD84\uAE30\uC640 \uBC18\uBCF5 \uC870\uD569"
+      robots: []
+      blocks:
+      - kind: 14
+        count: 1
+      - kind: 15
+        count: 1
+      - kind: 6
+        count: 1
+      - kind: 8
+        count: 1
+      - kind: 9
+        count: 1
+      rewards:
+      - kind: 4
+        count: 1
+    - stage: 4
+      wave: 4
+      topic: "\uC5ED\uD560\uBCC4 \uD568\uC218 \uC870\uD569"
+      robots: []
+      blocks: []
+      rewards:
+      - kind: 24
+        count: 1
+    - stage: 4
+      wave: 5
+      topic: "\uC870\uAC74\xB7\uBC18\uBCF5 \uC885\uD569 \uBC29\uC5B4"
+      robots: []
+      blocks: []
+      rewards:
+      - kind: 16
+        count: 1
+    - stage: 5
+      wave: 1
+      topic: "\uC885\uD569 \uC751\uC6A9: \uC5ED\uD560 \uBD84\uB2F4"
+      robots:
+      - role: 2
+        count: 1
+      blocks: []
+      rewards:
+      - kind: 20
+        count: 1
+    - stage: 5
+      wave: 2
+      topic: "\uC885\uD569 \uC751\uC6A9: \uAC70\uB9AC\uC640 \uAC10\uC18D"
+      robots: []
+      blocks: []
+      rewards:
+      - kind: 15
+        count: 1
+    - stage: 5
+      wave: 3
+      topic: "\uC885\uD569 \uC751\uC6A9: \uAC70\uB9AC\uBCC4 \uBD84\uAE30"
+      robots: []
+      blocks: []
+      rewards:
+      - kind: 10
+        count: 1
+    - stage: 5
+      wave: 4
+      topic: "\uC885\uD569 \uC751\uC6A9: \uBC18\uBCF5 \uC81C\uC5B4"
+      robots: []
+      blocks: []
+      rewards:
+      - kind: 16
+        count: 1
+    - stage: 5
+      wave: 5
+      topic: "\uCD5C\uC885 \uC885\uD569 \uBC29\uC5B4"
+      robots: []
+      blocks: []
+      rewards:
+      - kind: 22
+        count: 1
+    robots: []
+    initial: []
+    drops:
+    - kind: 21
+      firstWave: 1
+      weight: 3
+    - kind: 23
+      firstWave: 1
+      weight: 2
+    - kind: 22
+      firstWave: 1
+      weight: 2
+    - kind: 19
+      firstWave: 1
+      weight: 1
+    - kind: 3
+      firstWave: 1
+      weight: 1
+    - kind: 5
+      firstWave: 1
+      weight: 1
+    - kind: 24
+      firstWave: 1
+      weight: 2
+    - kind: 20
+      firstWave: 1
+      weight: 1
+    - kind: 16
+      firstWave: 2
+      weight: 1
+    - kind: 2
+      firstWave: 3
+      weight: 1
+    - kind: 4
+      firstWave: 3
+      weight: 1
+    - kind: 17
+      firstWave: 3
+      weight: 1
+    - kind: 18
+      firstWave: 3
+      weight: 1
+  permissions: []
+  stages:
+  - waves:
+    - groups:
+      - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
+        route: 0
+        count: 3
+        delay: 0
+        interval: 2
+    - groups:
+      - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
+        route: 0
+        count: 4
+        delay: 0
+        interval: 2
+    - groups:
+      - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
+        route: 0
+        count: 4
+        delay: 0
+        interval: 2
+    - groups:
+      - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
+        route: 0
+        count: 2
+        delay: 0
+        interval: 2
+      - enemy: {fileID: 11400000, guid: e108678b0a68fbc48aa7834bd228842c, type: 2}
+        route: 0
+        count: 4
+        delay: 3
+        interval: 2
+    - groups:
+      - enemy: {fileID: 11400000, guid: cf273f278dd8c1d46a9cf5129cd7955d, type: 2}
+        route: 0
+        count: 1
+        delay: 0
+        interval: 2
+      - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
+        route: 1
+        count: 3
+        delay: 4
+        interval: 2
+    waveSeconds: 120
+  - waves:
+    - groups:
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 5
+        delay: 0
+        interval: 2
+    - groups:
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 8
+        delay: 0
+        interval: 1.7
+    - groups:
+      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
+        route: 0
+        count: 5
+        delay: 0
+        interval: 1.4
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 4
+        delay: 5
+        interval: 1.6
+    - groups:
+      - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
+        route: 0
+        count: 4
+        delay: 0
+        interval: 2.4
+      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
+        route: 0
+        count: 6
+        delay: 3
+        interval: 1.4
+    - groups:
+      - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
+        route: 0
+        count: 6
+        delay: 0
+        interval: 2.4
+      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
+        route: 0
+        count: 8
+        delay: 4
+        interval: 1.1
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 6
+        delay: 10
+        interval: 1.4
+    waveSeconds: 35
+  - waves:
+    - groups:
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 5
+        delay: 0
+        interval: 2
+    - groups:
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 8
+        delay: 0
+        interval: 1.7
+    - groups:
+      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
+        route: 0
+        count: 5
+        delay: 0
+        interval: 1.4
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 4
+        delay: 5
+        interval: 1.6
+    - groups:
+      - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
+        route: 0
+        count: 4
+        delay: 0
+        interval: 2.4
+      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
+        route: 0
+        count: 6
+        delay: 3
+        interval: 1.4
+    - groups:
+      - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
+        route: 0
+        count: 6
+        delay: 0
+        interval: 2.4
+      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
+        route: 0
+        count: 8
+        delay: 4
+        interval: 1.1
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 6
+        delay: 10
+        interval: 1.4
+    waveSeconds: 35
+  - waves:
+    - groups:
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 5
+        delay: 0
+        interval: 2
+    - groups:
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 8
+        delay: 0
+        interval: 1.7
+    - groups:
+      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
+        route: 0
+        count: 5
+        delay: 0
+        interval: 1.4
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 4
+        delay: 5
+        interval: 1.6
+    - groups:
+      - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
+        route: 0
+        count: 4
+        delay: 0
+        interval: 2.4
+      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
+        route: 0
+        count: 6
+        delay: 3
+        interval: 1.4
+    - groups:
+      - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
+        route: 0
+        count: 6
+        delay: 0
+        interval: 2.4
+      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
+        route: 0
+        count: 8
+        delay: 4
+        interval: 1.1
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 6
+        delay: 10
+        interval: 1.4
+    waveSeconds: 35
+  - waves:
+    - groups:
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 5
+        delay: 0
+        interval: 2
+    - groups:
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 8
+        delay: 0
+        interval: 1.7
+    - groups:
+      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
+        route: 0
+        count: 5
+        delay: 0
+        interval: 1.4
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 4
+        delay: 5
+        interval: 1.6
+    - groups:
+      - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
+        route: 0
+        count: 4
+        delay: 0
+        interval: 2.4
+      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
+        route: 0
+        count: 6
+        delay: 3
+        interval: 1.4
+    - groups:
+      - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
+        route: 0
+        count: 6
+        delay: 0
+        interval: 2.4
+      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
+        route: 0
+        count: 8
+        delay: 4
+        interval: 1.1
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 6
+        delay: 10
+        interval: 1.4
+    waveSeconds: 35

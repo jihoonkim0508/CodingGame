@@ -117,7 +117,7 @@ static class ProgramCheck
         sim=Make();robot=Bot(sim); var other=Bot(sim,RobotRole.Shooter,-7);other.AutoExecute=false;
         var attack=new CodeBlock(BlockKind.Shot);
         sim.ApplyProgram(robot.Id,"cross",new[]{attack});attack.Kind=BlockKind.Buff;
-        Assert(!robot.AutoExecute&&robot.Program.Source.Contains("Attack()"),"apply freezes source and disables automatic actions");
+        Assert(!robot.AutoExecute&&robot.Program.Source.Contains("attack(enemy)"),"apply freezes source and disables automatic actions");
         sim.Start();Tick(sim,6);
         Assert(robot.Executions==1&&sim.Enemies.Single().Health==9998,"code uses same ten percent combat path without duplicate native attack");
         Assert(other.Program==null&&other.Executions==0,"apply only changes selected robot");

@@ -148,6 +148,7 @@ GameObject:
   - component: {fileID: 6688297011231907012}
   - component: {fileID: 4903970908226984139}
   - component: {fileID: 6155319823943786065}
+  - component: {fileID: 8954992918693849186}
   m_Layer: 0
   m_Name: Slot0
   m_TagString: Untagged
@@ -215,7 +216,16 @@ MonoBehaviour:
   background: {fileID: 4903970908226984139}
   minimumWidth: 96
   minimumHeight: 34
+  freePlacement: 0
   blocks: []
+--- !u!222 &8954992918693849186
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1808741965042657349}
+  m_CullTransparentMesh: 1
 --- !u!1 &3586028030092127764
 GameObject:
   m_ObjectHideFlags: 0
@@ -365,6 +375,7 @@ GameObject:
   - component: {fileID: 1945194651087335173}
   - component: {fileID: 1979948993938676429}
   - component: {fileID: 5101198200882963367}
+  - component: {fileID: 6705788362081514536}
   m_Layer: 0
   m_Name: If
   m_TagString: Untagged
@@ -450,7 +461,17 @@ MonoBehaviour:
   arguments:
   - {fileID: 6155319823943786065}
   body: {fileID: 5210221755445362552}
+  stockLabel: {fileID: 0}
+  stockColumn: {fileID: 0}
   variableName: enemy
+--- !u!222 &6705788362081514536
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3647035210711093625}
+  m_CullTransparentMesh: 1
 --- !u!1 &3896708668643134378
 GameObject:
   m_ObjectHideFlags: 0
@@ -851,7 +872,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 0.03, g: 0.06, b: 0.1, a: 0.25}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -885,4 +906,5 @@ MonoBehaviour:
   background: {fileID: 4238330914921687304}
   minimumWidth: 190
   minimumHeight: 52
+  freePlacement: 0
   blocks: []

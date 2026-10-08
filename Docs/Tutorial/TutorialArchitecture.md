@@ -88,6 +88,7 @@ flowchart TD
 |---|---|---|
 | `stepId` | string | 시퀀스 내 고유 ID. 대사 편집·순서 변경에도 유지 |
 | `kind` | enum | `Dialogue` 또는 `ActionGuide` |
+| `dialoguePosition` | enum | 대화창 위치. Inspector의 `Dialogue Position`에서 `위` / `아래` 선택. 기본값은 `아래`. |
 | `texts` | TutorialText[] | 순서가 있는 대사 목록. 각 항목은 고유 `textId`와 TextArea `text`를 가진다. |
 | `targetKeys` | string[] | 강조 및 허용할 대상. 드래그 단계는 출발·도착 대상 지정 |
 | `completionMode` | enum | `Unconfigured`, `TargetClick`, `DragDrop`, `ExternalSignal` |
@@ -98,6 +99,8 @@ flowchart TD
 | `highlightPadding` | float | 강조 영역 여백. 시각적 여백이 실제 배치 가능 영역을 넓히지는 않는다. |
 
 세모 버튼은 대사 목록을 앞뒤로 이동한다. 하나의 행동유도 단계 안에서도 여러 대사를 읽을 수 있으며, 대사를 넘기는 행위가 행동 완료를 대신하지 않는다. `Dialogue`의 마지막 대사 이후에는 다음 대화 단계로 이동할 수 있다. `ActionGuide`의 마지막 대사 이후는 실제 행동 완료 전까지 잠그며, 같은 단계 안의 이전·다음 대사 이동은 허용한다. `Unconfigured`는 작성 중인 상태이며 자동으로 성공 처리하지 않는다.
+
+대화창 위치는 시퀀스 에셋의 `Steps > 각 단계 > Dialogue Position`에서 지정한다. 하단 로봇 선택 버튼을 눌러야 하는 단계는 `위`, 상단 개발툴 닫기 버튼을 눌러야 하는 단계는 `아래`로 둔다. 이전 단계로 돌아가면 그 단계의 위치로 복원되며 타이핑을 재생하지 않는다. 위치는 기존 하단 패널의 여백과 높이를 상단에 대칭 적용하므로 해상도에 비례해 유지된다.
 
 행동유도 설정 예시는 구조 설명용이며 실제 튜토리얼 콘텐츠로 자동 등록하지 않는다.
 

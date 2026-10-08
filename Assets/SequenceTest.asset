@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: SequenceTest
   m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.TutorialSequence
   sequenceId: sequence-test-1-1-preparation
-  enabled: 1
+  enabled: 0
   stage: 1
   wave: 1
   entryPhase: 0
@@ -23,6 +23,7 @@ MonoBehaviour:
   steps:
   - stepId: greeting
     kind: 0
+    dialoguePosition: 0
     texts:
     - textId: hello
       text: "\uC548\uB155! \uB09C \uB3C4\uCE58\uC57C. \uB85C\uBD07\uC744 \uBC30\uCE58\uD558\uACE0
@@ -38,6 +39,7 @@ MonoBehaviour:
     highlightPadding: 10
   - stepId: place-robot
     kind: 1
+    dialoguePosition: 1
     texts:
     - textId: place
       text: "\uC544\uB798 \uC288\uD130\uB97C \uC120\uD0DD\uD55C \uB4A4, \uBC30\uCE58
@@ -54,6 +56,7 @@ MonoBehaviour:
     highlightPadding: 10
   - stepId: select-robot
     kind: 1
+    dialoguePosition: 1
     texts:
     - textId: select
       text: "\uBC29\uAE08 \uBC30\uCE58\uD55C \uC288\uD130\uB97C \uB20C\uB7EC \uAC1C\uBC1C
@@ -69,6 +72,7 @@ MonoBehaviour:
     highlightPadding: 10
   - stepId: open-editor
     kind: 1
+    dialoguePosition: 0
     texts:
     - textId: open
       text: "\uAC1C\uBC1C \uBC84\uD2BC\uC744 \uB20C\uB7EC \uAC1C\uBC1C \uD234\uC744
@@ -84,6 +88,7 @@ MonoBehaviour:
     highlightPadding: 10
   - stepId: close-editor
     kind: 1
+    dialoguePosition: 0
     texts:
     - textId: close
       text: "\uB2EB\uAE30 \uBC84\uD2BC\uC744 \uB20C\uB7EC \uAC1C\uBC1C \uD234\uC744
@@ -99,6 +104,7 @@ MonoBehaviour:
     highlightPadding: 10
   - stepId: start-battle
     kind: 1
+    dialoguePosition: 1
     texts:
     - textId: start
       text: "\uC804\uD22C \uC2DC\uC791\uC744 \uB20C\uB7EC \uCCAB \uC6E8\uC774\uBE0C\uB97C
@@ -114,6 +120,7 @@ MonoBehaviour:
     highlightPadding: 10
   - stepId: battle-started
     kind: 0
+    dialoguePosition: 1
     texts:
     - textId: watch-wave
       text: "\uC88B\uC544! \uCCAB \uC6E8\uC774\uBE0C\uAC00 \uC2DC\uC791\uB410\uC5B4.

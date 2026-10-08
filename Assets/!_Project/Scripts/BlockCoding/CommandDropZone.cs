@@ -304,10 +304,11 @@ namespace CodingGame.BlockCoding
         }
         int PointerIndex(PointerEventData e)
         {
+            Vector2 draggedCenter = Panel.DraggedBlockCenter(e.pressEventCamera, out var center) ? center : e.position;
             for (int i = 0; i < blocks.Count; i++)
             {
-                var center = RectTransformUtility.WorldToScreenPoint(e.pressEventCamera, blocks[i].Rect.TransformPoint(blocks[i].Rect.rect.center));
-                if (e.position.y > center.y) return i;
+                var blockCenter = RectTransformUtility.WorldToScreenPoint(e.pressEventCamera, blocks[i].Rect.TransformPoint(blocks[i].Rect.rect.center));
+                if (draggedCenter.y > blockCenter.y) return i;
             }
             return blocks.Count;
         }
@@ -372,20 +373,24 @@ namespace CodingGame.BlockCoding
             }
         }
         public void SetLayoutVertical() => SetLayoutHorizontal();
-        public void OnDrop(PointerEventData e)
+        public bool TryDrop(PointerEventData e)
         {
-            if (!Panel || !Panel.Dragged) return;
+            if (!Panel || !Panel.Dragged) return false;
             var dragged = Panel.Dragged;
             var source = dragged.Owner ? dragged.Owner.Rect : dragged.Rect;
+            bool placed;
             if (freePlacement)
             {
-                if (PlaceFree(dragged, Panel.DropPosition(e))) { Panel.ReportSuccessfulDrop(dragged, source, rect); Panel.AcceptDrop(); }
-                e.Use();
-                return;
+                placed = PlaceFree(dragged, Panel.DropPosition(e));
             }
-            int index = PointerIndex(e);
-            if (Insert(dragged, index)) { Panel.ReportSuccessfulDrop(dragged, source, rect); Panel.AcceptDrop(); }
+            else placed = Insert(dragged, PointerIndex(e));
+            if (placed) { Panel.ReportSuccessfulDrop(dragged, source, rect); Panel.AcceptDrop(); }
             else Panel.ShowMessage("이 위치에는 연결할 수 없습니다. 슬롯 모양과 분기 순서를 확인하세요.");
+            return placed;
+        }
+        public void OnDrop(PointerEventData e)
+        {
+            // OnEndDrag commits the panel's block-based target. The pointer may be over another slot.
             e.Use();
         }
         public void OnPointerDown(PointerEventData e) { if (ParentBlock) ParentBlock.BringToFront(); }

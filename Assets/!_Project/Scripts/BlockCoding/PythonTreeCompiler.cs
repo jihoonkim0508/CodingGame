@@ -87,10 +87,19 @@ namespace CodingGame.BlockCoding
         {
             if (blocks == null) throw new ArgumentNullException(nameof(blocks));
             ValidateTree(blocks, new HashSet<CodeBlock>());
-            var source = new StringBuilder("def ").Append(NormalizeIdentifier(functionName)).Append("(enemy):\n");
-            EmitSuite(blocks, source, 1, 0, new Dictionary<string, ValueType> { ["enemy"] = ValueType.Enemy });
+            var source = new StringBuilder("def ").Append(NormalizeIdentifier(functionName)).Append("():\n");
+            // The default target is local to each invocation, not a caller-supplied parameter.
+            if (blocks.Any(UsesDefaultEnemy)) source.Append("    enemy = get_nearest_enemy()\n");
+            if (blocks.Any(UsesEnemyDistance)) source.Append("    enemyDistance = enemy.get_distance(get_pos_x(), get_pos_y()) if enemy is not None else float('inf')\n");
+            EmitSuite(blocks, source, 1, 0, new Dictionary<string, ValueType> { ["enemy"] = ValueType.Enemy, ["enemyDistance"] = ValueType.Float });
             return source.ToString();
         }
+        static bool UsesDefaultEnemy(CodeBlock block) => block != null &&
+            (HasEnemyArgument(block.Kind) && (block.Arguments.Count == 0 || block.Arguments[0] == null) ||
+             block.Kind == BlockKind.Variable && (block.Value == "enemy" || block.Value == "enemyDistance") ||
+             block.Arguments.Any(UsesDefaultEnemy) || block.Body.Any(UsesDefaultEnemy));
+        static bool UsesEnemyDistance(CodeBlock block) => block != null && (block.Kind == BlockKind.Variable && block.Value == "enemyDistance" ||
+            block.Arguments.Any(UsesEnemyDistance) || block.Body.Any(UsesEnemyDistance));
 
         static void ValidateTree(IReadOnlyList<CodeBlock> blocks, HashSet<CodeBlock> path)
         {

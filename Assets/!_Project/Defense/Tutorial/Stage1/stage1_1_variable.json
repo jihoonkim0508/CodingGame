@@ -1,0 +1,291 @@
+{
+  "format_version": "1.0",
+  "package_id": "stage1_1",
+  "package_type": "tutorial_stage_content",
+  "locale": "ko-KR",
+  "title": "1-1 변수 — 변수란 무엇일까?",
+  "implementation_contract": {
+    "stage_order": [
+      "1-1",
+      "1-2",
+      "1-3",
+      "1-4",
+      "1-5"
+    ],
+    "section_order": "각 stage의 sections 배열 순서대로 표시한다.",
+    "direction": "화면 연출과 UI/애니메이션 제작 지시다. 플레이어에게 안내자 대사처럼 표시하지 않는다.",
+    "dialogues": "각 section의 dialogues를 배열 순서대로 표시한다. speaker는 화자, text는 실제 대사다.",
+    "code_examples": "해당 section의 학습 코드 예시다. label은 개발자 참고용 제목이고 code는 화면에 표시할 코드다.",
+    "interaction": {
+      "null_behavior": "null이면 별도 입력을 요구하지 않는다. 대사/연출 완료와 게임 흐름에 따라 다음 section으로 진행한다.",
+      "fields": {
+        "prompt": "플레이어가 수행할 목표",
+        "player_action": "플레이어가 화면에서 할 행동",
+        "expected_input": "정답 또는 예시 입력. “예:”로 시작하면 예시 답안으로 취급한다.",
+        "success_feedback": "성공 시 표시할 피드백",
+        "retry_hint": "입력 실패 또는 전투 중 막혔을 때 표시할 힌트"
+      },
+      "validation": "코드 입력은 게임의 실제 명령어/문법 검사기에 연결한다. 예시로 표시된 입력은 의미가 같은 유효한 답도 허용한다."
+    },
+    "progression": "stage와 section은 배열 순서를 따른다. 각 스테이지의 클리어/전투 조건은 게임의 실제 웨이브 상태와 연결하고, 1-5 클리어 후 Stage 2를 해금한다.",
+    "code_binding": "Attack()은 튜토리얼에서 공격 행동을 설명하는 표기다. 프로젝트의 실제 공격 API에 연결하되 변수/조건 학습 의도와 코드 예시는 유지한다.",
+    "preserve_terms": [
+      "damage",
+      "range",
+      "enemyDistance",
+      "attackDistance",
+      "if",
+      "<=",
+      "Attack()"
+    ]
+  },
+  "stage_id": "1-1",
+  "learning_goals": [
+    "게임의 기본 목표와 전투 흐름을 이해한다.",
+    "로봇을 선택하고 이동 경로 주변에 배치한다.",
+    "변수는 값을 저장하는 공간이며 변수 이름과 저장된 값을 구분한다.",
+    "변수 값을 바꾸면 게임 속 공격 결과도 달라짐을 확인한다."
+  ],
+  "sections": [
+    {
+      "section_title": "게임 시작과 목표",
+      "direction": "[검은 화면에서 시스템 부팅 효과와 `SYSTEM START`. 개발툴 화면에 오류 표시가 뜨고 오류 코드 몬스터가 맵 입구에서 이동한다. 개발툴 게이지를 강조한다.]",
+      "dialogues": [
+        {
+          "speaker": "안내자",
+          "text": "잠깐! 개발툴에서 이상 신호가 감지됐어."
+        },
+        {
+          "speaker": "안내자",
+          "text": "오류 코드들이 개발툴 안으로 침입하고 있어!"
+        },
+        {
+          "speaker": "안내자",
+          "text": "오류 코드들이 끝까지 도착하면 개발툴에 오류가 쌓이게 돼."
+        },
+        {
+          "speaker": "안내자",
+          "text": "오류가 계속 쌓이면 개발툴이 더 이상 버티지 못해."
+        },
+        {
+          "speaker": "안내자",
+          "text": "그러니까 우리가 해야 할 일은 하나야."
+        },
+        {
+          "speaker": "안내자",
+          "text": "로봇을 이용해서 오류 코드가 끝까지 도착하지 못하게 막는 것!"
+        }
+      ],
+      "code_examples": [],
+      "interaction": {
+        "prompt": "게임의 목표를 확인한다.",
+        "player_action": "오류 코드가 개발툴에 도착하지 않도록 로봇으로 막는다.",
+        "expected_input": null,
+        "success_feedback": "튜토리얼 진행",
+        "retry_hint": ""
+      }
+    },
+    {
+      "section_title": "로봇 배치와 공격 사거리",
+      "direction": "[로봇 선택 UI를 강조한다. 배치 가능 영역과 적 이동 경로를 다른 색으로 보여준다. 배치 후 로봇을 선택해 사거리 원을 표시한다.]",
+      "dialogues": [
+        {
+          "speaker": "안내자",
+          "text": "먼저 로봇이 필요하겠지? 아래에 있는 로봇을 선택해봐."
+        },
+        {
+          "speaker": "안내자",
+          "text": "좋아. 이제 원하는 위치에 로봇을 배치할 수 있어."
+        },
+        {
+          "speaker": "안내자",
+          "text": "하지만 오류 코드가 이동하는 길 위에는 로봇을 설치할 수 없어."
+        },
+        {
+          "speaker": "안내자",
+          "text": "길 주변에서 적을 공격하기 좋은 위치를 찾아봐."
+        },
+        {
+          "speaker": "안내자",
+          "text": "지금 보이는 원이 이 로봇이 공격할 수 있는 범위야."
+        },
+        {
+          "speaker": "안내자",
+          "text": "오류 코드가 이 범위 안에 들어오면 로봇이 공격할 수 있어."
+        },
+        {
+          "speaker": "안내자",
+          "text": "적이 너무 멀리 있으면 공격할 수 없고, 범위 안으로 들어오면 공격할 수 있어."
+        }
+      ],
+      "code_examples": [],
+      "interaction": {
+        "prompt": "로봇을 선택해 배치한다.",
+        "player_action": "이동 경로를 막지 않으면서 적을 공격할 수 있는 위치에 로봇을 놓는다.",
+        "expected_input": null,
+        "success_feedback": "로봇 배치 완료.",
+        "retry_hint": "길 위에는 배치할 수 없어. 사거리 표시를 보며 길 주변을 골라봐."
+      }
+    },
+    {
+      "section_title": "변수와 값 만나기",
+      "direction": "[코드 화면에 `damage = 10` 표시. `damage`, `=`, `10`을 차례로 강조한다. 이름표가 붙은 상자에 10이 들어가는 그림을 보여준다.]",
+      "dialogues": [
+        {
+          "speaker": "안내자",
+          "text": "로봇이 공격하려면 공격력이 얼마나 되는지도 알아야겠지?"
+        },
+        {
+          "speaker": "안내자",
+          "text": "`damage`는 로봇의 공격력을 저장하는 변수야."
+        },
+        {
+          "speaker": "안내자",
+          "text": "변수는 값을 보관하는 이름이 붙은 상자라고 생각하면 돼."
+        },
+        {
+          "speaker": "안내자",
+          "text": "지금은 `damage`라는 상자에 `10`이 들어 있어."
+        },
+        {
+          "speaker": "안내자",
+          "text": "왼쪽의 `damage`는 변수의 이름이야."
+        },
+        {
+          "speaker": "안내자",
+          "text": "오른쪽의 `10`은 변수에 저장되는 값이고."
+        },
+        {
+          "speaker": "안내자",
+          "text": "가운데 `=`는 오른쪽 값을 왼쪽 변수에 저장한다는 뜻이야."
+        },
+        {
+          "speaker": "안내자",
+          "text": "이 코드는 “`damage`라는 변수에 `10`을 저장한다”는 뜻이야."
+        },
+        {
+          "speaker": "안내자",
+          "text": "현재 `damage` 값이 10이기 때문에 로봇이 10의 피해를 줬어."
+        }
+      ],
+      "code_examples": [
+        {
+          "label": "처음 저장된 공격력",
+          "language": "python",
+          "code": "damage = 10"
+        }
+      ],
+      "interaction": {
+        "prompt": "변수의 이름과 값을 확인한다.",
+        "player_action": "`damage`가 변수 이름이고 `10`이 저장된 값임을 확인한다.",
+        "expected_input": "damage = 10",
+        "success_feedback": "코드를 읽고 실제 공격 결과와 연결한다.",
+        "retry_hint": null
+      }
+    },
+    {
+      "section_title": "변수 값 바꿔보기",
+      "direction": "[코드 편집 화면에서 10을 강조한다. 입력 후 상자 값이 10에서 20으로 바뀐다. 새 적이 사거리 안에 들어오고 로봇이 공격한다.]",
+      "dialogues": [
+        {
+          "speaker": "안내자",
+          "text": "변수의 값은 계속 똑같아야 하는 건 아니야."
+        },
+        {
+          "speaker": "안내자",
+          "text": "현재 값은 10. 이번에는 직접 20으로 바꿔보자."
+        },
+        {
+          "speaker": "안내자",
+          "text": "좋아! `damage`의 값이 20으로 바뀌었어."
+        },
+        {
+          "speaker": "안내자",
+          "text": "이번에는 20의 피해를 줬어."
+        },
+        {
+          "speaker": "안내자",
+          "text": "로봇 자체는 그대로인데 변수에 저장된 값이 바뀌었기 때문이야."
+        },
+        {
+          "speaker": "안내자",
+          "text": "변수는 값을 저장하고 필요하면 그 값을 바꿀 수 있어."
+        }
+      ],
+      "code_examples": [
+        {
+          "label": "공격력을 20으로 변경",
+          "language": "python",
+          "code": "damage = 20"
+        }
+      ],
+      "interaction": {
+        "prompt": "`damage` 값을 바꾼다.",
+        "player_action": "저장 값을 10에서 20으로 변경한다.",
+        "expected_input": "damage = 20",
+        "success_feedback": "로봇 공격에 20 DAMAGE가 표시된다.",
+        "retry_hint": "변수 이름은 그대로 두고 오른쪽 값을 20으로 바꿔봐."
+      }
+    },
+    {
+      "section_title": "첫 웨이브와 클리어",
+      "direction": "[코드 UI를 닫고 맵 전체를 보여준다. 플레이어가 로봇을 배치해 웨이브를 진행한다. 적이 도착하면 오류 게이지가 오르는 장면과 마지막 적 처치 후 `WAVE CLEAR`를 보여준다.]",
+      "dialogues": [
+        {
+          "speaker": "안내자",
+          "text": "좋아. 이제 기본적인 준비가 끝났어."
+        },
+        {
+          "speaker": "안내자",
+          "text": "오류 코드가 등장하면 로봇이 자동으로 공격할 거야."
+        },
+        {
+          "speaker": "안내자",
+          "text": "적이 어떤 길로 오는지 확인하면서 로봇을 적절한 위치에 배치해봐."
+        },
+        {
+          "speaker": "안내자",
+          "text": "오류 코드가 온다!"
+        },
+        {
+          "speaker": "안내자",
+          "text": "첫 번째 오류 코드를 처리했어. 아직 끝난 게 아니야. 계속 막아보자."
+        },
+        {
+          "speaker": "안내자",
+          "text": "오류 코드가 개발툴까지 도착했어! 적을 놓치면 개발툴에 오류가 쌓여. 로봇 위치를 다시 확인해봐."
+        },
+        {
+          "speaker": "안내자",
+          "text": "좋아! 첫 번째 방어에 성공했어."
+        },
+        {
+          "speaker": "안내자",
+          "text": "`damage`는 변수 이름이고 `20`은 저장된 값이야."
+        },
+        {
+          "speaker": "안내자",
+          "text": "변수는 값을 저장하고 필요하면 그 값을 바꿀 수 있어."
+        },
+        {
+          "speaker": "안내자",
+          "text": "다음에는 공격력 말고 다른 값도 변수로 사용해보자."
+        }
+      ],
+      "code_examples": [
+        {
+          "label": "이번 웨이브에서 사용한 값",
+          "language": "python",
+          "code": "damage = 20"
+        }
+      ],
+      "interaction": {
+        "prompt": "웨이브를 진행해 오류 코드를 막는다.",
+        "player_action": "적의 경로와 로봇 사거리를 보고 배치와 전투를 진행한다.",
+        "expected_input": null,
+        "success_feedback": "모든 적을 막으면 1-1을 클리어한다.",
+        "retry_hint": "개발툴 게이지가 오르면 로봇 위치와 공격 사거리를 확인해봐."
+      }
+    }
+  ]
+}

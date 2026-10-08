@@ -31,6 +31,16 @@ namespace CodingGame.Defense
             new BlockDrop { kind = BlockKind.Elif, firstWave = 3 }, new BlockDrop { kind = BlockKind.Break, firstWave = 3 },
             new BlockDrop { kind = BlockKind.Continue, firstWave = 3 }
         };
+        public DefenseProgression Copy() => new DefenseProgression {
+            initialCoins = initialCoins, coinsPerKill = coinsPerKill, upgradeCost = upgradeCost,
+            robots = robots.Select(r => new RobotStock {role=r.role,count=r.count}).ToArray(),
+            initial = initial.Select(b => new BlockStock {kind=b.kind,count=b.count}).ToArray(),
+            drops = drops.Select(d => new BlockDrop {kind=d.kind,firstWave=d.firstWave,weight=d.weight}).ToArray(),
+            lessons = lessons.Select(l => new WaveLesson {stage=l.stage,wave=l.wave,topic=l.topic,
+                robots=l.robots.Select(r=>new RobotStock {role=r.role,count=r.count}).ToArray(),
+                blocks=l.blocks.Select(b=>new BlockStock {kind=b.kind,count=b.count}).ToArray(),
+                rewards=l.rewards.Select(b=>new BlockStock {kind=b.kind,count=b.count}).ToArray()}).ToArray()
+        };
         public void Validate()
         {
             if (lessons == null || lessons.Any(l => l == null || l.stage < 1 || l.stage > DefenseCurriculum.StageCount || l.wave < 1 || l.wave > 5 ||

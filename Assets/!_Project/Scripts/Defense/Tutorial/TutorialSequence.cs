@@ -5,6 +5,7 @@ namespace CodingGame.Defense
 {
     public enum TutorialEntryPhase { Preparation, Battle, Reward }
     public enum TutorialStepKind { Dialogue, ActionGuide }
+    public enum TutorialDialoguePosition { [InspectorName("아래")] Bottom, [InspectorName("위")] Top }
     public enum TutorialCompletionMode { Unconfigured, TargetClick, DragDrop, ExternalSignal }
 
     [Serializable]
@@ -19,6 +20,8 @@ namespace CodingGame.Defense
     {
         public string stepId;
         public TutorialStepKind kind;
+        [Tooltip("이 단계의 대화창 위치. 클릭할 대상의 반대쪽을 선택하세요.")]
+        public TutorialDialoguePosition dialoguePosition = TutorialDialoguePosition.Bottom;
         public TutorialText[] texts = Array.Empty<TutorialText>();
         public string[] targetKeys = Array.Empty<string>();
         public TutorialCompletionMode completionMode;

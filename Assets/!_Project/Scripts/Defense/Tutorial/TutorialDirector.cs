@@ -11,6 +11,7 @@ namespace CodingGame.Defense
         [SerializeField] TutorialInputBridge bridge;
         [SerializeField] TutorialDialogueView view;
         [SerializeField] TutorialSequence[] sequences = Array.Empty<TutorialSequence>();
+        [SerializeField] StageOneTutorial stageOne;
         readonly HashSet<string> launched = new HashSet<string>();
         readonly HashSet<TutorialSequence> rejected = new HashSet<TutorialSequence>();
         readonly HashSet<string> duplicateEntries = new HashSet<string>();
@@ -20,10 +21,12 @@ namespace CodingGame.Defense
         DefenseSimulation session;
         int viewedStep, viewedText, progressStep;
         bool initialized;
-        public bool IsActive => active && view && view.IsVisible;
-        public bool BlocksGameplayInput => IsActive;
-        public bool PauseBattle => IsActive && bridge && bridge.PauseBattle;
-        public bool AllowPreview => IsActive && bridge && bridge.AllowPreview;
+        public bool StageOneEnabled => stageOne;
+        public bool IsActive => stageOne && stageOne.Active || active && view && view.IsVisible;
+        public bool BlocksGameplayInput => IsActive && InputLimited;
+        bool InputLimited => !battle || battle.Simulation == null || battle.Simulation.Options.tutorialInput;
+        public bool PauseBattle => stageOne && stageOne.Active ? stageOne.Pause : IsActive && bridge && bridge.PauseBattle;
+        public bool AllowPreview => stageOne && stageOne.Active ? stageOne.Preview : IsActive && bridge && bridge.AllowPreview;
 
         void Start()
         {
@@ -33,6 +36,7 @@ namespace CodingGame.Defense
                 if (sequences == null) sequences = Array.Empty<TutorialSequence>();
                 bridge.Initialize(this); bridge.Completed += CompleteAction;
                 view.Initialize(PreviousText, NextText);
+                if (stageOne) stageOne.Initialize();
                 session = battle.Simulation;
                 initialized = true;
             }
@@ -50,6 +54,9 @@ namespace CodingGame.Defense
         void Update()
         {
             if (!initialized) return;
+            bridge.SetInputLimited(InputLimited);
+            if (battle.Simulation != null && !battle.Simulation.Options.tutorial) { Finish(); return; }
+            if (stageOne && stageOne.OwnsSession) return;
             if (session != battle.Simulation)
             {
                 Finish(); session = battle.Simulation; launched.Clear(); rejected.Clear(); duplicateEntries.Clear(); visitedText.Clear(); completedStep.Clear();
@@ -87,11 +94,11 @@ namespace CodingGame.Defense
             return null;
         }
 
-        bool Validate(TutorialSequence sequence)
+        bool Validate(TutorialSequence sequence, bool standalone = false)
         {
             if (string.IsNullOrWhiteSpace(sequence.sequenceId) || sequence.stage < 1 || sequence.wave < 1 || sequence.steps == null || sequence.steps.Length == 0 || sequence.typeSpeed < 1f || sequence.typeSpeed > 20f)
                 return Invalid(sequence, "시퀀스 ID, 대사, 단계 또는 타이핑 속도를 확인하세요.");
-            if (sequences.Count(item => item && item.sequenceId == sequence.sequenceId) != 1)
+            if (!standalone && sequences.Count(item => item && item.sequenceId == sequence.sequenceId) != 1)
                 return Invalid(sequence, "sequenceId가 중복됐습니다.");
             var stepIds = new HashSet<string>();
             foreach (var step in sequence.steps)
@@ -130,7 +137,7 @@ namespace CodingGame.Defense
             string key = TextKey(step,text); bool animate = firstVisit && !visitedText.Contains(key);
             visitedText.Add(key);
             bridge.SetStep(active.steps[progressStep], viewedStep == progressStep);
-            view.Show(active, viewedText, text.text, animate, null);
+            view.Show(active, step.dialoguePosition, text.text, animate, null);
             bool previous = viewedStep > 0 || viewedText > 0;
             bool next = viewedText + 1 < step.texts.Length || viewedStep < progressStep || step.kind != TutorialStepKind.ActionGuide || completedStep.Contains(step.stepId);
             view.SetNavigation(previous,next);
@@ -138,6 +145,7 @@ namespace CodingGame.Defense
 
         void PreviousText()
         {
+            if (stageOne && stageOne.Active) { stageOne.Previous(); return; }
             if (!IsActive) return;
             if (view.IsTyping) view.FinishTyping();
             if (viewedText > 0) viewedText--;
@@ -148,6 +156,7 @@ namespace CodingGame.Defense
 
         void NextText()
         {
+            if (stageOne && stageOne.Active) { stageOne.Next(); return; }
             if (!IsActive) return;
             if (view.IsTyping) { view.FinishTyping(); return; }
             var step = active.steps[viewedStep];
@@ -168,9 +177,10 @@ namespace CodingGame.Defense
             ShowText(true);
         }
 
-        public bool CanPerformAction(string key, GameObject target = null) => !initialized || !IsActive || bridge.CanPerformAction(key,target);
-        public bool AllowsWorldPoint(Vector3 point) => !initialized || !IsActive || bridge.AllowsWorldPoint(point);
-        public bool AllowsRobotChoice(int index) => !initialized || !IsActive || bridge.AllowsRobotChoice(index);
+        public bool CanPerformAction(string key, GameObject target = null) => !initialized || !IsActive || !InputLimited ||
+            (stageOne && stageOne.Active ? stageOne.Allows(key) : bridge.CanPerformAction(key,target));
+        public bool AllowsWorldPoint(Vector3 point) => !initialized || !IsActive || !InputLimited || bridge.AllowsWorldPoint(point);
+        public bool AllowsRobotChoice(int index) => !initialized || !IsActive || !InputLimited || bridge.AllowsRobotChoice(index);
         public void ReportSuccess(string key,string signal,GameObject target=null) { if (initialized) bridge.ReportSuccess(key,signal,target); }
         public void ReportWorldSuccess(Vector3 point,string signal) { if (initialized) bridge.ReportWorldSuccess(point,signal); }
         public void ReportDrop(RectTransform source, RectTransform destination, string signal) { if (initialized) bridge.ReportDrop(source,destination,signal); }
@@ -185,6 +195,28 @@ namespace CodingGame.Defense
             if (view) view.Hide();
         }
 
-        void OnDestroy() { if (bridge) bridge.Completed -= CompleteAction; }
+        #if UNITY_EDITOR
+        TutorialSequence editorSequence;
+        public TutorialStep EditorStep => active && viewedStep < active.steps.Length ? active.steps[viewedStep] : null;
+        public TutorialInputBridge EditorBridge => bridge;
+        public TutorialDialogueView EditorView => view;
+        public void EditorStop() { Finish(); if(editorSequence) Destroy(editorSequence); editorSequence=null; }
+        public void EditorPrevious() => PreviousText();
+        public void EditorNext() => NextText();
+        public void EditorFinishTyping() => view.FinishTyping();
+        public void EditorRun(TutorialSequence sequence,int step)
+        {
+            if (!initialized || !sequence || step < 0 || step >= sequence.steps.Length) throw new InvalidOperationException("시퀀스·step 확인 필요");
+            if (!Validate(sequence,true)) throw new InvalidOperationException("시퀀스 설정 오류: Unity Console 확인");
+            if (!bridge.TargetsAvailable(sequence.steps[step])) throw new InvalidOperationException("현재 step의 선행 대상이 없습니다.");
+            EditorStop(); editorSequence=Instantiate(sequence); active=editorSequence; session=battle.Simulation;
+            progressStep=viewedStep=step; viewedText=0; visitedText.Clear(); completedStep.Clear(); ShowText(true);
+        }
+#endif
+        void OnDestroy() { if (bridge) bridge.Completed -= CompleteAction;
+#if UNITY_EDITOR
+            if(editorSequence)Destroy(editorSequence);
+#endif
+        }
     }
 }

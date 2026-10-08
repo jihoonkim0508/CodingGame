@@ -15,6 +15,8 @@ namespace CodingGame.Defense
         Coroutine typing;
         Action previous, next;
         bool isTyping;
+        RectTransform panelRect;
+        Vector2 bottomAnchorMin, bottomAnchorMax, bottomPosition, bottomPivot;
         public bool IsTyping => isTyping;
         public bool IsVisible => panel && panel.activeSelf;
 
@@ -22,15 +24,25 @@ namespace CodingGame.Defense
         {
             if (!panel || !portrait || !speaker || !stageWave || !dialogue || !previousText || !nextText)
                 throw new InvalidOperationException(name + ": TutorialDialogueView 참조 누락");
+            panelRect = panel.transform as RectTransform;
+            if (!panelRect) throw new InvalidOperationException(name + ": 대화 패널에 RectTransform이 필요합니다.");
+            bottomAnchorMin = panelRect.anchorMin; bottomAnchorMax = panelRect.anchorMax;
+            bottomPosition = panelRect.anchoredPosition; bottomPivot = panelRect.pivot;
             previous = onPrevious; next = onNext;
             previousText.onClick.AddListener(() => previous?.Invoke());
             nextText.onClick.AddListener(() => next?.Invoke());
             Hide();
         }
 
-        public void Show(TutorialSequence sequence, int textIndex, string text, bool animate, Action completed)
+        public void Show(TutorialSequence sequence, TutorialDialoguePosition position, string text, bool animate, Action completed)
         {
             StopTyping();
+            // Mirror the authored bottom layout; retain width, height and edge spacing at any resolution.
+            bool top = position == TutorialDialoguePosition.Top;
+            panelRect.anchorMin = new Vector2(bottomAnchorMin.x, top ? 1 - bottomAnchorMax.y : bottomAnchorMin.y);
+            panelRect.anchorMax = new Vector2(bottomAnchorMax.x, top ? 1 - bottomAnchorMin.y : bottomAnchorMax.y);
+            panelRect.pivot = new Vector2(bottomPivot.x, top ? 1 - bottomPivot.y : bottomPivot.y);
+            panelRect.anchoredPosition = new Vector2(bottomPosition.x, top ? -bottomPosition.y : bottomPosition.y);
             panel.SetActive(true);
             portrait.sprite = sequence.speakerPortrait;
             portrait.enabled = sequence.speakerPortrait;

@@ -1,0 +1,11 @@
+.toolbar { flex-direction: row; flex-wrap: wrap; padding: 6px; }
+.toolbar > * { min-width: 150px; flex-grow: 1; margin-right: 4px; }
+.body { flex-direction: row; flex-grow: 1; }
+.navigation { width: 145px; padding: 5px; }
+.navigation Button { height: 30px; margin-bottom: 4px; }
+.content { flex-grow: 1; padding: 8px; }
+.status, .feedback { padding: 8px; white-space: normal; }
+.row { flex-direction: row; flex-wrap: wrap; margin-bottom: 6px; }
+.row Button { min-width: 110px; margin-right: 4px; }
+.section { margin-top: 10px; margin-bottom: 5px; -unity-font-style: bold; }
+.readout { white-space: normal; margin-bottom: 8px; }

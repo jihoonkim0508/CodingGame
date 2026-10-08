@@ -9,6 +9,7 @@ namespace CodingGame.Defense
     /// <summary>Unity 화면과 분리된 전투 규칙입니다. 필요한 설정은 생성 시 전달받습니다.</summary>
     public sealed class DefenseSimulation
     {
+        public DefenseTestOptions Options => Setup.TestOptions;
         public const double TickDuration = 1.0 / 60;
         public readonly BattleSetup Setup;
         public readonly List<RobotState> Robots = new List<RobotState>();
@@ -29,7 +30,7 @@ namespace CodingGame.Defense
         {
             get
             {
-                if (Setup.WaveSeconds <= 0) return double.PositiveInfinity;
+                if (!Options.waveTimeout || Setup.WaveSeconds <= 0) return double.PositiveInfinity;
                 double remaining = Setup.WaveSeconds - (Phase == BattlePhase.Ready ? 0 : Time - waveStart);
                 // 종료 판정과 같은 오차 범위를 사용해 종료된 웨이브에 1초가 남아 보이지 않게 합니다.
                 return remaining <= 1e-8 ? 0 : remaining;
@@ -45,30 +46,37 @@ namespace CodingGame.Defense
             nextWave;
         public readonly Dictionary<BlockKind, int> Inventory = new Dictionary<BlockKind, int>();
         public readonly Dictionary<RobotRole, int> RobotInventory = new Dictionary<RobotRole, int>();
-        public int RobotAvailable(RobotRole role) => !Setup.PlayerFlow ? int.MaxValue : RobotInventory.TryGetValue(role, out int count) ? count : 0;
-        public bool RobotUnlocked(RobotRole role) => !Setup.PlayerFlow || RobotInventory.ContainsKey(role);
-        public int FunctionRepeatLimit => Setup.PlayerFlow
-            ? (Inventory.ContainsKey(BlockKind.For) || Inventory.ContainsKey(BlockKind.While) ? 1 : 5)
+        public int RobotAvailable(RobotRole role) => !Setup.PlayerFlow || (!Options.inventoryLimit && RobotUnlocked(role)) ? int.MaxValue : RobotInventory.TryGetValue(role, out int count) ? count : 0;
+        public bool RobotUnlocked(RobotRole role) => !Setup.PlayerFlow || Options.unlockAll || RobotInventory.ContainsKey(role);
+        public bool LoopsUnlocked => Setup.PlayerFlow && (Inventory.ContainsKey(BlockKind.For) || Inventory.ContainsKey(BlockKind.While));
+        public int AttackLimitPerRobot => Setup.StageOneLearning || !Options.attackLimit ? int.MaxValue : Setup.PlayerFlow
+            ? (LoopsUnlocked ? int.MaxValue : (int)Math.Floor(Setup.Stage * Setup.RulesConfig.attackCountFactor + .5))
+            : Setup.AttackLimitPerRobot;
+        public int FunctionRepeatLimit => Setup.StageOneLearning ? int.MaxValue : Setup.PlayerFlow
+            ? (LoopsUnlocked ? 1 : AttackLimitPerRobot)
             : Setup.FunctionRepeatLimit;
         public void GrantRobot(RobotRole role, int count)
         {
             if (!Enum.IsDefined(typeof(RobotRole), role) || count < 1) throw new ArgumentException("아이템 종류와 양수 수량을 확인하세요.");
             RobotInventory.TryGetValue(role, out int old); RobotInventory[role] = checked(old + count);
+            Emit("robot-granted",0,(int)role,Vector2.Zero,count);
         }
         public void GrantBlock(BlockKind kind, int count)
         {
             if (!DefenseProgression.Consumes(kind) || count < 1) throw new ArgumentException("아이템 종류와 양수 수량을 확인하세요.");
             kind = DefenseProgression.Canonical(kind); Inventory.TryGetValue(kind, out int old); Inventory[kind] = checked(old + count);
+            Emit("block-granted",0,(int)kind,Vector2.Zero,count);
         }
         public readonly List<BlockKind> PendingDrops = new List<BlockKind>();
         public bool CanPrepare => Phase == BattlePhase.Ready;
         public WaveLesson Lesson => Setup.Progression.lessons.FirstOrDefault(l => l.stage == Setup.Stage && l.wave == WaveIndex + 1);
-        public bool CanAdvanceStage => Phase == BattlePhase.Victory && Setup.Stage > 0 && Setup.Stage < DefenseCurriculum.StageCount;
+        public bool CanAdvanceStage => Phase == BattlePhase.Victory && Setup.Stage > 0 && Setup.Stage < (Setup.CampaignWaves?.Length ?? DefenseCurriculum.StageCount);
         public bool CanEdit => !Setup.PlayerFlow ? Phase != BattlePhase.Victory && Phase != BattlePhase.Defeat : CanPrepare;
         public int Available(BlockKind kind, int editingRobot = 0)
         {
             kind = DefenseProgression.Canonical(kind);
-            if (!Setup.PlayerFlow || !DefenseProgression.Consumes(kind)) return int.MaxValue;
+            if (Setup.PlayerFlow && DefenseProgression.Consumes(kind) && !Options.unlockAll && !Inventory.ContainsKey(kind)) return 0;
+            if (!Setup.PlayerFlow || !Options.inventoryLimit || !DefenseProgression.Consumes(kind)) return int.MaxValue;
             Inventory.TryGetValue(kind, out int owned);
             // 편집 중인 로봇의 기존 예약은 제외하고, 다른 로봇이 사용하는 수량만 차감합니다.
             int used = Robots.Where(r => r.Id != editingRobot && r.Program != null).Sum(r => r.Program.BlockCount(kind));
@@ -76,35 +84,73 @@ namespace CodingGame.Defense
         }
         int nextId = 1;
         int[] groupCounts;
-        double waveStart, accumulated;
+        double waveStart, accumulated, spawnElapsed;
 
         public DefenseSimulation(BattleSetup setup)
         {
             setup.Validate(); Setup = setup; BaseHealth = setup.BaseHealth;
+            WaveIndex = setup.InitialWave;
+            if (WaveIndex < 0 || WaveIndex >= setup.Waves.Length) throw new ArgumentException("초기 웨이브 범위 오류");
             Coins = setup.PlayerFlow ? setup.Progression.initialCoins : 0;
             if (setup.PlayerFlow) foreach (var stock in setup.Progression.initial)
             { var kind = DefenseProgression.Canonical(stock.kind); Inventory.TryGetValue(kind, out int old); Inventory[kind] = old + stock.count; }
             if (setup.PlayerFlow) foreach (var stock in setup.Progression.robots)
             { RobotInventory.TryGetValue(stock.role, out int old); RobotInventory[stock.role] = old + stock.count; }
-            if (setup.PlayerFlow) foreach (var lesson in setup.Progression.lessons.Where(l => l.stage < setup.Stage)) GrantSupply(lesson);
+            if (setup.PlayerFlow && setup.PreviousStageRewards) foreach (var lesson in setup.Progression.lessons.Where(l => l.stage < setup.Stage))
+            {
+                foreach(var stock in lesson.robots) GrantRobot(stock.role,stock.count);
+                foreach(var stock in lesson.blocks.Concat(lesson.rewards)) GrantBlock(stock.kind,stock.count);
+            }
             PrepareWave();
         }
         void PrepareWave()
         {
             currentWave = nextWave ?? ScaledWave(WaveIndex);
             nextWave = WaveIndex + 1 < Setup.Waves.Length ? ScaledWave(WaveIndex + 1) : Array.Empty<SpawnGroup>();
-            carry.Clear(); groupCounts = new int[currentWave.Length]; waveStart = Time;
+            carry.Clear(); groupCounts = new int[currentWave.Length]; waveStart = Time; spawnElapsed = 0;
+            foreach (var bot in Robots) bot.AttacksThisWave = 0;
             if (Setup.PlayerFlow && Lesson != null) GrantSupply(Lesson);
         }
         void GrantSupply(WaveLesson lesson)
         {
+            if (!Options.supply) return;
             foreach (var stock in lesson.blocks) GrantBlock(stock.kind, stock.count);
             foreach (var stock in lesson.robots) GrantRobot(stock.role, stock.count);
+            Emit("supply",lesson.stage,lesson.wave,Vector2.Zero);
+        }
+        public void ApplyBalance(BattleSetup incoming, RobotSpec[] robots, EnemySpec[] enemies)
+        {
+            incoming.Validate();
+            foreach(var spec in robots)spec.Validate();foreach(var spec in enemies)spec.Validate();
+            if(WaveIndex>=incoming.Waves.Length)throw new ArgumentException("현재 웨이브를 삭제할 수 없습니다.");
+            if(Robots.Any(r=>r.DefinitionIndex<0||r.DefinitionIndex>=robots.Length||robots[r.DefinitionIndex].role!=r.Spec.role)||Enemies.Any(e=>e.DefinitionIndex<0||e.DefinitionIndex>=enemies.Length))
+                throw new ArgumentException("배치된 로봇·적의 정의 목록과 역할은 유지하세요.");
+            int authoredGroups=Setup.Waves[WaveIndex].Length;
+            var replacement=incoming.Waves[WaveIndex];
+            if(replacement.Length!=authoredGroups||replacement.Where((g,i)=>g.DefinitionIndex!=Setup.Waves[WaveIndex][i].DefinitionIndex||g.RouteIndex!=Setup.Waves[WaveIndex][i].RouteIndex).Any())
+                throw new ArgumentException("현재 웨이브의 스폰 항목 추가·삭제·경로 변경은 재시작이 필요합니다.");
+            Setup.BaseHealth=incoming.BaseHealth;Setup.RobotLimit=incoming.RobotLimit;Setup.RulesConfig=incoming.RulesConfig;
+            Setup.Progression=incoming.Progression;Setup.Permissions=incoming.Permissions;Setup.ActionProfiles=incoming.ActionProfiles;
+            Setup.Waves=incoming.Waves;Setup.CampaignWaves=incoming.CampaignWaves;Setup.CampaignSeconds=incoming.CampaignSeconds;Setup.WaveSeconds=incoming.WaveSeconds;
+            BaseHealth=Setup.BaseHealth;Projectiles.Clear();
+            foreach(var bot in Robots)
+            {
+                bot.Spec=robots[bot.DefinitionIndex].Copy();bot.LevelCap=Setup.RulesConfig.maxLevel;bot.UpgradeFactor=Setup.RulesConfig.upgradeMultiplier;
+                bot.Level=Math.Min(bot.Level,bot.LevelCap);bot.Health=bot.Spec.role==RobotRole.Tank?(float?)bot.MaxHealth:null;
+                bot.RangeSetting=bot.Spec.range;bot.DamageSetting=null;bot.Buffs.Clear();bot.NextAction=Time;
+            }
+            foreach(var enemy in Enemies){enemy.Spec=Setup.Stage==0?enemies[enemy.DefinitionIndex].Copy():Setup.RulesConfig.Scale(enemies[enemy.DefinitionIndex],Setup.Stage,WaveIndex);enemy.Health=enemy.Spec.health;enemy.NextAttack=Time;}
+            for(int i=0;i<authoredGroups;i++){currentWave[i].Count=Math.Max(groupCounts[i],replacement[i].Count);currentWave[i].Delay=replacement[i].Delay;currentWave[i].Interval=replacement[i].Interval;}
+            foreach(var group in currentWave)group.Enemy=Setup.Stage==0?enemies[group.DefinitionIndex].Copy():Setup.RulesConfig.Scale(enemies[group.DefinitionIndex],Setup.Stage,WaveIndex);
+            nextWave=WaveIndex+1<Setup.Waves.Length?ScaledWave(WaveIndex+1).Concat(carry).ToArray():Array.Empty<SpawnGroup>();
+            Emit("balance-applied",0,0,Vector2.Zero);
         }
         public bool AdvanceStage()
         {
             if (!CanAdvanceStage) return false;
-            Setup.Stage++; WaveIndex = 0; BaseHealth = Setup.BaseHealth;
+            Setup.Stage++; WaveIndex = 0;
+            if (Setup.Stage > 1) Setup.StageOneLearning = false;
+            if (Setup.CampaignWaves != null) { Setup.Waves = Setup.CampaignWaves[Setup.Stage-1]; Setup.WaveSeconds = Setup.CampaignSeconds[Setup.Stage-1]; } BaseHealth = Setup.BaseHealth;
             nextWave = null; carry.Clear(); WaveSurvivors.Clear(); LastSurvivors = 0; LastWaveTimedOut = false;
             PrepareWave(); ResetPrograms(); Phase = BattlePhase.Ready; return true;
         }
@@ -119,17 +165,10 @@ namespace CodingGame.Defense
         SpawnGroup[] ScaledWave(int waveIndex)
         {
             if (Setup.Stage == 0) return Setup.Waves[waveIndex];
-            int progress = (Setup.Stage - 1) * 5 + waveIndex;
-            // 5웨이브 보스 배율은 기획서에서 미정이므로 별도 보정을 적용하지 않습니다.
-            float waveMultiplier = waveIndex < 4 ? new[] { .9f, 1f, 1.05f, 1.15f }[waveIndex] : 1f;
             return Setup.Waves[waveIndex].Select(group =>
             {
-                var enemy = group.Enemy.Copy();
-                float typeHealth = enemy.type == EnemyType.Fast ? .75f : enemy.type == EnemyType.Tank ? 1.5f : 1f;
-                float typeSpeed = enemy.type == EnemyType.Fast ? 1.3f : enemy.type == EnemyType.Tank ? .75f : 1f;
-                enemy.health *= (1 + .045f * progress + .0015f * progress * progress) * typeHealth * waveMultiplier;
-                enemy.speed = Math.Min(enemy.speed * (1 + .025f * progress + .0005f * progress * progress) * typeSpeed * waveMultiplier,
-                    group.Enemy.speed * 1.7f);
+                var enemy = Setup.RulesConfig.Scale(group.Enemy, Setup.Stage, waveIndex);
+
                 return new SpawnGroup { Enemy = enemy, DefinitionIndex = group.DefinitionIndex, RouteIndex = group.RouteIndex,
                     Count = group.Count, Delay = group.Delay, Interval = group.Interval };
             }).ToArray();
@@ -144,12 +183,28 @@ namespace CodingGame.Defense
         public bool ClaimRewards()
         {
             if (Phase != BattlePhase.Reward) return false;
+            Emit("rewards",0,WaveIndex+1,Vector2.Zero,PendingDrops.Count);
             foreach (var kind in PendingDrops) { Inventory.TryGetValue(kind, out int old); Inventory[kind] = old + 1; }
             PendingDrops.Clear(); accumulated = 0;
             if (WaveIndex + 1 == Setup.Waves.Length) { Phase = BattlePhase.Victory; return true; }
             WaveIndex++; PrepareWave();
             ResetPrograms();
             Phase = BattlePhase.Ready; return true;
+        }
+        public void SetCoins(int value) { if (value < 0) throw new ArgumentException("코인은 0 이상"); Coins = value; }
+        public void StepOnce()
+        {
+            if (Phase != BattlePhase.Paused) throw new InvalidOperationException("일시정지 상태 필요");
+            Phase = BattlePhase.Running; Tick((float)TickDuration);
+            if (Phase == BattlePhase.Running) Phase = BattlePhase.Paused;
+        }
+        public void GrantAll()
+        {
+            var roles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().ToArray();
+            if (roles.Any(r => RobotInventory.TryGetValue(r,out int n) && n > int.MaxValue-10) ||
+                DefenseProgression.ItemKinds.Any(k=>Inventory.TryGetValue(k,out int n) && n > int.MaxValue-50)) throw new OverflowException();
+            foreach(var r in roles) GrantRobot(r,10);
+            foreach(var k in DefenseProgression.ItemKinds) GrantBlock(k,50);
         }
         public void TogglePause()
         {
@@ -160,9 +215,9 @@ namespace CodingGame.Defense
         {
             if (Phase == BattlePhase.Victory || Phase == BattlePhase.Defeat) return "전투가 종료되었습니다.";
             if (Setup.PlayerFlow && !CanPrepare) return "로봇 배치는 웨이브 준비 중에만 가능합니다.";
-            if (Robots.Count >= Setup.RobotLimit) return "설치개수 초과 · 기존 로봇을 회수하세요";
+            if (Options.deploymentLimit && Robots.Count >= Setup.RobotLimit) return "설치개수 초과 · 기존 로봇을 회수하세요";
             if (RobotAvailable(role) < 1) return "보유 로봇 없음";
-            if (role == RobotRole.Buffer && Robots.Any(bot => bot.Spec.role == RobotRole.Buffer)) return "버프형은 최대 1대";
+            if (Options.deploymentLimit && Robots.Count(bot => bot.Spec.role == role) >= Setup.RulesConfig.roleLimits[(int)role]) return role + " 설치개수 초과 · 최대 " + Setup.RulesConfig.roleLimits[(int)role] + "대";
             return null;
         }
         public string PlacementError(RobotSpec spec, Vector2 point)
@@ -183,11 +238,12 @@ namespace CodingGame.Defense
         public RobotState Place(RobotSpec spec, int definitionIndex, Vector2 point, out string error)
         {
             spec.Validate(); error = PlacementError(spec, point);
-            if (error != null) return null;
+            if (error != null) {Events.Add(new CombatEvent{Kind="placement-failed",Reason=error,Target=definitionIndex,Position=point});return null;}
             var bot = new RobotState { Id = nextId++, DefinitionIndex = definitionIndex, Position = point, Spec = spec.Copy(),
+                LevelCap = Setup.RulesConfig.maxLevel, UpgradeFactor = Setup.RulesConfig.upgradeMultiplier,
                 RangeSetting = spec.range, Action = spec.NativeAction, Health = spec.role == RobotRole.Tank ? (float?)spec.health : null,
                 NextAction = Time + spec.interval };
-            if (Setup.PlayerFlow) RobotInventory[spec.role]--;
+            if (Setup.PlayerFlow && Options.inventoryLimit) RobotInventory[spec.role]--;
             Robots.Add(bot); return bot;
         }
         public bool RemoveRobot(int id)
@@ -214,7 +270,7 @@ namespace CodingGame.Defense
             if (UpgradeError(id) != null) return false;
             var bot = Robots.Find(r => r.Id == id);
             float healthRatio = bot.Health.HasValue ? bot.Health.Value / bot.MaxHealth : 0;
-            Coins -= UpgradeCost; bot.UpgradeCostPaid = UpgradeCost; bot.Level++;
+            Coins -= UpgradeCost; bot.UpgradeCostPaid += UpgradeCost; bot.Level++;
             if (bot.Health.HasValue) bot.Health = bot.MaxHealth * healthRatio;
             return true;
         }
@@ -227,10 +283,12 @@ namespace CodingGame.Defense
             foreach (var e in Enemies) if (e.BlockedBy == id) e.BlockedBy = 0;
             return true;
         }
-        public bool DamageRobot(int id, float damage)
+        public bool DamageRobot(int id, float damage, int source = 0)
         {
             var bot = Robots.Find(r => r.Id == id);
             if (bot == null || !bot.Health.HasValue || !Rules.Nonnegative(damage) || Phase != BattlePhase.Running) return false;
+            Events.Add(new CombatEvent {Kind="robot-damage",Source=source,Target=id,Position=bot.Position,Amount=damage,AppliedAmount=Options.robotDamage?Math.Min(damage,bot.Health.Value):0});
+            if (!Options.robotDamage) return true;
             bot.Health = Math.Max(0, bot.Health.Value - damage);
             if (bot.Health <= 0) { Emit("tank-destroyed", 0, id, bot.Position); RemoveRobotInternal(id); }
             return true;
@@ -246,10 +304,14 @@ namespace CodingGame.Defense
             var bot = Robots.Find(r => r.Id == id);
             if (bot == null || !CanEdit)
                 throw new FormatException("코드를 적용할 로봇이 없거나 전투가 종료되었습니다.");
+            if (Setup.StageOneLearning && WaveIndex < 2 && blocks.Any(b => b.Kind == BlockKind.DeclareVariable) &&
+                !DefenseProgression.Used(blocks).Any(k => PythonTreeCompiler.HasEnemyArgument(k)))
+                blocks = blocks.Concat(new[]{new CodeBlock(BlockKind.Shot)}).ToArray();
             var program = new DefenseProgram(name, blocks);
             // 문법과 재고 검증이 모두 끝난 뒤 교체해야 실패 시 이전 코드와 예약 수량이 유지됩니다.
             if (Setup.PlayerFlow) foreach (var group in DefenseProgression.Used(blocks).GroupBy(k => k))
                 if (group.Count() > Available(group.Key, id)) throw new FormatException(DefenseProgression.Label(group.Key) + " 블록 수량이 부족합니다. 다른 로봇의 예약 수량도 확인하세요.");
+            if (Setup.StageOneLearning) program.ConfigureLearning(bot);
             bot.Program = program; bot.AutoExecute = false;
             bot.BlockingEnabled = false;
             foreach (var e in Enemies) if (e.BlockedBy == id) e.BlockedBy = 0;
@@ -276,9 +338,9 @@ namespace CodingGame.Defense
             if (compatibility != ActionCompatibility.Reduced) return 0;
             return action != RobotAction.Block && action != RobotAction.Buff ? .1f : Setup.Permissions.First(p => p.role == bot.Spec.role && p.action == action).strength;
         }
-        public float ActionDamage(RobotState bot, RobotAction action) => Profile(bot, action).damage * bot.DamageMultiplier * Strength(bot, action);
+        public float ActionDamage(RobotState bot, RobotAction action) => (bot.DamageSetting ?? Profile(bot, action).damage) * bot.DamageMultiplier * Strength(bot, action);
         public float ActionDamage(RobotState bot, RobotAction action, float distance) => ActionDamage(bot, action) *
-            (bot.Spec.role == RobotRole.Shooter && action == RobotAction.Attack ? bot.Spec.range / Math.Max(1f, distance) : 1f);
+            (!Setup.StageOneLearning && bot.Spec.role == RobotRole.Shooter && action == RobotAction.Attack ? Rules.RangedDamageFactor(bot.Spec.range, distance) : 1f);
         public float ActionInterval(RobotState bot, RobotAction action) => Profile(bot, action).interval * (bot.Interval / bot.Spec.interval);
         public ActionResult RequestAction(int robotId, RobotAction action, int targetId = 0)
         {
@@ -287,6 +349,8 @@ namespace CodingGame.Defense
             var compatibility = Compatibility(bot, action);
             if (compatibility == ActionCompatibility.Ineffective) return bot.LastResult = ActionResult.Ineffective;
             if (compatibility == ActionCompatibility.Undecided) return bot.LastResult = ActionResult.Undecided;
+            if (action != RobotAction.Buff && bot.AttacksThisWave >= AttackLimitPerRobot)
+                return bot.LastResult = ActionResult.AttackLimitReached;
             // block()에 도달하면 즉시 몸으로 저지합니다. 스턴과 피해만 공통 재사용 시간을 따릅니다.
             if (action == RobotAction.Block && bot.Spec.role == RobotRole.Tank) bot.BlockingEnabled = true;
             if (Time + .000001 < bot.NextAction) return bot.LastResult = ActionResult.CoolingDown;
@@ -347,6 +411,7 @@ namespace CodingGame.Defense
                 }
             }
             bot.NextAction = Time + profile.interval * (bot.Interval / bot.Spec.interval); bot.Executions++;
+            if (action != RobotAction.Buff) bot.AttacksThisWave++;
             return bot.LastResult = ActionResult.Executed;
         }
         MovementEffect Effect(EnemyState e, int source)
@@ -360,9 +425,11 @@ namespace CodingGame.Defense
         void Hit(EnemyState e, float damage, int source, bool projectile = false, RobotState meleeSource = null)
         {
             if (!e.Active) return;
+            float applied=Options.attackDamage?Math.Min(e.Health,damage):0;
+            if (!Options.attackDamage) { Emit("damage-suppressed", source, e.Id, e.Position, damage); damage = 0; }
             e.Health = Math.Max(0, e.Health - damage);
             Events.Add(new CombatEvent { Kind = projectile ? "projectile-hit" : "hit", Source = source,
-                Target = e.Id, Position = e.Position, Amount = damage, Melee = meleeSource != null,
+                Target = e.Id, Position = e.Position, Amount = damage, AppliedAmount=applied, Melee = meleeSource != null,
                 Origin = meleeSource == null ? default : meleeSource.Position });
             if (e.Health <= 0)
             {
@@ -370,7 +437,7 @@ namespace CodingGame.Defense
                 if (Setup.PlayerFlow)
                 {
                     Coins = (int)Math.Min(int.MaxValue, (long)Coins + Setup.Progression.coinsPerKill);
-                    if (Lesson == null)
+                    if (Options.drops && Lesson == null)
                     {
                         var drop = NeededDrop();
                         PendingDrops.Add(DefenseProgression.Canonical(drop)); Emit("drop", 0, e.Id, e.Position, (int)drop);
@@ -378,7 +445,7 @@ namespace CodingGame.Defense
                 }
             }
         }
-        BlockKind NeededDrop()
+        public BlockKind NeededDrop()
         {
             var pool = Setup.Progression.drops.Where(d => d.firstWave <= WaveIndex + 1).ToArray();
             int Owned(BlockKind kind)
@@ -427,7 +494,7 @@ namespace CodingGame.Defense
         void Tick(float dt)
         {
             Time += TickDuration;
-            Spawn();
+            if (Options.enemySpawn) { spawnElapsed += TickDuration; Spawn(); }
             foreach (var bot in Robots) bot.Buffs.RemoveAll(b => b.Until <= Time);
             foreach (var e in Enemies)
             {
@@ -435,7 +502,7 @@ namespace CodingGame.Defense
                 if (e.BlockedBy != 0 && !Robots.Any(r => r.Id == e.BlockedBy)) e.BlockedBy = 0;
                 if (e.Active && e.BlockedBy == 0) TryBlock(e, e.Position, e.Position, out _);
             }
-            foreach (var bot in Robots.ToArray())
+            if (Options.robotCode) foreach (var bot in Robots.ToArray())
                 if (bot.Program != null) bot.Program.Tick(this, bot);
                 else if (bot.AutoExecute) RequestAction(bot.Id, bot.Action);
             foreach (var e in Enemies)
@@ -443,14 +510,14 @@ namespace CodingGame.Defense
                 if (!e.Active || e.Stunned(Time)) continue;
                 if (e.BlockedBy != 0)
                 {
-                    if (Time + .000001 >= e.NextAttack)
-                    { DamageRobot(e.BlockedBy, e.Spec.damage); e.NextAttack = Time + e.Spec.attackInterval; }
+                    if (Options.enemyAttack && Time + .000001 >= e.NextAttack)
+                    { DamageRobot(e.BlockedBy, e.Spec.damage,e.Id); e.NextAttack = Time + e.Spec.attackInterval; }
                 }
-                if (e.BlockedBy == 0) Move(e, e.Speed(Time) * dt);
+                if (Options.enemyMovement && e.BlockedBy == 0) Move(e, e.Speed(Time) * dt);
             }
             if (BaseHealth <= 0) { Enemies.RemoveAll(e => !e.Active); Projectiles.Clear(); Phase = BattlePhase.Defeat; return; }
             // 시간 종료 시 비행 중인 투사체를 취소해 종료 후 피해나 드랍이 발생하지 않게 합니다.
-            bool timedOut = Setup.WaveSeconds > 0 && Time - waveStart + 1e-8 >= Setup.WaveSeconds;
+            bool timedOut = Options.waveTimeout && Setup.WaveSeconds > 0 && Time - waveStart + 1e-8 >= Setup.WaveSeconds;
             if (!timedOut) ResolveProjectiles();
             Enemies.RemoveAll(e => !e.Active);
             int remaining = RemainingEnemies;
@@ -477,7 +544,7 @@ namespace CodingGame.Defense
                 Emit("wave-completed", 0, WaveIndex, Vector2.Zero);
                 if (Setup.PlayerFlow)
                 {
-                    if (Lesson != null) foreach (var stock in Lesson.rewards)
+                    if (Options.rewards && Lesson != null) foreach (var stock in Lesson.rewards)
                         for (int i = 0; i < stock.count; i++) PendingDrops.Add(DefenseProgression.Canonical(stock.kind));
                     Phase = BattlePhase.Reward; accumulated = 0;
                 }
@@ -491,7 +558,7 @@ namespace CodingGame.Defense
             for (int i = 0; i < wave.Length; i++)
             {
                 var g = wave[i];
-                while (groupCounts[i] < g.Count && Time - waveStart + .000001 >= g.Delay + groupCounts[i] * g.Interval)
+                while (groupCounts[i] < g.Count && spawnElapsed + .000001 >= g.Delay + groupCounts[i] * g.Interval)
                 {
                     var spec = g.Enemy.Copy();
                     Enemies.Add(new EnemyState { Id = nextId++, DefinitionIndex = g.DefinitionIndex, Spec = spec, Health = spec.health,
@@ -529,7 +596,7 @@ namespace CodingGame.Defense
             }
             if (e.NextPoint == path.Length)
             {
-                e.Active = false; e.BlockedBy = 0; Leaks++; BaseHealth = Math.Max(0, BaseHealth - e.Spec.leakDamage);
+                e.Active = false; e.BlockedBy = 0; Leaks++; if (Options.baseDamage) BaseHealth = Math.Max(0, BaseHealth - e.Spec.leakDamage);
                 Emit("leaked", e.Id, 0, e.Position, e.Spec.leakDamage);
             }
         }

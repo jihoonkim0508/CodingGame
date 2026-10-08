@@ -92,10 +92,10 @@ static class TreeCheck
         Reject(B(BlockKind.Attack, N("3")));
         Reject(B(BlockKind.Wait, nearest));
         Reject(Set("enemy", N("1")), B(BlockKind.Attack, V("enemy")));
-        Reject(B(BlockKind.Attack, V("enemy")), Set("enemy", nearest));
+        Reject(B(BlockKind.Attack, V("target")), Set("target", nearest));
         Reject(Set("self", V("self")));
-        Reject(Body(B(BlockKind.If, trueBlock), Set("enemy", nearest)), B(BlockKind.Attack, V("enemy")));
-        Reject(Body(B(BlockKind.For, N("0")), Set("enemy", nearest)), B(BlockKind.Attack, V("enemy")));
+        Reject(Body(B(BlockKind.If, trueBlock), Set("target", nearest)), B(BlockKind.Attack, V("target")));
+        Reject(Body(B(BlockKind.For, N("0")), Set("target", nearest)), B(BlockKind.Attack, V("target")));
         Reject(Body(B(BlockKind.If, trueBlock), Set("enemy", nearest)),
             Body(B(BlockKind.Else), Set("enemy", N("1"))), B(BlockKind.Attack, V("enemy")));
         var cycle = B(BlockKind.While);

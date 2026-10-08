@@ -29,8 +29,12 @@ namespace CodingGame.BlockCoding
         readonly Dictionary<string, CommandBlockView> variables = new Dictionary<string, CommandBlockView>();
         readonly HashSet<string> enemyVariables = new HashSet<string>();
         List<CommandBlockView> dragging = new List<CommandBlockView>();
+        readonly List<CommandBlockView> ghosts = new List<CommandBlockView>();
+        readonly List<Vector2> ghostOffsets = new List<Vector2>();
+        readonly Vector3[] dragCorners = new Vector3[4];
         CommandDropZone selected;
-        CommandBlockView ghost;
+        CommandDropZone snapTarget;
+        Vector2 programGrabOffset, dragGrabOffset;
         bool updating;
         bool initialized;
         bool loading;
@@ -61,9 +65,11 @@ namespace CodingGame.BlockCoding
         int currentCategory;
         public void RefreshPalette() => ShowCategory(currentCategory);
         bool dropAccepted;
-        Vector2 grabOffset;
         static int nextName;
         public CommandDropZone Program => program;
+#if UNITY_EDITOR
+        public CommandDropZone EditorSnapTarget => snapTarget;
+#endif
         public IReadOnlyList<PaletteItem> Palette => palette;
         public IReadOnlyDictionary<string, CommandBlockView> VariablePalette => variables;
         public CommandBlockView Dragged { get; private set; }
@@ -276,55 +282,106 @@ namespace CodingGame.BlockCoding
             Dragged = source;
             dropAccepted = false;
             dragging = source.IsPalette ? new List<CommandBlockView> { source } : source.Owner.Group(source);
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(source.Rect, e.pressPosition, e.pressEventCamera, out var grab);
-            grabOffset = grab - new Vector2(source.Rect.rect.xMin, source.Rect.rect.yMax);
-            ghost = source.Copy(dragLayer);
-            ghost.SetDragAppearance(true);
-            ghost.Rect.anchorMin = ghost.Rect.anchorMax = ghost.Rect.pivot = new Vector2(0, 1);
-            ghost.Rect.sizeDelta = new Vector2(ghost.preferredWidth, ghost.preferredHeight);
-            LayoutRebuilder.ForceRebuildLayoutImmediate(ghost.Rect);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(program.Rect, e.pressPosition, e.pressEventCamera, out var programPress);
+            var sourceTopLeft = program.Rect.InverseTransformPoint(source.Rect.TransformPoint(new Vector3(source.Rect.rect.xMin, source.Rect.rect.yMax, 0)));
+            programGrabOffset = programPress - new Vector2(sourceTopLeft.x, sourceTopLeft.y);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(dragLayer, e.pressPosition, e.pressEventCamera, out var dragPress);
+            var sourceDragTopLeft = dragLayer.InverseTransformPoint(source.Rect.TransformPoint(new Vector3(source.Rect.rect.xMin, source.Rect.rect.yMax, 0)));
+            dragGrabOffset = dragPress - new Vector2(sourceDragTopLeft.x, sourceDragTopLeft.y);
+            ghosts.Clear(); ghostOffsets.Clear();
+            foreach (var block in dragging)
+            {
+                var topLeft = dragLayer.InverseTransformPoint(block.Rect.TransformPoint(new Vector3(block.Rect.rect.xMin, block.Rect.rect.yMax, 0)));
+                ghostOffsets.Add(new Vector2(topLeft.x - sourceDragTopLeft.x, topLeft.y - sourceDragTopLeft.y));
+                var copy = block.Copy(dragLayer);
+                copy.SetDragAppearance(true);
+                copy.Rect.anchorMin = copy.Rect.anchorMax = copy.Rect.pivot = new Vector2(0, 1);
+                copy.Rect.sizeDelta = new Vector2(copy.preferredWidth, copy.preferredHeight);
+                LayoutRebuilder.ForceRebuildLayoutImmediate(copy.Rect);
+                ghosts.Add(copy);
+            }
             foreach (var block in dragging) block.SetDragAppearance(true);
             MoveDrag(e);
         }
         public void MoveDrag(PointerEventData e)
         {
-            if (!ghost) return;
+            if (ghosts.Count == 0) return;
             if (RectTransformUtility.ScreenPointToLocalPointInRectangle(dragLayer, e.position, e.pressEventCamera, out var point))
-                ghost.Rect.localPosition = point - grabOffset;
+                for (int i = 0; i < ghosts.Count; i++) ghosts[i].Rect.localPosition = point - dragGrabOffset + ghostOffsets[i];
             UpdateSnapPreview(e);
         }
         void UpdateSnapPreview(PointerEventData e)
         {
             if (!snapMarker) return;
             snapMarker.gameObject.SetActive(false);
+            snapTarget = null;
             zones.RemoveWhere(zone => !zone);
             CommandDropZone target = null;
+            Rect targetPreview = default;
+            bool targetIsSocket = false;
+            float targetOverlap = -1;
+            float targetDistance = float.MaxValue;
             foreach (var zone in zones)
             {
-                if (!zone.gameObject.activeInHierarchy || zone.Rect.IsChildOf(ghost.transform) ||
-                    (zone.ParentBlock && zone.ParentBlock.IsPalette) || dragging.Any(b => zone.Rect.IsChildOf(b.transform)) ||
-                    !RectTransformUtility.RectangleContainsScreenPoint(zone.Rect, e.position, e.pressEventCamera)) continue;
-                if (!target || zone.Rect.IsChildOf(target.Rect)) target = zone;
+                if (!zone.gameObject.activeInHierarchy || ghosts.Any(ghost => zone.Rect.IsChildOf(ghost.transform)) ||
+                    (zone.ParentBlock && zone.ParentBlock.IsPalette) || dragging.Any(b => zone.Rect.IsChildOf(b.transform))) continue;
+                bool socket = !zone.FreePlacement && zone.Slot != BlockSlotKind.Statement;
+                var bounds = DraggedBounds(zone.Rect);
+                var area = zone.Rect.rect;
+                bool pointerOver = RectTransformUtility.RectangleContainsScreenPoint(zone.Rect, e.position, e.pressEventCamera);
+                // Keep the original pointer hit area and also accept overlap anywhere on the block.
+                if ((!pointerOver && !bounds.Overlaps(area)) || !zone.Preview(Dragged, e, out var preview)) continue;
+                float overlap = Mathf.Max(0, Mathf.Min(bounds.xMax, area.xMax) - Mathf.Max(bounds.xMin, area.xMin)) *
+                    Mathf.Max(0, Mathf.Min(bounds.yMax, area.yMax) - Mathf.Max(bounds.yMin, area.yMin));
+                overlap /= Mathf.Max(1, Mathf.Min(bounds.width * bounds.height, area.width * area.height));
+                float distance = (bounds.center - area.center).sqrMagnitude;
+                if (!target || socket && !targetIsSocket || socket == targetIsSocket &&
+                    (socket ? overlap > targetOverlap || Mathf.Approximately(overlap, targetOverlap) && distance < targetDistance :
+                        zone.Rect.IsChildOf(target.Rect)))
+                { target = zone; targetPreview = preview; targetIsSocket = socket; targetOverlap = overlap; targetDistance = distance; }
             }
-            if (!target || !target.Preview(Dragged, e, out var preview)) return;
-            var topLeft = target.Rect.TransformPoint(new Vector3(target.Rect.rect.xMin + preview.x, target.Rect.rect.yMax + preview.y, 0));
-            snapMarker.position = topLeft;
+            if (!target) return;
+            snapTarget = target;
+            // As in e085adf, only the marker snaps; the dragged blocks remain under the hand.
+            snapMarker.position = target.Rect.TransformPoint(new Vector3(target.Rect.rect.xMin + targetPreview.x,
+                target.Rect.rect.yMax + targetPreview.y, 0));
             var scale = target.Rect.lossyScale.x / snapMarker.parent.lossyScale.x;
-            snapMarker.sizeDelta = new Vector2(preview.width, preview.height) * scale;
+            snapMarker.sizeDelta = new Vector2(targetPreview.width, targetPreview.height) * scale;
             snapMarker.gameObject.SetActive(true); snapMarker.SetAsLastSibling();
+        }
+        Rect DraggedBounds(RectTransform target)
+        {
+            ghosts[0].Rect.GetWorldCorners(dragCorners);
+            Vector2 min = new Vector2(float.MaxValue, float.MaxValue), max = new Vector2(float.MinValue, float.MinValue);
+            foreach (var corner in dragCorners)
+            {
+                Vector2 point = target.InverseTransformPoint(corner);
+                min = Vector2.Min(min, point); max = Vector2.Max(max, point);
+            }
+            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
         public Vector2 DropPosition(PointerEventData e)
         {
             RectTransformUtility.ScreenPointToLocalPointInRectangle(program.Rect, e.position, e.pressEventCamera, out var point);
-            return point - new Vector2(program.Rect.rect.xMin, program.Rect.rect.yMax) - grabOffset;
+            return point - new Vector2(program.Rect.rect.xMin, program.Rect.rect.yMax) - programGrabOffset;
+        }
+        public bool DraggedBlockCenter(Camera camera, out Vector2 center)
+        {
+            if (ghosts.Count == 0) { center = default; return false; }
+            var rect = ghosts[0].Rect;
+            center = RectTransformUtility.WorldToScreenPoint(camera, rect.TransformPoint(rect.rect.center));
+            return true;
         }
         public void AcceptDrop() => dropAccepted = true;
 
         public void FinishDrag(PointerEventData e)
         {
             var source = Dragged;
+            if (!source) return;
+            MoveDrag(e);
             bool inside = RectTransformUtility.RectangleContainsScreenPoint(definitionPanel, e.position, e.pressEventCamera);
-            if (source && !dropAccepted && inside && program.FreePlacement) program.PlaceFree(source, DropPosition(e));
+            if (source && !dropAccepted && snapTarget) snapTarget.TryDrop(e);
+            if (source && !dropAccepted && inside && program.FreePlacement) program.TryDrop(e);
             bool discard = source && !source.IsPalette && !dropAccepted && !inside;
             EndDrag();
             if (discard) Delete(source);
@@ -336,7 +393,9 @@ namespace CodingGame.BlockCoding
             foreach (var block in dragging) if (block) block.SetDragAppearance(false);
             dragging.Clear();
             Dragged = null;
-            if (ghost) { ghost.gameObject.SetActive(false); Destroy(ghost.gameObject); ghost = null; }
+            foreach (var ghost in ghosts) if (ghost) { ghost.gameObject.SetActive(false); Destroy(ghost.gameObject); }
+            ghosts.Clear(); ghostOffsets.Clear();
+            snapTarget = null;
         }
         public void Delete(CommandBlockView block)
         {

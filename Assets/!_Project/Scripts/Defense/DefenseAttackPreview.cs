@@ -28,8 +28,27 @@ namespace CodingGame.Defense
         DefenseProgram source;
         readonly Dictionary<int, DefenseActorView> views = new Dictionary<int, DefenseActorView>();
         RenderTexture previewTexture;
-        float effectSeconds, emptyElapsed;
+        float emptyElapsed;
         int sourceLevel;
+        #if UNITY_EDITOR
+        public void EditorApplyOptions(DefenseTestOptions options)
+        {
+            hitEffects.Clear(); hitEffects.Options=options;
+            hitEffects.SetHitRangesVisible(options.hitRanges);
+            if (simulation != null) simulation.Setup.TestOptions=options;
+        }
+        public void EditorApplyBalance()
+        {
+            if(simulation==null)return;
+            var setup=simulation.Setup;
+            setup.ActionProfiles=battle.Simulation.Setup.ActionProfiles.Select(p=>p.Copy()).ToArray();setup.RulesConfig=battle.Simulation.Setup.RulesConfig;
+            setup.Permissions=battle.Simulation.Setup.Permissions;
+            setup.AttackLimitPerRobot=battle.Simulation.AttackLimitPerRobot;setup.FunctionRepeatLimit=battle.Simulation.FunctionRepeatLimit;
+            var enemy=battle.PreviewEnemy.stats.Copy();enemy.damage=0;setup.Waves[0][0].Enemy=enemy;
+            simulation.ApplyBalance(setup,Enumerable.Range(0,6).Select(i=>battle.RobotDefinition(i).stats.Copy()).ToArray(),new[]{enemy});
+            projectileViews.Clear();hitEffects.Clear();foreach(var view in views.Values)view.ClearVisuals();RefreshStats();
+        }
+#endif
         public DefenseSimulation PreviewSimulation => simulation;
         public bool IsShowing => selected != null && previewPanel.activeSelf;
         public void SetHitRangesVisible(bool visible) => hitEffects.SetHitRangesVisible(visible);
@@ -67,11 +86,14 @@ namespace CodingGame.Defense
         }
         void ResetPreview()
         {
-            ClearActors(); source = selected.Program; emptyElapsed = 0; effectSeconds = 0;
+            ClearActors(); source = selected.Program; emptyElapsed = 0;
             sourceLevel = selected.Level;
             var enemy = battle.PreviewEnemy.stats.Copy(); enemy.damage = 0;
             simulation = new DefenseSimulation(new BattleSetup {
+                StageOneLearning = battle.Simulation.Setup.StageOneLearning,
+                TestOptions=battle.Simulation.Options, RulesConfig=battle.Simulation.Setup.RulesConfig,
                 FunctionRepeatLimit = battle.Simulation.FunctionRepeatLimit,
+                AttackLimitPerRobot = battle.Simulation.AttackLimitPerRobot,
                 Min = new Point(-50,-50), Max = new Point(50,50), BaseHealth = 100,
                 Routes = new[] { new Route(new[] { new Point(2,0), new Point(-20,0) }, 1.2f) },
                 ActionProfiles = battle.Simulation.Setup.ActionProfiles.Select(p => p.Copy()).ToArray(),
@@ -84,6 +106,7 @@ namespace CodingGame.Defense
             bot.Level = selected.Level;
             if (bot.Health.HasValue) bot.Health = bot.MaxHealth;
             bot.RangeSetting = selected.RangeSetting;
+            bot.DamageSetting = selected.DamageSetting;
             if (source != null) simulation.ApplyProgram(bot.Id, source.Name, source.CopyBlocks());
             AddView(bot.Id, battle.RobotDefinition(bot.DefinitionIndex).prefab);
             simulation.Start();
@@ -93,7 +116,17 @@ namespace CodingGame.Defense
         Vector3 World(Point p) => arena.position + new Vector3(p.X,0,p.Y);
         void AdvancePreview(float dt)
         {
-            if (source != selected.Program || sourceLevel != selected.Level) ResetPreview();
+            if (sourceLevel != selected.Level) ResetPreview();
+            else if (source != selected.Program)
+            {
+                source = selected.Program;
+                var bot = simulation.Robots.FirstOrDefault();
+                if (bot != null)
+                {
+                    bot.Program = source == null ? null : new DefenseProgram(source.Name, source.CopyBlocks());
+                    bot.AutoExecute = false;
+                }
+            }
             bool wasEmpty = simulation.RemainingEnemies == 0;
             simulation.Advance(dt);
             if (simulation.RemainingEnemies > 0) { emptyElapsed = 0; return; }
@@ -109,10 +142,10 @@ namespace CodingGame.Defense
             if (!IsShowing) return;
             var rect = previewImage.rectTransform.rect;
             if (rect.width > 0 && rect.height > 0) previewCamera.aspect = rect.width / rect.height;
-            float dt = Time.unscaledDeltaTime;
+            float dt = battle.Simulation.Options.preview ? Time.unscaledDeltaTime : 0;
             AdvancePreview(dt);
             hitEffects.Tick(dt);
-            projectileViews.Sync(simulation, projectilePrefab, arena, arena.position);
+            if (simulation.Options.projectiles) projectileViews.Sync(simulation, projectilePrefab, arena, arena.position); else projectileViews.Clear();
             foreach (var id in views.Keys.Where(id => !simulation.Robots.Any(r => r.Id == id) && !simulation.Enemies.Any(e => e.Id == id)).ToArray())
             { Destroy(views[id].gameObject); views.Remove(id); }
             foreach (var bot in simulation.Robots)
@@ -125,15 +158,13 @@ namespace CodingGame.Defense
             foreach (var view in views.Values) view.TickVisual(dt);
             foreach (var e in simulation.Events)
             {
-                hitEffects.Show(e, arena, arena.position, previewCamera.transform.rotation);
-                if (views.TryGetValue(e.Source,out var view))
-                {
-                    if (e.Kind == "launch" || e.Kind == "slash") view.AimAt(World(e.Position));
-                    else if (!e.Melee && (e.Kind == "hit" || e.Kind == "buff" || e.Kind == "stun")) view.FireAt(World(e.Position));
-                }
-                if (e.Radius > 0 && e.Kind != "slash") { effectRing.Show(World(e.Position),e.Radius,e.Kind=="buff"?Color.green:Color.yellow); effectSeconds=.3f; }
+                views.TryGetValue(e.Source, out var view);
+                #if UNITY_EDITOR
+                battle.EditorObserve("Preview",simulation,e); hitEffects.Options=battle.EditorOptions;
+#endif
+                hitEffects.Show(e, arena, arena.position, previewCamera.transform.rotation, view, effectRing);
             }
-            simulation.Events.Clear(); effectSeconds-=dt; if(effectSeconds<=0) effectRing.Hide();
+            simulation.Events.Clear();
             RefreshStatus();
         }
         void RefreshStatus()
@@ -154,6 +185,7 @@ namespace CodingGame.Defense
                 case ActionResult.CoolingDown:
                     state = $"재사용 대기 · {Math.Max(0, bot.NextAction - simulation.Time):0.0}s"; break;
                 case ActionResult.NoTarget: state = "대상 없음"; break;
+                case ActionResult.AttackLimitReached: state = "웨이브 공격 횟수 한도 도달"; break;
                 case ActionResult.Ineffective: state = "호환되지 않는 명령"; break;
                 case ActionResult.Undecided: state = "호환 미정 명령"; break;
                 default: state = $"코드 시연 · {bot.Executions}회"; break;
@@ -170,7 +202,7 @@ namespace CodingGame.Defense
         void RefreshStats()
         {
             var s = selected.Spec;
-            float nextMultiplier = RobotState.UpgradeMultiplier;
+            float nextMultiplier = (float)Math.Pow(selected.UpgradeFactor, selected.Level);
             stats.text = $"{battle.RobotName(selected.Id)}  Lv.{selected.Level}" + (selected.IsMaxLevel ? "" : " → Lv.2") +
                 (s.role == RobotRole.Buffer ? "" : $"\n공격력  {UpgradeValue(selected.Damage,selected.Damage/selected.LevelMultiplier*nextMultiplier)}") +
                 $"\n사거리  {selected.Range:0.##}\n공격 간격  {selected.Interval:0.##}s\n" +

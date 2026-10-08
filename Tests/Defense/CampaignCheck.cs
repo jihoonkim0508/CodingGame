@@ -8,8 +8,8 @@ static class CampaignCheck
 {
     static int checks;
     static void Assert(bool value, string label) { if (!value) throw new Exception(label); checks++; }
-    static BattleSetup Setup() => new BattleSetup { Progression = FixtureProgression.Create(),
-        PlayerFlow = true, DropSeed = 42, Min = new Vector2(-20,-10), Max = new Vector2(20,10), BaseHealth = 20,
+    static BattleSetup Setup() => new BattleSetup { Progression = FixtureProgression.Create(), TestOptions = new DefenseTestOptions { attackLimit = false },
+        PlayerFlow = true, Min = new Vector2(-20,-10), Max = new Vector2(20,10), BaseHealth = 20,
         Routes = new[]{new Route(new[]{new Vector2(-10,0),new Vector2(10,0)},1.1f)},
         ActionProfiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(Spec).ToArray(),
         Waves = Enumerable.Range(0,5).Select(i => new[]{new SpawnGroup{Count=2+i,Interval=.2f,Enemy=new EnemySpec{health=10,speed=1}}}).ToArray()
@@ -127,13 +127,15 @@ static class CampaignCheck
         var second=Place(sim,RobotRole.Warrior,-5);sim.ApplyProgram(second.Id,"copy",new[]{new CodeBlock(BlockKind.Attack,"0",new CodeBlock(BlockKind.NearestEnemy))});
         Assert(sim.Available(BlockKind.Shot)==1,"legacy attack shares inventory");
         sim.RemoveRobot(second.Id);Assert(sim.Available(BlockKind.Shot)==2,"remove releases reservation");
+        // This fixture tests rewards and reservation, without randomly unlocking loop execution rules.
+        sim.Setup.Progression.drops = sim.Setup.Progression.drops.Where(d => d.kind != BlockKind.For && d.kind != BlockKind.While).ToArray();
         for(int wave=0;wave<5;wave++)
         {
             int before=sim.Inventory.Values.Sum();sim.Start();Assert(sim.Phase==BattlePhase.Running,"manual start wave "+wave);
             Reject(()=>sim.ApplyProgram(bot.Id,"midfight",new[]{new CodeBlock(BlockKind.Shot)}),"battle code lock");
             Assert(Place(sim,RobotRole.Warrior,-5)==null&&!sim.RemoveRobot(bot.Id),"battle placement removal lock");
             RunWave(sim);Assert(sim.Phase==BattlePhase.Reward&&sim.WaveIndex==wave,"reward stops progression");
-            Assert(sim.PendingDrops.Count==2+wave&&sim.Inventory.Values.Sum()==before,"drops pending until claim");
+            Assert(sim.PendingDrops.Count==2+wave&&sim.Inventory.Values.Sum()==before,$"drops pending until claim: wave={wave} drops={sim.PendingDrops.Count} kills={sim.Kills} leaks={sim.Leaks} stock={sim.Inventory.Values.Sum()} before={before}");
             double time=sim.Time;sim.Advance(200);Assert(sim.Time==time,"reward freezes clock");
             Assert(sim.ClaimRewards()&&sim.Inventory.Values.Sum()==before+2+wave&&sim.PendingDrops.Count==0,"claim transfers exactly once");
             Assert(!sim.ClaimRewards(),"duplicate claim rejected");
