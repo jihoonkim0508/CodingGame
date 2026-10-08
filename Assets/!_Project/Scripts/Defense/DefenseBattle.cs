@@ -29,6 +29,8 @@ namespace CodingGame.Defense
         [SerializeField] Collider[] blockedAreas = Array.Empty<Collider>();
         [SerializeField] Transform actorsRoot;
         [SerializeField] DefenseRoute[] routes = Array.Empty<DefenseRoute>();
+        [SerializeField, Tooltip("Transparent vertex-colour material for the red no-build strip drawn over paths while placing.")] Material noBuildMaterial;
+        LineRenderer[] noBuild = Array.Empty<LineRenderer>();
         [SerializeField] RobotDefinition[] robots = Array.Empty<RobotDefinition>();
         [SerializeField] EnemyDefinition[] enemies = Array.Empty<EnemyDefinition>();
         [SerializeField] DefenseRangeRing rangeRing;
@@ -83,6 +85,35 @@ namespace CodingGame.Defense
         public DefenseSimulation Simulation { get; private set; }
         public int SelectedId => selected;
         public bool IsPlacing => palette >= 0;
+        // While a robot is held, paint each path's no-build strip red so free ground and roads read differently.
+        void ShowNoBuild()
+        {
+            if (!noBuildMaterial || Simulation == null) return;
+            var routesNow = Simulation.Setup.Routes;
+            bool show = palette >= 0 && Simulation.CanPrepare && robots[palette].stats.role != RobotRole.Tank;
+            if (noBuild.Length != routesNow.Length)
+            {
+                foreach (var old in noBuild) if (old) Destroy(old.gameObject);
+                noBuild = routesNow.Select((route, i) =>
+                {
+                    var line = new GameObject("NoBuild" + i).AddComponent<LineRenderer>();
+                    line.transform.SetParent(actorsRoot, false); line.transform.rotation = Quaternion.Euler(90, 0, 0);
+                    line.alignment = LineAlignment.TransformZ; line.useWorldSpace = true; line.sharedMaterial = noBuildMaterial;
+                    line.numCornerVertices = 6; line.numCapVertices = 6; line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    line.startColor = line.endColor = new Color(1, .25f, .25f, .38f);
+                    return line;
+                }).ToArray();
+            }
+            for (int i = 0; i < noBuild.Length; i++)
+            {
+                var line = noBuild[i]; line.enabled = show;
+                if (!show) continue;
+                float radius = robots[palette].stats.radius;
+                line.widthMultiplier = (routesNow[i].HalfWidth + radius) * 2;
+                line.positionCount = routesNow[i].Points.Length;
+                line.SetPositions(routesNow[i].Points.Select(point => new Vector3(point.X, .09f, point.Y)).ToArray());
+            }
+        }
         public float BattleSpeed => speed;
         public string StatusMessage => shownMessage;
         public TutorialDirector Tutorial => tutorial;
@@ -382,6 +413,7 @@ namespace CodingGame.Defense
         }
         void Update()
         {
+            ShowNoBuild();
             if (Simulation == null || HelpOpen) return;
             var mouse = Mouse.current; var keyboard = Keyboard.current;
             bool tutorialActive = tutorial && tutorial.BlocksGameplayInput;

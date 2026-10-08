@@ -25,6 +25,7 @@ public static class StageOneFlowCheck
         {
             Tick();
             int section = (int)Get("section"); bool waiting = (bool)Get("waiting");
+            if (section == 1 && (int)Get("line") == 0) { battle.ChooseRobot(warrior); Tick(); }
             if (waiting && section == 1) battle.PlaceRobot(warrior, new Vector3(-4, 0, 1));
             if (waiting && section == 3) { battle.EditorCode.Panel.LoadProgram("t", StageOneCode.Parse(Answer(1, 3), false, BlockKind.Slash)); battle.EditorCode.Panel.Apply(); }
             if (waiting && section == 4) break;
@@ -80,9 +81,9 @@ public static class StageOneFlowCheck
                 guided++;
                 if (wave == 1 && section == 1)
                 {
-                    Assert(step.highlightKeys[0] == "Battle.Robot." + warrior, "Placement first points at the warrior button");
-                    battle.ChooseRobot(warrior); Tick();
-                    Assert(step.highlightKeys[0] == "Battle.DeploymentArea", "Then at the field");
+                    Assert((int)Get("line") == 3, "Placement waits on the 'find a good spot' line");
+                    Assert(step.highlightKeys[0] == "Battle.DeploymentArea", "Placement points at the field");
+                    tutorial.Next(); Tick(); Assert((bool)Get("waiting") && (int)Get("line") == 3, "Next cannot skip placement");
                     Assert(!battle.PlaceRobot(warrior, new Vector3(-6, 0, 4)), "Path placement must fail");
                     Assert(battle.PlaceRobot(warrior, new Vector3(-4, 0, 1)), "Allowed placement must succeed"); Tick();
                 }
@@ -110,6 +111,16 @@ public static class StageOneFlowCheck
                         $"Wave {wave}: phase={sim.Phase}, kills={sim.Kills}, leaks={sim.Leaks}, survivors={sim.LastSurvivors}");
                     Assert(!(bool)Get("waiting"), "Actual wave clear must release teaching gate");
                 }
+            }
+            else if (wave == 1 && section == 1 && (int)Get("line") == 0)
+            {
+                // Forced selection: only the warrior button, Next does nothing, choosing it moves on.
+                battle.Tutorial.EditorView.FinishTyping();
+                Assert(step != null && step.blockInput && step.dim && step.targetKeys.SequenceEqual(new[] { "Battle.Robot." + warrior }) && step.highlightKeys[0] == "Battle.Robot." + warrior, "Selection step outlines only the warrior button");
+                Assert(!battle.TutorialAllows("Battle.DeploymentArea") && !battle.TutorialAllows("Battle.Start"), "Only robot selection is allowed");
+                tutorial.Next(); Tick(); Assert((int)Get("line") == 0, "Next cannot skip robot selection");
+                battle.ChooseRobot(warrior); Tick(); Assert((int)Get("line") == 1, "Choosing the robot advances the dialogue");
+                guided++;
             }
             else
             {

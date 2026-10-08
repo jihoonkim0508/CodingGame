@@ -41,6 +41,8 @@ namespace CodingGame.Defense
         bool IsCodeSection => wave == 1 && section == 3 || wave == 2 && (section == 2 || section == 3) ||
             wave == 3 && section == 3 || wave == 4 && (section == 2 || section == 3) || wave == 5 && (section == 4 || section == 5);
         bool IsPlacement => wave == 1 && section == 1;
+        // 1-1 opens with "select the robot below": only that button works and only choosing it moves the dialogue on.
+        bool SelectGate => IsPlacement && line == 0 && !completed && !battle.IsPlacing && session.Robots.Count == 0;
         // Lessons between placement and the wave happen inside the code editor, next to the attack preview.
         bool InEditor => Robot != null && section > (wave == 1 ? 1 : 0) && section < BattleSection;
         RobotState Robot => session?.Robots.FirstOrDefault(r => r.Spec.role == teachingRole) ?? session?.Robots.FirstOrDefault();
@@ -82,6 +84,7 @@ namespace CodingGame.Defense
                 { missedShown = true; Say("오류 코드를 놓쳤어. 다시 시작해 배치와 코드를 조절해봐."); }
             }
             else if (waiting && IsPlacement && sim.Robots.Count > 0) Complete();
+            else if (IsPlacement && line == 0 && !completed && (battle.IsPlacing || sim.Robots.Count > 0)) { line = 1; Show(); }
             else if (waiting && IsCodeSection) CheckProgram();
             UpdateHighlight();
         }
@@ -152,7 +155,9 @@ namespace CodingGame.Defense
             string text = wave == 5 && IsBattleSection && waiting && !bossHint ? current.interaction.prompt : current.dialogues[Math.Min(line, current.dialogues.Length - 1)].text;
             dialogue.BottomLift = codeEditor.IsOpen ? 44 : 0;
             dialogue.Show(presentation, Position, Code(text), allowAnimation && FirstVisit(line, text), null);
-            dialogue.SetNavigation(line > 0, !waiting || completed);
+            // The line that asks for the action waits for it; Next stays locked until the player acts.
+            if (NeedsAction && !waiting && !completed && line == boundary - 1) { Wait(); return; }
+            dialogue.SetNavigation(line > 0 && !waiting, !SelectGate && (!waiting || completed));
             SetInput();
         }
         void Say(string text)
@@ -167,7 +172,7 @@ namespace CodingGame.Defense
             if (!Active) return;
             if (boot.activeSelf) return;
             if (dialogue.IsTyping) { dialogue.FinishTyping(); return; }
-            if (waiting && !completed) return;
+            if (waiting && !completed || SelectGate) return;
             if (line + 1 < current.dialogues.Length && (!NeedsAction || completed || line + 1 < boundary)) { line++; Show(); return; }
             if (NeedsAction && !completed) { Wait(); return; }
             section++;
@@ -186,8 +191,8 @@ namespace CodingGame.Defense
         // and a running wave keeps its targets clickable without boxes over the map.
         void SetInput()
         {
-            bool acting = waiting && !completed;
-            string[] keys = !acting ? Array.Empty<string>() : IsPlacement ? new[] { RobotKey, "Battle.DeploymentArea" } :
+            bool acting = waiting && !completed || SelectGate;
+            string[] keys = !acting ? Array.Empty<string>() : SelectGate ? new[] { RobotKey } : IsPlacement ? new[] { RobotKey, "Battle.DeploymentArea" } :
                 IsCodeSection ? new[] { "Editor.ProgramDropZone", "Editor.BlockPalette" } :
                 new[] { "Battle.Start", "Battle.Restart", RobotKey, "Battle.DeploymentArea", "Robot.Selected", "Battle.Develop", "Editor.ProgramDropZone", "Editor.BlockPalette", "Editor.Close" };
             step = new TutorialStep { kind = TutorialStepKind.ActionGuide, targetKeys = keys.Where(k => bridge.HasTarget(k)).ToArray(),
@@ -204,7 +209,7 @@ namespace CodingGame.Defense
                 IsCodeSection ? "Editor.ProgramDropZone" : codeEditor.IsOpen ? "Editor.Close" : "Battle.Start";
             if (step.highlightKeys.Length != 1 || step.highlightKeys[0] != key) step.highlightKeys = new[] { key };
         }
-        public bool Allows(string key) => !Active || waiting && !completed && (IsPlacement ? key == RobotKey || key == "Battle.DeploymentArea" :
+        public bool Allows(string key) => !Active || SelectGate && key == RobotKey || waiting && !completed && (IsPlacement ? key == RobotKey || key == "Battle.DeploymentArea" :
             IsCodeSection ? key.StartsWith("Editor.") && key != "Editor.Close" :
             IsBattleSection && (key == "Battle.Start" || key == "Battle.Restart" || key == RobotKey || key == "Battle.DeploymentArea" || key == "Robot.Selected" || key == "Battle.Develop" || key.StartsWith("Editor.")));
         void Complete()
