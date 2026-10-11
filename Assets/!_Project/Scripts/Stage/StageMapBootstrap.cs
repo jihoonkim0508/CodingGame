@@ -7,7 +7,9 @@ namespace CodingGame.StageMap
     public static class StageMapBootstrap
     {
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        static void Install()
+        static void Install() => EnsureInstalled();
+
+        public static void EnsureInstalled()
         {
             if (!string.Equals(SceneManager.GetActiveScene().name, "Stage", System.StringComparison.OrdinalIgnoreCase)) return;
             if (Object.FindAnyObjectByType<StageMapController>()) return;
@@ -28,6 +30,7 @@ namespace CodingGame.StageMap
 
             GameObject systems = new GameObject("StageMapSystems");
             systems.AddComponent<StageMapController>().Configure(definitions, nodes, camera);
+            Debug.Log($"[StageMap] 입력 컨트롤러 설치 완료 · 스테이지 {nodes.Length}개");
         }
 
         static StageDefinition[] CreateDefaultDefinitions(int count)
@@ -40,7 +43,7 @@ namespace CodingGame.StageMap
                 "반복해서 생성되는 오류 코드를 효율적으로 처리하는 공간",
                 "개별 도구의 핵심 시스템을 지켜내는 최종 관문"
             };
-            string[] scenes = { "IDE", "CodeBlock", "Defense", "SampleScene" };
+            string[] scenes = { "Defense", "Defense", "Defense", "Defense" };
             Color[] colors =
             {
                 new Color(0.25f, 0.85f, 0.38f), new Color(0.15f, 0.62f, 1f),

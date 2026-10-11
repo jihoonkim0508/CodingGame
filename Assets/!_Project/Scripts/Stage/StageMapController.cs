@@ -40,19 +40,8 @@ namespace CodingGame.StageMap
             }
 
             Mouse mouse = Mouse.current;
-            if (mouse == null || !mouse.leftButton.wasPressedThisFrame || cameraController.IsMoving) return;
-            Vector2 point = mouse.position.ReadValue();
-            point.y = Screen.height - point.y;
-            if (selected != null && panelRect.Contains(point)) return;
-
-            Ray ray = mapCamera.ScreenPointToRay(mouse.position.ReadValue());
-            if (Physics.Raycast(ray, out RaycastHit hit))
-            {
-                StageNode node = hit.collider.GetComponentInParent<StageNode>();
-                if (node != null) Select(node);
-                else if (selected != null) CancelSelection();
-            }
-            else if (selected != null) CancelSelection();
+            if (mouse == null || !mouse.leftButton.wasPressedThisFrame) return;
+            global::CodingGame.GameFlow.LoadScene("Defense");
         }
 
         void Select(StageNode node)
@@ -65,6 +54,7 @@ namespace CodingGame.StageMap
             selected = node;
             RefreshNodes();
             cameraController.Focus(node.transform);
+            EnterSelected();
         }
 
         void CancelSelection()
@@ -79,7 +69,7 @@ namespace CodingGame.StageMap
         {
             if (selected == null) return;
             Debug.Log($"[StageMap] 진입 선택 - STAGE {selected.Definition.Number}: {selected.Definition.Title} ({selected.Definition.SceneName})");
-            ShowToast($"STAGE {selected.Definition.Number} 진입 선택 로그를 기록했습니다.");
+            global::CodingGame.GameFlow.LoadScene(selected.Definition.SceneName);
         }
 
         void DeveloperClear()
@@ -133,6 +123,9 @@ namespace CodingGame.StageMap
         void OnGUI()
         {
             EnsureStyles();
+            DrawRect(new Rect(18f, 18f, 510f, 76f), new Color(0.04f, 0.09f, 0.16f, 0.92f));
+            GUI.Label(new Rect(34f, 25f, 480f, 30f), "도우미 로봇", new GUIStyle(titleStyle) { fontSize = 20, normal = { textColor = new Color(0.35f, 0.9f, 1f) } });
+            GUI.Label(new Rect(34f, 53f, 480f, 28f), "빛나는 1스테이지를 클릭해! 바로 작전지로 이동할게.", new GUIStyle(bodyStyle) { normal = { textColor = Color.white } });
             if (selected != null && !cameraController.IsMoving)
             {
                 float width = Mathf.Min(650f, Screen.width - 32f);

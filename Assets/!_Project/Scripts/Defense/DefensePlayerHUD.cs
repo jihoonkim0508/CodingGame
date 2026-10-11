@@ -26,7 +26,11 @@ namespace CodingGame.Defense
                 robotLabels.Length != 6 || robotLabels.Any(t => !t) || robotButtons.Length != 6 || robotButtons.Any(b => !b)) throw new InvalidOperationException("DefensePlayerHUD Inspector 참조를 연결하세요.");
             startButton.onClick.AddListener(battle.StartBattle);
             pauseButton.onClick.AddListener(battle.TogglePause); speedButton.onClick.AddListener(battle.ToggleSpeed);
-            claimButton.onClick.AddListener(() => { if (battle.Simulation.Phase == BattlePhase.Reward) battle.ClaimRewards(); else battle.Restart(); });
+            claimButton.onClick.AddListener(() =>
+            {
+                if (battle.Simulation.Phase == BattlePhase.Reward) battle.ClaimRewards();
+                else GameFlow.FinishDefense(battle.Simulation.Phase == BattlePhase.Victory);
+            });
             for (int i = 0; i < robotButtons.Length; i++) { int index = i; robotButtons[i].onClick.AddListener(() => battle.ChooseRobot(index)); }
         }
         public void SetVisible(bool visible) => canvasRoot.SetActive(visible);
@@ -67,7 +71,8 @@ namespace CodingGame.Defense
                 rewardTitle.text = reward ? $"WAVE {sim.WaveIndex + 1}  /  " + (sim.LastWaveTimedOut ? "TIME UP" : "CLEAR") : sim.Phase == BattlePhase.Victory ? "MISSION COMPLETE" : "CORE LOST";
                 rewardItems.text = reward ? (sim.PendingDrops.Count == 0 ? "드랍한 블록이 없습니다." : string.Join("\n", sim.PendingDrops.GroupBy(k => k).OrderBy(g => g.Key).Select(g => DefenseProgression.Label(g.Key) + "   × " + g.Count()))) :
                     (sim.Phase == BattlePhase.Victory ? "5개 웨이브 방어 성공" : "방어 실패 · 배치와 코드를 바꿔 도전하세요") + $"\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
-                claimLabel.text = reward ? (sim.WaveIndex + 1 == sim.Setup.Waves.Length ? "보상 수령 · 작전 완료" : "보상 수령 · 다음 준비") : "다시 시작";
+                claimLabel.text = reward ? (sim.WaveIndex + 1 == sim.Setup.Waves.Length ? "보상 수령 · 작전 완료" : "보상 수령 · 다음 준비") :
+                    sim.Phase == BattlePhase.Victory ? "스테이지로 돌아가기" : "타이틀로 돌아가기";
                 if (reward) rewardItems.text += $"\n\n잔여 적 {sim.LastSurvivors}" + (sim.WaveIndex + 1 < sim.Setup.Waves.Length ? " · 다음 웨이브에 추가" : " · 최종 기록");
             }
         }
