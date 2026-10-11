@@ -1,0 +1,10 @@
+Unity runtime and editor preview validation
+PASS: real editor AnimationMode repeated preview/stop, clean scene preserved and save-time restoration.
+Initial state: sequence=Modular Map; anim=False; enabled=True; auto=True; playing=True; paused=False; scene=Assets/!_Project/Scenes/ArtTestScene.unity; maps=1
+PASS: automatic stage entry, unscaled completion, duplicate/re-enable/prefab retry suppression.
+Before retry: scene=Assets/!_Project/Scenes/ArtTestScene.unity; lastScene=Assets/!_Project/Scenes/ArtTestScene.unity
+After retry: starts=0; key=0a1fa904307041989989169152ac06b5
+PASS: selecting the same stage again replays, same-scene reload retry skips.
+PASS: selection scene return replays stage entry.
+PASS: new Play resets entry state with domain reload and scene reload disabled.
+RESULT: PASS

@@ -1,0 +1,118 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 28ed52d47d2814047843a7e36c877bb8, type: 3}
+  m_Name: ModularMapPalette
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.ModularMapPalette
+  floors:
+  - label: FloorBoxBase
+    prefab: {fileID: 2255287691666254157, guid: 4846570de3edab0439c84ef3235eef53, type: 3}
+    exposedEdges: 0
+    cutCorners: 0
+    generatedComplement: 0
+  - label: FloorBoxCorner1
+    prefab: {fileID: 1064417446516465558, guid: 11ccc43e93e8df5408fc011bdc070099, type: 3}
+    exposedEdges: 9
+    cutCorners: 0
+    generatedComplement: 0
+  - label: FloorBoxCorner2
+    prefab: {fileID: 6643360447068475383, guid: c52ef19c5241eba4889904deca9e9b2f, type: 3}
+    exposedEdges: 13
+    cutCorners: 0
+    generatedComplement: 0
+  - label: FloorBoxSide1
+    prefab: {fileID: 3595225605711454445, guid: ef3406914d40a8040a68be9d602a1eda, type: 3}
+    exposedEdges: 1
+    cutCorners: 0
+    generatedComplement: 0
+  - label: FloorBoxSide2
+    prefab: {fileID: 7951162637452919839, guid: 00935e6356a2bbf4aae1cec0a1ae41ce, type: 3}
+    exposedEdges: 5
+    cutCorners: 0
+    generatedComplement: 0
+  - label: FloorBoxSideCorner1
+    prefab: {fileID: 4635939651094508134, guid: b009717b390c6a149a292838f65bcffd, type: 3}
+    exposedEdges: 0
+    cutCorners: 8
+    generatedComplement: 0
+  - label: FloorBoxSideCorner2
+    prefab: {fileID: 2275675915658683597, guid: c1d7891422f98a146b2ca67d45ccfb8d, type: 3}
+    exposedEdges: 0
+    cutCorners: 12
+    generatedComplement: 0
+  - label: FloorBoxSideCorner3
+    prefab: {fileID: 6887723487331295880, guid: 1b0a10e617251544392375b25ec07eae, type: 3}
+    exposedEdges: 0
+    cutCorners: 13
+    generatedComplement: 0
+  - label: FloorBoxSideCorner4
+    prefab: {fileID: 2531874992246651141, guid: 223cc31593fef1c47ad61b7881296082, type: 3}
+    exposedEdges: 0
+    cutCorners: 15
+    generatedComplement: 0
+  - label: AutoFloor_E15_C0
+    prefab: {fileID: 4433760520615917376, guid: f0c06f4043c1eef4aab0f658fa1cbeab, type: 3}
+    exposedEdges: 15
+    cutCorners: 0
+    generatedComplement: 1
+  - label: AutoFloor_E12_C1
+    prefab: {fileID: 7772162302518467280, guid: 2d156021d792f8e48ae3eff6c77af70c, type: 3}
+    exposedEdges: 12
+    cutCorners: 1
+    generatedComplement: 1
+  - label: AutoFloor_E8_C3
+    prefab: {fileID: 4832998850885555047, guid: b1936af870575bf448e6ab09487748db, type: 3}
+    exposedEdges: 8
+    cutCorners: 3
+    generatedComplement: 1
+  - label: AutoFloor_E8_C2
+    prefab: {fileID: 8859296866992890055, guid: fd11f9dfab5ead640805da7f043f91c4, type: 3}
+    exposedEdges: 8
+    cutCorners: 2
+    generatedComplement: 1
+  - label: AutoFloor_E4_C8
+    prefab: {fileID: 9180724343979900974, guid: be2946836bd4a0c48a42a91ac4ec530a, type: 3}
+    exposedEdges: 4
+    cutCorners: 8
+    generatedComplement: 1
+  - label: AutoFloor_E0_C10
+    prefab: {fileID: 7531166011786334774, guid: b59a13673df30264db7e0bbefc0a86d0, type: 3}
+    exposedEdges: 0
+    cutCorners: 10
+    generatedComplement: 1
+  roads:
+  - label: "\uB2E8\uB3C5"
+    prefab: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+    connections: 0
+    rotationOffset: 0
+  - label: "\uB05D\uC810 (+Z)"
+    prefab: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+    connections: 1
+    rotationOffset: 0
+  - label: "\uC9C1\uC120 (+Z / -Z)"
+    prefab: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+    connections: 5
+    rotationOffset: 0
+  - label: "\uCF54\uB108 (+Z / +X)"
+    prefab: {fileID: 6533478152129440526, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
+    connections: 3
+    rotationOffset: 0
+  - label: "T \uBD84\uAE30 (+Z / +X / -X)"
+    prefab: {fileID: 9170068040922727507, guid: 7b9977ff43ce84b47952217a7d2681e5, type: 3}
+    connections: 11
+    rotationOffset: 0
+  - label: "\uAD50\uCC28"
+    prefab: {fileID: 0}
+    connections: 15
+    rotationOffset: 0
+  floorColorVersion: 2
+  roadModelVersion: 3
+  roadLift: 0

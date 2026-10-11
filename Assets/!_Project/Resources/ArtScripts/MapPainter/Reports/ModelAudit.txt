@@ -1,0 +1,17 @@
+Modular floor source geometry audit
+Unity: 6000.3.21f1
+FloorBoxBase: source size=(2.00000, 2.00000, 2.00000); uniform scale=0.50000; edges=0; corners=0
+FloorBoxCorner1: source size=(2.00000, 2.00000, 2.00000); uniform scale=0.50000; edges=9; corners=0
+FloorBoxCorner2: source size=(2.00000, 2.00000, 2.00000); uniform scale=0.50000; edges=13; corners=0
+FloorBoxSide1: source size=(2.00000, 2.00000, 2.00000); uniform scale=0.50000; edges=1; corners=0
+FloorBoxSide2: source size=(2.00000, 2.00000, 2.00000); uniform scale=0.50000; edges=5; corners=0
+FloorBoxSideCorner1: source size=(2.00000, 2.00000, 2.00000); uniform scale=0.50000; edges=0; corners=8
+FloorBoxSideCorner2: source size=(2.00000, 2.00000, 2.00000); uniform scale=0.50000; edges=0; corners=12
+FloorBoxSideCorner3: source size=(2.00000, 2.00000, 2.00000); uniform scale=0.50000; edges=0; corners=13
+FloorBoxSideCorner4: source size=(2.00000, 2.00000, 2.00000); uniform scale=0.50000; edges=0; corners=15
+AutoFloor_E15_C0: complementary unit mesh (0.025 bevel; source-style recessed groove). Supplied FBX unchanged.
+AutoFloor_E12_C1: complementary unit mesh (0.025 bevel; source-style recessed groove). Supplied FBX unchanged.
+AutoFloor_E8_C3: complementary unit mesh (0.025 bevel; source-style recessed groove). Supplied FBX unchanged.
+AutoFloor_E8_C2: complementary unit mesh (0.025 bevel; source-style recessed groove). Supplied FBX unchanged.
+AutoFloor_E4_C8: complementary unit mesh (0.025 bevel; source-style recessed groove). Supplied FBX unchanged.
+AutoFloor_E0_C10: complementary unit mesh (0.025 bevel; source-style recessed groove). Supplied FBX unchanged.

@@ -1,0 +1,82 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace CodingGame.Art.MapPainter
+{
+    [ExecuteAlways, DisallowMultipleComponent]
+    public sealed class ModularMapRoot : MonoBehaviour
+    {
+        public ModularMapPalette palette;
+        [Min(1)] public int cellSize=1;
+        [Min(.05f)] public float floorHeight=1;
+        public bool useFloorColors = true;
+        public Color upperColor = new Color(.68f,.72f,.78f,1);
+        public Color lowerColor = new Color(.26f,.31f,.39f,1);
+        public bool useRoadColors=true;
+        public Color roadInnerColor=new Color(.95f,.64f,.29f,1);
+        public Color roadBorderColor=new Color(.72f,.75f,.76f,1);
+        [Range(0,1)] public float lightSoftness=.65f;
+        [Range(0,1)] public float shadowStrength=.35f;
+        [Range(0,1)] public float bodyGradient=.18f;
+        [Range(0,1)] public float bevelHighlight=.12f;
+        public bool blueprintBackground=true;
+        public Color blueprintBlue=new Color(.035f,.24f,.58f,1);
+        public Color blueprintLines=Color.white;
+        [Min(.05f)] public float blueprintSpacing=1;
+        [Range(.5f,3)] public float blueprintLineWidth=1;
+        [Range(0,1)] public float blueprintMinorOpacity=.18f;
+        [Range(0,1)] public float blueprintMajorOpacity=.38f;
+        [Min(1)] public int blueprintMajorEvery=5;
+        [HideInInspector] public List<GridCell> floorCells = new List<GridCell>();
+        [HideInInspector] public List<GridCell> roadCells = new List<GridCell>();
+        [HideInInspector] public Transform floorGroup;
+        [HideInInspector] public Transform roadGroup;
+        public Vector3 CellPosition(GridCell cell) => transform.position + new Vector3(cell.x*cellSize, 0, cell.z*cellSize);
+        private bool refreshColors;
+        private void OnEnable() { ApplyFloorColors(); }
+        private void OnValidate() { cellSize=Mathf.Max(1,cellSize); floorHeight=Mathf.Max(.05f,floorHeight); blueprintSpacing=Mathf.Max(.05f,blueprintSpacing); blueprintMajorEvery=Mathf.Max(1,blueprintMajorEvery); refreshColors=true; }
+        private void Update() { if(refreshColors) { refreshColors=false; ApplyFloorColors(); } }
+        public void ApplyFloorColors()
+        {
+            ApplyLayout();
+            if(floorGroup)foreach(var renderer in floorGroup.GetComponentsInChildren<MeshRenderer>(true))
+            { SetFloorColors(renderer,useFloorColors,upperColor,lowerColor); ApplyStyle(renderer,transform.position.y,floorHeight); }
+            if(roadGroup)foreach(var renderer in roadGroup.GetComponentsInChildren<MeshRenderer>(true))
+            { SetFloorColors(renderer,useRoadColors,roadInnerColor,roadBorderColor); ApplyStyle(renderer,transform.position.y,cellSize); }
+            foreach(var backdrop in GetComponentsInChildren<BlueprintBackdrop>(true))backdrop.Refresh();
+        }
+        public void ApplyLayout()
+        {
+            foreach(var tile in GetComponentsInChildren<MapTileMarker>(true))
+            {
+                if(tile.transform.parent!=floorGroup&&tile.transform.parent!=roadGroup)continue;
+                tile.transform.localPosition=new Vector3(tile.cell.x*cellSize,tile.road&&palette?palette.roadLift:0,tile.cell.z*cellSize);
+                if(tile.transform.childCount>0)tile.transform.GetChild(0).localScale=new Vector3(cellSize,tile.road?cellSize:floorHeight,cellSize);
+            }
+        }
+        public void ApplyStyle(MeshRenderer renderer,float top,float height)
+        {
+            for(int slot=0;slot<renderer.sharedMaterials.Length;slot++)
+            {
+                var block=new MaterialPropertyBlock(); renderer.GetPropertyBlock(block,slot);
+                block.SetFloat("_LightSoftness",lightSoftness); block.SetFloat("_ShadowStrength",shadowStrength);
+                block.SetFloat("_GradientStrength",bodyGradient); block.SetFloat("_BevelHighlight",bevelHighlight);
+                block.SetFloat("_MapTopY",top); block.SetFloat("_MapHeight",height); renderer.SetPropertyBlock(block,slot);
+            }
+        }
+        public static void SetFloorColors(MeshRenderer renderer,bool enabled,Color upper,Color lower)
+        {
+            var filter=renderer.GetComponent<MeshFilter>();
+            if(!filter || !filter.sharedMesh || filter.sharedMesh.subMeshCount<2)return;
+            int slots=Mathf.Min(2,renderer.sharedMaterials.Length);
+            for(int slot=0;slot<slots;slot++)
+            {
+                if(!enabled) { renderer.SetPropertyBlock(null,slot); continue; }
+                var block=new MaterialPropertyBlock(); renderer.GetPropertyBlock(block,slot);
+                Color color=slot==0?upper:lower; color.a=1;
+                block.SetColor("_BaseColor",color); block.SetColor("_Color",color);
+                renderer.SetPropertyBlock(block,slot);
+            }
+        }
+    }
+}

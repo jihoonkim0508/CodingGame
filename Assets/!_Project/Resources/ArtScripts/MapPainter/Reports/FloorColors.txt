@@ -1,0 +1,16 @@
+Floor color slots: 0 = upper plate; 1 = lower body; dividing plane is the groove center at unit Y=-0.2.
+FloorBoxBase: original slots=1; generated copy slots=2
+FloorBoxCorner1: original slots=1; generated copy slots=2
+FloorBoxCorner2: original slots=1; generated copy slots=2
+FloorBoxSide1: original slots=1; generated copy slots=2
+FloorBoxSide2: original slots=1; generated copy slots=2
+FloorBoxSideCorner1: original slots=1; generated copy slots=2
+FloorBoxSideCorner2: original slots=1; generated copy slots=2
+FloorBoxSideCorner3: original slots=1; generated copy slots=2
+FloorBoxSideCorner4: original slots=1; generated copy slots=2
+AutoFloor_E15_C0: original slots=1; generated copy slots=2
+AutoFloor_E12_C1: original slots=1; generated copy slots=2
+AutoFloor_E8_C3: original slots=1; generated copy slots=2
+AutoFloor_E8_C2: original slots=1; generated copy slots=2
+AutoFloor_E4_C8: original slots=1; generated copy slots=2
+AutoFloor_E0_C10: original slots=1; generated copy slots=2
