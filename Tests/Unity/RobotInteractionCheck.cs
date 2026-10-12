@@ -19,13 +19,13 @@ public static class RobotInteractionCheck
         var hud = UnityEngine.Object.FindFirstObjectByType<DefensePlayerHUD>();
         var inv = UnityEngine.Object.FindFirstObjectByType<DefenseInventoryUI>();
         var editor = UnityEngine.Object.FindFirstObjectByType<DefenseCodeEditor>();
-        // Stage 1 rules (only the shooter unlocked) without the tutorial gating input.
+        // Stage 1 rules (only the warrior unlocked) without the tutorial gating input.
         battle.EditorStartSession(1, 1, false, new DefenseTestOptions { tutorial = false, tutorialInput = false }); var sim = battle.Simulation;
         hud.SendMessage("LateUpdate");
         var buttons = new SerializedObject(hud).FindProperty("robotButtons");
         for (int i = 0; i < 6; i++) Require(((Button)buttons.GetArrayElementAtIndex(i).objectReferenceValue).gameObject.activeSelf ==
-            (battle.DefinitionRole(i) == RobotRole.Shooter), "Only unlocked robot visible");
-        int index = Enumerable.Range(0, 6).Single(i => battle.DefinitionRole(i) == RobotRole.Shooter);
+            (battle.DefinitionRole(i) == RobotRole.Warrior), "Only unlocked robot visible");
+        int index = Enumerable.Range(0, 6).Single(i => battle.DefinitionRole(i) == RobotRole.Warrior);
         bool placed = false;
         for (float x = sim.Setup.Min.X + 1; x < sim.Setup.Max.X - 1 && !placed; x++)
             for (float y = sim.Setup.Min.Y + 1; y < sim.Setup.Max.Y - 1 && !placed; y++)

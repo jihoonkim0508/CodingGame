@@ -33,7 +33,8 @@ try
     Check(label.text.Contains("재사용 대기"),"cooldown distinct from body blocking");
     Check(preview.PreviewSimulation.Enemies.All(e=>e.BlockedBy!=0&&e.Position.X>0),"authored preview enemies intercepted");
     UnityEngine.Canvas.ForceUpdateCanvases(); label.ForceMeshUpdate();
-    Check(label.preferredHeight<=label.rectTransform.rect.height&&label.preferredWidth<=label.rectTransform.rect.width,"status fits authored panel");
+    // preferred size ignores auto sizing; the rendered bounds are what must fit.
+    Check(label.textBounds.size.y<=label.rectTransform.rect.height&&label.textBounds.size.x<=label.rectTransform.rect.width,"status fits authored panel");
     preview.SendMessage("ResetPreview"); Status();
     Check(preview.PreviewSimulation.Robots.Count==1&&preview.PreviewSimulation.Enemies.Count==0&&label.text.Contains("저지 비활성"),"loop resets stance and actors");
     preview.PreviewSimulation.Advance(2.5); Status();

@@ -13,7 +13,7 @@ try
     // Sandbox with exact stock: these checks count reservations, so the inventory limit stays on.
     battle.EditorStartSession(2, 1, false, new CodingGame.Defense.DefenseTestOptions { tutorial = false, tutorialInput = false });
     battle.Simulation.GrantRobot(CodingGame.Defense.RobotRole.Shooter, 1); battle.Simulation.GrantRobot(CodingGame.Defense.RobotRole.Warrior, 1);
-    battle.Simulation.GrantBlock(shotKind, 3);
+    battle.Simulation.Inventory[shotKind] = 3; // exact stock: Stage 2 already starts with some attack blocks
     if (CodingGame.Defense.DefenseProgression.Consumes(CodingGame.BlockCoding.BlockKind.Wait)) battle.Simulation.GrantBlock(CodingGame.BlockCoding.BlockKind.Wait, 2);
     Check(battle.PlaceRobot(4, new UnityEngine.Vector3(-8, 0, 6)), "place first robot");
     int firstId = battle.SelectedId;
