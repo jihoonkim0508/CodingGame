@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -8,20 +7,15 @@ namespace CodingGame.StageMap
     [DisallowMultipleComponent]
     public sealed class StageMapController : MonoBehaviour
     {
-        [SerializeField] StageDefinition[] stages;
-        [SerializeField] StageNode[] nodes;
-        [SerializeField] Camera mapCamera;
+        StageNode[] nodes;
+        Camera mapCamera;
         StageCameraController cameraController;
-        StageNode selected;
-        GUIStyle titleStyle, bodyStyle, buttonStyle, badgeStyle;
-        Font koreanFont;
-        Rect panelRect;
+        GUIStyle bodyStyle, toastStyle, guideTitleStyle, guideBodyStyle;
         string toast;
         float toastUntil;
 
-        public void Configure(StageDefinition[] definitions, StageNode[] stageNodes, Camera camera)
+        public void Configure(StageNode[] stageNodes, Camera camera)
         {
-            stages = definitions;
             nodes = stageNodes;
             mapCamera = camera;
             cameraController = gameObject.AddComponent<StageCameraController>();
@@ -36,67 +30,41 @@ namespace CodingGame.StageMap
             {
                 if (keyboard.zKey.wasPressedThisFrame) DeveloperClear();
                 if (keyboard.qKey.wasPressedThisFrame) DeveloperReset();
-                if (keyboard.escapeKey.wasPressedThisFrame) CancelSelection();
             }
 
             Mouse mouse = Mouse.current;
             if (mouse == null || !mouse.leftButton.wasPressedThisFrame || cameraController.IsMoving) return;
             if (Physics.Raycast(mapCamera.ScreenPointToRay(mouse.position.ReadValue()), out RaycastHit hit) &&
-                hit.collider.GetComponentInParent<StageNode>() is StageNode node) Select(node);
+                hit.collider.GetComponentInParent<StageNode>() is StageNode node) Enter(node);
         }
 
-        void Select(StageNode node)
+        void Enter(StageNode node)
         {
-            if (node.State == StageState.Locked)
-            {
-                ShowToast($"STAGE {node.Definition.Number} - LOCKED");
-                return;
-            }
-            selected = node;
-            RefreshNodes();
+            if (node.State == StageState.Locked) { ShowToast($"STAGE {node.Number} - LOCKED"); return; }
+            StageProgress.SelectedStage = node.Number;
             cameraController.Focus(node.transform);
-            EnterSelected();
-        }
-
-        void CancelSelection()
-        {
-            if (selected == null) return;
-            selected = null;
-            RefreshNodes();
-            cameraController.Restore();
-        }
-
-        void EnterSelected()
-        {
-            if (selected == null) return;
-            Debug.Log($"[StageMap] 진입 선택 - STAGE {selected.Definition.Number}: {selected.Definition.Title} ({selected.Definition.SceneName})");
-            StageProgress.SelectedStage = selected.Definition.Number;
-            global::CodingGame.GameFlow.LoadScene(selected.Definition.SceneName);
+            GameFlow.LoadScene(GameFlow.DefenseScene);
         }
 
         void DeveloperClear()
         {
-            StageNode target = selected;
-            if (target == null || target.State == StageState.Locked)
-                target = nodes.FirstOrDefault(node => node.State == StageState.Available);
+            StageNode target = nodes.FirstOrDefault(node => node.State == StageState.Available);
             if (target == null) { ShowToast("모든 스테이지가 클리어되었습니다."); return; }
-            StageProgress.MarkCleared(target.Definition.Id);
-            ShowToast($"DEV: STAGE {target.Definition.Number} 클리어");
+            StageProgress.MarkCleared(target.Number);
+            ShowToast($"DEV: STAGE {target.Number} 클리어");
             RefreshNodes();
         }
 
         void DeveloperReset()
         {
-            StageProgress.ResetAll(stages);
-            CancelSelection();
+            StageProgress.ResetAll(nodes.Length);
             RefreshNodes();
             ShowToast("DEV: 진행 상태 초기화");
         }
 
         void RefreshNodes()
         {
-            for (int i = 0; i < nodes.Length; i++)
-                nodes[i].SetState(StageProgress.GetState(stages, i), nodes[i] == selected);
+            foreach (StageNode node in nodes) node.Refresh();
         }
 
         void ShowToast(string message)
@@ -107,62 +75,23 @@ namespace CodingGame.StageMap
 
         void EnsureStyles()
         {
-            if (titleStyle != null) return;
-            koreanFont = Font.CreateDynamicFontFromOSFont(new[] { "Malgun Gothic", "Apple SD Gothic Neo", "Arial" }, 28);
-            titleStyle = new GUIStyle(GUI.skin.label) { font = koreanFont, fontSize = 27, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.08f, 0.1f, 0.14f) } };
-            bodyStyle = new GUIStyle(GUI.skin.label) { font = koreanFont, fontSize = 18, wordWrap = true, normal = { textColor = new Color(0.25f, 0.28f, 0.34f) } };
-            buttonStyle = new GUIStyle(GUI.skin.button)
-            {
-                font = koreanFont,
-                fontSize = 18,
-                fontStyle = FontStyle.Bold,
-                normal = { textColor = new Color(0.12f, 0.14f, 0.18f) },
-                hover = { textColor = new Color(0.05f, 0.32f, 0.62f) }
-            };
-            badgeStyle = new GUIStyle(titleStyle) { fontSize = 20, alignment = TextAnchor.MiddleCenter };
+            if (bodyStyle != null) return;
+            Font font = Font.CreateDynamicFontFromOSFont(new[] { "Malgun Gothic", "Apple SD Gothic Neo", "Arial" }, 28);
+            bodyStyle = new GUIStyle(GUI.skin.label) { font = font, fontSize = 18, wordWrap = true, normal = { textColor = new Color(0.25f, 0.28f, 0.34f) } };
+            toastStyle = new GUIStyle(GUI.skin.button) { font = font, fontSize = 18, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.12f, 0.14f, 0.18f) } };
+            guideTitleStyle = new GUIStyle(bodyStyle) { fontSize = 20, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.35f, 0.9f, 1f) } };
+            guideBodyStyle = new GUIStyle(bodyStyle) { normal = { textColor = Color.white } };
         }
 
         void OnGUI()
         {
             EnsureStyles();
             DrawRect(new Rect(18f, 18f, 510f, 76f), new Color(0.04f, 0.09f, 0.16f, 0.92f));
-            GUI.Label(new Rect(34f, 25f, 480f, 30f), "도우미 로봇", new GUIStyle(titleStyle) { fontSize = 20, normal = { textColor = new Color(0.35f, 0.9f, 1f) } });
-            GUI.Label(new Rect(34f, 53f, 480f, 28f), "빛나는 1스테이지를 클릭해! 바로 작전지로 이동할게.", new GUIStyle(bodyStyle) { normal = { textColor = Color.white } });
-            if (selected != null && !cameraController.IsMoving)
-            {
-                float width = Mathf.Min(650f, Screen.width - 32f);
-                Vector3 screenPoint = mapCamera.WorldToScreenPoint(selected.transform.position + Vector3.up * 1.05f);
-                float x = Mathf.Clamp(screenPoint.x - width * 0.5f, 16f, Screen.width - width - 16f);
-                float y = Mathf.Clamp(Screen.height - screenPoint.y - 190f, 18f, Screen.height - 205f);
-                panelRect = new Rect(x, y, width, 168f);
-                float anchorX = Mathf.Clamp(screenPoint.x, panelRect.x + 24f, panelRect.xMax - 24f);
-                float anchorY = Screen.height - screenPoint.y;
-                if (anchorY > panelRect.yMax)
-                    DrawRect(new Rect(anchorX - 1f, panelRect.yMax, 2f, anchorY - panelRect.yMax), new Color(0.72f, 0.74f, 0.78f, 0.9f));
-                DrawRect(new Rect(panelRect.x - 1f, panelRect.y - 1f, panelRect.width + 2f, panelRect.height + 2f), new Color(0.76f, 0.78f, 0.82f, 0.98f));
-                DrawRect(panelRect, new Color(1f, 1f, 1f, 0.98f));
-                DrawRect(new Rect(panelRect.x, panelRect.y, panelRect.width, 3f), new Color(0.2f, 0.55f, 0.85f, 0.9f));
-
-                Rect preview = new Rect(panelRect.x + 16f, panelRect.y + 16f, 145f, 96f);
-                if (selected.Definition.Preview) GUI.DrawTexture(preview, selected.Definition.Preview, ScaleMode.ScaleAndCrop);
-                else
-                {
-                    Color old = GUI.color;
-                    GUI.color = selected.Definition.ClearedColor;
-                    GUI.Box(preview, $"STAGE {selected.Definition.Number}", badgeStyle);
-                    GUI.color = old;
-                }
-
-                GUI.Label(new Rect(preview.xMax + 18f, panelRect.y + 13f, width - 195f, 40f), $"STAGE {selected.Definition.Number}  {selected.Definition.Title}", titleStyle);
-                GUI.Label(new Rect(preview.xMax + 18f, panelRect.y + 55f, width - 195f, 58f), selected.Definition.Description, bodyStyle);
-                float buttonY = panelRect.yMax - 45f;
-                if (GUI.Button(new Rect(panelRect.xMax - 264f, buttonY, 116f, 34f), "진입하기", buttonStyle)) EnterSelected();
-                if (GUI.Button(new Rect(panelRect.xMax - 138f, buttonY, 116f, 34f), "취소하기", buttonStyle)) CancelSelection();
-            }
-
-            GUI.Label(new Rect(18f, Screen.height - 38f, 420f, 28f), "DEV  Z: 클리어    Q: 초기화    ESC: 취소", bodyStyle);
+            GUI.Label(new Rect(34f, 25f, 480f, 30f), "도우미 로봇", guideTitleStyle);
+            GUI.Label(new Rect(34f, 53f, 480f, 28f), "빛나는 1스테이지를 클릭해! 바로 작전지로 이동할게.", guideBodyStyle);
+            GUI.Label(new Rect(18f, Screen.height - 38f, 420f, 28f), "DEV  Z: 클리어    Q: 초기화", bodyStyle);
             if (Time.unscaledTime < toastUntil)
-                GUI.Box(new Rect((Screen.width - 430f) * 0.5f, Screen.height - 80f, 430f, 45f), toast, buttonStyle);
+                GUI.Box(new Rect((Screen.width - 430f) * 0.5f, Screen.height - 80f, 430f, 45f), toast, toastStyle);
         }
 
         static void DrawRect(Rect rect, Color color)
@@ -172,6 +101,5 @@ namespace CodingGame.StageMap
             GUI.DrawTexture(rect, Texture2D.whiteTexture);
             GUI.color = previous;
         }
-
     }
 }

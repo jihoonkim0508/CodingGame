@@ -2,33 +2,30 @@ using UnityEngine;
 
 namespace CodingGame.StageMap
 {
+    public enum StageState { Locked, Available, Cleared }
+
     public static class StageProgress
     {
-        const string Prefix = "CodingGame.StageMap.Cleared.";
+        const string Prefix = "CodingGame.StageMap.Cleared.stage-";
         // Stage number the map handed to the Defense scene; 0 when Defense was opened directly.
         public static int SelectedStage;
 
-        public static bool IsCleared(string stageId) => PlayerPrefs.GetInt(Prefix + stageId, 0) == 1;
+        static bool IsCleared(int number) => PlayerPrefs.GetInt(Prefix + number, 0) == 1;
 
-        public static void MarkCleared(string stageId)
+        public static void MarkCleared(int number)
         {
-            PlayerPrefs.SetInt(Prefix + stageId, 1);
+            PlayerPrefs.SetInt(Prefix + number, 1);
             PlayerPrefs.Save();
         }
 
-        public static void ResetAll(StageDefinition[] stages)
+        public static void ResetAll(int count)
         {
-            foreach (StageDefinition stage in stages)
-                PlayerPrefs.DeleteKey(Prefix + stage.Id);
+            for (int number = 1; number <= count; number++) PlayerPrefs.DeleteKey(Prefix + number);
             PlayerPrefs.Save();
         }
 
-        public static StageState GetState(StageDefinition[] stages, int index)
-        {
-            if (index < 0 || index >= stages.Length) return StageState.Locked;
-            if (IsCleared(stages[index].Id)) return StageState.Cleared;
-            if (index == 0 || IsCleared(stages[index - 1].Id)) return StageState.Available;
-            return StageState.Locked;
-        }
+        public static StageState GetState(int number) =>
+            IsCleared(number) ? StageState.Cleared :
+            number == 1 || IsCleared(number - 1) ? StageState.Available : StageState.Locked;
     }
 }

@@ -241,8 +241,8 @@ namespace CodingGame.Defense
             if (!TutorialAllows("Battle.ContinueCampaign")) return;
             if (FromStageMap)
             {
-                StageMap.StageProgress.MarkCleared($"stage-{stage}");
-                GameFlow.FinishDefense(true);
+                StageMap.StageProgress.MarkCleared(stage);
+                GameFlow.LoadScene(GameFlow.StageScene);
                 return;
             }
             if (Simulation.CanAdvanceStage)

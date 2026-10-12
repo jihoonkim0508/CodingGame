@@ -5,12 +5,13 @@ using UnityEngine.UI;
 
 namespace CodingGame
 {
+    // Created before the first scene loads and kept across scenes: owns the fade and the Title → Stage → Defense flow.
     public sealed class GameFlow : MonoBehaviour
     {
+        public const string TitleScene = "Title", StageScene = "Stage", DefenseScene = "Defense";
         const float FadeSeconds = 0.35f;
         static GameFlow instance;
         Image fade;
-        GameObject fadeCover;
         bool changingScene;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -29,20 +30,17 @@ namespace CodingGame
             canvas.sortingOrder = short.MaxValue;
             gameObject.AddComponent<GraphicRaycaster>();
 
-            fadeCover = new GameObject("Fade", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            fadeCover.transform.SetParent(transform, false);
-            var rect = (RectTransform)fadeCover.transform;
+            fade = new GameObject("Fade", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image)).GetComponent<Image>();
+            var rect = fade.rectTransform;
+            rect.SetParent(transform, false);
             rect.anchorMin = Vector2.zero;
             rect.anchorMax = Vector2.one;
             rect.sizeDelta = Vector2.zero;
-            fade = fadeCover.GetComponent<Image>();
             fade.color = Color.black;
-            fade.raycastTarget = true;
 
+            // Subscribed before the first scene loads, so this also fires for it.
             SceneManager.sceneLoaded += OnSceneLoaded;
         }
-
-        void Start() => StartCoroutine(FadeTo(0f));
 
         void OnDestroy()
         {
@@ -51,36 +49,35 @@ namespace CodingGame
 
         void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            BindTitleButtons(scene);
-            if (scene.name == "Stage") StageMap.StageMapBootstrap.EnsureInstalled();
+            if (scene.name == TitleScene) BindTitleButtons();
+            else if (scene.name == StageScene) StageMap.StageMapBootstrap.Install();
             StartCoroutine(FadeInAfterLoad());
         }
 
-        void BindTitleButtons(Scene scene)
+        // Title buttons are wired by name; the scene stores no OnClick calls.
+        static void BindTitleButtons()
         {
-            if (scene.name != "Title") return;
             foreach (Button button in FindObjectsByType<Button>(FindObjectsSortMode.None))
             {
-                if (button.name == "GameStartBtn") button.onClick.AddListener(() => LoadScene("Stage"));
+                if (button.name == "GameStartBtn") button.onClick.AddListener(() => LoadScene(StageScene));
                 else if (button.name == "GameQuitBtn") button.onClick.AddListener(QuitGame);
             }
         }
 
         IEnumerator FadeInAfterLoad()
         {
-            fadeCover.SetActive(true);
+            fade.gameObject.SetActive(true);
             fade.color = Color.black;
             yield return FadeTo(0f);
             changingScene = false;
             fade.raycastTarget = false;
-            fadeCover.SetActive(false);
+            fade.gameObject.SetActive(false);
         }
 
         IEnumerator FadeTo(float target)
         {
             float start = fade.color.a;
-            float elapsed = 0f;
-            while (elapsed < FadeSeconds)
+            for (float elapsed = 0f; elapsed < FadeSeconds;)
             {
                 elapsed += Time.unscaledDeltaTime;
                 SetFade(Mathf.Lerp(start, target, elapsed / FadeSeconds));
@@ -100,8 +97,7 @@ namespace CodingGame
         IEnumerator ChangeScene(string sceneName)
         {
             changingScene = true;
-            fadeCover.SetActive(true);
-            fade.raycastTarget = true;
+            fade.gameObject.SetActive(true);
             yield return FadeTo(1f);
             SceneManager.LoadScene(sceneName);
         }
@@ -112,9 +108,7 @@ namespace CodingGame
             instance.StartCoroutine(instance.ChangeScene(sceneName));
         }
 
-        public static void FinishDefense(bool cleared) => LoadScene(cleared ? "Stage" : "Title");
-
-        public static void QuitGame()
+        static void QuitGame()
         {
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
