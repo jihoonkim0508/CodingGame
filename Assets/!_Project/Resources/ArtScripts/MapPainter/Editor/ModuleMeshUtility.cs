@@ -48,12 +48,12 @@ namespace CodingGame.Art.MapPainter.Editor
         public static float TopAt(GameObject module, Vector2 point)
         {
             float top=float.NegativeInfinity;
+            var ray=new Ray(new Vector3(point.x,10,point.y),Vector3.down);
             foreach(var filter in module.GetComponentsInChildren<MeshFilter>(true))
             {
                 var mesh=filter.sharedMesh; if(!mesh)continue;
                 var vertices=mesh.vertices; var matrix=module.transform.worldToLocalMatrix*filter.transform.localToWorldMatrix;
-                var ray=new Ray(new Vector3(point.x,10,point.y),Vector3.down);
-                foreach(int slot in System.Linq.Enumerable.Range(0,mesh.subMeshCount))
+                for(int slot=0;slot<mesh.subMeshCount;slot++)
                 {
                     var indices=mesh.GetTriangles(slot);
                     for(int i=0;i<indices.Length;i+=3)

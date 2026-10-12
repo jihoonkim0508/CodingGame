@@ -6,11 +6,12 @@ namespace CodingGame.Art.MapPainter
     [ExecuteAlways,DisallowMultipleComponent]
     public sealed class BlueprintBackdrop : MonoBehaviour
     {
+        public static readonly Color DefaultCameraColor=new Color(.045f,.078f,.115f,1);
         [System.NonSerialized] public Camera targetCamera;
         private ModularMapRoot map;
         private MeshRenderer surface;
         private MaterialPropertyBlock block;
-        private void OnEnable() { map=GetComponentInParent<ModularMapRoot>(); surface=GetComponent<MeshRenderer>(); Refresh(); }
+        private void OnEnable() { Refresh(); }
         private void LateUpdate() { Refresh(); }
         public void Refresh()
         {
@@ -28,7 +29,7 @@ namespace CodingGame.Art.MapPainter
             if(!map.blueprintBackground)
             {
                 if(targetCamera && targetCamera.backgroundColor==map.blueprintBlue)
-                    targetCamera.backgroundColor=new Color(.045f,.078f,.115f,1);
+                    targetCamera.backgroundColor=DefaultCameraColor;
                 return;
             }
             surface.shadowCastingMode=ShadowCastingMode.Off; surface.receiveShadows=false;

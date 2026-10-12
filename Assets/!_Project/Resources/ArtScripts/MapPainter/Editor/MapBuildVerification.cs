@@ -84,7 +84,7 @@ namespace CodingGame.Art.MapPainter.Editor
                 log.Add("RESULT: PASS");
             }
             catch(Exception ex){log.Add(ex.ToString());log.Add("RESULT: FAIL");Debug.LogException(ex);}
-            finally {EditorSceneManager.ClosePreviewScene(scene);File.WriteAllLines(MapPainterAssets.Root+"/Reports/BuildValidation.txt",log);}
+            finally {EditorSceneManager.ClosePreviewScene(scene);File.WriteAllLines(MapPainterAssets.Report("BuildValidation.txt"),log);}
         }
         private static void Capture(Camera camera,RenderTexture target,string name)
         {
@@ -93,7 +93,7 @@ namespace CodingGame.Art.MapPainter.Editor
             {
                 RenderTexture.active=target;image.ReadPixels(new Rect(0,0,target.width,target.height),0,0);image.Apply();
                 Check(image.GetPixels32().Count(p=>p.r>220&&p.b>220&&p.g<60)<target.width*target.height/100,"no pink shader pixels");
-                File.WriteAllBytes(MapPainterAssets.Root+"/Reports/"+name,image.EncodeToPNG());
+                File.WriteAllBytes(MapPainterAssets.Report(name),image.EncodeToPNG());
             }
             finally {RenderTexture.active=before;Object.DestroyImmediate(image);}
         }

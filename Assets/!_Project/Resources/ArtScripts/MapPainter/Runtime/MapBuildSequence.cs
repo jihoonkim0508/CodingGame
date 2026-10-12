@@ -22,9 +22,6 @@ namespace CodingGame.Art.MapPainter
         private MapBuildPlayback playback;
         private Coroutine routine;
         public bool IsAnimating=>playback!=null;
-        public bool IsReady=>playback==null;
-        public int StartedCount {get;private set;}
-        public bool HasPlayedThisEntry=>played.Contains(PlaybackKey);
         public event Action Completed;
         public string PlaybackKey=>string.IsNullOrEmpty(playbackKey)?gameObject.scene.path+"/"+name:playbackKey;
         public void EnsureIdentity() { if(string.IsNullOrEmpty(playbackKey))playbackKey=Guid.NewGuid().ToString("N"); }
@@ -32,7 +29,6 @@ namespace CodingGame.Art.MapPainter
         private static void ResetSession()
         {
             played.Clear();lastScene=null;SceneManager.sceneLoaded-=OnSceneLoaded;SceneManager.sceneLoaded+=OnSceneLoaded;
-            foreach(var sequence in UnityEngine.Object.FindObjectsByType<MapBuildSequence>(FindObjectsInactive.Include,FindObjectsSortMode.None))sequence.StartedCount=0;
         }
         // Call before loading/activating a stage when the selection UI reuses the same scene.
         public static void BeginStageEntry() { played.Clear(); }
@@ -60,14 +56,15 @@ namespace CodingGame.Art.MapPainter
         private void OnEnable() { if(Application.isPlaying)TryPlayOnce(); }
         private void Start() { TryPlayOnce(); }
         private void OnDisable() { Finish(false); }
-        public bool TryPlayOnce()
+        private bool TryPlayOnce()
         {
             if(!Application.isPlaying||!isActiveAndEnabled||!playOnStart||played.Contains(PlaybackKey))return false;
             if(!gameObject.scene.isLoaded)return false;
             var map=GetComponent<ModularMapRoot>();
             if(!map||map.floorCells.Count==0)return false;
-            if(IsAnimating){played.Add(PlaybackKey);return false;}
-            played.Add(PlaybackKey);StartedCount++;Begin();routine=StartCoroutine(Animate());return true;
+            played.Add(PlaybackKey);
+            if(IsAnimating)return false;
+            Begin();routine=StartCoroutine(Animate());return true;
         }
         private IEnumerator Animate()
         {

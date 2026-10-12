@@ -19,7 +19,7 @@ namespace CodingGame.Art.MapPainter.Editor
             {
                 string path=AssetDatabase.GUIDToAssetPath(guid); if(!path.EndsWith(".fbx",StringComparison.OrdinalIgnoreCase))continue;
                 var source=AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                string prefabPath=MapPainterAssets.Generated+"/Modules/"+source.name+".prefab";
+                string prefabPath=MapPainterAssets.Modules+"/"+source.name+".prefab";
                 MapPainterAssets.NormalizeModule(source,false,prefabPath,out var sourceBounds);
                 var contents=PrefabUtility.LoadPrefabContents(prefabPath);
                 try
@@ -46,10 +46,10 @@ namespace CodingGame.Art.MapPainter.Editor
                     {
                         var renderer=filter.GetComponent<MeshRenderer>(); if(!filter.sharedMesh||!renderer)continue;
                         var copy=SplitRoad(filter.sharedMesh,contents.transform.worldToLocalMatrix*filter.transform.localToWorldMatrix,insideY);
-                        string meshPath=MapPainterAssets.Generated+"/Modules/"+source.name+"_TwoTone"+meshIndex+".asset";
+                        string meshPath=MapPainterAssets.Modules+"/"+source.name+"_TwoTone"+meshIndex+".asset";
                         MapPainterAssets.SaveMesh(copy,meshPath);
                         filter.sharedMesh=AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
-                        renderer.sharedMaterials=new[]{MapPainterSurfaceAssets.StylizedMaterial(),MapPainterSurfaceAssets.StylizedMaterial()}; meshIndex++;
+                        renderer.sharedMaterials=MapPainterAssets.TwoToneMaterials(); meshIndex++;
                     }
                     foreach(Transform child in contents.transform) { child.localPosition=Quaternion.Euler(0,90*turns,0)*child.localPosition; child.localRotation=Quaternion.Euler(0,90*turns,0)*child.localRotation; }
                     var prefab=PrefabUtility.SaveAsPrefabAsset(contents,prefabPath);
@@ -63,7 +63,7 @@ namespace CodingGame.Art.MapPainter.Editor
             }
             palette.roadModelVersion=3; EditorUtility.SetDirty(palette); AssetDatabase.SaveAssets();
             log.Add("Endpoints use the open-ended straight module. T registered="+palette.roads.Any(r=>r.connections==11&&r.prefab)+"; cross registered="+palette.roads.Any(r=>r.connections==15&&r.prefab)+".");
-            File.WriteAllLines(MapPainterAssets.Root+"/Reports/RoadModels.txt",log);
+            File.WriteAllLines(MapPainterAssets.Report("RoadModels.txt"),log);
         }
         private static Mesh SplitRoad(Mesh source,Matrix4x4 toModule,float insideY)
         {

@@ -29,10 +29,10 @@ namespace CodingGame.Art.MapPainter.Editor
             var window = GetWindow<ModularMapPainterWindow>("Map Painter");
             window.minSize = new Vector2(330,400); window.Show(); return window;
         }
+        const int MaxCellsPerAction = 4096;
         public void SetMap(ModularMapRoot root) { map = root; Repaint(); }
         private void OnEnable()
         {
-            if(prefabName.StartsWith("Stage01Map",System.StringComparison.Ordinal))prefabName="ModularMap"+prefabName.Substring("Stage01Map".Length);
             SceneView.duringSceneGui += OnSceneGUI;
             Undo.undoRedoPerformed += RepaintViews;
             wantsMouseMove = true;
@@ -43,11 +43,6 @@ namespace CodingGame.Art.MapPainter.Editor
             FinishStroke(); SceneView.duringSceneGui -= OnSceneGUI; Undo.undoRedoPerformed -= RepaintViews;
         }
         private void RepaintViews() { if(map)map.ApplyFloorColors(); Repaint(); SceneView.RepaintAll(); }
-        private ModularMapRoot FindMap()
-        {
-            var scene = SceneManager.GetActiveScene();
-            return scene.GetRootGameObjects().SelectMany(go => go.GetComponentsInChildren<ModularMapRoot>(true)).FirstOrDefault();
-        }
         private void OnGUI()
         {
             scroll = EditorGUILayout.BeginScrollView(scroll);
@@ -56,7 +51,7 @@ namespace CodingGame.Art.MapPainter.Editor
             var scene = SceneManager.GetActiveScene();
             bool artScene = scene.path == MapPainterAssets.ArtScene;
             if (!artScene) EditorGUILayout.HelpBox("ArtTestScene을 열어 사용하세요.", MessageType.Info);
-            if (!map) map = FindMap();
+            if (!map) map = MapPainterEditing.FindMap(scene);
             map = (ModularMapRoot)EditorGUILayout.ObjectField("작업 맵",map,typeof(ModularMapRoot),true);
             using (new EditorGUI.DisabledScope(!artScene || EditorApplication.isPlayingOrWillChangePlaymode))
             {
@@ -152,7 +147,8 @@ namespace CodingGame.Art.MapPainter.Editor
             if(MapBuildPreview.IsRunning)
             {
                 EditorGUI.ProgressBar(GUILayoutUtility.GetRect(100,18),MapBuildPreview.Progress,"맵 생성 중");
-                if(GUILayout.Button("■ 중지 · 원래 맵 복원"))MapBuildPreview.Stop();Repaint();
+                if(GUILayout.Button("■ 중지 · 원래 맵 복원"))MapBuildPreview.Stop();
+                Repaint();
             }
             EditorGUILayout.HelpBox("미리보기는 반복 재생할 수 있습니다. 게임에서는 스테이지 입장 때 재생하고 같은 입장 중의 재도전은 생략합니다.",MessageType.None);
         }
@@ -206,7 +202,7 @@ namespace CodingGame.Art.MapPainter.Editor
             if(EditorGUI.EndChangeCheck())RunAction("Change map shading",()=>
             {
                 Undo.RecordObject(map,"Change map shading"); map.lightSoftness=softness; map.shadowStrength=shadow;
-                map.bodyGradient=gradient; map.bevelHighlight=bevel; map.ApplyFloorColors(); EditorSceneManager.MarkSceneDirty(map.gameObject.scene);
+                map.bodyGradient=gradient; map.bevelHighlight=bevel; EditorSceneManager.MarkSceneDirty(map.gameObject.scene);
             });
         }
         private void DrawFloorColors()
@@ -219,7 +215,7 @@ namespace CodingGame.Art.MapPainter.Editor
             if(EditorGUI.EndChangeCheck())RunAction("Change floor colors",()=>
             {
                 Undo.RecordObject(map,"Change floor colors"); map.useFloorColors=enabled; map.upperColor=upper; map.lowerColor=lower;
-                map.ApplyFloorColors(); EditorUtility.SetDirty(map); EditorSceneManager.MarkSceneDirty(map.gameObject.scene);
+                EditorSceneManager.MarkSceneDirty(map.gameObject.scene);
             });
             EditorGUILayout.HelpBox("홈 가운데를 경계로 두 단색을 적용합니다. 이 맵의 색만 바꾸며, 프리팹 저장 시 함께 보관합니다. 단색에는 UV 수정이 필요 없습니다.",MessageType.None);
             if(GUILayout.Button("원본 FBX 변경 후 바닥 모듈 갱신"))
@@ -239,7 +235,7 @@ namespace CodingGame.Art.MapPainter.Editor
             if(EditorGUI.EndChangeCheck())RunAction("Change road colors",()=>
             {
                 Undo.RecordObject(map,"Change road colors"); map.useRoadColors=colors; map.roadInnerColor=inner; map.roadBorderColor=border;
-                map.ApplyFloorColors(); EditorSceneManager.MarkSceneDirty(map.gameObject.scene);
+                EditorSceneManager.MarkSceneDirty(map.gameObject.scene);
             });
             if(GUILayout.Button("Map/Road의 경로 모델 갱신"))RunAction("Refresh road models",()=>
             { RoadModuleAssets.Setup(map.palette,true); MapPainterEditing.RebuildAll(map); });
@@ -295,8 +291,7 @@ namespace CodingGame.Art.MapPainter.Editor
             hasHover=plane.Raycast(ray,out float distance);
             if(hasHover)
             {
-                Vector3 p=ray.GetPoint(distance)-map.transform.position;
-                hover=new GridCell(Mathf.FloorToInt(p.x/map.cellSize+.5f),Mathf.FloorToInt(p.z/map.cellSize+.5f));
+                hover=map.WorldToCell(ray.GetPoint(distance));
             }
             if(e.type==EventType.Repaint)
             {
@@ -305,7 +300,7 @@ namespace CodingGame.Art.MapPainter.Editor
                 if(active && hasHover)
                 {
                     var cells=rectangle&&dragging?Rectangle(start,hover):Brush(hover);
-                    foreach(var cell in cells.Take(4096)) DrawCell(cell,tool==1||e.shift?new Color(1,.2f,.2f,.25f):new Color(.2f,.85f,1,.2f));
+                    foreach(var cell in cells.Take(MaxCellsPerAction)) DrawCell(cell,tool==1||e.shift?new Color(1,.2f,.2f,.25f):new Color(.2f,.85f,1,.2f));
                 }
             }
             if(active && hasHover && e.type==EventType.MouseDown && e.button==0)
@@ -321,7 +316,7 @@ namespace CodingGame.Art.MapPainter.Editor
                 if(!rectangle)
                 {
                     long length=System.Math.Abs((long)hover.x-last.x)+System.Math.Abs((long)hover.z-last.z)+1;
-                    if(length*brush*brush<=4096)
+                    if(length*brush*brush<=MaxCellsPerAction)
                     {
                         var cells=new HashSet<GridCell>();
                         foreach(var cell in GridTopology.Stroke(last,hover)) cells.UnionWith(Brush(cell));
@@ -335,8 +330,8 @@ namespace CodingGame.Art.MapPainter.Editor
                 if(rectangle && hasHover)
                 {
                     long count=((long)System.Math.Abs((long)hover.x-start.x)+1)*(System.Math.Abs((long)hover.z-start.z)+1);
-                    if(count<=4096) MapPainterEditing.Paint(map,Rectangle(start,hover),layer==1,eraseStroke);
-                    else ShowNotification(new GUIContent("한 번에 최대 4096칸까지 배치합니다."));
+                    if(count<=MaxCellsPerAction) MapPainterEditing.Paint(map,Rectangle(start,hover),layer==1,eraseStroke);
+                    else ShowNotification(new GUIContent($"한 번에 최대 {MaxCellsPerAction}칸까지 배치합니다."));
                 }
                 FinishStroke(); e.Use(); RepaintViews();
             }

@@ -32,10 +32,20 @@ namespace CodingGame.Art.MapPainter
         [HideInInspector] public Transform floorGroup;
         [HideInInspector] public Transform roadGroup;
         public Vector3 CellPosition(GridCell cell) => transform.position + new Vector3(cell.x*cellSize, 0, cell.z*cellSize);
-        private bool refreshColors;
+        public GridCell WorldToCell(Vector3 world)
+        {
+            Vector3 p=world-transform.position;
+            return new GridCell(Mathf.FloorToInt(p.x/cellSize+.5f),Mathf.FloorToInt(p.z/cellSize+.5f));
+        }
+        public bool IsTile(MapTileMarker tile) => tile.transform.parent==floorGroup || tile.transform.parent==roadGroup;
+        public Vector3 TileLocalPosition(GridCell cell,bool road) => new Vector3(cell.x*cellSize,road&&palette?palette.roadLift:0,cell.z*cellSize);
+        public Vector3 ModuleScale(bool road) => new Vector3(cellSize,road?cellSize:floorHeight,cellSize);
         private void OnEnable() { ApplyFloorColors(); }
+#if UNITY_EDITOR
+        private bool refreshColors;
         private void OnValidate() { cellSize=Mathf.Max(1,cellSize); floorHeight=Mathf.Max(.05f,floorHeight); blueprintSpacing=Mathf.Max(.05f,blueprintSpacing); blueprintMajorEvery=Mathf.Max(1,blueprintMajorEvery); refreshColors=true; }
         private void Update() { if(refreshColors) { refreshColors=false; ApplyFloorColors(); } }
+#endif
         public void ApplyFloorColors()
         {
             ApplyLayout();
@@ -49,12 +59,12 @@ namespace CodingGame.Art.MapPainter
         {
             foreach(var tile in GetComponentsInChildren<MapTileMarker>(true))
             {
-                if(tile.transform.parent!=floorGroup&&tile.transform.parent!=roadGroup)continue;
-                tile.transform.localPosition=new Vector3(tile.cell.x*cellSize,tile.road&&palette?palette.roadLift:0,tile.cell.z*cellSize);
-                if(tile.transform.childCount>0)tile.transform.GetChild(0).localScale=new Vector3(cellSize,tile.road?cellSize:floorHeight,cellSize);
+                if(!IsTile(tile))continue;
+                tile.transform.localPosition=TileLocalPosition(tile.cell,tile.road);
+                if(tile.transform.childCount>0)tile.transform.GetChild(0).localScale=ModuleScale(tile.road);
             }
         }
-        public void ApplyStyle(MeshRenderer renderer,float top,float height)
+        private void ApplyStyle(MeshRenderer renderer,float top,float height)
         {
             for(int slot=0;slot<renderer.sharedMaterials.Length;slot++)
             {
@@ -64,7 +74,7 @@ namespace CodingGame.Art.MapPainter
                 block.SetFloat("_MapTopY",top); block.SetFloat("_MapHeight",height); renderer.SetPropertyBlock(block,slot);
             }
         }
-        public static void SetFloorColors(MeshRenderer renderer,bool enabled,Color upper,Color lower)
+        private static void SetFloorColors(MeshRenderer renderer,bool enabled,Color upper,Color lower)
         {
             var filter=renderer.GetComponent<MeshFilter>();
             if(!filter || !filter.sharedMesh || filter.sharedMesh.subMeshCount<2)return;

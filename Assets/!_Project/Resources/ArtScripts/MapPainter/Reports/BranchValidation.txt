@@ -1,8 +1,0 @@
-Real T-road model validation; Unity 6000.3.21f1
-T prefab: Assets/!_Project/Resources/ArtScripts/MapPainter/Generated/Modules/RoadCorner2.prefab
-PASS: rotation 0; three open seams, closed border, two colors, paint/erase/repaint and build playback.
-PASS: rotation 90; three open seams, closed border, two colors, paint/erase/repaint and build playback.
-PASS: rotation 180; three open seams, closed border, two colors, paint/erase/repaint and build playback.
-PASS: rotation 270; three open seams, closed border, two colors, paint/erase/repaint and build playback.
-PASS: T prefab save/reload/re-editing and rendered RoadBranchPreview.png.
-RESULT: PASS

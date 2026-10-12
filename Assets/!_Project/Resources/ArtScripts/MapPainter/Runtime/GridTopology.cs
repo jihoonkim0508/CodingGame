@@ -50,6 +50,17 @@ namespace CodingGame.Art.MapPainter
             for (int i = 0; i < 4; i++) if (cells.Contains(cell + Directions[i])) mask |= 1 << i;
             return mask;
         }
+        // Bits 0-3 add the orthogonal neighbours, bits 4-7 the diagonals, around (0,0).
+        public static HashSet<GridCell> Neighbourhood(int mask)
+        {
+            var cells = new HashSet<GridCell> { new GridCell(0, 0) };
+            for (int i = 0; i < 4; i++)
+            {
+                if ((mask & (1 << i)) != 0) cells.Add(Directions[i]);
+                if ((mask & (1 << (i + 4))) != 0) cells.Add(Diagonals[i]);
+            }
+            return cells;
+        }
         public static FloorShape Floor(HashSet<GridCell> cells, GridCell cell)
         {
             int connections = Connections(cells, cell), corners = 0;

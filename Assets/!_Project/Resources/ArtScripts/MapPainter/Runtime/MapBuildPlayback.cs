@@ -60,7 +60,7 @@ namespace CodingGame.Art.MapPainter
             var tileRenderers=new HashSet<Renderer>();
             foreach(var marker in markers)
             {
-                if(marker.transform.parent!=map.floorGroup&&marker.transform.parent!=map.roadGroup)continue;
+                if(!map.IsTile(marker))continue;
                 var states=marker.GetComponentsInChildren<Renderer>(true).Select(r=>new RendererState(r)).ToArray();
                 foreach(var state in states)tileRenderers.Add(state.renderer);
                 float order=marker.road?(roadOrder.TryGetValue(marker.cell,out float index)?index:0):Mathf.InverseLerp(minX,maxX,marker.cell.x);

@@ -17,6 +17,30 @@ namespace CodingGame.Art.MapPainter.Editor
         public const string FloorFolder = "Assets/!_Project/Resources/Map/Floor";
         public const string RoadFolder = "Assets/!_Project/Resources/Map/Road";
         public const string ArtScene = "Assets/!_Project/Scenes/ArtTestScene.unity";
+        public const string Modules = Generated + "/Modules";
+        // Tool output stays out of Assets so it never ships in a build.
+        const string Reports = "Logs/MapPainter";
+        public static string Report(string file) { Directory.CreateDirectory(Reports); return Reports + "/" + file; }
+        public static Material LoadOrCreateMaterial(string path, string shaderName, Action<Material> configure = null)
+        {
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (material) return material;
+            var shader = Shader.Find(shaderName);
+            if (!shader) throw new InvalidOperationException(shaderName + " shader has not imported yet.");
+            EnsureFolder(Path.GetDirectoryName(path).Replace('\\', '/'));
+            material = new Material(shader) { name = Path.GetFileNameWithoutExtension(path) };
+            configure?.Invoke(material);
+            AssetDatabase.CreateAsset(material, path);
+            return material;
+        }
+        public static Material StylizedMaterial() => LoadOrCreateMaterial(Modules + "/StylizedMapSurface.mat", "CodingGame/Art/Stylized Map Surface");
+        public static Material[] TwoToneMaterials() => new[] { StylizedMaterial(), StylizedMaterial() };
+        static HashSet<int> UsedIndices(Mesh mesh)
+        {
+            var used = new HashSet<int>();
+            for (int s = 0; s < mesh.subMeshCount; s++) used.UnionWith(mesh.GetIndices(s));
+            return used;
+        }
         public static void EnsureFolder(string path)
         {
             if(string.IsNullOrEmpty(path)||path=="Assets")return;
@@ -33,9 +57,7 @@ namespace CodingGame.Art.MapPainter.Editor
                 var mesh = filter.sharedMesh;
                 if (!mesh) continue;
                 var vertices = mesh.vertices;
-                var used = new HashSet<int>();
-                for (int s = 0; s < mesh.subMeshCount; s++) used.UnionWith(mesh.GetIndices(s));
-                foreach (int i in used) points.Add(root.transform.InverseTransformPoint(filter.transform.TransformPoint(vertices[i])));
+                foreach (int i in UsedIndices(mesh)) points.Add(root.transform.InverseTransformPoint(filter.transform.TransformPoint(vertices[i])));
             }
             if (points.Count == 0) throw new InvalidOperationException(root.name + ": MeshFilter geometry is required.");
             return points;
@@ -73,7 +95,8 @@ namespace CodingGame.Art.MapPainter.Editor
         public static GameObject NormalizeModule(GameObject source, bool floor, string path, out Bounds sourceBounds)
         {
             if (!source || !EditorUtility.IsPersistent(source)) throw new InvalidOperationException("Choose a model or prefab asset.");
-            EnsureFolder(Path.GetDirectoryName(path).Replace('\\', '/'));
+            string folder = Path.GetDirectoryName(path).Replace('\\', '/');
+            EnsureFolder(folder);
             var wrapper = new GameObject(source.name);
             try
             {
@@ -90,8 +113,7 @@ namespace CodingGame.Art.MapPainter.Editor
                     var mesh = filter.sharedMesh;
                     if (!mesh) continue;
                     var vertices = mesh.vertices;
-                    var used = new HashSet<int>();
-                    for (int s = 0; s < mesh.subMeshCount; s++) used.UnionWith(mesh.GetIndices(s));
+                    var used = UsedIndices(mesh);
                     if (used.Count == 0) continue;
                     Bounds actual = BoundsOf(used.Select(i => vertices[i]).ToArray());
                     if (mesh.bounds.size.magnitude > actual.size.magnitude * 1.05f)
@@ -99,7 +121,7 @@ namespace CodingGame.Art.MapPainter.Editor
                         var copy = Object.Instantiate(mesh);
                         copy.name = mesh.name + "_BoundsFixed";
                         copy.bounds = actual;
-                        string meshPath = Path.GetDirectoryName(path).Replace('\\', '/') + "/" + source.name + "_Mesh" + index + ".asset";
+                        string meshPath = folder + "/" + source.name + "_Mesh" + index + ".asset";
                         SaveMesh(copy, meshPath);
                         filter.sharedMesh = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
                     }
@@ -143,32 +165,12 @@ namespace CodingGame.Art.MapPainter.Editor
             }
             else AssetDatabase.CreateAsset(mesh, path);
         }
-        public static void RefreshMeshBuffers()
-        {
-            foreach(string guid in AssetDatabase.FindAssets("t:Mesh",new[]{Generated+"/Modules"}))
-            {
-                string path=AssetDatabase.GUIDToAssetPath(guid);
-                var mesh=AssetDatabase.LoadAssetAtPath<Mesh>(path); if(mesh)SaveMesh(mesh,path);
-            }
-            AssetDatabase.SaveAssets();
-        }
-        private static Material CompatibleFloorMaterial()
-        {
-            string path=Generated+"/Modules/FloorSurface.mat";
-            var material=AssetDatabase.LoadAssetAtPath<Material>(path);
-            if(material)return material;
-            var shader=Shader.Find("Universal Render Pipeline/Lit");
-            if(!shader)throw new InvalidOperationException("URP/Lit shader missing.");
-            material=new Material(shader); material.name="FloorSurface";
-            material.SetColor("_BaseColor",new Color(.58f,.61f,.65f)); material.SetFloat("_Smoothness",.18f);
-            AssetDatabase.CreateAsset(material,path); return material;
-        }
+        private static Material CompatibleFloorMaterial() => LoadOrCreateMaterial(Modules + "/FloorSurface.mat", "Universal Render Pipeline/Lit", m =>
+            { m.SetColor("_BaseColor", new Color(.58f, .61f, .65f)); m.SetFloat("_Smoothness", .18f); });
         public static ModularMapPalette Setup()
         {
-            EnsureFolder(Root+"/Reports");
-            EnsureFolder(Generated + "/Modules");
+            EnsureFolder(Modules);
             EnsureFolder(MapPrefabs);
-            MigrateAssetNames();
             var palette = AssetDatabase.LoadAssetAtPath<ModularMapPalette>(PalettePath);
             if (palette && palette.floors.Count >= 14 && palette.floors.All(rule => rule.prefab) && palette.roads.Count >= 6)
             { EnsureTwoTone(palette); RoadModuleAssets.Setup(palette); return palette; }
@@ -180,7 +182,7 @@ namespace CodingGame.Art.MapPainter.Editor
                 string assetPath = AssetDatabase.GUIDToAssetPath(guid);
                 if (!assetPath.EndsWith(".fbx", StringComparison.OrdinalIgnoreCase)) continue;
                 var source = AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
-                var prefab = NormalizeModule(source, true, Generated + "/Modules/" + source.name + ".prefab", out var bounds);
+                var prefab = NormalizeModule(source, true, Modules + "/" + source.name + ".prefab", out var bounds);
                 var temporary = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
                 FloorShape shape;
                 try { shape = InferFloor(UsedVertices(temporary)); }
@@ -190,22 +192,14 @@ namespace CodingGame.Art.MapPainter.Editor
             }
             if (palette.floors.Count == 0) throw new InvalidOperationException("No floor FBX assets found in " + FloorFolder);
             // Fill missing rotational shapes with separate meshes; supplied modules always take priority.
-            var sample = new HashSet<GridCell>();
-            sample.Add(new GridCell(0, 0));
             for (int mask = 0; mask < 256; mask++)
             {
-                sample.Clear(); sample.Add(new GridCell(0, 0));
-                for (int i = 0; i < 4; i++)
-                {
-                    if ((mask & (1 << i)) != 0) sample.Add(GridTopology.Directions[i]);
-                    if ((mask & (1 << (i + 4))) != 0) sample.Add(GridTopology.Diagonals[i]);
-                }
-                var shape = GridTopology.Floor(sample, new GridCell(0, 0));
+                var shape = GridTopology.Floor(GridTopology.Neighbourhood(mask), new GridCell(0, 0));
                 if (palette.TryFloor(shape, out _, out _)) continue;
                 string name = $"AutoFloor_E{shape.edges}_C{shape.corners}";
                 var mesh = ComplementMesh(shape);
                 mesh.name = name;
-                string meshPath = Generated + "/Modules/" + name + ".asset";
+                string meshPath = Modules + "/" + name + ".asset";
                 SaveMesh(mesh, meshPath);
                 var go = new GameObject(name);
                 GameObject prefab;
@@ -214,7 +208,7 @@ namespace CodingGame.Art.MapPainter.Editor
                     go.AddComponent<MeshFilter>().sharedMesh = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
                     var sourceRenderer = palette.floors[0].prefab.GetComponentInChildren<MeshRenderer>();
                     go.AddComponent<MeshRenderer>().sharedMaterial = sourceRenderer ? sourceRenderer.sharedMaterial : null;
-                    prefab = PrefabUtility.SaveAsPrefabAsset(go, Generated + "/Modules/" + name + ".prefab");
+                    prefab = PrefabUtility.SaveAsPrefabAsset(go, Modules + "/" + name + ".prefab");
                 }
                 finally { Object.DestroyImmediate(go); }
                 palette.floors.Add(new FloorRule { label = name, prefab = prefab, exposedEdges = shape.edges, cutCorners = shape.corners, generatedComplement = true });
@@ -231,35 +225,14 @@ namespace CodingGame.Art.MapPainter.Editor
             }
             EditorUtility.SetDirty(palette);
             AssetDatabase.SaveAssetIfDirty(palette);
-            File.WriteAllLines(Root + "/Reports/ModelAudit.txt", report);
+            File.WriteAllLines(Report("ModelAudit.txt"), report);
             EnsureTwoTone(palette);
             RoadModuleAssets.Setup(palette);
             return palette;
         }
-        private static void MigrateAssetNames()
-        {
-            string oldPalette=Generated+"/Stage01Palette.asset";
-            if(AssetDatabase.LoadAssetAtPath<ModularMapPalette>(oldPalette)&&!AssetDatabase.LoadAssetAtPath<ModularMapPalette>(PalettePath))
-            {
-                string error=AssetDatabase.MoveAsset(oldPalette,PalettePath);
-                if(!string.IsNullOrEmpty(error))throw new InvalidOperationException(error);
-            }
-            var palette=AssetDatabase.LoadAssetAtPath<ModularMapPalette>(PalettePath);
-            if(palette && palette.name!="ModularMapPalette")
-            { palette.name="ModularMapPalette"; EditorUtility.SetDirty(palette); AssetDatabase.SaveAssetIfDirty(palette); }
-            string oldMaterial=Generated+"/Modules/Stage01Floor.mat",newMaterial=Generated+"/Modules/FloorSurface.mat";
-            if(AssetDatabase.LoadAssetAtPath<Material>(oldMaterial)&&!AssetDatabase.LoadAssetAtPath<Material>(newMaterial))
-            {
-                string error=AssetDatabase.MoveAsset(oldMaterial,newMaterial);
-                if(!string.IsNullOrEmpty(error))throw new InvalidOperationException(error);
-                var material=AssetDatabase.LoadAssetAtPath<Material>(newMaterial); material.name="FloorSurface";
-                EditorUtility.SetDirty(material); AssetDatabase.SaveAssetIfDirty(material);
-            }
-        }
         public static void EnsureTwoTone(ModularMapPalette palette)
         {
             if(palette.floorColorVersion>=2)return;
-            if(palette.floorColorVersion==1) { RefreshFloorModules(); return; }
             var report=new List<string> { "Floor color slots: 0 = upper plate; 1 = lower body; dividing plane is the groove center at unit Y=-0.2." };
             foreach(var rule in palette.floors)
             {
@@ -275,18 +248,9 @@ namespace CodingGame.Art.MapPainter.Editor
                         var matrix=contents.transform.worldToLocalMatrix*filter.transform.localToWorldMatrix;
                         var cleaned=ModuleMeshUtility.CleanFloor(filter.sharedMesh,matrix,rule.exposedEdges);
                         var copy=FloorColorMesh.Split(cleaned,matrix); Object.DestroyImmediate(cleaned);
-                        string meshPath=Generated+"/Modules/"+rule.prefab.name+"_TwoTone"+index+".asset";
+                        string meshPath=Modules+"/"+rule.prefab.name+"_TwoTone"+index+".asset";
                         SaveMesh(copy,meshPath); filter.sharedMesh=AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
-                        var materials=renderer.sharedMaterials;
-                        var primary=materials.FirstOrDefault(m=>m);
-                        if(!primary)
-                        {
-                            var shader=Shader.Find(UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline?"Universal Render Pipeline/Lit":"Standard");
-                            if(!shader)throw new InvalidOperationException("No supported floor shader.");
-                            string path=Generated+"/Modules/FloorSurface.mat"; primary=AssetDatabase.LoadAssetAtPath<Material>(path);
-                            if(!primary) { primary=new Material(shader); AssetDatabase.CreateAsset(primary,path); }
-                        }
-                        renderer.sharedMaterials=new[] {MapPainterSurfaceAssets.StylizedMaterial(),MapPainterSurfaceAssets.StylizedMaterial()};
+                        renderer.sharedMaterials=TwoToneMaterials();
                         report.Add(rule.label+": original slots="+oldSlots+"; generated copy slots="+filter.sharedMesh.subMeshCount);
                         index++;
                     }
@@ -295,7 +259,7 @@ namespace CodingGame.Art.MapPainter.Editor
                 finally { PrefabUtility.UnloadPrefabContents(contents); }
             }
             palette.floorColorVersion=2; EditorUtility.SetDirty(palette); AssetDatabase.SaveAssetIfDirty(palette);
-            File.WriteAllLines(Root+"/Reports/FloorColors.txt",report);
+            File.WriteAllLines(Report("FloorColors.txt"),report);
         }
         public static ModularMapPalette RefreshFloorModules()
         {

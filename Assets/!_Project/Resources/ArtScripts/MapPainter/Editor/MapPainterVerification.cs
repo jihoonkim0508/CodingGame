@@ -60,12 +60,7 @@ namespace CodingGame.Art.MapPainter.Editor
                 log.Add("PASS: concave bevels close at the full-width shoulder; generated notches do not cut the body.");
                 for (int mask=0;mask<256;mask++)
                 {
-                    var cells=new HashSet<GridCell> { new GridCell(0,0) };
-                    for(int i=0;i<4;i++)
-                    {
-                        if((mask&(1<<i))!=0)cells.Add(GridTopology.Directions[i]);
-                        if((mask&(1<<(i+4)))!=0)cells.Add(GridTopology.Diagonals[i]);
-                    }
+                    var cells=GridTopology.Neighbourhood(mask);
                     var shape=GridTopology.Floor(cells,new GridCell(0,0));
                     Check(palette.TryFloor(shape,out _,out _),"mask "+mask+" floor coverage");
                     for(int turns=0;turns<4;turns++)
@@ -198,7 +193,7 @@ namespace CodingGame.Art.MapPainter.Editor
             {
                 if(AssetDatabase.LoadAssetAtPath<GameObject>(temporaryPrefab))AssetDatabase.DeleteAsset(temporaryPrefab);
                 Object.DestroyImmediate(testPalette); EditorSceneManager.ClosePreviewScene(scene);
-                File.WriteAllLines(MapPainterAssets.Root+"/Reports/Validation.txt",log);
+                File.WriteAllLines(MapPainterAssets.Report("Validation.txt"),log);
             }
         }
         private static void RenderPreview(Scene scene,ModularMapPalette palette,List<string> log)
@@ -247,8 +242,8 @@ namespace CodingGame.Art.MapPainter.Editor
                 camera.Render(); var previous=RenderTexture.active;
                 try { RenderTexture.active=texture; image.ReadPixels(new Rect(0,0,1280,800),0,0); image.Apply(); }
                 finally { RenderTexture.active=previous; }
-                File.WriteAllBytes(MapPainterAssets.Root+"/Reports/FloorPreview.png",image.EncodeToPNG());
-                File.WriteAllBytes(MapPainterAssets.Root+"/Reports/BlueprintPreview.png",image.EncodeToPNG());
+                File.WriteAllBytes(MapPainterAssets.Report("FloorPreview.png"),image.EncodeToPNG());
+                File.WriteAllBytes(MapPainterAssets.Report("BlueprintPreview.png"),image.EncodeToPNG());
                 var pixels=image.GetPixels32();
                 Check(pixels.Count(p=>p.r>220&&p.b>220&&p.g<60)<pixels.Length/100,"render contains no unsupported pink shader");
                 Check(pixels.Count(p=>p.r>120&&p.g>80&&p.b<100)>100,"real road inner color rendered");

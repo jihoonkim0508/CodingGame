@@ -1,4 +1,0 @@
-General map editor naming and two-color upgrade
-ArtTestScene map names saved; camera and map layout retained.
-Original floor FBX and UV data are unchanged.
-RESULT: PASS

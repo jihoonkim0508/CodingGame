@@ -1,4 +1,0 @@
-RoadBase: source=(2.00, 0.10, 2.00); connections=5; normalized=5; rotation=0; inner Y=0.02499962; two color slots.
-RoadCorner: source=(2.00, 0.10, 2.00); connections=9; normalized=3; rotation=90; inner Y=0.02499962; two color slots.
-RoadCorner2: source=(2.00, 0.10, 2.00); connections=11; normalized=11; rotation=0; inner Y=0.02500057; two color slots.
-Endpoints use the open-ended straight module. T registered=True; cross registered=False.

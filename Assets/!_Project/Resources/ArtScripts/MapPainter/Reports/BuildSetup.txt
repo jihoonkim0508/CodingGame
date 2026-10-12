@@ -1,3 +1,0 @@
-Map build animation added to 1 scene maps and saved map prefabs.
-ArtTestScene saved.
-See BuildValidation.txt for validation.

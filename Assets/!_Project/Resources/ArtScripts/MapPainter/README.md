@@ -62,9 +62,9 @@
 - 게임에서는 Hierarchy의 활성 맵에 붙은 `MapBuildSequence`가 자동 재생합니다. 같은 입장 중의 재활성화, 같은 맵 프리팹 재생성, 같은 씬 다시 불러오기에는 재생하지 않습니다. 스테이지 선택 씬을 거쳐 입장하면 다시 재생합니다.
 - 선택 UI를 같은 씬의 패널로 구현할 때는 새 스테이지 입장 직전에 `MapBuildSequence.BeginStageEntry()`를 호출하고 맵을 생성/활성화하세요. 이미 활성인 맵에는 `sequence.PlayStageEntry()`를 호출합니다. 재도전은 이 함수를 호출하지 않습니다. 선택/입장과 재도전을 일반적인 오브젝트 재활성화만으로 구분할 수 없으므로 같은 씬 UI에서는 이 신호가 필요합니다.
 - 현재 기존 `DefenseBattle.Restart()`는 맵을 유지하며 전투 상태를 초기화하므로 연출을 재생하지 않습니다. 해당 원본 스크립트는 수정하지 않았습니다.
-- 연출은 `Time.timeScale`과 무관하게 진행됩니다. 외부 게임 흐름과 연결할 때는 `IsAnimating`, `IsReady`, `Completed`를 사용할 수 있습니다. 기존 전투 로직이나 입력을 자동으로 멈추지는 않습니다.
+- 연출은 `Time.timeScale`과 무관하게 진행됩니다. 외부 게임 흐름과 연결할 때는 `IsAnimating`, `Completed`를 사용할 수 있습니다. 기존 전투 로직이나 입력을 자동으로 멈추지는 않습니다.
 - 길은 왼쪽 끝점을 우선으로 연결 순서를 찾으며 분기/분리 경로는 너비 우선으로 처리합니다. 윤곽선은 격자 외곽선이며 모델의 둥근 모서리까지 추출하는 효과는 아닙니다.
-- 검증 기록: `Reports/BuildValidation.txt`, 단계별 실제 렌더: `Reports/Build_00.png`부터 `Build_04_Complete.png`까지.
+- 검증 기록: `Logs/MapPainter/BuildValidation.txt`, 단계별 실제 렌더: `Logs/MapPainter/Build_00.png`부터 `Build_04_Complete.png`까지.
 
 ## 설계도 배경
 
@@ -89,8 +89,7 @@
 - 팔레트·정렬된 모듈·보완 메시: `Resources/ArtScripts/MapPainter/Generated`.
 - 저장된 완성 맵: `Resources/ArtPrefabs`.
 - `Tools > Art > Validate Modular Map Painter`는 별도 Preview Scene에서 모델 치수, 규칙, 로컬 갱신, 경로 데이터, 프리팹 저장/복원, 카메라 렌더를 검증합니다. 사용자 Scene의 맵을 시험용으로 칠하지 않습니다.
-- 결과는 `Reports/Validation.txt`, 원본 모델 조사 결과는 `Reports/ModelAudit.txt`, 렌더는 `Reports/FloorPreview.png`입니다.
-- `Verification~`는 Unity가 가져오지 않는 별도 .NET 컴파일/순수 격자 검사 폴더입니다.
+- 결과는 `Logs/MapPainter/Validation.txt`, 원본 모델 조사 결과는 `Logs/MapPainter/ModelAudit.txt`, 렌더는 `Logs/MapPainter/FloorPreview.png`입니다.
 - 실제 마우스 입력과 Ctrl+Z/Ctrl+Y 조작 검증은 별도로 필요합니다.
 - Play Mode에서는 편집이 비활성화됩니다. 생성물은 일반 오브젝트이며 런타임 맵 생성기나 Collider 자동 추가 기능은 포함하지 않습니다.
 

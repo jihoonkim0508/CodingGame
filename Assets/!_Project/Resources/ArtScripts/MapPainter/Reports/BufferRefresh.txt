@@ -1,1 +1,0 @@
-Generated meshes rebuilt through Mesh setters and uploaded to GPU. Original FBX unchanged.

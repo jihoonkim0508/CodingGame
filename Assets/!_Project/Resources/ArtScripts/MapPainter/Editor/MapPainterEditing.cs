@@ -11,9 +11,11 @@ namespace CodingGame.Art.MapPainter.Editor
 {
     public static class MapPainterEditing
     {
+        static bool IsOutermostPrefabRoot(ModularMapRoot root) =>
+            PrefabUtility.IsPartOfPrefabInstance(root) && PrefabUtility.GetOutermostPrefabInstanceRoot(root.gameObject) == root.gameObject;
         public static bool CanEdit(ModularMapRoot root) => root && root.palette && !EditorApplication.isPlayingOrWillChangePlaymode
             && root.gameObject.scene.path == MapPainterAssets.ArtScene
-            && (!PrefabUtility.IsPartOfPrefabInstance(root) || PrefabUtility.GetOutermostPrefabInstanceRoot(root.gameObject) == root.gameObject)
+            && (!PrefabUtility.IsPartOfPrefabInstance(root) || IsOutermostPrefabRoot(root))
             && Quaternion.Angle(root.transform.rotation, Quaternion.identity) < .001f
             && Vector3.Distance(root.transform.lossyScale, Vector3.one) < .001f;
 
@@ -30,7 +32,7 @@ namespace CodingGame.Art.MapPainter.Editor
         }
         private static void EnsureGroups(ModularMapRoot root, bool undo)
         {
-            if (PrefabUtility.IsPartOfPrefabInstance(root) && PrefabUtility.GetOutermostPrefabInstanceRoot(root.gameObject) == root.gameObject)
+            if (IsOutermostPrefabRoot(root))
                 PrefabUtility.UnpackPrefabInstance(root.gameObject, PrefabUnpackMode.OutermostRoot, undo ? InteractionMode.UserAction : InteractionMode.AutomatedAction);
             if (undo) Undo.RecordObject(root, "Update map groups");
             if (!root.floorGroup) root.floorGroup = Group("Floors", root.transform, undo);
@@ -89,7 +91,7 @@ namespace CodingGame.Art.MapPainter.Editor
             var existing = new Dictionary<(GridCell, bool), MapTileMarker>();
             foreach (var tile in root.GetComponentsInChildren<MapTileMarker>(true))
             {
-                if (tile.transform.parent != root.floorGroup && tile.transform.parent != root.roadGroup) continue;
+                if (!root.IsTile(tile)) continue;
                 var key = (tile.cell, tile.road);
                 if (existing.ContainsKey(key)) Destroy(tile.gameObject, undo);
                 else existing.Add(key, tile);
@@ -113,12 +115,12 @@ namespace CodingGame.Art.MapPainter.Editor
             if (!prefab) return;
             var go = new GameObject($"{(road ? "Road" : "Floor")}_{cell.x}_{cell.z}");
             go.transform.SetParent(road ? root.roadGroup : root.floorGroup, false);
-            go.transform.localPosition = new Vector3(cell.x*root.cellSize, road ? root.palette.roadLift : 0, cell.z*root.cellSize);
+            go.transform.localPosition = root.TileLocalPosition(cell, road);
             var marker = go.AddComponent<MapTileMarker>(); marker.cell = cell; marker.road = road; marker.source = prefab; marker.turns = turns;
             var model = (GameObject)PrefabUtility.InstantiatePrefab(prefab, go.transform);
             model.transform.localPosition = Vector3.zero;
             model.transform.localRotation = Quaternion.Euler(0, turns * 90f, 0);
-            model.transform.localScale=new Vector3(root.cellSize,road?root.cellSize:root.floorHeight,root.cellSize);
+            model.transform.localScale = root.ModuleScale(road);
             if (undo) Undo.RegisterCreatedObjectUndo(go, "Place map module");
         }
         private static void Destroy(GameObject go, bool undo)
@@ -127,7 +129,7 @@ namespace CodingGame.Art.MapPainter.Editor
         }
         public static Bounds MapBounds(ModularMapRoot root)
         {
-            if (!root || root.floorCells.Count == 0) return new Bounds(root ? root.transform.position + Vector3.down * .5f : Vector3.down * .5f, new Vector3(16,1,10));
+            if (root.floorCells.Count == 0) return new Bounds(root.transform.position + Vector3.down * .5f, new Vector3(16,1,10));
             var first = root.CellPosition(root.floorCells[0]) + Vector3.down * root.floorHeight*.5f;
             var size=new Vector3(root.cellSize,root.floorHeight,root.cellSize);
             var bounds = new Bounds(first, size);
@@ -157,7 +159,7 @@ namespace CodingGame.Art.MapPainter.Editor
             camera.transform.position = bounds.center - rotation*Vector3.forward*distance;
             camera.nearClipPlane = .1f; camera.farClipPlane = Mathf.Max(200,distance*3);
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = new Color(.045f,.078f,.115f,1);
+            camera.backgroundColor = BlueprintBackdrop.DefaultCameraColor;
             foreach(var go in camera.gameObject.scene.GetRootGameObjects())
                 foreach(var backdrop in go.GetComponentsInChildren<BlueprintBackdrop>(true))
                 { backdrop.targetCamera=camera; backdrop.Refresh(); }
@@ -170,6 +172,8 @@ namespace CodingGame.Art.MapPainter.Editor
             var view = SceneView.lastActiveSceneView;
             if (view) view.LookAt(bounds.center, Quaternion.Euler(55,0,0), Mathf.Max(4,bounds.size.magnitude*.6f), true);
         }
+        public static ModularMapRoot FindMap(Scene scene) =>
+            scene.GetRootGameObjects().SelectMany(go => go.GetComponentsInChildren<ModularMapRoot>(true)).FirstOrDefault();
         public static Camera FindCamera(Scene scene)
         {
             var cameras = scene.GetRootGameObjects().SelectMany(go => go.GetComponentsInChildren<Camera>(true)).ToArray();
