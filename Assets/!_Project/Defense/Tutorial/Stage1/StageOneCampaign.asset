@@ -66,6 +66,10 @@ MonoBehaviour:
         count: 4
       - kind: 10
         count: 4
+      - kind: 6
+        count: 2
+      - kind: 15
+        count: 2
       rewards:
       - kind: 19
         count: 1
@@ -83,7 +87,7 @@ MonoBehaviour:
         count: 1
     - stage: 1
       wave: 3
-      topic: "\uC870\uAC74: enemyDistance <= 10"
+      topic: "\uC870\uAC74: \uAC70\uB9AC \uBE44\uAD50"
       robots: []
       blocks:
       - kind: 3
@@ -107,7 +111,7 @@ MonoBehaviour:
         count: 1
     - stage: 1
       wave: 5
-      topic: "attackDistance\uC640 \uC870\uAC74: \uBCF4\uC2A4 \uC885\uD569 \uC2E4\uC2B5"
+      topic: "\uBCC0\uC218\uC640 \uC870\uAC74: \uBCF4\uC2A4 \uC885\uD569 \uC2E4\uC2B5"
       robots: []
       blocks:
       - kind: 14
@@ -137,9 +141,9 @@ MonoBehaviour:
       - kind: 14
         count: 1
       - kind: 15
-        count: 1
+        count: 3
       - kind: 6
-        count: 1
+        count: 3
       - kind: 8
         count: 1
       - kind: 9
@@ -214,6 +218,10 @@ MonoBehaviour:
         count: 1
       - kind: 20
         count: 1
+      - kind: 6
+        count: 2
+      - kind: 15
+        count: 2
       rewards:
       - kind: 16
         count: 1

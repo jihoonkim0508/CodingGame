@@ -27,7 +27,7 @@ try
     var actualTank = battle.Simulation.Robots.Single(); var health = actualTank.Health;
     Show(); Status();
     Check(label.text.Contains("코드 없음")&&label.text.Contains("저지 비활성"),"empty tank status");
-    Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block));
+    Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.NearestEnemy)));
     preview.PreviewSimulation.Advance(2.5); Status();
     Check(label.text.Contains("저지 3/3")&&label.text.Contains("한도 도달"),"occupied capacity status");
     Check(label.text.Contains("재사용 대기"),"cooldown distinct from body blocking");
@@ -43,7 +43,7 @@ try
     for(int i=0;i<100;i++) Advance(.1f);
     Check(preview.PreviewSimulation==held&&held.Time>12&&held.Enemies.Count==3,"living blocked enemies are not reset after eight seconds");
     Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Wait,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Number,"10")),
-        new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block));
+        new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.NearestEnemy)));
     var waiting=preview.PreviewSimulation;
     for(int i=0;i<102;i++) Advance(.1f);
     Check(preview.PreviewSimulation==waiting&&waiting.Robots.Single().BlockingEnabled,"ten-second wait reaches next command without forced reset");
@@ -66,7 +66,7 @@ try
     Advance(.5f);TogglePreview();TogglePreview();var reopened=preview.PreviewSimulation;Advance(.6f);
     Check(preview.PreviewSimulation==reopened&&reopened.RemainingEnemies>0,"reopening clears previous restart countdown");
     Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Wait,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Number,"5")),
-        new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block));
+        new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.NearestEnemy)));
     preview.PreviewSimulation.Advance(.25); Status();
     Check(label.text.Contains("wait")&&label.text.Contains("저지 비활성"),"wait before block reports inactive stance");
     Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Buff));

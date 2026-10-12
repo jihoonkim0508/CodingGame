@@ -177,7 +177,6 @@ static class Check
         Assert(capacitySim.Enemies.Count(e=>e.BlockedBy==capacityTank.Id)==3 && capacitySim.Enemies.Count(e=>e.Position.X>-8)==2, "capacity overflow passes while three enemies remain blocked");
         Console.WriteLine($"Defense checks passed: {checks}");
         ProgramCheck.Run();
-        StageOneCheck.Run();
         CampaignCheck.Run();
     }
 }

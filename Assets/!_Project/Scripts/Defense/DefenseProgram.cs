@@ -111,12 +111,11 @@ namespace CodingGame.Defense
         {
             StepsLastTick = 0;
             if (Fault != null || Completed(sim) || sim.Phase != BattlePhase.Running || sim.Time + 1e-9 < wakeTime) return;
+            // A program that targets enemies starts a run only once one is in range, so idle runs don't use up the repeat limit.
             if (!invocationStarted)
             {
-                var nearest = Rules.Nearest(sim.Enemies.Where(e => e.Active && (sim.Setup.StageOneLearning || Vector2.DistanceSquared(e.Position, robot.Position) <= robot.Range * robot.Range)), robot.Position);
-                if (nearest == null && blocks.Any(UsesEnemy)) return;
-                variables["enemy"] = new EnemyValue { Id = nearest?.Id ?? 0 };
-                variables["enemyDistance"] = nearest == null ? double.PositiveInfinity : (double)Vector2.Distance(nearest.Position, robot.Position);
+                if (blocks.Any(TargetsEnemies) && !sim.Enemies.Any(e => e.Active &&
+                    (sim.Setup.StageOneLearning || Vector2.DistanceSquared(e.Position, robot.Position) <= robot.Range * robot.Range))) return;
                 invocationStarted = true;
             }
             try
@@ -165,9 +164,7 @@ namespace CodingGame.Defense
                             int target = 0;
                             if (PythonTreeCompiler.HasEnemyArgument(block.Kind))
                             {
-                                var argument = block.Arguments.Count == 0 || block.Arguments[0] == null
-                                    ? new CodeBlock(BlockKind.Variable, "enemy") : block.Arguments[0];
-                                var enemy = Value(argument, sim, robot) as EnemyValue;
+                                var enemy = Value(block.Arguments[0], sim, robot) as EnemyValue;
                                 if (enemy == null) throw new FormatException("공격 대상에는 enemy 객체가 필요합니다.");
                                 target = enemy.Id;
                                 // 지정한 적이 사라져도 다른 적으로 자동 교체하지 않습니다.
@@ -190,8 +187,8 @@ namespace CodingGame.Defense
             }
             catch (FormatException error) { Fault = error.Message; }
         }
-        static bool UsesEnemy(CodeBlock block) => block != null && (PythonTreeCompiler.HasEnemyArgument(block.Kind) ||
-            block.Kind == BlockKind.Variable && (block.Value == "enemy" || block.Value == "enemyDistance") || block.Arguments.Any(UsesEnemy) || block.Body.Any(UsesEnemy));
+        static bool TargetsEnemies(CodeBlock block) => block != null && (PythonTreeCompiler.HasEnemyArgument(block.Kind) ||
+            block.Kind == BlockKind.NearestEnemy || block.Arguments.Any(TargetsEnemies) || block.Body.Any(TargetsEnemies));
         static RobotAction Action(BlockKind kind)
         {
             switch (kind)
@@ -228,6 +225,9 @@ namespace CodingGame.Defense
                     int id = ((EnemyValue)Arg(0)).Id; var enemy = sim.Enemies.Find(e => e.Id == id && e.Active);
                     double x = Number(Arg(1)), z = Number(Arg(2));
                     return enemy == null ? double.PositiveInfinity : Math.Sqrt(Math.Pow(enemy.Position.X - x, 2) + Math.Pow(enemy.Position.Y - z, 2));
+                case BlockKind.Hp:
+                    int target = ((EnemyValue)Arg(0)).Id;
+                    return (double)(sim.Enemies.Find(e => e.Id == target && e.Active)?.Health ?? 0); // a defeated enemy reads as 0 hp
                 case BlockKind.Comparison:
                     var left = Arg(0); var right = Arg(1);
                     if (block.Value == "==") return left is EnemyValue a && right is EnemyValue b ? a.Id == b.Id :

@@ -31,7 +31,7 @@ internal class CommandScript : IRunCommand
         battle.Simulation.GrantRobot(RobotRole.Warrior, 1);
         if (!battle.PlaceRobot(index, new Vector3(-8, 0, 6))) throw new Exception("Cannot place test warrior");
         var robot = battle.Simulation.Robots.Last();
-        robot.Program = new DefenseProgram("effects_check", new[] { new CodeBlock(BlockKind.Slash) });
+        robot.Program = new DefenseProgram("effects_check", new[] { new CodeBlock(BlockKind.Slash, "0", new CodeBlock(BlockKind.NearestEnemy)) });
         battle.DevelopSelected();
         preview.Open(robot);
         var arena = (Transform)previewSettings.FindProperty("arena").objectReferenceValue;

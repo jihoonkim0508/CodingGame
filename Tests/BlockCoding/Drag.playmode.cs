@@ -81,9 +81,12 @@ internal class CommandScript : IRunCommand
             Check(!hits.Any(hit => hit.gameObject.transform.IsChildOf(conditional.transform)), "empty hole falls through in real UI raycast");
             foreach (var kind in new[] { BlockKind.Slash, BlockKind.Block, BlockKind.Boom, BlockKind.Shot, BlockKind.Slow })
             {
-                var source = PythonTreeCompiler.Compile("robot", new[] { new CodeBlock(kind) });
-                Check(source.StartsWith("def robot():\n") && source.Contains("enemy = get_nearest_enemy()") && source.Contains("(enemy)"),
-                    "parameterless function retains target argument: " + kind);
+                bool rejected = false;
+                try { PythonTreeCompiler.Compile("robot", new[] { new CodeBlock(kind) }); } catch (FormatException) { rejected = true; }
+                Check(rejected, "empty attack target is a compile error: " + kind);
+                var source = PythonTreeCompiler.Compile("robot", new[] { new CodeBlock(kind, "0", new CodeBlock(BlockKind.NearestEnemy)) });
+                Check(source.StartsWith("def robot():\n") && !source.Contains("enemy =") && source.Contains("(get_nearest_enemy())"),
+                    "no implicit enemy, explicit target kept: " + kind);
             }
             var condition = program.Blocks[0].Arguments[0];
             var comparison = Palette(BlockKind.Comparison);
@@ -159,6 +162,21 @@ internal class CommandScript : IRunCommand
             e = Begin(statement, grip);
             Move(e, statement, body.Rect, new Vector2(4, -4), grip); Drop(e, program);
             Check(body.Blocks.Count == 1 && program.Blocks.Count == 1, "statement enters body by block position");
+            // A placed variable is mostly its name field; a drag that starts on the field must still move the block.
+            panel.LoadProgram("drag_check", new[] { new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock[] { null }) });
+            panel.ShowCategory(2); Layout();
+            e = Begin(panel.VariableTemplate, grip); Move(e, panel.VariableTemplate, program.Rect, new Vector2(120, -260), grip); Drop(e, program);
+            var loose = program.Blocks.First(b => b.BaseKind == BlockKind.Variable);
+            var socket = program.Blocks.First(b => b.BaseKind == BlockKind.DeclareVariable).Arguments[0];
+            var field = loose.GetComponentInChildren<TMP_InputField>().gameObject;
+            var fieldDrag = new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left, position = Screen(loose.Rect, new Vector2(40, -16)) };
+            fieldDrag.pressPosition = fieldDrag.position;
+            ExecuteEvents.Execute(field, fieldDrag, ExecuteEvents.beginDragHandler);
+            Check(panel.Dragged == loose, "drag on the name field picks up the variable block");
+            fieldDrag.position = RectTransformUtility.WorldToScreenPoint(camera, socket.Rect.TransformPoint(Vector2.zero) + loose.Rect.TransformVector(grip));
+            ExecuteEvents.Execute(field, fieldDrag, ExecuteEvents.dragHandler);
+            ExecuteEvents.Execute(field, fieldDrag, ExecuteEvents.endDragHandler); Layout();
+            Check(socket.Blocks.Count == 1, "variable dragged by its field snaps into the value slot");
             result.Log("PASS: " + checks + " variable layout and drag/drop checks");
         }
         finally { panel.EndDrag(); panel.gameObject.SetActive(false); result.DestroyObject(panel.gameObject); }

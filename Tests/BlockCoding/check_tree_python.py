@@ -15,6 +15,10 @@ class Enemy:
     def get_distance(self, x, y):
         return ((3 - x) ** 2 + (4 - y) ** 2) ** 0.5
 
+    @property
+    def hp(self):  # read-only, like the game API
+        return 30
+
 
 enemy = Enemy()
 
@@ -46,6 +50,7 @@ expected = {
     "tree_empty_body": [],
     "tree_chain": [("wait", 7)],
     "tree_unicode": [("attack", enemy)],
+    "tree_hp": [("attack", enemy)],
 }
 for name, result in expected.items():
     events.clear()
@@ -53,4 +58,4 @@ for name, result in expected.items():
     scope[name]()
     assert events == result, (name, events, result)
 
-print("PASS: generated Python 3 syntax and execution for nested loops, break/continue, 64 elif branches, methods and variables.")
+print("PASS: generated Python 3 syntax and execution for nested loops, break/continue, 64 elif branches, methods and variables, enemy.hp.")

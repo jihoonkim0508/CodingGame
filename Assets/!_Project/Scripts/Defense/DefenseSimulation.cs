@@ -98,7 +98,8 @@ namespace CodingGame.Defense
                 AddStock(Inventory, DefenseProgression.Canonical(stock.kind), stock.count);
             if (setup.PlayerFlow) foreach (var stock in setup.Progression.robots)
                 AddStock(RobotInventory, stock.role, stock.count);
-            if (setup.PlayerFlow && setup.PreviousStageRewards) foreach (var lesson in setup.Progression.lessons.Where(l => l.stage < setup.Stage))
+            // Starting mid-stage (dev tests) also carries the earlier waves of this stage.
+            if (setup.PlayerFlow && setup.PreviousStageRewards) foreach (var lesson in setup.Progression.lessons.Where(l => l.stage < setup.Stage || l.stage == setup.Stage && l.wave <= setup.InitialWave))
             {
                 foreach(var stock in lesson.robots) GrantRobot(stock.role,stock.count);
                 foreach(var stock in lesson.blocks.Concat(lesson.rewards)) GrantBlock(stock.kind,stock.count);
@@ -258,10 +259,13 @@ namespace CodingGame.Defense
             Detach(bot);
             return true;
         }
+        // Level-up opens from Stage 1 wave 2 in the campaign.
+        public bool UpgradeUnlocked => !Setup.PlayerFlow || Setup.Stage != 1 || WaveIndex >= 1;
         public string UpgradeError(int id)
         {
             var bot = FindRobot(id);
             if (bot == null) return "로봇을 선택하세요.";
+            if (!UpgradeUnlocked) return "레벨업은 1-2부터 열립니다.";
             if (bot.IsMaxLevel) return "최고레벨";
             if (!CanPrepare) return "정비 중에만 레벨업할 수 있습니다.";
             if (Coins < UpgradeCost) return "코인이 부족합니다.";

@@ -116,11 +116,21 @@ static class TreeCheck
         foreach (string valid in new[] { "_x", "적", "enemy2", "match", "case", "ｘ", "℘", "a·b", "𐐀" })
             Assert(PythonTreeCompiler.NormalizeIdentifier(valid).Length > 0, "Python identifier rejected.");
         programs["tree_unicode"] = PythonTreeCompiler.Compile("tree_unicode", new[] { Set("적", nearest), B(BlockKind.Attack, V("적")) });
-        Assert(PythonTreeCompiler.HasStaleEnemyLoop(new[] { Body(B(BlockKind.While), B(BlockKind.Shot)) }), "Stale enemy loop not flagged.");
-        Assert(PythonTreeCompiler.HasStaleEnemyLoop(new[] { Body(B(BlockKind.If, trueBlock), Body(B(BlockKind.For, N("3")), B(BlockKind.Shot))) }), "Nested stale loop not flagged.");
-        Assert(!PythonTreeCompiler.HasStaleEnemyLoop(new[] { Body(B(BlockKind.While), Set("enemy", nearest), B(BlockKind.Shot)) }), "Re-targeting loop flagged.");
+        var aim = Set("enemy", nearest);
+        Assert(PythonTreeCompiler.HasStaleEnemyLoop(new[] { aim, Body(B(BlockKind.While), B(BlockKind.Shot, V("enemy"))) }), "Stale enemy loop not flagged.");
+        Assert(PythonTreeCompiler.HasStaleEnemyLoop(new[] { aim, Body(B(BlockKind.If, trueBlock), Body(B(BlockKind.For, N("3")), B(BlockKind.Shot, V("enemy")))) }), "Nested stale loop not flagged.");
+        Assert(!PythonTreeCompiler.HasStaleEnemyLoop(new[] { Body(B(BlockKind.While), Set("enemy", nearest), B(BlockKind.Shot, V("enemy"))) }), "Re-targeting loop flagged.");
         Assert(!PythonTreeCompiler.HasStaleEnemyLoop(new[] { Body(B(BlockKind.While), B(BlockKind.Shot, nearest)) }), "Explicit target flagged.");
-        Assert(!PythonTreeCompiler.HasStaleEnemyLoop(new[] { B(BlockKind.Shot) }), "Loop-free program flagged.");
+        Assert(!PythonTreeCompiler.HasStaleEnemyLoop(new[] { aim, B(BlockKind.Shot, V("enemy")) }), "Loop-free program flagged.");
+        // No implicit names: enemy, enemyDistance and an empty attack target are all compile errors.
+        Reject(B(BlockKind.Shot));
+        Reject(B(BlockKind.Shot, V("enemy")));
+        Reject(Body(B(BlockKind.If, Compare("<=", V("enemyDistance"), N("5"))), B(BlockKind.Shot, nearest)));
+        // enemy.hp is a read-only float on an Enemy.
+        programs["tree_hp"] = PythonTreeCompiler.Compile("tree_hp", new[] { aim,
+            Body(B(BlockKind.If, Compare(">", B(BlockKind.Hp, V("enemy")), N("10"))), B(BlockKind.Shot, V("enemy"))) });
+        Assert(programs["tree_hp"].Contains("if enemy.hp > 10:"), "hp property syntax.");
+        Reject(Set("x", N("1")), Set("y", B(BlockKind.Hp, V("x"))));
         Console.WriteLine("PASS: nested block compiler, typed sockets, branch connections, variables, loops, stale-target lint and validation.");
     }
 }

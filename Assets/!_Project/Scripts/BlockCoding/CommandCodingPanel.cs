@@ -151,7 +151,6 @@ namespace CodingGame.BlockCoding
         void SyncVariables()
         {
             enemyVariables.Clear();
-            enemyVariables.Add("enemy");
             foreach (var block in program.AllBlocks())
             {
                 if (block.BaseKind != BlockKind.DeclareVariable) continue;
@@ -268,7 +267,7 @@ namespace CodingGame.BlockCoding
         internal CommandBlockView CreateBlock(CodeBlock data, Transform parent)
         {
             if (data.Kind == BlockKind.Attack) data = new CodeBlock(BlockKind.Shot, data.Value, data.Arguments.ToArray());
-            bool variable = data.Kind == BlockKind.Variable || data.Kind == BlockKind.Distance;
+            bool variable = data.Kind == BlockKind.Variable || data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp;
             var template = variable ? variablePrefab : palette.FirstOrDefault(item => item.view.BaseKind == data.Kind).view;
             if (!template) throw new FormatException("블록 프리팹이 연결되지 않았습니다: " + data.Kind);
             var view = Instantiate(template, parent);

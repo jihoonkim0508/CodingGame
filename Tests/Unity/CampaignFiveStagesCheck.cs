@@ -37,7 +37,9 @@ public static class CampaignFiveStagesCheck
     {
         sim.ApplyProgram(bot.Id,"robot_"+bot.Id,Array.Empty<CodeBlock>());
         var body=new System.Collections.Generic.List<CodeBlock>();
-        CodeBlock command=new CodeBlock(Action(bot.Spec.role));
+        var kind=Action(bot.Spec.role);
+        // Attacks need an explicit target: the nearest enemy, or the declared `enemy` inside the distance check.
+        CodeBlock command=PythonTreeCompiler.HasEnemyArgument(kind)?new CodeBlock(kind,"0",new CodeBlock(BlockKind.NearestEnemy)):new CodeBlock(kind);
         bool condition = sim.Setup.Stage>=2 && bot.Spec.role!=RobotRole.Buffer &&
             new[]{BlockKind.If,BlockKind.Comparison,BlockKind.DeclareVariable,BlockKind.Variable,BlockKind.NearestEnemy,BlockKind.PositionX,BlockKind.PositionY}
                 .All(k=>sim.Available(k,bot.Id)>0) && sim.Available(BlockKind.Number,bot.Id)>1;
@@ -47,6 +49,7 @@ public static class CampaignFiveStagesCheck
             body.Add(new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)));
             var distance=new CodeBlock(BlockKind.Distance,"0",new CodeBlock(BlockKind.Variable,"enemy"),new CodeBlock(BlockKind.PositionX),new CodeBlock(BlockKind.PositionY));
             var branch=new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,"<",distance,new CodeBlock(BlockKind.Number,"10")));
+            if(PythonTreeCompiler.HasEnemyArgument(kind)) command.Arguments[0]=new CodeBlock(BlockKind.Variable,"enemy");
             branch.Body.Add(command);command=branch;
         }
         body.Add(command);

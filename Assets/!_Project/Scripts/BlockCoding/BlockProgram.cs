@@ -7,7 +7,7 @@ namespace CodingGame.BlockCoding
     {
         Attack, Wait, While, If, Elif, Else, NearestEnemy, Distance,
         PositionX, PositionY, Number, Comparison, True, False, DeclareVariable, Variable,
-        For, Break, Continue, Slash, Block, Boom, Shot, Slow, Buff
+        For, Break, Continue, Slash, Block, Boom, Shot, Slow, Buff, Hp
     }
 
     [Serializable]

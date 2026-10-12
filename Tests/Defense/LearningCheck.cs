@@ -23,7 +23,7 @@ static class LearningCheck
         Require(bot!=null,"Starting supplies playable");
         Require(Math.Abs(sim.ActionDamage(bot,RobotAction.Attack,2)-2*sim.ActionDamage(bot,RobotAction.Attack,4))<.001f,"Distance double, damage half");
         Require(sim.ActionDamage(bot,RobotAction.Attack,0)==sim.ActionDamage(bot,RobotAction.Attack,1),"Near-distance damage capped");
-        sim.ApplyProgram(bot.Id,"fire",new[]{new CodeBlock(BlockKind.Shot)});
+        sim.ApplyProgram(bot.Id,"fire",new[]{new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy))});
         RobotState tank=null;
         for(int stage=1;stage<=3;stage++)
         {

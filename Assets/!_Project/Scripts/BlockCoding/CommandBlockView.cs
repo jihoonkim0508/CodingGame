@@ -26,8 +26,10 @@ namespace CodingGame.BlockCoding
         public CommandCodingPanel Panel { get; private set; }
         public CommandDropZone Owner { get; private set; }
         public bool IsPalette { get; private set; }
+        static readonly string[] Methods = { "get_distance(", "hp" };
         bool HasDot => kind == BlockKind.Variable && input && input.text.EndsWith(".", StringComparison.Ordinal);
-        public BlockKind Kind => HasDot && dropdown.value == 1 ? BlockKind.Distance : kind;
+        // Dropdown after `name.`: 1 = get_distance(x, y), 2 = the read-only hp property.
+        public BlockKind Kind => !HasDot ? kind : dropdown.value == 1 ? BlockKind.Distance : dropdown.value == 2 ? BlockKind.Hp : kind;
         public BlockKind BaseKind => kind;
         public CommandDropZone Body => body;
         public IReadOnlyList<CommandDropZone> Arguments => arguments;
@@ -114,7 +116,7 @@ namespace CodingGame.BlockCoding
         {
             int selection = dropdown.value;
             var options = new List<string> { "메서드 선택" };
-            if (selection == 1 || (Panel && Panel.IsEnemyVariable(VariableName))) options.Add("get_distance(");
+            if (selection > 0 || (Panel && Panel.IsEnemyVariable(VariableName))) options.AddRange(Methods);
             else options[0] = "사용 가능한 메서드 없음";
             dropdown.ClearOptions();
             dropdown.AddOptions(options);
@@ -156,10 +158,11 @@ namespace CodingGame.BlockCoding
             int skip = 0;
             if (kind == BlockKind.Variable)
             {
-                variableName = data.Kind == BlockKind.Distance ? data.Arguments[0].Value : data.Value;
-                input.SetTextWithoutNotify(variableName + (data.Kind == BlockKind.Distance ? "." : ""));
-                dropdown.ClearOptions(); dropdown.AddOptions(new List<string> { "메서드 선택", "get_distance(" });
-                dropdown.SetValueWithoutNotify(data.Kind == BlockKind.Distance ? 1 : 0);
+                bool member = data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp;
+                variableName = member ? data.Arguments[0].Value : data.Value;
+                input.SetTextWithoutNotify(variableName + (member ? "." : ""));
+                dropdown.ClearOptions(); dropdown.AddOptions(new List<string> { "메서드 선택" }); dropdown.AddOptions(new List<string>(Methods));
+                dropdown.SetValueWithoutNotify(data.Kind == BlockKind.Distance ? 1 : data.Kind == BlockKind.Hp ? 2 : 0);
                 RefreshVariableOptions();
                 if (data.Kind == BlockKind.Variable) return;
                 skip = 1;
@@ -178,6 +181,7 @@ namespace CodingGame.BlockCoding
             {
                 if (Kind == BlockKind.Variable) { block.Value = input.text; return block; }
                 block.Arguments.Add(new CodeBlock(BlockKind.Variable, VariableName));
+                if (Kind == BlockKind.Hp) return block;
             }
             foreach (var argument in arguments) block.Arguments.Add(argument.ReadArgument());
             if (body) block.Body.AddRange(body.Read());

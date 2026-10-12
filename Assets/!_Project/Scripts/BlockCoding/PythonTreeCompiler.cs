@@ -26,7 +26,7 @@ namespace CodingGame.BlockCoding
                 case BlockKind.Comparison: case BlockKind.True: case BlockKind.False:
                     return BlockSlotKind.Condition;
                 case BlockKind.Number: case BlockKind.Variable: case BlockKind.NearestEnemy:
-                case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.Distance:
+                case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.Distance: case BlockKind.Hp:
                     return BlockSlotKind.Value;
                 case BlockKind.Attack: case BlockKind.Wait: case BlockKind.DeclareVariable:
                 case BlockKind.For: case BlockKind.While: case BlockKind.If: case BlockKind.Elif:
@@ -50,7 +50,7 @@ namespace CodingGame.BlockCoding
             switch (kind)
             {
                 case BlockKind.For: case BlockKind.If: case BlockKind.Elif:
-                case BlockKind.Wait: case BlockKind.DeclareVariable: return 1;
+                case BlockKind.Wait: case BlockKind.DeclareVariable: case BlockKind.Hp: return 1; // Hp: receiver
                 case BlockKind.Comparison: return 2;
                 case BlockKind.Distance: return 3; // receiver, x, y
                 default: return 0;
@@ -89,24 +89,20 @@ namespace CodingGame.BlockCoding
             if (blocks == null) throw new ArgumentNullException(nameof(blocks));
             ValidateTree(blocks, new HashSet<CodeBlock>());
             var source = new StringBuilder("def ").Append(NormalizeIdentifier(functionName)).Append("():\n");
-            // The default target is local to each invocation, not a caller-supplied parameter.
-            if (blocks.Any(UsesDefaultEnemy)) source.Append("    enemy = get_nearest_enemy()\n");
-            if (blocks.Any(UsesEnemyDistance)) source.Append("    enemyDistance = enemy.get_distance(get_pos_x(), get_pos_y()) if enemy is not None else float('inf')\n");
-            EmitSuite(blocks, source, 1, 0, new Dictionary<string, ValueType> { ["enemy"] = ValueType.Enemy, ["enemyDistance"] = ValueType.Float });
+            // No implicit names: every variable, including the enemy target, has to be declared first.
+            EmitSuite(blocks, source, 1, 0, new Dictionary<string, ValueType>());
             return source.ToString();
         }
-        static bool UsesDefaultEnemy(CodeBlock block) => block != null &&
-            (HasEnemyArgument(block.Kind) && (block.Arguments.Count == 0 || block.Arguments[0] == null) ||
-             block.Kind == BlockKind.Variable && (block.Value == "enemy" || block.Value == "enemyDistance") ||
-             block.Arguments.Any(UsesDefaultEnemy) || block.Body.Any(UsesDefaultEnemy));
-        // A loop that acts on the implicit `enemy` without re-assigning it keeps aiming at the first target after it is gone.
-        public static bool HasStaleEnemyLoop(IReadOnlyList<CodeBlock> blocks) => blocks.Any(block => block != null &&
-            ((block.Kind == BlockKind.For || block.Kind == BlockKind.While) && block.Body.Any(UsesDefaultEnemy) && !block.Body.Any(AssignsEnemy)
-             || HasStaleEnemyLoop(block.Body)));
-        static bool AssignsEnemy(CodeBlock block) => block != null &&
-            (block.Kind == BlockKind.DeclareVariable && NormalizeIdentifier(block.Value) == "enemy" || block.Body.Any(AssignsEnemy));
-        static bool UsesEnemyDistance(CodeBlock block) => block != null && (block.Kind == BlockKind.Variable && block.Value == "enemyDistance" ||
-            block.Arguments.Any(UsesEnemyDistance) || block.Body.Any(UsesEnemyDistance));
+        static IEnumerable<CodeBlock> All(IEnumerable<CodeBlock> blocks) =>
+            blocks.Where(b => b != null).SelectMany(b => new[] { b }.Concat(All(b.Arguments)).Concat(All(b.Body)));
+        // A loop that acts on an enemy variable without re-assigning it keeps aiming at the first target after it is gone.
+        public static bool HasStaleEnemyLoop(IReadOnlyList<CodeBlock> blocks)
+        {
+            var enemies = new HashSet<string>(All(blocks).Where(b => b.Kind == BlockKind.DeclareVariable && b.Arguments.FirstOrDefault()?.Kind == BlockKind.NearestEnemy).Select(b => b.Value));
+            return All(blocks).Any(loop => (loop.Kind == BlockKind.For || loop.Kind == BlockKind.While) &&
+                All(loop.Body).Where(b => b.Kind == BlockKind.Variable && enemies.Contains(b.Value)).Select(b => b.Value)
+                    .Except(All(loop.Body).Where(b => b.Kind == BlockKind.DeclareVariable).Select(b => b.Value)).Any());
+        }
 
         static void ValidateTree(IReadOnlyList<CodeBlock> blocks, HashSet<CodeBlock> path)
         {
@@ -115,12 +111,12 @@ namespace CodingGame.BlockCoding
                 if (block == null) throw new FormatException("비어 있는 블록 슬롯이 있습니다.");
                 if (!path.Add(block)) throw new FormatException("블록을 자기 자신의 내부에 연결할 수 없습니다.");
                 OutputSlot(block.Kind);
-                if (block.Arguments == null || (block.Arguments.Count != ArgumentCount(block.Kind) &&
-                    !(HasEnemyArgument(block.Kind) && block.Arguments.Count == 0)))
+                if (HasEnemyArgument(block.Kind) && (block.Arguments == null || block.Arguments.Count == 0 || block.Arguments[0] == null))
+                    throw new FormatException("공격 대상을 넣어 주세요. 예: enemy = get_nearest_enemy() 다음에 attack(enemy)");
+                if (block.Arguments == null || block.Arguments.Count != ArgumentCount(block.Kind))
                     throw new FormatException($"{block.Kind}: 입력 슬롯을 모두 채워 주세요.");
                 for (int i = 0; i < block.Arguments.Count; i++)
-                    if (!(HasEnemyArgument(block.Kind) && block.Arguments[i] == null) &&
-                        (block.Arguments[i] == null || !Accepts(ArgumentSlot(block.Kind, i), block.Arguments[i].Kind)))
+                    if (block.Arguments[i] == null || !Accepts(ArgumentSlot(block.Kind, i), block.Arguments[i].Kind))
                         throw new FormatException($"{block.Kind}: {i + 1}번째 슬롯에는 {ArgumentSlot(block.Kind, i)} 블록이 필요합니다.");
                 if (block.Body == null || (!HasBody(block.Kind) && block.Body.Count != 0))
                     throw new FormatException($"{block.Kind}: 내부 명령을 가질 수 없는 블록입니다.");
@@ -212,7 +208,7 @@ namespace CodingGame.BlockCoding
             {
                 case BlockKind.Number:
                     return NormalizeNumber(block.Value).Contains(".") ? ValueType.Float : ValueType.Integer;
-                case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.Distance: return ValueType.Float;
+                case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.Distance: case BlockKind.Hp: return ValueType.Float;
                 case BlockKind.NearestEnemy: return ValueType.Enemy;
                 case BlockKind.True: case BlockKind.False: case BlockKind.Comparison: return ValueType.Boolean;
                 case BlockKind.Variable:
@@ -234,8 +230,7 @@ namespace CodingGame.BlockCoding
             string Arg(int index) => Expression(block.Arguments[index], variables);
             if (HasEnemyArgument(block.Kind))
             {
-                var target = block.Arguments.Count == 0 || block.Arguments[0] == null
-                    ? new CodeBlock(BlockKind.Variable, "enemy") : block.Arguments[0];
+                var target = block.Arguments[0];
                 Require(target, variables, ValueType.Enemy, "공격 대상에는 enemy 객체가 필요합니다.");
                 string method = block.Kind == BlockKind.Shot || block.Kind == BlockKind.Attack ? "attack" : block.Kind.ToString().ToLowerInvariant();
                 return method + "(" + Expression(target, variables) + ")";
@@ -260,6 +255,9 @@ namespace CodingGame.BlockCoding
                     Require(block.Arguments[1], variables, Numeric, "x좌표는 숫자여야 합니다.");
                     Require(block.Arguments[2], variables, Numeric, "y좌표는 숫자여야 합니다.");
                     return Arg(0) + ".get_distance(" + Arg(1) + ", " + Arg(2) + ")";
+                case BlockKind.Hp:
+                    Require(block.Arguments[0], variables, ValueType.Enemy, "hp는 Enemy 객체에서만 읽을 수 있습니다.");
+                    return Arg(0) + ".hp";
                 case BlockKind.Comparison:
                     if (!Comparisons.Contains(block.Value)) throw new FormatException("지원하지 않는 비교 연산자입니다.");
                     if (block.Value != "==")

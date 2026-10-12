@@ -5,8 +5,10 @@ var kinds = new[] { CodingGame.BlockCoding.BlockKind.Slash, CodingGame.BlockCodi
     CodingGame.BlockCoding.BlockKind.Boom, CodingGame.BlockCoding.BlockKind.Shot, CodingGame.BlockCoding.BlockKind.Slow };
 foreach (var kind in kinds)
 {
-    var source = CodingGame.BlockCoding.PythonTreeCompiler.Compile("robot", new[] { new CodingGame.BlockCoding.CodeBlock(kind) });
-    check(source.Contains("(enemy)"), "Default enemy: " + kind);
+    bool empty = false;
+    try { CodingGame.BlockCoding.PythonTreeCompiler.Compile("robot", new[] { new CodingGame.BlockCoding.CodeBlock(kind) }); }
+    catch (System.FormatException) { empty = true; }
+    check(empty, "Empty target is a compile error: " + kind);
     var explicitSource = CodingGame.BlockCoding.PythonTreeCompiler.Compile("robot", new[] {
         new CodingGame.BlockCoding.CodeBlock(kind, "", new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.NearestEnemy)) });
     check(explicitSource.Contains("get_nearest_enemy()"), "Explicit target: " + kind);
@@ -41,7 +43,7 @@ foreach (int limit in new[]{5,1})
 {
     var sim=make(limit); var bot=sim.Robots[0];
     sim.Enemies.Add(new CodingGame.Defense.EnemyState { Id=200,Position=new System.Numerics.Vector2(2,0),Health=10000,Spec=new CodingGame.Defense.EnemySpec() });
-    bot.Program=new CodingGame.Defense.DefenseProgram("robot",new[]{new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Slash)});
+    bot.Program=new CodingGame.Defense.DefenseProgram("robot",new[]{new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Slash,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.NearestEnemy))});
     for(int i=0;i<600;i++) { bot.NextAction=0; bot.Program.Tick(sim,bot); }
     check(bot.Executions==limit && bot.Program.CompletedRuns==limit,"Function execution limit "+limit);
 }
@@ -51,7 +53,7 @@ check(unlock.FunctionRepeatLimit==1,"After loop unlock");
 var loopSim=make(1);var loopBot=loopSim.Robots[0];
 loopSim.Enemies.Add(new CodingGame.Defense.EnemyState { Id=200,Position=new System.Numerics.Vector2(2,0),Health=10000,Spec=new CodingGame.Defense.EnemySpec() });
 var loop=new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.For,"",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Number,"10"));
-loop.Body.Add(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Slash));
+loop.Body.Add(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Slash,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.NearestEnemy)));
 loopBot.Program=new CodingGame.Defense.DefenseProgram("robot",new[]{loop});
 for(int i=0;i<600;i++){loopBot.NextAction=0;loopBot.Program.Tick(loopSim,loopBot);}
 check(loopBot.Executions==10 && loopBot.Program.CompletedRuns==1,"User loop runs ten attacks in one function invocation");
