@@ -24,8 +24,8 @@ public static class VariableInputCheck
         battle.DevelopSelected();
         var panel = UnityEngine.Object.FindFirstObjectByType<DefenseCodeEditor>().Panel;
         panel.ClearProgram(); panel.ShowCategory(2);
-        Require(panel.VariablePalette.Count == 1 && panel.VariablePalette.ContainsKey("variable"), "One variable palette entry");
-        var template = panel.VariablePalette["variable"];
+        Require(panel.VariableTemplate, "Variable palette entry");
+        var template = panel.VariableTemplate;
         panel.AddFromPalette(template);
         var variable = panel.Program.Blocks.Single();
         Require(variable.Read().Value == "variable" && variable.Kind == BlockKind.Variable, "Default editable variable");

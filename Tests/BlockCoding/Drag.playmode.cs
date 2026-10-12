@@ -51,7 +51,7 @@ internal class CommandScript : IRunCommand
             panel.ApplyToTarget = null; panel.Remaining = _ => 999; panel.IsAvailable = _ => true;
             panel.LoadProgram("drag_check", Array.Empty<CodeBlock>());
             panel.ShowCategory(2); Layout();
-            var variable = panel.VariablePalette["variable"];
+            var variable = panel.VariableTemplate;
             var input = variable.GetComponentInChildren<TMP_InputField>(true);
             Check(input.textViewport.anchoredPosition == Vector2.zero, "variable viewport must be centered");
             Check(input.textComponent.rectTransform.anchoredPosition == Vector2.zero, "variable text must stay in viewport");

@@ -69,7 +69,7 @@ static class TreeCheck
             foreach (BlockSlotKind slot in Enum.GetValues(typeof(BlockSlotKind)))
                 if (slot != output) Assert(!PythonTreeCompiler.Accepts(slot, kind), "Mismatched socket accepted.");
         }
-        foreach (string op in PythonBlockCompiler.Comparisons)
+        foreach (string op in PythonTreeCompiler.Comparisons)
             PythonTreeCompiler.Compile("compare", new[] { Body(B(BlockKind.If, Compare(op, N("1"), N("2"))), wait) });
         Reject(B(BlockKind.If, N("1")));
         Reject(B(BlockKind.While, nearest));
@@ -102,10 +102,6 @@ static class TreeCheck
         cycle.Body.Add(cycle);
         Reject(cycle);
 
-        var declarations = new List<CodeBlock> { Set("적", nearest), Set("incomplete", null), B(BlockKind.For, N("1")) };
-        Assert(PythonTreeCompiler.DeclaredVariables(declarations).OrderBy(x => x).SequenceEqual(new[] { "i", "incomplete", "적" }.OrderBy(x => x)), "Variable palette names.");
-        declarations.RemoveAt(0);
-        Assert(!PythonTreeCompiler.DeclaredVariables(declarations).Contains("적"), "Removed variable remained available.");
         foreach (var pair in new[] { ("00012", "12"), ("-.5", "-0.5"), ("2.0", "2.0"), ("2.", "2."), ("+0", "0") })
             Assert(PythonTreeCompiler.NormalizeNumber(pair.Item1) == pair.Item2, "Dot-based numeric normalization.");
         foreach (string invalid in new[] { "0f", "1e3", "2F", "", ".", "1.2.3", "NaN" }) Reject(B(BlockKind.Wait, N(invalid)));

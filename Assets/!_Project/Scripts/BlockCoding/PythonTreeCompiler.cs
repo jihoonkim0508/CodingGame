@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace CodingGame.BlockCoding
 {
@@ -49,7 +50,7 @@ namespace CodingGame.BlockCoding
             switch (kind)
             {
                 case BlockKind.For: case BlockKind.If: case BlockKind.Elif:
-                case BlockKind.Attack: case BlockKind.Wait: case BlockKind.DeclareVariable: return 1;
+                case BlockKind.Wait: case BlockKind.DeclareVariable: return 1;
                 case BlockKind.Comparison: return 2;
                 case BlockKind.Distance: return 3; // receiver, x, y
                 default: return 0;
@@ -81,7 +82,7 @@ namespace CodingGame.BlockCoding
             return true;
         }
 
-        static bool IsBranch(BlockKind kind) => kind == BlockKind.Elif || kind == BlockKind.Else;
+        internal static bool IsBranch(BlockKind kind) => kind == BlockKind.Elif || kind == BlockKind.Else;
 
         public static string Compile(string functionName, IReadOnlyList<CodeBlock> blocks)
         {
@@ -260,7 +261,7 @@ namespace CodingGame.BlockCoding
                     Require(block.Arguments[2], variables, Numeric, "y좌표는 숫자여야 합니다.");
                     return Arg(0) + ".get_distance(" + Arg(1) + ", " + Arg(2) + ")";
                 case BlockKind.Comparison:
-                    if (!PythonBlockCompiler.Comparisons.Contains(block.Value)) throw new FormatException("지원하지 않는 비교 연산자입니다.");
+                    if (!Comparisons.Contains(block.Value)) throw new FormatException("지원하지 않는 비교 연산자입니다.");
                     if (block.Value != "==")
                     {
                         Require(block.Arguments[0], variables, Numeric, "대소 비교에는 숫자가 필요합니다.");
@@ -271,11 +272,21 @@ namespace CodingGame.BlockCoding
             }
         }
 
+        public static readonly string[] Comparisons = { "==", "<", ">", "<=", ">=" };
+        static readonly Regex Number = new Regex(@"\A[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)\z");
+
         public static string NormalizeNumber(string text)
         {
             if (string.IsNullOrEmpty(text) || text.IndexOfAny(new[] { 'e', 'E', 'f', 'F' }) >= 0)
                 throw new FormatException("수치를 입력해 주세요. 소수점(.)이 있으면 float, 없으면 int입니다.");
-            return PythonBlockCompiler.NormalizeNumber(text);
+            if (!Number.IsMatch(text)) throw new FormatException("올바른 숫자를 입력해 주세요.");
+            // Keep arbitrary-length input as text; parsing as float would lose precision or impose a range.
+            string sign = text[0] == '-' ? "-" : "";
+            string unsigned = text.TrimStart('+', '-');
+            int end = unsigned.IndexOf('.');
+            if (end < 0) end = unsigned.Length;
+            string integer = unsigned.Substring(0, end).TrimStart('0');
+            return sign + (integer.Length == 0 ? "0" : integer) + unsigned.Substring(end);
         }
 
         public static string NormalizeIdentifier(string name)
@@ -298,29 +309,6 @@ namespace CodingGame.BlockCoding
                 i += code > 0xFFFF ? 2 : 1;
             }
             return name;
-        }
-
-        /// <summary>Names for a variable palette, also available while other blocks are incomplete.</summary>
-        public static IReadOnlyCollection<string> DeclaredVariables(IReadOnlyList<CodeBlock> blocks)
-        {
-            var names = new HashSet<string>();
-            CollectNames(blocks, names, new HashSet<CodeBlock>());
-            return names;
-        }
-
-        static void CollectNames(IReadOnlyList<CodeBlock> blocks, HashSet<string> names, HashSet<CodeBlock> visited)
-        {
-            foreach (var block in blocks)
-            {
-                if (block == null || !visited.Add(block)) continue;
-                if (block.Kind == BlockKind.DeclareVariable)
-                {
-                    try { names.Add(NormalizeIdentifier(block.Value)); }
-                    catch (FormatException) { }
-                }
-                if (block.Kind == BlockKind.For) names.Add("i");
-                if (block.Body != null) CollectNames(block.Body, names, visited);
-            }
         }
 
         static void Append(StringBuilder source, int depth, string text) => source.Append(' ', depth * 4).Append(text).Append('\n');

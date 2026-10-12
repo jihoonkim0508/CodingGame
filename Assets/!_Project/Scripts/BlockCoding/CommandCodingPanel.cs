@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -26,8 +25,6 @@ namespace CodingGame.BlockCoding
         [SerializeField] CommandBlockView variablePrefab;
         [SerializeField] GameObject variableEmptyHint;
         [SerializeField, Tooltip("Optional hint shown while the program has no blocks.")] GameObject programEmptyHint;
-        [SerializeField] UnityEvent<string> onApplied = new UnityEvent<string>();
-        readonly Dictionary<string, CommandBlockView> variables = new Dictionary<string, CommandBlockView>();
         readonly HashSet<string> enemyVariables = new HashSet<string>();
         List<CommandBlockView> dragging = new List<CommandBlockView>();
         readonly List<CommandBlockView> ghosts = new List<CommandBlockView>();
@@ -58,11 +55,9 @@ namespace CodingGame.BlockCoding
         public Func<BlockKind, bool> IsAvailable { get; set; }
         public Func<BlockKind, int> Remaining { get; set; }
         public event Action<BlockKind, RectTransform, RectTransform> BlockDropped;
-        internal void ReportSuccessfulDrop(CommandBlockView block, RectTransform source, RectTransform destination)
-        { if (block && source && destination) BlockDropped?.Invoke(block.Kind, source, destination); }
         readonly HashSet<CommandDropZone> zones = new HashSet<CommandDropZone>();
-        public void RegisterZone(CommandDropZone zone) => zones.Add(zone);
-        public bool CanTake(CommandBlockView source) => !source.IsPalette || (Remaining?.Invoke(source.Kind) ?? int.MaxValue) > 0;
+        internal void RegisterZone(CommandDropZone zone) => zones.Add(zone);
+        internal bool CanTake(CommandBlockView source) => !source.IsPalette || (Remaining?.Invoke(source.Kind) ?? int.MaxValue) > 0;
         int currentCategory;
         public void RefreshPalette() => ShowCategory(currentCategory);
         bool dropAccepted;
@@ -72,7 +67,7 @@ namespace CodingGame.BlockCoding
         public CommandDropZone EditorSnapTarget => snapTarget;
 #endif
         public IReadOnlyList<PaletteItem> Palette => palette;
-        public IReadOnlyDictionary<string, CommandBlockView> VariablePalette => variables;
+        public CommandBlockView VariableTemplate => variablePrefab;
         public CommandBlockView Dragged { get; private set; }
         public bool IsApplied { get; private set; }
         public string AppliedSource { get; private set; }
@@ -94,7 +89,6 @@ namespace CodingGame.BlockCoding
             program.Bind(this, null);
             foreach (var item in palette) item.view.Bind(this, null, true);
             variablePrefab.Bind(this, null, true);
-            variables.Add("variable", variablePrefab);
             for (int i = 0; i < categoryButtons.Length; i++)
             {
                 int category = i;
@@ -118,7 +112,7 @@ namespace CodingGame.BlockCoding
             for (int i = 0; i < categoryButtons.Length; i++)
                 categoryButtons[i].targetGraphic.color = i == category ? new Color(0.15f, 0.45f, 0.65f) : new Color(0.13f, 0.17f, 0.24f);
         }
-        public void Select(CommandDropZone zone)
+        internal void Select(CommandDropZone zone)
         {
             selected = zone;
             ShowMessage(zone.Slot == BlockSlotKind.Statement ? "명령 영역 선택됨 · 블록을 드래그하거나 목록에서 클릭하세요." :
@@ -146,8 +140,8 @@ namespace CodingGame.BlockCoding
             if (number && (IsAvailable?.Invoke(BlockKind.Number) ?? true) && CanTake(number))
                 block.Arguments[0].Load(new[] { new CodeBlock(BlockKind.Number, "10") });
         }
-        public bool IsEnemyVariable(string name) => enemyVariables.Contains(name);
-        public void RenameVariable(string previous, string current)
+        internal bool IsEnemyVariable(string name) => enemyVariables.Contains(name);
+        internal void RenameVariable(string previous, string current)
         {
             if (string.IsNullOrEmpty(previous)) return;
             if (program.AllBlocks().Any(b => b.BaseKind == BlockKind.DeclareVariable && b.VariableName == previous)) return;
@@ -172,7 +166,7 @@ namespace CodingGame.BlockCoding
             foreach (var block in program.AllBlocks()) if (block.BaseKind == BlockKind.Variable) block.RefreshVariableOptions();
             variableEmptyHint.SetActive(false);
         }
-        public void Changed()
+        internal void Changed()
         {
             if (updating) return;
             updating = true;
@@ -180,9 +174,7 @@ namespace CodingGame.BlockCoding
             try
             {
                 SyncVariables();
-                var blocks = program.Read();
-                string source = PythonTreeCompiler.Compile(functionName.text, blocks);
-                pythonPreview.text = source;
+                var blocks = CompilePreview(out string source);
                 if (!loading) Publish(blocks, source);
             }
             catch (FormatException error) { pythonPreview.text = "# 미완성: 블록 연결과 입력을 완성해 주세요."; ShowMessage("미완성 · 이전 적용 코드 유지 · " + error.Message); }
@@ -242,12 +234,17 @@ namespace CodingGame.BlockCoding
         {
             try
             {
-                var blocks = program.Read();
-                string source = PythonTreeCompiler.Compile(functionName.text, blocks);
-                pythonPreview.text = source;
+                var blocks = CompilePreview(out string source);
                 Publish(blocks, source);
             }
             catch (FormatException error) { IsApplied = false; AppliedSource = null; ShowMessage("미완성 · " + error.Message); }
+        }
+        List<CodeBlock> CompilePreview(out string source)
+        {
+            var blocks = program.Read();
+            source = PythonTreeCompiler.Compile(functionName.text, blocks);
+            pythonPreview.text = source;
+            return blocks;
         }
         void Publish(IReadOnlyList<CodeBlock> blocks, string source)
         {
@@ -255,7 +252,6 @@ namespace CodingGame.BlockCoding
             AppliedSource = source; IsApplied = true;
             ShowMessage((appliedMessage ?? "자동 적용됨") + (PythonTreeCompiler.HasStaleEnemyLoop(blocks)
                 ? " · 주의: 반복문 안에서 enemy를 다시 정하지 않으면 첫 적이 사라진 뒤 멈춰요. 반복문 안에 enemy = get_nearest_enemy()를 넣어보세요." : ""));
-            onApplied.Invoke(source);
         }
         public void LoadProgram(string name, IReadOnlyList<CodeBlock> blocks)
         {
@@ -284,18 +280,16 @@ namespace CodingGame.BlockCoding
             if (Dragged || !CanTake(source)) return;
             Dragged = source;
             dropAccepted = false;
-            dragging = source.IsPalette ? new List<CommandBlockView> { source } : source.Owner.Group(source);
+            dragging = CommandDropZone.Moving(source);
             RectTransformUtility.ScreenPointToLocalPointInRectangle(program.Rect, e.pressPosition, e.pressEventCamera, out var programPress);
-            var sourceTopLeft = program.Rect.InverseTransformPoint(source.Rect.TransformPoint(new Vector3(source.Rect.rect.xMin, source.Rect.rect.yMax, 0)));
-            programGrabOffset = programPress - new Vector2(sourceTopLeft.x, sourceTopLeft.y);
+            programGrabOffset = programPress - TopLeft(program.Rect, source.Rect);
             RectTransformUtility.ScreenPointToLocalPointInRectangle(dragLayer, e.pressPosition, e.pressEventCamera, out var dragPress);
-            var sourceDragTopLeft = dragLayer.InverseTransformPoint(source.Rect.TransformPoint(new Vector3(source.Rect.rect.xMin, source.Rect.rect.yMax, 0)));
-            dragGrabOffset = dragPress - new Vector2(sourceDragTopLeft.x, sourceDragTopLeft.y);
+            var sourceDragTopLeft = TopLeft(dragLayer, source.Rect);
+            dragGrabOffset = dragPress - sourceDragTopLeft;
             ghosts.Clear(); ghostOffsets.Clear();
             foreach (var block in dragging)
             {
-                var topLeft = dragLayer.InverseTransformPoint(block.Rect.TransformPoint(new Vector3(block.Rect.rect.xMin, block.Rect.rect.yMax, 0)));
-                ghostOffsets.Add(new Vector2(topLeft.x - sourceDragTopLeft.x, topLeft.y - sourceDragTopLeft.y));
+                ghostOffsets.Add(TopLeft(dragLayer, block.Rect) - sourceDragTopLeft);
                 var copy = block.Copy(dragLayer);
                 copy.SetDragAppearance(true);
                 copy.Rect.anchorMin = copy.Rect.anchorMax = copy.Rect.pivot = new Vector2(0, 1);
@@ -306,6 +300,9 @@ namespace CodingGame.BlockCoding
             foreach (var block in dragging) block.SetDragAppearance(true);
             MoveDrag(e);
         }
+        // Top-left corner of block, in space's local coordinates.
+        static Vector2 TopLeft(RectTransform space, RectTransform block) =>
+            space.InverseTransformPoint(block.TransformPoint(new Vector3(block.rect.xMin, block.rect.yMax, 0)));
         public void MoveDrag(PointerEventData e)
         {
             if (ghosts.Count == 0) return;
@@ -363,19 +360,23 @@ namespace CodingGame.BlockCoding
             }
             return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
-        public Vector2 DropPosition(PointerEventData e)
+        internal Vector2 DropPosition(PointerEventData e)
         {
             RectTransformUtility.ScreenPointToLocalPointInRectangle(program.Rect, e.position, e.pressEventCamera, out var point);
             return point - new Vector2(program.Rect.rect.xMin, program.Rect.rect.yMax) - programGrabOffset;
         }
-        public bool DraggedBlockCenter(Camera camera, out Vector2 center)
+        internal bool DraggedBlockCenter(Camera camera, out Vector2 center)
         {
             if (ghosts.Count == 0) { center = default; return false; }
             var rect = ghosts[0].Rect;
             center = RectTransformUtility.WorldToScreenPoint(camera, rect.TransformPoint(rect.rect.center));
             return true;
         }
-        public void AcceptDrop() => dropAccepted = true;
+        internal void CommitDrop(CommandBlockView block, RectTransform source, RectTransform destination)
+        {
+            dropAccepted = true;
+            BlockDropped?.Invoke(block.Kind, source, destination);
+        }
 
         public void FinishDrag(PointerEventData e)
         {
@@ -383,9 +384,9 @@ namespace CodingGame.BlockCoding
             if (!source) return;
             MoveDrag(e);
             bool inside = RectTransformUtility.RectangleContainsScreenPoint(definitionPanel, e.position, e.pressEventCamera);
-            if (source && !dropAccepted && snapTarget) snapTarget.TryDrop(e);
-            if (source && !dropAccepted && inside && program.FreePlacement) program.TryDrop(e);
-            bool discard = source && !source.IsPalette && !dropAccepted && !inside;
+            if (!dropAccepted && snapTarget) snapTarget.TryDrop(e);
+            if (!dropAccepted && inside && program.FreePlacement) program.TryDrop(e);
+            bool discard = !source.IsPalette && !dropAccepted && !inside;
             EndDrag();
             if (discard) Delete(source);
         }
@@ -400,7 +401,7 @@ namespace CodingGame.BlockCoding
             ghosts.Clear(); ghostOffsets.Clear();
             snapTarget = null;
         }
-        public void Delete(CommandBlockView block)
+        void Delete(CommandBlockView block)
         {
             if (!block || block.IsPalette || block.Owner == null) return;
             EndDrag();

@@ -12,14 +12,14 @@ static class Check
     static void Main(string[] args)
     {
         var programs = new Dictionary<string, string>();
-        foreach (var pair in new[] { ("00012", "12"), ("-.5", "-0.5"), ("+000.50", "0.50"), ("01e3000", "1e3000") })
-            Assert(PythonBlockCompiler.NormalizeNumber(pair.Item1) == pair.Item2, "Numeric normalization.");
+        foreach (var pair in new[] { ("00012", "12"), ("-.5", "-0.5"), ("+000.50", "0.50") })
+            Assert(PythonTreeCompiler.NormalizeNumber(pair.Item1) == pair.Item2, "Numeric normalization.");
         string huge = new string('9', 5000);
-        Assert(PythonBlockCompiler.NormalizeNumber(huge) == huge, "Numbers were truncated.");
+        Assert(PythonTreeCompiler.NormalizeNumber(huge) == huge, "Numbers were truncated.");
         foreach (string invalid in new[] { "", "-", "1.2.3", "1e", "NaN", "Infinity", "1;attack()", "1\n" })
         {
             bool rejected = false;
-            try { PythonBlockCompiler.NormalizeNumber(invalid); } catch (FormatException) { rejected = true; }
+            try { PythonTreeCompiler.NormalizeNumber(invalid); } catch (FormatException) { rejected = true; }
             Assert(rejected, "Invalid numeric input accepted: " + invalid);
         }
         string output = args.Length > 0 ? args[0] : Path.Combine(Path.GetTempPath(), "CodingGame-BlockCoding-check.json");

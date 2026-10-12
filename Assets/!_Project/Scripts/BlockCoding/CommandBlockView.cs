@@ -54,10 +54,9 @@ namespace CodingGame.BlockCoding
             if (!rect || !header || !canvasGroup || !shape ||
                 ((kind == BlockKind.Number || kind == BlockKind.DeclareVariable || kind == BlockKind.Variable) && !input) ||
                 ((kind == BlockKind.Variable || kind == BlockKind.Comparison) && !dropdown) ||
-                (PythonTreeCompiler.HasBody(kind) && !body))
+                (PythonTreeCompiler.HasBody(kind) && !body) || (stockLabel && !stockColumn))
                 throw new InvalidOperationException(name + ": Inspector 참조가 누락되었습니다.");
             Panel = panel;
-            if (stockLabel && !stockColumn) throw new InvalidOperationException(name + ": 수량 열 참조를 연결하세요.");
             Owner = owner;
             IsPalette = palette;
             if (stockLabel) stockLabel.gameObject.SetActive(palette && panel.Remaining != null);
@@ -72,14 +71,12 @@ namespace CodingGame.BlockCoding
             }
             foreach (var argument in arguments) argument.Bind(panel, this);
             if (body) body.Bind(panel, this);
-            if (kind == BlockKind.Variable) RefreshVariableOptions();
             if (kind == BlockKind.DeclareVariable)
             {
                 try { RetainedName = PythonTreeCompiler.NormalizeIdentifier(input.text); }
                 catch (FormatException) { }
             }
-            if (methodArguments) methodArguments.SetActive(Kind == BlockKind.Distance);
-            shape.Configure(PythonTreeCompiler.OutputSlot(Kind), body);
+            if (kind == BlockKind.Variable) RefreshVariableOptions(); else RefreshShape();
             SetDragAppearance(false);
         }
 
@@ -101,7 +98,6 @@ namespace CodingGame.BlockCoding
         void SelectionChanged(int value)
         {
             if (kind == BlockKind.Variable) RefreshVariableOptions();
-            shape.Configure(PythonTreeCompiler.OutputSlot(Kind), body);
             if (!IsPalette) Panel.Changed();
             LayoutRebuilder.MarkLayoutForRebuild(rect);
         }
@@ -125,9 +121,13 @@ namespace CodingGame.BlockCoding
             dropdown.SetValueWithoutNotify(HasDot ? Mathf.Min(selection, options.Count - 1) : 0);
             dropdown.RefreshShownValue();
             dropdown.gameObject.SetActive(HasDot);
+            RefreshShape();
+            LayoutRebuilder.MarkLayoutForRebuild(rect);
+        }
+        void RefreshShape()
+        {
             if (methodArguments) methodArguments.SetActive(Kind == BlockKind.Distance);
             shape.Configure(PythonTreeCompiler.OutputSlot(Kind), body);
-            LayoutRebuilder.MarkLayoutForRebuild(rect);
         }
         public void SetText(string value) { input.text = value; }
         public void SetStock(int count)
@@ -152,7 +152,7 @@ namespace CodingGame.BlockCoding
         {
             if (kind == BlockKind.Number || kind == BlockKind.DeclareVariable) input.SetTextWithoutNotify(data.Value);
             if (kind == BlockKind.DeclareVariable) RetainedName = data.Value;
-            if (kind == BlockKind.Comparison) dropdown.SetValueWithoutNotify(Array.IndexOf(PythonBlockCompiler.Comparisons, data.Value));
+            if (kind == BlockKind.Comparison) dropdown.SetValueWithoutNotify(Array.IndexOf(PythonTreeCompiler.Comparisons, data.Value));
             int skip = 0;
             if (kind == BlockKind.Variable)
             {
@@ -173,7 +173,7 @@ namespace CodingGame.BlockCoding
         {
             var block = new CodeBlock(Kind);
             if (kind == BlockKind.Number || kind == BlockKind.DeclareVariable) block.Value = input.text;
-            if (kind == BlockKind.Comparison) block.Value = PythonBlockCompiler.Comparisons[dropdown.value];
+            if (kind == BlockKind.Comparison) block.Value = PythonTreeCompiler.Comparisons[dropdown.value];
             if (kind == BlockKind.Variable)
             {
                 if (Kind == BlockKind.Variable) { block.Value = input.text; return block; }
