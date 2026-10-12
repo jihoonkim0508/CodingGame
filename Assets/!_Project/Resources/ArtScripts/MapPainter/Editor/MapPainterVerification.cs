@@ -70,6 +70,22 @@ namespace CodingGame.Art.MapPainter.Editor
                     }
                 }
                 log.Add("PASS: all 256 neighbour masks and 1024 rotated masks resolve exactly.");
+                var walk=new HashSet<GridCell>{new GridCell(0,0),new GridCell(1,0),new GridCell(1,1),new GridCell(1,2),new GridCell(0,2)};
+                var found=GridTopology.ShortestPath(walk,new GridCell(0,0),new GridCell(0,2));
+                Check(found!=null&&found.Count==4&&found[3].Equals(new GridCell(0,2)),"road path search");
+                Check(GridTopology.ShortestPath(walk,new GridCell(0,0),new GridCell(5,5))==null,"unreachable path");
+                Check(GridTopology.Corners(new GridCell(0,0),found).SequenceEqual(new[]{new GridCell(0,0),new GridCell(1,0),new GridCell(1,2),new GridCell(0,2)}),"route corners");
+                var routeMap=MapPainterEditing.CreateRoot(scene,testPalette,false);
+                for(int x=0;x<=4;x++)routeMap.floorCells.Add(new GridCell(x,0));
+                Check(MapRouteEditing.SetBase(routeMap,new GridCell(4,0))&&!MapRouteEditing.SetBase(routeMap,new GridCell(9,9)),"base on floor only");
+                var route=routeMap.routes[MapRouteEditing.AddStart(routeMap,new GridCell(0,0))];
+                Check(MapRouteEditing.AddStart(routeMap,new GridCell(0,0))<0,"duplicate start rejected");
+                Check(MapRouteEditing.Extend(routeMap,route,new GridCell(2,0))&&route.path.Count==2,"straight extension");
+                Check(MapRouteEditing.Extend(routeMap,route,new GridCell(1,0))&&route.path.Count==1,"trim to clicked cell");
+                Check(MapRouteEditing.Extend(routeMap,route,new GridCell(4,0))&&routeMap.IsComplete(route)&&routeMap.Waypoints(route).Length==2,"route reaches base");
+                Check(MapRouteEditing.AddStart(routeMap,new GridCell(1,0))>=0&&MapRouteEditing.AutoRoute(routeMap,routeMap.routes[1])==false,"auto route needs road");
+                Object.DestroyImmediate(routeMap.gameObject);
+                log.Add("PASS: path search, corners, base/start rules, extension, trimming and completion.");
                 var root=MapPainterEditing.CreateRoot(scene,testPalette,false);
                 foreach(var roadRule in testPalette.roads)roadRule.prefab=null;
                 var square=new List<GridCell>(); for(int z=-1;z<=1;z++)for(int x=-1;x<=1;x++)square.Add(new GridCell(x,z));

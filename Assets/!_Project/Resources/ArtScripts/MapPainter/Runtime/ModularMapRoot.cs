@@ -1,8 +1,18 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace CodingGame.Art.MapPainter
 {
+    // One enemy entrance and the cells it walks, in order, toward the base.
+    [System.Serializable]
+    public sealed class MapRoute
+    {
+        public GridCell start;
+        public List<GridCell> path = new List<GridCell>();
+        public GridCell End => path.Count > 0 ? path[path.Count - 1] : start;
+    }
+
     [ExecuteAlways, DisallowMultipleComponent]
     public sealed class ModularMapRoot : MonoBehaviour
     {
@@ -31,6 +41,12 @@ namespace CodingGame.Art.MapPainter
         [HideInInspector] public List<GridCell> roadCells = new List<GridCell>();
         [HideInInspector] public Transform floorGroup;
         [HideInInspector] public Transform roadGroup;
+        [HideInInspector] public bool hasBase;
+        [HideInInspector] public GridCell baseCell;
+        [HideInInspector] public List<MapRoute> routes = new List<MapRoute>();
+        public bool IsComplete(MapRoute route) => hasBase && route.End.Equals(baseCell);
+        // World positions at the start, each turn and the base, for a DefenseRoute-style waypoint list.
+        public Vector3[] Waypoints(MapRoute route) => GridTopology.Corners(route.start, route.path).Select(CellPosition).ToArray();
         public Vector3 CellPosition(GridCell cell) => transform.position + new Vector3(cell.x*cellSize, 0, cell.z*cellSize);
         public GridCell WorldToCell(Vector3 world)
         {
