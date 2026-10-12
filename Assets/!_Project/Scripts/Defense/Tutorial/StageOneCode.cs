@@ -64,7 +64,7 @@ namespace CodingGame.Defense
             double? Setting(string name) => blocks.LastOrDefault(b => b.Kind == BlockKind.DeclareVariable && b.Value == name) is CodeBlock b
                 ? double.Parse(b.Arguments[0].Value, CultureInfo.InvariantCulture) : (double?)null;
             var condition = blocks.SingleOrDefault(b => b.Kind == BlockKind.If);
-            bool matches = wave == 1 ? Setting("damage") == 20 : wave == 2 ? section == 2 ? Setting("range") == 8 : Setting("damage") > 0 && Setting("range") > 0 :
+            bool matches = wave == 1 ? Setting("damage") == 20 : wave == 2 ? section == 2 ? Setting("range") > 5 : Setting("damage") > 0 && Setting("range") > 0 :
                 wave == 3 ? condition != null && condition.Arguments[0].Arguments[1].Kind == BlockKind.Number &&
                     double.Parse(condition.Arguments[0].Arguments[1].Value, CultureInfo.InvariantCulture) == 10 :
                 wave == 4 ? condition != null && condition.Arguments[0].Arguments[1].Kind == BlockKind.Number &&

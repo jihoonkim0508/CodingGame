@@ -125,7 +125,7 @@
         },
         {
           "speaker": "안내자",
-          "text": "`range` 값을 바꾸면 어떻게 될까?"
+          "text": "`range` 값을 5보다 크게 바꾸면 어떻게 될까?"
         },
         {
           "speaker": "안내자",
@@ -153,7 +153,7 @@
         "player_action": "`range`를 5에서 8로 바꾸고 범위 변화를 확인한다.",
         "expected_input": "range = 8",
         "success_feedback": "공격 사거리 표시가 넓어진다.",
-        "retry_hint": "`range`는 사거리 변수야. 오른쪽 숫자를 바꿔봐."
+        "retry_hint": "`range`는 사거리 변수야. 오른쪽 숫자를 5보다 크게 바꿔봐."
       }
     },
     {

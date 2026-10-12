@@ -132,7 +132,7 @@ namespace CodingGame.Defense
             bool Has(Func<CodeBlock, bool> test) => blocks.Any(test);
             string damage = Setting("damage", "10");
             if (wave == 1) return blocks.Count == 0 ? "damage = 10\nAttack()" : null;
-            if (wave == 2) return section >= 2 && !Has(b => b.Kind == BlockKind.DeclareVariable && b.Value == "range") ? $"damage = {damage}\nrange = 5\nAttack()" : null;
+            if (wave == 2) return section >= 1 && !Has(b => b.Kind == BlockKind.DeclareVariable && b.Value == "range") ? $"damage = {damage}\nrange = 5\nAttack()" : null;
             if (wave <= 4) return !Has(b => b.Kind == BlockKind.If) ? $"damage = {damage}\nrange = 16\nif enemyDistance <= 5:\n    Attack()" : null;
             return section >= 3 && !Has(b => b.Kind == BlockKind.DeclareVariable && b.Value == "attackDistance")
                 ? $"damage = {damage}\nrange = 16\nattackDistance = 10\nif enemyDistance <= attackDistance:\n    Attack()" : null;
