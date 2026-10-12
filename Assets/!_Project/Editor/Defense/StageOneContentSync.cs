@@ -15,7 +15,7 @@ namespace CodingGame.Defense.Editor
             EditorApplication.delayCall += () => Sync(false);
             EditorApplication.playModeStateChanged += state => { if (state == PlayModeStateChange.ExitingEditMode) Sync(false); };
         }
-        [MenuItem("CodingGame/Stage 1 대사 JSON 동기화")]
+        [MenuItem("Tools/Develop/Stage 1 대사 JSON 동기화")]
         static void SyncFromMenu() => Sync(true);
         static void Sync(bool report)
         {

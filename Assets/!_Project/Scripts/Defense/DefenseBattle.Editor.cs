@@ -43,10 +43,6 @@ namespace CodingGame.Defense
             if (!EditorOptions.projectiles) projectileViews.Clear();
             RefreshHUD();
         }
-        public void EditorEnableDeveloper()
-        {
-            SetDeveloperMode(true);
-        }
         public void EditorApplyBalance(DefenseCampaignDefinition content)
         {
             if(!Application.isPlaying||Simulation==null)throw new InvalidOperationException("Play Mode 전투 초기화 필요");

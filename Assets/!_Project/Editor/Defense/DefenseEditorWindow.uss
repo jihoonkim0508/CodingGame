@@ -1,11 +1,11 @@
-.toolbar { flex-direction: row; flex-wrap: wrap; padding: 6px; }
-.toolbar > * { min-width: 150px; flex-grow: 1; margin-right: 4px; }
-.body { flex-direction: row; flex-grow: 1; }
-.navigation { width: 145px; padding: 5px; }
-.navigation Button { height: 30px; margin-bottom: 4px; }
+.toolbar { flex-direction: row; padding: 6px; }
+.toolbar Button { flex-grow: 1; height: 28px; }
+.toolbar Button.selected { -unity-font-style: bold; border-bottom-width: 3px; border-bottom-color: rgb(80, 160, 255); }
 .content { flex-grow: 1; padding: 8px; }
-.status, .feedback { padding: 8px; white-space: normal; }
-.row { flex-direction: row; flex-wrap: wrap; margin-bottom: 6px; }
-.row Button { min-width: 110px; margin-right: 4px; }
-.section { margin-top: 10px; margin-bottom: 5px; -unity-font-style: bold; }
+.status, .feedback { padding: 6px 8px; white-space: normal; }
+.feedback { color: rgb(255, 200, 90); }
+.row { flex-direction: row; flex-wrap: wrap; align-items: center; margin-bottom: 6px; }
+.row Button { min-width: 90px; height: 24px; margin-right: 4px; }
+.row Label { margin-right: 6px; }
+.section { margin-top: 12px; margin-bottom: 4px; -unity-font-style: bold; font-size: 13px; }
 .readout { white-space: normal; margin-bottom: 8px; }

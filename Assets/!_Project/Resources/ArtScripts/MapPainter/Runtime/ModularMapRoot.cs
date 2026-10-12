@@ -47,10 +47,11 @@ namespace CodingGame.Art.MapPainter
         public bool IsComplete(MapRoute route) => hasBase && route.End.Equals(baseCell);
         // World positions at the start, each turn and the base, for a DefenseRoute-style waypoint list.
         public Vector3[] Waypoints(MapRoute route) => GridTopology.Corners(route.start, route.path).Select(CellPosition).ToArray();
-        public Vector3 CellPosition(GridCell cell) => transform.position + new Vector3(cell.x*cellSize, 0, cell.z*cellSize);
+        // Through the transform so a scaled or rotated map (Defense scene uses 0.8) still lines up with its tiles.
+        public Vector3 CellPosition(GridCell cell) => transform.TransformPoint(new Vector3(cell.x*cellSize, 0, cell.z*cellSize));
         public GridCell WorldToCell(Vector3 world)
         {
-            Vector3 p=world-transform.position;
+            Vector3 p=transform.InverseTransformPoint(world);
             return new GridCell(Mathf.FloorToInt(p.x/cellSize+.5f),Mathf.FloorToInt(p.z/cellSize+.5f));
         }
         public bool IsTile(MapTileMarker tile) => tile.transform.parent==floorGroup || tile.transform.parent==roadGroup;

@@ -223,5 +223,19 @@ namespace CodingGame.Defense
         void End()
         { dialogue.BottomLift = 0; current = null; step = null; boot.SetActive(false); bridge.SetStep(null); dialogue.Hide(); }
         void OnDestroy() { if (presentation) Destroy(presentation); }
+#if UNITY_EDITOR
+        public RobotRole EditorTeachingRole => teachingRole;
+        public int EditorWave => Active ? wave : 0;
+        public int EditorSection => Active ? section : -1;
+        // Lessons after 1-1 placement need the teaching robot on the map; the caller places it first.
+        public bool EditorNeedsRobot(int target) => target > (wave == 1 ? 1 : 0) && Robot == null;
+        public void EditorJump(int target)
+        {
+            if (!Active) throw new InvalidOperationException("Stage 1 튜토리얼이 실행 중이 아닙니다.");
+            if (target < 0 || target >= content[wave - 1].sections.Length) throw new ArgumentOutOfRangeException(nameof(target), "구간 번호 범위 오류");
+            if (EditorNeedsRobot(target)) throw new InvalidOperationException("이 구간은 교육용 로봇 배치가 필요합니다.");
+            section = target; EnterSection();
+        }
+#endif
     }
 }

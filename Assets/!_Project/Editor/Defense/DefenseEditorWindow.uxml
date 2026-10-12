@@ -1,9 +1,6 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
     <ui:VisualElement name="toolbar" class="toolbar" />
     <ui:Label name="sessionStatus" class="status" />
-    <ui:VisualElement class="body">
-        <ui:VisualElement name="navigation" class="navigation" />
-        <ui:ScrollView name="content" class="content" />
-    </ui:VisualElement>
+    <ui:ScrollView name="content" class="content" />
     <ui:Label name="feedback" class="feedback" />
 </ui:UXML>

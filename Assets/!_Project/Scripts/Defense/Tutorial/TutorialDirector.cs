@@ -202,6 +202,7 @@ namespace CodingGame.Defense
         public TutorialStep EditorStep => active && viewedStep < active.steps.Length ? active.steps[viewedStep] : null;
         public TutorialInputBridge EditorBridge => bridge;
         public TutorialDialogueView EditorView => view;
+        public StageOneTutorial EditorStageOne => stageOne;
         public void EditorStop() { Finish(); if(editorSequence) Destroy(editorSequence); editorSequence=null; }
         public void EditorPrevious() => PreviousText();
         public void EditorNext() => NextText();
