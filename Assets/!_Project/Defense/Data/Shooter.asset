@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: edcc99cf8b3b0cd458ba8145cc320c0e, type: 3}
+  m_Name: Shooter
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.RobotDefinition
+  displayName: "\uC6D0\uAC70\uB9AC"
+  description: "\uAC00\uAE4C\uC6B4 \uC801\uC77C\uC218\uB85D \uAC15\uD55C \uD53C\uD574\uB97C
+    \uC90D\uB2C8\uB2E4. \uD53C\uD574\uB294 \uC2E4\uC81C \uAC70\uB9AC\uC640 \uBC18\uBE44\uB840\uD558\uBA70
+    1m \uC774\uD558\uC5D0\uC11C\uB294 \uCD5C\uB300 \uD53C\uD574\uB85C \uC81C\uD55C\uB429\uB2C8\uB2E4."
+  color: {r: 0.92, g: 0.44, b: 0.61, a: 1}
+  stats:
+    role: 4
+    range: 5.5
+    damage: 22
+    interval: 1.2
+    radius: 0.45
+    health: 100
+    blockRadius: 1.1
+    blockCapacity: 3
+    effectRadius: 2
+    duration: 2
+    slowMultiplier: 0.5
+    projectileSpeed: 4
+    buffDamage: 1.25
+    buffRange: 1.15
+    buffInterval: 0.8
+  prefab: {fileID: 5992403662320935603, guid: 808dcdc95cea6514bbf5d98f481e6655, type: 3}

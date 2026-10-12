@@ -1,0 +1,248 @@
+{
+  "format_version": "1.0",
+  "package_id": "stage1_2",
+  "package_type": "tutorial_stage_content",
+  "locale": "ko-KR",
+  "title": "1-2 여러 변수 — 여러 값을 사용해보자",
+  "implementation_contract": {
+    "stage_order": [
+      "1-1",
+      "1-2",
+      "1-3",
+      "1-4",
+      "1-5"
+    ],
+    "section_order": "각 stage의 sections 배열 순서대로 표시한다.",
+    "direction": "화면 연출과 UI/애니메이션 제작 지시다. 플레이어에게 안내자 대사처럼 표시하지 않는다.",
+    "dialogues": "각 section의 dialogues를 배열 순서대로 표시한다. speaker는 화자, text는 실제 대사다.",
+    "code_examples": "해당 section의 학습 코드 예시다. label은 개발자 참고용 제목이고 code는 화면에 표시할 코드다.",
+    "interaction": {
+      "null_behavior": "null이면 별도 입력을 요구하지 않는다. 대사/연출 완료와 게임 흐름에 따라 다음 section으로 진행한다.",
+      "fields": {
+        "prompt": "플레이어가 수행할 목표",
+        "player_action": "플레이어가 화면에서 할 행동",
+        "expected_input": "정답 또는 예시 입력. “예:”로 시작하면 예시 답안으로 취급한다.",
+        "success_feedback": "성공 시 표시할 피드백",
+        "retry_hint": "입력 실패 또는 전투 중 막혔을 때 표시할 힌트"
+      },
+      "validation": "코드 입력은 게임의 실제 명령어/문법 검사기에 연결한다. 예시로 표시된 입력은 의미가 같은 유효한 답도 허용한다."
+    },
+    "progression": "stage와 section은 배열 순서를 따른다. 각 스테이지의 클리어/전투 조건은 게임의 실제 웨이브 상태와 연결하고, 1-5 클리어 후 Stage 2를 해금한다.",
+    "code_binding": "Attack()은 튜토리얼에서 공격 행동을 설명하는 표기다. 프로젝트의 실제 공격 API에 연결하되 변수/조건 학습 의도와 코드 예시는 유지한다.",
+    "preserve_terms": [
+      "damage",
+      "range",
+      "enemyDistance",
+      "attackDistance",
+      "if",
+      "<=",
+      "Attack()"
+    ]
+  },
+  "stage_id": "1-2",
+  "learning_goals": [
+    "여러 변수를 사용해 서로 다른 값을 저장한다.",
+    "`damage`와 `range`가 각각 공격력과 사거리를 나타냄을 이해한다.",
+    "변수 값을 바꾸면 로봇의 능력과 게임 결과가 달라짐을 확인한다.",
+    "적의 경로와 사거리를 고려해 로봇을 배치한다."
+  ],
+  "sections": [
+    {
+      "section_title": "지난 내용 돌아보기",
+      "direction": "[새로운 맵과 로봇 정보창을 보여준다. `damage`를 강조한 뒤 공격 사거리를 표시한다.]",
+      "dialogues": [
+        {
+          "speaker": "안내자",
+          "text": "지난번에는 `damage`라는 변수에 공격력을 저장해봤지?"
+        },
+        {
+          "speaker": "안내자",
+          "text": "하지만 로봇에게 필요한 값이 공격력 하나뿐일까?"
+        },
+        {
+          "speaker": "안내자",
+          "text": "로봇에게는 공격할 수 있는 거리도 필요해."
+        }
+      ],
+      "code_examples": [
+        {
+          "label": "지난 웨이브에서 사용한 변수",
+          "language": "python",
+          "code": "damage = 20"
+        }
+      ],
+      "interaction": null
+    },
+    {
+      "section_title": "두 개의 변수",
+      "direction": "[이름표가 다른 상자 두 개를 표시한다. `damage`에는 20, `range`에는 5를 넣는다.]",
+      "dialogues": [
+        {
+          "speaker": "안내자",
+          "text": "이번에는 변수가 두 개야."
+        },
+        {
+          "speaker": "안내자",
+          "text": "`damage`에는 공격력이 들어있고,"
+        },
+        {
+          "speaker": "안내자",
+          "text": "`range`에는 공격할 수 있는 거리가 들어있어."
+        },
+        {
+          "speaker": "안내자",
+          "text": "변수마다 이름을 다르게 만들면 서로 다른 값을 따로 저장할 수 있어."
+        },
+        {
+          "speaker": "안내자",
+          "text": "그래서 어떤 값이 필요한지 쉽게 구분할 수 있지."
+        }
+      ],
+      "code_examples": [
+        {
+          "label": "공격력과 사거리",
+          "language": "python",
+          "code": "damage = 20\nrange = 5"
+        }
+      ],
+      "interaction": null
+    },
+    {
+      "section_title": "사거리 값의 변화",
+      "direction": "[사거리 5를 원으로 표시한다. 적이 거리 6에서 접근해 사거리 안에 들어온다. `range = 8`로 바꾸자 공격 범위가 넓어진다.]",
+      "dialogues": [
+        {
+          "speaker": "안내자",
+          "text": "지금 공격 범위는 5야."
+        },
+        {
+          "speaker": "안내자",
+          "text": "적이 아직 공격 범위 밖에 있어."
+        },
+        {
+          "speaker": "안내자",
+          "text": "이제 범위 안으로 들어왔어."
+        },
+        {
+          "speaker": "안내자",
+          "text": "`range` 값을 5보다 크게 바꾸면 어떻게 될까?"
+        },
+        {
+          "speaker": "안내자",
+          "text": "공격할 수 있는 범위가 더 넓어졌어."
+        },
+        {
+          "speaker": "안내자",
+          "text": "변수에 어떤 값을 넣느냐에 따라 게임 속 결과도 달라질 수 있어."
+        }
+      ],
+      "code_examples": [
+        {
+          "label": "변경 전 사거리",
+          "language": "python",
+          "code": "range = 5"
+        },
+        {
+          "label": "사거리 확장",
+          "language": "python",
+          "code": "range = 8"
+        }
+      ],
+      "interaction": {
+        "prompt": "사거리 값을 바꿔본다.",
+        "player_action": "`range`를 5에서 8로 바꾸고 범위 변화를 확인한다.",
+        "expected_input": "range = 8",
+        "success_feedback": "공격 사거리 표시가 넓어진다.",
+        "retry_hint": "`range`는 사거리 변수야. 오른쪽 숫자를 5보다 크게 바꿔봐."
+      }
+    },
+    {
+      "section_title": "직접 변수 설정하기",
+      "direction": "[변수 설정 UI를 열고 공격력과 사거리의 입력 칸을 보여준다. 입력한 값으로 로봇을 준비한다.]",
+      "dialogues": [
+        {
+          "speaker": "안내자",
+          "text": "이번에는 두 변수의 값을 직접 설정해보자."
+        },
+        {
+          "speaker": "안내자",
+          "text": "먼저 공격력을 정해봐."
+        },
+        {
+          "speaker": "안내자",
+          "text": "좋아. 이번에는 공격 사거리를 정해봐."
+        },
+        {
+          "speaker": "안내자",
+          "text": "이제 네가 설정한 값으로 로봇이 전투하게 될 거야."
+        }
+      ],
+      "code_examples": [
+        {
+          "label": "입력 예시",
+          "language": "python",
+          "code": "damage = 15\nrange = 7"
+        }
+      ],
+      "interaction": {
+        "prompt": "공격력과 사거리를 입력한다.",
+        "player_action": "`damage`와 `range`의 값을 각각 설정한다.",
+        "expected_input": "damage = 15\nrange = 7",
+        "success_feedback": "두 값이 반영된 로봇이 준비된다.",
+        "retry_hint": "공격력은 `damage`, 공격 거리는 `range`에 설정해."
+      }
+    },
+    {
+      "section_title": "배치 전략과 웨이브",
+      "direction": "[배치 가능 영역과 적 경로를 표시한다. 길의 커브를 강조하고, 좋지 않은 위치와 적이 오래 머무는 위치를 비교한다.]",
+      "dialogues": [
+        {
+          "speaker": "안내자",
+          "text": "적이 이동하는 길에는 로봇을 배치할 수 없어."
+        },
+        {
+          "speaker": "안내자",
+          "text": "적의 이동 경로를 보고 좋은 위치에 로봇을 배치해봐."
+        },
+        {
+          "speaker": "안내자",
+          "text": "공격 범위가 넓어도 로봇을 이상한 곳에 설치하면 효과가 없겠지?"
+        },
+        {
+          "speaker": "안내자",
+          "text": "적이 거의 지나가지 않는 곳보다 오래 머무는 곳 주변에 배치하면 더 많이 공격할 수 있어."
+        },
+        {
+          "speaker": "안내자",
+          "text": "이제 직접 설정한 로봇으로 오류 코드들을 막아보자."
+        },
+        {
+          "speaker": "안내자",
+          "text": "좋아. 여러 변수를 사용하면 게임의 여러 요소를 표현할 수 있어."
+        },
+        {
+          "speaker": "안내자",
+          "text": "그런데 지금 로봇은 상황을 생각하지 않고 항상 똑같이 행동하고 있어."
+        },
+        {
+          "speaker": "안내자",
+          "text": "다음에는 로봇에게 판단하는 방법을 알려줘보자."
+        }
+      ],
+      "code_examples": [
+        {
+          "label": "웨이브 설정 예시",
+          "language": "python",
+          "code": "damage = 15\nrange = 7"
+        }
+      ],
+      "interaction": {
+        "prompt": "로봇을 배치하고 웨이브를 진행한다.",
+        "player_action": "경로와 사거리 원을 보고 적이 오래 머무는 지점 주변에 로봇을 배치한다.",
+        "expected_input": null,
+        "success_feedback": "설정한 공격력과 사거리로 웨이브를 클리어한다.",
+        "retry_hint": "사거리 안에 적이 들어오는 위치인지 확인하고 배치를 조정해."
+      }
+    }
+  ]
+}

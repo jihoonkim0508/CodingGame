@@ -112,3 +112,13 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# Local agent state and temporary editor captures
+/.serena/
+/Assets/Temp/
+/Assets/Temp.meta
+/Assets/Settings/Pipeline/
+/Assets/Settings/Pipeline.meta
+
+# Hand-authored verification projects are not generated Unity project files
+!/Tests/**/*.csproj

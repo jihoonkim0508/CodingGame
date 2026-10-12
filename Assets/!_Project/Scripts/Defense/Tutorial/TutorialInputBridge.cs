@@ -1,0 +1,256 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace CodingGame.Defense
+{
+    [Serializable]
+    public sealed class TutorialTargetBinding
+    {
+        public string key;
+        public RectTransform uiTarget;
+        public Collider worldTarget;
+        public bool allowRuntimeTarget;
+    }
+
+    public sealed class TutorialInputBridge : MonoBehaviour
+    {
+        sealed class RuntimeTarget
+        {
+            public GameObject owner;
+            public Bounds bounds;
+        }
+
+        [SerializeField] Canvas canvas;
+        [SerializeField] Camera worldCamera;
+        [SerializeField] TutorialSpotlight spotlight;
+        [SerializeField] TutorialTargetBinding[] targets = Array.Empty<TutorialTargetBinding>();
+        readonly List<Rect> screenAreas = new List<Rect>();
+        readonly List<Rect> outlinedAreas = new List<Rect>();
+        readonly Dictionary<string, TutorialTargetBinding> byKey = new Dictionary<string, TutorialTargetBinding>();
+        readonly Dictionary<string, RuntimeTarget> runtimeTargets = new Dictionary<string, RuntimeTarget>();
+        TutorialDirector director;
+        TutorialStep currentStep;
+        bool allowActions;
+        public event Action<TutorialStep> Completed;
+        public bool IsGuiding => director && director.IsActive;
+        public bool PauseBattle => IsGuiding && currentStep != null && currentStep.pauseBattle;
+        public bool AllowPreview => IsGuiding && currentStep != null && currentStep.allowPreview;
+        Camera CanvasCamera => canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+        bool Acting => allowActions && currentStep != null && currentStep.kind == TutorialStepKind.ActionGuide;
+        public void SetInputLimited(bool value) { if (spotlight) spotlight.raycastTarget = currentStep != null && currentStep.blockInput && value; }
+
+        public void Initialize(TutorialDirector owner)
+        {
+            director = owner;
+            if (!canvas || !spotlight) throw new InvalidOperationException(name + ": Canvas/Spotlight 참조 누락");
+            byKey.Clear(); runtimeTargets.Clear();
+            foreach (var target in targets)
+            {
+                if (target == null || string.IsNullOrWhiteSpace(target.key) ||
+                    (!target.allowRuntimeTarget && !target.uiTarget && !target.worldTarget) ||
+                    target.uiTarget && target.worldTarget || byKey.ContainsKey(target.key))
+                    throw new InvalidOperationException(name + ": TutorialTargetBinding key/참조가 잘못됐습니다.");
+                byKey.Add(target.key, target);
+            }
+            if (Array.Exists(targets, target => target != null && target.worldTarget) && !worldCamera)
+                throw new InvalidOperationException(name + ": 월드 대상용 Camera 참조가 누락됐습니다.");
+            SetStep(null);
+        }
+
+        public void SetStep(TutorialStep step, bool enableActions = false)
+        {
+            currentStep = step;
+            allowActions = enableActions;
+            if (!spotlight) return;
+            spotlight.enabled = step != null;
+            spotlight.raycastTarget = step != null && step.blockInput;
+            RefreshAreas();
+        }
+
+        void LateUpdate() => RefreshIfActing();
+        void RefreshIfActing() { if (currentStep != null && allowActions) RefreshAreas(); }
+
+        void RefreshAreas()
+        {
+            if (!spotlight) return;
+            screenAreas.Clear(); outlinedAreas.Clear();
+            if (allowActions && currentStep != null)
+                foreach (var key in currentStep.targetKeys)
+                    if (byKey.TryGetValue(key, out var binding))
+                    {
+                        int before = screenAreas.Count; AddArea(key, binding);
+                        bool outlined = currentStep.outline && (currentStep.highlightKeys == null || currentStep.highlightKeys.Length == 0 || Array.IndexOf(currentStep.highlightKeys, key) >= 0);
+                        if (outlined && screenAreas.Count > before) outlinedAreas.Add(screenAreas[screenAreas.Count - 1]);
+                    }
+            spotlight.SetHoles(screenAreas, outlinedAreas, currentStep?.highlightPadding ?? 0, currentStep == null || currentStep.dim);
+        }
+
+        void AddArea(string key, TutorialTargetBinding binding)
+        {
+            if (binding.uiTarget)
+            {
+                var corners = new Vector3[4]; binding.uiTarget.GetWorldCorners(corners);
+                var area = Rect.zero;
+                var camera = CanvasCamera;
+                for (int i = 0; i < corners.Length; i++)
+                {
+                    var p = RectTransformUtility.WorldToScreenPoint(camera, corners[i]);
+                    RectTransformUtility.ScreenPointToLocalPointInRectangle(spotlight.rectTransform, p, camera, out var local);
+                    area = i == 0 ? new Rect(local, Vector2.zero) : Rect.MinMaxRect(
+                        Mathf.Min(area.xMin, local.x), Mathf.Min(area.yMin, local.y),
+                        Mathf.Max(area.xMax, local.x), Mathf.Max(area.yMax, local.y));
+                }
+                screenAreas.Add(area);
+                return;
+            }
+            if (!TryGetBounds(key, binding, out var bounds)) return;
+            Vector2 min = Vector2.positiveInfinity, max = Vector2.negativeInfinity;
+            for (int x = -1; x <= 1; x += 2)
+            for (int y = -1; y <= 1; y += 2)
+            for (int z = -1; z <= 1; z += 2)
+            {
+                var world = bounds.center + Vector3.Scale(bounds.extents, new Vector3(x, y, z));
+                var p = worldCamera.WorldToScreenPoint(world);
+                if (p.z <= 0) continue;
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(spotlight.rectTransform, p, CanvasCamera, out var local);
+                min = Vector2.Min(min, local); max = Vector2.Max(max, local);
+            }
+            if (min.x <= max.x && min.y <= max.y) screenAreas.Add(Rect.MinMaxRect(min.x, min.y, max.x, max.y));
+        }
+
+        bool TryGetBounds(string key, TutorialTargetBinding binding, out Bounds bounds)
+        {
+            if (runtimeTargets.TryGetValue(key, out var runtime) && runtime.owner)
+            { bounds = runtime.bounds; return true; }
+            if (binding.worldTarget)
+            { bounds = binding.worldTarget.bounds; return true; }
+            bounds = default; return false;
+        }
+
+        public bool CanPerformAction(string key, GameObject target = null)
+        {
+            if (!IsGuiding) return true;
+            if (!Acting || !ContainsKey(key)) return false;
+            if (target && byKey.TryGetValue(key, out var binding))
+            {
+                if (runtimeTargets.TryGetValue(key, out var runtime) && runtime.owner) return runtime.owner == target;
+                var expected = binding.uiTarget ? binding.uiTarget.gameObject : binding.worldTarget ? binding.worldTarget.gameObject : null;
+                if (expected) return expected == target;
+                if (binding.allowRuntimeTarget) return false;
+            }
+            return currentStep.completionMode != TutorialCompletionMode.Unconfigured;
+        }
+
+        public bool AllowsWorldPoint(Vector3 point)
+        {
+            if (!IsGuiding) return true;
+            return Acting && Array.Exists(currentStep.targetKeys, key => Hits(key, point));
+        }
+
+        public bool AllowsRobotChoice(int index)
+        {
+            if (!IsGuiding) return true;
+            if (!Acting) return false;
+            bool hasRobotTarget = Array.Exists(currentStep.targetKeys, key =>
+                !string.IsNullOrEmpty(key) && key.StartsWith("Battle.Robot.", StringComparison.Ordinal));
+            return !hasRobotTarget || ContainsKey("Battle.Robot." + index);
+        }
+
+        public bool TargetsAvailable(TutorialStep step)
+        {
+            if (step == null || step.kind != TutorialStepKind.ActionGuide) return true;
+            foreach (var key in step.targetKeys)
+            {
+                if (!byKey.TryGetValue(key, out var binding)) return false;
+                if (runtimeTargets.TryGetValue(key, out var runtime))
+                { if (!runtime.owner || !runtime.owner.activeInHierarchy) return false; continue; }
+                if (binding.uiTarget && !binding.uiTarget.gameObject.activeInHierarchy) return false;
+                if (binding.worldTarget && (!binding.worldTarget.enabled || !binding.worldTarget.gameObject.activeInHierarchy)) return false;
+                if (!binding.uiTarget && !binding.worldTarget) return false;
+            }
+            return true;
+        }
+
+        public void RegisterWorldTarget(string key, GameObject owner, Bounds bounds)
+        {
+            if (!owner || !byKey.TryGetValue(key, out var binding) || !binding.allowRuntimeTarget)
+                throw new InvalidOperationException(name + ": 런타임 대상 키가 등록되지 않았습니다: " + key);
+            runtimeTargets[key] = new RuntimeTarget { owner = owner, bounds = bounds };
+            RefreshIfActing();
+        }
+
+        public void UnregisterRuntimeTarget(string key, GameObject owner)
+        {
+            if (runtimeTargets.TryGetValue(key, out var target) && (!owner || target.owner == owner))
+            { runtimeTargets.Remove(key); RefreshIfActing(); }
+        }
+
+        public void ReportWorldSuccess(Vector3 point, string signal)
+        {
+            if (!IsGuiding || !allowActions || currentStep == null) return;
+            foreach (var key in currentStep.targetKeys) if (Hits(key, point)) ReportSuccess(key, signal);
+        }
+
+        public void ReportDrop(RectTransform source, RectTransform destination, string signal)
+        {
+            if (!IsGuiding || !allowActions || currentStep == null || !source || !destination) return;
+            if (currentStep.completionMode == TutorialCompletionMode.DragDrop)
+            {
+                if (TargetContains(currentStep.sourceKey, source) && TargetMatches(currentStep.destinationKey, destination))
+                    Completed?.Invoke(currentStep);
+                return;
+            }
+            if (currentStep.completionMode != TutorialCompletionMode.ExternalSignal) return;
+            foreach (var key in currentStep.targetKeys)
+                if (TargetMatches(key, destination)) ReportSuccess(key, signal);
+        }
+
+        // The point lies over the key's world target footprint (height ignored).
+        bool Hits(string key, Vector3 point) => byKey.TryGetValue(key, out var binding) && TryGetBounds(key, binding, out var bounds) &&
+            bounds.Contains(new Vector3(point.x, bounds.center.y, point.z));
+        bool TargetContains(string key, RectTransform actual)
+        {
+            if (!byKey.TryGetValue(key, out var binding) || !binding.uiTarget) return false;
+            return actual == binding.uiTarget || actual.IsChildOf(binding.uiTarget);
+        }
+
+        bool TargetMatches(string key, RectTransform actual) =>
+            byKey.TryGetValue(key, out var binding) && binding.uiTarget && actual == binding.uiTarget;
+
+        public void ReportSuccess(string targetKey, string signal, GameObject target = null)
+        {
+            if (!IsGuiding || currentStep == null) return;
+            if (!CanPerformAction(targetKey, target)) return;
+            bool complete = currentStep.completionMode == TutorialCompletionMode.TargetClick && signal == "TargetClicked" ||
+                currentStep.completionMode == TutorialCompletionMode.DragDrop && signal == "DropAccepted" ||
+                currentStep.completionMode == TutorialCompletionMode.ExternalSignal && signal == currentStep.completionSignal;
+            if (complete) Completed?.Invoke(currentStep);
+        }
+
+        public bool HasTarget(string key) => !string.IsNullOrWhiteSpace(key) && Array.Exists(targets, binding => binding != null && binding.key == key &&
+            (binding.allowRuntimeTarget || binding.uiTarget || binding.worldTarget));
+        public bool HasRuntimeTarget(string key) => !string.IsNullOrWhiteSpace(key) && byKey.TryGetValue(key, out var binding) && binding.allowRuntimeTarget;
+
+#if UNITY_EDITOR
+        public IReadOnlyList<(string key, Rect area, RectTransform ui)> EditorAreas(TutorialStep step)
+        {
+            var result=new List<(string,Rect,RectTransform)>();
+            foreach(var key in step.targetKeys)
+            {
+                if(!byKey.TryGetValue(key,out var binding))throw new InvalidOperationException("대상 연결 누락: "+key);
+                screenAreas.Clear();AddArea(key,binding);
+                if(screenAreas.Count==0)throw new InvalidOperationException("대상 투영 불가: "+key);
+                var area=screenAreas[0];
+                var camera=CanvasCamera;
+                var min=RectTransformUtility.WorldToScreenPoint(camera,spotlight.transform.TransformPoint(area.min));
+                var max=RectTransformUtility.WorldToScreenPoint(camera,spotlight.transform.TransformPoint(area.max));
+                result.Add((key,Rect.MinMaxRect(min.x,min.y,max.x,max.y),binding.uiTarget));
+            }
+            RefreshAreas();return result;
+        }
+#endif
+
+        bool ContainsKey(string key) => Array.Exists(currentStep.targetKeys, k => k == key || k == "*");
+    }
+}
