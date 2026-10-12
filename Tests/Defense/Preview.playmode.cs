@@ -20,7 +20,7 @@ void Advance(float seconds) => preview.SendMessage("AdvancePreview",seconds);
 try
 {
     battle.EditorStartSession(2, 1, false, new CodingGame.Defense.DefenseTestOptions { tutorial = false, tutorialInput = false, inventoryLimit = false, unlockAll = true }); // sandbox: Stage 1 locks robots and placement for teaching
-    Check(battle.PlaceRobot(2,new UnityEngine.Vector3(-8,0,4)),"place authored tank");
+    Check(battle.PlaceRobot(2,new UnityEngine.Vector3(-9.6f,0,-0.8f)),"place authored tank");
     battle.SelectRobot(battle.SelectedId); battle.DevelopSelected();
     battle.Simulation.GrantBlock(CodingGame.BlockCoding.BlockKind.Buff,1);
     string stock = Stock(); var time = battle.Simulation.Time; var baseHealth = battle.Simulation.BaseHealth;

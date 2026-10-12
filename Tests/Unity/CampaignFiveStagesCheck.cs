@@ -64,7 +64,7 @@ public static class CampaignFiveStagesCheck
         battle.EditorStartSession(1,1,false,new DefenseTestOptions{tutorial=false,tutorialInput=false});var sim=battle.Simulation;
         var hud=UnityEngine.Object.FindFirstObjectByType<DefensePlayerHUD>(FindObjectsInactive.Include);
         var button=(UnityEngine.UI.Button)new SerializedObject(hud).FindProperty("claimButton").objectReferenceValue;
-        for(int stage=1;stage<=5;stage++)
+        for(int stage=1;stage<=3;stage++)
         {
             for(int wave=1;wave<=5;wave++)
             {
@@ -78,9 +78,9 @@ public static class CampaignFiveStagesCheck
                     var replace=sim.Robots.FirstOrDefault(r=>r.Spec.role==RobotRole.Warrior || r.Spec.role==RobotRole.Utility);
                     if(replace!=null && sim.RobotAvailable(RobotRole.Bomber)>0)sim.RemoveRobot(replace.Id);
                 }
-                if(stage>=4 && sim.Robots.All(r=>r.Spec.role!=RobotRole.Tank) && sim.RobotAvailable(RobotRole.Tank)>0 && sim.Robots.Count==sim.Setup.RobotLimit)
+                if(stage>=3 && sim.Robots.All(r=>r.Spec.role!=RobotRole.Tank) && sim.RobotAvailable(RobotRole.Tank)>0 && sim.Robots.Count==sim.Setup.RobotLimit)
                     sim.RemoveRobot(sim.Robots.Last(r=>r.Spec.role==RobotRole.Shooter).Id);
-                if(stage>=4)Deploy(battle,RobotRole.Tank);
+                if(stage>=3)Deploy(battle,RobotRole.Tank);
                 if(stage>=3)Deploy(battle,RobotRole.Bomber);
                 if(stage>=2)Deploy(battle,RobotRole.Buffer);
                 Deploy(battle,RobotRole.Shooter);Deploy(battle,RobotRole.Shooter);
@@ -95,10 +95,10 @@ public static class CampaignFiveStagesCheck
                 button.onClick.Invoke();
                 if(sim.Robots.Any(r=>tankHealth.ContainsKey(r.Id)&&r.Health!=tankHealth[r.Id]))throw new Exception("Tank healed between waves");
             }
-            if(stage<5){button.onClick.Invoke();if(battle.Stage!=stage+1||battle.Simulation!=sim||sim.Phase!=BattlePhase.Ready)throw new Exception("UI failed to advance stage");}
+            if(stage<3){button.onClick.Invoke();if(battle.Stage!=stage+1||battle.Simulation!=sim||sim.Phase!=BattlePhase.Ready)throw new Exception("UI failed to advance stage");}
         }
-        if(sim.Phase!=BattlePhase.Victory||battle.Stage!=5||sim.CanAdvanceStage)throw new Exception("Campaign did not finish stage 5");
-        lines.Add("PASS: real scene, 25 waves, reward button, stage continuity, inventory/code retention, tank health");
+        if(sim.Phase!=BattlePhase.Victory||battle.Stage!=3||sim.CanAdvanceStage)throw new Exception("Campaign did not finish stage 3");
+        lines.Add("PASS: real scene, 15 waves, reward button, stage continuity, inventory/code retention, tank health");
         return string.Join("\n",lines);
     }
 }

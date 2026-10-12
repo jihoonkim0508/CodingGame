@@ -11,7 +11,7 @@ static class LearningCheck
     {
         var progression = new DefenseProgression();
         Require(progression.initial.Length == 0 && progression.robots.Length == 0, "No blanket starting stock");
-        Require(progression.lessons.Length == 25, "25 explicit lessons");
+        Require(progression.lessons.Length == 15, "15 explicit lessons");
         var profiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(r => new RobotSpec { role=r }).ToArray();
         var setup = new BattleSetup { Stage=1, PlayerFlow=true, Progression=progression, WaveSeconds=.1f,
             Min=new Vector2(-20,-20), Max=new Vector2(20,20), ActionProfiles=profiles,
@@ -25,10 +25,10 @@ static class LearningCheck
         Require(sim.ActionDamage(bot,RobotAction.Attack,0)==sim.ActionDamage(bot,RobotAction.Attack,1),"Near-distance damage capped");
         sim.ApplyProgram(bot.Id,"fire",new[]{new CodeBlock(BlockKind.Shot)});
         RobotState tank=null;
-        for(int stage=1;stage<=5;stage++)
+        for(int stage=1;stage<=3;stage++)
         {
             Require(sim.Setup.Stage==stage,"Stage advances sequentially");
-            if(stage==4) { tank=sim.Place(profiles[(int)RobotRole.Tank],2,new Vector2(0,0),out _); tank.Health=37; }
+            if(stage==3) { tank=sim.Place(profiles[(int)RobotRole.Tank],2,new Vector2(0,0),out _); tank.Health=37; }
             for(int wave=1;wave<=5;wave++)
             {
                 Require(sim.WaveIndex==wave-1 && sim.Lesson.stage==stage && sim.Lesson.wave==wave,"Correct lesson");
@@ -40,7 +40,7 @@ static class LearningCheck
             }
             Require(sim.Phase==BattlePhase.Victory,"Stage clear");
             int stock=sim.Inventory[BlockKind.Shot];
-            Require(sim.AdvanceStage()==(stage<5),"Campaign ends at 5");
+            Require(sim.AdvanceStage()==(stage<3),"Campaign ends at 3");
             Require(sim.Inventory[BlockKind.Shot]>=stock && sim.Robots.Contains(bot) && bot.Program!=null,"Inventory, placement and code persist");
         }
         setup.Stage=0; setup.PlayerFlow=false;
@@ -54,6 +54,6 @@ static class LearningCheck
         target.Health=1000;target.Position=new Vector2(0,-2);ranged.NextAction=0;
         Require(combat.RequestAction(ranged.Id,RobotAction.Attack)==ActionResult.Executed,"Far hit executes");
         Require(Math.Abs(near-2*(1000-target.Health))<.001f,"Actual hit damage halves at double distance");
-        Console.WriteLine("Learning checks passed: 25-wave flow, supplies, fixed rewards, retained tank health, distance damage");
+        Console.WriteLine("Learning checks passed: 15-wave flow, supplies, fixed rewards, retained tank health, distance damage");
     }
 }

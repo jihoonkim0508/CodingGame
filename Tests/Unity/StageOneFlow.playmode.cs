@@ -26,7 +26,7 @@ public static class StageOneFlowCheck
             Tick();
             int section = (int)Get("section"); bool waiting = (bool)Get("waiting");
             if (section == 1 && (int)Get("line") == 0) { battle.ChooseRobot(warrior); Tick(); }
-            if (waiting && section == 1) battle.PlaceRobot(warrior, new Vector3(-4, 0, 1));
+            if (waiting && section == 1) battle.PlaceRobot(warrior, new Vector3(-9.6f, 0, 0.8f));
             if (waiting && section == 3) { battle.EditorCode.Panel.LoadProgram("t", StageOneCode.Parse(Answer(1, 3), false, BlockKind.Slash)); battle.EditorCode.Panel.Apply(); }
             if (waiting && section == 4) break;
             battle.Tutorial.EditorView.FinishTyping(); tutorial.Next();
@@ -84,8 +84,8 @@ public static class StageOneFlowCheck
                     Assert((int)Get("line") == 3, "Placement waits on the 'find a good spot' line");
                     Assert(step.highlightKeys[0] == "Battle.DeploymentArea", "Placement points at the field");
                     tutorial.Next(); Tick(); Assert((bool)Get("waiting") && (int)Get("line") == 3, "Next cannot skip placement");
-                    Assert(!battle.PlaceRobot(warrior, new Vector3(-6, 0, 4)), "Path placement must fail");
-                    Assert(battle.PlaceRobot(warrior, new Vector3(-4, 0, 1)), "Allowed placement must succeed"); Tick();
+                    Assert(!battle.PlaceRobot(warrior, new Vector3(-9.6f, 0, -0.8f)), "Path placement must fail");
+                    Assert(battle.PlaceRobot(warrior, new Vector3(-9.6f, 0, 0.8f)), "Allowed placement must succeed"); Tick();
                 }
                 else if ((bool)typeof(StageOneTutorial).GetProperty("IsCodeSection", Flags).GetValue(tutorial))
                 {
