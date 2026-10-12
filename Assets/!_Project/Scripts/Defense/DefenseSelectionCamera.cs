@@ -6,7 +6,6 @@ namespace CodingGame.Defense
     public sealed class DefenseSelectionCamera : MonoBehaviour
     {
         [SerializeField] Camera battleCamera;
-        [SerializeField] float selectionYaw = 25, selectionPitch = 48, selectionDistance = 10;
         [SerializeField] float transitionSeconds = .3f;
         Vector3 homePosition, fromPosition, destination;
         Quaternion homeRotation, fromRotation, rotation;
@@ -20,13 +19,6 @@ namespace CodingGame.Defense
             homePosition = battleCamera.transform.position; homeRotation = battleCamera.transform.rotation;
             homeRect = battleCamera.rect; homeFov = battleCamera.fieldOfView; initialized = true;
             destination = homePosition; rotation = homeRotation; viewport = homeRect; fov = homeFov; elapsed = transitionSeconds;
-        }
-        public void Focus(Vector3 robot)
-        {
-            Initialize(); Begin();
-            rotation = Quaternion.Euler(selectionPitch, selectionYaw, 0);
-            destination = robot + Vector3.up * .7f - rotation * Vector3.forward * selectionDistance;
-            viewport = new Rect(0, .4f, .25f, .6f); fov = 36;
         }
         public void Restore()
         {

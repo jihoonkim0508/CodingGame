@@ -10,6 +10,11 @@ namespace CodingGame.Defense
     // The teaching notation becomes the same validated block tree used by the editor.
     public static class StageOneCode
     {
+        const string Number = @"[+]?(?:\d+(?:\.\d*)?|\.\d+)";
+        static bool InRange(double value) => value > 0 && value <= 100;
+        // Value text of the last assignment to name, or null when the program never sets it.
+        internal static string Setting(IEnumerable<CodeBlock> blocks, string name) =>
+            blocks.LastOrDefault(b => b.Kind == BlockKind.DeclareVariable && b.Value == name)?.Arguments.FirstOrDefault()?.Value;
         // `Attack()` becomes the teaching robot's own attack block (slash for the warrior, shot for the shooter).
         public static List<CodeBlock> Parse(string source, bool automaticAttack = false, BlockKind attackKind = BlockKind.Shot)
         {
@@ -30,20 +35,20 @@ namespace CodingGame.Defense
                     else result.Add(attack);
                     continue;
                 }
-                var assignment = Regex.Match(line, @"^(damage|range|attackDistance)\s*=\s*([+]?(?:\d+(?:\.\d*)?|\.\d+))$");
+                var assignment = Regex.Match(line, @"^(damage|range|attackDistance)\s*=\s*(" + Number + ")$");
                 if (assignment.Success && !char.IsWhiteSpace(raw[0]) && condition == null)
                 {
                     double value = double.Parse(assignment.Groups[2].Value, CultureInfo.InvariantCulture);
-                    if (value <= 0 || value > 100) throw new FormatException("값은 0 초과 100 이하로 입력하세요.");
+                    if (!InRange(value)) throw new FormatException("값은 0 초과 100 이하로 입력하세요.");
                     result.Add(new CodeBlock(BlockKind.DeclareVariable, assignment.Groups[1].Value,
                         new CodeBlock(BlockKind.Number, value.ToString(CultureInfo.InvariantCulture))));
                     continue;
                 }
-                var test = Regex.Match(line, @"^if\s+enemyDistance\s*<=\s*(attackDistance|[+]?(?:\d+(?:\.\d*)?|\.\d+))\s*:$");
+                var test = Regex.Match(line, @"^if\s+enemyDistance\s*<=\s*(attackDistance|" + Number + @")\s*:$");
                 if (test.Success && !char.IsWhiteSpace(raw[0]) && condition == null)
                 {
                     string value = test.Groups[1].Value;
-                    if (value != "attackDistance" && (double.Parse(value, CultureInfo.InvariantCulture) <= 0 || double.Parse(value, CultureInfo.InvariantCulture) > 100))
+                    if (value != "attackDistance" && !InRange(double.Parse(value, CultureInfo.InvariantCulture)))
                         throw new FormatException("공격 기준은 0 초과 100 이하입니다.");
                     condition = new CodeBlock(BlockKind.If, "", new CodeBlock(BlockKind.Comparison, "<=",
                         new CodeBlock(BlockKind.Variable, "enemyDistance"), new CodeBlock(value == "attackDistance" ? BlockKind.Variable : BlockKind.Number, value)));
@@ -61,16 +66,15 @@ namespace CodingGame.Defense
         public static void Validate(string source, int wave, int section, BlockKind attackKind = BlockKind.Shot)
         {
             var blocks = Parse(source, false, attackKind);
-            double? Setting(string name) => blocks.LastOrDefault(b => b.Kind == BlockKind.DeclareVariable && b.Value == name) is CodeBlock b
-                ? double.Parse(b.Arguments[0].Value, CultureInfo.InvariantCulture) : (double?)null;
-            var condition = blocks.SingleOrDefault(b => b.Kind == BlockKind.If);
-            bool matches = wave == 1 ? Setting("damage") == 20 : wave == 2 ? section == 2 ? Setting("range") > 5 : Setting("damage") > 0 && Setting("range") > 0 :
-                wave == 3 ? condition != null && condition.Arguments[0].Arguments[1].Kind == BlockKind.Number &&
-                    double.Parse(condition.Arguments[0].Arguments[1].Value, CultureInfo.InvariantCulture) == 10 :
-                wave == 4 ? condition != null && condition.Arguments[0].Arguments[1].Kind == BlockKind.Number &&
-                    (section != 3 || double.Parse(condition.Arguments[0].Arguments[1].Value, CultureInfo.InvariantCulture) == 8) :
-                wave == 5 && Setting("attackDistance") > 0 && (section != 4 || Setting("attackDistance") == 15) &&
-                    condition != null && condition.Arguments[0].Arguments[1].Kind == BlockKind.Variable && condition.Arguments[0].Arguments[1].Value == "attackDistance";
+            double? Value(string name) => Setting(blocks, name) is string text ? double.Parse(text, CultureInfo.InvariantCulture) : (double?)null;
+            // Right-hand side of the single `if enemyDistance <= ...` condition, if any.
+            var bound = blocks.SingleOrDefault(b => b.Kind == BlockKind.If)?.Arguments[0].Arguments[1];
+            double? number = bound?.Kind == BlockKind.Number ? double.Parse(bound.Value, CultureInfo.InvariantCulture) : (double?)null;
+            bool matches = wave == 1 ? Value("damage") == 20 : wave == 2 ? section == 2 ? Value("range") > 5 : Value("damage") > 0 && Value("range") > 0 :
+                wave == 3 ? number == 10 :
+                wave == 4 ? number != null && (section != 3 || number == 8) :
+                wave == 5 && Value("attackDistance") > 0 && (section != 4 || Value("attackDistance") == 15) &&
+                    bound?.Kind == BlockKind.Variable && bound.Value == "attackDistance";
             if (!matches || wave >= 3 && blocks.Any(b => b.Kind == attackKind))
                 throw new FormatException("이번 학습 목표에 맞게 변수와 조건을 수정하세요.");
         }

@@ -10,7 +10,6 @@ namespace CodingGame.Defense
         readonly List<Rect> outlines = new List<Rect>();
         const float OutlineWidth = 3;
         bool dim = true;
-        public void SetHoles(IEnumerable<Rect> areas, float padding) => SetHoles(areas, areas, padding, true);
         public void SetHoles(IEnumerable<Rect> areas, IEnumerable<Rect> outlined, float padding, bool darken)
         {
             holes.Clear(); outlines.Clear(); dim = darken;

@@ -27,7 +27,7 @@ internal class CommandScript : IRunCommand
             foreach (var placement in new[] { TutorialDialoguePosition.Bottom, TutorialDialoguePosition.Top,
                 TutorialDialoguePosition.Bottom, TutorialDialoguePosition.Top })
             {
-                view.Show(sequence, placement, "위치 확인", false, null);
+                view.Show(sequence, placement, "위치 확인", false);
                 bool top = placement == TutorialDialoguePosition.Top;
                 if (rect.anchorMin != new Vector2(min.x, top ? 1 - max.y : min.y) ||
                     rect.anchorMax != new Vector2(max.x, top ? 1 - min.y : max.y) ||

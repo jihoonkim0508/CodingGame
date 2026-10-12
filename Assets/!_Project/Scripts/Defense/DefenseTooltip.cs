@@ -14,9 +14,9 @@ namespace CodingGame.Defense
                 throw new InvalidOperationException("DefenseTooltip Inspector 참조를 연결하세요.");
             Hide();
         }
-        public void Show(string name, string detail, RectTransform anchor, bool rightOfAnchor)
+        public void Show(string heading, string detail, RectTransform anchor, bool rightOfAnchor)
         {
-            title.text = name; description.text = detail;
+            title.text = heading; description.text = detail;
             panelRect.gameObject.SetActive(true);
             // Keep the authored width; grow vertically to fit wrapped descriptions.
             float height = description.GetPreferredValues(detail, panelRect.rect.width - 32, 0).y;

@@ -40,7 +40,7 @@ namespace CodingGame.Defense
             example.richText = false;
             window.SetActive(false);
         }
-        int Owned(Entry entry) => battle.Simulation.Inventory.TryGetValue(DefenseProgression.Canonical(entry.kind), out int count) ? count : 0;
+        int Owned(Entry entry) => battle.Simulation.Owned(entry.kind);
         public void Open()
         {
             if (battle.Simulation == null) return;

@@ -19,7 +19,7 @@ namespace CodingGame.Defense
         readonly List<Instruction> code = new List<Instruction>();
         readonly Dictionary<string, object> variables = new Dictionary<string, object>();
         readonly Dictionary<int, LoopState> loops = new Dictionary<int, LoopState>();
-        int pc, nextLoop, completedRuns;
+        int pc, nextLoop;
         bool invocationStarted;
         double wakeTime;
         public string Name { get; }
@@ -27,8 +27,8 @@ namespace CodingGame.Defense
         public string Fault { get; private set; }
         public int StepsLastTick { get; private set; }
         public bool IsEmpty => blocks.Count == 0;
-        public int CompletedRuns => completedRuns;
-        public bool Completed(DefenseSimulation sim) => completedRuns >= sim.FunctionRepeatLimit;
+        public int CompletedRuns { get; private set; }
+        public bool Completed(DefenseSimulation sim) => CompletedRuns >= sim.FunctionRepeatLimit;
         public int BlockCount(BlockKind kind) => blockCounts.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0;
         public double WaitRemaining(double time) => Math.Max(0, wakeTime - time);
         public IReadOnlyList<CodeBlock> CopyBlocks() => blocks.Select(Clone).ToList();
@@ -39,12 +39,17 @@ namespace CodingGame.Defense
             foreach (var block in blocks.Where(b => b.Kind == BlockKind.DeclareVariable && b.Arguments[0].Kind == BlockKind.Number))
             {
                 if (block.Value != "damage" && block.Value != "range") continue;
-                float setting = float.Parse(PythonTreeCompiler.NormalizeNumber(block.Arguments[0].Value), CultureInfo.InvariantCulture);
-                if (!Rules.Positive(setting) || setting > 100) throw new FormatException("공격력과 사거리는 0 초과 100 이하입니다.");
+                float setting = LearningValue(float.Parse(PythonTreeCompiler.NormalizeNumber(block.Arguments[0].Value), CultureInfo.InvariantCulture));
                 if (block.Value == "damage") damage = setting; else range = setting;
             }
             robot.DamageSetting = damage; robot.RangeSetting = range;
         }
+        static float LearningValue(double value)
+        {
+            if (!(value > 0 && value <= 100)) throw new FormatException("공격력과 사거리는 0 초과 100 이하입니다.");
+            return (float)value;
+        }
+        void EndInvocation() { pc = 0; invocationStarted = false; variables.Clear(); loops.Clear(); }
         public const int InstructionBudget = 64;
 
         public DefenseProgram(string name, IReadOnlyList<CodeBlock> program)
@@ -108,8 +113,7 @@ namespace CodingGame.Defense
             if (Fault != null || Completed(sim) || sim.Phase != BattlePhase.Running || sim.Time + 1e-9 < wakeTime) return;
             if (!invocationStarted)
             {
-                var nearest = sim.Enemies.Where(e => e.Active && (sim.Setup.StageOneLearning || Vector2.DistanceSquared(e.Position, robot.Position) <= robot.Range * robot.Range))
-                    .OrderBy(e => Vector2.DistanceSquared(e.Position, robot.Position)).ThenBy(e => e.Id).FirstOrDefault();
+                var nearest = Rules.Nearest(sim.Enemies.Where(e => e.Active && (sim.Setup.StageOneLearning || Vector2.DistanceSquared(e.Position, robot.Position) <= robot.Range * robot.Range)), robot.Position);
                 if (nearest == null && blocks.Any(UsesEnemy)) return;
                 variables["enemy"] = new EnemyValue { Id = nearest?.Id ?? 0 };
                 variables["enemyDistance"] = nearest == null ? double.PositiveInfinity : (double)Vector2.Distance(nearest.Position, robot.Position);
@@ -120,7 +124,7 @@ namespace CodingGame.Defense
                 // 무한 반복문도 한 틱을 독점하지 못하도록 실행 예산을 나눕니다.
                 while (StepsLastTick++ < InstructionBudget)
                 {
-                    if (pc == code.Count) { completedRuns++; pc = 0; invocationStarted = false; variables.Clear(); loops.Clear(); return; }
+                    if (pc == code.Count) { CompletedRuns++; EndInvocation(); return; }
                     var instruction = code[pc];
                     switch (instruction.Op)
                     {
@@ -145,10 +149,9 @@ namespace CodingGame.Defense
                                 variables[name] = value;
                                 if (sim.Setup.StageOneLearning && (name == "damage" || name == "range"))
                                 {
-                                    double setting = Number(value);
-                                    if (setting <= 0 || setting > 100) throw new FormatException("공격력과 사거리는 0 초과 100 이하입니다.");
-                                    if (name == "damage") robot.DamageSetting = (float)setting;
-                                    else robot.RangeSetting = (float)setting;
+                                    float setting = LearningValue(Number(value));
+                                    if (name == "damage") robot.DamageSetting = setting;
+                                    else robot.RangeSetting = setting;
                                 }
                                 pc++; break;
                             }
@@ -175,7 +178,7 @@ namespace CodingGame.Defense
                             if (result == ActionResult.CoolingDown && sim.Setup.StageOneLearning)
                             {
                                 // Recheck distance before the next attack; a moving enemy may leave the teaching condition during cooldown.
-                                pc = 0; invocationStarted = false; variables.Clear(); loops.Clear();
+                                EndInvocation();
                                 return;
                             }
                             // 재사용 대기 중에는 같은 명령에서 기다리고, 실행 결과가 나오면 다음으로 이동합니다.
@@ -189,7 +192,7 @@ namespace CodingGame.Defense
         }
         static bool UsesEnemy(CodeBlock block) => block != null && (PythonTreeCompiler.HasEnemyArgument(block.Kind) ||
             block.Kind == BlockKind.Variable && (block.Value == "enemy" || block.Value == "enemyDistance") || block.Arguments.Any(UsesEnemy) || block.Body.Any(UsesEnemy));
-        public static RobotAction Action(BlockKind kind)
+        static RobotAction Action(BlockKind kind)
         {
             switch (kind)
             {
@@ -219,7 +222,7 @@ namespace CodingGame.Defense
                     if (!variables.TryGetValue(PythonTreeCompiler.NormalizeIdentifier(block.Value), out var variable)) throw new FormatException("선언되지 않은 변수입니다.");
                     return variable;
                 case BlockKind.NearestEnemy:
-                    var nearest = sim.Enemies.Where(e => e.Active).OrderBy(e => Vector2.DistanceSquared(e.Position, robot.Position)).ThenBy(e => e.Id).FirstOrDefault();
+                    var nearest = Rules.Nearest(sim.Enemies.Where(e => e.Active), robot.Position);
                     return new EnemyValue { Id = nearest?.Id ?? 0 };
                 case BlockKind.Distance:
                     int id = ((EnemyValue)Arg(0)).Id; var enemy = sim.Enemies.Find(e => e.Id == id && e.Active);

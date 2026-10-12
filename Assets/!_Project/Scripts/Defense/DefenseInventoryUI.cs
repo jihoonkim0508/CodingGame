@@ -65,19 +65,13 @@ namespace CodingGame.Defense
             var sim = battle.Simulation;
             if (sim == null || !inventoryRoot.activeSelf) return;
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) { Close(); return; }
-            for (int i = 0; i < robotButtons.Length; i++)
-            {
-                int count = sim.RobotAvailable(battle.DefinitionRole(i));
-                robotButtons[i].gameObject.SetActive(sim.RobotUnlocked(battle.DefinitionRole(i)));
-                robotLabels[i].text = battle.DefinitionName(i) + "   x" + count;
-                robotButtons[i].interactable = sim.CanPrepare && count > 0;
-            }
+            DefensePlayerHUD.RefreshRobotButtons(battle, robotButtons, robotLabels, "   x");
             foreach (var slot in blockSlots)
             {
-                var kind = DefenseProgression.Canonical(slot.kind); sim.Inventory.TryGetValue(kind, out int owned);
+                var kind = DefenseProgression.Canonical(slot.kind);
                 slot.label.text = DefenseProgression.Label(kind);
                 slot.count.text = sim.Available(kind).ToString();
-                slot.label.color = owned > 0 ? new Color(.9f,.95f,1) : new Color(.42f,.48f,.54f);
+                slot.label.color = sim.Owned(kind) > 0 ? new Color(.9f,.95f,1) : new Color(.42f,.48f,.54f);
                 slot.count.color = slot.label.color;
             }
         }

@@ -24,14 +24,12 @@ namespace CodingGame.Defense
         }
         public void Show(Vector3 center, float radius, Color color)
         {
-            line.enabled = true;
             for (int i = 0; i < points.Length; i++)
             {
                 float a = i * Mathf.PI * 2 / (points.Length - 1);
                 points[i] = center + new Vector3(Mathf.Cos(a) * radius, .065f, Mathf.Sin(a) * radius);
             }
-            line.useWorldSpace = true; line.positionCount = points.Length;
-            line.SetPositions(points); line.startColor = line.endColor = color;
+            Draw(color);
             Fill(center + Vector3.up * .06f, points.Length, color);
         }
         public void Hide() { line.enabled = false; if (fillRenderer) fillRenderer.enabled = false; }
@@ -46,9 +44,13 @@ namespace CodingGame.Defense
                 points[i] = center + (forward * Mathf.Cos(angle) + right * Mathf.Sin(angle)) * radius;
             }
             points[points.Length - 1] = points[0];
+            Draw(color);
+            Fill(center, points.Length - 1, color);
+        }
+        void Draw(Color color)
+        {
             line.useWorldSpace = true; line.positionCount = points.Length;
             line.SetPositions(points); line.startColor = line.endColor = color; line.enabled = true;
-            Fill(center, points.Length - 1, color);
         }
         // Triangle fan from the centre to the outline points already computed (world space).
         void Fill(Vector3 center, int count, Color color)

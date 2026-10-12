@@ -48,7 +48,7 @@ namespace CodingGame.Defense
         RobotState Robot => session?.Robots.FirstOrDefault(r => r.Spec.role == teachingRole) ?? session?.Robots.FirstOrDefault();
         int RobotIndex => Enumerable.Range(0, 6).First(i => battle.DefinitionRole(i) == teachingRole);
         string RobotKey => "Battle.Robot." + RobotIndex;
-        BlockKind AttackKind => new[] { BlockKind.Buff, BlockKind.Slash, BlockKind.Block, BlockKind.Boom, BlockKind.Shot, BlockKind.Slow }[(int)teachingRole];
+        BlockKind AttackKind => DefenseProgression.ActionBlock(Rules.NativeAction(teachingRole));
 
         public void Initialize()
         {
@@ -106,11 +106,9 @@ namespace CodingGame.Defense
         void EnterSection()
         {
             current = content[wave - 1].sections[section]; line = 0; waiting = completed = bossHint = missedShown = false;
-            boundary = wave == 1 && section == 1 ? 4 : wave == 1 && section == 3 ? 2 : wave == 2 && section == 2 ? 4 :
-                wave == 2 && section == 3 ? 3 : wave == 3 && section == 3 ? 2 : wave == 4 && section == 3 ? 2 :
-                wave == 5 && section == 4 ? 1 : current.dialogues.Length;
-            if (IsBattleSection && wave < 5) boundary = wave == 1 ? 4 : wave == 2 ? 5 : wave == 3 ? 0 : 1;
-            if (wave == 5 && IsBattleSection) boundary = 0;
+            // The line index where each section stops and waits for the player.
+            boundary = (wave, section) switch { (1, 1) => 4, (1, 3) => 2, (2, 2) => 4, (2, 3) => 3, (3, 3) => 2, (4, 3) => 2, (5, 4) => 1, _ => current.dialogues.Length };
+            if (IsBattleSection) boundary = wave switch { 1 => 4, 2 => 5, 4 => 1, _ => 0 };
             kills = session.Kills; leaks = leaksAtStart = session.Leaks;
             if (wave == 5 && section == 0) warningSource.Play();
             if (wave == 1 && section == 0) { bootUntil = Time.unscaledTime + 1.5f; bootFade.alpha = 1; boot.SetActive(true); }
@@ -127,14 +125,11 @@ namespace CodingGame.Defense
         string Starter()
         {
             var blocks = Robot?.Program?.CopyBlocks() ?? new List<CodeBlock>();
-            string Setting(string name, string fallback) =>
-                blocks.LastOrDefault(b => b.Kind == BlockKind.DeclareVariable && b.Value == name)?.Arguments.FirstOrDefault()?.Value ?? fallback;
-            bool Has(Func<CodeBlock, bool> test) => blocks.Any(test);
-            string damage = Setting("damage", "10");
+            string damage = StageOneCode.Setting(blocks, "damage") ?? "10";
             if (wave == 1) return blocks.Count == 0 ? "damage = 10\nAttack()" : null;
-            if (wave == 2) return section >= 1 && !Has(b => b.Kind == BlockKind.DeclareVariable && b.Value == "range") ? $"damage = {damage}\nrange = 5\nAttack()" : null;
-            if (wave <= 4) return !Has(b => b.Kind == BlockKind.If) ? $"damage = {damage}\nrange = 16\nif enemyDistance <= 5:\n    Attack()" : null;
-            return section >= 3 && !Has(b => b.Kind == BlockKind.DeclareVariable && b.Value == "attackDistance")
+            if (wave == 2) return section >= 1 && StageOneCode.Setting(blocks, "range") == null ? $"damage = {damage}\nrange = 5\nAttack()" : null;
+            if (wave <= 4) return !blocks.Any(b => b.Kind == BlockKind.If) ? $"damage = {damage}\nrange = 16\nif enemyDistance <= 5:\n    Attack()" : null;
+            return section >= 3 && StageOneCode.Setting(blocks, "attackDistance") == null
                 ? $"damage = {damage}\nrange = 16\nattackDistance = 10\nif enemyDistance <= attackDistance:\n    Attack()" : null;
         }
         void LoadProgram(string source)
@@ -151,10 +146,11 @@ namespace CodingGame.Defense
         bool FirstVisit(int index, string text) => visitedText.Add(wave + "/" + section + "/" + index + "/" + text);
         void Show(bool allowAnimation = true)
         {
-            presentation.speakerName = current.dialogues[Math.Min(line, current.dialogues.Length - 1)].speaker;
-            string text = wave == 5 && IsBattleSection && waiting && !bossHint ? current.interaction.prompt : current.dialogues[Math.Min(line, current.dialogues.Length - 1)].text;
+            var shown = current.dialogues[Math.Min(line, current.dialogues.Length - 1)];
+            presentation.speakerName = shown.speaker;
+            string text = wave == 5 && IsBattleSection && waiting && !bossHint ? current.interaction.prompt : shown.text;
             dialogue.BottomLift = codeEditor.IsOpen ? 44 : 0;
-            dialogue.Show(presentation, Position, Code(text), allowAnimation && FirstVisit(line, text), null);
+            dialogue.Show(presentation, Position, Code(text), allowAnimation && FirstVisit(line, text));
             // The line that asks for the action waits for it; Next stays locked until the player acts.
             if (NeedsAction && !waiting && !completed && line == boundary - 1) { Wait(); return; }
             dialogue.SetNavigation(line > 0 && !waiting, !SelectGate && (!waiting || completed));
@@ -162,15 +158,15 @@ namespace CodingGame.Defense
         }
         void Say(string text)
         {
-            if (string.IsNullOrEmpty(text)) return;
-            dialogue.Show(presentation, Position, Code(text), true, null); dialogue.SetNavigation(false, false);
+            if (!string.IsNullOrEmpty(text)) Announce(text, true);
         }
+        // A one-off line outside the section flow: no navigation until the flow resumes.
+        void Announce(string text, bool animate) { dialogue.Show(presentation, Position, Code(text), animate); dialogue.SetNavigation(false, false); }
         public void Previous()
         { if (!Active || waiting) return; if (line > 0) { line--; Show(false); } }
         public void Next()
         {
-            if (!Active) return;
-            if (boot.activeSelf) return;
+            if (!Active || boot.activeSelf) return;
             if (dialogue.IsTyping) { dialogue.FinishTyping(); return; }
             if (waiting && !completed || SelectGate) return;
             if (line + 1 < current.dialogues.Length && (!NeedsAction || completed || line + 1 < boundary)) { line++; Show(); return; }
@@ -223,7 +219,7 @@ namespace CodingGame.Defense
             if (IsCodeSection && codeEditor.IsOpen) codeEditor.Panel.ShowMessage(current.interaction?.success_feedback ?? "완료");
         }
         void EventDialogue(int index)
-        { string text = current.dialogues[index].text; dialogue.Show(presentation, Position, Code(text), FirstVisit(index, text), null); dialogue.SetNavigation(false, false); }
+        { string text = current.dialogues[index].text; Announce(text, FirstVisit(index, text)); }
         void End()
         { dialogue.BottomLift = 0; current = null; step = null; boot.SetActive(false); bridge.SetStep(null); dialogue.Hide(); }
         void OnDestroy() { if (presentation) Destroy(presentation); }

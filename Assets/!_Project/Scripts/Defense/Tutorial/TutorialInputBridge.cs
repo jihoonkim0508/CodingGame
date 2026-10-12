@@ -36,13 +36,14 @@ namespace CodingGame.Defense
         public bool IsGuiding => director && director.IsActive;
         public bool PauseBattle => IsGuiding && currentStep != null && currentStep.pauseBattle;
         public bool AllowPreview => IsGuiding && currentStep != null && currentStep.allowPreview;
+        Camera CanvasCamera => canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+        bool Acting => allowActions && currentStep != null && currentStep.kind == TutorialStepKind.ActionGuide;
         public void SetInputLimited(bool value) { if (spotlight) spotlight.raycastTarget = currentStep != null && currentStep.blockInput && value; }
 
         public void Initialize(TutorialDirector owner)
         {
             director = owner;
             if (!canvas || !spotlight) throw new InvalidOperationException(name + ": Canvas/Spotlight 참조 누락");
-            if (targets == null) targets = Array.Empty<TutorialTargetBinding>();
             byKey.Clear(); runtimeTargets.Clear();
             foreach (var target in targets)
             {
@@ -67,10 +68,8 @@ namespace CodingGame.Defense
             RefreshAreas();
         }
 
-        void LateUpdate()
-        {
-            if (currentStep != null && allowActions) RefreshAreas();
-        }
+        void LateUpdate() => RefreshIfActing();
+        void RefreshIfActing() { if (currentStep != null && allowActions) RefreshAreas(); }
 
         void RefreshAreas()
         {
@@ -89,13 +88,13 @@ namespace CodingGame.Defense
 
         void AddArea(string key, TutorialTargetBinding binding)
         {
-            if (TryGetUI(key, binding, out var uiTarget))
+            if (binding.uiTarget)
             {
-                var corners = new Vector3[4]; uiTarget.GetWorldCorners(corners);
+                var corners = new Vector3[4]; binding.uiTarget.GetWorldCorners(corners);
                 var area = Rect.zero;
+                var camera = CanvasCamera;
                 for (int i = 0; i < corners.Length; i++)
                 {
-                    var camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
                     var p = RectTransformUtility.WorldToScreenPoint(camera, corners[i]);
                     RectTransformUtility.ScreenPointToLocalPointInRectangle(spotlight.rectTransform, p, camera, out var local);
                     area = i == 0 ? new Rect(local, Vector2.zero) : Rect.MinMaxRect(
@@ -114,17 +113,10 @@ namespace CodingGame.Defense
                 var world = bounds.center + Vector3.Scale(bounds.extents, new Vector3(x, y, z));
                 var p = worldCamera.WorldToScreenPoint(world);
                 if (p.z <= 0) continue;
-                RectTransformUtility.ScreenPointToLocalPointInRectangle(spotlight.rectTransform, p,
-                    canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera, out var local);
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(spotlight.rectTransform, p, CanvasCamera, out var local);
                 min = Vector2.Min(min, local); max = Vector2.Max(max, local);
             }
             if (min.x <= max.x && min.y <= max.y) screenAreas.Add(Rect.MinMaxRect(min.x, min.y, max.x, max.y));
-        }
-
-        bool TryGetUI(string key, TutorialTargetBinding binding, out RectTransform target)
-        {
-            target = binding.uiTarget;
-            return target;
         }
 
         bool TryGetBounds(string key, TutorialTargetBinding binding, out Bounds bounds)
@@ -139,7 +131,7 @@ namespace CodingGame.Defense
         public bool CanPerformAction(string key, GameObject target = null)
         {
             if (!IsGuiding) return true;
-            if (!allowActions || currentStep == null || currentStep.kind != TutorialStepKind.ActionGuide || !ContainsKey(key)) return false;
+            if (!Acting || !ContainsKey(key)) return false;
             if (target && byKey.TryGetValue(key, out var binding))
             {
                 if (runtimeTargets.TryGetValue(key, out var runtime) && runtime.owner) return runtime.owner == target;
@@ -153,18 +145,14 @@ namespace CodingGame.Defense
         public bool AllowsWorldPoint(Vector3 point)
         {
             if (!IsGuiding) return true;
-            if (!allowActions || currentStep == null || currentStep.kind != TutorialStepKind.ActionGuide) return false;
-            foreach (var key in currentStep.targetKeys)
-                if (byKey.TryGetValue(key, out var binding) && TryGetBounds(key, binding, out var bounds) &&
-                    bounds.Contains(new Vector3(point.x, bounds.center.y, point.z))) return true;
-            return false;
+            return Acting && Array.Exists(currentStep.targetKeys, key => Hits(key, point));
         }
 
         public bool AllowsRobotChoice(int index)
         {
             if (!IsGuiding) return true;
-            if (!allowActions || currentStep == null || currentStep.kind != TutorialStepKind.ActionGuide) return false;
-            bool hasRobotTarget = Array.Exists(currentStep.targetKeys ?? Array.Empty<string>(), key =>
+            if (!Acting) return false;
+            bool hasRobotTarget = Array.Exists(currentStep.targetKeys, key =>
                 !string.IsNullOrEmpty(key) && key.StartsWith("Battle.Robot.", StringComparison.Ordinal));
             return !hasRobotTarget || ContainsKey("Battle.Robot." + index);
         }
@@ -189,21 +177,19 @@ namespace CodingGame.Defense
             if (!owner || !byKey.TryGetValue(key, out var binding) || !binding.allowRuntimeTarget)
                 throw new InvalidOperationException(name + ": 런타임 대상 키가 등록되지 않았습니다: " + key);
             runtimeTargets[key] = new RuntimeTarget { owner = owner, bounds = bounds };
-            if (currentStep != null && allowActions) RefreshAreas();
+            RefreshIfActing();
         }
 
         public void UnregisterRuntimeTarget(string key, GameObject owner)
         {
             if (runtimeTargets.TryGetValue(key, out var target) && (!owner || target.owner == owner))
-            { runtimeTargets.Remove(key); if (currentStep != null && allowActions) RefreshAreas(); }
+            { runtimeTargets.Remove(key); RefreshIfActing(); }
         }
 
         public void ReportWorldSuccess(Vector3 point, string signal)
         {
             if (!IsGuiding || !allowActions || currentStep == null) return;
-            foreach (var key in currentStep.targetKeys)
-                if (byKey.TryGetValue(key, out var binding) && TryGetBounds(key, binding, out var bounds) &&
-                    bounds.Contains(new Vector3(point.x, bounds.center.y, point.z))) ReportSuccess(key, signal);
+            foreach (var key in currentStep.targetKeys) if (Hits(key, point)) ReportSuccess(key, signal);
         }
 
         public void ReportDrop(RectTransform source, RectTransform destination, string signal)
@@ -220,6 +206,9 @@ namespace CodingGame.Defense
                 if (TargetMatches(key, destination)) ReportSuccess(key, signal);
         }
 
+        // The point lies over the key's world target footprint (height ignored).
+        bool Hits(string key, Vector3 point) => byKey.TryGetValue(key, out var binding) && TryGetBounds(key, binding, out var bounds) &&
+            bounds.Contains(new Vector3(point.x, bounds.center.y, point.z));
         bool TargetContains(string key, RectTransform actual)
         {
             if (!byKey.TryGetValue(key, out var binding) || !binding.uiTarget) return false;
@@ -253,7 +242,7 @@ namespace CodingGame.Defense
                 screenAreas.Clear();AddArea(key,binding);
                 if(screenAreas.Count==0)throw new InvalidOperationException("대상 투영 불가: "+key);
                 var area=screenAreas[0];
-                var camera=canvas.renderMode==RenderMode.ScreenSpaceOverlay?null:canvas.worldCamera;
+                var camera=CanvasCamera;
                 var min=RectTransformUtility.WorldToScreenPoint(camera,spotlight.transform.TransformPoint(area.min));
                 var max=RectTransformUtility.WorldToScreenPoint(camera,spotlight.transform.TransformPoint(area.max));
                 result.Add((key,Rect.MinMaxRect(min.x,min.y,max.x,max.y),binding.uiTarget));
@@ -262,17 +251,6 @@ namespace CodingGame.Defense
         }
 #endif
 
-        bool ContainsKey(string key) => Array.Exists(currentStep.targetKeys ?? Array.Empty<string>(), k => k == key || k == "*");
-    }
-
-    public sealed class TutorialTarget : MonoBehaviour, UnityEngine.EventSystems.IPointerClickHandler
-    {
-        [SerializeField] TutorialInputBridge bridge;
-        [SerializeField] string targetKey;
-        public void OnPointerClick(UnityEngine.EventSystems.PointerEventData eventData)
-        {
-            if (eventData.button == UnityEngine.EventSystems.PointerEventData.InputButton.Left)
-                bridge.ReportSuccess(targetKey, "TargetClicked", gameObject);
-        }
+        bool ContainsKey(string key) => Array.Exists(currentStep.targetKeys, k => k == key || k == "*");
     }
 }

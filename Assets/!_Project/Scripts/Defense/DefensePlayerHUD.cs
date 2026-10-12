@@ -46,6 +46,7 @@ namespace CodingGame.Defense
             recallRobotButton.onClick.AddListener(battle.RemoveSelected);
             toastPosition = ((RectTransform)placementToast.transform).anchoredPosition;
             placementToast.alpha = 0;
+            upcoming.text = "다음 웨이브";
             for (int i = 0; i < robotButtons.Length; i++) { int index = i; robotButtons[i].onClick.AddListener(() => battle.ChooseRobot(index)); }
             enemyImages = enemyCards.Select(c => c.GetComponentInChildren<RawImage>(true)).ToArray();
             enemyHovers = enemyCards.Select(c => c.GetComponent<DefenseHoverInfo>()).ToArray();
@@ -78,10 +79,38 @@ namespace CodingGame.Defense
             string state = ended ? "작전 종료" : fighting ? "전투 중" : "정비 중";
             counters.text = $"{battle.Stage}-{sim.WaveIndex + 1:00}     {state}     WAVE {sim.WaveIndex + 1}/{sim.Setup.Waves.Length}     적 {sim.RemainingEnemies}     {Math.Ceiling(sim.WaveRemaining):00}s     코인 {sim.Coins:N0}";
             combatControls.SetActive(fighting);
-            upcoming.text = "다음 웨이브";
-            var next = sim.UpcomingWave;
+            RefreshEnemyCards(sim);
+            guide.text = ready ? $"{sim.Lesson?.topic} · 로봇 배치 → 코드 작성 → 전투 시작" :
+                reward ? "WAVE CLEAR  ·  블록을 수령하고 다음 전투를 준비하세요" : ended ? "작전 종료" : "DEFENDING  ·  블록 드랍 " + sim.PendingDrops.Count + "개  /  전투 종료 후 수령";
+            notice.text = battle.StatusMessage;
+            inventory.text = $"설치 {sim.Robots.Count} / {sim.Setup.RobotLimit}대  ·  버프형 최대 1대";
+            inventory.color = sim.Robots.Count >= sim.Setup.RobotLimit ? new Color(1, .45f, .4f) : new Color(.75f, .9f, .95f);
+            startButton.interactable = ready;
+            pauseButton.interactable = speedButton.interactable = fighting;
+            pauseLabel.text = sim.Phase == BattlePhase.Paused ? "계속" : "일시정지"; speedLabel.text = battle.BattleSpeed + "x";
+            RefreshRobotButtons(battle, robotButtons, robotLabels, "\nx");
+            RefreshRobotActions(sim);
+            rewardPanel.SetActive(reward || ended);
+            if (reward || ended) RefreshRewardPanel(sim, reward);
+            shownRewardPhase = sim.Phase; shownRewardWave = sim.WaveIndex; shownRewardStage = battle.Stage;
+        }
+        // Shared with the inventory window: unlocked robots show, and only stocked ones can be picked while preparing.
+        internal static void RefreshRobotButtons(DefenseBattle battle, Button[] buttons, TMP_Text[] labels, string separator)
+        {
+            var sim = battle.Simulation;
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                var role = battle.DefinitionRole(i);
+                int count = sim.RobotAvailable(role);
+                buttons[i].gameObject.SetActive(sim.RobotUnlocked(role));
+                buttons[i].interactable = sim.CanPrepare && count > 0;
+                labels[i].text = battle.DefinitionName(i) + separator + count;
+            }
+        }
+        void RefreshEnemyCards(DefenseSimulation sim)
+        {
             // Cards follow the wave's own enemy types (in spawn order), so tutorial enemies get cards too.
-            var types = next.GroupBy(g => g.DefinitionIndex).Take(enemyCards.Length).ToArray();
+            var types = sim.UpcomingWave.GroupBy(g => g.DefinitionIndex).Take(enemyCards.Length).ToArray();
             upcoming.gameObject.SetActive(types.Length > 0);
             for (int i = 0; i < enemyCards.Length; i++)
             {
@@ -92,51 +121,34 @@ namespace CodingGame.Defense
                 if (enemyHovers[i]) enemyHovers[i].SetEnemy(definition);
                 enemyCounts[i].text = "× " + types[i].Sum(g => g.Count);
             }
-            guide.text = ready ? $"{sim.Lesson?.topic} · 로봇 배치 → 코드 작성 → 전투 시작" :
-                reward ? "WAVE CLEAR  ·  블록을 수령하고 다음 전투를 준비하세요" : ended ? "작전 종료" : "DEFENDING  ·  블록 드랍 " + sim.PendingDrops.Count + "개  /  전투 종료 후 수령";
-            notice.text = battle.StatusMessage;
-            inventory.text = $"설치 {sim.Robots.Count} / {sim.Setup.RobotLimit}대  ·  버프형 최대 1대";
-            inventory.color = sim.Robots.Count >= sim.Setup.RobotLimit ? new Color(1, .45f, .4f) : new Color(.75f, .9f, .95f);
-            startButton.interactable = ready;
-            pauseButton.interactable = sim.Phase == BattlePhase.Running || sim.Phase == BattlePhase.Paused;
-            speedButton.interactable = pauseButton.interactable;
-            pauseLabel.text = sim.Phase == BattlePhase.Paused ? "계속" : "일시정지"; speedLabel.text = battle.BattleSpeed + "x";
-            for (int i = 0; i < robotButtons.Length; i++)
-            {
-                int count = sim.RobotAvailable(battle.DefinitionRole(i));
-                robotButtons[i].gameObject.SetActive(sim.RobotUnlocked(battle.DefinitionRole(i)));
-                robotButtons[i].interactable = ready && count > 0;
-                robotLabels[i].text = battle.DefinitionName(i) + "\nx" + count;
-            }
-            var selected = sim.Robots.Find(r => r.Id == battle.SelectedId);
+        }
+        void RefreshRobotActions(DefenseSimulation sim)
+        {
+            var selected = sim.FindRobot(battle.SelectedId);
             robotActions.gameObject.SetActive(selected != null && battle.CanShowRobotActions);
-            if (robotActions.gameObject.activeSelf)
+            if (!robotActions.gameObject.activeSelf) return;
+            var screen = battleCamera.WorldToScreenPoint(DefenseViews.World(selected.Position, .6f));
+            var canvas = (RectTransform)canvasRoot.transform;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, screen, null, out var point);
+            point.x = Mathf.Clamp(point.x, canvas.rect.xMin + 160, canvas.rect.xMax - 160);
+            point.y = Mathf.Clamp(point.y, canvas.rect.yMin + 230, canvas.rect.yMax - 170);
+            robotActions.anchoredPosition = point;
+            upgradeRobotButton.interactable = sim.UpgradeError(selected.Id) == null;
+            upgradeRobotLabel.text = selected.IsMaxLevel ? "최고 레벨" : $"레벨업\n{sim.UpgradeCost} 코인";
+        }
+        void RefreshRewardPanel(DefenseSimulation sim, bool reward)
+        {
+            claimButton.interactable = sim.Phase != BattlePhase.Victory || sim.CanAdvanceStage || battle.FromStageMap;
+            claimLabel.text = reward ? (sim.WaveIndex + 1 == sim.Setup.Waves.Length ? "보상 수령 · 스테이지 완료" : "보상 수령 · 다음 준비") :
+                sim.Phase != BattlePhase.Victory ? "이 스테이지 재도전" : battle.FromStageMap ? "스테이지 맵으로" : sim.CanAdvanceStage ? $"스테이지 {battle.Stage + 1}로 진행" : "3스테이지 완료";
+            if (shownRewardPhase != sim.Phase || shownRewardWave != sim.WaveIndex || shownRewardStage != battle.Stage)
             {
-                var screen = battleCamera.WorldToScreenPoint(new Vector3(selected.Position.X, .6f, selected.Position.Y));
-                var canvas = (RectTransform)canvasRoot.transform;
-                RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, screen, null, out var point);
-                point.x = Mathf.Clamp(point.x, canvas.rect.xMin + 160, canvas.rect.xMax - 160);
-                point.y = Mathf.Clamp(point.y, canvas.rect.yMin + 230, canvas.rect.yMax - 170);
-                robotActions.anchoredPosition = point;
-                upgradeRobotButton.interactable = sim.UpgradeError(selected.Id) == null;
-                upgradeRobotLabel.text = selected.IsMaxLevel ? "최고 레벨" : $"레벨업\n{sim.UpgradeCost} 코인";
+                rewardTitle.text = reward ? $"WAVE {sim.WaveIndex + 1}  /  " + (sim.LastWaveTimedOut ? "TIME UP" : "CLEAR") : sim.Phase == BattlePhase.Victory ? $"STAGE {battle.Stage} COMPLETE" : "CORE LOST";
+                rewardItems.text = reward ? (sim.PendingDrops.Count == 0 ? "지급할 블록이 없습니다." : string.Join("\n", sim.PendingDrops.GroupBy(k => k).OrderBy(g => g.Key).Select(g => DefenseProgression.Label(g.Key) + "   x" + g.Count()))) :
+                    (sim.Phase == BattlePhase.Victory ? battle.FromStageMap ? "5개 웨이브 방어 성공 · 스테이지 맵에서 다음 스테이지를 선택하세요." : sim.CanAdvanceStage ? "5개 웨이브 방어 성공 · 보유 블록과 로봇을 다음 스테이지로 가져갑니다." : "1~3스테이지, 총 15개 웨이브를 완료했습니다." : "방어 실패 · 배치와 코드를 바꿔 도전하세요") + $"\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
+                if (reward) rewardItems.text += $"\n\n잔여 적 {sim.LastSurvivors}" + (sim.WaveIndex + 1 < sim.Setup.Waves.Length ? " · 다음 웨이브에 추가" : " · 최종 기록");
+                Canvas.ForceUpdateCanvases(); rewardScroll.verticalNormalizedPosition = 1;
             }
-            rewardPanel.SetActive(reward || ended);
-            if (reward || ended)
-            {
-                claimButton.interactable = sim.Phase != BattlePhase.Victory || sim.CanAdvanceStage || battle.FromStageMap;
-                claimLabel.text = reward ? (sim.WaveIndex + 1 == sim.Setup.Waves.Length ? "보상 수령 · 스테이지 완료" : "보상 수령 · 다음 준비") :
-                    sim.Phase != BattlePhase.Victory ? "이 스테이지 재도전" : battle.FromStageMap ? "스테이지 맵으로" : sim.CanAdvanceStage ? $"스테이지 {battle.Stage + 1}로 진행" : "3스테이지 완료";
-                if (shownRewardPhase != sim.Phase || shownRewardWave != sim.WaveIndex || shownRewardStage != battle.Stage)
-                {
-                    rewardTitle.text = reward ? $"WAVE {sim.WaveIndex + 1}  /  " + (sim.LastWaveTimedOut ? "TIME UP" : "CLEAR") : sim.Phase == BattlePhase.Victory ? $"STAGE {battle.Stage} COMPLETE" : "CORE LOST";
-                    rewardItems.text = reward ? (sim.PendingDrops.Count == 0 ? "지급할 블록이 없습니다." : string.Join("\n", sim.PendingDrops.GroupBy(k => k).OrderBy(g => g.Key).Select(g => DefenseProgression.Label(g.Key) + "   x" + g.Count()))) :
-                        (sim.Phase == BattlePhase.Victory ? battle.FromStageMap ? "5개 웨이브 방어 성공 · 스테이지 맵에서 다음 스테이지를 선택하세요." : sim.CanAdvanceStage ? "5개 웨이브 방어 성공 · 보유 블록과 로봇을 다음 스테이지로 가져갑니다." : "1~3스테이지, 총 15개 웨이브를 완료했습니다." : "방어 실패 · 배치와 코드를 바꿔 도전하세요") + $"\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
-                    if (reward) rewardItems.text += $"\n\n잔여 적 {sim.LastSurvivors}" + (sim.WaveIndex + 1 < sim.Setup.Waves.Length ? " · 다음 웨이브에 추가" : " · 최종 기록");
-                    Canvas.ForceUpdateCanvases(); rewardScroll.verticalNormalizedPosition = 1;
-                }
-            }
-            shownRewardPhase = sim.Phase; shownRewardWave = sim.WaveIndex; shownRewardStage = battle.Stage;
         }
     }
 }

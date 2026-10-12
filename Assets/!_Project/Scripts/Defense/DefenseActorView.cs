@@ -1,8 +1,22 @@
 using System;
 using UnityEngine;
+using Point = System.Numerics.Vector2;
 
 namespace CodingGame.Defense
 {
+    // Shared conversions for views that mirror the simulation's XZ plane.
+    static class DefenseViews
+    {
+        public static Vector3 World(Point p, float y = 0) => new Vector3(p.X, y, p.Y);
+        // Deactivate first so the object stops rendering and raycasting this frame, before Destroy runs.
+        public static void Discard(Component view)
+        {
+            if (!view) return;
+            view.gameObject.SetActive(false);
+            UnityEngine.Object.Destroy(view.gameObject);
+        }
+    }
+
     public sealed class DefenseActorView : MonoBehaviour
     {
         [SerializeField] Transform head;
@@ -14,7 +28,6 @@ namespace CodingGame.Defense
         Color baseColor;
         Vector3 fullHealthScale;
         float beamTime;
-        public int Id { get; set; }
         void Awake()
         {
             if (!head || !body || !healthRoot || !healthFill || !beam || !beam.sharedMaterial)
@@ -23,7 +36,11 @@ namespace CodingGame.Defense
             fullHealthScale = healthFill.localScale;
             beam.enabled = false;
         }
-        public void Sync(Vector3 position, float? health, float maximum, bool stunned, bool slowed, bool buffed, Quaternion viewRotation)
+        public void SyncRobot(RobotState bot, Vector3 position, Quaternion viewRotation) =>
+            Sync(position, bot.Health, bot.MaxHealth, false, false, bot.Buffs.Count > 0, viewRotation);
+        public void SyncEnemy(EnemyState enemy, double time, Vector3 position, Quaternion viewRotation) =>
+            Sync(position, enemy.Health, enemy.Spec.health, enemy.Stunned(time), enemy.Speed(time) < enemy.Spec.speed, false, viewRotation);
+        void Sync(Vector3 position, float? health, float maximum, bool stunned, bool slowed, bool buffed, Quaternion viewRotation)
         {
             transform.position = position;
             healthRoot.gameObject.SetActive(health.HasValue);
@@ -38,8 +55,7 @@ namespace CodingGame.Defense
         }
         public void AimAt(Vector3 target)
         {
-            Vector3 from = head.position;
-            Vector3 direction = target - from; direction.y = 0;
+            Vector3 direction = target - head.position; direction.y = 0;
             if (direction.sqrMagnitude > .001f) head.rotation = Quaternion.LookRotation(direction);
         }
         public void FireAt(Vector3 target)

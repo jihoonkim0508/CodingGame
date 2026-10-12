@@ -22,18 +22,21 @@ namespace CodingGame.Defense
         int viewedStep, viewedText, progressStep;
         bool initialized;
         public bool StageOneEnabled => stageOne;
-        public bool IsActive => stageOne && stageOne.Active || active && view && view.IsVisible;
+        bool StageOneActive => stageOne && stageOne.Active;
+        public bool IsActive => StageOneActive || active && view && view.IsVisible;
         public bool BlocksGameplayInput => IsActive && InputLimited;
+        public bool BlocksPreview => BlocksGameplayInput && !AllowPreview;
+        // Tutorial off, idle, or with input limiting disabled in the developer options.
+        bool Unrestricted => !initialized || !IsActive || !InputLimited;
         bool InputLimited => !battle || battle.Simulation == null || battle.Simulation.Options.tutorialInput;
-        public bool PauseBattle => stageOne && stageOne.Active ? stageOne.Pause : IsActive && bridge && bridge.PauseBattle;
-        public bool AllowPreview => stageOne && stageOne.Active ? stageOne.Preview : IsActive && bridge && bridge.AllowPreview;
+        public bool PauseBattle => StageOneActive ? stageOne.Pause : IsActive && bridge && bridge.PauseBattle;
+        public bool AllowPreview => StageOneActive ? stageOne.Preview : IsActive && bridge && bridge.AllowPreview;
 
         void Start()
         {
             if (!battle || !bridge || !view) { DisableWithError("Battle, Bridge, View 참조를 연결하세요."); return; }
             try
             {
-                if (sequences == null) sequences = Array.Empty<TutorialSequence>();
                 bridge.Initialize(this); bridge.Completed += CompleteAction;
                 view.Initialize(PreviousText, NextText);
                 if (stageOne) stageOne.Initialize();
@@ -137,7 +140,7 @@ namespace CodingGame.Defense
             string key = TextKey(step,text); bool animate = firstVisit && !visitedText.Contains(key);
             visitedText.Add(key);
             bridge.SetStep(active.steps[progressStep], viewedStep == progressStep);
-            view.Show(active, step.dialoguePosition, text.text, animate, null);
+            view.Show(active, step.dialoguePosition, text.text, animate);
             bool previous = viewedStep > 0 || viewedText > 0;
             bool next = viewedText + 1 < step.texts.Length || viewedStep < progressStep || step.kind != TutorialStepKind.ActionGuide || completedStep.Contains(step.stepId);
             view.SetNavigation(previous,next);
@@ -145,7 +148,7 @@ namespace CodingGame.Defense
 
         void PreviousText()
         {
-            if (stageOne && stageOne.Active) { stageOne.Previous(); return; }
+            if (StageOneActive) { stageOne.Previous(); return; }
             if (!IsActive) return;
             if (view.IsTyping) view.FinishTyping();
             if (viewedText > 0) viewedText--;
@@ -156,7 +159,7 @@ namespace CodingGame.Defense
 
         void NextText()
         {
-            if (stageOne && stageOne.Active) { stageOne.Next(); return; }
+            if (StageOneActive) { stageOne.Next(); return; }
             if (!IsActive) return;
             if (view.IsTyping) { view.FinishTyping(); return; }
             var step = active.steps[viewedStep];
@@ -177,10 +180,9 @@ namespace CodingGame.Defense
             ShowText(true);
         }
 
-        public bool CanPerformAction(string key, GameObject target = null) => !initialized || !IsActive || !InputLimited ||
-            (stageOne && stageOne.Active ? stageOne.Allows(key) : bridge.CanPerformAction(key,target));
-        public bool AllowsWorldPoint(Vector3 point) => !initialized || !IsActive || !InputLimited || bridge.AllowsWorldPoint(point);
-        public bool AllowsRobotChoice(int index) => !initialized || !IsActive || !InputLimited || bridge.AllowsRobotChoice(index);
+        public bool CanPerformAction(string key) => Unrestricted || (StageOneActive ? stageOne.Allows(key) : bridge.CanPerformAction(key, null));
+        public bool AllowsWorldPoint(Vector3 point) => Unrestricted || bridge.AllowsWorldPoint(point);
+        public bool AllowsRobotChoice(int index) => Unrestricted || bridge.AllowsRobotChoice(index);
         public void ReportSuccess(string key,string signal,GameObject target=null) { if (initialized) bridge.ReportSuccess(key,signal,target); }
         public void ReportWorldSuccess(Vector3 point,string signal) { if (initialized) bridge.ReportWorldSuccess(point,signal); }
         public void ReportDrop(RectTransform source, RectTransform destination, string signal) { if (initialized) bridge.ReportDrop(source,destination,signal); }

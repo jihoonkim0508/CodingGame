@@ -13,13 +13,10 @@ namespace CodingGame.Defense
         [SerializeField] TMP_Text label;
         [SerializeField] BlockKind kind;
         void Start() => button.onClick.AddListener(() => inventory.SelectBlockItem(kind));
-        void OnEnable() => Refresh();
-        void LateUpdate() => Refresh();
-        void Refresh()
+        void LateUpdate()
         {
-            if (!battle || battle.Simulation == null) return;
-            battle.Simulation.Inventory.TryGetValue(kind, out int owned);
-            label.text = DefenseProgression.Label(kind) + "  ×" + owned;
+            if (battle.Simulation == null) return;
+            label.text = DefenseProgression.Label(kind) + "  ×" + battle.Simulation.Owned(kind);
         }
     }
 }

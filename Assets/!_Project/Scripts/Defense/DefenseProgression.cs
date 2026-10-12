@@ -57,6 +57,19 @@ namespace CodingGame.Defense
                 drops.Any(d => d == null || !Consumes(d.kind) || d.firstWave < 1 || d.weight < 1 || d.weight > 1000))
                 throw new ArgumentException("초기 블록 수량·드랍 표를 확인하세요.");
         }
+        // The block that triggers a robot action (Attack is written as the shot block).
+        public static BlockKind ActionBlock(RobotAction action)
+        {
+            switch (action)
+            {
+                case RobotAction.Buff: return BlockKind.Buff;
+                case RobotAction.Slash: return BlockKind.Slash;
+                case RobotAction.Block: return BlockKind.Block;
+                case RobotAction.Boom: return BlockKind.Boom;
+                case RobotAction.Attack: return BlockKind.Shot;
+                default: return BlockKind.Slow;
+            }
+        }
         public static BlockKind Canonical(BlockKind kind) => kind == BlockKind.Attack ? BlockKind.Shot : kind == BlockKind.Distance ? BlockKind.Variable : kind;
         public static bool Consumes(BlockKind kind) => Enum.IsDefined(typeof(BlockKind), kind);
         public static BlockKind[] ItemKinds => Enum.GetValues(typeof(BlockKind)).Cast<BlockKind>().Select(Canonical).Distinct().ToArray();

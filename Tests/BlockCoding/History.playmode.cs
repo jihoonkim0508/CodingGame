@@ -21,14 +21,14 @@ try
     var panel = editor.Panel;
     panel.AddFromPalette(Palette(draftKind));
     Check(!panel.IsApplied && panel.Program.Blocks.Count == 1, "unfinished attack remains a draft");
-    editor.Close(); editor.OpenSelected();
+    editor.Close(); editor.Open(battle.SelectedId);
     Check(panel.Program.Blocks.Count == 1 && panel.Program.Blocks[0].Read().Arguments[0] == null, "empty argument survives reopening");
     panel.Undo(); Check(panel.Program.Blocks.Count == 0, "undo incomplete insertion");
     panel.Redo(); Check(panel.Program.Blocks.Count == 1, "redo incomplete insertion");
     var position = new UnityEngine.Vector2(340, -210);
     panel.Program.PlaceFree(Palette(CodingGame.BlockCoding.BlockKind.Wait), position);
     Check(panel.Program.CaptureDraft().Count == 2, "disconnected groups captured");
-    editor.Close(); editor.OpenSelected();
+    editor.Close(); editor.Open(battle.SelectedId);
     Check(panel.Program.CaptureDraft().Count == 2 && panel.Program.CaptureDraft()[1].position == position, "disconnected positions restored");
     panel.DeleteOne(panel.Program.Blocks[1]); panel.Undo();
     Check(panel.Program.Blocks.Count == 2 && panel.Program.CaptureDraft()[1].position == position, "undo deletion restores position");
@@ -39,7 +39,7 @@ try
     loop.Body.Add(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Wait, "0", new CodingGame.BlockCoding.CodeBlock[] { null }));
     battle.Simulation.GrantBlock(CodingGame.BlockCoding.BlockKind.While, 1);
     panel.LoadProgram("nested_draft", new[] { loop });
-    editor.Close(); editor.OpenSelected();
+    editor.Close(); editor.Open(battle.SelectedId);
     Check(panel.Program.Blocks[0].Body.Blocks.Count == 1 && panel.Program.Blocks[0].Body.Blocks[0].Read().Arguments[0] == null, "nested incomplete body restored");
     panel.ClearProgram(); panel.Undo();
     Check(panel.Program.Blocks[0].Body.Blocks.Count == 1, "nested body restored by undo");

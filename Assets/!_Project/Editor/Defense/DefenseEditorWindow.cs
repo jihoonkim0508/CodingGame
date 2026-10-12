@@ -74,32 +74,31 @@ namespace CodingGame.Defense.Editor
             var value=Instantiate(playContent);
             value.name=campaign.name;
             value.robots=campaign.robots;value.enemies=campaign.enemies;
-            for(int stage=0;stage<value.stages.Length;stage++)foreach(var wave in value.stages[stage].waves)foreach(var group in wave.groups)
-                group.enemy=campaign.enemies[Array.IndexOf(playContent.enemies,group.enemy)];
-            var snapshot=new ContentChanges {campaignGuid=AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(campaign)),content=JsonUtility.ToJson(value),
+            RemapEnemies(value,playContent.enemies,campaign.enemies);
+            var snapshot=new ContentChanges {campaignGuid=CampaignGuid,content=JsonUtility.ToJson(value),
                 robotValues=playContent.robots.Select(JsonUtility.ToJson).ToArray(),enemyValues=playContent.enemies.Select(JsonUtility.ToJson).ToArray()};
-            SessionState.SetString("CodingGame.PendingContent",JsonUtility.ToJson(snapshot));DestroyImmediate(value);
+            SessionState.SetString(PendingKey,JsonUtility.ToJson(snapshot));DestroyImmediate(value);
         }
         void PendingChanges()
         {
             if(EditorApplication.isPlaying||!campaign)return;
-            var json=SessionState.GetString("CodingGame.PendingContent","");if(string.IsNullOrEmpty(json))return;
+            var json=SessionState.GetString(PendingKey,"");if(string.IsNullOrEmpty(json))return;
             var saved=JsonUtility.FromJson<ContentChanges>(json);
-            if(saved.campaignGuid!=AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(campaign)))return;
+            if(saved.campaignGuid!=CampaignGuid)return;
             var diffs=new List<string>();
             if(saved.content!=JsonUtility.ToJson(campaign))diffs.Add("캠페인 규칙·웨이브·보급");
             for(int i=0;i<saved.robotValues.Length&&i<campaign.robots.Length;i++)if(saved.robotValues[i]!=JsonUtility.ToJson(campaign.robots[i]))diffs.Add(campaign.robots[i].displayName);
             for(int i=0;i<saved.enemyValues.Length&&i<campaign.enemies.Length;i++)if(saved.enemyValues[i]!=JsonUtility.ToJson(campaign.enemies[i]))diffs.Add(campaign.enemies[i].displayName);
-            if(diffs.Count==0){SessionState.EraseString("CodingGame.PendingContent");return;}
+            if(diffs.Count==0){SessionState.EraseString(PendingKey);return;}
             var fold=new Foldout{text="Play 변경값 비교 (원본 미반영)"};
             foreach(var label in diffs)fold.Add(new Label(label));
             fold.Add(new TextField("원본 JSON"){multiline=true,isReadOnly=true,value=JsonUtility.ToJson(campaign,true)});
             fold.Add(new TextField("테스트 JSON"){multiline=true,isReadOnly=true,value=saved.content});content.Add(fold);
-            Buttons(("수치 적용 확정",()=>{PersistChanges(saved);Build();}),("테스트값 폐기",()=>{SessionState.EraseString("CodingGame.PendingContent");Build();}));
+            Buttons(("수치 적용 확정",()=>{PersistChanges(saved);Build();}),("테스트값 폐기",()=>{SessionState.EraseString(PendingKey);Build();}));
         }
         void PersistChanges(ContentChanges saved)
         {
-            if(saved==null||saved.campaignGuid!=AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(campaign)))throw new Exception("저장할 캠페인이 일치하지 않습니다.");
+            if(saved==null||saved.campaignGuid!=CampaignGuid)throw new Exception("저장할 캠페인이 일치하지 않습니다.");
             if(saved.robotValues.Length!=campaign.robots.Length||saved.enemyValues.Length!=campaign.enemies.Length)throw new Exception("참조 목록 변경은 Edit Mode에서 편집하세요.");
             var targets=new Object[]{campaign}.Concat(campaign.robots).Concat(campaign.enemies).ToArray();
             Undo.RecordObjects(targets,"수치 적용 확정");
@@ -107,10 +106,10 @@ namespace CodingGame.Defense.Editor
             for(int i=0;i<campaign.robots.Length;i++)JsonUtility.FromJsonOverwrite(saved.robotValues[i],campaign.robots[i]);
             for(int i=0;i<campaign.enemies.Length;i++)JsonUtility.FromJsonOverwrite(saved.enemyValues[i],campaign.enemies[i]);
             foreach(var item in targets){EditorUtility.SetDirty(item);AssetDatabase.SaveAssetIfDirty(item);}
-            SessionState.EraseString("CodingGame.PendingContent");
+            SessionState.EraseString(PendingKey);
         }
         void ApplyBalance(){var c=Editable;if(!c)throw new Exception("현재 전투에 캠페인 asset을 연결하세요.");c.ValidateContent();var b=RequireBattle();b.EditorApplyBalance(c);runSettings=JsonUtility.ToJson(new RunSnapshot{content=JsonUtility.ToJson(c),robots=b.Simulation.Setup.ActionProfiles,enemies=c.enemies.Select(e=>e.stats.Copy()).ToArray(),stage=b.Stage,wave=b.Simulation.WaveIndex+1,previousStageRewards=accumulate});Build();}
-        void ConfirmBalance(){ApplyBalance();CaptureChanges();PersistChanges(JsonUtility.FromJson<ContentChanges>(SessionState.GetString("CodingGame.PendingContent","")));feedback.text="런타임 적용 및 원본 저장 완료";}
+        void ConfirmBalance(){ApplyBalance();CaptureChanges();PersistChanges(JsonUtility.FromJson<ContentChanges>(SessionState.GetString(PendingKey,"")));feedback.text="런타임 적용 및 원본 저장 완료";}
         void ResolveScene()
         {
             var scene=SceneManager.GetActiveScene();
@@ -157,7 +156,7 @@ namespace CodingGame.Defense.Editor
         }
         ObjectField Choose<T>(string label,T value,Action<T> changed) where T:Object
         {
-            var field=new ObjectField(label){objectType=typeof(T),allowSceneObjects=typeof(T)==typeof(DefenseBattle),value=value};
+            var field=new ObjectField(label){objectType=typeof(T),allowSceneObjects=false,value=value};
             field.RegisterValueChangedCallback(e=>changed(e.newValue as T));return field;
         }
         void Act(Action action) { try {feedback.text="";action();if(string.IsNullOrEmpty(feedback.text))feedback.text="완료";}catch(Exception e){feedback.text=e.Message;StopCheck("선행 조건 미충족: "+e.Message);} }
@@ -201,6 +200,14 @@ namespace CodingGame.Defense.Editor
             }
             live=new Label();live.AddToClassList("readout");content.Add(live);Refresh();
         }
+        const string PendingKey="CodingGame.PendingContent";
+        string CampaignGuid=>AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(campaign));
+        // Points every spawn group at the matching enemy in a parallel definition list.
+        static void RemapEnemies(DefenseCampaignDefinition content,EnemyDefinition[] from,EnemyDefinition[] to)
+        {
+            foreach(var stage in content.stages)foreach(var wave in stage.waves)foreach(var group in wave.groups)
+                group.enemy=to[Array.IndexOf(from,group.enemy)];
+        }
         DefenseCampaignDefinition Editable
         {
             get
@@ -211,8 +218,7 @@ namespace CodingGame.Defense.Editor
                     campaign.ValidateContent();playContent=Instantiate(campaign);playContent.name=campaign.name;copies.Add(playContent);
                     playContent.robots=campaign.robots.Select(r=>{var c=Instantiate(r);c.name=r.name;copies.Add(c);return c;}).ToArray();
                     playContent.enemies=campaign.enemies.Select(e=>{var c=Instantiate(e);c.name=e.name;copies.Add(c);return c;}).ToArray();
-                    for(int s=0;s<playContent.stages.Length;s++)foreach(var w in playContent.stages[s].waves)foreach(var g in w.groups)
-                        g.enemy=playContent.enemies[Array.IndexOf(campaign.enemies,g.enemy)];
+                    RemapEnemies(playContent,campaign.enemies,playContent.enemies);
                 }
                 return playContent;
             }
@@ -222,7 +228,7 @@ namespace CodingGame.Defense.Editor
             Integer("시작 스테이지",testStage,v=>testStage=v);Integer("시작 웨이브",testWave,v=>testWave=v);
             var supply=new Toggle("이전스테이지까지의 보상"){value=accumulate};supply.RegisterValueChangedCallback(e=>accumulate=e.newValue);content.Add(supply);
             Buttons(("Play 시작 (개발툴 포함)",()=>{SessionState.SetBool(ToolPlayKey,true);EditorApplication.ExecuteMenuItem("Window/General/Game");EditorApplication.isPlaying=true;}),("Play 종료",()=>EditorApplication.isPlaying=false));
-            Buttons(("단독 웨이브 초기화",()=>StartScenario(false)),("변경값으로 재시작",()=>StartScenario(false)),("캠페인 1-1 초기화",()=>StartScenario(true)));
+            Buttons(("단독 웨이브 초기화",()=>StartScenario(false)),("캠페인 1-1 초기화",()=>StartScenario(true)));
             Buttons(("전투 시작",()=>RequireBattle().StartBattle()),("일시정지 / 재개",()=>RequireBattle().TogglePause()),("한 틱",()=>RequireBattle().EditorStep()),("1 / 2배속",()=>RequireBattle().ToggleSpeed()),("보상 / 다음 단계",()=>RequireBattle().ContinueCampaign()));
             content.Add(Choose("테스트 시나리오",scenario,v=>{scenario=v;Build();}));
             if(scenario && !EditorApplication.isPlaying) {Property(scenario,"stage","wave","coins","previousStageRewards","timeoutSeconds","robots","blocks","placements","options");}
@@ -236,23 +242,28 @@ namespace CodingGame.Defense.Editor
             b.EditorStartSession(normal?1:testStage,normal?1:testWave,normal||accumulate,options,Editable);
             runId=Guid.NewGuid().ToString("N");logs.Clear();robotResults.Clear();runStart=EditorApplication.timeSinceStartup;
             metrics.Clear();var c=Editable;
-            runSettings=JsonUtility.ToJson(new RunSnapshot {content=c?JsonUtility.ToJson(c):"legacy scene",robots=b.Simulation.Setup.ActionProfiles,enemies=c?c.enemies.Select(e=>e.stats.Copy()).ToArray():b.Simulation.Setup.Waves.SelectMany(w=>w).Select(g=>g.Enemy.Copy()).ToArray(),stage=b.Stage,wave=b.Simulation.WaveIndex+1,previousStageRewards=normal||accumulate});resultState=normal?"캠페인 준비":"단독 웨이브 준비";lastStage=lastWave=-1;Refresh();
+            runSettings=JsonUtility.ToJson(new RunSnapshot {content=JsonUtility.ToJson(c),robots=b.Simulation.Setup.ActionProfiles,enemies=c.enemies.Select(e=>e.stats.Copy()).ToArray(),stage=b.Stage,wave=b.Simulation.WaveIndex+1,previousStageRewards=normal||accumulate});resultState=normal?"캠페인 준비":"단독 웨이브 준비";lastStage=lastWave=-1;Refresh();
         }
         void Balance()
         {
-            var c=Editable;if(!c){Note("캠페인 탭에서 현재 콘텐츠를 이관하세요.");return;}
+            var c=Editable;if(!c){Note("전투에 캠페인 asset을 연결하세요.");return;}
             Heading("공통 밸런스");Property(c,"baseHealth","robotLimit","rules","permissions");
             if(EditorApplication.isPlaying&&battle&&battle.Simulation!=null)
             {var applied=new Foldout{text="현재 세션 적용값"};applied.Add(new TextField("규칙"){isReadOnly=true,multiline=true,value=JsonUtility.ToJson(battle.Simulation.Setup.RulesConfig,true)});foreach(var spec in battle.Simulation.Setup.ActionProfiles)applied.Add(new TextField(spec.role.ToString()){isReadOnly=true,multiline=true,value=JsonUtility.ToJson(spec,true)});content.Add(applied);}
-            foreach(var r in c.robots){var fold=new Foldout{text=r.displayName};var so=new SerializedObject(r);fold.Add(new PropertyField(so.FindProperty("stats")));fold.Add(new PropertyField(so.FindProperty("description")));fold.Bind(so);content.Add(fold);}
-            foreach(var e in c.enemies){var fold=new Foldout{text=e.displayName};var so=new SerializedObject(e);fold.Add(new PropertyField(so.FindProperty("stats")));fold.Add(new PropertyField(so.FindProperty("description")));fold.Bind(so);content.Add(fold);}
+            foreach(var r in c.robots)StatsFoldout(r,r.displayName);
+            foreach(var e in c.enemies)StatsFoldout(e,e.displayName);
             var shooter=c.robots.FirstOrDefault(r=>r.stats.role==RobotRole.Shooter);
-            if(shooter){Heading("원거리 거리별 기본 피해 / 주기 DPS");foreach(float d in new[]{.5f,1,2,4,8,10})Note($"거리 {d}: 피해 {shooter.stats.damage*Rules.RangedDamageFactor(shooter.stats.range,d):0.##}, DPS {shooter.stats.damage*Rules.RangedDamageFactor(shooter.stats.range,d)/shooter.stats.interval:0.##} (강화·버프 없음)");}
+            if(shooter){Heading("원거리 거리별 기본 피해 / 주기 DPS");foreach(float d in new[]{.5f,1,2,4,8,10}){float damage=shooter.stats.damage*Rules.RangedDamageFactor(shooter.stats.range,d);Note($"거리 {d}: 피해 {damage:0.##}, DPS {damage/shooter.stats.interval:0.##} (강화·버프 없음)");}}
             Buttons(("원본 저장",SaveContent));
+        }
+        void StatsFoldout(Object asset,string title)
+        {
+            var fold=new Foldout{text=title};var so=new SerializedObject(asset);
+            fold.Add(new PropertyField(so.FindProperty("stats")));fold.Add(new PropertyField(so.FindProperty("description")));fold.Bind(so);content.Add(fold);
         }
         void Campaign()
         {
-            Buttons(("현재 씬 콘텐츠 이관",Migrate),("원본 저장",SaveContent));
+            Buttons(("원본 저장",SaveContent));
             var c=Editable;if(!c)return;
             if(EditorApplication.isPlaying)Property(c,"stages");else Property(c,"stages","robots","enemies");Heading("최종 스폰 계획");
             for(int s=0;s<c.stages.Length;s++)for(int w=0;w<c.stages[s].waves.Length;w++)
@@ -265,27 +276,6 @@ namespace CodingGame.Defense.Editor
         {
             if(EditorApplication.isPlaying){ConfirmBalance();return;}
             Validate();if(campaign){AssetDatabase.SaveAssetIfDirty(campaign);foreach(var r in campaign.robots)AssetDatabase.SaveAssetIfDirty(r);foreach(var e in campaign.enemies)AssetDatabase.SaveAssetIfDirty(e);}if(sequence)AssetDatabase.SaveAssetIfDirty(sequence);
-        }
-        void Migrate()
-        {
-            if(EditorApplication.isPlaying || !battle)throw new InvalidOperationException("Edit Mode에서 전투 대상을 선택하세요.");
-            var path=EditorUtility.SaveFilePanelInProject("캠페인 저장","DefenseCampaign","asset","");
-            if(!string.IsNullOrEmpty(path))MigrateTo(path);
-        }
-        public void MigrateTo(string path)
-        {
-            if(EditorApplication.isPlaying || !battle)throw new InvalidOperationException("Edit Mode에서 전투 대상을 선택하세요.");
-            if(!path.StartsWith("Assets/",StringComparison.Ordinal)||!path.EndsWith(".asset",StringComparison.Ordinal)||AssetDatabase.LoadMainAssetAtPath(path))throw new ArgumentException("새 Assets/*.asset 경로 필요");
-            var c=battle.EditorExportCampaign();c.ValidateContent();
-            var before=battle.EditorReadSetup();
-            for(int s=1;s<=c.stages.Length;s++){var after=c.ReadWaves(s);for(int w=0;w<after.Length;w++)for(int g=0;g<after[w].Length;g++){
-                var prior=(before.CampaignWaves!=null?before.CampaignWaves[s-1]:before.Waves)[w][g];
-                var a=before.RulesConfig.Scale(prior.Enemy,s,w);var b=c.rules.Scale(after[w][g].Enemy,s,w);
-                if(JsonUtility.ToJson(a)!=JsonUtility.ToJson(b)||prior.Count!=after[w][g].Count||prior.RouteIndex!=after[w][g].RouteIndex||prior.Delay!=after[w][g].Delay||prior.Interval!=after[w][g].Interval)throw new Exception("이관 전후 값 불일치");}}
-            if(JsonUtility.ToJson(before.Progression)!=JsonUtility.ToJson(c.progression))throw new Exception("보급·보상 이관 불일치");
-            AssetDatabase.CreateAsset(c,path);Undo.RegisterCreatedObjectUndo(c,"캠페인 이관");
-            var so=new SerializedObject(battle);so.FindProperty("campaign").objectReferenceValue=c;so.ApplyModifiedProperties();
-            PrefabUtility.RecordPrefabInstancePropertyModifications(battle);campaign=c;Build();
         }
         void Inventory()
         {
@@ -417,7 +407,7 @@ namespace CodingGame.Defense.Editor
         string CurrentReport()
         {
             var sim=RequireBattle().Simulation;
-            var report=new Report{run=runId,result=resultState,campaignPath=AssetDatabase.GetAssetPath(campaign),campaignGuid=AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(campaign)),settings=runSettings,options=options.Copy(),events=logs.ToArray(),metrics=metrics.Values.ToArray(),robots=sim.Robots.Select(r=>$"{r.Id} {r.Spec.role} HP={r.Health} attacks={r.AttacksThisWave}").ToArray(),kills=sim.Kills,leaks=sim.Leaks,baseHealth=sim.BaseHealth,simulationTime=sim.Time};
+            var report=new Report{run=runId,result=resultState,campaignPath=AssetDatabase.GetAssetPath(campaign),campaignGuid=CampaignGuid,settings=runSettings,options=options.Copy(),events=logs.ToArray(),metrics=metrics.Values.ToArray(),robots=sim.Robots.Select(r=>$"{r.Id} {r.Spec.role} HP={r.Health} attacks={r.AttacksThisWave}").ToArray(),kills=sim.Kills,leaks=sim.Leaks,baseHealth=sim.BaseHealth,simulationTime=sim.Time};
             return JsonUtility.ToJson(report,true);
         }
         void StopCheck(string result){bool active=campaignRun||scenarioRun;CancelLogicCheck();campaignRun=scenarioRun=false;resultState=result;if(battle){battle.EditorManualClock=false;if(active&&battle.Simulation?.Phase==BattlePhase.Running)battle.TogglePause();}}
@@ -442,7 +432,7 @@ namespace CodingGame.Defense.Editor
             if(lastStage==sim.Setup.Stage&&lastWave==sim.WaveIndex)return;lastStage=sim.Setup.Stage;lastWave=sim.WaveIndex;
             for(int index=0;index<6;index++)
             {
-                var def=b.RobotDefinition(index);var kind=new[]{BlockKind.Buff,BlockKind.Slash,BlockKind.Block,BlockKind.Boom,BlockKind.Shot,BlockKind.Slow}[(int)def.stats.role];
+                var def=b.RobotDefinition(index);var kind=DefenseProgression.ActionBlock(def.stats.NativeAction);
                 if(sim.RobotAvailable(def.stats.role)<1||sim.Available(kind)<1)continue;
                 var candidates=new List<System.Numerics.Vector2>();
                 for(float x=sim.Setup.Min.X+.5f;x<sim.Setup.Max.X;x+=1)for(float y=sim.Setup.Min.Y+.5f;y<sim.Setup.Max.Y;y+=1){var p=new System.Numerics.Vector2(x,y);if(sim.PlacementError(def.stats,p)==null)candidates.Add(p);}
@@ -455,7 +445,7 @@ namespace CodingGame.Defense.Editor
         static void ProgramRobot(DefenseSimulation sim, RobotState bot)
         {
             sim.ApplyProgram(bot.Id,"robot_"+bot.Id,Array.Empty<CodeBlock>());
-            var kind=new[]{BlockKind.Buff,BlockKind.Slash,BlockKind.Block,BlockKind.Boom,BlockKind.Shot,BlockKind.Slow}[(int)bot.Spec.role];
+            var kind=DefenseProgression.ActionBlock(bot.Spec.NativeAction);
             CodeBlock command=new CodeBlock(kind);
             if(sim.Available(BlockKind.While,bot.Id)>0 && sim.Available(BlockKind.True,bot.Id)>0)
             {var loop=new CodeBlock(BlockKind.While,"0",new CodeBlock(BlockKind.True));loop.Body.Add(command);command=loop;}

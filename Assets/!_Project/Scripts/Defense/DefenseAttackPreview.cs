@@ -37,21 +37,27 @@ namespace CodingGame.Defense
         public void EditorApplyOptions(DefenseTestOptions options)
         {
             hitEffects.Clear(); hitEffects.Options=options;
-            hitEffects.SetHitRangesVisible(options.hitRanges);
             if (simulation != null) simulation.Setup.TestOptions=options;
         }
         public void EditorApplyBalance()
         {
             if(simulation==null)return;
             var setup=simulation.Setup;
-            setup.ActionProfiles=battle.Simulation.Setup.ActionProfiles.Select(p=>p.Copy()).ToArray();setup.RulesConfig=battle.Simulation.Setup.RulesConfig;
-            setup.Permissions=battle.Simulation.Setup.Permissions;
-            setup.AttackLimitPerRobot=battle.Simulation.AttackLimitPerRobot;setup.FunctionRepeatLimit=battle.Simulation.FunctionRepeatLimit;
-            var enemy=battle.PreviewEnemy.stats.Copy();enemy.damage=0;setup.Waves[0][0].Enemy=enemy;
+            CopyRules(setup);
+            var enemy=HarmlessEnemy();setup.Waves[0][0].Enemy=enemy;
             simulation.ApplyBalance(setup,Enumerable.Range(0,6).Select(i=>battle.RobotDefinition(i).stats.Copy()).ToArray(),new[]{enemy});
             projectileViews.Clear();hitEffects.Clear();foreach(var view in views.Values)view.ClearVisuals();RefreshStats();
         }
 #endif
+        EnemySpec HarmlessEnemy() { var enemy = battle.PreviewEnemy.stats.Copy(); enemy.damage = 0; return enemy; }
+        // The preview runs the live battle's balance so the demo matches what the robot will do.
+        void CopyRules(BattleSetup setup)
+        {
+            var live = battle.Simulation;
+            setup.ActionProfiles = live.Setup.ActionProfiles.Select(p => p.Copy()).ToArray();
+            setup.RulesConfig = live.Setup.RulesConfig; setup.Permissions = live.Setup.Permissions;
+            setup.AttackLimitPerRobot = live.AttackLimitPerRobot; setup.FunctionRepeatLimit = live.FunctionRepeatLimit;
+        }
         public DefenseSimulation PreviewSimulation => simulation;
         public bool IsShowing => selected != null && previewPanel.activeSelf;
         public void SetHitRangesVisible(bool visible) => hitEffects.SetHitRangesVisible(visible);
@@ -84,25 +90,21 @@ namespace CodingGame.Defense
         {
             projectileViews.Clear();
             hitEffects.Clear(); ClearDamage();
-            foreach (var view in views.Values) if (view) { view.gameObject.SetActive(false); Destroy(view.gameObject); }
+            foreach (var view in views.Values) DefenseViews.Discard(view);
             views.Clear(); effectRing.Hide();
         }
         void ResetPreview()
         {
             ClearActors(); source = selected.Program; emptyElapsed = 0;
             sourceLevel = selected.Level;
-            var enemy = battle.PreviewEnemy.stats.Copy(); enemy.damage = 0;
-            simulation = new DefenseSimulation(new BattleSetup {
-                StageOneLearning = battle.Simulation.Setup.StageOneLearning,
-                TestOptions=battle.Simulation.Options, RulesConfig=battle.Simulation.Setup.RulesConfig,
-                FunctionRepeatLimit = battle.Simulation.FunctionRepeatLimit,
-                AttackLimitPerRobot = battle.Simulation.AttackLimitPerRobot,
+            var setup = new BattleSetup {
+                StageOneLearning = battle.Simulation.Setup.StageOneLearning, TestOptions = battle.Simulation.Options,
                 Min = new Point(-50,-50), Max = new Point(50,50), BaseHealth = 100,
                 Routes = new[] { new Route(new[] { new Point(2,0), new Point(-20,0) }, 1.2f) },
-                ActionProfiles = battle.Simulation.Setup.ActionProfiles.Select(p => p.Copy()).ToArray(),
-                Permissions = battle.Simulation.Setup.Permissions,
-                Waves = new[] { new[] { new SpawnGroup { Enemy = enemy, Count = 3, Interval = .7f } } }
-            });
+                Waves = new[] { new[] { new SpawnGroup { Enemy = HarmlessEnemy(), Count = 3, Interval = .7f } } }
+            };
+            CopyRules(setup);
+            simulation = new DefenseSimulation(setup);
             var point = new Point(0, selected.Spec.role == RobotRole.Tank ? 0 : 1.8f);
             var bot = simulation.Place(selected.Spec.Copy(), selected.DefinitionIndex, point, out var error);
             if (bot == null) throw new InvalidOperationException(error);
@@ -114,9 +116,8 @@ namespace CodingGame.Defense
             AddView(bot.Id, battle.RobotDefinition(bot.DefinitionIndex).prefab);
             simulation.Start();
         }
-        void AddView(int id, DefenseActorView prefab)
-        { var view = Instantiate(prefab, arena); view.Id = id; views.Add(id, view); }
-        Vector3 World(Point p) => arena.position + new Vector3(p.X,0,p.Y);
+        void AddView(int id, DefenseActorView prefab) => views.Add(id, Instantiate(prefab, arena));
+        Vector3 World(Point p) => arena.position + DefenseViews.World(p);
         // Floating "-N" over the hit enemy so the code's damage value is visible, not just inferred from a health bar.
         void PopDamage(CombatEvent e)
         {
@@ -167,7 +168,7 @@ namespace CodingGame.Defense
         void Update()
         {
             if (selected == null) return;
-            if (battle.Tutorial && battle.Tutorial.BlocksGameplayInput && !battle.Tutorial.AllowPreview) return;
+            if (battle.TutorialBlocksPreview) return;
             RefreshStats();
             if (!IsShowing) return;
             var rect = previewImage.rectTransform.rect;
@@ -177,20 +178,20 @@ namespace CodingGame.Defense
             hitEffects.Tick(dt);
             if (simulation.Options.projectiles) projectileViews.Sync(simulation, projectilePrefab, arena, arena.position); else projectileViews.Clear();
             foreach (var id in views.Keys.Where(id => !simulation.Robots.Any(r => r.Id == id) && !simulation.Enemies.Any(e => e.Id == id)).ToArray())
-            { Destroy(views[id].gameObject); views.Remove(id); }
+            { DefenseViews.Discard(views[id]); views.Remove(id); }
             foreach (var bot in simulation.Robots)
-                views[bot.Id].Sync(World(bot.Position), bot.Health, bot.MaxHealth, false, false, bot.Buffs.Count > 0, previewCamera.transform.rotation);
+                views[bot.Id].SyncRobot(bot, World(bot.Position), previewCamera.transform.rotation);
             foreach (var e in simulation.Enemies)
             {
                 if (!views.ContainsKey(e.Id)) AddView(e.Id, battle.PreviewEnemy.prefab);
-                views[e.Id].Sync(World(e.Position),e.Health,e.Spec.health,e.Stunned(simulation.Time),e.Speed(simulation.Time)<e.Spec.speed,false,previewCamera.transform.rotation);
+                views[e.Id].SyncEnemy(e, simulation.Time, World(e.Position), previewCamera.transform.rotation);
             }
             foreach (var view in views.Values) view.TickVisual(dt);
             foreach (var e in simulation.Events)
             {
                 views.TryGetValue(e.Source, out var view);
                 #if UNITY_EDITOR
-                battle.EditorObserve("Preview",simulation,e); hitEffects.Options=battle.EditorOptions;
+                battle.EditorObserve("Preview",simulation,e);
 #endif
                 hitEffects.Show(e, arena, arena.position, previewCamera.transform.rotation, view, effectRing);
                 if ((e.Kind == "hit" || e.Kind == "projectile-hit") && e.Amount > 0) PopDamage(e);
@@ -211,8 +212,7 @@ namespace CodingGame.Defense
             // Explain a wasted command before "completed", or a one-run function hides why nothing happened.
             else if (bot.LastResult == ActionResult.Ineffective) state = "호환되지 않는 명령 · 이 로봇에서는 동작하지 않아요";
             else if (program.Completed(simulation)) state = $"함수 {program.CompletedRuns}/{simulation.FunctionRepeatLimit}회 완료";
-            else if (program.WaitRemaining(simulation.Time) > 0)
-                state = $"wait · {program.WaitRemaining(simulation.Time):0.0}s";
+            else if (program.WaitRemaining(simulation.Time) is double wait && wait > 0) state = $"wait · {wait:0.0}s";
             else if (program.StepsLastTick == 0) state = "코드 대기";
             else switch (bot.LastResult)
             {
@@ -220,7 +220,6 @@ namespace CodingGame.Defense
                     state = $"재사용 대기 · {Math.Max(0, bot.NextAction - simulation.Time):0.0}s"; break;
                 case ActionResult.NoTarget: state = "대상 없음"; break;
                 case ActionResult.AttackLimitReached: state = "웨이브 공격 횟수 한도 도달"; break;
-                case ActionResult.Ineffective: state = "호환되지 않는 명령"; break;
                 case ActionResult.Undecided: state = "호환 미정 명령"; break;
                 default: state = $"코드 시연 · {bot.Executions}회"; break;
             }
@@ -245,9 +244,7 @@ namespace CodingGame.Defense
                 s.role == RobotRole.Buffer ? $"\n버프 피해  {UpgradeValue(1+(s.buffDamage-1)*selected.LevelMultiplier,1+(s.buffDamage-1)*nextMultiplier)}배" +
                     $"\n버프 사거리  {UpgradeValue(1+(s.buffRange-1)*selected.LevelMultiplier,1+(s.buffRange-1)*nextMultiplier)}배" +
                     $"\n버프 간격  {UpgradeValue(Math.Max(.01f,1-(1-s.buffInterval)*selected.LevelMultiplier),Math.Max(.01f,1-(1-s.buffInterval)*nextMultiplier))}배" : "");
-            var sim = battle.Simulation;
-            coinLabel.text = $"코인  {sim.Coins:N0}";
-
+            coinLabel.text = $"코인  {battle.Simulation.Coins:N0}";
         }
         string UpgradeValue(float current, float upgraded) => selected.IsMaxLevel || Mathf.Approximately(current, upgraded)
             ? $"{current:0.##}" : $"{current:0.##} <color=#6FFFD2>→ {upgraded:0.##}</color>";

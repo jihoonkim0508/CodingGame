@@ -14,11 +14,9 @@ namespace CodingGame.Defense
         [SerializeField] Button previousText, nextText;
         [SerializeField, Tooltip("Top position keeps this gap so the HUD header stays readable.")] float topInset = 96;
         Coroutine typing;
-        Action previous, next;
-        bool isTyping;
         RectTransform panelRect;
         Vector2 bottomAnchorMin, bottomAnchorMax, bottomPosition, bottomPivot;
-        public bool IsTyping => isTyping;
+        public bool IsTyping => typing != null;
         // Extra gap above the bottom edge, e.g. to keep the code editor's status line readable.
         public float BottomLift { get; set; }
         public bool IsVisible => panel && panel.activeSelf;
@@ -31,13 +29,12 @@ namespace CodingGame.Defense
             if (!panelRect) throw new InvalidOperationException(name + ": 대화 패널에 RectTransform이 필요합니다.");
             bottomAnchorMin = panelRect.anchorMin; bottomAnchorMax = panelRect.anchorMax;
             bottomPosition = panelRect.anchoredPosition; bottomPivot = panelRect.pivot;
-            previous = onPrevious; next = onNext;
-            previousText.onClick.AddListener(() => previous?.Invoke());
-            nextText.onClick.AddListener(() => next?.Invoke());
+            previousText.onClick.AddListener(() => onPrevious?.Invoke());
+            nextText.onClick.AddListener(() => onNext?.Invoke());
             Hide();
         }
 
-        public void Show(TutorialSequence sequence, TutorialDialoguePosition position, string text, bool animate, Action completed)
+        public void Show(TutorialSequence sequence, TutorialDialoguePosition position, string text, bool animate)
         {
             StopTyping();
             // Mirror the authored bottom layout; retain width, height and edge spacing at any resolution.
@@ -55,13 +52,11 @@ namespace CodingGame.Defense
             dialogue.ForceMeshUpdate();
             int characterCount = dialogue.textInfo.characterCount;
             dialogue.maxVisibleCharacters = animate ? 0 : int.MaxValue;
-            if (animate && characterCount > 0) typing = StartCoroutine(Type(sequence.typeSpeed, characterCount, completed));
-            else completed?.Invoke();
+            if (animate && characterCount > 0) typing = StartCoroutine(Type(sequence.typeSpeed, characterCount));
         }
 
-        IEnumerator Type(float charactersPerSecond, int characterCount, Action completed)
+        IEnumerator Type(float charactersPerSecond, int characterCount)
         {
-            isTyping = true;
             float elapsed = 0;
             while (dialogue.maxVisibleCharacters < characterCount)
             {
@@ -70,12 +65,12 @@ namespace CodingGame.Defense
                 dialogue.maxVisibleCharacters = count;
                 yield return null;
             }
-            typing = null; isTyping = false; completed?.Invoke();
+            typing = null;
         }
 
         public void FinishTyping()
         {
-            if (!isTyping) return;
+            if (typing == null) return;
             StopTyping(); dialogue.maxVisibleCharacters = int.MaxValue;
         }
 
@@ -91,7 +86,7 @@ namespace CodingGame.Defense
         void StopTyping()
         {
             if (typing != null) StopCoroutine(typing);
-            typing = null; isTyping = false;
+            typing = null;
         }
     }
 }
