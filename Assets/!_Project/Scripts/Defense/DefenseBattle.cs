@@ -51,6 +51,7 @@ namespace CodingGame.Defense
         [SerializeField, Min(.1f)] float waveSeconds = 35;
         [SerializeField, Min(1)] int stage = 1;
         public int Stage => stage;
+        public bool FromStageMap => StageMap.StageProgress.SelectedStage > 0;
         public RobotDefinition RobotDefinition(int index) => robots[index];
         public EnemyDefinition PreviewEnemy => enemies[0];
         public string EnemyName(int index) => enemies[index].displayName;
@@ -149,6 +150,7 @@ namespace CodingGame.Defense
             hitRangeLabel.text = "근접 피격범위: OFF";
             removeButton.onClick.AddListener(RemoveSelected);
             for (int i = 0; i < robotButtons.Length; i++) { int index = i; robotButtons[i].onClick.AddListener(() => inventoryUI.SelectRobotItem(index)); }
+            if (FromStageMap) stage = StageMap.StageProgress.SelectedStage;
             Restart();
         }
         void ValidateReferences()
@@ -209,6 +211,7 @@ namespace CodingGame.Defense
         {
             if (!TutorialAllows("Battle.Restart") && !(Simulation != null && Simulation.Phase == BattlePhase.Defeat && TutorialAllows("Battle.ContinueCampaign"))) return;
             var setup = MakeSetup();
+            setup.PreviousStageRewards = FromStageMap;
 #if UNITY_EDITOR
             setup.TestOptions=EditorOptions;
 #endif
@@ -267,6 +270,12 @@ namespace CodingGame.Defense
                 return;
             }
             if (!TutorialAllows("Battle.ContinueCampaign")) return;
+            if (FromStageMap)
+            {
+                StageMap.StageProgress.MarkCleared($"stage-{stage}");
+                GameFlow.FinishDefense(true);
+                return;
+            }
             if (Simulation.CanAdvanceStage)
             {
                 codeEditor.Close(false); inventoryUI.Close();

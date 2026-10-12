@@ -5,6 +5,8 @@ namespace CodingGame.StageMap
     public static class StageProgress
     {
         const string Prefix = "CodingGame.StageMap.Cleared.";
+        // Stage number the map handed to the Defense scene; 0 when Defense was opened directly.
+        public static int SelectedStage;
 
         public static bool IsCleared(string stageId) => PlayerPrefs.GetInt(Prefix + stageId, 0) == 1;
 

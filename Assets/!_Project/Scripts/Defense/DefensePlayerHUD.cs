@@ -124,14 +124,14 @@ namespace CodingGame.Defense
             rewardPanel.SetActive(reward || ended);
             if (reward || ended)
             {
-                claimButton.interactable = sim.Phase != BattlePhase.Victory || sim.CanAdvanceStage;
+                claimButton.interactable = sim.Phase != BattlePhase.Victory || sim.CanAdvanceStage || battle.FromStageMap;
                 claimLabel.text = reward ? (sim.WaveIndex + 1 == sim.Setup.Waves.Length ? "보상 수령 · 스테이지 완료" : "보상 수령 · 다음 준비") :
-                    sim.CanAdvanceStage ? $"스테이지 {battle.Stage + 1}로 진행" : sim.Phase == BattlePhase.Victory ? "5스테이지 완료" : "이 스테이지 재도전";
+                    sim.Phase != BattlePhase.Victory ? "이 스테이지 재도전" : battle.FromStageMap ? "스테이지 맵으로" : sim.CanAdvanceStage ? $"스테이지 {battle.Stage + 1}로 진행" : "5스테이지 완료";
                 if (shownRewardPhase != sim.Phase || shownRewardWave != sim.WaveIndex || shownRewardStage != battle.Stage)
                 {
                     rewardTitle.text = reward ? $"WAVE {sim.WaveIndex + 1}  /  " + (sim.LastWaveTimedOut ? "TIME UP" : "CLEAR") : sim.Phase == BattlePhase.Victory ? $"STAGE {battle.Stage} COMPLETE" : "CORE LOST";
                     rewardItems.text = reward ? (sim.PendingDrops.Count == 0 ? "지급할 블록이 없습니다." : string.Join("\n", sim.PendingDrops.GroupBy(k => k).OrderBy(g => g.Key).Select(g => DefenseProgression.Label(g.Key) + "   x" + g.Count()))) :
-                        (sim.Phase == BattlePhase.Victory ? sim.CanAdvanceStage ? "5개 웨이브 방어 성공 · 보유 블록과 로봇을 다음 스테이지로 가져갑니다." : "1~5스테이지, 총 25개 웨이브를 완료했습니다." : "방어 실패 · 배치와 코드를 바꿔 도전하세요") + $"\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
+                        (sim.Phase == BattlePhase.Victory ? battle.FromStageMap ? "5개 웨이브 방어 성공 · 스테이지 맵에서 다음 스테이지를 선택하세요." : sim.CanAdvanceStage ? "5개 웨이브 방어 성공 · 보유 블록과 로봇을 다음 스테이지로 가져갑니다." : "1~5스테이지, 총 25개 웨이브를 완료했습니다." : "방어 실패 · 배치와 코드를 바꿔 도전하세요") + $"\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
                     if (reward) rewardItems.text += $"\n\n잔여 적 {sim.LastSurvivors}" + (sim.WaveIndex + 1 < sim.Setup.Waves.Length ? " · 다음 웨이브에 추가" : " · 최종 기록");
                     Canvas.ForceUpdateCanvases(); rewardScroll.verticalNormalizedPosition = 1;
                 }

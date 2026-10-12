@@ -40,8 +40,9 @@ namespace CodingGame.StageMap
             }
 
             Mouse mouse = Mouse.current;
-            if (mouse == null || !mouse.leftButton.wasPressedThisFrame) return;
-            global::CodingGame.GameFlow.LoadScene("Defense");
+            if (mouse == null || !mouse.leftButton.wasPressedThisFrame || cameraController.IsMoving) return;
+            if (Physics.Raycast(mapCamera.ScreenPointToRay(mouse.position.ReadValue()), out RaycastHit hit) &&
+                hit.collider.GetComponentInParent<StageNode>() is StageNode node) Select(node);
         }
 
         void Select(StageNode node)
@@ -69,6 +70,7 @@ namespace CodingGame.StageMap
         {
             if (selected == null) return;
             Debug.Log($"[StageMap] 진입 선택 - STAGE {selected.Definition.Number}: {selected.Definition.Title} ({selected.Definition.SceneName})");
+            StageProgress.SelectedStage = selected.Definition.Number;
             global::CodingGame.GameFlow.LoadScene(selected.Definition.SceneName);
         }
 
