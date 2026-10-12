@@ -1,0 +1,3 @@
+PASS: floor sweep, route connection order, stage timing, repeated preview/stop, transform/color/visibility restoration, temporary effect cleanup and real URP renders at five times.
+PASS: prefab duration, identity and outline material persist for game loading.
+RESULT: PASS
