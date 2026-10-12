@@ -23,6 +23,7 @@ namespace CodingGame.Defense.Editor
     public static class DevTest
     {
         const string ScenesRoot = "Assets/!_Project/Scenes/", RequestKey = "CodingGame.DevTest.Request";
+        const string NoTutorial = "Defense 씬에 튜토리얼이 연결되어 있지 않습니다 (DefenseBattle.tutorial 비어 있음).";
         public const string ReportPath = "TestResults/Editor/last.json";
 
         [Serializable] sealed class Request { public int stage = 1, wave = 1; public bool previousStageRewards = true; public DefenseTestOptions options; }
@@ -93,6 +94,13 @@ namespace CodingGame.Defense.Editor
             StartFrom(GameFlow.StageScene); EditorApplication.isPlaying = true;
         }
         public static void Stop() => EditorApplication.isPlaying = false;
+        // Back to a fresh install: every saved value lives in PlayerPrefs (cleared stages), so all of it goes.
+        public static void ResetSaveData()
+        {
+            PlayerPrefs.DeleteAll(); PlayerPrefs.Save();
+            StageMap.StageProgress.SelectedStage = 0;
+            if (EditorApplication.isPlaying) GameFlow.LoadScene(GameFlow.TitleScene);
+        }
 
         // Stage 1 tutorial section titles per wave (1-5), read from the same JSON the game uses.
         public static string[] TutorialSections(int wave)
@@ -106,6 +114,7 @@ namespace CodingGame.Defense.Editor
         public static void JumpTutorial(int wave, int section)
         {
             var b = Battle; var stageOne = b && b.Tutorial ? b.Tutorial.EditorStageOne : null;
+            if (b && b.Simulation != null && !b.Tutorial) throw new InvalidOperationException(NoTutorial);
             if (stageOne && stageOne.EditorWave == wave) { JumpNow(b, stageOne, section); return; }
             SessionState.SetString(RequestKey + ".jump", wave + "," + section);
             PlayDefense(1, wave, true, wave > 1);
@@ -151,6 +160,7 @@ namespace CodingGame.Defense.Editor
             if (!EditorApplication.isPlayingOrWillChangePlaymode) { SessionState.EraseString(RequestKey + ".jump"); return; }
             var parts = jump.Split(','); int wave = int.Parse(parts[0]), section = int.Parse(parts[1]);
             var b = Battle; var stageOne = b && b.Tutorial ? b.Tutorial.EditorStageOne : null;
+            if (b && b.Simulation != null && !b.Tutorial) { SessionState.EraseString(RequestKey + ".jump"); Debug.LogWarning(NoTutorial); return; }
             if (!stageOne || stageOne.EditorWave != wave) return; // the tutorial enters the wave on its next Update
             SessionState.EraseString(RequestKey + ".jump");
             try { JumpNow(b, stageOne, section); } catch (Exception e) { Debug.LogException(e); }

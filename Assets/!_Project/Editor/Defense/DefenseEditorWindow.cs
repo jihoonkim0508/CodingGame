@@ -153,7 +153,11 @@ namespace CodingGame.Defense.Editor
         void Jumps()
         {
             Heading("바로가기");
-            Buttons(("Title", DevTest.PlayTitle), ("Stage 맵", DevTest.PlayStageMap));
+            Buttons(("Title", DevTest.PlayTitle), ("Stage 맵", DevTest.PlayStageMap), ("저장 데이터 초기화", () =>
+            {
+                if (!EditorUtility.DisplayDialog("저장 데이터 초기화", "클리어한 스테이지 등 저장된 정보를 모두 지우고 처음 설치한 상태로 되돌립니다.", "초기화", "취소")) return;
+                DevTest.ResetSaveData(); feedback.text = "저장 데이터를 초기화했습니다.";
+            }));
             var row = new VisualElement(); row.AddToClassList("row");
             var waves = new PopupField<int>("Stage 1 튜토리얼", Enumerable.Range(1, 5).ToList(), Mathf.Clamp(jumpWave, 1, 5), w => "1-" + w, w => "1-" + w);
             var titles = DevTest.TutorialSections(jumpWave).Select((t, i) => $"{i + 1}. {t}").ToList();
