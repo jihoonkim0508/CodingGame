@@ -78,11 +78,11 @@ namespace CodingGame.Art.MapPainter.Editor
                 var routeMap=MapPainterEditing.CreateRoot(scene,testPalette,false);
                 for(int x=0;x<=4;x++)routeMap.floorCells.Add(new GridCell(x,0));
                 Check(MapRouteEditing.SetBase(routeMap,new GridCell(4,0))&&!MapRouteEditing.SetBase(routeMap,new GridCell(9,9)),"base on floor only");
-                var route=routeMap.routes[MapRouteEditing.AddStart(routeMap,new GridCell(0,0))];
+                var entrance=routeMap.routes[MapRouteEditing.AddStart(routeMap,new GridCell(0,0))];
                 Check(MapRouteEditing.AddStart(routeMap,new GridCell(0,0))<0,"duplicate start rejected");
-                Check(MapRouteEditing.Extend(routeMap,route,new GridCell(2,0))&&route.path.Count==2,"straight extension");
-                Check(MapRouteEditing.Extend(routeMap,route,new GridCell(1,0))&&route.path.Count==1,"trim to clicked cell");
-                Check(MapRouteEditing.Extend(routeMap,route,new GridCell(4,0))&&routeMap.IsComplete(route)&&routeMap.Waypoints(route).Length==2,"route reaches base");
+                Check(MapRouteEditing.Extend(routeMap,entrance,new GridCell(2,0))&&entrance.path.Count==2,"straight extension");
+                Check(MapRouteEditing.Extend(routeMap,entrance,new GridCell(1,0))&&entrance.path.Count==1,"trim to clicked cell");
+                Check(MapRouteEditing.Extend(routeMap,entrance,new GridCell(4,0))&&routeMap.IsComplete(entrance)&&routeMap.Waypoints(entrance).Length==2,"route reaches base");
                 Check(MapRouteEditing.AddStart(routeMap,new GridCell(1,0))>=0&&MapRouteEditing.AutoRoute(routeMap,routeMap.routes[1])==false,"auto route needs road");
                 Object.DestroyImmediate(routeMap.gameObject);
                 log.Add("PASS: path search, corners, base/start rules, extension, trimming and completion.");
