@@ -20,6 +20,7 @@ namespace CodingGame.Defense
         [SerializeField] TMP_Text coinLabel;
         [SerializeField] DefensePreviewCameraControl cameraControl;
         [SerializeField] DefenseRangeRing effectRing;
+        DefenseRangeRing rangeRing; // the robot's attack range, a runtime copy of effectRing so hit effects can't hide it
         [SerializeField] Transform projectilePrefab;
         [SerializeField] DefenseHitVisuals hitEffects = new DefenseHitVisuals();
         [SerializeField, Tooltip("Font for the damage numbers that pop over hit enemies in the preview.")] TMP_FontAsset damageFont;
@@ -56,7 +57,8 @@ namespace CodingGame.Defense
             var live = battle.Simulation;
             setup.ActionProfiles = live.Setup.ActionProfiles.Select(p => p.Copy()).ToArray();
             setup.RulesConfig = live.Setup.RulesConfig; setup.Permissions = live.Setup.Permissions;
-            setup.AttackLimitPerRobot = live.AttackLimitPerRobot; setup.FunctionRepeatLimit = live.FunctionRepeatLimit;
+            // The demo loops forever; the per-wave function limit applies only to real waves.
+            setup.FunctionRepeatLimit = int.MaxValue;
         }
         public DefenseSimulation PreviewSimulation => simulation;
         public bool IsShowing => selected != null && previewPanel.activeSelf;
@@ -66,6 +68,7 @@ namespace CodingGame.Defense
             if (!hitEffects.IsConfigured) throw new InvalidOperationException("미리보기 피격 이펙트 프리팹을 Inspector에 연결하세요.");
             if (!cameraControl || !coinLabel || !projectilePrefab || !battle || !arena || !previewCamera || !previewImage || !previewPanel || !stats || !status || !effectRing)
                 throw new InvalidOperationException("공격 미리보기 Inspector 참조를 연결하세요.");
+            rangeRing = Instantiate(effectRing, effectRing.transform.parent); rangeRing.name = "Preview range";
             Close();
         }
         public void Open(RobotState robot)
@@ -83,7 +86,7 @@ namespace CodingGame.Defense
         }
         void HidePreview()
         {
-            ClearActors(); simulation = null; source = null;
+            ClearActors(); simulation = null; source = null; if (rangeRing) rangeRing.Hide();
             previewPanel.SetActive(false); previewCamera.enabled = false;
         }
         void ClearActors()
@@ -114,6 +117,7 @@ namespace CodingGame.Defense
             bot.DamageSetting = selected.DamageSetting;
             if (source != null) simulation.ApplyProgram(bot.Id, source.Name, source.CopyBlocks());
             AddView(bot.Id, battle.RobotDefinition(bot.DefinitionIndex).prefab);
+            rangeRing.Show(World(bot.Position), bot.Range, battle.RobotDefinition(bot.DefinitionIndex).color);
             simulation.Start();
         }
         void AddView(int id, DefenseActorView prefab) => views.Add(id, Instantiate(prefab, arena));
@@ -194,7 +198,8 @@ namespace CodingGame.Defense
                 battle.EditorObserve("Preview",simulation,e);
 #endif
                 hitEffects.Show(e, arena, arena.position, previewCamera.transform.rotation, view, effectRing);
-                if ((e.Kind == "hit" || e.Kind == "projectile-hit") && e.Amount > 0) PopDamage(e);
+                if ((e.Kind == "hit" || e.Kind == "projectile-hit") && e.Amount > 0)
+                { PopDamage(e); battle.ReportTutorialAction(TutorialKeys.Preview, TutorialSignals.PreviewHit); }
             }
             simulation.Events.Clear();
             TickDamage(dt);
@@ -219,7 +224,6 @@ namespace CodingGame.Defense
                 case ActionResult.CoolingDown:
                     state = $"재사용 대기 · {Math.Max(0, bot.NextAction - simulation.Time):0.0}s"; break;
                 case ActionResult.NoTarget: state = "대상 없음"; break;
-                case ActionResult.AttackLimitReached: state = "웨이브 공격 횟수 한도 도달"; break;
                 case ActionResult.Undecided: state = "호환 미정 명령"; break;
                 default: state = $"코드 시연 · {bot.Executions}회"; break;
             }

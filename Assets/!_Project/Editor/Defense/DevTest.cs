@@ -93,6 +93,22 @@ namespace CodingGame.Defense.Editor
             if (EditorApplication.isPlaying) { GameFlow.LoadScene(GameFlow.StageScene); return; }
             StartFrom(GameFlow.StageScene); EditorApplication.isPlaying = true;
         }
+        // Every project scene (test scenes included), third-party demos excluded.
+        public static string[] ScenePaths => AssetDatabase.FindAssets("t:Scene", new[] { "Assets" }).Select(AssetDatabase.GUIDToAssetPath)
+            .Where(path => !path.Contains("/ThirdParty/")).OrderBy(path => path).ToArray();
+        // Plays any scene, build list or not: starts Play there, or switches to it while playing. The next plain Play still starts at Title.
+        public static void PlayScene(string path)
+        {
+            if (!AssetDatabase.LoadAssetAtPath<SceneAsset>(path)) throw new ArgumentException("씬을 찾을 수 없습니다: " + path);
+            if (EditorApplication.isPlaying) { EditorSceneManager.LoadSceneInPlayMode(path, new LoadSceneParameters(LoadSceneMode.Single)); return; }
+            EditorSceneManager.playModeStartScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(path); EditorApplication.isPlaying = true;
+        }
+        // Opens a scene for editing (asks to save the current one first).
+        public static void OpenScene(string path)
+        {
+            if (EditorApplication.isPlaying) throw new InvalidOperationException("Play 중에는 편집용으로 열 수 없습니다. Play 종료 후 다시 시도하세요.");
+            if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) EditorSceneManager.OpenScene(path);
+        }
         public static void Stop() => EditorApplication.isPlaying = false;
         // Back to a fresh install: every saved value lives in PlayerPrefs (cleared stages), so all of it goes.
         public static void ResetSaveData()

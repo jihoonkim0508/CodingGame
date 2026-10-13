@@ -228,6 +228,17 @@ namespace CodingGame.Defense
             if (complete) Completed?.Invoke(currentStep);
         }
 
+        // Spotlight-local rect of a bound target (for TutorialPointer); false when it is unbound or off screen.
+        public bool TryGetArea(string key, out Rect area)
+        {
+            area = default;
+            if (string.IsNullOrWhiteSpace(key) || !byKey.TryGetValue(key, out var binding)) return false;
+            int before = screenAreas.Count; AddArea(key, binding);
+            if (screenAreas.Count == before) return false;
+            area = screenAreas[before]; screenAreas.RemoveAt(before);
+            return true;
+        }
+
         public bool HasTarget(string key) => !string.IsNullOrWhiteSpace(key) && Array.Exists(targets, binding => binding != null && binding.key == key &&
             (binding.allowRuntimeTarget || binding.uiTarget || binding.worldTarget));
         public bool HasRuntimeTarget(string key) => !string.IsNullOrWhiteSpace(key) && byKey.TryGetValue(key, out var binding) && binding.allowRuntimeTarget;

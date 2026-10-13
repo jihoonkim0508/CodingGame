@@ -49,12 +49,8 @@ namespace CodingGame.Defense
         public int RobotAvailable(RobotRole role) => !Setup.PlayerFlow || (!Options.inventoryLimit && RobotUnlocked(role)) ? int.MaxValue : RobotInventory.TryGetValue(role, out int count) ? count : 0;
         public bool RobotUnlocked(RobotRole role) => !Setup.PlayerFlow || Options.unlockAll || RobotInventory.ContainsKey(role);
         public bool LoopsUnlocked => Setup.PlayerFlow && (Inventory.ContainsKey(BlockKind.For) || Inventory.ContainsKey(BlockKind.While));
-        public int AttackLimitPerRobot => Setup.StageOneLearning || !Options.attackLimit ? int.MaxValue : Setup.PlayerFlow
-            ? (LoopsUnlocked ? int.MaxValue : (int)Math.Floor(Setup.Stage * Setup.RulesConfig.attackCountFactor + .5))
-            : Setup.AttackLimitPerRobot;
-        public int FunctionRepeatLimit => Setup.StageOneLearning ? int.MaxValue : Setup.PlayerFlow
-            ? (LoopsUnlocked ? 1 : AttackLimitPerRobot)
-            : Setup.FunctionRepeatLimit;
+        // The robot's function runs as `for i in range(5): f()` per wave; once loops unlock it runs once, so the player writes the loop.
+        public int FunctionRepeatLimit => Setup.PlayerFlow && LoopsUnlocked ? 1 : Setup.FunctionRepeatLimit;
         public void GrantRobot(RobotRole role, int count)
         {
             if (!Enum.IsDefined(typeof(RobotRole), role) || count < 1) throw new ArgumentException("아이템 종류와 양수 수량을 확인하세요.");
@@ -248,9 +244,11 @@ namespace CodingGame.Defense
             if (Setup.PlayerFlow && Options.inventoryLimit) RobotInventory[spec.role]--;
             Robots.Add(bot); return bot;
         }
+        // Recall stays locked through the Stage 1 tutorial (1-1, 1-2) so the teaching robot keeps its code.
+        public bool RecallUnlocked => !Setup.PlayerFlow || Setup.Stage != 1 || WaveIndex >= 2;
         public bool RemoveRobot(int id)
         {
-            if (Setup.PlayerFlow && !CanPrepare) return false;
+            if (Setup.PlayerFlow && !CanPrepare || !RecallUnlocked) return false;
             var bot = FindRobot(id);
             if (bot == null) return false;
             if (Setup.PlayerFlow) GrantRobot(bot.Spec.role, 1);
@@ -340,8 +338,6 @@ namespace CodingGame.Defense
             var compatibility = Compatibility(bot, action);
             if (compatibility == ActionCompatibility.Ineffective) return bot.LastResult = ActionResult.Ineffective;
             if (compatibility == ActionCompatibility.Undecided) return bot.LastResult = ActionResult.Undecided;
-            if (action != RobotAction.Buff && bot.AttacksThisWave >= AttackLimitPerRobot)
-                return bot.LastResult = ActionResult.AttackLimitReached;
             // block()에 도달하면 즉시 몸으로 저지합니다. 스턴과 피해만 공통 재사용 시간을 따릅니다.
             if (action == RobotAction.Block && bot.Spec.role == RobotRole.Tank) bot.BlockingEnabled = true;
             if (Time + .000001 < bot.NextAction) return bot.LastResult = ActionResult.CoolingDown;

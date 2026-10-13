@@ -10,7 +10,7 @@ namespace CodingGame.Defense
     public enum EnemyType { Normal, Fast, Tank }
     public enum ActionCompatibility { Native, Reduced, Ineffective, Undecided }
     public enum BattlePhase { Ready, Running, Paused, Victory, Defeat, Reward }
-    public enum ActionResult { Executed, CoolingDown, NoTarget, Ineffective, Undecided, AttackLimitReached, Unavailable }
+    public enum ActionResult { Executed, CoolingDown, NoTarget, Ineffective, Undecided, Unavailable }
 
     [Serializable]
     public sealed class RobotSpec
@@ -144,7 +144,6 @@ namespace CodingGame.Defense
         public int InitialWave;
         public bool PreviousStageRewards = true;
         public int FunctionRepeatLimit = 5;
-        public int AttackLimitPerRobot = int.MaxValue;
         public Vector2 Min, Max;
         public Route[] Routes;
         public SpawnGroup[][] Waves;

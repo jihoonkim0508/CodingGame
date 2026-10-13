@@ -17,6 +17,9 @@
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseEditorSettings.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseSimulation.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseProgram.cs" />
+    <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseHealthTrail.cs" />
+    <Compile Include="../../Assets/!_Project/Scripts/Defense/Tutorial/TutorialSignals.cs" />
+    <Compile Include="../../Assets/!_Project/Scripts/Defense/Tutorial/TutorialWatcher.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/BlockCoding/BlockProgram.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/BlockCoding/PythonTreeCompiler.cs" />
   </ItemGroup>

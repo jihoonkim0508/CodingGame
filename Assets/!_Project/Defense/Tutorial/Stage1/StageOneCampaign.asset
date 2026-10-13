@@ -29,7 +29,6 @@ MonoBehaviour:
   baseHealth: 12
   robotLimit: 6
   rules:
-    attackCountFactor: 5.25
     maxLevel: 2
     upgradeMultiplier: 1.2
     roleLimits: 010000001200000012000000120000001200000012000000
@@ -311,13 +310,13 @@ MonoBehaviour:
     - groups:
       - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
         route: 0
-        count: 3
+        count: 2
         delay: 0
         interval: 2
     - groups:
       - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
         route: 0
-        count: 4
+        count: 2
         delay: 0
         interval: 2
     - groups:

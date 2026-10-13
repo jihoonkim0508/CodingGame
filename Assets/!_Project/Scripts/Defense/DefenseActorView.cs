@@ -28,12 +28,21 @@ namespace CodingGame.Defense
         Color baseColor;
         Vector3 fullHealthScale;
         float beamTime;
+        // Pale copy behind the fill that lags after hits (DefenseHealthTrail).
+        static readonly Color TrailColor = new Color(1, .93f, .8f);
+        const float TrailDepth = .015f; // behind the fill, still in front of the backdrop
+        readonly DefenseHealthTrail trail = new DefenseHealthTrail();
+        Transform healthTrail;
         void Awake()
         {
             if (!head || !body || !healthRoot || !healthFill || !beam || !beam.sharedMaterial)
                 throw new InvalidOperationException(name + ": ActorView Inspector 참조 누락");
             colors = new MaterialPropertyBlock(); baseColor = body.sharedMaterial.GetColor("_BaseColor");
             fullHealthScale = healthFill.localScale;
+            healthTrail = Instantiate(healthFill, healthFill.parent); healthTrail.name = "Trail";
+            healthTrail.localPosition = healthFill.localPosition + Vector3.forward * TrailDepth;
+            var trailColors = new MaterialPropertyBlock(); trailColors.SetColor("_BaseColor", TrailColor); trailColors.SetColor("_Color", TrailColor);
+            foreach (var renderer in healthTrail.GetComponentsInChildren<Renderer>()) renderer.SetPropertyBlock(trailColors);
             beam.enabled = false;
         }
         public void SyncRobot(RobotState bot, Vector3 position, Quaternion viewRotation) =>
@@ -49,6 +58,7 @@ namespace CodingGame.Defense
                 healthRoot.rotation = viewRotation;
                 float ratio = maximum > 0 ? Mathf.Clamp01(health.Value / maximum) : 0;
                 healthFill.localScale = new Vector3(fullHealthScale.x * ratio, fullHealthScale.y, fullHealthScale.z);
+                healthTrail.localScale = new Vector3(fullHealthScale.x * trail.Step(ratio, Time.unscaledDeltaTime), fullHealthScale.y, fullHealthScale.z);
             }
             Color tint = stunned ? new Color(.8f,.4f,1) : slowed ? new Color(.2f,.8f,1) : buffed ? Color.Lerp(baseColor, Color.white, .35f) : baseColor;
             colors.SetColor("_BaseColor", tint); body.SetPropertyBlock(colors);

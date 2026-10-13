@@ -34,7 +34,7 @@ namespace CodingGame.Defense
             Hide();
         }
 
-        public void Show(TutorialSequence sequence, TutorialDialoguePosition position, string text, bool animate)
+        public void Show(TutorialSequence sequence, TutorialDialoguePosition position, string text, bool animate, string speakerName = null)
         {
             StopTyping();
             // Mirror the authored bottom layout; retain width, height and edge spacing at any resolution.
@@ -46,7 +46,7 @@ namespace CodingGame.Defense
             panel.SetActive(true);
             portrait.sprite = sequence.speakerPortrait;
             portrait.enabled = sequence.speakerPortrait;
-            speaker.text = sequence.speakerName;
+            speaker.text = string.IsNullOrWhiteSpace(speakerName) ? sequence.speakerName : speakerName;
             stageWave.text = sequence.stage + "-" + sequence.wave;
             dialogue.text = text ?? string.Empty;
             dialogue.ForceMeshUpdate();

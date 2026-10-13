@@ -8,7 +8,7 @@ static class CampaignCheck
 {
     static int checks;
     static void Assert(bool value, string label) { if (!value) throw new Exception(label); checks++; }
-    static BattleSetup Setup() => new BattleSetup { Progression = FixtureProgression.Create(), TestOptions = new DefenseTestOptions { attackLimit = false },
+    static BattleSetup Setup() => new BattleSetup { Progression = FixtureProgression.Create(), TestOptions = new DefenseTestOptions(),
         PlayerFlow = true, Min = new Vector2(-20,-10), Max = new Vector2(20,10), BaseHealth = 20,
         Routes = new[]{new Route(new[]{new Vector2(-10,0),new Vector2(10,0)},1.1f)},
         ActionProfiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(Spec).ToArray(),
@@ -18,6 +18,40 @@ static class CampaignCheck
     static RobotState Place(DefenseSimulation sim, RobotRole role, float x=-8) => sim.Place(Spec(role),(int)role,new Vector2(x,role==RobotRole.Tank?0:2),out _);
     static void RunWave(DefenseSimulation sim) { for(int i=0;i<6000&&sim.Phase==BattlePhase.Running;i++)sim.Advance(1.0/60); }
     static void Reject(Action action,string label) { bool rejected=false;try{action();}catch(FormatException){rejected=true;}Assert(rejected,label); }
+    static void CheckHealthTrail()
+    {
+        var trail=new DefenseHealthTrail();
+        Assert(trail.Step(1,.1f)==1&&!trail.JustHit,"trail starts at current health");
+        Assert(trail.Step(.5f,.1f)==1&&trail.JustHit,"hit keeps the old value and flags the hit");
+        Assert(trail.Step(.5f,DefenseHealthTrail.HoldSeconds)==1&&!trail.JustHit,"trail holds after the hit");
+        float sliding=trail.Step(.5f,.1f);Assert(sliding<1&&sliding>.5f,"trail then slides down");
+        for(int i=0;i<20;i++)trail.Step(.5f,.1f);Assert(trail.Value==.5f,"trail settles on current health");
+        Assert(trail.Step(.8f,.1f)==.8f,"healing snaps the trail up");
+    }
+    static void CheckTutorialWatcher()
+    {
+        const string answer="enemy = get_nearest_enemy()\nslash(enemy)";
+        var code=new[]{new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)),
+            new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"enemy"))};
+        var program=new DefenseProgram("robot",code);
+        Assert(TutorialWatcher.Matches(program,answer)&&TutorialWatcher.Matches(program,string.Join("", "  enemy = get_nearest_enemy()", Environment.NewLine, Environment.NewLine, "    slash(enemy)  ")),"program match ignores header, indent and blank lines");
+        Assert(!TutorialWatcher.Matches(program,"enemy = get_nearest_enemy()")&&!TutorialWatcher.Matches(null,answer),"partial or missing program does not match");
+
+        var sim=new DefenseSimulation(Setup());var teacher=Place(sim,RobotRole.Warrior);Place(sim,RobotRole.Warrior,-5);
+        Assert(TutorialWatcher.TeachingRobot(sim)==teacher,"teaching robot is the first warrior placed");
+        var watcher=new TutorialWatcher();
+        Assert(watcher.Poll(sim,answer).Count==0,"no signals before the code matches or the wave runs");
+        teacher.Program=program;
+        Assert(watcher.Poll(sim,answer).SequenceEqual(new[]{TutorialSignals.ProgramMatches}),"matching code raises ProgramMatches");
+        sim.Start();RunWave(sim);
+        var signals=watcher.Poll(sim);
+        Assert(signals.Contains(TutorialSignals.FirstKill)&&signals.Contains(TutorialSignals.WaveCleared)&&!signals.Contains(TutorialSignals.Leak),"cleared wave raises FirstKill and WaveCleared once");
+        Assert(watcher.Poll(sim).Count==0,"signals fire once per wave");
+
+        var idle=new DefenseSimulation(Setup());Place(idle,RobotRole.Warrior);var idleWatcher=new TutorialWatcher();idleWatcher.Poll(idle);idle.Start();RunWave(idle);
+        var leaked=idleWatcher.Poll(idle);
+        Assert(leaked.Contains(TutorialSignals.Leak)&&!leaked.Contains(TutorialSignals.FirstKill),"robot without code lets enemies leak (watcher polled from wave start)");
+    }
     static void CheckUpgrades()
     {
         foreach (RobotRole role in Enum.GetValues(typeof(RobotRole)))
@@ -37,6 +71,11 @@ static class CampaignCheck
         Assert(!first.UpgradeUnlocked&&first.UpgradeError(firstBot.Id)!=null&&!first.UpgradeRobot(firstBot.Id)&&first.Coins==100,"level-up locked in 1-1");
         early=Setup();early.Stage=1;early.InitialWave=1;first=new DefenseSimulation(early);firstBot=Place(first,RobotRole.Warrior);
         Assert(first.UpgradeUnlocked&&first.UpgradeRobot(firstBot.Id),"level-up opens in 1-2");
+        foreach (int wave in new[]{0,1,2})
+        {
+            early=Setup();early.Stage=1;early.InitialWave=wave;first=new DefenseSimulation(early);firstBot=Place(first,RobotRole.Warrior);
+            Assert(first.RecallUnlocked==(wave>=2)&&first.RemoveRobot(firstBot.Id)==(wave>=2),"recall locked through 1-2, opens in 1-3 (wave "+wave+")");
+        }
         var setup=Setup();setup.Progression.initialCoins=49;
         var poor=new DefenseSimulation(setup);var poorBot=Place(poor,RobotRole.Warrior);
         Assert(!poor.UpgradeRobot(poorBot.Id)&&poor.Coins==49&&poorBot.Level==1,"insufficient coins leave robot unchanged");
@@ -82,6 +121,8 @@ static class CampaignCheck
     {
         LearningCheck.Run();
         CheckUpgrades();
+        CheckTutorialWatcher();
+        CheckHealthTrail();
         var scaledSetup=Setup();scaledSetup.Stage=2;scaledSetup.WaveSeconds=.2f;
         var scaled=new DefenseSimulation(scaledSetup);
         Assert(Math.Abs(scaled.UpcomingWave[0].Enemy.health-11.3625f)<.001f&&
@@ -118,7 +159,12 @@ static class CampaignCheck
         needed.ApplyProgram(neededBot.Id,"fire",new[]{new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy))});needed.Start();RunWave(needed);
         Assert(needed.PendingDrops.Take(4).SequenceEqual(new[]{BlockKind.Boom,BlockKind.Buff,BlockKind.Block,BlockKind.Boom}),
             "drops fill missing native actions before surplus blocks");
-        var sim=new DefenseSimulation(Setup()); sim.Start();Assert(sim.Phase==BattlePhase.Ready,"no robots start rejected");
+        var runs=new DefenseSimulation(Setup());
+        Assert(runs.FunctionRepeatLimit==5,"function runs 5 times per wave before loops");
+        runs.GrantBlock(BlockKind.For,1);Assert(runs.FunctionRepeatLimit==1,"function runs once after loops unlock");
+        // The reward flow below needs every wave cleared, not the per-wave run limit.
+        var flow=Setup();flow.FunctionRepeatLimit=int.MaxValue;
+        var sim=new DefenseSimulation(flow); sim.Start();Assert(sim.Phase==BattlePhase.Ready,"no robots start rejected");
         var bot=Place(sim,RobotRole.Shooter);
         Assert(bot.Program==null&&!bot.AutoExecute&&!bot.BlockingEnabled,"placed robot is empty");
         Assert(sim.StartError()==null,"empty robot does not block start");

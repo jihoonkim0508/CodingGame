@@ -16,6 +16,10 @@ namespace CodingGame.Defense
         [SerializeField] GameObject editorRoot;
         [SerializeField] TMP_Text title, inventory;
         [SerializeField] Button closeButton, automaticButton;
+        // ponytail: optional until the scene wires the hint button (W3); SetHint is a no-op without it.
+        [SerializeField, Tooltip("'비우기' 오른쪽 힌트 버튼. 튜토리얼이 힌트를 줄 때만 보입니다.")] Button hintButton;
+        [SerializeField] GameObject hintPopup;
+        [SerializeField] TMP_Text hintText;
         int editingId;
         DefenseSimulation editingSession;
         DefenseSimulation draftSession;
@@ -34,6 +38,8 @@ namespace CodingGame.Defense
             panel.Remaining = kind => editingSession == null ? 0 : Math.Max(0, editingSession.Available(kind, editingId) - panel.Program.AllBlocks().Count(b => DefenseProgression.Canonical(b.Kind) == DefenseProgression.Canonical(kind)));
             closeButton.onClick.AddListener(() => Close());
             automaticButton.onClick.AddListener(RestoreAutomatic);
+            if (hintButton) hintButton.onClick.AddListener(ToggleHint);
+            SetHint(null);
             inventory.text = "블록 인벤토리";
             editorRoot.SetActive(false);
         }
@@ -73,6 +79,20 @@ namespace CodingGame.Defense
             if (editorRoot) editorRoot.SetActive(false);
             editingId = 0; editingSession = null;
             if (resume && wasOpen) battle.ReportTutorialAction("Editor.Close", "TargetClicked", "EditorClosed");
+        }
+        // Code shown by the hint button; null or empty hides the button.
+        public void SetHint(string code)
+        {
+            if (!hintButton) return;
+            hintButton.gameObject.SetActive(!string.IsNullOrWhiteSpace(code));
+            if (hintText) hintText.text = code ?? "";
+            if (hintPopup) hintPopup.SetActive(false);
+        }
+        void ToggleHint()
+        {
+            if (!battle.TutorialAllows(TutorialKeys.Hint) || !hintPopup) return;
+            hintPopup.SetActive(!hintPopup.activeSelf);
+            battle.ReportTutorialAction(TutorialKeys.Hint, TutorialSignals.TargetClicked);
         }
         public void RestoreAutomatic()
         {

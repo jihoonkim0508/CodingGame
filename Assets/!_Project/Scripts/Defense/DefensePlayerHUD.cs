@@ -134,6 +134,7 @@ namespace CodingGame.Defense
             point.y = Mathf.Clamp(point.y, canvas.rect.yMin + 230, canvas.rect.yMax - 170);
             robotActions.anchoredPosition = point;
             upgradeRobotButton.interactable = sim.UpgradeError(selected.Id) == null;
+            recallRobotButton.interactable = sim.RecallUnlocked;
             upgradeRobotLabel.text = !sim.UpgradeUnlocked ? "레벨업\n1-2 해금" : selected.IsMaxLevel ? "최고 레벨" : $"레벨업\n{sim.UpgradeCost} 코인";
         }
         void RefreshRewardPanel(DefenseSimulation sim, bool reward)

@@ -140,7 +140,7 @@ namespace CodingGame.Defense
             string key = TextKey(step,text); bool animate = firstVisit && !visitedText.Contains(key);
             visitedText.Add(key);
             bridge.SetStep(active.steps[progressStep], viewedStep == progressStep);
-            view.Show(active, step.dialoguePosition, text.text, animate);
+            view.Show(active, step.dialoguePosition, text.text, animate, text.speaker);
             bool previous = viewedStep > 0 || viewedText > 0;
             bool next = viewedText + 1 < step.texts.Length || viewedStep < progressStep || step.kind != TutorialStepKind.ActionGuide || completedStep.Contains(step.stepId);
             view.SetNavigation(previous,next);

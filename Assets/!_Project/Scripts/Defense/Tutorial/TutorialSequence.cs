@@ -12,6 +12,7 @@ namespace CodingGame.Defense
     public sealed class TutorialText
     {
         public string textId;
+        [Tooltip("이 대화창의 발화자. '시스템'이면 경고 배너로 표시합니다.")] public string speaker;
         [TextArea(2, 8)] public string text;
     }
 
@@ -37,6 +38,18 @@ namespace CodingGame.Defense
         public string sourceKey, destinationKey;
         public bool pauseBattle = true, allowPreview;
         [Min(0)] public float highlightPadding = 10;
+        [Tooltip("이 신호가 올 때까지 단계를 숨기고 기다립니다(예: FirstKill, WaveCleared, EditorClosed). 비우면 바로 표시.")]
+        public string trigger;
+        [Tooltip("ProgramMatches 판정용 정답 Python(함수 머리줄 제외). 줄 단위, 들여쓰기 무시.")]
+        [TextArea(2, 6)] public string expectedCode;
+        [Tooltip("화살표를 띄울 대상 키. 비우면 화살표 없음.")]
+        public string pointerKey;
+        [Tooltip("편집기 힌트 버튼에 보여 줄 코드. 비우면 힌트 버튼을 숨깁니다.")]
+        [TextArea(2, 6)] public string hintCode;
+        [Tooltip("이 시간(초) 동안 완료하지 못하면 화살표를 띄웁니다. 0이면 바로.")]
+        [Min(0)] public float pointerDelay;
+        [Tooltip("단계 진입 시 코드 편집기를 닫습니다.")] public bool closeEditor;
+        [Tooltip("단계 진입 시 교육 로봇의 코드를 비웁니다(블록은 인벤토리로).")] public bool clearProgram;
     }
 
     [CreateAssetMenu(menuName = "CodingGame/Tutorial/Sequence")]
