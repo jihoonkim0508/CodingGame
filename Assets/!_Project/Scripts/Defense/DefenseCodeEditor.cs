@@ -94,6 +94,71 @@ namespace CodingGame.Defense
             hintPopup.SetActive(!hintPopup.activeSelf);
             battle.ReportTutorialAction(TutorialKeys.Hint, TutorialSignals.TargetClicked);
         }
+        // Empties a robot's code (blocks go back to the inventory); through the editor when it is open on that robot.
+        public void ClearRobotProgram(int id)
+        {
+            drafts.Remove(id);
+            if (IsOpen && editingId == id) { panel.ClearProgram(); panel.RefreshPalette(); return; }
+            var sim = battle.Simulation; var robot = sim?.FindRobot(id);
+            if (robot != null && sim.CanEdit) sim.ApplyProgram(id, robot.Program?.Name ?? "robot_" + id, Array.Empty<CodeBlock>());
+        }
+        // Python text of condition/value blocks lying in the workspace away from the start anchor (not part of the program).
+        public IEnumerable<string> LooseExpressions() => !IsOpen ? Enumerable.Empty<string>() : panel.Program.LooseRoots()
+            .Where(root => PythonTreeCompiler.OutputSlot(root.Kind) != BlockSlotKind.Statement)
+            .Select(root => PythonTreeCompiler.ExpressionText(root.Read()));
+        // Tutorial targets inside the editor (TutorialKeys.IsEditorArea): Editor.Code.Start | Loose | Line.N | After.N | Body.N | Arg.N.i[.j…],
+        // with N counted from 1 along the start chain, and Editor.Palette.<BlockKind>. False when not on screen.
+        public bool TryGetTutorialCorners(string key, Vector3[] corners)
+        {
+            if (!IsOpen || key == null) return false;
+            if (key.StartsWith(TutorialKeys.PalettePrefix))
+            {
+                if (!Enum.TryParse(key.Substring(TutorialKeys.PalettePrefix.Length), out BlockKind kind)) return false;
+                var item = kind == BlockKind.Variable ? panel.VariableTemplate : panel.Palette.FirstOrDefault(p => p.view.BaseKind == kind).view;
+                return Corners(item ? item.Rect : null, null, corners);
+            }
+            if (!key.StartsWith(TutorialKeys.CodePrefix)) return false;
+            var program = panel.Program;
+            var parts = key.Substring(TutorialKeys.CodePrefix.Length).Split('.');
+            if (parts[0] == "Start") return Corners(program.Rect, program.StartArea, corners);
+            if (parts[0] == "Loose") { var loose = program.LooseRoots().FirstOrDefault(); return Corners(loose ? loose.Rect : null, null, corners); }
+            var chain = program.StartChain();
+            if (parts.Length < 2 || !int.TryParse(parts[1], out int line) || line < 1 || line > chain.Count) return false;
+            var block = chain[line - 1];
+            switch (parts[0])
+            {
+                case "Line": return Corners(block.Rect, null, corners);
+                // The slot where the next block snaps: one line high, right under line N.
+                case "After": var r = block.Rect.rect; return Corners(block.Rect, new Rect(r.xMin, r.yMin - r.height, r.width, r.height), corners);
+                case "Body": return Corners(block.Body ? block.Body.Rect : null, null, corners);
+                case "Arg":
+                    CommandDropZone slot = null;
+                    for (int i = 2; i < parts.Length; i++)
+                    {
+                        if (slot) { if (slot.Blocks.Count == 0) return false; block = slot.Blocks[0]; }
+                        if (!int.TryParse(parts[i], out int index) || index < 0 || index >= block.Arguments.Count) return false;
+                        slot = block.Arguments[index];
+                    }
+                    return Corners(slot ? slot.Rect : null, null, corners);
+                default: return false;
+            }
+        }
+        static bool Corners(RectTransform target, Rect? local, Vector3[] corners)
+        {
+            if (!target || !target.gameObject.activeInHierarchy) return false;
+            var r = local ?? target.rect;
+            corners[0] = target.TransformPoint(new Vector3(r.xMin, r.yMin)); corners[1] = target.TransformPoint(new Vector3(r.xMin, r.yMax));
+            corners[2] = target.TransformPoint(new Vector3(r.xMax, r.yMax)); corners[3] = target.TransformPoint(new Vector3(r.xMax, r.yMin));
+            return true;
+        }
+        // Switches the palette to the category holding an Editor.Palette.<BlockKind> target so its outline can show.
+        public void RevealPalette(string key)
+        {
+            if (!IsOpen || key == null || !key.StartsWith(TutorialKeys.PalettePrefix) ||
+                !Enum.TryParse(key.Substring(TutorialKeys.PalettePrefix.Length), out BlockKind kind)) return;
+            int category = kind == BlockKind.Variable ? 2 : panel.Palette.Where(p => p.view.BaseKind == kind).Select(p => p.category).DefaultIfEmpty(-1).First();
+            if (category >= 0) panel.ShowCategory(category);
+        }
         public void RestoreAutomatic()
         {
             if (!battle.TutorialAllows("Editor.RestoreAutomatic")) return;

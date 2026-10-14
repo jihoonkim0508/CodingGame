@@ -42,18 +42,22 @@ try
     var held=preview.PreviewSimulation;
     for(int i=0;i<100;i++) Advance(.1f);
     Check(preview.PreviewSimulation==held&&held.Time>12&&held.Enemies.Count==3,"living blocked enemies are not reset after eight seconds");
-    Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Wait,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Number,"10")),
+    // Enemies spawn inside the tank's range, so a short wait still reaches the next command before anything walks out of reach.
+    Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Wait,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Number,"1")),
         new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.NearestEnemy)));
     var waiting=preview.PreviewSimulation;
-    for(int i=0;i<102;i++) Advance(.1f);
-    Check(preview.PreviewSimulation==waiting&&waiting.Robots.Single().BlockingEnabled,"ten-second wait reaches next command without forced reset");
+    for(int i=0;i<12;i++) Advance(.1f);
+    Check(preview.PreviewSimulation==waiting&&waiting.Robots.Single().BlockingEnabled,"wait reaches next command without forced reset");
     Show();var empty=preview.PreviewSimulation;
     Advance(.01f);
     Check(preview.PreviewSimulation==empty&&empty.Spawned==0,"pending spawns do not start restart timer");
-    for(int i=0;i<300&&empty.RemainingEnemies>0;i++) Advance(.1f);
-    Check(empty.RemainingEnemies==0&&empty.Leaks==3&&preview.PreviewSimulation==empty,"last escaped enemy starts delay without immediate reset");
+    // An idle robot can't hit anything once every enemy has walked past its range, long before they leave the map.
+    var idle=empty.Robots.Single();
+    bool Reachable() => empty.Spawned<3||empty.Enemies.Any(e=>e.Active&&(e.Position.X>=idle.Position.X||System.Numerics.Vector2.Distance(e.Position,idle.Position)<=idle.Range));
+    for(int i=0;i<300&&Reachable();i++) Advance(.1f);
+    Check(!Reachable()&&empty.RemainingEnemies>0&&empty.Leaks==0&&preview.PreviewSimulation==empty,"enemies out of reach start delay before they leave the map");
     Advance(.99f); Status();
-    Check(preview.PreviewSimulation==empty&&label.text.Contains("후 다시 시작"),"preview remains through first 0.99 seconds after enemies disappear");
+    Check(preview.PreviewSimulation==empty&&label.text.Contains("후 다시 시작"),"preview remains through first 0.99 seconds after nothing can be hit");
     Advance(.01f);
     Check(preview.PreviewSimulation!=empty&&preview.PreviewSimulation.RemainingEnemies==3&&preview.PreviewSimulation.Robots.Count==1,"preview restarts at one second with one robot");
     // A function runs once per wave, so loop the guard to clear every enemy.

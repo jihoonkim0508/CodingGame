@@ -16,6 +16,6 @@ lessons = Array.Empty<WaveLesson>(),
             new BlockStock { kind = BlockKind.Comparison, count = 4 }, new BlockStock { kind = BlockKind.True, count = 3 },
             new BlockStock { kind = BlockKind.False, count = 3 }, new BlockStock { kind = BlockKind.DeclareVariable, count = 4 },
             new BlockStock { kind = BlockKind.Variable, count = 8 }, new BlockStock { kind = BlockKind.NearestEnemy, count = 4 },
-            new BlockStock { kind = BlockKind.PositionX, count = 4 }, new BlockStock { kind = BlockKind.PositionY, count = 4 }
+            new BlockStock { kind = BlockKind.PositionX, count = 4 }, new BlockStock { kind = BlockKind.PositionY, count = 4 }, new BlockStock { kind = BlockKind.MyPos, count = 4 }, new BlockStock { kind = BlockKind.MyAttackRange, count = 4 }
         },
 }; }

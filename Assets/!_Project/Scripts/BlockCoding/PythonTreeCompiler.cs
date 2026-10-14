@@ -13,7 +13,7 @@ namespace CodingGame.BlockCoding
     public static class PythonTreeCompiler
     {
         [Flags]
-        enum ValueType { Integer = 1, Float = 2, Enemy = 4, Boolean = 8 }
+        enum ValueType { Integer = 1, Float = 2, Enemy = 4, Boolean = 8, Vector2 = 16 }
         const ValueType Numeric = ValueType.Integer | ValueType.Float;
         static readonly HashSet<string> Keywords = new HashSet<string>(
             ("False None True and as assert async await break class continue def del elif else except finally for from " +
@@ -27,6 +27,7 @@ namespace CodingGame.BlockCoding
                     return BlockSlotKind.Condition;
                 case BlockKind.Number: case BlockKind.Variable: case BlockKind.NearestEnemy:
                 case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.Distance: case BlockKind.Hp:
+                case BlockKind.MyAttackRange: case BlockKind.MyPos:
                     return BlockSlotKind.Value;
                 case BlockKind.Attack: case BlockKind.Wait: case BlockKind.DeclareVariable:
                 case BlockKind.For: case BlockKind.While: case BlockKind.If: case BlockKind.Elif:
@@ -52,7 +53,7 @@ namespace CodingGame.BlockCoding
                 case BlockKind.For: case BlockKind.If: case BlockKind.Elif:
                 case BlockKind.Wait: case BlockKind.DeclareVariable: case BlockKind.Hp: return 1; // Hp: receiver
                 case BlockKind.Comparison: return 2;
-                case BlockKind.Distance: return 3; // receiver, x, y
+                case BlockKind.Distance: return 2; // receiver, position (Vector2)
                 default: return 0;
             }
         }
@@ -208,7 +209,9 @@ namespace CodingGame.BlockCoding
             {
                 case BlockKind.Number:
                     return NormalizeNumber(block.Value).Contains(".") ? ValueType.Float : ValueType.Integer;
-                case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.Distance: case BlockKind.Hp: return ValueType.Float;
+                case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.Distance: case BlockKind.Hp:
+                case BlockKind.MyAttackRange: return ValueType.Float;
+                case BlockKind.MyPos: return ValueType.Vector2;
                 case BlockKind.NearestEnemy: return ValueType.Enemy;
                 case BlockKind.True: case BlockKind.False: case BlockKind.Comparison: return ValueType.Boolean;
                 case BlockKind.Variable:
@@ -223,6 +226,38 @@ namespace CodingGame.BlockCoding
         static void Require(CodeBlock block, IReadOnlyDictionary<string, ValueType> variables, ValueType allowed, string message)
         {
             if ((TypeOf(block, variables) & ~allowed) != 0) throw new FormatException(message);
+        }
+
+        // Blocks that read as a fixed call or literal.
+        static string Call(BlockKind kind)
+        {
+            switch (kind)
+            {
+                case BlockKind.PositionX: return "get_pos_x()";
+                case BlockKind.PositionY: return "get_pos_y()";
+                case BlockKind.MyAttackRange: return "my_attack_range()";
+                case BlockKind.MyPos: return "get_my_pos()";
+                case BlockKind.NearestEnemy: return "get_nearest_enemy()";
+                case BlockKind.True: return "True";
+                case BlockKind.False: return "False";
+                case BlockKind.Buff: return "buff()";
+                default: return null;
+            }
+        }
+
+        /// <summary>Python text of an expression block without type checks, e.g. a condition not yet connected to the program.</summary>
+        public static string ExpressionText(CodeBlock block)
+        {
+            if (block == null) return "";
+            string Arg(int index) => index < block.Arguments.Count ? ExpressionText(block.Arguments[index]) : "";
+            switch (block.Kind)
+            {
+                case BlockKind.Number: case BlockKind.Variable: return block.Value;
+                case BlockKind.Distance: return Arg(0) + ".distance(" + Arg(1) + ")";
+                case BlockKind.Hp: return Arg(0) + ".hp";
+                case BlockKind.Comparison: return Arg(0) + " " + block.Value + " " + Arg(1);
+                default: return Call(block.Kind) ?? block.Kind.ToString();
+            }
         }
 
         static string Expression(CodeBlock block, IReadOnlyDictionary<string, ValueType> variables)
@@ -241,20 +276,16 @@ namespace CodingGame.BlockCoding
                 case BlockKind.Variable:
                     TypeOf(block, variables);
                     return NormalizeIdentifier(block.Value);
-                case BlockKind.PositionX: return "get_pos_x()";
-                case BlockKind.PositionY: return "get_pos_y()";
-                case BlockKind.NearestEnemy: return "get_nearest_enemy()";
-                case BlockKind.True: return "True";
-                case BlockKind.False: return "False";
-                case BlockKind.Buff: return "buff()";
+                case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.MyAttackRange: case BlockKind.MyPos: case BlockKind.NearestEnemy:
+                case BlockKind.True: case BlockKind.False: case BlockKind.Buff:
+                    return Call(block.Kind);
                 case BlockKind.Wait:
                     Require(block.Arguments[0], variables, Numeric, "wait에는 초 단위의 숫자가 필요합니다.");
                     return "wait(" + Arg(0) + ")";
                 case BlockKind.Distance:
-                    Require(block.Arguments[0], variables, ValueType.Enemy, "get_distance의 대상은 Enemy 객체여야 합니다.");
-                    Require(block.Arguments[1], variables, Numeric, "x좌표는 숫자여야 합니다.");
-                    Require(block.Arguments[2], variables, Numeric, "y좌표는 숫자여야 합니다.");
-                    return Arg(0) + ".get_distance(" + Arg(1) + ", " + Arg(2) + ")";
+                    Require(block.Arguments[0], variables, ValueType.Enemy, "distance의 대상은 Enemy 객체여야 합니다.");
+                    Require(block.Arguments[1], variables, ValueType.Vector2, "distance에는 위치(Vector2)가 필요합니다. 예: enemy.distance(get_my_pos())");
+                    return Arg(0) + ".distance(" + Arg(1) + ")";
                 case BlockKind.Hp:
                     Require(block.Arguments[0], variables, ValueType.Enemy, "hp는 Enemy 객체에서만 읽을 수 있습니다.");
                     return Arg(0) + ".hp";

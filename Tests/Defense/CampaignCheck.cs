@@ -37,20 +37,23 @@ static class CampaignCheck
         Assert(TutorialWatcher.Matches(program,answer)&&TutorialWatcher.Matches(program,string.Join("", "  enemy = get_nearest_enemy()", Environment.NewLine, Environment.NewLine, "    slash(enemy)  ")),"program match ignores header, indent and blank lines");
         Assert(!TutorialWatcher.Matches(program,"enemy = get_nearest_enemy()")&&!TutorialWatcher.Matches(null,answer),"partial or missing program does not match");
 
-        var sim=new DefenseSimulation(Setup());var teacher=Place(sim,RobotRole.Warrior);Place(sim,RobotRole.Warrior,-5);
-        Assert(TutorialWatcher.TeachingRobot(sim)==teacher,"teaching robot is the first warrior placed");
+        var sim=new DefenseSimulation(Setup());var teacher=Place(sim,RobotRole.Warrior);var second=Place(sim,RobotRole.Warrior,-5);
+        Assert(TutorialWatcher.TeachingRobot(sim)==teacher&&TutorialWatcher.Robot(sim,1)==second&&TutorialWatcher.Robot(sim,2)==null,"robot index counts warriors in placement order");
+        Assert(new TutorialWatcher().Poll(sim,answer,1).Count==0,"robotIndex picks whose code is judged");
         var watcher=new TutorialWatcher();
         Assert(watcher.Poll(sim,answer).Count==0,"no signals before the code matches or the wave runs");
         teacher.Program=program;
         Assert(watcher.Poll(sim,answer).SequenceEqual(new[]{TutorialSignals.ProgramMatches}),"matching code raises ProgramMatches");
         sim.Start();RunWave(sim);
         var signals=watcher.Poll(sim);
-        Assert(signals.Contains(TutorialSignals.FirstKill)&&signals.Contains(TutorialSignals.WaveCleared)&&!signals.Contains(TutorialSignals.Leak),"cleared wave raises FirstKill and WaveCleared once");
+        Assert(signals.Contains(TutorialSignals.FirstKill)&&signals.Contains(TutorialSignals.FirstAttack)&&signals.Contains(TutorialSignals.WaveCleared)&&!signals.Contains(TutorialSignals.Leak),"cleared wave raises FirstKill, FirstAttack and WaveCleared once");
         Assert(watcher.Poll(sim).Count==0,"signals fire once per wave");
 
         var idle=new DefenseSimulation(Setup());Place(idle,RobotRole.Warrior);var idleWatcher=new TutorialWatcher();idleWatcher.Poll(idle);idle.Start();RunWave(idle);
         var leaked=idleWatcher.Poll(idle);
-        Assert(leaked.Contains(TutorialSignals.Leak)&&!leaked.Contains(TutorialSignals.FirstKill),"robot without code lets enemies leak (watcher polled from wave start)");
+        Assert(leaked.Contains(TutorialSignals.Leak)&&!leaked.Contains(TutorialSignals.FirstKill)&&!leaked.Contains(TutorialSignals.FirstAttack),"robot without code lets enemies leak (watcher polled from wave start)");
+        Assert(TutorialKeys.IsRuntime(TutorialKeys.Unit(0))&&TutorialKeys.IsRuntime(TutorialKeys.Range(1))&&TutorialKeys.IsRuntime(TutorialKeys.Route)&&
+            TutorialKeys.IsEditorArea("Editor.Code.Arg.4.0.1")&&TutorialKeys.IsEditorArea("Editor.Palette.Slash")&&!TutorialKeys.IsEditorArea(TutorialKeys.Hint)&&!TutorialKeys.IsRuntime(null),"tutorial key classes");
     }
     static void CheckUpgrades()
     {
@@ -216,8 +219,8 @@ static class CampaignCheck
         Assert(armed.Program==previous,"parameter shortage preserves old code");
         items.Inventory[BlockKind.Number]=12;
         items.GrantBlock(BlockKind.Attack,2);Assert(items.Inventory[BlockKind.Shot]==5,"legacy grant canonicalizes attack");
-        var method=new CodeBlock(BlockKind.Distance,"0",new CodeBlock(BlockKind.Variable,"enemy"),new CodeBlock(BlockKind.PositionX),new CodeBlock(BlockKind.PositionY));
-        Assert(DefenseProgression.Used(new[]{method}).SequenceEqual(new[]{BlockKind.Variable,BlockKind.PositionX,BlockKind.PositionY}),"method receiver not charged twice");
+        var method=new CodeBlock(BlockKind.Distance,"0",new CodeBlock(BlockKind.Variable,"enemy"),new CodeBlock(BlockKind.MyPos));
+        Assert(DefenseProgression.Used(new[]{method}).SequenceEqual(new[]{BlockKind.Variable,BlockKind.MyPos}),"method receiver not charged twice");
         itemTank=Place(items,RobotRole.Tank);items.ApplyProgram(itemTank.Id,"tank",new[]{new CodeBlock(BlockKind.Block,"0",new CodeBlock(BlockKind.NearestEnemy))});items.Start();
         stock=items.RobotAvailable(RobotRole.Tank);items.DamageRobot(itemTank.Id,10000);
         Assert(items.RobotAvailable(RobotRole.Tank)==stock&&items.Available(BlockKind.Block)==1,"destroyed robot consumed, blocks returned");

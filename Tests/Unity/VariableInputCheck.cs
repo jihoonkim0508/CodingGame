@@ -41,10 +41,9 @@ public static class VariableInputCheck
         variable = panel.Program.Blocks[1].Arguments[0].Blocks.Single();
         variable.SetText("enemy."); variable.SelectOption(1);
         Require(variable.Kind == BlockKind.Distance, "Distance selected");
-        var x = panel.Palette.Single(p => p.view.Kind == BlockKind.PositionX).view;
-        var y = panel.Palette.Single(p => p.view.Kind == BlockKind.PositionY).view;
-        Require(variable.Arguments[0].Insert(x, 0) && variable.Arguments[1].Insert(y, 0), "Method argument slots usable");
-        Require(panel.IsApplied && panel.AppliedSource.Contains("enemy.get_distance(get_pos_x(), get_pos_y())"), "Typed method compiles");
+        var position = panel.Palette.Single(p => p.view.Kind == BlockKind.MyPos).view;
+        Require(variable.Arguments.Count == 1 && variable.Arguments[0].Insert(position, 0), "Method argument slot usable");
+        Require(panel.IsApplied && panel.AppliedSource.Contains("enemy.distance(get_my_pos())"), "Typed method compiles");
         Require(new SerializedObject(Ref<CommandBlockShape>(variable, "shape")).FindProperty("slot").enumValueIndex == (int)BlockSlotKind.Value, "Returning method has round value shape");
         variable.SetText("enemy");
         Require(variable.Kind == BlockKind.Variable && !Ref<GameObject>(variable, "methodArguments").activeSelf, "Backspace restores plain reference");

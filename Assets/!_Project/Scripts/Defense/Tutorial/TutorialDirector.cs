@@ -1,36 +1,50 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 namespace CodingGame.Defense
 {
+    // Runs the TutorialSequence for the current stage/wave: shows each step's dialogue, limits input through the bridge,
+    // and advances on the next button or on signals from the game (ReportSuccess) and the simulation (TutorialWatcher).
     public sealed class TutorialDirector : MonoBehaviour
     {
         [SerializeField] DefenseBattle battle;
         [SerializeField] TutorialInputBridge bridge;
         [SerializeField] TutorialDialogueView view;
+        // ponytail: optional until the scene wires them (W3); without them arrows are skipped and system lines use the dialogue box.
+        [SerializeField] TutorialPointer pointer;
+        [SerializeField] TutorialSystemAlert alert;
         [SerializeField] TutorialSequence[] sequences = Array.Empty<TutorialSequence>();
-        [SerializeField] StageOneTutorial stageOne;
+        readonly TutorialWatcher watcher = new TutorialWatcher();
         readonly HashSet<string> launched = new HashSet<string>();
         readonly HashSet<TutorialSequence> rejected = new HashSet<TutorialSequence>();
         readonly HashSet<string> duplicateEntries = new HashSet<string>();
         readonly HashSet<string> visitedText = new HashSet<string>();
         readonly HashSet<string> completedStep = new HashSet<string>();
+        // Signals seen during the current wave; Poll and ReportSuccess say each one once, trigger steps may come later.
+        readonly HashSet<string> signals = new HashSet<string>();
+        int signalWave = -1;
         TutorialSequence active;
         DefenseSimulation session;
         int viewedStep, viewedText, progressStep;
-        bool initialized;
-        public bool StageOneEnabled => stageOne;
-        bool StageOneActive => stageOne && stageOne.Active;
-        public bool IsActive => StageOneActive || active && view && view.IsVisible;
+        float stepEntered, targetsLostAt = -1;
+        bool targetsSeen;
+        string shownText;
+        bool initialized, bannerUp;
+        // Waiting for a trigger hides the dialogue and leaves the game free; a system banner still holds input.
+        public bool IsActive => active && view && (view.IsVisible || bannerUp);
         public bool BlocksGameplayInput => IsActive && InputLimited;
         public bool BlocksPreview => BlocksGameplayInput && !AllowPreview;
         // Tutorial off, idle, or with input limiting disabled in the developer options.
         bool Unrestricted => !initialized || !IsActive || !InputLimited;
         bool InputLimited => !battle || battle.Simulation == null || battle.Simulation.Options.tutorialInput;
-        public bool PauseBattle => StageOneActive ? stageOne.Pause : IsActive && bridge && bridge.PauseBattle;
-        public bool AllowPreview => StageOneActive ? stageOne.Preview : IsActive && bridge && bridge.AllowPreview;
+        public bool PauseBattle => IsActive && bridge && bridge.PauseBattle;
+        public bool AllowPreview => IsActive && bridge && bridge.AllowPreview;
+        public IReadOnlyList<TutorialSequence> Sequences => sequences;
+        TutorialStep Current => active && progressStep < active.steps.Length ? active.steps[progressStep] : null;
+        DefenseCodeEditor Editor => battle.CodeEditor;
 
         void Start()
         {
@@ -38,8 +52,8 @@ namespace CodingGame.Defense
             try
             {
                 bridge.Initialize(this); bridge.Completed += CompleteAction;
+                bridge.SetEditorAreas((key, corners) => Editor && Editor.TryGetTutorialCorners(key, corners));
                 view.Initialize(PreviousText, NextText);
-                if (stageOne) stageOne.Initialize();
                 session = battle.Simulation;
                 initialized = true;
             }
@@ -59,22 +73,16 @@ namespace CodingGame.Defense
             if (!initialized) return;
             bridge.SetInputLimited(InputLimited);
             if (battle.Simulation != null && !battle.Simulation.Options.tutorial) { Finish(); return; }
-            if (stageOne && stageOne.OwnsSession) return;
             if (session != battle.Simulation)
             {
                 Finish(); session = battle.Simulation; launched.Clear(); rejected.Clear(); duplicateEntries.Clear(); visitedText.Clear(); completedStep.Clear();
             }
-            if (active)
-            {
-                var current = progressStep < active.steps.Length ? active.steps[progressStep] : null;
-                if (current != null && !(current.kind == TutorialStepKind.ActionGuide && completedStep.Contains(current.stepId)) && !bridge.TargetsAvailable(current))
-                {
-                    Debug.LogError($"튜토리얼 중단 [{active.sequenceId}/{current.stepId}]: 대상이 사라졌습니다.", active);
-                    Finish();
-                }
-                return;
-            }
             if (session == null) return;
+            if (session.WaveIndex != signalWave) { signals.Clear(); signalWave = session.WaveIndex; }
+            var step = Current;
+            foreach (var signal in watcher.Poll(session, step != null && step.completionSignal == TutorialSignals.ProgramMatches ? step.expectedCode : null, step?.robotIndex ?? 0))
+                Signal(signal);
+            if (active) { Tick(); return; }
             var phase = EntryPhase(session.Phase);
             if (phase == null) return;
             var matches = sequences.Where(s => s && s.enabled && s.stage == battle.Stage && s.wave == session.WaveIndex + 1 && s.entryPhase == phase).ToArray();
@@ -87,6 +95,58 @@ namespace CodingGame.Defense
             if (matches.Length == 0 || rejected.Contains(matches[0]) || launched.Contains(matches[0].sequenceId)) return;
             if (!Validate(matches[0])) { rejected.Add(matches[0]); return; }
             Begin(matches[0]);
+        }
+
+        void Tick()
+        {
+            var step = Current;
+            if (step == null) return;
+            if (step.completionSignal == TutorialSignals.ConditionBuilt && Editor &&
+                Editor.LooseExpressions().Any(text => Same(text, step.expectedCode))) Signal(TutorialSignals.ConditionBuilt);
+            if (Current != step) return;
+            if (!Triggered(step))
+            {
+                // No leak before the wave ended: a "show on leak" line never comes, so move on (WaveCleared steps still show).
+                if (signals.Contains(TutorialSignals.WaveCleared)) { Enter(progressStep + 1); return; }
+                Hide(); return;
+            }
+            if (!view.IsVisible && !bannerUp) { ShowText(true); return; }
+            // The banner faded: same as pressing next (ShowText resets bannerUp for the following line).
+            if (bannerUp && alert && !alert.IsShowing) { NextText(); return; }
+            UpdatePointer(step);
+            // Reading an earlier line turns the step's actions off, so its targets (the robot menu) hide; that is not a loss.
+            if (step.kind != TutorialStepKind.ActionGuide || completedStep.Contains(step.stepId) || viewedStep != progressStep)
+            { targetsLostAt = -1; return; }
+            // Targets such as the robot menu appear a frame after the step starts; only a target that was there and stays gone ends the tutorial.
+            if (bridge.TargetsAvailable(step)) { targetsSeen = true; targetsLostAt = -1; }
+            else if (targetsSeen && targetsLostAt < 0) targetsLostAt = Time.unscaledTime;
+            else if (targetsSeen && Time.unscaledTime - targetsLostAt > 1)
+            {
+                Debug.LogError($"튜토리얼 중단 [{active.sequenceId}/{step.stepId}]: 대상이 사라졌습니다.", active);
+                Finish();
+            }
+        }
+
+        static bool Same(string a, string b) => Regex.Replace(a ?? "", @"\s", "") == Regex.Replace(b ?? "", @"\s", "");
+        bool Triggered(TutorialStep step) => string.IsNullOrWhiteSpace(step.trigger) || signals.Contains(step.trigger);
+
+        // A signal from the game or the watcher: remember it for trigger steps and complete an action step waiting on it.
+        void Signal(string signal)
+        {
+            signals.Add(signal);
+            var step = Current;
+            if (step != null && step.kind == TutorialStepKind.ActionGuide && step.completionMode == TutorialCompletionMode.ExternalSignal &&
+                step.completionSignal == signal && viewedStep == progressStep && Triggered(step)) CompleteAction(step);
+        }
+
+        void UpdatePointer(TutorialStep step)
+        {
+            if (!pointer) return;
+            Rect area = default; string chosen = null;
+            bool show = viewedStep == progressStep && !completedStep.Contains(step.stepId) && !string.IsNullOrWhiteSpace(step.pointerKey) &&
+                Time.unscaledTime - stepEntered >= step.pointerDelay && bridge.TryGetArea(step.pointerKey, out area, out chosen);
+            // The slot under a code line is pointed at from below; from above the arrow would cover that line.
+            if (show) pointer.Show(area, chosen.Contains(".After.")); else pointer.Hide();
         }
 
         static TutorialEntryPhase? EntryPhase(BattlePhase phase)
@@ -110,9 +170,11 @@ namespace CodingGame.Defense
                     step.texts.Any(t => t == null || string.IsNullOrWhiteSpace(t.textId))) return Invalid(sequence, "단계/대사 ID와 문장을 확인하세요.");
                 if (step.texts.Select(t => t.textId).Distinct().Count() != step.texts.Length)
                     return Invalid(sequence, "한 단계 안에서 textId가 중복됐습니다.");
+                if (step.texts.SelectMany(t => t.focusKeys ?? Array.Empty<string>()).Any(k => !bridge.HasTarget(k)))
+                    return Invalid(sequence, $"{step.stepId}: 집중 대상 키를 Bridge에 연결하세요.");
                 if (step.kind != TutorialStepKind.ActionGuide) continue;
                 if (step.completionMode == TutorialCompletionMode.Unconfigured || step.targetKeys == null || step.targetKeys.Length == 0 ||
-                    step.targetKeys.Any(k => string.IsNullOrWhiteSpace(k) || !bridge.HasTarget(k))) return Invalid(sequence, "행동유도 조건과 대상 키를 Bridge에 연결하세요.");
+                    step.targetKeys.Any(k => string.IsNullOrWhiteSpace(k) || !bridge.HasTarget(k))) return Invalid(sequence, $"{step.stepId}: 행동유도 조건과 대상 키를 Bridge에 연결하세요.");
                 if (step.completionMode == TutorialCompletionMode.ExternalSignal && string.IsNullOrWhiteSpace(step.completionSignal))
                     return Invalid(sequence, "완료 신호를 지정하세요.");
                 if (step.completionMode == TutorialCompletionMode.DragDrop &&
@@ -129,26 +191,73 @@ namespace CodingGame.Defense
 
         void Begin(TutorialSequence sequence)
         {
-            active = sequence; launched.Add(sequence.sequenceId); progressStep = 0; viewedStep = viewedText = 0;
-            bridge.SetStep(active.steps[0]); ShowText(true);
+            // Step ids repeat across waves (A05a in 1-2 and 1-3), so completion is per sequence run.
+            active = sequence; launched.Add(sequence.sequenceId); shownText = null; completedStep.Clear();
+            Enter(0);
+        }
+
+        // Makes step index the progress step: applies its entry effects, then shows it unless it waits for a trigger.
+        void Enter(int index)
+        {
+            if (index >= active.steps.Length) { Finish(); return; }
+            progressStep = viewedStep = index; viewedText = 0; stepEntered = Time.unscaledTime;
+            targetsSeen = false; targetsLostAt = -1;
+            if (pointer) pointer.Hide();
+            var step = active.steps[index];
+            ApplyEntry(step);
+            bridge.SetStep(step, true);
+            if (Triggered(step)) ShowText(true); else Hide();
+        }
+
+        void ApplyEntry(TutorialStep step)
+        {
+            if (!Editor) return;
+            var robot = TutorialWatcher.Robot(session, step.robotIndex);
+            if (step.closeEditor) Editor.Close(false);
+            if (step.clearProgram && robot != null) Editor.ClearRobotProgram(robot.Id);
+            if (step.openEditor && robot != null) { Editor.Close(false); Editor.Open(robot.Id); }
+            Editor.SetHint(step.hintCode);
         }
 
         string TextKey(TutorialStep step, TutorialText text) => active.sequenceId + "/" + step.stepId + "/" + text.textId;
+        // Backticked code names in the script show in the code colour.
+        static string Code(string text) => Regex.Replace(text ?? "", "`([^`]+)`", "<color=#6FFFD2>$1</color>");
+
         void ShowText(bool firstVisit)
         {
             var step = active.steps[viewedStep]; var text = step.texts[viewedText];
-            string key = TextKey(step,text); bool animate = firstVisit && !visitedText.Contains(key);
-            visitedText.Add(key);
+            string key = TextKey(step,text);
+            // The second half of a two-step action repeats the same line; do not type it again.
+            bool animate = firstVisit && !visitedText.Contains(key) && text.text != shownText;
+            visitedText.Add(key); shownText = text.text;
             bridge.SetStep(active.steps[progressStep], viewedStep == progressStep);
-            view.Show(active, step.dialoguePosition, text.text, animate, text.speaker);
+            var focus = text.focusKeys ?? Array.Empty<string>();
+            if (Editor) foreach (var target in focus) Editor.RevealPalette(target);
+            bridge.SetFocus(focus);
+            bool system = alert && text.speaker == TutorialSignals.SystemSpeaker;
+            if (system)
+            {
+                view.Hide(); alert.Show(text.text); bannerUp = true;
+                return;
+            }
+            bannerUp = false;
+            view.Show(active, step.dialoguePosition, Code(text.text), animate, text.speaker);
             bool previous = viewedStep > 0 || viewedText > 0;
             bool next = viewedText + 1 < step.texts.Length || viewedStep < progressStep || step.kind != TutorialStepKind.ActionGuide || completedStep.Contains(step.stepId);
             view.SetNavigation(previous,next);
         }
 
+        // Waiting for a trigger: no dialogue, no spotlight, no click blocking until the signal comes.
+        void Hide()
+        {
+            if (view.IsVisible) view.Hide();
+            bannerUp = false;
+            bridge.SetStep(null);
+            if (pointer) pointer.Hide();
+        }
+
         void PreviousText()
         {
-            if (StageOneActive) { stageOne.Previous(); return; }
             if (!IsActive) return;
             if (view.IsTyping) view.FinishTyping();
             if (viewedText > 0) viewedText--;
@@ -159,42 +268,46 @@ namespace CodingGame.Defense
 
         void NextText()
         {
-            if (StageOneActive) { stageOne.Next(); return; }
-            if (!IsActive) return;
+            if (!IsActive || bannerUp && alert && alert.IsShowing) return;
             if (view.IsTyping) { view.FinishTyping(); return; }
             var step = active.steps[viewedStep];
             if (viewedText + 1 < step.texts.Length) { viewedText++; ShowText(true); return; }
             if (viewedStep < progressStep) { viewedStep++; viewedText = 0; ShowText(!visitedText.Contains(TextKey(active.steps[viewedStep],active.steps[viewedStep].texts[0]))); return; }
             if (viewedStep != progressStep || step.kind == TutorialStepKind.ActionGuide && !completedStep.Contains(step.stepId)) return;
-            progressStep++;
-            if (progressStep >= active.steps.Length) { Finish(); return; }
-            viewedStep = progressStep; viewedText = 0; bridge.SetStep(active.steps[progressStep]); ShowText(true);
+            Enter(progressStep + 1);
         }
 
         void CompleteAction(TutorialStep step)
         {
             if (!active || progressStep >= active.steps.Length || active.steps[progressStep] != step || !completedStep.Add(step.stepId)) return;
-            progressStep++;
-            if (progressStep >= active.steps.Length) { Finish(); return; }
-            viewedStep = progressStep; viewedText = 0;
-            ShowText(true);
+            Enter(progressStep + 1);
         }
 
-        public bool CanPerformAction(string key) => Unrestricted || (StageOneActive ? stageOne.Allows(key) : bridge.CanPerformAction(key, null));
+        public bool CanPerformAction(string key) => Unrestricted || bridge.CanPerformAction(key, null);
         public bool AllowsWorldPoint(Vector3 point) => Unrestricted || bridge.AllowsWorldPoint(point);
         public bool AllowsRobotChoice(int index) => Unrestricted || bridge.AllowsRobotChoice(index);
-        public void ReportSuccess(string key,string signal,GameObject target=null) { if (initialized) bridge.ReportSuccess(key,signal,target); }
+        public void ReportSuccess(string key, string signal, GameObject target = null)
+        {
+            if (!initialized) return;
+            // Game signals count for trigger steps even when the bridge ignores the click itself.
+            if (signal != TutorialSignals.TargetClicked) signals.Add(signal);
+            bridge.ReportSuccess(key, signal, target);
+        }
         public void ReportWorldSuccess(Vector3 point,string signal) { if (initialized) bridge.ReportWorldSuccess(point,signal); }
         public void ReportDrop(RectTransform source, RectTransform destination, string signal) { if (initialized) bridge.ReportDrop(source,destination,signal); }
-        public void RegisterWorldTarget(string key, GameObject owner, Bounds bounds)
-        { if (initialized && bridge.HasRuntimeTarget(key)) bridge.RegisterWorldTarget(key,owner,bounds); }
+        public void RegisterWorldTarget(string key, GameObject owner, Bounds bounds, bool round = false) => RegisterWorldTarget(key, owner, new[] { bounds }, round);
+        public void RegisterWorldTarget(string key, GameObject owner, Bounds[] parts, bool round = false)
+        { if (initialized && bridge.HasRuntimeTarget(key)) bridge.RegisterWorldTarget(key,owner,parts,round); }
         public void UnregisterRuntimeTarget(string key, GameObject owner) { if (initialized) bridge.UnregisterRuntimeTarget(key,owner); }
 
         void Finish()
         {
-            active = null; progressStep = viewedStep = viewedText = 0;
+            active = null; progressStep = viewedStep = viewedText = 0; bannerUp = false; shownText = null;
             if (bridge) bridge.SetStep(null);
             if (view) view.Hide();
+            if (alert) alert.Hide();
+            if (pointer) pointer.Hide();
+            if (initialized && Editor) Editor.SetHint(null);
         }
 
         #if UNITY_EDITOR
@@ -202,7 +315,6 @@ namespace CodingGame.Defense
         public TutorialStep EditorStep => active && viewedStep < active.steps.Length ? active.steps[viewedStep] : null;
         public TutorialInputBridge EditorBridge => bridge;
         public TutorialDialogueView EditorView => view;
-        public StageOneTutorial EditorStageOne => stageOne;
         public void EditorStop() { Finish(); if(editorSequence) Destroy(editorSequence); editorSequence=null; }
         public void EditorPrevious() => PreviousText();
         public void EditorNext() => NextText();
@@ -213,7 +325,8 @@ namespace CodingGame.Defense
             if (!Validate(sequence,true)) throw new InvalidOperationException("시퀀스 설정 오류: Unity Console 확인");
             if (!bridge.TargetsAvailable(sequence.steps[step])) throw new InvalidOperationException("현재 step의 선행 대상이 없습니다.");
             EditorStop(); editorSequence=Instantiate(sequence); active=editorSequence; session=battle.Simulation;
-            progressStep=viewedStep=step; viewedText=0; visitedText.Clear(); completedStep.Clear(); ShowText(true);
+            launched.Add(sequence.sequenceId); visitedText.Clear(); completedStep.Clear(); shownText=null;
+            Enter(step);
         }
 #endif
         void OnDestroy() { if (bridge) bridge.Completed -= CompleteAction;

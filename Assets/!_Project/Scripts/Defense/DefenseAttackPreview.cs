@@ -101,7 +101,7 @@ namespace CodingGame.Defense
             ClearActors(); source = selected.Program; emptyElapsed = 0;
             sourceLevel = selected.Level;
             var setup = new BattleSetup {
-                StageOneLearning = battle.Simulation.Setup.StageOneLearning, TestOptions = battle.Simulation.Options,
+                TestOptions = battle.Simulation.Options,
                 Min = new Point(-50,-50), Max = new Point(50,50), BaseHealth = 100,
                 Routes = new[] { new Route(new[] { new Point(2,0), new Point(-20,0) }, 1.2f) },
                 Waves = new[] { new[] { new SpawnGroup { Enemy = HarmlessEnemy(), Count = 3, Interval = .7f } } }
@@ -113,8 +113,6 @@ namespace CodingGame.Defense
             if (bot == null) throw new InvalidOperationException(error);
             bot.Level = selected.Level;
             if (bot.Health.HasValue) bot.Health = bot.MaxHealth;
-            bot.RangeSetting = selected.RangeSetting;
-            bot.DamageSetting = selected.DamageSetting;
             if (source != null) simulation.ApplyProgram(bot.Id, source.Name, source.CopyBlocks());
             AddView(bot.Id, battle.RobotDefinition(bot.DefinitionIndex).prefab);
             rangeRing.Show(World(bot.Position), bot.Range, battle.RobotDefinition(bot.DefinitionIndex).color);
@@ -162,12 +160,25 @@ namespace CodingGame.Defense
                     bot.AutoExecute = false;
                 }
             }
-            bool wasEmpty = simulation.RemainingEnemies == 0;
+            bool wasOver = DemoOver;
             simulation.Advance(dt);
-            if (simulation.RemainingEnemies > 0) { emptyElapsed = 0; return; }
-            // 마지막 적이 사라진 뒤 실제 시간으로 1초를 기다립니다. 전투 시계가 멈춰도 재시작합니다.
-            if (wasEmpty) emptyElapsed += dt;
+            if (!DemoOver) { emptyElapsed = 0; return; }
+            // 때릴 수 있는 적이 없어진 뒤 실제 시간으로 1초를 기다립니다. 전투 시계가 멈춰도 재시작합니다.
+            if (wasOver) emptyElapsed += dt;
             if (emptyElapsed + .000001f >= 1) ResetPreview();
+        }
+        // Nothing left to hit: every enemy has spawned and none is in range or still ahead of the robot
+        // (the demo route runs from +x to -x, so an enemy past the robot's x can never come back into range).
+        bool DemoOver
+        {
+            get
+            {
+                var bot = simulation.Robots.FirstOrDefault();
+                if (bot == null || simulation.RemainingEnemies == 0) return true;
+                if (simulation.RemainingEnemies > simulation.Enemies.Count(e => e.Active)) return false;
+                return !simulation.Enemies.Any(e => e.Active &&
+                    (e.Position.X >= bot.Position.X || Point.DistanceSquared(e.Position, bot.Position) <= bot.Range * bot.Range));
+            }
         }
         void Update()
         {
@@ -207,7 +218,7 @@ namespace CodingGame.Defense
         }
         void RefreshStatus()
         {
-            if (simulation.RemainingEnemies == 0) { status.text = $"시연 완료 · {Math.Max(0,1-emptyElapsed):0.0}s 후 다시 시작"; return; }
+            if (DemoOver) { status.text = $"시연 완료 · {Math.Max(0,1-emptyElapsed):0.0}s 후 다시 시작"; return; }
             var bot = simulation.Robots.FirstOrDefault();
             if (bot == null) { status.text = "시연 종료"; return; }
             var program = bot.Program;

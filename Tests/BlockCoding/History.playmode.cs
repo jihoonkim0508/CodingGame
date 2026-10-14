@@ -50,6 +50,7 @@ try
     panel.Program.PlaceFree(panel.Program.Blocks[0], position);
     panel.Undo(); Check(panel.Program.Blocks[0].Rect.anchoredPosition == new UnityEngine.Vector2(24, -24), "undo move");
     panel.Redo(); Check(panel.Program.Blocks[0].Rect.anchoredPosition == position, "redo move");
+    panel.Undo(); // back on the start anchor so the restored program compiles
     panel.ClearProgram(); panel.Undo();
     Check(panel.IsApplied && battle.Simulation.Available(shotKind) == 2, "undo applies and reserves exactly once");
     panel.Undo(); panel.FunctionName = "changed_name";

@@ -26,9 +26,9 @@ namespace CodingGame.BlockCoding
         public CommandCodingPanel Panel { get; private set; }
         public CommandDropZone Owner { get; private set; }
         public bool IsPalette { get; private set; }
-        static readonly string[] Methods = { "get_distance(", "hp" };
+        static readonly string[] Methods = { "distance(", "hp" };
         bool HasDot => kind == BlockKind.Variable && input && input.text.EndsWith(".", StringComparison.Ordinal);
-        // Dropdown after `name.`: 1 = get_distance(x, y), 2 = the read-only hp property.
+        // Dropdown after `name.`: 1 = distance(position), 2 = the read-only hp property.
         public BlockKind Kind => !HasDot ? kind : dropdown.value == 1 ? BlockKind.Distance : dropdown.value == 2 ? BlockKind.Hp : kind;
         public BlockKind BaseKind => kind;
         public CommandDropZone Body => body;

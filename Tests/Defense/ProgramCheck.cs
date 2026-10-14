@@ -159,12 +159,12 @@ static class ProgramCheck
 
         sim=Make();robot=Bot(sim);
         var declaration=new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy));
-        var distance=new CodeBlock(BlockKind.Distance,"0",new CodeBlock(BlockKind.Variable,"enemy"),new CodeBlock(BlockKind.PositionX),new CodeBlock(BlockKind.PositionY));
+        var distance=new CodeBlock(BlockKind.Distance,"0",new CodeBlock(BlockKind.Variable,"enemy"),new CodeBlock(BlockKind.MyPos));
         condition=new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,"<",distance,N("6")));
         condition.Body.Add(new CodeBlock(BlockKind.Attack,"0",new CodeBlock(BlockKind.Variable,"enemy")));
         sim.ApplyProgram(robot.Id,"targeted",new[]{declaration,condition,new CodeBlock(BlockKind.Wait,"0",N("100"))});sim.Start();Tick(sim,10);
         Assert(robot.Executions==1&&robot.Program.Fault==null,"enemy variables, distances, coordinates and targeted attack execute");
-        // 본문과 매개변수를 모두 세되 get_distance()의 수신자는 변수 아이템 하나로 취급합니다.
+        // 본문과 매개변수를 모두 세되 distance()의 수신자는 변수 아이템 하나로 취급합니다.
         var used = DefenseProgression.Used(robot.Program.CopyBlocks()).ToArray();
         Assert(Enum.GetValues(typeof(BlockKind)).Cast<BlockKind>().All(kind => robot.Program.BlockCount(kind)==used.Count(k=>k==DefenseProgression.Canonical(kind))),
             "cached counts match nested bodies, parameters and canonical aliases");
@@ -176,6 +176,12 @@ static class ProgramCheck
         healthy.Body.Add(new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"enemy")));
         hpSim.ApplyProgram(hpBot.Id,"hp",new[]{new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)),healthy,new CodeBlock(BlockKind.Wait,"0",N("100"))});hpSim.Start();Tick(hpSim,10);
         Assert(hpBot.Executions==1&&hpBot.Program.Fault==null&&hpBot.Program.Source.Contains("enemy.hp > 9999"),"enemy.hp reads the live target health");
+        var rangeSim=Make();var rangeBot=Bot(rangeSim);
+        // Equal to the robot's own range: true, so the attack runs. One above: false.
+        CodeBlock InRange(string op)=>new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,op,new CodeBlock(BlockKind.MyAttackRange),N(rangeBot.Range.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+        var inRange=InRange("==");inRange.Body.Add(new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.NearestEnemy)));
+        rangeSim.ApplyProgram(rangeBot.Id,"range",new[]{inRange,new CodeBlock(BlockKind.Wait,"0",N("100"))});rangeSim.Start();Tick(rangeSim,10);
+        Assert(rangeBot.Executions==1&&rangeBot.Program.Fault==null&&rangeBot.Program.Source.Contains("my_attack_range() == ")&&rangeSim.Enemies.Single().Health<10000,"my_attack_range() reads the robot's range");
         sim.ApplyProgram(robot.Id,"invalid_wait",new[]{new CodeBlock(BlockKind.Wait,"0",N("-1"))});Tick(sim,1);
         Assert(robot.Program.Fault!=null&&sim.Phase==BattlePhase.Running,"runtime diagnostic stops only offending program");
         sim.RestoreAutomatic(robot.Id);Assert(robot.Program==null&&robot.AutoExecute&&robot.Action==RobotAction.Slash,"restore native automatic mode");

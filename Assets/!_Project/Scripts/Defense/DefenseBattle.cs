@@ -77,6 +77,8 @@ namespace CodingGame.Defense
         public float BattleSpeed { get; private set; } = 1;
         public string StatusMessage { get; private set; }
         public TutorialDirector Tutorial => tutorial;
+        public DefenseCodeEditor CodeEditor => codeEditor;
+        int tutorialUnits;
         public bool TutorialBlocksInput => tutorial && tutorial.BlocksGameplayInput;
         public bool TutorialBlocksPreview => tutorial && tutorial.BlocksPreview;
         public bool CanShowRobotActions => Simulation != null && Simulation.CanPrepare && !DeveloperMode && !HelpOpen && !codeEditor.IsOpen && !inventoryUI.IsOpen &&
@@ -138,7 +140,7 @@ namespace CodingGame.Defense
             if (selectedStage < 1 || selectedStage > content.stages.Length) throw new ArgumentException("스테이지 범위 오류");
             var bounds=deploymentArea.bounds;
             return new BattleSetup {
-                PlayerFlow=true, Stage=selectedStage, StageOneLearning=tutorial && tutorial.StageOneEnabled && selectedStage==1, BaseHealth=content.baseHealth, RobotLimit=content.robotLimit,
+                PlayerFlow=true, Stage=selectedStage, BaseHealth=content.baseHealth, RobotLimit=content.robotLimit,
                 WaveSeconds=content.stages[selectedStage-1].waveSeconds,
                 RulesConfig=JsonUtility.FromJson<DefenseBalanceRules>(JsonUtility.ToJson(content.rules)),
                 Progression=content.progression.Copy(),
@@ -298,7 +300,8 @@ namespace CodingGame.Defense
             if (bot == null) { RejectPlacement(index, error); return false; }
             var view = Instantiate(robots[index].prefab, DefenseViews.World(bot.Position), Quaternion.identity, actorsRoot);
             robotViews.Add(bot.Id, view);
-            selected = bot.Id; HidePlacement();
+            // The tutorial asks the player to click the new robot next, so its range and menu stay hidden until then.
+            selected = TutorialBlocksInput ? 0 : bot.Id; HidePlacement();
             RegisterSelectedRobot(bot, view);
             Tell(robots[index].displayName + " 배치 완료 · 개발 버튼으로 코드 작성");
             SyncViews(0); RefreshHUD();
@@ -309,14 +312,15 @@ namespace CodingGame.Defense
         public void SelectRobot(int id)
         {
             if (!robotViews.TryGetValue(id, out var view) || !view) return;
-            string key = TutorialAllows("Robot.Selected") ? "Robot.Selected" : "Battle.SelectRobot";
+            string unit = TutorialKeys.Unit(Simulation.Robots.OrderBy(r => r.Id).ToList().FindIndex(r => r.Id == id));
+            string key = TutorialAllows(unit) ? unit : TutorialAllows("Robot.Selected") ? "Robot.Selected" : "Battle.SelectRobot";
             if (!TutorialAllows(key)) return;
             var robot = Simulation.FindRobot(id);
             if (robot == null) return;
             selected = id; HidePlacement();
             RegisterSelectedRobot(robot, view);
             RefreshHUD();
-            tutorial?.ReportSuccess(key, "TargetClicked", key == "Robot.Selected" ? view.gameObject : null);
+            tutorial?.ReportSuccess(key, "TargetClicked", key == "Battle.SelectRobot" ? null : view.gameObject);
         }
         void RegisterSelectedRobot(RobotState robot, DefenseActorView view)
         {
@@ -403,6 +407,7 @@ namespace CodingGame.Defense
             Simulation.Advance(tutorial && tutorial.PauseBattle ? 0 : UnityEngine.Time.deltaTime * BattleSpeed);
             float elapsed = (float)(Simulation.Time - previous);
             SyncViews(elapsed);
+            SyncTutorialTargets();
             hitEffects.Tick(Simulation.Phase == BattlePhase.Paused ? 0 :
                 Simulation.Phase == BattlePhase.Running ? elapsed : UnityEngine.Time.deltaTime * BattleSpeed);
             foreach (var evt in Simulation.Events)
@@ -439,6 +444,48 @@ namespace CodingGame.Defense
             var plane = new Plane(Vector3.up, Vector3.zero);
             if (plane.Raycast(ray, out float distance)) { point = ray.GetPoint(distance); return true; }
             point = default; return false;
+        }
+        // Tutorial world targets: Robot.Unit.N / Robot.Range.N for each robot in id order, Battle.Route for the routes in use.
+        void SyncTutorialTargets()
+        {
+            if (!tutorial) return;
+            var bots = Simulation.Robots.OrderBy(r => r.Id).ToList();
+            for (int i = 0; i < bots.Count; i++)
+            {
+                if (!robotViews.TryGetValue(bots[i].Id, out var view) || !view) continue;
+                float radius = bots[i].Spec.radius, range = bots[i].Range;
+                tutorial.RegisterWorldTarget(TutorialKeys.Unit(i), view.gameObject,
+                    new Bounds(DefenseViews.World(bots[i].Position, .65f), new Vector3(radius * 2.5f, 1.5f, radius * 2.5f)));
+                tutorial.RegisterWorldTarget(TutorialKeys.Range(i), view.gameObject,
+                    new Bounds(DefenseViews.World(bots[i].Position), new Vector3(range * 2, .1f, range * 2)), true);
+            }
+            for (int i = bots.Count; i < tutorialUnits; i++)
+            { tutorial.UnregisterRuntimeTarget(TutorialKeys.Unit(i), null); tutorial.UnregisterRuntimeTarget(TutorialKeys.Range(i), null); }
+            tutorialUnits = bots.Count;
+            // One part per straight road segment so the spotlight follows the road instead of boxing the whole map.
+            var route = new List<Bounds>();
+            for (int i = 0; i < Simulation.Setup.Routes.Length; i++)
+            {
+                if (!Simulation.RouteInUse(i)) continue;
+                // The painted road is narrower than the walkable width (spotlight padding adds the rest); the spawn end lies off the map, so clip to it.
+                var path = Simulation.Setup.Routes[i]; var width = Vector3.one * path.HalfWidth;
+                var min = DefenseViews.World(Simulation.Setup.Min); var max = DefenseViews.World(Simulation.Setup.Max);
+                for (int p = 1; p < path.Points.Length; p++)
+                {
+                    // Cell-long pieces: a long segment seen in perspective would leave a wide wedge in one screen rect.
+                    Vector3 from = DefenseViews.World(path.Points[p - 1]), to = DefenseViews.World(path.Points[p]);
+                    int pieces = Mathf.Max(1, Mathf.CeilToInt(Vector3.Distance(from, to) / (path.HalfWidth * 2)));
+                    for (int k = 0; k < pieces; k++)
+                    {
+                        var b = new Bounds(Vector3.Lerp(from, to, k / (float)pieces), width);
+                        b.Encapsulate(new Bounds(Vector3.Lerp(from, to, (k + 1) / (float)pieces), width));
+                        b.SetMinMax(new Vector3(Mathf.Max(b.min.x, min.x), 0, Mathf.Max(b.min.z, min.z)), new Vector3(Mathf.Min(b.max.x, max.x), .1f, Mathf.Min(b.max.z, max.z)));
+                        if (b.size.x > 0 && b.size.z > 0) route.Add(b);
+                    }
+                }
+            }
+            if (route.Count > 0) tutorial.RegisterWorldTarget(TutorialKeys.Route, gameObject, route.ToArray());
+            else tutorial.UnregisterRuntimeTarget(TutorialKeys.Route, null);
         }
         void SyncViews(float elapsed)
         {

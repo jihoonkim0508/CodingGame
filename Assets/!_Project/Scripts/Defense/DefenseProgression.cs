@@ -95,6 +95,7 @@ namespace CodingGame.Defense
                 case BlockKind.Comparison: return "<"; case BlockKind.DeclareVariable: return "variable =";
                 case BlockKind.Variable: return "variable"; case BlockKind.NearestEnemy: return "get_nearest_enemy()";
                 case BlockKind.PositionX: return "get_pos_x()"; case BlockKind.PositionY: return "get_pos_y()";
+                case BlockKind.MyAttackRange: return "my_attack_range()"; case BlockKind.MyPos: return "get_my_pos()";
                 case BlockKind.True: return "True"; case BlockKind.False: return "False";
                 default: return kind.ToString().ToLowerInvariant();
             }

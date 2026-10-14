@@ -80,6 +80,8 @@ namespace CodingGame.BlockCoding
             var roots = Roots().ToList();
             if (roots.Count == 0) return new List<CodeBlock>();
             if (roots.Count != 1) throw new FormatException("미완성 · 모든 명령 블록을 하나의 흐름으로 연결해 주세요.");
+            // The program starts at the top-left anchor; a chain parked anywhere else does not run.
+            if (!AtStart(roots[0])) throw new FormatException("미완성 · 첫 블록을 왼쪽 위 시작 위치에 붙여 주세요.");
             return Group(roots[0]).Select(b => b.Read()).ToList();
         }
         internal void Load(IReadOnlyList<CodeBlock> source)
@@ -96,6 +98,17 @@ namespace CodingGame.BlockCoding
             Refresh(); SetLayoutHorizontal();
         }
         IEnumerable<CommandBlockView> Roots() => blocks.Where(b => !next.ContainsValue(b));
+        bool AtStart(CommandBlockView root) => root.Rect.anchoredPosition == FirstPosition;
+        // The chain that runs: the one snapped to the top-left start anchor (empty when none is there).
+        public List<CommandBlockView> StartChain()
+        {
+            var root = freePlacement ? Roots().FirstOrDefault(AtStart) : null;
+            return root ? Group(root) : new List<CommandBlockView>();
+        }
+        // Chains placed away from the start anchor; they do not run.
+        public IEnumerable<CommandBlockView> LooseRoots() => freePlacement ? Roots().Where(root => !AtStart(root)) : Enumerable.Empty<CommandBlockView>();
+        // Local rect (in Rect space) where the first block snaps, sized like one statement row.
+        public Rect StartArea => new Rect(rect.rect.xMin + FirstPosition.x, rect.rect.yMax + FirstPosition.y - 40, 180, 40);
         internal void BringToFront(CommandBlockView block)
         {
             if (!freePlacement) return;
@@ -207,6 +220,8 @@ namespace CodingGame.BlockCoding
         public void Detach(CommandBlockView block, bool reconnect = false)
         {
             next.TryGetValue(block, out var following);
+            // Deleting a chain's first block keeps the rest on that start line.
+            if (reconnect && following && !next.ContainsValue(block)) following.Rect.anchoredPosition = block.Rect.anchoredPosition;
             foreach (var previous in next.Where(pair => pair.Value == block).Select(pair => pair.Key).ToArray())
                 if (reconnect && following) next[previous] = following; else next.Remove(previous);
             next.Remove(block);

@@ -32,8 +32,16 @@ static class TreeCheck
         Assert(programs["tree_loop"].Contains("for i in range(6):\n        if i < 2:"), "Nested indentation.");
         programs["tree_enemy"] = PythonTreeCompiler.Compile("tree_enemy", new[] {
             Set("enemy", nearest), Body(B(BlockKind.If, Compare("<=",
-                B(BlockKind.Distance, V("enemy"), B(BlockKind.PositionX), B(BlockKind.PositionY)), N("5"))),
+                B(BlockKind.Distance, V("enemy"), B(BlockKind.MyPos)), N("5"))),
                 B(BlockKind.Attack, V("enemy"))) });
+        programs["tree_range"] = PythonTreeCompiler.Compile("tree_range", new[] {
+            Set("enemy", nearest), Body(B(BlockKind.If, Compare("<=",
+                B(BlockKind.Distance, V("enemy"), B(BlockKind.MyPos)), B(BlockKind.MyAttackRange))),
+                B(BlockKind.Attack, V("enemy"))) });
+        Assert(programs["tree_range"].Contains("if enemy.distance(get_my_pos()) <= my_attack_range():"), "distance takes get_my_pos(); my_attack_range() is a number call.");
+        Reject(Set("enemy", nearest), B(BlockKind.Wait, B(BlockKind.Distance, V("enemy"), N("1"))));
+        Assert(PythonTreeCompiler.ExpressionText(Compare("<=", V("enemy_distance"), B(BlockKind.MyAttackRange))) == "enemy_distance <= my_attack_range()" &&
+            PythonTreeCompiler.ExpressionText(Compare("<=", V("enemy_distance"), null)) == "enemy_distance <= ", "Untyped expression text for loose condition blocks.");
         programs["tree_while"] = PythonTreeCompiler.Compile("tree_while", new[] {
             Body(B(BlockKind.While), wait, B(BlockKind.Break)) });
         Assert(programs["tree_while"].Contains("while True:"), "While must be an unconditional loop.");

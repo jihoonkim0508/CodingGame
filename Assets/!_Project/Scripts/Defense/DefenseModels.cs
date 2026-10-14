@@ -151,7 +151,6 @@ namespace CodingGame.Defense
         public int Stage;
         public int BaseHealth = 12, RobotLimit = 18;
         public bool PlayerFlow;
-        public bool StageOneLearning;
         public float WaveSeconds;
         public DefenseProgression Progression = new DefenseProgression();
         public ActionPermission[] Permissions = Array.Empty<ActionPermission>();
@@ -237,8 +236,6 @@ namespace CodingGame.Defense
         public Vector2 Position;
         public RobotSpec Spec;
         public RobotAction Action;
-        public float RangeSetting;
-        public float? DamageSetting;
         public float? Health;
         public double NextAction;
         public bool AutoExecute;
@@ -247,9 +244,9 @@ namespace CodingGame.Defense
         public int Executions, AttacksThisWave;
         public readonly List<BuffState> Buffs = new List<BuffState>();
         public DefenseProgram Program;
-        public float Range => RangeSetting * Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Range));
+        public float Range => Spec.range * Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Range));
         public float DamageMultiplier => Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Damage)) * LevelMultiplier;
-        public float Damage => (DamageSetting ?? Spec.damage) * DamageMultiplier;
+        public float Damage => Spec.damage * DamageMultiplier;
         public float Interval => Spec.interval * Buffs.Aggregate(1f, (v, b) => Math.Min(v, b.Interval));
     }
     public sealed class EnemyState

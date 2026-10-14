@@ -136,7 +136,7 @@ namespace CodingGame.Defense
             {
                 bot.Spec=robots[bot.DefinitionIndex].Copy();bot.LevelCap=Setup.RulesConfig.maxLevel;bot.UpgradeFactor=Setup.RulesConfig.upgradeMultiplier;
                 bot.Level=Math.Min(bot.Level,bot.LevelCap);bot.Health=bot.Spec.role==RobotRole.Tank?(float?)bot.MaxHealth:null;
-                bot.RangeSetting=bot.Spec.range;bot.DamageSetting=null;bot.Buffs.Clear();bot.NextAction=Time;
+                bot.Buffs.Clear();bot.NextAction=Time;
             }
             foreach(var enemy in Enemies){enemy.Spec=Setup.RulesConfig.Scale(enemies[enemy.DefinitionIndex],Setup.Stage,WaveIndex);enemy.Health=enemy.Spec.health;enemy.NextAttack=Time;}
             for(int i=0;i<authoredGroups;i++){currentWave[i].Count=Math.Max(groupCounts[i],replacement[i].Count);currentWave[i].Delay=replacement[i].Delay;currentWave[i].Interval=replacement[i].Interval;}
@@ -148,7 +148,6 @@ namespace CodingGame.Defense
         {
             if (!CanAdvanceStage) return false;
             Setup.Stage++; WaveIndex = 0;
-            if (Setup.Stage > 1) Setup.StageOneLearning = false;
             if (Setup.CampaignWaves != null) { Setup.Waves = Setup.CampaignWaves[Setup.Stage-1]; Setup.WaveSeconds = Setup.CampaignSeconds[Setup.Stage-1]; } BaseHealth = Setup.BaseHealth;
             nextWave = null; carry.Clear(); WaveSurvivors.Clear(); LastSurvivors = 0; LastWaveTimedOut = false;
             PrepareWave(); ResetPrograms(); Phase = BattlePhase.Ready; return true;
@@ -239,7 +238,7 @@ namespace CodingGame.Defense
             if (error != null) {Events.Add(new CombatEvent{Kind="placement-failed",Reason=error,Target=definitionIndex,Position=point});return null;}
             var bot = new RobotState { Id = nextId++, DefinitionIndex = definitionIndex, Position = point, Spec = spec.Copy(),
                 LevelCap = Setup.RulesConfig.maxLevel, UpgradeFactor = Setup.RulesConfig.upgradeMultiplier,
-                RangeSetting = spec.range, Action = spec.NativeAction, Health = spec.role == RobotRole.Tank ? (float?)spec.health : null,
+                Action = spec.NativeAction, Health = spec.role == RobotRole.Tank ? (float?)spec.health : null,
                 NextAction = Time + spec.interval };
             if (Setup.PlayerFlow && Options.inventoryLimit) RobotInventory[spec.role]--;
             Robots.Add(bot); return bot;
@@ -299,14 +298,10 @@ namespace CodingGame.Defense
             var bot = FindRobot(id);
             if (bot == null || !CanEdit)
                 throw new FormatException("코드를 적용할 로봇이 없거나 전투가 종료되었습니다.");
-            if (Setup.StageOneLearning && WaveIndex < 2 && blocks.Any(b => b.Kind == BlockKind.DeclareVariable) &&
-                !DefenseProgression.Used(blocks).Any(k => PythonTreeCompiler.HasEnemyArgument(k)))
-                blocks = blocks.Concat(new[]{new CodeBlock(BlockKind.Shot)}).ToArray();
             var program = new DefenseProgram(name, blocks);
             // 문법과 재고 검증이 모두 끝난 뒤 교체해야 실패 시 이전 코드와 예약 수량이 유지됩니다.
             if (Setup.PlayerFlow) foreach (var group in DefenseProgression.Used(blocks).GroupBy(k => k))
                 if (group.Count() > Available(group.Key, id)) throw new FormatException(DefenseProgression.Label(group.Key) + " 블록 수량이 부족합니다. 다른 로봇의 예약 수량도 확인하세요.");
-            if (Setup.StageOneLearning) program.ConfigureLearning(bot);
             bot.Program = program; bot.AutoExecute = false;
             bot.BlockingEnabled = false;
             foreach (var e in Enemies) if (e.BlockedBy == id) e.BlockedBy = 0;
@@ -327,9 +322,9 @@ namespace CodingGame.Defense
             if (compatibility != ActionCompatibility.Reduced) return 0;
             return !Rules.NeedsPermission(action) ? .1f : Setup.Permissions.First(p => p.role == bot.Spec.role && p.action == action).strength;
         }
-        public float ActionDamage(RobotState bot, RobotAction action) => (bot.DamageSetting ?? Profile(bot, action).damage) * bot.DamageMultiplier * Strength(bot, action);
+        public float ActionDamage(RobotState bot, RobotAction action) => Profile(bot, action).damage * bot.DamageMultiplier * Strength(bot, action);
         public float ActionDamage(RobotState bot, RobotAction action, float distance) => ActionDamage(bot, action) *
-            (!Setup.StageOneLearning && bot.Spec.role == RobotRole.Shooter && action == RobotAction.Attack ? Rules.RangedDamageFactor(bot.Spec.range, distance) : 1f);
+            (bot.Spec.role == RobotRole.Shooter && action == RobotAction.Attack ? Rules.RangedDamageFactor(bot.Spec.range, distance) : 1f);
         public float ActionInterval(RobotState bot, RobotAction action) => Profile(bot, action).interval * (bot.Interval / bot.Spec.interval);
         public ActionResult RequestAction(int robotId, RobotAction action, int targetId = 0)
         {

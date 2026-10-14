@@ -118,27 +118,32 @@ namespace CodingGame.Defense.Editor
             if (EditorApplication.isPlaying) GameFlow.LoadScene(GameFlow.TitleScene);
         }
 
-        // Stage 1 tutorial section titles per wave (1-5), read from the same JSON the game uses.
+        // Stage 1 tutorial steps of a wave ("stepId first line"), from the TutorialSequence assets.
         public static string[] TutorialSections(int wave)
         {
-            var path = AssetDatabase.FindAssets("stage1_" + wave + "_ t:TextAsset", new[] { "Assets/!_Project/Defense/Tutorial/Stage1" })
-                .Select(AssetDatabase.GUIDToAssetPath).FirstOrDefault();
-            if (path == null) return Array.Empty<string>();
-            return StageOneContent.Read(AssetDatabase.LoadAssetAtPath<TextAsset>(path), wave).sections.Select(x => x.section_title).ToArray();
+            var sequence = StageOneSequence(wave);
+            return sequence ? sequence.steps.Select(s => s.stepId + " " + (s.texts.Length > 0 ? s.texts[0].text : "")).ToArray() : Array.Empty<string>();
         }
-        // Jumps to a Stage 1 tutorial section (0-based), starting 1-wave with the tutorial when needed.
-        public static void JumpTutorial(int wave, int section)
+        static TutorialSequence StageOneSequence(int wave) => AssetDatabase.FindAssets("t:TutorialSequence")
+            .Select(guid => AssetDatabase.LoadAssetAtPath<TutorialSequence>(AssetDatabase.GUIDToAssetPath(guid)))
+            .FirstOrDefault(s => s && s.enabled && s.stage == 1 && s.wave == wave); // skips the disabled SequenceTest sample
+        // Jumps to a Stage 1 tutorial step (0-based), starting that wave with the tutorial when needed.
+        public static void JumpTutorial(int wave, int step)
         {
-            var b = Battle; var stageOne = b && b.Tutorial ? b.Tutorial.EditorStageOne : null;
+            var b = Battle;
             if (b && b.Simulation != null && !b.Tutorial) throw new InvalidOperationException(NoTutorial);
-            if (stageOne && stageOne.EditorWave == wave) { JumpNow(b, stageOne, section); return; }
-            SessionState.SetString(RequestKey + ".jump", wave + "," + section);
+            if (b && b.Simulation != null && b.Stage == 1 && b.Simulation.WaveIndex + 1 == wave) { JumpNow(b, wave, step); return; }
+            SessionState.SetString(RequestKey + ".jump", wave + "," + step);
             PlayDefense(1, wave, true, wave > 1);
         }
-        static void JumpNow(DefenseBattle b, StageOneTutorial stageOne, int section)
+        // ponytail: places the robots earlier steps would have placed, but not the code they would have written.
+        static void JumpNow(DefenseBattle b, int wave, int step)
         {
-            if (stageOne.EditorNeedsRobot(section)) PlaceTeachingRobot(b, stageOne.EditorTeachingRole);
-            stageOne.EditorJump(section);
+            var sequence = StageOneSequence(wave);
+            if (!sequence) throw new InvalidOperationException($"1-{wave} 튜토리얼 시퀀스가 없습니다.");
+            int robots = (wave > 1 ? 1 : 0) + sequence.steps.Take(step).Count(s => s.completionSignal == TutorialSignals.RobotPlaced);
+            while (b.Simulation.Robots.Count < robots) PlaceTeachingRobot(b, RobotRole.Warrior);
+            b.Tutorial.EditorRun(sequence, step);
         }
         // Lifts the tutorial input lock just for this placement; the best route-coverage cell is used.
         static void PlaceTeachingRobot(DefenseBattle b, RobotRole role)
@@ -174,12 +179,12 @@ namespace CodingGame.Defense.Editor
             var jump = SessionState.GetString(RequestKey + ".jump", "");
             if (jump == "") return;
             if (!EditorApplication.isPlayingOrWillChangePlaymode) { SessionState.EraseString(RequestKey + ".jump"); return; }
-            var parts = jump.Split(','); int wave = int.Parse(parts[0]), section = int.Parse(parts[1]);
-            var b = Battle; var stageOne = b && b.Tutorial ? b.Tutorial.EditorStageOne : null;
+            var parts = jump.Split(','); int wave = int.Parse(parts[0]), step = int.Parse(parts[1]);
+            var b = Battle;
             if (b && b.Simulation != null && !b.Tutorial) { SessionState.EraseString(RequestKey + ".jump"); Debug.LogWarning(NoTutorial); return; }
-            if (!stageOne || stageOne.EditorWave != wave) return; // the tutorial enters the wave on its next Update
+            if (!b || b.Simulation == null || b.Stage != 1 || b.Simulation.WaveIndex + 1 != wave) return; // the session starts on a later Update
             SessionState.EraseString(RequestKey + ".jump");
-            try { JumpNow(b, stageOne, section); } catch (Exception e) { Debug.LogException(e); }
+            try { JumpNow(b, wave, step); } catch (Exception e) { Debug.LogException(e); }
         }
         static void Begin(DefenseBattle battle, int stage, int wave, bool previousStageRewards)
         {

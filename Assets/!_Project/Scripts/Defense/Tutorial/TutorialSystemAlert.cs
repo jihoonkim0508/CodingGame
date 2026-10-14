@@ -5,7 +5,7 @@ using UnityEngine;
 namespace CodingGame.Defense
 {
     // Lines spoken by "시스템" show here: a banner that plays the warning sound and fades out after a fixed time.
-    // Replaces StageOneTutorial's boot overlay (same objects: panel + CanvasGroup + AudioSource).
+    // Uses the scene's boot overlay objects (panel + CanvasGroup + AudioSource).
     public sealed class TutorialSystemAlert : MonoBehaviour
     {
         [SerializeField] GameObject panel;

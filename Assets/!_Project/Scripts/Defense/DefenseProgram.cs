@@ -32,23 +32,6 @@ namespace CodingGame.Defense
         public int BlockCount(BlockKind kind) => blockCounts.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0;
         public double WaitRemaining(double time) => Math.Max(0, wakeTime - time);
         public IReadOnlyList<CodeBlock> CopyBlocks() => blocks.Select(Clone).ToList();
-        public void ConfigureLearning(RobotState robot)
-        {
-            float? damage = null;
-            float range = robot.Spec.range;
-            foreach (var block in blocks.Where(b => b.Kind == BlockKind.DeclareVariable && b.Arguments[0].Kind == BlockKind.Number))
-            {
-                if (block.Value != "damage" && block.Value != "range") continue;
-                float setting = LearningValue(float.Parse(PythonTreeCompiler.NormalizeNumber(block.Arguments[0].Value), CultureInfo.InvariantCulture));
-                if (block.Value == "damage") damage = setting; else range = setting;
-            }
-            robot.DamageSetting = damage; robot.RangeSetting = range;
-        }
-        static float LearningValue(double value)
-        {
-            if (!(value > 0 && value <= 100)) throw new FormatException("공격력과 사거리는 0 초과 100 이하입니다.");
-            return (float)value;
-        }
         void EndInvocation() { pc = 0; invocationStarted = false; variables.Clear(); loops.Clear(); }
         public const int InstructionBudget = 64;
 
@@ -115,7 +98,7 @@ namespace CodingGame.Defense
             if (!invocationStarted)
             {
                 if (blocks.Any(TargetsEnemies) && !sim.Enemies.Any(e => e.Active &&
-                    (sim.Setup.StageOneLearning || Vector2.DistanceSquared(e.Position, robot.Position) <= robot.Range * robot.Range))) return;
+                    Vector2.DistanceSquared(e.Position, robot.Position) <= robot.Range * robot.Range)) return;
                 invocationStarted = true;
             }
             try
@@ -146,12 +129,6 @@ namespace CodingGame.Defense
                                 string name = PythonTreeCompiler.NormalizeIdentifier(block.Value);
                                 var value = Value(block.Arguments[0], sim, robot);
                                 variables[name] = value;
-                                if (sim.Setup.StageOneLearning && (name == "damage" || name == "range"))
-                                {
-                                    float setting = LearningValue(Number(value));
-                                    if (name == "damage") robot.DamageSetting = setting;
-                                    else robot.RangeSetting = setting;
-                                }
                                 pc++; break;
                             }
                             if (block.Kind == BlockKind.Wait)
@@ -172,12 +149,6 @@ namespace CodingGame.Defense
                                 { robot.LastResult = ActionResult.NoTarget; pc++; return; }
                             }
                             var result = sim.RequestAction(robot.Id, action, target);
-                            if (result == ActionResult.CoolingDown && sim.Setup.StageOneLearning)
-                            {
-                                // Recheck distance before the next attack; a moving enemy may leave the teaching condition during cooldown.
-                                EndInvocation();
-                                return;
-                            }
                             // 재사용 대기 중에는 같은 명령에서 기다리고, 실행 결과가 나오면 다음으로 이동합니다.
                             if (result != ActionResult.CoolingDown) pc++;
                             return;
@@ -215,6 +186,8 @@ namespace CodingGame.Defense
                 case BlockKind.False: return false;
                 case BlockKind.PositionX: return (double)robot.Position.X;
                 case BlockKind.PositionY: return (double)robot.Position.Y;
+                case BlockKind.MyAttackRange: return (double)robot.Range; // includes buffs, same range the attack uses
+                case BlockKind.MyPos: return robot.Position;
                 case BlockKind.Variable:
                     if (!variables.TryGetValue(PythonTreeCompiler.NormalizeIdentifier(block.Value), out var variable)) throw new FormatException("선언되지 않은 변수입니다.");
                     return variable;
@@ -223,8 +196,8 @@ namespace CodingGame.Defense
                     return new EnemyValue { Id = nearest?.Id ?? 0 };
                 case BlockKind.Distance:
                     int id = ((EnemyValue)Arg(0)).Id; var enemy = sim.Enemies.Find(e => e.Id == id && e.Active);
-                    double x = Number(Arg(1)), z = Number(Arg(2));
-                    return enemy == null ? double.PositiveInfinity : Math.Sqrt(Math.Pow(enemy.Position.X - x, 2) + Math.Pow(enemy.Position.Y - z, 2));
+                    if (!(Arg(1) is Vector2 from)) throw new FormatException("distance에는 위치(Vector2)가 필요합니다.");
+                    return enemy == null ? double.PositiveInfinity : (double)Vector2.Distance(enemy.Position, from);
                 case BlockKind.Hp:
                     int target = ((EnemyValue)Arg(0)).Id;
                     return (double)(sim.Enemies.Find(e => e.Id == target && e.Active)?.Health ?? 0); // a defeated enemy reads as 0 hp

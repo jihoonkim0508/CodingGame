@@ -34,7 +34,7 @@ namespace CodingGame.Defense
             Hide();
         }
 
-        public void Show(TutorialSequence sequence, TutorialDialoguePosition position, string text, bool animate, string speakerName = null)
+        public void Show(TutorialSequence sequence, TutorialDialoguePosition position, string text, bool animate, string speakerName)
         {
             StopTyping();
             // Mirror the authored bottom layout; retain width, height and edge spacing at any resolution.
@@ -46,7 +46,7 @@ namespace CodingGame.Defense
             panel.SetActive(true);
             portrait.sprite = sequence.speakerPortrait;
             portrait.enabled = sequence.speakerPortrait;
-            speaker.text = string.IsNullOrWhiteSpace(speakerName) ? sequence.speakerName : speakerName;
+            speaker.text = speakerName ?? "";
             stageWave.text = sequence.stage + "-" + sequence.wave;
             dialogue.text = text ?? string.Empty;
             dialogue.ForceMeshUpdate();
@@ -60,7 +60,8 @@ namespace CodingGame.Defense
             float elapsed = 0;
             while (dialogue.maxVisibleCharacters < characterCount)
             {
-                elapsed += Time.unscaledDeltaTime;
+                // One slow frame (editor opening, robot spawn) would otherwise reveal many letters at once; 0.1 s keeps low frame rates at full speed.
+                elapsed += Mathf.Min(Time.unscaledDeltaTime, .1f);
                 int count = Mathf.Min(characterCount, Mathf.FloorToInt(elapsed * charactersPerSecond) + 1);
                 dialogue.maxVisibleCharacters = count;
                 yield return null;
