@@ -72,7 +72,7 @@ namespace CodingGame.Defense.Editor
         }
 
         static List<S> OneOne() => new List<S> {
-            L("1-1.A01"), L("1-1.A02"), L("1-1.A03"), L("1-1.A04"), L("1-1.A05", Focus(Route)), L("1-1.A06", Focus(Core)),
+            L("1-1.A01"), L("1-1.A02"), L("1-1.A03"), L("1-1.A04"), L("1-1.A04a", Focus(Route)), L("1-1.A04b", Focus(Core)), L("1-1.A04c", Focus(Core)), L("1-1.A05"), L("1-1.A06"),
             L("1-1.B01", Click(TutorialKeys.RobotButton(1), s => s.Dim = true)),
             L("1-1.B02", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => s.Dim = true, Focus(Route)))),
             L("1-1.B03", Click(Unit0, s => s.Pointer = Unit0)),
@@ -177,7 +177,7 @@ namespace CodingGame.Defense.Editor
         static Dictionary<string, Line> ParseScript(string path)
         {
             var result = new Dictionary<string, Line>();
-            var pattern = new Regex(@"^\[(\d-\d\.[A-Z]\d\d)\] (?:\((?:ui|UI)로 표시\)\s*)?(\S+) : (.*)$");
+            var pattern = new Regex(@"^\[(\d-\d\.[A-Z]\d\d[a-z]?)\] (?:\((?:ui|UI)로 표시\)\s*)?(\S+) : (.*)$");
             foreach (var raw in File.ReadAllLines(path))
             {
                 var m = pattern.Match(raw);

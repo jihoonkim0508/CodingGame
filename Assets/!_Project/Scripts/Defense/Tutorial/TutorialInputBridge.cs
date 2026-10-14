@@ -31,6 +31,7 @@ namespace CodingGame.Defense
         readonly List<Rect> screenAreas = new List<Rect>();
         readonly List<Rect> visibleAreas = new List<Rect>();
         readonly List<Rect> roundAreas = new List<Rect>();
+        readonly List<Rect> cornerAreas = new List<Rect>();
         readonly List<Rect> outlinedAreas = new List<Rect>();
         readonly Dictionary<string, TutorialTargetBinding> byKey = new Dictionary<string, TutorialTargetBinding>();
         readonly Dictionary<string, RuntimeTarget> runtimeTargets = new Dictionary<string, RuntimeTarget>();
@@ -87,7 +88,7 @@ namespace CodingGame.Defense
         void RefreshAreas()
         {
             if (!spotlight) return;
-            screenAreas.Clear(); outlinedAreas.Clear(); visibleAreas.Clear(); roundAreas.Clear();
+            screenAreas.Clear(); outlinedAreas.Clear(); visibleAreas.Clear(); roundAreas.Clear(); cornerAreas.Clear();
             if (allowActions && currentStep != null)
                 foreach (var key in currentStep.targetKeys)
                 {
@@ -106,14 +107,15 @@ namespace CodingGame.Defense
                 }
             // Focus uses the same spotlight as action steps: dim everything but the holes.
             bool dim = currentStep == null || currentStep.dim || focus.Length > 0 || Acting;
-            spotlight.SetHoles(screenAreas, visibleAreas, outlinedAreas, roundAreas, currentStep?.highlightPadding ?? 0, dim);
+            spotlight.SetHoles(screenAreas, visibleAreas, outlinedAreas, roundAreas, cornerAreas, currentStep?.highlightPadding ?? 0, dim);
         }
 
-        // Areas added since start become visible holes; a single rect gets the outline, a multi-part shape (the road) does not.
+        // Areas added since start become visible holes; a single rect gets the outline, a multi-part shape (the road) gets rounded corners instead.
         void Show(int start, bool outlined)
         {
             for (int i = start; i < screenAreas.Count; i++) visibleAreas.Add(screenAreas[i]);
-            if (outlined && screenAreas.Count - start == 1) outlinedAreas.Add(screenAreas[start]);
+            if (screenAreas.Count - start > 1) cornerAreas.AddRange(screenAreas.GetRange(start, screenAreas.Count - start));
+            else if (outlined) outlinedAreas.Add(screenAreas[start]);
         }
 
         // Adds the key's spotlight-local rects and returns how many; 0 when the key is unknown, hidden or off screen.

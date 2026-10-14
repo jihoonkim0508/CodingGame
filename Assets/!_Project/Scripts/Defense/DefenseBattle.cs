@@ -467,14 +467,14 @@ namespace CodingGame.Defense
             for (int i = 0; i < Simulation.Setup.Routes.Length; i++)
             {
                 if (!Simulation.RouteInUse(i)) continue;
-                // The painted road is narrower than the walkable width (spotlight padding adds the rest); the spawn end lies off the map, so clip to it.
-                var path = Simulation.Setup.Routes[i]; var width = Vector3.one * path.HalfWidth;
+                // The painted road is narrower than the walkable width; 1.5× leaves a margin around it. The spawn end lies off the map, so clip to it.
+                var path = Simulation.Setup.Routes[i]; var width = Vector3.one * (path.HalfWidth * 1.5f);
                 var min = DefenseViews.World(Simulation.Setup.Min); var max = DefenseViews.World(Simulation.Setup.Max);
                 for (int p = 1; p < path.Points.Length; p++)
                 {
-                    // Cell-long pieces: a long segment seen in perspective would leave a wide wedge in one screen rect.
+                    // Half-cell pieces: a long segment seen in perspective would leave a wide wedge (or big steps) in screen rects.
                     Vector3 from = DefenseViews.World(path.Points[p - 1]), to = DefenseViews.World(path.Points[p]);
-                    int pieces = Mathf.Max(1, Mathf.CeilToInt(Vector3.Distance(from, to) / (path.HalfWidth * 2)));
+                    int pieces = Mathf.Max(1, Mathf.CeilToInt(Vector3.Distance(from, to) / path.HalfWidth));
                     for (int k = 0; k < pieces; k++)
                     {
                         var b = new Bounds(Vector3.Lerp(from, to, k / (float)pieces), width);

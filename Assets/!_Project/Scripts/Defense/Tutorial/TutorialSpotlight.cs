@@ -12,17 +12,21 @@ namespace CodingGame.Defense
         readonly List<Rect> outlines = new List<Rect>();
         // Holes (and outlines) cut as the ellipse inside the rect, e.g. a robot's attack range on the ground.
         readonly List<Rect> rounds = new List<Rect>();
+        // Holes whose outer corners are rounded (the road's pieces).
+        readonly List<Rect> cornered = new List<Rect>();
+        const float CornerRadius = 24;
         const float OutlineWidth = 3;
         const int RoundSegments = 64; // a multiple of 8, so the rect corners (45°) are sampled exactly
         const int RoundSlices = 4;
         bool dim = true;
-        public void SetHoles(IEnumerable<Rect> clickable, IEnumerable<Rect> visible, IEnumerable<Rect> outlined, IEnumerable<Rect> round, float padding, bool darken)
+        public void SetHoles(IEnumerable<Rect> clickable, IEnumerable<Rect> visible, IEnumerable<Rect> outlined, IEnumerable<Rect> round, IEnumerable<Rect> rounded, float padding, bool darken)
         {
-            clicks.Clear(); holes.Clear(); outlines.Clear(); rounds.Clear(); dim = darken;
+            clicks.Clear(); holes.Clear(); outlines.Clear(); rounds.Clear(); cornered.Clear(); dim = darken;
             foreach (var area in clickable) if (Expand(area, padding, out var r)) clicks.Add(r);
             foreach (var area in visible) if (Expand(area, padding, out var r)) holes.Add(r);
             foreach (var area in outlined) if (Expand(area, padding, out var r)) outlines.Add(r);
             foreach (var area in round) if (Expand(area, padding, out var r)) rounds.Add(r);
+            foreach (var area in rounded) if (Expand(area, padding, out var r)) cornered.Add(r);
             SetVerticesDirty();
         }
         bool Expand(Rect area, float padding, out Rect expanded)
@@ -58,18 +62,27 @@ namespace CodingGame.Defense
             // A round hole: the grid left its whole rect lit; dim the corners between the rect and the ellipse in small
             // pieces, leaving out only pieces that lie wholly inside another hole (e.g. the road).
             if (dim)
-                foreach (var r in rounds)
-                    for (int i = 0; i < RoundSegments; i++)
+            {
+                foreach (var r in rounds) DimOutside(vh, r, r, 0, RoundSegments, true);
+                // A rounded corner: the same, on the quarter of a small circle tucked into that corner. Only outer corners of the
+                // whole shape: no other piece just beside, above or past it (pieces overlap, and a turn's two pieces share it).
+                var done = new List<Vector2>();
+                foreach (var r in cornered)
+                {
+                    float radius = Mathf.Min(CornerRadius, r.width * .5f, r.height * .5f), step = radius * .5f;
+                    for (int q = 0; q < 4; q++)
                     {
-                        Vector2 e0 = Ellipse(r, i, 1), e1 = Ellipse(r, i + 1, 1), s0 = Square(r, i), s1 = Square(r, i + 1);
-                        for (int k = 0; k < RoundSlices; k++)
-                        {
-                            float t0 = k / (float)RoundSlices, t1 = (k + 1) / (float)RoundSlices;
-                            Vector2 a = Vector2.Lerp(e0, s0, t0), b = Vector2.Lerp(e0, s0, t1), c = Vector2.Lerp(e1, s1, t1), d = Vector2.Lerp(e1, s1, t0);
-                            if (holes.Exists(h => h != r && h.Contains(a) && h.Contains(b) && h.Contains(c) && h.Contains(d))) continue;
-                            AddQuad(vh, a, b, c, d, color);
-                        }
+                        float sx = q == 0 || q == 3 ? 1 : -1, sy = q < 2 ? 1 : -1;
+                        var corner = new Vector2(sx > 0 ? r.xMax : r.xMin, sy > 0 ? r.yMax : r.yMin);
+                        if (done.Exists(p => (p - corner).sqrMagnitude < radius * radius) ||
+                            Covered(r, corner + new Vector2(sx, -sy) * step) || Covered(r, corner + new Vector2(-sx, sy) * step) || Covered(r, corner + new Vector2(sx, sy) * step))
+                            continue;
+                        done.Add(corner);
+                        var center = corner - new Vector2(sx, sy) * radius;
+                        DimOutside(vh, new Rect(center.x - radius, center.y - radius, radius * 2, radius * 2), r, q * RoundSegments / 4, (q + 1) * RoundSegments / 4, false);
                     }
+                }
+            }
             var outline = new Color(1, .82f, .38f, 1);
             foreach (var r in outlines)
             {
@@ -85,6 +98,25 @@ namespace CodingGame.Defense
                 AddQuad(vh, Rect.MinMaxRect(r.xMax, r.yMin, r.xMax + OutlineWidth, r.yMax), outline);
             }
         }
+
+        // Dims segments from..to of the gap between shape's border and its inscribed ellipse; skipInside leaves out pieces inside a hole other than owner.
+        void DimOutside(VertexHelper vh, Rect shape, Rect owner, int from, int to, bool skipInside)
+        {
+            for (int i = from; i < to; i++)
+            {
+                Vector2 e0 = Ellipse(shape, i, 1), e1 = Ellipse(shape, i + 1, 1), s0 = Square(shape, i), s1 = Square(shape, i + 1);
+                for (int k = 0; k < RoundSlices; k++)
+                {
+                    float t0 = k / (float)RoundSlices, t1 = (k + 1) / (float)RoundSlices;
+                    Vector2 a = Vector2.Lerp(e0, s0, t0), b = Vector2.Lerp(e0, s0, t1), c = Vector2.Lerp(e1, s1, t1), d = Vector2.Lerp(e1, s1, t0);
+                    if (skipInside && holes.Exists(h => h != owner && Inside(h, a) && Inside(h, b) && Inside(h, c) && Inside(h, d))) continue;
+                    AddQuad(vh, a, b, c, d, color);
+                }
+            }
+        }
+        bool Covered(Rect self, Vector2 p) => holes.Exists(h => h != self && h.Contains(p));
+        // Rect.Contains leaves out the max edges; neighbouring road pieces share edges, so allow a pixel.
+        static bool Inside(Rect h, Vector2 p) => p.x >= h.xMin - 1 && p.x <= h.xMax + 1 && p.y >= h.yMin - 1 && p.y <= h.yMax + 1;
 
         static void AddQuad(VertexHelper vh, Rect r, Color color) =>
             AddQuad(vh, new Vector2(r.xMin, r.yMin), new Vector2(r.xMin, r.yMax), new Vector2(r.xMax, r.yMax), new Vector2(r.xMax, r.yMin), color);

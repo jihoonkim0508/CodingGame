@@ -15857,7 +15857,7 @@ MonoBehaviour:
   fade: {fileID: 448427889}
   message: {fileID: 584183281}
   warning: {fileID: 712009703}
-  seconds: 1.5
+  seconds: 3
   fadeSeconds: 0.6
 --- !u!1 &712393120
 GameObject:
