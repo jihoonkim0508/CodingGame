@@ -11,9 +11,11 @@ namespace CodingGame.Defense
         readonly Vector3[] points = new Vector3[97];
         Mesh fillMesh;
         MeshRenderer fillRenderer;
+        float lineWidth, glow;
         void Awake()
         {
             if (!line || !line.sharedMaterial) throw new InvalidOperationException(name + ": 사거리 LineRenderer/Material 참조 누락");
+            lineWidth = line.widthMultiplier;
             if (!fillMaterial) return;
             var fill = new GameObject("Fill", typeof(MeshFilter), typeof(MeshRenderer));
             fill.layer = gameObject.layer; fill.transform.SetParent(transform, false);
@@ -22,8 +24,18 @@ namespace CodingGame.Defense
             fillRenderer = fill.GetComponent<MeshRenderer>(); fillRenderer.sharedMaterial = fillMaterial;
             fillRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; fillRenderer.receiveShadows = false; fillRenderer.enabled = false;
         }
+        // glow 0..1 (tutorial highlight): a thick bright-gold ring and a strong fill; the caller pulses glow.
+        public void Show(Vector3 center, float radius, Color color, float glow)
+        {
+            this.glow = glow;
+            if (glow > 0) color = Color.Lerp(new Color(1, .78f, .12f), new Color(1, .95f, .55f), glow);
+            line.widthMultiplier = lineWidth * (1 + 3 * glow);
+            Show(center, radius, color);
+            this.glow = 0;
+        }
         public void Show(Vector3 center, float radius, Color color)
         {
+            if (glow == 0) line.widthMultiplier = lineWidth;
             for (int i = 0; i < points.Length; i++)
             {
                 float a = i * Mathf.PI * 2 / (points.Length - 1);
@@ -32,7 +44,7 @@ namespace CodingGame.Defense
             Draw(color);
             Fill(center + Vector3.up * .06f, points.Length, color);
         }
-        public void Hide() { line.enabled = false; if (fillRenderer) fillRenderer.enabled = false; }
+        public void Hide() { line.enabled = false; line.widthMultiplier = lineWidth; if (fillRenderer) fillRenderer.enabled = false; }
         public void ShowSemicircle(Vector3 center, Vector3 forward, float radius, Color color)
         {
             forward.y = 0;
@@ -57,7 +69,7 @@ namespace CodingGame.Defense
         {
             if (!fillRenderer) return;
             var vertices = new Vector3[count + 1]; var colors = new Color[count + 1]; var triangles = new int[(count - 1) * 3];
-            var inside = new Color(color.r, color.g, color.b, fillAlpha);
+            var inside = new Color(color.r, color.g, color.b, Mathf.Lerp(fillAlpha, .55f, glow));
             vertices[0] = transform.InverseTransformPoint(center); colors[0] = inside;
             for (int i = 0; i < count; i++)
             {

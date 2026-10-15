@@ -20,6 +20,14 @@ namespace CodingGame.Defense
         const int RoundSegments = 64; // a multiple of 8, so the rect corners (45°) are sampled exactly
         const int RoundSlices = 4;
         bool dim = true;
+        // Motion: a new target opens wide and closes in on it, the dark fades in, outlines breathe.
+        const float IntroSeconds = .35f, IntroGrow = 48, DimSeconds = .25f;
+        float introStart = -10, dimStart = -10;
+        public void Pulse() => introStart = Time.unscaledTime;
+        float Intro => Mathf.Clamp01((Time.unscaledTime - introStart) / IntroSeconds);
+        void Update() { if (dim || outlines.Count > 0) SetVerticesDirty(); }
+        // Shown again after a wait (spotlight off): fade the dark in rather than snapping to it.
+        protected override void OnEnable() { base.OnEnable(); dimStart = Time.unscaledTime; }
         // Call before SetHoles. boxes are not padded.
         public void SetRoad(IEnumerable<Rect> boxes, IEnumerable<Vector2[]> dimmed)
         {
@@ -27,7 +35,9 @@ namespace CodingGame.Defense
         }
         public void SetHoles(IEnumerable<Rect> clickable, IEnumerable<Rect> visible, IEnumerable<Rect> outlined, IEnumerable<Rect> round, float padding, bool darken)
         {
-            clicks.Clear(); holes.Clear(); outlines.Clear(); rounds.Clear(); dim = darken;
+            clicks.Clear(); holes.Clear(); outlines.Clear(); rounds.Clear();
+            if (darken && !dim) dimStart = Time.unscaledTime;
+            dim = darken;
             foreach (var area in clickable) if (Expand(area, padding, out var r)) clicks.Add(r);
             foreach (var area in visible) if (Expand(area, padding, out var r)) holes.Add(r);
             foreach (var area in outlined) if (Expand(area, padding, out var r)) outlines.Add(r);
@@ -50,6 +60,20 @@ namespace CodingGame.Defense
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear();
+            float k = Intro, grow = (1 - k) * (1 - k) * IntroGrow;
+            // Grown for this frame only (the stored rects stay as set), so the hole closes in on its target.
+            if (grow > .01f) { Grow(holes, grow); Grow(outlines, grow); Grow(rounds, grow); }
+            var color = this.color; color.a *= Mathf.SmoothStep(0, 1, (Time.unscaledTime - dimStart) / DimSeconds);
+            try { Populate(vh, color, k); }
+            finally { if (grow > .01f) { Grow(holes, -grow); Grow(outlines, -grow); Grow(rounds, -grow); } }
+        }
+        static void Grow(List<Rect> rects, float by)
+        {
+            for (int i = 0; i < rects.Count; i++) { var r = rects[i]; rects[i] = Rect.MinMaxRect(r.xMin - by, r.yMin - by, r.xMax + by, r.yMax + by); }
+        }
+
+        void Populate(VertexHelper vh, Color color, float intro)
+        {
             var bounds = rectTransform.rect;
             var lit = new List<Rect>(holes); lit.AddRange(roadBoxes);
             var xs = new List<float> { bounds.xMin, bounds.xMax };
@@ -91,7 +115,10 @@ namespace CodingGame.Defense
                         }
                     }
             }
-            var outline = new Color(1, .82f, .38f, 1);
+            // Breathing outline, brighter and thicker while the hole closes in.
+            float breath = .5f + .5f * Mathf.Sin(Time.unscaledTime * 4);
+            var outline = Color.Lerp(new Color(1, .82f, .38f, .7f), new Color(1, .95f, .7f, 1), Mathf.Max(breath * .6f, 1 - intro));
+            float OutlineWidth = TutorialSpotlight.OutlineWidth * (1 + .5f * breath + 1.5f * (1 - intro));
             foreach (var r in outlines)
             {
                 if (rounds.Contains(r))
