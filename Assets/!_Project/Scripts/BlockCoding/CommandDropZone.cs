@@ -257,7 +257,14 @@ namespace CodingGame.BlockCoding
         }
         bool SnapsToFirstPosition(List<CommandBlockView> moved, Vector2 position) =>
             moved.All(block => PythonTreeCompiler.OutputSlot(block.Kind) == BlockSlotKind.Statement) &&
-            !blocks.Any(block => !moved.Contains(block)) && Vector2.Distance(position, FirstPosition) < SnapDistance;
+            !blocks.Any(block => !moved.Contains(block)) && Gap(position, FirstPosition, moved[0].preferredWidth) < SnapDistance;
+        // Distance from a dropped block's top-left to a snap edge; anywhere along the edge's row (left edge to
+        // the right end of the row) counts as on it, so a block let go to the right of the slot still snaps.
+        static float Gap(Vector2 position, Vector2 edge, float width)
+        {
+            float dx = position.x < edge.x ? edge.x - position.x : Mathf.Max(0, position.x - (edge.x + width));
+            return new Vector2(dx, position.y - edge.y).magnitude;
+        }
 
         void FindSnap(List<CommandBlockView> placed, Vector2 position, out CommandBlockView attachAfter, out CommandBlockView attachBefore)
         {
@@ -272,14 +279,15 @@ namespace CodingGame.BlockCoding
                         var root = Roots().First(r => Group(r).Contains(target));
                         var chain = Group(root).Where(b => !placed.Contains(b)).Concat(placed).ToList();
                         var edge = target.Rect.anchoredPosition + new Vector2(0, -target.preferredHeight + (IsBranch(first) ? BranchOverlap : 0));
-                        float distance = Vector2.Distance(position, edge);
+                        float distance = Gap(position, edge, Mathf.Max(target.preferredWidth, first.preferredWidth));
                         if (distance < nearest && ValidChain(chain)) { nearest = distance; attachAfter = target; attachBefore = null; }
                     }
                     if (!next.Any(pair => pair.Value == target && !placed.Contains(pair.Key)))
                     {
                         float height = placed.Sum(b => b.preferredHeight) - placed.Skip(1).Count(IsBranch) * BranchOverlap;
                         var edge = position + new Vector2(0, -height + (IsBranch(target) ? BranchOverlap : 0));
-                        float distance = Mathf.Min(Vector2.Distance(edge, target.Rect.anchoredPosition), Vector2.Distance(position, target.Rect.anchoredPosition));
+                        float width = Mathf.Max(target.preferredWidth, first.preferredWidth);
+                        float distance = Mathf.Min(Gap(edge, target.Rect.anchoredPosition, width), Gap(position, target.Rect.anchoredPosition, width));
                         if (distance < nearest && ValidChain(placed.Concat(Group(target)).ToList())) { nearest = distance; attachBefore = target; attachAfter = null; }
                     }
                 }
