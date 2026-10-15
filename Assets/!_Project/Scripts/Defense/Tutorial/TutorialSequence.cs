@@ -16,6 +16,8 @@ namespace CodingGame.Defense
         [TextArea(2, 8)] public string text;
         [Tooltip("이 대화창이 떠 있는 동안 테두리를 그릴 대상 키(대본의 '집중'). 클릭은 허용하지 않습니다.")]
         public string[] focusKeys = Array.Empty<string>();
+        [Tooltip("이 대화창이 떠 있는 동안 빛나게 할 대상(하이라이트). 화면을 어둡게 하지 않습니다. 지금은 Robot.Range.N(사거리 원)만.")]
+        public string[] highlightKeys = Array.Empty<string>();
     }
 
     [Serializable]
@@ -27,10 +29,10 @@ namespace CodingGame.Defense
         public TutorialDialoguePosition dialoguePosition = TutorialDialoguePosition.Bottom;
         public TutorialText[] texts = Array.Empty<TutorialText>();
         public string[] targetKeys = Array.Empty<string>();
-        [Tooltip("Targets drawn with an outline. Empty: every target key. Other target keys stay clickable without an outline.")]
-        public string[] highlightKeys = Array.Empty<string>();
         [Tooltip("Darken everything outside the targets.")]
         public bool dim = true;
+        [Tooltip("행동 단계라도 화면을 어둡게 하지 않습니다(대상 테두리·화살표만). 예: 코드를 다 만든 뒤 '닫기'를 누르는 단계.")]
+        public bool undimmed;
         [Tooltip("Block clicks outside the targets (the dialogue stays usable).")]
         public bool blockInput = true;
         [Tooltip("Draw outlines around highlighted targets.")]
@@ -42,6 +44,8 @@ namespace CodingGame.Defense
         [Min(0)] public float highlightPadding = 10;
         [Tooltip("이 신호가 올 때까지 단계를 숨기고 기다립니다(예: FirstKill, WaveCleared, EditorClosed). 비우면 바로 표시.")]
         public string trigger;
+        [Tooltip("이 신호가 이번 웨이브에 이미 왔으면 단계를 건너뜁니다(예: Leak이면 '다 막았어' 대사를 건너뜀).")]
+        public string skipIf;
         [Tooltip("ProgramMatches 판정용 정답 Python(함수 머리줄 제외). 줄 단위, 들여쓰기 무시.")]
         [TextArea(2, 6)] public string expectedCode;
         [Tooltip("화살표를 띄울 대상 키. 'a|b'면 앞에서부터 화면에 있는 것. 비우면 화살표 없음.")]
@@ -55,6 +59,10 @@ namespace CodingGame.Defense
         [Tooltip("단계 진입 시 편집기를 닫고 robotIndex 로봇의 편집기를 엽니다.")] public bool openEditor;
         [Tooltip("판정·코드 삭제·편집기 대상. 0 = 교육 로봇(처음 배치한 전사), 1 = 두 번째 전사.")]
         [Min(0)] public int robotIndex;
+        [Tooltip("흑백 화면 가운데에 대화창을 크게 띄웁니다. 이어지는 단계도 켜 두면 가운데에 남고, 꺼진 단계로 넘어갈 때 원래 자리로 줄어들며 이동합니다.")] public bool introEntrance;
+        [Tooltip("시스템 배너에 경고 카드 세 장을 함께 띄웁니다(1-1 A01).")] public bool alertCards;
+        [Tooltip("끌어다 놓기 시연: '팔레트 키>놓을 키', 'a>b|c>d'면 앞에서부터 둘 다 화면에 있는 것. 반투명 블록이 반복해서 움직입니다.")]
+        public string dragDemo;
     }
 
     [CreateAssetMenu(menuName = "CodingGame/Tutorial/Sequence")]

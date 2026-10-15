@@ -111,17 +111,20 @@ namespace CodingGame.Defense
         public bool TryGetTutorialCorners(string key, Vector3[] corners)
         {
             if (!IsOpen || key == null) return false;
-            if (key.StartsWith(TutorialKeys.PalettePrefix))
-            {
-                if (!PaletteKind(key, out var kind)) return false;
-                var item = kind == BlockKind.Variable ? panel.VariableTemplate : panel.Palette.FirstOrDefault(p => p.view.BaseKind == kind).view;
-                return Corners(item ? item.Rect : null, null, corners);
-            }
+            if (key.StartsWith(TutorialKeys.PalettePrefix)) return Corners(TutorialPaletteItem(key), null, corners);
             if (!key.StartsWith(TutorialKeys.CodePrefix)) return false;
             var program = panel.Program;
             var parts = key.Substring(TutorialKeys.CodePrefix.Length).Split('.');
             // The start slot, or the block once one sits there (the slot is narrower than e.g. enemy = get_nearest_enemy()).
-            if (parts[0] == "Start") { var first = program.StartChain().FirstOrDefault(); return first ? Corners(first.Rect, null, corners) : Corners(program.Rect, program.StartArea, corners); }
+            if (parts[0] == "Start")
+            {
+                var first = program.StartChain().FirstOrDefault();
+                if (first) return Corners(first.Rect, null, corners);
+                // ponytail: an empty start is boxed at the size of 1-1's finished first line (enemy = get_nearest_enemy(), 352x46),
+                // the only step that points here; measure the expected block instead if another step needs it.
+                var slot = program.StartArea;
+                return Corners(program.Rect, new Rect(slot.xMin, slot.yMax - 46, Mathf.Max(slot.width, 352), 46), corners);
+            }
             if (parts[0] == "Loose") { var loose = program.LooseRoots().FirstOrDefault(); return Corners(loose ? loose.Rect : null, null, corners); }
             var chain = program.StartChain();
             if (parts.Length < 2 || !int.TryParse(parts[1], out int line) || line < 1 || line > chain.Count) return false;
@@ -158,6 +161,13 @@ namespace CodingGame.Defense
             if (!IsOpen || !PaletteKind(key, out var kind)) return;
             int category = kind == BlockKind.Variable ? 2 : panel.Palette.Where(p => p.view.BaseKind == kind).Select(p => p.category).DefaultIfEmpty(-1).First();
             if (category >= 0) panel.ShowCategory(category);
+        }
+        // The palette block for an Editor.Palette.<BlockKind> key (the variable template for Variable); null when not on screen.
+        public RectTransform TutorialPaletteItem(string key)
+        {
+            if (!IsOpen || !PaletteKind(key, out var kind)) return null;
+            var item = kind == BlockKind.Variable ? panel.VariableTemplate : panel.Palette.FirstOrDefault(p => p.view.BaseKind == kind).view;
+            return item && item.Rect.gameObject.activeInHierarchy ? item.Rect : null;
         }
         static bool PaletteKind(string key, out BlockKind kind)
         {

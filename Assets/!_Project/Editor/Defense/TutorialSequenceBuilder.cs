@@ -45,6 +45,10 @@ namespace CodingGame.Defense.Editor
             public bool Dim, CloseEditor, ClearProgram, OpenEditor, Preview, Battle;
             public int Robot;
             public float Padding = 10;
+            public string[] Highlight = Array.Empty<string>();
+            public bool Intro, Cards, Undimmed;
+            public string SkipIf;
+            public string Demo;
             public bool Top;
         }
 
@@ -62,6 +66,7 @@ namespace CodingGame.Defense.Editor
         static Action<S> Signal(string signal, string[] targets, Action<S> more = null) => Act(targets, TutorialCompletionMode.ExternalSignal, signal, more);
         static Action<S> Code(string expected, Action<S> more = null) => Signal(TutorialSignals.ProgramMatches, new[] { Drop, Palette }, s => { s.Expected = expected; s.Preview = true; more?.Invoke(s); });
         static Action<S> Focus(params string[] keys) => s => s.Focus = keys;
+        static Action<S> Highlight(params string[] keys) => s => s.Highlight = keys;
         static Action<S> With(params Action<S>[] parts) => s => { foreach (var part in parts) part?.Invoke(s); };
         static Action<S> Ed => s => s.Preview = true;
         static Action<S> Fight => s => s.Battle = true;
@@ -74,27 +79,31 @@ namespace CodingGame.Defense.Editor
         }
 
         static List<S> OneOne() => new List<S> {
-            L("1-1.A01"), L("1-1.A02"), L("1-1.A03"), L("1-1.A04"), L("1-1.A04a", Focus(Route)), L("1-1.A04b", Focus(Core)), L("1-1.A04c", Focus(Core)), L("1-1.A05"), L("1-1.A06"),
+            L("1-1.A01", s => s.Cards = true), L("1-1.A02", s => s.Intro = true), L("1-1.A03", s => s.Intro = true), L("1-1.A04", s => s.Intro = true), L("1-1.A04a", Focus(Route)), L("1-1.A04b", Focus(Core)), L("1-1.A04c", Focus(Core)), L("1-1.A05"), L("1-1.A06"),
             L("1-1.B01", Click(TutorialKeys.RobotButton(1), s => s.Dim = true)),
             L("1-1.B02", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => s.Dim = true, Focus(TutorialKeys.Floor)))),
             L("1-1.B03", Click(Unit0, s => s.Pointer = Unit0)),
-            L("1-1.B04", With(Focus(Range0), s => s.Padding = 24)), L("1-1.B05"), L("1-1.B06"),
+            L("1-1.B04", Highlight(Range0)), L("1-1.B05"), L("1-1.B06"),
             L("1-1.C01", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
-            L("1-1.C02", Ed), L("1-1.C02a", With(Ed, Focus(Drop))), L("1-1.C03", With(Ed, Focus(Preview))), L("1-1.C04", Ed), L("1-1.C05", Ed), L("1-1.C06", Ed), L("1-1.C07", Ed),
+            L("1-1.C02", Ed), L("1-1.C02a", With(Ed, Focus(Drop))), L("1-1.C03", With(Ed, Focus(Preview))), L("1-1.C04", With(Ed, Focus(Preview))), L("1-1.C05", Ed), L("1-1.C06", Ed), L("1-1.C07", Ed),
             L("1-1.C08", Ed), L("1-1.C09", Ed), L("1-1.C10", Ed), L("1-1.C11", With(Ed, Focus("Editor.Palette.NearestEnemy"))),
             L("1-1.C12", With(Ed, Focus("Editor.Palette.DeclareVariable"))), L("1-1.C13", Ed), L("1-1.C14", Ed), L("1-1.C15", Ed),
-            L("1-1.C16", Code("enemy = get_nearest_enemy()", With(s => s.Pointer = "Editor.Code.Start", Focus("Editor.Code.Start")))),
+            L("1-1.C16", Code("enemy = get_nearest_enemy()", With(s => s.Pointer = "Editor.Code.Start", Focus("Editor.Code.Start"),
+                s => s.Demo = "Editor.Palette.NearestEnemy>Editor.Code.Arg.1.0|Editor.Palette.DeclareVariable>Editor.Code.Start"))),
             L("1-1.C17", Ed), L("1-1.C18", Ed), L("1-1.D01", Ed), L("1-1.D02", Ed), L("1-1.D03", Ed),
-            L("1-1.D04", Code(Code11, With(s => s.Pointer = "Editor.Code.Arg.2.0|Editor.Code.After.1", Focus("Editor.Code.Arg.2.0|Editor.Code.After.1", "Editor.Palette.Slash")))),
+            L("1-1.D04", Code(Code11, With(s => s.Pointer = "Editor.Code.Arg.2.0|Editor.Code.After.1", Focus("Editor.Code.Arg.2.0|Editor.Code.After.1", "Editor.Palette.Slash"),
+                s => s.Demo = "Editor.Palette.Variable>Editor.Code.Arg.2.0|Editor.Palette.Slash>Editor.Code.After.1"))),
             L("1-1.D05", Ed),
             L("1-1.D06", Signal(TutorialSignals.PreviewHit, new[] { Preview }, s => s.Preview = true)),
             L("1-1.D07", Ed), L("1-1.D08", Ed), L("1-1.D09", Ed), L("1-1.D10", Ed),
             L("1-1.D11", s => s.CloseEditor = true),
-            L("1-1.E01"), L("1-1.E02"),
+            L("1-1.E01", Focus(TutorialKeys.NextWave)), L("1-1.E02"),
             // E03: the start button is at the bottom, so the line moves up. E04 is left out for now (임시변경점.md).
             L("1-1.E03", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => s.Top = true)),
             L("1-1.E05", With(Fight, s => s.Trigger = TutorialSignals.Leak)),
-            L("1-1.E06", s => s.Trigger = TutorialSignals.WaveCleared), L("1-1.E06a", Focus(TutorialKeys.RewardPanel)), L("1-1.E07"), L("1-1.E08", Focus(Core)),
+            L("1-1.E06", s => { s.Trigger = TutorialSignals.WaveCleared; s.SkipIf = TutorialSignals.Leak; }), L("1-1.E06a", Focus(TutorialKeys.RewardPanel)), L("1-1.E07"), L("1-1.E08"),
+            // Claiming the reward starts 1-2, so it comes last.
+            L("1-1.E09", Click("Battle.ClaimRewards", s => s.Pointer = "Battle.ClaimRewards")),
         };
 
         static List<S> OneTwo()
@@ -108,7 +117,7 @@ namespace CodingGame.Defense.Editor
                 L("1-2.C05", With(Ed, Focus(Hint), s => { s.ClearProgram = true; s.HintCode = Code11; })),
                 L("1-2.C06", Signal(TutorialSignals.ProgramMatches, new[] { Drop, Palette, Hint }, s =>
                     { s.Expected = Code11; s.HintCode = Code11; s.Pointer = Hint; s.PointerDelay = 60; s.Preview = true; })),
-                L("1-2.C06", Signal(TutorialSignals.EditorClosed, new[] { Close }, s => { s.Id += "c"; s.Preview = true; })),
+                L("1-2.C06c", Signal(TutorialSignals.EditorClosed, new[] { Close }, s => { s.Pointer = Close; s.Preview = true; s.Undimmed = true; })),
                 L("1-2.D01", Signal(TutorialSignals.BattleStarted, new[] { Start })),
                 L("1-2.D02", s => s.Trigger = TutorialSignals.WaveCleared), L("1-2.D03"), L("1-2.D04"),
             });
@@ -160,7 +169,7 @@ namespace CodingGame.Defense.Editor
                 L("1-4.D03", With(Focus(Hint), s => { s.Robot = 1; s.HintCode = Code14; s.Preview = true; })),
                 L("1-4.D04", Signal(TutorialSignals.ProgramMatches, new[] { Drop, Palette, Hint }, s =>
                     { s.Robot = 1; s.Expected = Code14; s.HintCode = Code14; s.Pointer = Hint; s.PointerDelay = 60; s.Preview = true; })),
-                L("1-4.D04", Signal(TutorialSignals.EditorClosed, new[] { Close }, s => { s.Id += "c"; s.Robot = 1; s.Preview = true; })),
+                L("1-4.D04", Signal(TutorialSignals.EditorClosed, new[] { Close }, s => { s.Id += "c"; s.Robot = 1; s.Preview = true; s.Undimmed = true; s.Pointer = Close; })),
                 L("1-4.D05"),
                 L("1-4.E01"), L("1-4.E02"), L("1-4.E03"),
                 L("1-4.E04", Signal(TutorialSignals.BattleStarted, new[] { Start }, Focus(Route, Range0, Range1, Core))),
@@ -204,12 +213,13 @@ namespace CodingGame.Defense.Editor
                 battle |= s.Battle || s.Trigger != null;
                 return new TutorialStep {
                     stepId = s.Id, kind = s.Kind, dialoguePosition = s.Top ? TutorialDialoguePosition.Top : TutorialDialoguePosition.Bottom,
-                    texts = new[] { new TutorialText { textId = "t1", speaker = s.Speaker, text = s.Text, focusKeys = s.Focus } },
-                    targetKeys = s.Targets, highlightKeys = Array.Empty<string>(), dim = s.Dim, blockInput = true, outline = true,
+                    texts = new[] { new TutorialText { textId = "t1", speaker = s.Speaker, text = s.Text, focusKeys = s.Focus, highlightKeys = s.Highlight } },
+                    targetKeys = s.Targets, dim = s.Dim, blockInput = true, outline = true,
                     completionMode = s.Kind == TutorialStepKind.ActionGuide ? s.Mode : TutorialCompletionMode.Unconfigured, completionSignal = s.Signal,
-                    pauseBattle = !battle, allowPreview = s.Preview, highlightPadding = s.Padding, trigger = s.Trigger, expectedCode = s.Expected,
+                    skipIf = s.SkipIf, pauseBattle = !battle, allowPreview = s.Preview, highlightPadding = s.Padding, trigger = s.Trigger, expectedCode = s.Expected,
                     pointerKey = s.Pointer, hintCode = s.HintCode, pointerDelay = s.PointerDelay,
-                    closeEditor = s.CloseEditor, clearProgram = s.ClearProgram, openEditor = s.OpenEditor, robotIndex = s.Robot };
+                    closeEditor = s.CloseEditor, clearProgram = s.ClearProgram, openEditor = s.OpenEditor, robotIndex = s.Robot,
+                    introEntrance = s.Intro, undimmed = s.Undimmed, alertCards = s.Cards, dragDemo = s.Demo };
             }).ToArray();
             EditorUtility.SetDirty(sequence);
             return sequence;

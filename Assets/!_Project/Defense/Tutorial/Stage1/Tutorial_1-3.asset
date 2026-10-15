@@ -28,9 +28,10 @@ MonoBehaviour:
       speaker: "\uC2DC\uC2A4\uD15C"
       text: "\uC624\uB958 \uCF54\uB4DC \uC811\uADFC \uAC10\uC9C0!"
       focusKeys: []
+      highlightKeys: []
     targetKeys: []
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 0
@@ -41,6 +42,7 @@ MonoBehaviour:
     allowPreview: 0
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -49,6 +51,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: A02
     kind: 0
     dialoguePosition: 0
@@ -58,9 +63,10 @@ MonoBehaviour:
       text: "\uC624\uB958 \uCF54\uB4DC\uB4E4\uC774 \uB610 \uB098\uD0C0\uB0AC\uC5B4!"
       focusKeys:
       - Battle.Route
+      highlightKeys: []
     targetKeys: []
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 0
@@ -71,6 +77,7 @@ MonoBehaviour:
     allowPreview: 0
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -79,6 +86,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: A03
     kind: 0
     dialoguePosition: 0
@@ -90,9 +100,10 @@ MonoBehaviour:
         \uCCB4\uB825\uC744 \uD655\uC778\uD558\uB294 \uBC29\uBC95\uC744 \uBC30\uC6E0\uC9C0?"
       focusKeys:
       - Robot.Unit.0
+      highlightKeys: []
     targetKeys: []
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 0
@@ -103,6 +114,7 @@ MonoBehaviour:
     allowPreview: 0
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -111,6 +123,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: A04
     kind: 0
     dialoguePosition: 0
@@ -121,9 +136,10 @@ MonoBehaviour:
         \uC0AC\uAC70\uB9AC \uC548\uC5D0 \uC788\uC744 \uB54C\uB9CC \uACF5\uACA9\uD558\uB3C4\uB85D
         \uB9CC\uB4E4\uC5B4 \uBCF4\uC790!"
       focusKeys: []
+      highlightKeys: []
     targetKeys: []
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 0
@@ -134,6 +150,7 @@ MonoBehaviour:
     allowPreview: 0
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -142,6 +159,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: A05a
     kind: 1
     dialoguePosition: 0
@@ -151,10 +171,11 @@ MonoBehaviour:
       text: "\uBA3C\uC800 \uB85C\uBD07\uC744 \uC120\uD0DD\uD558\uACE0 \uAC1C\uBC1C
         \uBC84\uD2BC\uC744 \uB20C\uB7EC \uBCF4\uC790."
       focusKeys: []
+      highlightKeys: []
     targetKeys:
     - Robot.Unit.0
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 1
@@ -165,6 +186,7 @@ MonoBehaviour:
     allowPreview: 0
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: Robot.Unit.0
     hintCode: 
@@ -173,6 +195,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: A05b
     kind: 1
     dialoguePosition: 0
@@ -182,10 +207,11 @@ MonoBehaviour:
       text: "\uBA3C\uC800 \uB85C\uBD07\uC744 \uC120\uD0DD\uD558\uACE0 \uAC1C\uBC1C
         \uBC84\uD2BC\uC744 \uB20C\uB7EC \uBCF4\uC790."
       focusKeys: []
+      highlightKeys: []
     targetKeys:
     - Battle.Develop
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 3
@@ -196,6 +222,7 @@ MonoBehaviour:
     allowPreview: 1
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: Battle.Develop
     hintCode: 
@@ -204,6 +231,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: B01
     kind: 0
     dialoguePosition: 0
@@ -213,9 +243,10 @@ MonoBehaviour:
       text: "`enemy`\uC5D0 \uC800\uC7A5\uB41C \uC801\uC758 \uC815\uBCF4\uB85C \uB85C\uBD07\uACFC
         \uC801 \uC0AC\uC774\uC758 \uAC70\uB9AC\uB97C \uD655\uC778\uD560 \uC218 \uC788\uC5B4."
       focusKeys: []
+      highlightKeys: []
     targetKeys: []
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 0
@@ -226,6 +257,7 @@ MonoBehaviour:
     allowPreview: 1
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -234,6 +266,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: B02
     kind: 1
     dialoguePosition: 0
@@ -244,11 +279,12 @@ MonoBehaviour:
         \uD604\uC7AC \uB85C\uBD07\uC758 \uC704\uCE58\uB97C \uAE30\uC900\uC73C\uB85C
         \uAC70\uB9AC\uB97C \uAD6C\uD574."
       focusKeys: []
+      highlightKeys: []
     targetKeys:
     - Editor.ProgramDropZone
     - Editor.BlockPalette
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 3
@@ -259,6 +295,7 @@ MonoBehaviour:
     allowPreview: 1
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 'enemy = get_nearest_enemy()
 
       enemy_distance = enemy.distance(get_my_pos())
@@ -271,6 +308,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: B03
     kind: 0
     dialoguePosition: 0
@@ -282,9 +322,10 @@ MonoBehaviour:
       focusKeys:
       - Editor.Code.Line.1
       - Editor.Code.Arg.2.0
+      highlightKeys: []
     targetKeys: []
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 0
@@ -295,6 +336,7 @@ MonoBehaviour:
     allowPreview: 1
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -303,6 +345,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: B04
     kind: 0
     dialoguePosition: 0
@@ -313,9 +358,10 @@ MonoBehaviour:
         `enemy_distance`\uC5D0 \uC800\uC7A5\uB3FC."
       focusKeys:
       - Editor.Code.Line.2
+      highlightKeys: []
     targetKeys: []
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 0
@@ -326,6 +372,7 @@ MonoBehaviour:
     allowPreview: 1
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -334,6 +381,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: C01
     kind: 0
     dialoguePosition: 0
@@ -344,9 +394,10 @@ MonoBehaviour:
         \uB85C\uBD07\uC758 \uACF5\uACA9 \uC0AC\uAC70\uB9AC\uC57C."
       focusKeys:
       - Editor.Palette.MyAttackRange
+      highlightKeys: []
     targetKeys: []
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 0
@@ -357,6 +408,7 @@ MonoBehaviour:
     allowPreview: 1
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -365,6 +417,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: C02
     kind: 0
     dialoguePosition: 0
@@ -374,9 +429,10 @@ MonoBehaviour:
       text: "\uC774 \uAC12\uC740 \uB85C\uBD07\uC758 \uB2A5\uB825 \uC815\uBCF4\uB77C
         \uD50C\uB808\uC774\uC5B4\uAC00 \uC9C1\uC811 \uBC14\uAFC0 \uC218 \uC5C6\uC5B4."
       focusKeys: []
+      highlightKeys: []
     targetKeys: []
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 0
@@ -387,6 +443,7 @@ MonoBehaviour:
     allowPreview: 1
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -395,6 +452,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: C03
     kind: 1
     dialoguePosition: 0
@@ -405,11 +465,12 @@ MonoBehaviour:
         \uC801\uC774 \uC0AC\uAC70\uB9AC \uC548\uC5D0 \uC788\uB294\uC9C0 \uD655\uC778\uD560
         \uC218 \uC788\uC5B4."
       focusKeys: []
+      highlightKeys: []
     targetKeys:
     - Editor.ProgramDropZone
     - Editor.BlockPalette
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 3
@@ -420,6 +481,7 @@ MonoBehaviour:
     allowPreview: 1
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: enemy_distance <= my_attack_range()
     pointerKey: Editor.Palette.Comparison
     hintCode: 
@@ -428,6 +490,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: C04
     kind: 0
     dialoguePosition: 0
@@ -437,9 +502,10 @@ MonoBehaviour:
       text: "`<=`\uB294 \u201C\uC791\uAC70\uB098 \uAC19\uB2E4\u201D\uB294 \uB73B\uC774\uC57C."
       focusKeys:
       - Editor.Code.Loose
+      highlightKeys: []
     targetKeys: []
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 0
@@ -450,6 +516,7 @@ MonoBehaviour:
     allowPreview: 1
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -458,6 +525,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: C05
     kind: 0
     dialoguePosition: 0
@@ -468,9 +538,10 @@ MonoBehaviour:
         \uD06C\uBA74 \uC870\uAC74\uC740 \uAC70\uC9D3\uC774\uC57C."
       focusKeys:
       - Editor.Code.Loose
+      highlightKeys: []
     targetKeys: []
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 0
@@ -481,6 +552,7 @@ MonoBehaviour:
     allowPreview: 1
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -489,6 +561,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: C06
     kind: 0
     dialoguePosition: 0
@@ -499,9 +574,10 @@ MonoBehaviour:
         \uC791\uC73C\uBA74 \uC870\uAC74\uC740 \uCC38\uC774\uC57C."
       focusKeys:
       - Editor.Code.Loose
+      highlightKeys: []
     targetKeys: []
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 0
@@ -512,6 +588,7 @@ MonoBehaviour:
     allowPreview: 1
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -520,6 +597,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: D01
     kind: 0
     dialoguePosition: 0
@@ -529,9 +609,10 @@ MonoBehaviour:
       text: "\uC870\uAC74\uC774 \uCC38\uC77C \uB54C\uB9CC \uC548\uCABD\uC758 \uD589\uB3D9\uC744
         \uC2E4\uD589\uD558\uB824\uBA74 `if` \uBE14\uB85D\uC744 \uC0AC\uC6A9\uD574."
       focusKeys: []
+      highlightKeys: []
     targetKeys: []
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 0
@@ -542,6 +623,7 @@ MonoBehaviour:
     allowPreview: 1
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -550,6 +632,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: D02
     kind: 1
     dialoguePosition: 0
@@ -560,11 +645,12 @@ MonoBehaviour:
         `slash(enemy)`\uB97C `if` \uC548\uCABD\uC5D0 \uC5F0\uACB0\uD574 \uBCF4\uC790."
       focusKeys:
       - Editor.Code.Body.3
+      highlightKeys: []
     targetKeys:
     - Editor.ProgramDropZone
     - Editor.BlockPalette
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 3
@@ -575,6 +661,7 @@ MonoBehaviour:
     allowPreview: 1
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif
       enemy_distance <= my_attack_range():\n    slash(enemy)"
     pointerKey: Editor.Code.Body.3|Editor.Code.After.2
@@ -584,6 +671,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: D03
     kind: 0
     dialoguePosition: 0
@@ -593,9 +683,10 @@ MonoBehaviour:
       text: "\uC88B\uC544! \uC774\uC81C \uC801\uC774 \uACF5\uACA9 \uC0AC\uAC70\uB9AC
         \uC548\uC5D0 \uC788\uC744 \uB54C\uB9CC \uACF5\uACA9\uD558\uB3C4\uB85D \uC5F0\uACB0\uD588\uC5B4."
       focusKeys: []
+      highlightKeys: []
     targetKeys: []
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 0
@@ -606,6 +697,7 @@ MonoBehaviour:
     allowPreview: 1
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -614,6 +706,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: D04
     kind: 0
     dialoguePosition: 0
@@ -623,9 +718,10 @@ MonoBehaviour:
       text: "\uC870\uAC74\uC774 \uAC70\uC9D3\uC774\uBA74 \uACF5\uACA9\uD558\uC9C0
         \uC54A\uACE0, \uCC38\uC774 \uB418\uBA74 \uACF5\uACA9 \uBA85\uB839\uC774 \uC2E4\uD589\uB3FC."
       focusKeys: []
+      highlightKeys: []
     targetKeys: []
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 0
@@ -636,6 +732,7 @@ MonoBehaviour:
     allowPreview: 1
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -644,6 +741,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: E01
     kind: 0
     dialoguePosition: 0
@@ -653,9 +753,10 @@ MonoBehaviour:
       text: "\uC624\uB958 \uCF54\uB4DC\uB4E4\uC774 \uB2E4\uAC00\uC624\uACE0 \uC788\uC5B4!
         \uC6B0\uB9AC\uAC00 \uB9CC\uB4E0 \uC870\uAC74\uC73C\uB85C \uB9C9\uC544 \uBCF4\uC790."
       focusKeys: []
+      highlightKeys: []
     targetKeys: []
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 0
@@ -666,6 +767,7 @@ MonoBehaviour:
     allowPreview: 0
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -674,6 +776,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: E02
     kind: 1
     dialoguePosition: 0
@@ -685,10 +790,11 @@ MonoBehaviour:
       - Battle.Route
       - Robot.Range.0
       - Battle.CoreHealth
+      highlightKeys: []
     targetKeys:
     - Battle.Start
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 3
@@ -699,6 +805,7 @@ MonoBehaviour:
     allowPreview: 0
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -707,6 +814,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: E03
     kind: 0
     dialoguePosition: 0
@@ -716,9 +826,10 @@ MonoBehaviour:
       text: "\uC801\uC774 `my_attack_range()`\uBCF4\uB2E4 \uBA40\uB9AC \uC788\uC744
         \uB54C\uB294 \uAE30\uB2E4\uB824."
       focusKeys: []
+      highlightKeys: []
     targetKeys: []
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 0
@@ -729,6 +840,7 @@ MonoBehaviour:
     allowPreview: 0
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -737,6 +849,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: E04
     kind: 0
     dialoguePosition: 0
@@ -747,9 +862,10 @@ MonoBehaviour:
         `slash(enemy)`\uAC00 \uC2E4\uD589\uB3FC!"
       focusKeys:
       - Robot.Range.0
+      highlightKeys: []
     targetKeys: []
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 0
@@ -760,6 +876,7 @@ MonoBehaviour:
     allowPreview: 0
     highlightPadding: 10
     trigger: FirstAttack
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -768,6 +885,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: E05
     kind: 0
     dialoguePosition: 0
@@ -777,9 +897,10 @@ MonoBehaviour:
       text: "\uC798\uD588\uC5B4! \uC870\uAC74\uC744 \uC0AC\uC6A9\uD574 \uB85C\uBD07\uC774
         \uACF5\uACA9\uD560 \uC2DC\uC810\uC744 \uC815\uD588\uC5B4."
       focusKeys: []
+      highlightKeys: []
     targetKeys: []
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 0
@@ -790,6 +911,7 @@ MonoBehaviour:
     allowPreview: 0
     highlightPadding: 10
     trigger: WaveCleared
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -798,6 +920,9 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
   - stepId: E06
     kind: 0
     dialoguePosition: 0
@@ -807,9 +932,10 @@ MonoBehaviour:
       text: "\uB2E4\uC74C\uC5D0\uB294 \uC870\uAC74 \uBE14\uB85D\uC744 \uC9C1\uC811
         \uD65C\uC6A9\uD574 \uACF5\uACA9 \uBA85\uB839\uC744 \uC81C\uC5B4\uD574 \uBCF4\uC790!"
       focusKeys: []
+      highlightKeys: []
     targetKeys: []
-    highlightKeys: []
     dim: 0
+    undimmed: 0
     blockInput: 1
     outline: 1
     completionMode: 0
@@ -820,6 +946,7 @@ MonoBehaviour:
     allowPreview: 0
     highlightPadding: 10
     trigger: 
+    skipIf: 
     expectedCode: 
     pointerKey: 
     hintCode: 
@@ -828,3 +955,6 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 

@@ -20,7 +20,7 @@ namespace CodingGame.Defense
     {
         public const string Start = "Battle.Start", Develop = "Battle.Develop", Deployment = "Battle.DeploymentArea", SelectedRobot = "Robot.Selected",
             DropZone = "Editor.ProgramDropZone", Palette = "Editor.BlockPalette", Close = "Editor.Close", RestoreAutomatic = "Editor.RestoreAutomatic",
-            Hint = "Editor.Hint", Preview = "Editor.Preview", CoreHealth = "Battle.CoreHealth", Route = "Battle.Route", RewardPanel = "Battle.RewardPanel",
+            Hint = "Editor.Hint", Preview = "Editor.Preview", CoreHealth = "Battle.CoreHealth", Route = "Battle.Route", RewardPanel = "Battle.RewardPanel", NextWave = "Battle.NextWave",
             Floor = "Battle.Floor";
         public const string CodePrefix = "Editor.Code.", PalettePrefix = "Editor.Palette.";
         const string UnitPrefix = "Robot.Unit.", RangePrefix = "Robot.Range.";

@@ -31,6 +31,7 @@ namespace CodingGame.Defense
         int viewedStep, viewedText, progressStep;
         float stepEntered, targetsLostAt = -1;
         string pointedAt;
+        string[] highlight = Array.Empty<string>();
         bool targetsSeen;
         string shownText;
         bool initialized, bannerUp;
@@ -44,6 +45,8 @@ namespace CodingGame.Defense
         public bool PauseBattle => IsActive && bridge && bridge.PauseBattle;
         public bool AllowPreview => IsActive && bridge && bridge.AllowPreview;
         public IReadOnlyList<TutorialSequence> Sequences => sequences;
+        // The dialogue on screen asks the game to make this target glow (e.g. Robot.Range.0).
+        public bool Highlighted(string key) => initialized && IsActive && view.IsVisible && Array.IndexOf(highlight, key) >= 0;
         TutorialStep Current => active && progressStep < active.steps.Length ? active.steps[progressStep] : null;
         DefenseCodeEditor Editor => battle.CodeEditor;
 
@@ -105,6 +108,7 @@ namespace CodingGame.Defense
             if (step.completionSignal == TutorialSignals.ConditionBuilt && Editor &&
                 Editor.LooseExpressions().Any(text => Same(text, step.expectedCode))) Signal(TutorialSignals.ConditionBuilt);
             if (Current != step) return;
+            if (!string.IsNullOrWhiteSpace(step.skipIf) && signals.Contains(step.skipIf) && Triggered(step) && viewedStep == progressStep) { Enter(progressStep + 1); return; }
             if (!Triggered(step))
             {
                 // No leak before the wave ended: a "show on leak" line never comes, so move on (WaveCleared steps still show).
@@ -147,10 +151,25 @@ namespace CodingGame.Defense
             bool show = viewedStep == progressStep && !completedStep.Contains(step.stepId) && !string.IsNullOrWhiteSpace(step.pointerKey) &&
                 Time.unscaledTime - stepEntered >= step.pointerDelay && bridge.TryGetArea(step.pointerKey, out area, out chosen);
             // The slot under a code line is pointed at from below; from above the arrow would cover that line.
-            if (show) pointer.Show(area, chosen.Contains(".After.")); else pointer.Hide();
+            if (show) pointer.Show(area, chosen.Contains(".After.")); else pointer.HideArrow();
+            UpdateDragDemo(step);
             // Once the arrow moves to an empty argument slot, open the values tab, where the variables to drop in are.
             if (show && chosen != pointedAt && chosen.Contains(".Arg.") && Editor) Editor.RevealPalette(TutorialKeys.PalettePrefix + "Variable");
             if (show) pointedAt = chosen;
+        }
+
+        // The first "palette>slot" pair with both ends on screen plays as a drag demo until the step is done.
+        void UpdateDragDemo(TutorialStep step)
+        {
+            if (viewedStep == progressStep && !completedStep.Contains(step.stepId) && !string.IsNullOrWhiteSpace(step.dragDemo) && Editor)
+                foreach (var pair in step.dragDemo.Split('|'))
+                {
+                    var ends = pair.Split('>');
+                    if (ends.Length == 2 && Editor.TutorialPaletteItem(ends[0].Trim()) is RectTransform item &&
+                        bridge.TryGetArea(ends[0].Trim(), out var from) && bridge.TryGetArea(ends[1].Trim(), out var to))
+                    { pointer.ShowDrag(item, from, to); return; }
+                }
+            pointer.HideDrag();
         }
 
         static TutorialEntryPhase? EntryPhase(BattlePhase phase)
@@ -239,15 +258,17 @@ namespace CodingGame.Defense
             if (Editor) foreach (var target in focus) Editor.RevealPalette(target);
             pointedAt = null;
             bridge.SetFocus(focus);
+            highlight = text.highlightKeys ?? Array.Empty<string>();
             bool system = alert && text.speaker == TutorialSignals.SystemSpeaker;
             if (system)
             {
-                view.Hide(); alert.Show(text.text); bannerUp = true;
+                view.Hide(); alert.Show(text.text, step.alertCards); bannerUp = true;
                 return;
             }
             bannerUp = false;
             view.Show(active, step.dialoguePosition, Code(text.text), animate, text.speaker);
-            bool previous = viewedStep > 0 || viewedText > 0;
+            view.SetCentered(step.introEntrance);
+            bool previous = (viewedStep > 0 || viewedText > 0) && !Waiting;
             bool next = viewedText + 1 < step.texts.Length || viewedStep < progressStep || step.kind != TutorialStepKind.ActionGuide || completedStep.Contains(step.stepId);
             view.SetNavigation(previous,next);
         }
@@ -261,9 +282,12 @@ namespace CodingGame.Defense
             if (pointer) pointer.Hide();
         }
 
+        // The player owes the current step an action: going back would hide the targets it asks for (planner request, 1-2 A05).
+        bool Waiting => active && viewedStep == progressStep && progressStep < active.steps.Length &&
+            active.steps[progressStep].kind == TutorialStepKind.ActionGuide && !completedStep.Contains(active.steps[progressStep].stepId);
         void PreviousText()
         {
-            if (!IsActive) return;
+            if (!IsActive || Waiting) return;
             if (view.IsTyping) view.FinishTyping();
             if (viewedText > 0) viewedText--;
             else if (viewedStep > 0) { viewedStep--; viewedText = active.steps[viewedStep].texts.Length - 1; }

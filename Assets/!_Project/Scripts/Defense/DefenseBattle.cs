@@ -429,8 +429,12 @@ namespace CodingGame.Defense
             Simulation.Events.Clear();
             if (Simulation.Phase != BattlePhase.Running && Simulation.Phase != BattlePhase.Paused) ClearCombatVisuals();
             var current = Simulation.FindRobot(selected);
-            if (Simulation.Options.ranges && current != null && palette < 0 && !codeEditor.IsOpen && !inventoryUI.IsOpen && !DeveloperMode)
-                rangeRing.Show(DefenseViews.World(current.Position), current.Range, robots[current.DefinitionIndex].color);
+            // A tutorial highlight (Robot.Range.N) shows that robot's range glowing, selected or not.
+            var lit = tutorial ? Simulation.Robots.OrderBy(r => r.Id).Where((r, i) => tutorial.Highlighted(TutorialKeys.Range(i))).FirstOrDefault() : null;
+            if (lit != null && palette < 0 && !codeEditor.IsOpen)
+                rangeRing.Show(DefenseViews.World(lit.Position), lit.Range, robots[lit.DefinitionIndex].color, .65f + .35f * Mathf.Sin(Time.unscaledTime * 5));
+            else if (Simulation.Options.ranges && current != null && palette < 0 && !codeEditor.IsOpen && !inventoryUI.IsOpen && !DeveloperMode)
+                rangeRing.Show(DefenseViews.World(current.Position), current.Range, robots[current.DefinitionIndex].color, 0);
             else if (palette < 0) rangeRing.Hide();
             if (current == null) selected = 0;
             RefreshHUD();

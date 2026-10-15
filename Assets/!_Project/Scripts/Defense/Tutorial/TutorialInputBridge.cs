@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -73,6 +74,8 @@ namespace CodingGame.Defense
 
         public void SetStep(TutorialStep step, bool enableActions = false)
         {
+            // Only new targets animate; the next line keeping the same targets (and focus, see SetFocus) just stays.
+            if (spotlight && step != null && (currentStep == null || !step.targetKeys.SequenceEqual(currentStep.targetKeys))) spotlight.Pulse();
             currentStep = step;
             allowActions = enableActions;
             if (step == null) focus = Array.Empty<string>();
@@ -84,7 +87,12 @@ namespace CodingGame.Defense
 
         public void SetEditorAreas(Func<string, Vector3[], bool> resolver) => editorArea = resolver;
         // Outlined, not clickable: the dialogue's focus targets. Clicks still pass the game's TutorialAllows checks.
-        public void SetFocus(string[] keys) { focus = keys ?? Array.Empty<string>(); RefreshAreas(); }
+        public void SetFocus(string[] keys)
+        {
+            keys = keys ?? Array.Empty<string>();
+            if (spotlight && !focus.SequenceEqual(keys)) spotlight.Pulse();
+            focus = keys; RefreshAreas();
+        }
 
         void LateUpdate() => RefreshIfActing();
         void RefreshIfActing() { if (currentStep != null && (allowActions || focus.Length > 0)) RefreshAreas(); }
@@ -96,7 +104,7 @@ namespace CodingGame.Defense
             if (allowActions && currentStep != null)
                 foreach (var key in currentStep.targetKeys)
                 {
-                    bool outlined = currentStep.outline && (currentStep.highlightKeys == null || currentStep.highlightKeys.Length == 0 || Array.IndexOf(currentStep.highlightKeys, key) >= 0);
+                    bool outlined = currentStep.outline;
                     int start = screenAreas.Count;
                     // The placement area is the whole map: clickable (AddArea adds it to the clicks), but drawing it would hide the focus.
                     if (AddRoad(key) || AddArea(key) == 0 || key == TutorialKeys.Deployment) continue;
@@ -113,7 +121,7 @@ namespace CodingGame.Defense
                         if (AddArea(option.Trim()) > 0) { Show(start, true); break; }
                     }
             // Focus uses the same spotlight as action steps: dim everything but the holes.
-            bool dim = currentStep == null || currentStep.dim || focus.Length > 0 || Acting;
+            bool dim = currentStep == null || !currentStep.undimmed && (currentStep.dim || focus.Length > 0 || Acting);
             spotlight.SetRoad(roadBoxes, roadDim);
             spotlight.SetHoles(screenAreas, visibleAreas, outlinedAreas, roundAreas, currentStep?.highlightPadding ?? 0, dim);
         }
@@ -205,10 +213,23 @@ namespace CodingGame.Defense
                 if (!binding.uiTarget.gameObject.activeInHierarchy) return 0;
                 // Scroll content (the code area) is drawn as the viewport the player sees, not its content size.
                 var scroll = binding.uiTarget.GetComponentInParent<ScrollRect>();
-                (scroll && scroll.content == binding.uiTarget && scroll.viewport ? scroll.viewport : binding.uiTarget).GetWorldCorners(corners);
                 // A world-space canvas (e.g. the core health bar) projects through the battle camera.
                 var owner = binding.uiTarget.GetComponentInParent<Canvas>();
-                return AddCorners(owner && owner.renderMode == RenderMode.WorldSpace ? worldCamera : CanvasCamera) ? 1 : 0;
+                var camera = owner && owner.renderMode == RenderMode.WorldSpace ? worldCamera : CanvasCamera;
+                // A bare holder of cards (no graphic of its own, e.g. the next-wave cards) is drawn around the children it shows.
+                if (camera == CanvasCamera && !binding.uiTarget.GetComponent<Graphic>() && binding.uiTarget.childCount > 0 && !scroll)
+                {
+                    int start = screenAreas.Count;
+                    foreach (RectTransform child in binding.uiTarget)
+                        if (child.gameObject.activeSelf) { child.GetWorldCorners(corners); AddCorners(camera); }
+                    if (screenAreas.Count == start) return 0;
+                    var box = screenAreas[start];
+                    for (int i = start + 1; i < screenAreas.Count; i++) box = Rect.MinMaxRect(Mathf.Min(box.xMin, screenAreas[i].xMin), Mathf.Min(box.yMin, screenAreas[i].yMin), Mathf.Max(box.xMax, screenAreas[i].xMax), Mathf.Max(box.yMax, screenAreas[i].yMax));
+                    screenAreas.RemoveRange(start, screenAreas.Count - start); screenAreas.Add(box);
+                    return 1;
+                }
+                (scroll && scroll.content == binding.uiTarget && scroll.viewport ? scroll.viewport : binding.uiTarget).GetWorldCorners(corners);
+                return AddCorners(camera) ? 1 : 0;
             }
             if (!TryGetParts(key, out var parts, out bool round)) return 0;
             int added = 0;
