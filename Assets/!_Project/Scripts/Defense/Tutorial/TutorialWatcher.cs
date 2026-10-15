@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace CodingGame.Defense
 {
@@ -17,11 +18,28 @@ namespace CodingGame.Defense
             sim?.Robots.Where(r => r.Spec.role == RobotRole.Warrior).OrderBy(r => r.Id).ElementAtOrDefault(index);
         public static RobotState TeachingRobot(DefenseSimulation sim) => Robot(sim, 0);
 
-        // Generated Python body equals the expected lines, ignoring the def header, indentation and blank lines.
-        public static bool Matches(DefenseProgram program, string expected) =>
-            program != null && Lines(string.Join("\n", program.Source.Replace("\r", "").Split('\n').Skip(1))).SequenceEqual(Lines(expected));
-        static IEnumerable<string> Lines(string text) =>
-            (text ?? "").Replace("\r", "").Split('\n').Select(line => line.Trim()).Where(line => line.Length > 0);
+        // Generated Python body equals the expected lines, ignoring the def header, indentation, blank lines and the names the
+        // player gave variables (any name holding the enemy object works, not only `enemy`). The same lines in another order
+        // also count: the program only runs once it compiles, so a line that uses a variable before it is set never gets here.
+        public static bool Matches(DefenseProgram program, string expected)
+        {
+            if (program == null) return false;
+            var actual = Canonical(Lines(string.Join("\n", program.Source.Replace("\r", "").Split('\n').Skip(1))));
+            var wanted = Canonical(Lines(expected));
+            return actual.SequenceEqual(wanted) || actual.OrderBy(l => l).SequenceEqual(wanted.OrderBy(l => l));
+        }
+        static List<string> Lines(string text) =>
+            (text ?? "").Replace("\r", "").Split('\n').Select(line => line.Trim()).Where(line => line.Length > 0).ToList();
+        static readonly Regex Assignment = new Regex(@"^([A-Za-z_]\w*)\s*=(?!=)");
+        // Variables renamed v0, v1… in the order they are first set; attributes and calls (.hp, get_my_pos()) keep their names.
+        static List<string> Canonical(List<string> lines)
+        {
+            var names = new List<string>();
+            foreach (var line in lines) { var m = Assignment.Match(line); if (m.Success && !names.Contains(m.Groups[1].Value)) names.Add(m.Groups[1].Value); }
+            if (names.Count == 0) return lines;
+            var name = new Regex(@"(?<![\w.])(" + string.Join("|", names.Select(Regex.Escape)) + @")(?!\w)");
+            return lines.Select(line => name.Replace(line, m => "v" + names.IndexOf(m.Value))).ToList();
+        }
 
         // Signals raised since the last poll. expectedCode (optional) adds ProgramMatches while robot robotIndex's code matches it.
         public IReadOnlyList<string> Poll(DefenseSimulation sim, string expectedCode = null, int robotIndex = 0)

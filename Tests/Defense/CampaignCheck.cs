@@ -36,6 +36,17 @@ static class CampaignCheck
         var program=new DefenseProgram("robot",code);
         Assert(TutorialWatcher.Matches(program,answer)&&TutorialWatcher.Matches(program,string.Join("", "  enemy = get_nearest_enemy()", Environment.NewLine, Environment.NewLine, "    slash(enemy)  ")),"program match ignores header, indent and blank lines");
         Assert(!TutorialWatcher.Matches(program,"enemy = get_nearest_enemy()")&&!TutorialWatcher.Matches(null,answer),"partial or missing program does not match");
+        var renamed=new DefenseProgram("robot",new[]{new CodeBlock(BlockKind.DeclareVariable,"target",new CodeBlock(BlockKind.NearestEnemy)),
+            new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"target"))});
+        Assert(TutorialWatcher.Matches(renamed,answer),"any variable name holding the enemy matches");
+        var later=new DefenseProgram("robot",new[]{new CodeBlock(BlockKind.DeclareVariable,"e",new CodeBlock(BlockKind.NearestEnemy)),
+            new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"e")),
+            new CodeBlock(BlockKind.DeclareVariable,"d",new CodeBlock(BlockKind.Distance,"0",new CodeBlock(BlockKind.Variable,"e"),new CodeBlock(BlockKind.MyPos)))});
+        Assert(TutorialWatcher.Matches(later,"enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nslash(enemy)"),"distance line set below the attack still matches");
+        var wrong=new DefenseProgram("robot",new[]{new CodeBlock(BlockKind.DeclareVariable,"e",new CodeBlock(BlockKind.NearestEnemy)),
+            new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"e")),
+            new CodeBlock(BlockKind.DeclareVariable,"d",new CodeBlock(BlockKind.Hp,"0",new CodeBlock(BlockKind.Variable,"e")))});
+        Assert(!TutorialWatcher.Matches(wrong,"enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nslash(enemy)"),"a different value still does not match");
 
         var sim=new DefenseSimulation(Setup());var teacher=Place(sim,RobotRole.Warrior);var second=Place(sim,RobotRole.Warrior,-5);
         Assert(TutorialWatcher.TeachingRobot(sim)==teacher&&TutorialWatcher.Robot(sim,1)==second&&TutorialWatcher.Robot(sim,2)==null,"robot index counts warriors in placement order");
