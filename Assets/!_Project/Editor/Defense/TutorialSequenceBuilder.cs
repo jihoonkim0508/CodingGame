@@ -76,7 +76,7 @@ namespace CodingGame.Defense.Editor
         static List<S> OneOne() => new List<S> {
             L("1-1.A01"), L("1-1.A02"), L("1-1.A03"), L("1-1.A04"), L("1-1.A04a", Focus(Route)), L("1-1.A04b", Focus(Core)), L("1-1.A04c", Focus(Core)), L("1-1.A05"), L("1-1.A06"),
             L("1-1.B01", Click(TutorialKeys.RobotButton(1), s => s.Dim = true)),
-            L("1-1.B02", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => s.Dim = true, Focus(TutorialKeys.Deployment)))),
+            L("1-1.B02", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => s.Dim = true, Focus(TutorialKeys.Floor)))),
             L("1-1.B03", Click(Unit0, s => s.Pointer = Unit0)),
             L("1-1.B04", With(Focus(Range0), s => s.Padding = 24)), L("1-1.B05"), L("1-1.B06"),
             L("1-1.C01", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
@@ -144,7 +144,7 @@ namespace CodingGame.Defense.Editor
             // The second warrior is placed by the player before 1-4 starts talking; the lines are 1-1 B01·B02 verbatim.
             var steps = new List<S> {
                 L("1-1.B01", Click(TutorialKeys.RobotButton(1), s => { s.Id = "P01"; s.Dim = true; })),
-                L("1-1.B02", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => { s.Id = "P02"; s.Dim = true; }, Focus(TutorialKeys.Deployment)))),
+                L("1-1.B02", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => { s.Id = "P02"; s.Dim = true; }, Focus(TutorialKeys.Floor)))),
                 L("1-4.A01"), L("1-4.A02"), L("1-4.A03"), L("1-4.A04"), L("1-4.A05", Focus(Unit0)), L("1-4.A06", Focus(Route)), L("1-4.A07", Focus(Range0)),
             };
             steps.AddRange(OpenEditor("1-4.B01"));

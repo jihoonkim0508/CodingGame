@@ -19,9 +19,10 @@ namespace CodingGame.Defense
         sealed class RuntimeTarget
         {
             public GameObject owner;
-            // Several parts (e.g. each road segment) cut several holes; round parts are ground circles (attack range).
+            // Several parts (e.g. each road segment) cut several holes; round parts are ground circles (attack range);
+            // box parts are drawn as the one screen box around them (the floor cells).
             public Bounds[] parts;
-            public bool round;
+            public bool round, box;
         }
 
         [SerializeField] Canvas canvas;
@@ -129,7 +130,7 @@ namespace CodingGame.Defense
         // that box is dimmed again, with the road's outer corners rounded. False when key is not such a target.
         bool AddRoad(string key)
         {
-            if (!TryGetParts(key, out var parts, out bool round) || round || parts.Length < 2) return false;
+            if (!TryGetParts(key, out var parts, out bool round) || round || parts.Length < 2 || IsBox(key)) return false;
             float y = parts[0].center.y;
             var box = Rect.zero;
             for (int i = 0; i < parts.Length * 4; i++)
@@ -236,6 +237,12 @@ namespace CodingGame.Defense
                 screenAreas.Add(Rect.MinMaxRect(min.x, min.y, max.x, max.y)); added++;
                 if (round) roundAreas.Add(screenAreas[screenAreas.Count - 1]);
             }
+            if (added > 1 && IsBox(key))
+            {
+                int first = screenAreas.Count - added; var box = screenAreas[first];
+                for (int i = first + 1; i < screenAreas.Count; i++) box = Rect.MinMaxRect(Mathf.Min(box.xMin, screenAreas[i].xMin), Mathf.Min(box.yMin, screenAreas[i].yMin), Mathf.Max(box.xMax, screenAreas[i].xMax), Mathf.Max(box.yMax, screenAreas[i].yMax));
+                screenAreas.RemoveRange(first, added); screenAreas.Add(box); added = 1;
+            }
             return added;
         }
 
@@ -255,6 +262,7 @@ namespace CodingGame.Defense
             return true;
         }
 
+        bool IsBox(string key) => runtimeTargets.TryGetValue(key, out var runtime) && runtime.box;
         bool TryGetParts(string key, out Bounds[] parts, out bool round)
         {
             round = false;
@@ -311,12 +319,12 @@ namespace CodingGame.Defense
             return true;
         }
 
-        public void RegisterWorldTarget(string key, GameObject owner, Bounds[] parts, bool round = false)
+        public void RegisterWorldTarget(string key, GameObject owner, Bounds[] parts, bool round = false, bool box = false)
         {
             if (!owner || parts == null || parts.Length == 0 || !HasRuntimeTarget(key))
                 throw new InvalidOperationException(name + ": 런타임 대상 키가 등록되지 않았습니다: " + key);
             // LateUpdate redraws; the game re-registers its targets every frame.
-            runtimeTargets[key] = new RuntimeTarget { owner = owner, parts = parts, round = round };
+            runtimeTargets[key] = new RuntimeTarget { owner = owner, parts = parts, round = round, box = box };
         }
 
         public void UnregisterRuntimeTarget(string key, GameObject owner)

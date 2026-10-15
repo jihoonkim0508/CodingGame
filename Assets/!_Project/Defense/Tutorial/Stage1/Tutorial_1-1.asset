@@ -333,7 +333,7 @@ MonoBehaviour:
         \uC815\uD558\uC790, \uCC38\uACE0\uB85C \uC801\uC774 \uC774\uB3D9\uD558\uB294
         \uAE38\uC704\uC5D0\uB294 \uB85C\uBD07\uC744 \uC124\uCE58\uD560\uC218\uC5C6\uC5B4!"
       focusKeys:
-      - Battle.DeploymentArea
+      - Battle.Floor
     targetKeys:
     - Battle.DeploymentArea
     highlightKeys: []

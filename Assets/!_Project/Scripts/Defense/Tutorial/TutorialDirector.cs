@@ -301,8 +301,8 @@ namespace CodingGame.Defense
         public void ReportWorldSuccess(Vector3 point,string signal) { if (initialized) bridge.ReportWorldSuccess(point,signal); }
         public void ReportDrop(RectTransform source, RectTransform destination, string signal) { if (initialized) bridge.ReportDrop(source,destination,signal); }
         public void RegisterWorldTarget(string key, GameObject owner, Bounds bounds, bool round = false) => RegisterWorldTarget(key, owner, new[] { bounds }, round);
-        public void RegisterWorldTarget(string key, GameObject owner, Bounds[] parts, bool round = false)
-        { if (initialized && bridge.HasRuntimeTarget(key)) bridge.RegisterWorldTarget(key,owner,parts,round); }
+        public void RegisterWorldTarget(string key, GameObject owner, Bounds[] parts, bool round = false, bool box = false)
+        { if (initialized && bridge.HasRuntimeTarget(key)) bridge.RegisterWorldTarget(key,owner,parts,round,box); }
         public void UnregisterRuntimeTarget(string key, GameObject owner) { if (initialized) bridge.UnregisterRuntimeTarget(key,owner); }
 
         void Finish()

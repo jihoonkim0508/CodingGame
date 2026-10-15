@@ -31,6 +31,7 @@ namespace CodingGame.Defense
         [SerializeField] DefenseRoute[] routes = Array.Empty<DefenseRoute>();
         [Tooltip("Moved onto the painted map's base cell when the routes come from a map.")]
         [SerializeField] Transform core;
+        Bounds[] floorParts;
         [SerializeField] RobotDefinition[] robots = Array.Empty<RobotDefinition>();
         [SerializeField] EnemyDefinition[] enemies = Array.Empty<EnemyDefinition>();
         [SerializeField] DefenseRangeRing rangeRing;
@@ -486,6 +487,14 @@ namespace CodingGame.Defense
             }
             if (route.Count > 0) tutorial.RegisterWorldTarget(TutorialKeys.Route, gameObject, route.ToArray());
             else tutorial.UnregisterRuntimeTarget(TutorialKeys.Route, null);
+            // Battle.Floor: the painted floor cells, boxed as one (tighter on screen than the placement area's rect in perspective).
+            if (floorParts == null)
+            {
+                var map = routes[0].Map;
+                float size = map ? map.cellSize * map.transform.lossyScale.x : 0;
+                floorParts = map ? map.floorCells.Select(c => new Bounds(map.CellPosition(c), new Vector3(size, .1f, size))).ToArray() : new[] { deploymentArea.bounds };
+            }
+            tutorial.RegisterWorldTarget(TutorialKeys.Floor, gameObject, floorParts, box: true);
         }
         void SyncViews(float elapsed)
         {

@@ -20,7 +20,8 @@ namespace CodingGame.Defense
     {
         public const string Start = "Battle.Start", Develop = "Battle.Develop", Deployment = "Battle.DeploymentArea", SelectedRobot = "Robot.Selected",
             DropZone = "Editor.ProgramDropZone", Palette = "Editor.BlockPalette", Close = "Editor.Close", RestoreAutomatic = "Editor.RestoreAutomatic",
-            Hint = "Editor.Hint", Preview = "Editor.Preview", CoreHealth = "Battle.CoreHealth", Route = "Battle.Route", RewardPanel = "Battle.RewardPanel";
+            Hint = "Editor.Hint", Preview = "Editor.Preview", CoreHealth = "Battle.CoreHealth", Route = "Battle.Route", RewardPanel = "Battle.RewardPanel",
+            Floor = "Battle.Floor";
         public const string CodePrefix = "Editor.Code.", PalettePrefix = "Editor.Palette.";
         const string UnitPrefix = "Robot.Unit.", RangePrefix = "Robot.Range.";
         public const string RobotButtonPrefix = "Battle.Robot.";
@@ -30,7 +31,7 @@ namespace CodingGame.Defense
         public static string Unit(int index) => UnitPrefix + index;
         public static string Range(int index) => RangePrefix + index;
         // World targets the game registers at run time; they need no scene binding.
-        public static bool IsRuntime(string key) => key != null && (key == Route || key.StartsWith(UnitPrefix) || key.StartsWith(RangePrefix));
+        public static bool IsRuntime(string key) => key != null && (key == Route || key == Floor || key.StartsWith(UnitPrefix) || key.StartsWith(RangePrefix));
         // Positions inside the code editor (Editor.Code.*, Editor.Palette.*), resolved by DefenseCodeEditor each frame.
         public static bool IsEditorArea(string key) => key != null && (key.StartsWith(CodePrefix) || key.StartsWith(PalettePrefix));
     }
