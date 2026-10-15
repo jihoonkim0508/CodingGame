@@ -30,6 +30,7 @@ namespace CodingGame.Defense
         DefenseSimulation session;
         int viewedStep, viewedText, progressStep;
         float stepEntered, targetsLostAt = -1;
+        string pointedAt;
         bool targetsSeen;
         string shownText;
         bool initialized, bannerUp;
@@ -147,6 +148,9 @@ namespace CodingGame.Defense
                 Time.unscaledTime - stepEntered >= step.pointerDelay && bridge.TryGetArea(step.pointerKey, out area, out chosen);
             // The slot under a code line is pointed at from below; from above the arrow would cover that line.
             if (show) pointer.Show(area, chosen.Contains(".After.")); else pointer.Hide();
+            // Once the arrow moves to an empty argument slot, open the values tab, where the variables to drop in are.
+            if (show && chosen != pointedAt && chosen.Contains(".Arg.") && Editor) Editor.RevealPalette(TutorialKeys.PalettePrefix + "Variable");
+            if (show) pointedAt = chosen;
         }
 
         static TutorialEntryPhase? EntryPhase(BattlePhase phase)
@@ -159,7 +163,7 @@ namespace CodingGame.Defense
 
         bool Validate(TutorialSequence sequence, bool standalone = false)
         {
-            if (string.IsNullOrWhiteSpace(sequence.sequenceId) || sequence.stage < 1 || sequence.wave < 1 || sequence.steps == null || sequence.steps.Length == 0 || sequence.typeSpeed < 1f || sequence.typeSpeed > 20f)
+            if (string.IsNullOrWhiteSpace(sequence.sequenceId) || sequence.stage < 1 || sequence.wave < 1 || sequence.steps == null || sequence.steps.Length == 0 || sequence.typeSpeed < 1f || sequence.typeSpeed > 40f)
                 return Invalid(sequence, "시퀀스 ID, 대사, 단계 또는 타이핑 속도를 확인하세요.");
             if (!standalone && sequences.Count(item => item && item.sequenceId == sequence.sequenceId) != 1)
                 return Invalid(sequence, "sequenceId가 중복됐습니다.");
@@ -233,6 +237,7 @@ namespace CodingGame.Defense
             bridge.SetStep(active.steps[progressStep], viewedStep == progressStep);
             var focus = text.focusKeys ?? Array.Empty<string>();
             if (Editor) foreach (var target in focus) Editor.RevealPalette(target);
+            pointedAt = null;
             bridge.SetFocus(focus);
             bool system = alert && text.speaker == TutorialSignals.SystemSpeaker;
             if (system)

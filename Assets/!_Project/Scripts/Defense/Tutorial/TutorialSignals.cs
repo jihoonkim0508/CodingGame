@@ -18,6 +18,7 @@ namespace CodingGame.Defense
     // Target keys bound in TutorialInputBridge (scene) and checked by DefenseBattle.TutorialAllows.
     public static class TutorialKeys
     {
+        public const string RewardPanel = "Battle.RewardPanel";
         public const string Start = "Battle.Start", Develop = "Battle.Develop", Deployment = "Battle.DeploymentArea", SelectedRobot = "Robot.Selected",
             DropZone = "Editor.ProgramDropZone", Palette = "Editor.BlockPalette", Close = "Editor.Close", Clear = "Editor.RestoreAutomatic",
             Hint = "Editor.Hint", Preview = "Editor.Preview", CoreHealth = "Battle.CoreHealth", Route = "Battle.Route";

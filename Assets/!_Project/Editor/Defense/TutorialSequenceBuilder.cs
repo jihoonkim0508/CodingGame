@@ -44,6 +44,8 @@ namespace CodingGame.Defense.Editor
             public float PointerDelay;
             public bool Dim, CloseEditor, ClearProgram, OpenEditor, Preview, Battle;
             public int Robot;
+            public float Padding = 10;
+            public bool Top;
         }
 
         static Dictionary<string, Line> lines;
@@ -74,25 +76,25 @@ namespace CodingGame.Defense.Editor
         static List<S> OneOne() => new List<S> {
             L("1-1.A01"), L("1-1.A02"), L("1-1.A03"), L("1-1.A04"), L("1-1.A04a", Focus(Route)), L("1-1.A04b", Focus(Core)), L("1-1.A04c", Focus(Core)), L("1-1.A05"), L("1-1.A06"),
             L("1-1.B01", Click(TutorialKeys.RobotButton(1), s => s.Dim = true)),
-            L("1-1.B02", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => s.Dim = true, Focus(Route)))),
+            L("1-1.B02", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => s.Dim = true, Focus(TutorialKeys.Deployment)))),
             L("1-1.B03", Click(Unit0, s => s.Pointer = Unit0)),
-            L("1-1.B04"), L("1-1.B05"), L("1-1.B06"),
+            L("1-1.B04", With(Focus(Range0), s => s.Padding = 24)), L("1-1.B05"), L("1-1.B06"),
             L("1-1.C01", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
-            L("1-1.C02", Ed), L("1-1.C03", With(Ed, Focus(Drop, Preview))), L("1-1.C04", Ed), L("1-1.C05", Ed), L("1-1.C06", Ed), L("1-1.C07", Ed),
+            L("1-1.C02", Ed), L("1-1.C02a", With(Ed, Focus(Drop))), L("1-1.C03", With(Ed, Focus(Preview))), L("1-1.C04", Ed), L("1-1.C05", Ed), L("1-1.C06", Ed), L("1-1.C07", Ed),
             L("1-1.C08", Ed), L("1-1.C09", Ed), L("1-1.C10", Ed), L("1-1.C11", With(Ed, Focus("Editor.Palette.NearestEnemy"))),
             L("1-1.C12", With(Ed, Focus("Editor.Palette.DeclareVariable"))), L("1-1.C13", Ed), L("1-1.C14", Ed), L("1-1.C15", Ed),
             L("1-1.C16", Code("enemy = get_nearest_enemy()", With(s => s.Pointer = "Editor.Code.Start", Focus("Editor.Code.Start")))),
             L("1-1.C17", Ed), L("1-1.C18", Ed), L("1-1.D01", Ed), L("1-1.D02", Ed), L("1-1.D03", Ed),
-            L("1-1.D04", Code(Code11, With(s => s.Pointer = "Editor.Code.Arg.2.0|Editor.Code.After.1", Focus("Editor.Palette.Slash")))),
+            L("1-1.D04", Code(Code11, With(s => s.Pointer = "Editor.Code.Arg.2.0|Editor.Code.After.1", Focus("Editor.Code.Arg.2.0|Editor.Code.After.1", "Editor.Palette.Slash")))),
             L("1-1.D05", Ed),
             L("1-1.D06", Signal(TutorialSignals.PreviewHit, new[] { Preview }, s => s.Preview = true)),
             L("1-1.D07", Ed), L("1-1.D08", Ed), L("1-1.D09", Ed), L("1-1.D10", Ed),
             L("1-1.D11", s => s.CloseEditor = true),
             L("1-1.E01"), L("1-1.E02"),
-            L("1-1.E03", Signal(TutorialSignals.BattleStarted, new[] { Start }, Focus(Route, Range0, Core))),
-            L("1-1.E04", With(Fight, s => s.Trigger = TutorialSignals.FirstKill)),
+            // E03: the start button is at the bottom, so the line moves up. E04 is left out for now (임시변경점.md).
+            L("1-1.E03", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => s.Top = true)),
             L("1-1.E05", With(Fight, s => s.Trigger = TutorialSignals.Leak)),
-            L("1-1.E06", s => s.Trigger = TutorialSignals.WaveCleared), L("1-1.E07"), L("1-1.E08", Focus(Core)),
+            L("1-1.E06", s => s.Trigger = TutorialSignals.WaveCleared), L("1-1.E06a", Focus(TutorialKeys.RewardPanel)), L("1-1.E07"), L("1-1.E08", Focus(Core)),
         };
 
         static List<S> OneTwo()
@@ -142,7 +144,7 @@ namespace CodingGame.Defense.Editor
             // The second warrior is placed by the player before 1-4 starts talking; the lines are 1-1 B01·B02 verbatim.
             var steps = new List<S> {
                 L("1-1.B01", Click(TutorialKeys.RobotButton(1), s => { s.Id = "P01"; s.Dim = true; })),
-                L("1-1.B02", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => { s.Id = "P02"; s.Dim = true; }, Focus(Route)))),
+                L("1-1.B02", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => { s.Id = "P02"; s.Dim = true; }, Focus(TutorialKeys.Deployment)))),
                 L("1-4.A01"), L("1-4.A02"), L("1-4.A03"), L("1-4.A04"), L("1-4.A05", Focus(Unit0)), L("1-4.A06", Focus(Route)), L("1-4.A07", Focus(Range0)),
             };
             steps.AddRange(OpenEditor("1-4.B01"));
@@ -195,17 +197,17 @@ namespace CodingGame.Defense.Editor
             var sequence = AssetDatabase.LoadAssetAtPath<TutorialSequence>(path);
             if (!sequence) { sequence = ScriptableObject.CreateInstance<TutorialSequence>(); AssetDatabase.CreateAsset(sequence, path); }
             sequence.sequenceId = id; sequence.enabled = true; sequence.stage = 1; sequence.wave = wave;
-            sequence.entryPhase = TutorialEntryPhase.Preparation; sequence.typeSpeed = 15;
+            sequence.entryPhase = TutorialEntryPhase.Preparation; sequence.typeSpeed = 22.5f;
             bool battle = false;
             sequence.steps = steps.Select(s =>
             {
                 battle |= s.Battle || s.Trigger != null;
                 return new TutorialStep {
-                    stepId = s.Id, kind = s.Kind, dialoguePosition = TutorialDialoguePosition.Bottom,
+                    stepId = s.Id, kind = s.Kind, dialoguePosition = s.Top ? TutorialDialoguePosition.Top : TutorialDialoguePosition.Bottom,
                     texts = new[] { new TutorialText { textId = "t1", speaker = s.Speaker, text = s.Text, focusKeys = s.Focus } },
                     targetKeys = s.Targets, highlightKeys = Array.Empty<string>(), dim = s.Dim, blockInput = true, outline = true,
                     completionMode = s.Kind == TutorialStepKind.ActionGuide ? s.Mode : TutorialCompletionMode.Unconfigured, completionSignal = s.Signal,
-                    pauseBattle = !battle, allowPreview = s.Preview, highlightPadding = 10, trigger = s.Trigger, expectedCode = s.Expected,
+                    pauseBattle = !battle, allowPreview = s.Preview, highlightPadding = s.Padding, trigger = s.Trigger, expectedCode = s.Expected,
                     pointerKey = s.Pointer, hintCode = s.HintCode, pointerDelay = s.PointerDelay,
                     closeEditor = s.CloseEditor, clearProgram = s.ClearProgram, openEditor = s.OpenEditor, robotIndex = s.Robot };
             }).ToArray();

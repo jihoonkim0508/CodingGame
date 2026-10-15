@@ -120,7 +120,8 @@ namespace CodingGame.Defense
             if (!key.StartsWith(TutorialKeys.CodePrefix)) return false;
             var program = panel.Program;
             var parts = key.Substring(TutorialKeys.CodePrefix.Length).Split('.');
-            if (parts[0] == "Start") return Corners(program.Rect, program.StartArea, corners);
+            // The start slot, or the block once one sits there (the slot is narrower than e.g. enemy = get_nearest_enemy()).
+            if (parts[0] == "Start") { var first = program.StartChain().FirstOrDefault(); return first ? Corners(first.Rect, null, corners) : Corners(program.Rect, program.StartArea, corners); }
             if (parts[0] == "Loose") { var loose = program.LooseRoots().FirstOrDefault(); return Corners(loose ? loose.Rect : null, null, corners); }
             var chain = program.StartChain();
             if (parts.Length < 2 || !int.TryParse(parts[1], out int line) || line < 1 || line > chain.Count) return false;

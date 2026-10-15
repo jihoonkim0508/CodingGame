@@ -18,7 +18,7 @@ MonoBehaviour:
   wave: 2
   entryPhase: 0
   speakerPortrait: {fileID: 0}
-  typeSpeed: 15
+  typeSpeed: 22.5
   steps:
   - stepId: A01
     kind: 0
