@@ -467,21 +467,16 @@ namespace CodingGame.Defense
             for (int i = 0; i < Simulation.Setup.Routes.Length; i++)
             {
                 if (!Simulation.RouteInUse(i)) continue;
-                // The painted road is narrower than the walkable width; 1.5× leaves a margin around it. The spawn end lies off the map, so clip to it.
-                var path = Simulation.Setup.Routes[i]; var width = Vector3.one * (path.HalfWidth * 1.5f);
+                // The painted road is narrower than the walkable width; 1.25× the walkable width leaves a margin around it. The spawn end lies off the map, so clip to it.
+                var path = Simulation.Setup.Routes[i]; var width = Vector3.one * (path.HalfWidth * 2.5f);
                 var min = DefenseViews.World(Simulation.Setup.Min); var max = DefenseViews.World(Simulation.Setup.Max);
                 for (int p = 1; p < path.Points.Length; p++)
                 {
-                    // Half-cell pieces: a long segment seen in perspective would leave a wide wedge (or big steps) in screen rects.
-                    Vector3 from = DefenseViews.World(path.Points[p - 1]), to = DefenseViews.World(path.Points[p]);
-                    int pieces = Mathf.Max(1, Mathf.CeilToInt(Vector3.Distance(from, to) / path.HalfWidth));
-                    for (int k = 0; k < pieces; k++)
-                    {
-                        var b = new Bounds(Vector3.Lerp(from, to, k / (float)pieces), width);
-                        b.Encapsulate(new Bounds(Vector3.Lerp(from, to, (k + 1) / (float)pieces), width));
-                        b.SetMinMax(new Vector3(Mathf.Max(b.min.x, min.x), 0, Mathf.Max(b.min.z, min.z)), new Vector3(Mathf.Min(b.max.x, max.x), .1f, Mathf.Min(b.max.z, max.z)));
-                        if (b.size.x > 0 && b.size.z > 0) route.Add(b);
-                    }
+                    // One ground rect per straight segment; the spotlight shapes the road on the ground (TutorialInputBridge.AddRoad).
+                    var b = new Bounds(DefenseViews.World(path.Points[p - 1]), width);
+                    b.Encapsulate(new Bounds(DefenseViews.World(path.Points[p]), width));
+                    b.SetMinMax(new Vector3(Mathf.Max(b.min.x, min.x), 0, Mathf.Max(b.min.z, min.z)), new Vector3(Mathf.Min(b.max.x, max.x), .1f, Mathf.Min(b.max.z, max.z)));
+                    if (b.size.x > 0 && b.size.z > 0) route.Add(b);
                 }
             }
             if (route.Count > 0) tutorial.RegisterWorldTarget(TutorialKeys.Route, gameObject, route.ToArray());

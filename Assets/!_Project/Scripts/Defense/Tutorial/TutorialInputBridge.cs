@@ -31,7 +31,10 @@ namespace CodingGame.Defense
         readonly List<Rect> screenAreas = new List<Rect>();
         readonly List<Rect> visibleAreas = new List<Rect>();
         readonly List<Rect> roundAreas = new List<Rect>();
-        readonly List<Rect> cornerAreas = new List<Rect>();
+        // The road: lit boxes and the dim inside them off the road (see AddRoad).
+        readonly List<Rect> roadBoxes = new List<Rect>();
+        readonly List<Vector2[]> roadDim = new List<Vector2[]>();
+        const float RoadCorner = .6f; // world units
         readonly List<Rect> outlinedAreas = new List<Rect>();
         readonly Dictionary<string, TutorialTargetBinding> byKey = new Dictionary<string, TutorialTargetBinding>();
         readonly Dictionary<string, RuntimeTarget> runtimeTargets = new Dictionary<string, RuntimeTarget>();
@@ -88,34 +91,116 @@ namespace CodingGame.Defense
         void RefreshAreas()
         {
             if (!spotlight) return;
-            screenAreas.Clear(); outlinedAreas.Clear(); visibleAreas.Clear(); roundAreas.Clear(); cornerAreas.Clear();
+            screenAreas.Clear(); outlinedAreas.Clear(); visibleAreas.Clear(); roundAreas.Clear(); roadBoxes.Clear(); roadDim.Clear();
             if (allowActions && currentStep != null)
                 foreach (var key in currentStep.targetKeys)
                 {
                     bool outlined = currentStep.outline && (currentStep.highlightKeys == null || currentStep.highlightKeys.Length == 0 || Array.IndexOf(currentStep.highlightKeys, key) >= 0);
                     int start = screenAreas.Count;
-                    // The placement area is the whole map: clickable, but drawing it would hide the focus.
-                    if (AddArea(key) == 0 || key == TutorialKeys.Deployment) continue;
+                    // The placement area is the whole map: clickable (AddArea adds it to the clicks), but drawing it would hide the focus.
+                    if (AddRoad(key) || AddArea(key) == 0 || key == TutorialKeys.Deployment) continue;
                     // With a focus on screen the focus carries the box; the action targets only stay lit.
                     Show(start, outlined && focus.Length == 0);
                 }
             if (currentStep != null)
                 foreach (var key in focus)
-                {
-                    int start = screenAreas.Count;
-                    if (AddArea(key) > 0) Show(start, true);
-                }
+                    // "a|b": the first one on screen (e.g. the empty slot once the block is placed, else the place to drop it).
+                    foreach (var option in key.Split('|'))
+                    {
+                        int start = screenAreas.Count;
+                        if (AddRoad(option)) break;
+                        if (AddArea(option) > 0) { Show(start, true); break; }
+                    }
             // Focus uses the same spotlight as action steps: dim everything but the holes.
             bool dim = currentStep == null || currentStep.dim || focus.Length > 0 || Acting;
-            spotlight.SetHoles(screenAreas, visibleAreas, outlinedAreas, roundAreas, cornerAreas, currentStep?.highlightPadding ?? 0, dim);
+            spotlight.SetRoad(roadBoxes, roadDim);
+            spotlight.SetHoles(screenAreas, visibleAreas, outlinedAreas, roundAreas, currentStep?.highlightPadding ?? 0, dim);
         }
 
-        // Areas added since start become visible holes; a single rect gets the outline, a multi-part shape (the road) gets rounded corners instead.
+        // Areas added since start become visible holes; a single rect gets the outline.
         void Show(int start, bool outlined)
         {
             for (int i = start; i < screenAreas.Count; i++) visibleAreas.Add(screenAreas[i]);
-            if (screenAreas.Count - start > 1) cornerAreas.AddRange(screenAreas.GetRange(start, screenAreas.Count - start));
-            else if (outlined) outlinedAreas.Add(screenAreas[start]);
+            if (outlined && screenAreas.Count - start == 1) outlinedAreas.Add(screenAreas[start]);
+        }
+
+        // A multi-part ground target (the road) is shaped on the ground and then projected, so its edges follow the
+        // perspective instead of stepping like screen rects: its screen box is lit, and the ground off the road inside
+        // that box is dimmed again, with the road's outer corners rounded. False when key is not such a target.
+        bool AddRoad(string key)
+        {
+            if (!TryGetParts(key, out var parts, out bool round) || round || parts.Length < 2) return false;
+            float y = parts[0].center.y;
+            var box = Rect.zero;
+            for (int i = 0; i < parts.Length * 4; i++)
+            {
+                var b = parts[i / 4];
+                if (!ToLocal(new Vector3(i % 2 == 0 ? b.min.x : b.max.x, y, i % 4 < 2 ? b.min.z : b.max.z), out var p)) return false;
+                box = i == 0 ? new Rect(p, Vector2.zero) : Rect.MinMaxRect(Mathf.Min(box.xMin, p.x), Mathf.Min(box.yMin, p.y), Mathf.Max(box.xMax, p.x), Mathf.Max(box.yMax, p.y));
+            }
+            // The ground under the box, as a convex quad on the XZ plane.
+            var ground = new Vector2[4];
+            var boxCorners = new[] { new Vector2(box.xMin, box.yMin), new Vector2(box.xMin, box.yMax), new Vector2(box.xMax, box.yMax), new Vector2(box.xMax, box.yMin) };
+            for (int i = 0; i < 4; i++) if (!ToGround(boxCorners[i], y, out ground[i])) return false;
+            var inside = (ground[0] + ground[1] + ground[2] + ground[3]) * .25f;
+            void Dim(List<Vector2> shape)
+            {
+                for (int i = 0; i < 4 && shape.Count >= 3; i++)
+                {
+                    Vector2 a = ground[i], edge = ground[(i + 1) % 4] - a;
+                    float sign = Mathf.Sign(Cross(edge, inside - a));
+                    shape = TutorialSpotlight.Clip(shape, p => sign * Cross(edge, p - a));
+                }
+                if (shape.Count < 3) return;
+                var local = new Vector2[shape.Count];
+                for (int i = 0; i < shape.Count; i++) if (!ToLocal(new Vector3(shape[i].x, y, shape[i].y), out local[i])) return;
+                roadDim.Add(local);
+            }
+            // Ground grid cells off the road.
+            var xs = new List<float>(); var zs = new List<float>();
+            foreach (var b in parts) { xs.Add(b.min.x); xs.Add(b.max.x); zs.Add(b.min.z); zs.Add(b.max.z); }
+            foreach (var g in ground) { xs.Add(g.x); zs.Add(g.y); }
+            xs.Sort(); zs.Sort();
+            for (int x = 0; x < xs.Count - 1; x++)
+            for (int z = 0; z < zs.Count - 1; z++)
+            {
+                float x0 = xs[x], x1 = xs[x + 1], z0 = zs[z], z1 = zs[z + 1];
+                if (x1 <= x0 || z1 <= z0 || OnRoad(parts, new Vector2((x0 + x1) * .5f, (z0 + z1) * .5f))) continue;
+                Dim(new List<Vector2> { new Vector2(x0, z0), new Vector2(x0, z1), new Vector2(x1, z1), new Vector2(x1, z0) });
+            }
+            // Outer corners of the whole road (nothing just beside, above or past them) get the gap outside a quarter circle dimmed.
+            var done = new List<Vector2>();
+            foreach (var b in parts)
+                for (int q = 0; q < 4; q++)
+                {
+                    float sx = q == 0 || q == 3 ? 1 : -1, sz = q < 2 ? 1 : -1, step = RoadCorner * .5f;
+                    var corner = new Vector2(sx > 0 ? b.max.x : b.min.x, sz > 0 ? b.max.z : b.min.z);
+                    if (done.Exists(c => (c - corner).sqrMagnitude < RoadCorner * RoadCorner) || OnRoad(parts, corner + new Vector2(sx, -sz) * step) ||
+                        OnRoad(parts, corner + new Vector2(-sx, sz) * step) || OnRoad(parts, corner + new Vector2(sx, sz) * step)) continue;
+                    done.Add(corner);
+                    var center = corner - new Vector2(sx, sz) * RoadCorner;
+                    for (int i = 0; i < 8; i++)
+                    {
+                        float a0 = (q + i / 8f) * Mathf.PI * .5f, a1 = (q + (i + 1) / 8f) * Mathf.PI * .5f;
+                        Dim(new List<Vector2> { corner, center + new Vector2(Mathf.Cos(a0), Mathf.Sin(a0)) * RoadCorner, center + new Vector2(Mathf.Cos(a1), Mathf.Sin(a1)) * RoadCorner });
+                    }
+                }
+            roadBoxes.Add(box);
+            return true;
+        }
+        static float Cross(Vector2 a, Vector2 b) => a.x * b.y - a.y * b.x;
+        static bool OnRoad(Bounds[] parts, Vector2 ground) => Array.Exists(parts, b => ground.x >= b.min.x && ground.x <= b.max.x && ground.y >= b.min.z && ground.y <= b.max.z);
+        bool ToLocal(Vector3 world, out Vector2 local)
+        {
+            var p = worldCamera.WorldToScreenPoint(world); local = default;
+            return p.z > 0 && RectTransformUtility.ScreenPointToLocalPointInRectangle(spotlight.rectTransform, p, CanvasCamera, out local);
+        }
+        bool ToGround(Vector2 local, float y, out Vector2 ground)
+        {
+            var ray = worldCamera.ScreenPointToRay(RectTransformUtility.WorldToScreenPoint(CanvasCamera, spotlight.rectTransform.TransformPoint(local)));
+            bool hit = new Plane(Vector3.up, new Vector3(0, y, 0)).Raycast(ray, out float d);
+            var p = ray.GetPoint(d); ground = new Vector2(p.x, p.z);
+            return hit;
         }
 
         // Adds the key's spotlight-local rects and returns how many; 0 when the key is unknown, hidden or off screen.
