@@ -29,6 +29,8 @@ namespace CodingGame.Defense
         [SerializeField] Collider[] blockedAreas = Array.Empty<Collider>();
         [SerializeField] Transform actorsRoot;
         [SerializeField] DefenseRoute[] routes = Array.Empty<DefenseRoute>();
+        [Tooltip("Moved onto the painted map's base cell when the routes come from a map.")]
+        [SerializeField] Transform core;
         [SerializeField] RobotDefinition[] robots = Array.Empty<RobotDefinition>();
         [SerializeField] EnemyDefinition[] enemies = Array.Empty<EnemyDefinition>();
         [SerializeField] DefenseRangeRing rangeRing;
@@ -139,6 +141,8 @@ namespace CodingGame.Defense
             content.ValidateContent();
             if (selectedStage < 1 || selectedStage > content.stages.Length) throw new ArgumentException("스테이지 범위 오류");
             var bounds=deploymentArea.bounds;
+            var map=routes[0].Map;
+            if(map&&map.hasBase&&core)core.position=map.CellPosition(map.baseCell);
             return new BattleSetup {
                 PlayerFlow=true, Stage=selectedStage, BaseHealth=content.baseHealth, RobotLimit=content.robotLimit,
                 WaveSeconds=content.stages[selectedStage-1].waveSeconds,
