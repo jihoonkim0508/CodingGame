@@ -31,6 +31,7 @@ namespace CodingGame.Defense
         [SerializeField] DefenseRoute[] routes = Array.Empty<DefenseRoute>();
         [Tooltip("Moved onto the painted map's base cell when the routes come from a map.")]
         [SerializeField] Transform core;
+        static readonly Color RangeRed = new Color(1, .22f, .22f); // attack ranges (planner: red reads at a glance)
         Bounds[] floorParts;
         [SerializeField] RobotDefinition[] robots = Array.Empty<RobotDefinition>();
         [SerializeField] EnemyDefinition[] enemies = Array.Empty<EnemyDefinition>();
@@ -266,7 +267,7 @@ namespace CodingGame.Defense
         {
             if (!TutorialAllows("Battle.ToggleSpeed")) return;
             if (Simulation.Phase != BattlePhase.Running && Simulation.Phase != BattlePhase.Paused) return;
-            BattleSpeed = BattleSpeed == 1 ? 2 : 1; RefreshHUD();
+            BattleSpeed = BattleSpeed >= 3 ? 1 : BattleSpeed + 1; RefreshHUD();
             ReportTutorialAction("Battle.ToggleSpeed", "TargetClicked");
         }
         public void ChooseRobot(int index)
@@ -368,6 +369,7 @@ namespace CodingGame.Defense
         void Update()
         {
             if (Simulation == null || HelpOpen) return;
+            SetPlacementTint(palette >= 0);
             var mouse = Mouse.current; var keyboard = Keyboard.current;
             bool tutorialActive = TutorialBlocksInput;
             // Keep F1 and offer F2 when a recording overlay intercepts the help key.
@@ -394,14 +396,13 @@ namespace CodingGame.Defense
                         var def = robots[palette]; string error = Simulation.PlacementError(def.stats, new Point(point.x, point.z));
                         bool tutorialAllowed = !tutorial || tutorial.AllowsWorldPoint(point);
                         placementMarker.gameObject.SetActive(true); placementMarker.position = point + Vector3.up * .08f;
-                        rangeRing.Show(point, def.stats.range, error == null ? new Color(.25f,1,.7f) : new Color(1,.3f,.32f));
+                        rangeRing.Show(point, def.stats.range, error == null ? RangeRed : new Color(.55f,.55f,.58f));
                         if (mouse.leftButton.wasPressedThisFrame && tutorialAllowed) PlaceRobot(palette, point);
                     }
                     else if (mouse.leftButton.wasPressedThisFrame)
                     {
-                        var bot = Simulation.Robots.OrderBy(r => Point.DistanceSquared(r.Position, new Point(point.x, point.z))).FirstOrDefault();
-                        if (bot != null && Point.Distance(bot.Position, new Point(point.x, point.z)) <= bot.Spec.radius + .5f &&
-                            (!tutorial || tutorial.AllowsWorldPoint(point))) SelectRobot(bot.Id);
+                        var bot = RobotUnder(mouse.position.ReadValue());
+                        if (bot != null && (!tutorial || tutorial.AllowsWorldPoint(DefenseViews.World(bot.Position)))) SelectRobot(bot.Id);
                         else if (!tutorialActive) { selected = 0; rangeRing.Hide(); }
                     }
                 }
@@ -432,9 +433,9 @@ namespace CodingGame.Defense
             // A tutorial highlight (Robot.Range.N) shows that robot's range glowing, selected or not.
             var lit = tutorial ? Simulation.Robots.OrderBy(r => r.Id).Where((r, i) => tutorial.Highlighted(TutorialKeys.Range(i))).FirstOrDefault() : null;
             if (lit != null && palette < 0 && !codeEditor.IsOpen)
-                rangeRing.Show(DefenseViews.World(lit.Position), lit.Range, robots[lit.DefinitionIndex].color, .65f + .35f * Mathf.Sin(Time.unscaledTime * 5));
+                rangeRing.Show(DefenseViews.World(lit.Position), lit.Range, RangeRed, .65f + .35f * Mathf.Sin(Time.unscaledTime * 5));
             else if (Simulation.Options.ranges && current != null && palette < 0 && !codeEditor.IsOpen && !inventoryUI.IsOpen && !DeveloperMode)
-                rangeRing.Show(DefenseViews.World(current.Position), current.Range, robots[current.DefinitionIndex].color, 0);
+                rangeRing.Show(DefenseViews.World(current.Position), current.Range, RangeRed, 0);
             else if (palette < 0) rangeRing.Hide();
             if (current == null) selected = 0;
             RefreshHUD();
@@ -457,6 +458,65 @@ namespace CodingGame.Defense
             point = default; return false;
         }
         // Tutorial world targets: Robot.Unit.N / Robot.Range.N for each robot in id order, Battle.Route for the routes in use.
+        // The robot whose body (a capsule from the ground to its head, seen on screen) is under the pointer, nearest first.
+        RobotState RobotUnder(Vector2 screen)
+        {
+            RobotState best = null; float bestDistance = float.MaxValue;
+            foreach (var bot in Simulation.Robots)
+            {
+                Vector2 foot = battleCamera.WorldToScreenPoint(DefenseViews.World(bot.Position));
+                Vector2 head = battleCamera.WorldToScreenPoint(DefenseViews.World(bot.Position, RobotClickHeight));
+                float radius = Vector2.Distance(foot, (Vector2)battleCamera.WorldToScreenPoint(DefenseViews.World(bot.Position + new Point(bot.Spec.radius + .5f, 0))));
+                Vector2 axis = head - foot; float t = Mathf.Clamp01(Vector2.Dot(screen - foot, axis) / Mathf.Max(1, axis.sqrMagnitude));
+                float distance = Vector2.Distance(screen, foot + axis * t);
+                if (distance <= radius && distance < bestDistance) { best = bot; bestDistance = distance; }
+            }
+            return best;
+        }
+        const float RobotClickHeight = 1.8f;
+        // While a robot is being placed the map shows where it may go: floor white, road red. Restored when placing ends.
+        bool placementTint;
+        (Color upper, Color inner, Color border, bool floors, bool roads) mapColors;
+        void SetPlacementTint(bool on)
+        {
+            var map = routes.Length > 0 ? routes[0].Map : null;
+            if (on == placementTint || !map) return;
+            placementTint = on;
+            if (on)
+            {
+                mapColors = (map.upperColor, map.roadInnerColor, map.roadBorderColor, map.useFloorColors, map.useRoadColors);
+                map.upperColor = Color.white; map.roadInnerColor = new Color(.95f, .27f, .27f); map.roadBorderColor = new Color(.7f, .12f, .12f);
+                map.useFloorColors = map.useRoadColors = true;
+            }
+            else
+            {
+                map.upperColor = mapColors.upper; map.roadInnerColor = mapColors.inner; map.roadBorderColor = mapColors.border;
+                map.useFloorColors = mapColors.floors; map.useRoadColors = mapColors.roads;
+            }
+            map.ApplyFloorColors();
+        }
+        void OnDisable() => SetPlacementTint(false);
+        // The route's points with the last one pulled back one cell: the walk ends on the core, the painted road a cell before.
+        static Point[] RoadPoints(Route path)
+        {
+            var points = path.Points.ToArray();
+            if (points.Length < 2) return points;
+            Point last = points[points.Length - 1], before = points[points.Length - 2];
+            float cell = path.HalfWidth * 2, length = Point.Distance(before, last);
+            if (length > cell) points[points.Length - 1] = last + (before - last) / length * cell;
+            return points;
+        }
+        // The first route in use, entrance to the road's end, in world space (tutorial path arrows).
+        public IEnumerable<Vector3> TutorialRoutePath()
+        {
+            if (Simulation == null) yield break;
+            for (int i = 0; i < Simulation.Setup.Routes.Length; i++)
+            {
+                if (!Simulation.RouteInUse(i)) continue;
+                foreach (var point in RoadPoints(Simulation.Setup.Routes[i])) yield return DefenseViews.World(point, .1f);
+                yield break;
+            }
+        }
         void SyncTutorialTargets()
         {
             if (!tutorial) return;
@@ -480,11 +540,12 @@ namespace CodingGame.Defense
                 if (!Simulation.RouteInUse(i)) continue;
                 // The painted road is narrower than the walkable width; 1.25× the walkable width leaves a margin around it.
                 var path = Simulation.Setup.Routes[i]; var width = Vector3.one * (path.HalfWidth * 2.5f);
-                for (int p = 1; p < path.Points.Length; p++)
+                var points = RoadPoints(path);
+                for (int p = 1; p < points.Length; p++)
                 {
                     // One ground rect per straight segment; the spotlight shapes the road on the ground (TutorialInputBridge.AddRoad).
-                    var b = new Bounds(DefenseViews.World(path.Points[p - 1]), width);
-                    b.Encapsulate(new Bounds(DefenseViews.World(path.Points[p]), width));
+                    var b = new Bounds(DefenseViews.World(points[p - 1]), width);
+                    b.Encapsulate(new Bounds(DefenseViews.World(points[p]), width));
                     b.SetMinMax(new Vector3(Mathf.Max(b.min.x, min.x), 0, Mathf.Max(b.min.z, min.z)), new Vector3(Mathf.Min(b.max.x, max.x), .1f, Mathf.Min(b.max.z, max.z)));
                     if (b.size.x > 0 && b.size.z > 0) route.Add(b);
                 }
@@ -544,7 +605,7 @@ namespace CodingGame.Defense
             header.text = $"WAVE {Simulation.WaveIndex + 1:00} / {Simulation.Setup.Waves.Length:00}    |    CORE {Simulation.BaseHealth:00}    |    KILL {Simulation.Kills:00}  LEAK {Simulation.Leaks:00}";
             stateText.text = $"{phase}   ·   {Simulation.Time:0.0}s   ·   적 {Simulation.Enemies.Count}   ·   로봇 {Simulation.Robots.Count}/{Simulation.Setup.RobotLimit}";
             pauseLabel.text = Simulation.Phase == BattlePhase.Paused ? "재개" : "일시정지";
-            speedLabel.text = BattleSpeed == 1 ? "1x" : "2x";
+            speedLabel.text = BattleSpeed + "x";
             startButton.interactable = Simulation.Phase == BattlePhase.Ready;
             pauseButton.interactable = Simulation.Phase == BattlePhase.Running || Simulation.Phase == BattlePhase.Paused;
             speedButton.interactable = !ended;

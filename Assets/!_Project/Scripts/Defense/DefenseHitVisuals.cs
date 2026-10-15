@@ -83,7 +83,7 @@ namespace CodingGame.Defense
             if (areaRing && areaSeconds <= 0) areaRing.Hide();
             // Simulate leaves systems paused, so IsAlive remains true after their last particle; expire by time instead.
             foreach (var (effect, _) in active) effect.Simulate(elapsed, true, false, false);
-            foreach (var (effect, _) in slashes) effect.Simulate(elapsed * 3, 1);
+            foreach (var (effect, _) in slashes) effect.Simulate(elapsed, 1); // real time: at 3x the arc was gone before it could be seen
             Expire(active, elapsed); Expire(slashes, elapsed); Expire(hitRanges, elapsed);
         }
         static void Expire<T>(List<(T, float)> items, float elapsed) where T : Component

@@ -24,11 +24,11 @@ namespace CodingGame.Defense
             fillRenderer = fill.GetComponent<MeshRenderer>(); fillRenderer.sharedMaterial = fillMaterial;
             fillRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; fillRenderer.receiveShadows = false; fillRenderer.enabled = false;
         }
-        // glow 0..1 (tutorial highlight): a thick bright-gold ring and a strong fill; the caller pulses glow.
+        // glow 0..1 (tutorial highlight): a thick bright-red ring and a strong fill; the caller pulses glow.
         public void Show(Vector3 center, float radius, Color color, float glow)
         {
             this.glow = glow;
-            if (glow > 0) color = Color.Lerp(new Color(1, .78f, .12f), new Color(1, .95f, .55f), glow);
+            if (glow > 0) color = Color.Lerp(new Color(1, .12f, .12f), new Color(1, .6f, .55f), glow);
             line.widthMultiplier = lineWidth * (1 + 3 * glow);
             Show(center, radius, color);
             this.glow = 0;
