@@ -1,5 +1,7 @@
 using System;
+using System.Linq;
 using UnityEngine;
+using UnityEngine.UI;
 using Point = System.Numerics.Vector2;
 
 namespace CodingGame.Defense
@@ -14,6 +16,33 @@ namespace CodingGame.Defense
             if (!view) return;
             view.gameObject.SetActive(false);
             UnityEngine.Object.Destroy(view.gameObject);
+        }
+        // A look-alike of a UI element (e.g. a palette block) under parent: copied while inactive so none of its scripts run,
+        // then stripped to graphics and layout; the palette's stock count ("x1") is dropped. Returned inactive.
+        public static RectTransform GraphicCopy(RectTransform source, Transform parent)
+        {
+            var holder = new GameObject(source.name + " (copy)", typeof(RectTransform));
+            holder.SetActive(false);
+            holder.transform.SetParent(parent, false);
+            var copy = (RectTransform)UnityEngine.Object.Instantiate(source.gameObject, holder.transform, false).transform;
+            copy.gameObject.SetActive(true);
+            // Reversed: a component that requires another goes first.
+            foreach (var behaviour in copy.GetComponentsInChildren<MonoBehaviour>(true).Reverse())
+                if (!(behaviour is Graphic || behaviour is LayoutGroup || behaviour is ContentSizeFitter || behaviour is LayoutElement || behaviour is RectMask2D || behaviour is Mask))
+                {
+                    // A slot's size comes from its script; keep that size once the script is gone.
+                    var size = behaviour is ILayoutElement e ? new Vector2(e.preferredWidth, e.preferredHeight) : Vector2.zero;
+                    var target = behaviour.gameObject;
+                    UnityEngine.Object.DestroyImmediate(behaviour);
+                    if (size != Vector2.zero && !target.GetComponent<LayoutElement>()) { var keep = target.AddComponent<LayoutElement>(); keep.preferredWidth = size.x; keep.preferredHeight = size.y; }
+                }
+            foreach (var label in copy.GetComponentsInChildren<Transform>(true)) if (label && label.name == "Stock") UnityEngine.Object.DestroyImmediate(label.gameObject);
+            // An item out of stock is faded in the palette; the copy shows the block itself.
+            foreach (var faded in copy.GetComponentsInChildren<CanvasGroup>(true)) faded.alpha = 1;
+            copy.anchorMin = Vector2.zero; copy.anchorMax = Vector2.one; copy.pivot = new Vector2(.5f, .5f);
+            copy.offsetMin = copy.offsetMax = Vector2.zero; copy.localScale = Vector3.one;
+            var group = holder.AddComponent<CanvasGroup>(); group.blocksRaycasts = false; group.interactable = false;
+            return (RectTransform)holder.transform;
         }
     }
 

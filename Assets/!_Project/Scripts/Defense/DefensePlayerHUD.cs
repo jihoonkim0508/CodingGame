@@ -137,6 +137,39 @@ namespace CodingGame.Defense
             recallRobotButton.interactable = sim.RecallUnlocked;
             upgradeRobotLabel.text = !sim.UpgradeUnlocked ? "레벨업\n1-2 해금" : selected.IsMaxLevel ? "최고 레벨" : $"레벨업\n{sim.UpgradeCost} 코인";
         }
+        // The rewarded blocks as they look in the editor (planner: an image, not a name), in a row above the reward text.
+        RectTransform rewardBlocks;
+        void ShowRewardBlocks(System.Collections.Generic.IReadOnlyList<CodingGame.BlockCoding.BlockKind> drops)
+        {
+            if (rewardBlocks) Destroy(rewardBlocks.gameObject);
+            rewardBlocks = null; rewardItems.margin = Vector4.zero;
+            var panel = battle.CodeEditor ? battle.CodeEditor.Panel : null;
+            if (drops == null || drops.Count == 0) return;
+            rewardBlocks = new GameObject("Reward blocks", typeof(RectTransform)).GetComponent<RectTransform>();
+            rewardBlocks.SetParent(rewardItems.transform, false);
+            rewardBlocks.anchorMin = rewardBlocks.anchorMax = rewardBlocks.pivot = new Vector2(0, 1); rewardBlocks.anchoredPosition = Vector2.zero;
+            float x = 0, y = 0, rowHeight = 0, width = ((RectTransform)rewardItems.transform).rect.width;
+            foreach (var group in drops.GroupBy(k => k).OrderBy(g => g.Key))
+            {
+                var view = panel == null ? null : group.Key == CodingGame.BlockCoding.BlockKind.Variable ? panel.VariableTemplate : panel.Palette.FirstOrDefault(p => p.view.BaseKind == group.Key).view;
+                // A block with no palette item yet keeps its name, so no reward goes unseen.
+                if (!view) { rewardItems.text = DefenseProgression.Label(group.Key) + "   x" + group.Count() + "\n" + rewardItems.text; continue; }
+                var copy = DefenseViews.GraphicCopy(view.Rect, rewardBlocks);
+                copy.gameObject.SetActive(true);
+                // Same width rule as CommandBlockView.preferredWidth; the palette original is not laid out while its tab is closed.
+                var header = copy.GetChild(0).Find("Header") as RectTransform;
+                if (header) LayoutRebuilder.ForceRebuildLayoutImmediate(header);
+                float w = header ? Mathf.Max(100, LayoutUtility.GetPreferredWidth(header) + 28) : 100, h = view.preferredHeight;
+                if (x > 0 && x + w > width) { x = 0; y += rowHeight + 10; rowHeight = 0; }
+                copy.anchorMin = copy.anchorMax = copy.pivot = new Vector2(0, 1); copy.sizeDelta = new Vector2(w, h); copy.anchoredPosition = new Vector2(x, -y);
+                var count = new GameObject("Count", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                count.rectTransform.SetParent(rewardBlocks, false); count.rectTransform.anchorMin = count.rectTransform.anchorMax = count.rectTransform.pivot = new Vector2(0, 1);
+                count.rectTransform.anchoredPosition = new Vector2(x + w + 6, -y); count.rectTransform.sizeDelta = new Vector2(48, h);
+                count.font = rewardItems.font; count.fontSize = 26; count.alignment = TextAlignmentOptions.MidlineLeft; count.text = "x" + group.Count(); count.raycastTarget = false;
+                x += w + 60; rowHeight = Mathf.Max(rowHeight, h);
+            }
+            rewardItems.margin = new Vector4(0, y + rowHeight + 16, 0, 0);
+        }
         void RefreshRewardPanel(DefenseSimulation sim, bool reward)
         {
             claimButton.interactable = sim.Phase != BattlePhase.Victory || sim.CanAdvanceStage || battle.FromStageMap;
@@ -145,9 +178,10 @@ namespace CodingGame.Defense
             if (shownRewardPhase != sim.Phase || shownRewardWave != sim.WaveIndex || shownRewardStage != battle.Stage)
             {
                 rewardTitle.text = reward ? $"WAVE {sim.WaveIndex + 1}  /  " + (sim.LastWaveTimedOut ? "TIME UP" : "CLEAR") : sim.Phase == BattlePhase.Victory ? $"STAGE {battle.Stage} COMPLETE" : "CORE LOST";
-                rewardItems.text = reward ? (sim.PendingDrops.Count == 0 ? "지급할 블록이 없습니다." : string.Join("\n", sim.PendingDrops.GroupBy(k => k).OrderBy(g => g.Key).Select(g => DefenseProgression.Label(g.Key) + "   x" + g.Count()))) :
+                rewardItems.text = reward ? (sim.PendingDrops.Count == 0 ? "지급할 블록이 없습니다." : "") :
                     (sim.Phase == BattlePhase.Victory ? battle.FromStageMap ? "5개 웨이브 방어 성공 · 스테이지 맵에서 다음 스테이지를 선택하세요." : sim.CanAdvanceStage ? "5개 웨이브 방어 성공 · 보유 블록과 로봇을 다음 스테이지로 가져갑니다." : "1~3스테이지, 총 15개 웨이브를 완료했습니다." : "방어 실패 · 배치와 코드를 바꿔 도전하세요") + $"\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
                 if (reward) rewardItems.text += $"\n\n잔여 적 {sim.LastSurvivors}" + (sim.WaveIndex + 1 < sim.Setup.Waves.Length ? " · 다음 웨이브에 추가" : " · 최종 기록");
+                ShowRewardBlocks(reward ? sim.PendingDrops : null);
                 Canvas.ForceUpdateCanvases(); rewardScroll.verticalNormalizedPosition = 1;
             }
         }
