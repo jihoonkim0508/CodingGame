@@ -65,7 +65,7 @@ namespace CodingGame.Defense
         [Min(1)] public int stage = 1, wave = 1;
         public TutorialEntryPhase entryPhase;
         public Sprite speakerPortrait;
-        [Range(1f, 20f), Tooltip("초당 글자 수")]
+        [Range(1f, 40f), Tooltip("초당 글자 수")]
         public float typeSpeed = 3f;
         public TutorialStep[] steps = Array.Empty<TutorialStep>();
     }

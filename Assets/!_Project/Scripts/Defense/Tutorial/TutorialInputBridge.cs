@@ -108,8 +108,8 @@ namespace CodingGame.Defense
                     foreach (var option in key.Split('|'))
                     {
                         int start = screenAreas.Count;
-                        if (AddRoad(option)) break;
-                        if (AddArea(option) > 0) { Show(start, true); break; }
+                        if (AddRoad(option.Trim())) break;
+                        if (AddArea(option.Trim()) > 0) { Show(start, true); break; }
                     }
             // Focus uses the same spotlight as action steps: dim everything but the holes.
             bool dim = currentStep == null || currentStep.dim || focus.Length > 0 || Acting;
@@ -139,18 +139,11 @@ namespace CodingGame.Defense
                 box = i == 0 ? new Rect(p, Vector2.zero) : Rect.MinMaxRect(Mathf.Min(box.xMin, p.x), Mathf.Min(box.yMin, p.y), Mathf.Max(box.xMax, p.x), Mathf.Max(box.yMax, p.y));
             }
             // The ground under the box, as a convex quad on the XZ plane.
-            var ground = new Vector2[4];
-            var boxCorners = new[] { new Vector2(box.xMin, box.yMin), new Vector2(box.xMin, box.yMax), new Vector2(box.xMax, box.yMax), new Vector2(box.xMax, box.yMin) };
-            for (int i = 0; i < 4; i++) if (!ToGround(boxCorners[i], y, out ground[i])) return false;
-            var inside = (ground[0] + ground[1] + ground[2] + ground[3]) * .25f;
+            var ground = TutorialSpotlight.Corners(box);
+            for (int i = 0; i < 4; i++) if (!ToGround(ground[i], y, out var g)) return false; else ground[i] = g;
             void Dim(List<Vector2> shape)
             {
-                for (int i = 0; i < 4 && shape.Count >= 3; i++)
-                {
-                    Vector2 a = ground[i], edge = ground[(i + 1) % 4] - a;
-                    float sign = Mathf.Sign(Cross(edge, inside - a));
-                    shape = TutorialSpotlight.Clip(shape, p => sign * Cross(edge, p - a));
-                }
+                shape = TutorialSpotlight.ClipInside(shape, ground);
                 if (shape.Count < 3) return;
                 var local = new Vector2[shape.Count];
                 for (int i = 0; i < shape.Count; i++) if (!ToLocal(new Vector3(shape[i].x, y, shape[i].y), out local[i])) return;
@@ -188,7 +181,6 @@ namespace CodingGame.Defense
             roadBoxes.Add(box);
             return true;
         }
-        static float Cross(Vector2 a, Vector2 b) => a.x * b.y - a.y * b.x;
         static bool OnRoad(Bounds[] parts, Vector2 ground) => Array.Exists(parts, b => ground.x >= b.min.x && ground.x <= b.max.x && ground.y >= b.min.z && ground.y <= b.max.z);
         bool ToLocal(Vector3 world, out Vector2 local)
         {
@@ -298,8 +290,8 @@ namespace CodingGame.Defense
             if (!IsGuiding) return true;
             if (!Acting) return false;
             bool hasRobotTarget = Array.Exists(currentStep.targetKeys, key =>
-                !string.IsNullOrEmpty(key) && key.StartsWith("Battle.Robot.", StringComparison.Ordinal));
-            return !hasRobotTarget || ContainsKey("Battle.Robot." + index);
+                !string.IsNullOrEmpty(key) && key.StartsWith(TutorialKeys.RobotButtonPrefix, StringComparison.Ordinal));
+            return !hasRobotTarget || ContainsKey(TutorialKeys.RobotButton(index));
         }
 
         public bool TargetsAvailable(TutorialStep step)
@@ -383,13 +375,14 @@ namespace CodingGame.Defense
             if (string.IsNullOrWhiteSpace(key)) return false;
             foreach (var option in key.Split('|'))
             {
-                int before = screenAreas.Count;
+                int before = screenAreas.Count, rounds = roundAreas.Count;
                 if (AddArea(option.Trim()) == 0) continue;
                 area = screenAreas[before];
                 for (int i = before + 1; i < screenAreas.Count; i++)
                     area = Rect.MinMaxRect(Mathf.Min(area.xMin, screenAreas[i].xMin), Mathf.Min(area.yMin, screenAreas[i].yMin),
                         Mathf.Max(area.xMax, screenAreas[i].xMax), Mathf.Max(area.yMax, screenAreas[i].yMax));
-                screenAreas.RemoveRange(before, screenAreas.Count - before);
+                // Only measured: the drawn areas come from RefreshAreas.
+                screenAreas.RemoveRange(before, screenAreas.Count - before); roundAreas.RemoveRange(rounds, roundAreas.Count - rounds);
                 chosen = option.Trim();
                 return true;
             }
@@ -400,25 +393,6 @@ namespace CodingGame.Defense
             Array.Exists(targets, binding => binding != null && binding.key == key && (binding.allowRuntimeTarget || binding.uiTarget || binding.worldTarget)));
         public bool HasRuntimeTarget(string key) => !string.IsNullOrWhiteSpace(key) &&
             (TutorialKeys.IsRuntime(key) || byKey.TryGetValue(key, out var binding) && binding.allowRuntimeTarget);
-
-#if UNITY_EDITOR
-        public IReadOnlyList<(string key, Rect area, RectTransform ui)> EditorAreas(TutorialStep step)
-        {
-            var result=new List<(string,Rect,RectTransform)>();
-            foreach(var key in step.targetKeys)
-            {
-                if(!HasTarget(key))throw new InvalidOperationException("대상 연결 누락: "+key);
-                screenAreas.Clear();
-                if(AddArea(key)==0)throw new InvalidOperationException("대상 투영 불가: "+key);
-                var area=screenAreas[0];
-                var camera=CanvasCamera;
-                var min=RectTransformUtility.WorldToScreenPoint(camera,spotlight.transform.TransformPoint(area.min));
-                var max=RectTransformUtility.WorldToScreenPoint(camera,spotlight.transform.TransformPoint(area.max));
-                result.Add((key,Rect.MinMaxRect(min.x,min.y,max.x,max.y),byKey.TryGetValue(key,out var binding)?binding.uiTarget:null));
-            }
-            RefreshAreas();return result;
-        }
-#endif
 
         bool ContainsKey(string key) => Array.Exists(currentStep.targetKeys, k => k == key || k == "*");
     }

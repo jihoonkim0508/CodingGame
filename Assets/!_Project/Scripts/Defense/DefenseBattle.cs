@@ -173,7 +173,7 @@ namespace CodingGame.Defense
             setup.Validate();
             inventoryUI.Close();
             codeEditor.Close(false);
-            tutorial?.UnregisterRuntimeTarget("Robot.Selected", null);
+            tutorial?.UnregisterRuntimeTarget(TutorialKeys.SelectedRobot, null);
             foreach (var view in robotViews.Values.Concat(enemyViews.Values)) DefenseViews.Discard(view);
             robotViews.Clear(); enemyViews.Clear();
             ClearDrops();
@@ -317,22 +317,24 @@ namespace CodingGame.Defense
         {
             if (!robotViews.TryGetValue(id, out var view) || !view) return;
             string unit = TutorialKeys.Unit(Simulation.Robots.OrderBy(r => r.Id).ToList().FindIndex(r => r.Id == id));
-            string key = TutorialAllows(unit) ? unit : TutorialAllows("Robot.Selected") ? "Robot.Selected" : "Battle.SelectRobot";
+            string key = TutorialAllows(unit) ? unit : TutorialAllows(TutorialKeys.SelectedRobot) ? TutorialKeys.SelectedRobot : "Battle.SelectRobot";
             if (!TutorialAllows(key)) return;
             var robot = Simulation.FindRobot(id);
             if (robot == null) return;
             selected = id; HidePlacement();
             RegisterSelectedRobot(robot, view);
             RefreshHUD();
-            tutorial?.ReportSuccess(key, "TargetClicked", key == "Battle.SelectRobot" ? null : view.gameObject);
+            tutorial?.ReportSuccess(key, TutorialSignals.TargetClicked, key == "Battle.SelectRobot" ? null : view.gameObject);
         }
         void RegisterSelectedRobot(RobotState robot, DefenseActorView view)
         {
-            if (!tutorial) return;
+            if (tutorial) tutorial.RegisterWorldTarget(TutorialKeys.SelectedRobot, view.gameObject, RobotBounds(robot));
+        }
+        // A robot's clickable body as a tutorial target.
+        static Bounds RobotBounds(RobotState robot)
+        {
             float radius = robot.Spec.radius;
-            var center = DefenseViews.World(robot.Position, .65f);
-            tutorial.RegisterWorldTarget("Robot.Selected", view.gameObject,
-                new Bounds(center, new Vector3(radius * 2.5f, 1.5f, radius * 2.5f)));
+            return new Bounds(DefenseViews.World(robot.Position, .65f), new Vector3(radius * 2.5f, 1.5f, radius * 2.5f));
         }
         public void DevelopSelected()
         {
@@ -357,7 +359,7 @@ namespace CodingGame.Defense
             if (!Simulation.CanPrepare) return;
             if (!Simulation.RecallUnlocked) { Tell("회수는 1-3부터 열립니다."); return; }
             codeEditor.Close();
-            if (robotViews.TryGetValue(selected, out var removed)) tutorial?.UnregisterRuntimeTarget("Robot.Selected", removed.gameObject);
+            if (robotViews.TryGetValue(selected, out var removed)) tutorial?.UnregisterRuntimeTarget(TutorialKeys.SelectedRobot, removed.gameObject);
             Simulation.RemoveRobot(selected); selected = 0; rangeRing.Hide();
             Tell("로봇과 사용 블록을 인벤토리로 회수했습니다."); SyncViews(0); RefreshHUD();
             ReportTutorialAction("Battle.Recall", "TargetClicked", "RobotRecalled");
@@ -457,23 +459,22 @@ namespace CodingGame.Defense
             for (int i = 0; i < bots.Count; i++)
             {
                 if (!robotViews.TryGetValue(bots[i].Id, out var view) || !view) continue;
-                float radius = bots[i].Spec.radius, range = bots[i].Range;
-                tutorial.RegisterWorldTarget(TutorialKeys.Unit(i), view.gameObject,
-                    new Bounds(DefenseViews.World(bots[i].Position, .65f), new Vector3(radius * 2.5f, 1.5f, radius * 2.5f)));
+                float range = bots[i].Range;
+                tutorial.RegisterWorldTarget(TutorialKeys.Unit(i), view.gameObject, RobotBounds(bots[i]));
                 tutorial.RegisterWorldTarget(TutorialKeys.Range(i), view.gameObject,
                     new Bounds(DefenseViews.World(bots[i].Position), new Vector3(range * 2, .1f, range * 2)), true);
             }
             for (int i = bots.Count; i < tutorialUnits; i++)
             { tutorial.UnregisterRuntimeTarget(TutorialKeys.Unit(i), null); tutorial.UnregisterRuntimeTarget(TutorialKeys.Range(i), null); }
             tutorialUnits = bots.Count;
-            // One part per straight road segment so the spotlight follows the road instead of boxing the whole map.
             var route = new List<Bounds>();
+            // Clipped to the map, in case a route starts off it.
+            var min = DefenseViews.World(Simulation.Setup.Min); var max = DefenseViews.World(Simulation.Setup.Max);
             for (int i = 0; i < Simulation.Setup.Routes.Length; i++)
             {
                 if (!Simulation.RouteInUse(i)) continue;
-                // The painted road is narrower than the walkable width; 1.25× the walkable width leaves a margin around it. The spawn end lies off the map, so clip to it.
+                // The painted road is narrower than the walkable width; 1.25× the walkable width leaves a margin around it.
                 var path = Simulation.Setup.Routes[i]; var width = Vector3.one * (path.HalfWidth * 2.5f);
-                var min = DefenseViews.World(Simulation.Setup.Min); var max = DefenseViews.World(Simulation.Setup.Max);
                 for (int p = 1; p < path.Points.Length; p++)
                 {
                     // One ground rect per straight segment; the spotlight shapes the road on the ground (TutorialInputBridge.AddRoad).

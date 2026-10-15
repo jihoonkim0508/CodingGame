@@ -132,10 +132,11 @@ namespace CodingGame.Defense.Editor
         {
             var b = Battle;
             if (b && b.Simulation != null && !b.Tutorial) throw new InvalidOperationException(NoTutorial);
-            if (b && b.Simulation != null && b.Stage == 1 && b.Simulation.WaveIndex + 1 == wave) { JumpNow(b, wave, step); return; }
+            if (OnStageOneWave(b, wave)) { JumpNow(b, wave, step); return; }
             SessionState.SetString(RequestKey + ".jump", wave + "," + step);
             PlayDefense(1, wave, true, wave > 1);
         }
+        static bool OnStageOneWave(DefenseBattle b, int wave) => b && b.Simulation != null && b.Stage == 1 && b.Simulation.WaveIndex + 1 == wave;
         // ponytail: places the robots earlier steps would have placed, but not the code they would have written.
         static void JumpNow(DefenseBattle b, int wave, int step)
         {
@@ -182,7 +183,7 @@ namespace CodingGame.Defense.Editor
             var parts = jump.Split(','); int wave = int.Parse(parts[0]), step = int.Parse(parts[1]);
             var b = Battle;
             if (b && b.Simulation != null && !b.Tutorial) { SessionState.EraseString(RequestKey + ".jump"); Debug.LogWarning(NoTutorial); return; }
-            if (!b || b.Simulation == null || b.Stage != 1 || b.Simulation.WaveIndex + 1 != wave) return; // the session starts on a later Update
+            if (!OnStageOneWave(b, wave)) return; // the session starts on a later Update
             SessionState.EraseString(RequestKey + ".jump");
             try { JumpNow(b, wave, step); } catch (Exception e) { Debug.LogException(e); }
         }

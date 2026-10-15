@@ -13,7 +13,7 @@ namespace CodingGame.Defense
         [SerializeField] DefenseBattle battle;
         [SerializeField] TutorialInputBridge bridge;
         [SerializeField] TutorialDialogueView view;
-        // ponytail: optional until the scene wires them (W3); without them arrows are skipped and system lines use the dialogue box.
+        // Optional: without them arrows are skipped and system lines use the dialogue box.
         [SerializeField] TutorialPointer pointer;
         [SerializeField] TutorialSystemAlert alert;
         [SerializeField] TutorialSequence[] sequences = Array.Empty<TutorialSequence>();
@@ -209,7 +209,7 @@ namespace CodingGame.Defense
             if (pointer) pointer.Hide();
             var step = active.steps[index];
             ApplyEntry(step);
-            bridge.SetStep(step, true);
+            // ShowText / Hide set the bridge step.
             if (Triggered(step)) ShowText(true); else Hide();
         }
 
@@ -319,7 +319,6 @@ namespace CodingGame.Defense
         TutorialSequence editorSequence;
         public TutorialStep EditorStep => active && viewedStep < active.steps.Length ? active.steps[viewedStep] : null;
         public TutorialInputBridge EditorBridge => bridge;
-        public TutorialDialogueView EditorView => view;
         public void EditorStop() { Finish(); if(editorSequence) Destroy(editorSequence); editorSequence=null; }
         public void EditorPrevious() => PreviousText();
         public void EditorNext() => NextText();

@@ -18,14 +18,15 @@ namespace CodingGame.Defense
     // Target keys bound in TutorialInputBridge (scene) and checked by DefenseBattle.TutorialAllows.
     public static class TutorialKeys
     {
-        public const string RewardPanel = "Battle.RewardPanel";
         public const string Start = "Battle.Start", Develop = "Battle.Develop", Deployment = "Battle.DeploymentArea", SelectedRobot = "Robot.Selected",
-            DropZone = "Editor.ProgramDropZone", Palette = "Editor.BlockPalette", Close = "Editor.Close", Clear = "Editor.RestoreAutomatic",
-            Hint = "Editor.Hint", Preview = "Editor.Preview", CoreHealth = "Battle.CoreHealth", Route = "Battle.Route";
+            DropZone = "Editor.ProgramDropZone", Palette = "Editor.BlockPalette", Close = "Editor.Close", RestoreAutomatic = "Editor.RestoreAutomatic",
+            Hint = "Editor.Hint", Preview = "Editor.Preview", CoreHealth = "Battle.CoreHealth", Route = "Battle.Route", RewardPanel = "Battle.RewardPanel";
         public const string CodePrefix = "Editor.Code.", PalettePrefix = "Editor.Palette.";
         const string UnitPrefix = "Robot.Unit.", RangePrefix = "Robot.Range.";
-        public static string RobotButton(int index) => "Battle.Robot." + index;
-        // The index-th placed robot (by id, from 0) and its attack range circle; DefenseBattle registers them.
+        public const string RobotButtonPrefix = "Battle.Robot.";
+        public static string RobotButton(int index) => RobotButtonPrefix + index;
+        // The index-th placed robot (by id, from 0, any role) and its attack range circle; DefenseBattle registers them.
+        // TutorialStep.robotIndex counts warriors only; the two agree while Stage 1 has only warriors.
         public static string Unit(int index) => UnitPrefix + index;
         public static string Range(int index) => RangePrefix + index;
         // World targets the game registers at run time; they need no scene binding.

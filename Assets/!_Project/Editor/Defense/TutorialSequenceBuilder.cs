@@ -31,7 +31,7 @@ namespace CodingGame.Defense.Editor
         const string Code14Middle = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nattack_range = my_attack_range()\nif enemy_distance <= my_attack_range():\n    slash(enemy)";
         const string Code14 = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nattack_range = my_attack_range()\n\nif enemy_distance <= attack_range:\n    slash(enemy)";
 
-        sealed class Line { public string Id, Speaker, Text; }
+        sealed class Line { public string Speaker, Text; }
 
         // One step per script line; options shape the step (see 튜토리얼_아키텍처.md §6).
         sealed class S
@@ -186,7 +186,7 @@ namespace CodingGame.Defense.Editor
                 if (!m.Success) continue;
                 string text = m.Groups[3].Value.Trim().Replace("\\n", "\n").Replace(" \n ", "\n");
                 if (!text.Contains("`")) text = CodeNames.Replace(text, "`$1`");
-                result.Add(m.Groups[1].Value, new Line { Id = m.Groups[1].Value, Speaker = m.Groups[2].Value, Text = text });
+                result.Add(m.Groups[1].Value, new Line { Speaker = m.Groups[2].Value, Text = text });
             }
             return result;
         }

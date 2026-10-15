@@ -71,13 +71,7 @@ namespace CodingGame.Defense
                 foreach (var shape in roadDim)
                 {
                     var pieces = new List<List<Vector2>> { new List<Vector2>(shape) };
-                    foreach (var h in holes)
-                    {
-                        var cut = rounds.Contains(h) ? EllipsePolygon(h) : new List<Vector2> { new Vector2(h.xMin, h.yMin), new Vector2(h.xMin, h.yMax), new Vector2(h.xMax, h.yMax), new Vector2(h.xMax, h.yMin) };
-                        var next = new List<List<Vector2>>();
-                        foreach (var p in pieces) Subtract(p, cut, next);
-                        pieces = next;
-                    }
+                    foreach (var h in holes) pieces = SubtractAll(pieces, rounds.Contains(h) ? EllipsePolygon(h) : Corners(h));
                     foreach (var p in pieces) AddPolygon(vh, p, color);
                 }
                 // A round hole: the grid left its whole rect lit; dim the corners between the rect and the ellipse in small
@@ -85,19 +79,14 @@ namespace CodingGame.Defense
                 foreach (var r in rounds)
                     for (int i = 0; i < RoundSegments; i++)
                     {
-                        Vector2 e0 = Ellipse(r, i, 1), e1 = Ellipse(r, i + 1, 1), s0 = Square(r, i), s1 = Square(r, i + 1);
+                        Vector2 e0 = Ellipse(r, i), e1 = Ellipse(r, i + 1), s0 = Square(r, i), s1 = Square(r, i + 1);
                         for (int k = 0; k < RoundSlices; k++)
                         {
                             float t0 = k / (float)RoundSlices, t1 = (k + 1) / (float)RoundSlices;
                             Vector2 a = Vector2.Lerp(e0, s0, t0), b = Vector2.Lerp(e0, s0, t1), c = Vector2.Lerp(e1, s1, t1), d = Vector2.Lerp(e1, s1, t0);
                             if (holes.Exists(h => h != r && h.Contains(a) && h.Contains(b) && h.Contains(c) && h.Contains(d))) continue;
                             var pieces = new List<List<Vector2>> { new List<Vector2> { a, b, c, d } };
-                            foreach (var box in roadBoxes)
-                            {
-                                var next = new List<List<Vector2>>();
-                                foreach (var p in pieces) Subtract(p, new List<Vector2> { new Vector2(box.xMin, box.yMin), new Vector2(box.xMin, box.yMax), new Vector2(box.xMax, box.yMax), new Vector2(box.xMax, box.yMin) }, next);
-                                pieces = next;
-                            }
+                            foreach (var box in roadBoxes) pieces = SubtractAll(pieces, Corners(box));
                             foreach (var p in pieces) AddPolygon(vh, p, color);
                         }
                     }
@@ -108,7 +97,7 @@ namespace CodingGame.Defense
                 if (rounds.Contains(r))
                 {
                     for (int i = 0; i < RoundSegments; i++)
-                        AddQuad(vh, Ellipse(r, i, 1), Ellipse(r, i, 1, OutlineWidth), Ellipse(r, i + 1, 1, OutlineWidth), Ellipse(r, i + 1, 1), outline);
+                        AddQuad(vh, Ellipse(r, i), Ellipse(r, i, OutlineWidth), Ellipse(r, i + 1, OutlineWidth), Ellipse(r, i + 1), outline);
                     continue;
                 }
                 AddQuad(vh, Rect.MinMaxRect(r.xMin - OutlineWidth, r.yMin - OutlineWidth, r.xMax + OutlineWidth, r.yMin), outline);
@@ -118,21 +107,46 @@ namespace CodingGame.Defense
             }
         }
 
-        // Convex polygon minus a convex cut, as convex pieces: the part outside each cut edge that is inside the edges before it.
-        static void Subtract(List<Vector2> poly, List<Vector2> cut, List<List<Vector2>> into)
+        public static List<Vector2> Corners(Rect r) =>
+            new List<Vector2> { new Vector2(r.xMin, r.yMin), new Vector2(r.xMin, r.yMax), new Vector2(r.xMax, r.yMax), new Vector2(r.xMax, r.yMin) };
+        // Each convex piece minus a convex cut.
+        static List<List<Vector2>> SubtractAll(List<List<Vector2>> pieces, List<Vector2> cut)
         {
-            if (!Overlaps(poly, cut)) { into.Add(poly); return; }
-            var inside = Vector2.zero; foreach (var p in cut) inside += p; inside /= cut.Count;
-            var rest = poly;
-            for (int i = 0; i < cut.Count && rest.Count >= 3; i++)
+            var result = new List<List<Vector2>>();
+            var sides = InsideEdges(cut);
+            foreach (var poly in pieces)
             {
-                Vector2 a = cut[i], edge = cut[(i + 1) % cut.Count] - a;
-                float sign = Mathf.Sign(edge.x * (inside - a).y - edge.y * (inside - a).x);
-                Func<Vector2, float> side = p => sign * (edge.x * (p - a).y - edge.y * (p - a).x);
-                var outside = Clip(rest, p => -side(p));
-                if (outside.Count >= 3) into.Add(outside);
-                rest = Clip(rest, side);
+                if (!Overlaps(poly, cut)) { result.Add(poly); continue; }
+                // The part outside each cut edge that is inside the edges before it.
+                var rest = poly;
+                foreach (var side in sides)
+                {
+                    if (rest.Count < 3) break;
+                    var outside = Clip(rest, p => -side(p));
+                    if (outside.Count >= 3) result.Add(outside);
+                    rest = Clip(rest, side);
+                }
             }
+            return result;
+        }
+        // The part of a convex polygon inside a convex one.
+        public static List<Vector2> ClipInside(List<Vector2> poly, IList<Vector2> convex)
+        {
+            foreach (var side in InsideEdges(convex)) if (poly.Count >= 3) poly = Clip(poly, side);
+            return poly;
+        }
+        // Per edge of a convex polygon: >= 0 on the side facing its middle.
+        static Func<Vector2, float>[] InsideEdges(IList<Vector2> convex)
+        {
+            var middle = Vector2.zero; foreach (var p in convex) middle += p; middle /= convex.Count;
+            var sides = new Func<Vector2, float>[convex.Count];
+            for (int i = 0; i < convex.Count; i++)
+            {
+                Vector2 a = convex[i], edge = convex[(i + 1) % convex.Count] - a;
+                float sign = Mathf.Sign(edge.x * (middle - a).y - edge.y * (middle - a).x);
+                sides[i] = p => sign * (edge.x * (p - a).y - edge.y * (p - a).x);
+            }
+            return sides;
         }
         static bool Overlaps(List<Vector2> a, List<Vector2> b)
         {
@@ -147,7 +161,7 @@ namespace CodingGame.Defense
         static List<Vector2> EllipsePolygon(Rect r)
         {
             var points = new List<Vector2>(RoundSegments);
-            for (int i = 0; i < RoundSegments; i++) points.Add(Ellipse(r, i, 1));
+            for (int i = 0; i < RoundSegments; i++) points.Add(Ellipse(r, i));
             return points;
         }
         // Keeps the part of a convex polygon where the linear function side is >= 0.
@@ -186,8 +200,8 @@ namespace CodingGame.Defense
 
         static float Angle(int i) => i * 2 * Mathf.PI / RoundSegments;
         // Point i on the rect's inscribed ellipse, pushed out by grow units.
-        static Vector2 Ellipse(Rect r, int i, float scale, float grow = 0) =>
-            r.center + new Vector2(Mathf.Cos(Angle(i)) * (r.width * .5f * scale + grow), Mathf.Sin(Angle(i)) * (r.height * .5f * scale + grow));
+        static Vector2 Ellipse(Rect r, int i, float grow = 0) =>
+            r.center + new Vector2(Mathf.Cos(Angle(i)) * (r.width * .5f + grow), Mathf.Sin(Angle(i)) * (r.height * .5f + grow));
         // Point i on the rect's border along the same direction (the 45° samples land on the corners).
         static Vector2 Square(Rect r, int i)
         {

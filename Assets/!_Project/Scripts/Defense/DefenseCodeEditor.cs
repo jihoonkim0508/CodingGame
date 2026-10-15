@@ -16,7 +16,7 @@ namespace CodingGame.Defense
         [SerializeField] GameObject editorRoot;
         [SerializeField] TMP_Text title, inventory;
         [SerializeField] Button closeButton, automaticButton;
-        // ponytail: optional until the scene wires the hint button (W3); SetHint is a no-op without it.
+        // Optional: SetHint is a no-op without it.
         [SerializeField, Tooltip("'비우기' 오른쪽 힌트 버튼. 튜토리얼이 힌트를 줄 때만 보입니다.")] Button hintButton;
         [SerializeField] GameObject hintPopup;
         [SerializeField] TMP_Text hintText;
@@ -113,7 +113,7 @@ namespace CodingGame.Defense
             if (!IsOpen || key == null) return false;
             if (key.StartsWith(TutorialKeys.PalettePrefix))
             {
-                if (!Enum.TryParse(key.Substring(TutorialKeys.PalettePrefix.Length), out BlockKind kind)) return false;
+                if (!PaletteKind(key, out var kind)) return false;
                 var item = kind == BlockKind.Variable ? panel.VariableTemplate : panel.Palette.FirstOrDefault(p => p.view.BaseKind == kind).view;
                 return Corners(item ? item.Rect : null, null, corners);
             }
@@ -155,20 +155,24 @@ namespace CodingGame.Defense
         // Switches the palette to the category holding an Editor.Palette.<BlockKind> target so its outline can show.
         public void RevealPalette(string key)
         {
-            if (!IsOpen || key == null || !key.StartsWith(TutorialKeys.PalettePrefix) ||
-                !Enum.TryParse(key.Substring(TutorialKeys.PalettePrefix.Length), out BlockKind kind)) return;
+            if (!IsOpen || !PaletteKind(key, out var kind)) return;
             int category = kind == BlockKind.Variable ? 2 : panel.Palette.Where(p => p.view.BaseKind == kind).Select(p => p.category).DefaultIfEmpty(-1).First();
             if (category >= 0) panel.ShowCategory(category);
         }
+        static bool PaletteKind(string key, out BlockKind kind)
+        {
+            kind = default;
+            return key != null && key.StartsWith(TutorialKeys.PalettePrefix) && Enum.TryParse(key.Substring(TutorialKeys.PalettePrefix.Length), out kind);
+        }
         public void RestoreAutomatic()
         {
-            if (!battle.TutorialAllows("Editor.RestoreAutomatic")) return;
+            if (!battle.TutorialAllows(TutorialKeys.RestoreAutomatic)) return;
             if (!IsOpen || !HasCurrentSession) return;
             panel.ClearProgram();
             panel.RefreshPalette();
             if (!panel.IsApplied) return;
             panel.ShowMessage("코드를 비웠습니다. 블록 예약이 해제됩니다.");
-            battle.ReportTutorialAction("Editor.RestoreAutomatic", "TargetClicked");
+            battle.ReportTutorialAction(TutorialKeys.RestoreAutomatic, TutorialSignals.TargetClicked);
         }
         void Update()
         {

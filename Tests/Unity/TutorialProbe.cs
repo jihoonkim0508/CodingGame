@@ -31,7 +31,7 @@ public static class TutorialProbe
             $"| text: {(view.IsVisible ? dialogue.text : alert && alert.IsShowing ? "[banner]" : "")}";
     }
     public static string Next() { Call(Director, "NextText"); return State(); }
-    // Presses next (finishing the typing first) until the step changes into an action, a hidden wait, or n presses.
+    // Presses next n times, finishing the typing first.
     public static string Skip(int n)
     {
         var log = new System.Text.StringBuilder();
@@ -44,7 +44,7 @@ public static class TutorialProbe
     }
     public static string FinishTyping() { Director.EditorFinishTyping(); return State(); }
     public static string ClickRobotButton(int index) { Battle.ChooseRobot(index); return State(); }
-    // Places at the deployment cell nearest the route that covers it best (like a careful player).
+    // Places robot index at (x, z).
     public static string PlaceRobot(int index, float x, float z) { bool ok = Battle.PlaceRobot(index, new Vector3(x, 0, z)); return "placed " + ok + " | " + Battle.StatusMessage + " | " + State(); }
     // Places robot `index` on the free cell whose attack range covers most of the route, skipping `skip` best cells.
     public static string PlaceBest(int index, int skip)
