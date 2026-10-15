@@ -46,7 +46,8 @@ namespace CodingGame.Defense.Editor
             public int Robot;
             public float Padding = 10;
             public string[] Highlight = Array.Empty<string>();
-            public bool Intro, Cards, Undimmed;
+            public bool Intro, Cards, Undimmed, Dismissable;
+            public float Auto;
             public string SkipIf;
             public string Demo;
             public bool Top;
@@ -103,7 +104,7 @@ namespace CodingGame.Defense.Editor
             L("1-1.E05", With(Fight, s => s.Trigger = TutorialSignals.Leak)),
             L("1-1.E06", s => { s.Trigger = TutorialSignals.WaveCleared; s.SkipIf = TutorialSignals.Leak; }), L("1-1.E06a", Focus(TutorialKeys.RewardPanel)), L("1-1.E07"), L("1-1.E08"),
             // Claiming the reward starts 1-2, so it comes last.
-            L("1-1.E09", Click("Battle.ClaimRewards", s => s.Pointer = "Battle.ClaimRewards")),
+            L("1-1.E09", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
         };
 
         static List<S> OneTwo()
@@ -111,12 +112,13 @@ namespace CodingGame.Defense.Editor
             var steps = new List<S> { L("1-2.A01"), L("1-2.A02"), L("1-2.A03"), L("1-2.A04") };
             steps.AddRange(OpenEditor("1-2.A05"));
             steps.Add(L("1-2.B01", With(Ed, Focus(Drop, Preview))));
-            steps.AddRange(new[] { "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B09" }.Select(id => L("1-2." + id, Ed)));
+            // B04~B07 introduce the dot operator: no skipping, each moves on 2 s after its text is out (planner).
+            steps.AddRange(new[] { "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B09" }.Select(id => L("1-2." + id, With(Ed, s => { if (string.CompareOrdinal(id, "B04") >= 0 && string.CompareOrdinal(id, "B07") <= 0) s.Auto = 2; }))));
             steps.AddRange(new[] {
                 L("1-2.C01", Ed), L("1-2.C02", Ed), L("1-2.C03", Ed), L("1-2.C04", Ed),
                 L("1-2.C05", With(Ed, Focus(Hint), s => { s.ClearProgram = true; s.HintCode = Code11; })),
                 L("1-2.C06", Signal(TutorialSignals.ProgramMatches, new[] { Drop, Palette, Hint }, s =>
-                    { s.Expected = Code11; s.HintCode = Code11; s.Pointer = Hint; s.PointerDelay = 60; s.Preview = true; })),
+                    { s.Expected = Code11; s.HintCode = Code11; s.Pointer = Hint; s.PointerDelay = 60; s.Preview = true; s.Dismissable = true; })),
                 L("1-2.C06c", Signal(TutorialSignals.EditorClosed, new[] { Close }, s => { s.Pointer = Close; s.Preview = true; s.Undimmed = true; })),
                 L("1-2.D01", Signal(TutorialSignals.BattleStarted, new[] { Start })),
                 L("1-2.D02", s => s.Trigger = TutorialSignals.WaveCleared), L("1-2.D03"), L("1-2.D04"),
@@ -206,7 +208,7 @@ namespace CodingGame.Defense.Editor
             var sequence = AssetDatabase.LoadAssetAtPath<TutorialSequence>(path);
             if (!sequence) { sequence = ScriptableObject.CreateInstance<TutorialSequence>(); AssetDatabase.CreateAsset(sequence, path); }
             sequence.sequenceId = id; sequence.enabled = true; sequence.stage = 1; sequence.wave = wave;
-            sequence.entryPhase = TutorialEntryPhase.Preparation; sequence.typeSpeed = 22.5f;
+            sequence.entryPhase = TutorialEntryPhase.Preparation; sequence.typeSpeed = 30;
             bool battle = false;
             sequence.steps = steps.Select(s =>
             {
@@ -219,7 +221,7 @@ namespace CodingGame.Defense.Editor
                     skipIf = s.SkipIf, pauseBattle = !battle, allowPreview = s.Preview, highlightPadding = s.Padding, trigger = s.Trigger, expectedCode = s.Expected,
                     pointerKey = s.Pointer, hintCode = s.HintCode, pointerDelay = s.PointerDelay,
                     closeEditor = s.CloseEditor, clearProgram = s.ClearProgram, openEditor = s.OpenEditor, robotIndex = s.Robot,
-                    introEntrance = s.Intro, undimmed = s.Undimmed, alertCards = s.Cards, dragDemo = s.Demo };
+                    introEntrance = s.Intro, undimmed = s.Undimmed, alertCards = s.Cards, autoAdvance = s.Auto, dismissable = s.Dismissable, dragDemo = s.Demo };
             }).ToArray();
             EditorUtility.SetDirty(sequence);
             return sequence;

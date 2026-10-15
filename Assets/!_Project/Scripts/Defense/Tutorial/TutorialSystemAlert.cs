@@ -16,7 +16,7 @@ namespace CodingGame.Defense
         [SerializeField] TMP_Text message;
         [SerializeField] AudioSource warning;
         [SerializeField, Min(.1f)] float seconds = 1.5f, fadeSeconds = .6f;
-        [SerializeField, Min(0), Tooltip("경고 카드가 있는 배너(1-1 A01)에 더하는 표시 시간")] float cardSeconds = 1.2f;
+        [SerializeField, Min(0), Tooltip("경고 카드가 있는 배너(1-1 A01)에 더하는 표시 시간")] float cardSeconds = 3.2f;
         // ponytail: the card wording is fixed here (1-1 A01 only); move it to the sequence if another alert needs cards.
         static readonly (string title, string body)[] Cards =
         {
@@ -68,21 +68,25 @@ namespace CodingGame.Defense
             // Cards slam in one after another (big and clear, then settle).
             for (int i = 0; i < cards.Count; i++)
             {
-                float k = Mathf.Clamp01((t - .1f - i * .16f) / .22f);
+                float k = Mathf.Clamp01((t - Land(i)) / .22f);
                 cards[i].group.alpha = k;
                 cards[i].rect.localScale = Vector3.one * Mathf.Lerp(1.35f, 1, 1 - (1 - k) * (1 - k));
             }
             // The bar opens sideways once the cards are in; the message flickers on like a failing screen.
-            float barStart = withCards ? .1f + cards.Count * .16f + .1f : 0;
+            float barStart = withCards ? Land(cards.Count - 1) + .5f : 0;
             float open = Mathf.Clamp01((t - barStart) / .25f);
             bar.localScale = new Vector3(1 - (1 - open) * (1 - open), 1, 1);
             float lit = t - barStart - .2f;
             message.alpha = lit < 0 ? 0 : lit < .35f ? (Mathf.Sin(lit * 90) > -.2f ? 1 : .15f) : .85f + .15f * Mathf.Sin(t * 9);
             stripes.anchoredPosition = new Vector2(-Mathf.Repeat(t * 70, 40), 0);
             // A short jolt when the cards land.
-            float jolt = withCards ? Mathf.Clamp01(1 - Mathf.Abs(t - .45f) / .3f) : Mathf.Clamp01(1 - t / .25f);
+            float jolt = Mathf.Clamp01(1 - (withCards ? t - barStart : t) / .25f);
+            if (withCards) for (int i = 0; i < cards.Count; i++) jolt = Mathf.Max(jolt, Mathf.Clamp01(1 - Mathf.Abs(t - Land(i) - .2f) / .25f));
             shake.anchoredPosition = new Vector2(Mathf.Sin(t * 83) * 9, Mathf.Cos(t * 71) * 6) * jolt;
         }
+
+        // Cards come one per second (planner).
+        static float Land(int card) => .1f + card * 1f;
 
         // ---- run-time visuals ----
         void Build()

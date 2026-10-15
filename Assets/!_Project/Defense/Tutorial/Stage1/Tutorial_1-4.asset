@@ -18,7 +18,7 @@ MonoBehaviour:
   wave: 4
   entryPhase: 0
   speakerPortrait: {fileID: 0}
-  typeSpeed: 22.5
+  typeSpeed: 30
   steps:
   - stepId: P01
     kind: 1
@@ -55,6 +55,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: P02
     kind: 1
     dialoguePosition: 0
@@ -93,6 +95,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: A01
     kind: 0
     dialoguePosition: 0
@@ -127,6 +131,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: A02
     kind: 0
     dialoguePosition: 0
@@ -162,6 +168,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: A03
     kind: 0
     dialoguePosition: 0
@@ -197,6 +205,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: A04
     kind: 0
     dialoguePosition: 0
@@ -232,6 +242,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: A05
     kind: 0
     dialoguePosition: 0
@@ -269,6 +281,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: A06
     kind: 0
     dialoguePosition: 0
@@ -306,6 +320,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: A07
     kind: 0
     dialoguePosition: 0
@@ -342,6 +358,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: B01a
     kind: 1
     dialoguePosition: 0
@@ -378,6 +396,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: B01b
     kind: 1
     dialoguePosition: 0
@@ -414,6 +434,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: B02
     kind: 0
     dialoguePosition: 0
@@ -449,6 +471,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: B03
     kind: 0
     dialoguePosition: 0
@@ -484,6 +508,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: B04
     kind: 0
     dialoguePosition: 0
@@ -519,6 +545,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: C01
     kind: 0
     dialoguePosition: 0
@@ -555,6 +583,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: C02
     kind: 0
     dialoguePosition: 0
@@ -589,6 +619,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: C03
     kind: 0
     dialoguePosition: 0
@@ -625,6 +657,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: C04
     kind: 1
     dialoguePosition: 0
@@ -663,6 +697,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: C05
     kind: 0
     dialoguePosition: 0
@@ -698,6 +734,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: C06
     kind: 0
     dialoguePosition: 0
@@ -734,6 +772,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: C07
     kind: 1
     dialoguePosition: 0
@@ -773,6 +813,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: C08
     kind: 0
     dialoguePosition: 0
@@ -809,6 +851,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: C09
     kind: 0
     dialoguePosition: 0
@@ -845,6 +889,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: C10
     kind: 0
     dialoguePosition: 0
@@ -880,6 +926,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: C11
     kind: 0
     dialoguePosition: 0
@@ -915,6 +963,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: D01
     kind: 0
     dialoguePosition: 0
@@ -951,6 +1001,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: D02
     kind: 0
     dialoguePosition: 0
@@ -987,6 +1039,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: D03
     kind: 0
     dialoguePosition: 0
@@ -1024,6 +1078,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: D04
     kind: 1
     dialoguePosition: 0
@@ -1065,6 +1121,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: D04c
     kind: 1
     dialoguePosition: 0
@@ -1102,6 +1160,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: D05
     kind: 0
     dialoguePosition: 0
@@ -1137,6 +1197,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: E01
     kind: 0
     dialoguePosition: 0
@@ -1172,6 +1234,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: E02
     kind: 0
     dialoguePosition: 0
@@ -1207,6 +1271,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: E03
     kind: 0
     dialoguePosition: 0
@@ -1243,6 +1309,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: E04
     kind: 1
     dialoguePosition: 0
@@ -1282,6 +1350,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: E05
     kind: 0
     dialoguePosition: 0
@@ -1317,6 +1387,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: E06
     kind: 0
     dialoguePosition: 0
@@ -1354,6 +1426,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: F01
     kind: 0
     dialoguePosition: 0
@@ -1389,6 +1463,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: F02
     kind: 0
     dialoguePosition: 0
@@ -1425,6 +1501,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: F03
     kind: 0
     dialoguePosition: 0
@@ -1461,6 +1539,8 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
   - stepId: F04
     kind: 0
     dialoguePosition: 0
@@ -1497,3 +1577,5 @@ MonoBehaviour:
     introEntrance: 0
     alertCards: 0
     dragDemo: 
+    autoAdvance: 0
+    dismissable: 0

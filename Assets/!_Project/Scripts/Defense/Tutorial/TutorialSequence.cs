@@ -63,6 +63,8 @@ namespace CodingGame.Defense
         [Tooltip("시스템 배너에 경고 카드 세 장을 함께 띄웁니다(1-1 A01).")] public bool alertCards;
         [Tooltip("끌어다 놓기 시연: '팔레트 키>놓을 키', 'a>b|c>d'면 앞에서부터 둘 다 화면에 있는 것. 반투명 블록이 반복해서 움직입니다.")]
         public string dragDemo;
+        [Tooltip("0보다 크면 다음 버튼 없이, 글자가 다 나오고 이 시간(초) 뒤 저절로 다음 단계로 넘어갑니다.")] [Min(0)] public float autoAdvance;
+        [Tooltip("행동을 기다리는 단계에서 다음 버튼을 누르면 강조(어둡게·테두리)를 걷습니다. 예: 직접 코드를 짜는 단계.")] public bool dismissable;
     }
 
     [CreateAssetMenu(menuName = "CodingGame/Tutorial/Sequence")]

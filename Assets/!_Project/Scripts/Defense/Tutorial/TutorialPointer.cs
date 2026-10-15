@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -20,7 +21,7 @@ namespace CodingGame.Defense
         void Awake() { if (!arrow) throw new System.InvalidOperationException(name + ": 화살표 RectTransform 참조 누락"); Hide(); }
         public bool IsVisible => arrow.gameObject.activeSelf;
         public void Show(Rect area, bool below = false) { target = area; fromBelow = below; arrow.gameObject.SetActive(true); Place(); }
-        public void Hide() { HideArrow(); HideDrag(); }
+        public void Hide() { HideArrow(); HideDrag(); HidePath(); }
         public void HideArrow() => arrow.gameObject.SetActive(false);
 
         public void ShowDrag(RectTransform source, Rect from, Rect to)
@@ -34,6 +35,39 @@ namespace CodingGame.Defense
             if (ghost) Destroy(ghost.gameObject);
             ghost = null; ghostSource = null;
         }
+
+        // Path arrows: copies of the arrow marching along a polyline (spotlight-local points), fading in and out at the ends.
+        const float PathSpacing = 80, PathSpeed = 140, PathScale = .7f, PathFade = 40;
+        readonly List<RectTransform> chevrons = new List<RectTransform>();
+        public void ShowPath(IReadOnlyList<Vector2> points)
+        {
+            float total = 0;
+            for (int i = 1; i < points.Count; i++) total += Vector2.Distance(points[i - 1], points[i]);
+            int count = Mathf.Max(1, Mathf.FloorToInt(total / PathSpacing));
+            while (chevrons.Count < count)
+            {
+                var copy = (RectTransform)Instantiate(arrow.gameObject, transform, false).transform;
+                copy.name = "Path arrow"; copy.localScale = Vector3.one * PathScale; chevrons.Add(copy);
+            }
+            float offset = Time.unscaledTime * PathSpeed % PathSpacing;
+            for (int k = 0; k < chevrons.Count; k++)
+            {
+                var chevron = chevrons[k];
+                float s = k * PathSpacing + offset;
+                if (k >= count || s > total) { chevron.gameObject.SetActive(false); continue; }
+                // Walk to distance s along the polyline.
+                int seg = 1; float left = s;
+                while (seg < points.Count - 1 && left > Vector2.Distance(points[seg - 1], points[seg])) { left -= Vector2.Distance(points[seg - 1], points[seg]); seg++; }
+                Vector2 a = points[seg - 1], b = points[seg], dir = (b - a).normalized;
+                chevron.gameObject.SetActive(true);
+                chevron.anchoredPosition = a + dir * left;
+                // The arrow sprite points down (0°); turn it to the travel direction.
+                chevron.localEulerAngles = new Vector3(0, 0, Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg + 90);
+                var image = chevron.GetComponent<Graphic>();
+                if (image) image.color = new Color(1, 1, 1, .95f * Mathf.Clamp01(Mathf.Min(s, total - s) / PathFade)); // white reads on the orange road
+            }
+        }
+        public void HidePath() { foreach (var chevron in chevrons) if (chevron) chevron.gameObject.SetActive(false); }
 
         void LateUpdate() { if (IsVisible) Place(); if (ghost) Drag(); }
         void Place()
@@ -62,24 +96,12 @@ namespace CodingGame.Defense
         // A look-alike of the palette block: copied while inactive so none of its scripts run, then stripped to graphics and layout.
         RectTransform Ghost(RectTransform source)
         {
-            var holder = new GameObject("Drag demo", typeof(RectTransform));
-            holder.SetActive(false);
-            holder.transform.SetParent(transform, false);
-            var copy = (RectTransform)Instantiate(source.gameObject, holder.transform, false).transform;
-            // Reversed: a component that requires another goes first.
-            foreach (var behaviour in System.Linq.Enumerable.Reverse(copy.GetComponentsInChildren<MonoBehaviour>(true)))
-                if (!(behaviour is Graphic || behaviour is LayoutGroup || behaviour is ContentSizeFitter || behaviour is LayoutElement || behaviour is RectMask2D || behaviour is Mask))
-                    DestroyImmediate(behaviour);
-            // The palette item's stock count ("x1") is not part of the block.
-            foreach (var label in copy.GetComponentsInChildren<Transform>(true)) if (label && label.name == "Stock") DestroyImmediate(label.gameObject);
-            var rect = (RectTransform)holder.transform;
+            var rect = DefenseViews.GraphicCopy(source, transform);
+            rect.name = "Drag demo";
             rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, .5f);
             rect.localScale = Vector3.one * (source.lossyScale.x / transform.lossyScale.x);
-            copy.anchorMin = Vector2.zero; copy.anchorMax = Vector2.one; copy.pivot = new Vector2(.5f, .5f);
-            copy.offsetMin = copy.offsetMax = Vector2.zero; copy.localScale = Vector3.one;
-            ghostGroup = holder.AddComponent<CanvasGroup>();
-            ghostGroup.blocksRaycasts = false; ghostGroup.interactable = false;
-            holder.SetActive(true);
+            ghostGroup = rect.GetComponent<CanvasGroup>();
+            rect.gameObject.SetActive(true);
             return rect;
         }
     }

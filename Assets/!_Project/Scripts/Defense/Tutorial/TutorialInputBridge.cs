@@ -76,6 +76,7 @@ namespace CodingGame.Defense
         {
             // Only new targets animate; the next line keeping the same targets (and focus, see SetFocus) just stays.
             if (spotlight && step != null && (currentStep == null || !step.targetKeys.SequenceEqual(currentStep.targetKeys))) spotlight.Pulse();
+            if (step != currentStep) dismissed = false;
             currentStep = step;
             allowActions = enableActions;
             if (step == null) focus = Array.Empty<string>();
@@ -91,7 +92,40 @@ namespace CodingGame.Defense
         {
             keys = keys ?? Array.Empty<string>();
             if (spotlight && !focus.SequenceEqual(keys)) spotlight.Pulse();
+            if (Array.IndexOf(keys, TutorialKeys.Route) >= 0 && Array.IndexOf(focus, TutorialKeys.Route) < 0) roadShown = Time.unscaledTime;
             focus = keys; RefreshAreas();
+        }
+
+        // The player read the line and pressed next on a step that still waits (1-2 C06): the highlight steps aside.
+        public void Dismiss() { dismissed = true; RefreshAreas(); }
+        bool dismissed;
+        float roadShown = -10;
+        const float RoadRevealSeconds = 1.2f;
+        public bool RoadDrawn => Time.unscaledTime - roadShown >= RoadRevealSeconds;
+        // The road's parts cut to the length drawn so far (they run entrance to core, each from the side touching the one before).
+        Bounds[] Reveal(Bounds[] parts)
+        {
+            float k = Mathf.Clamp01((Time.unscaledTime - roadShown) / RoadRevealSeconds);
+            if (k >= 1) return parts;
+            float total = 0; foreach (var b in parts) total += Mathf.Max(b.size.x, b.size.z);
+            float left = Mathf.SmoothStep(0, 1, k) * total;
+            var shown = new List<Bounds>();
+            for (int i = 0; i < parts.Length && left > 0; i++)
+            {
+                var b = parts[i]; bool alongX = b.size.x >= b.size.z; float length = alongX ? b.size.x : b.size.z;
+                if (left >= length) { shown.Add(b); left -= length; continue; }
+                // Grow from the end nearest the previous part (or away from the next one for the first part).
+                Vector3 toward = i > 0 ? parts[i - 1].center - b.center : b.center - parts[Mathf.Min(1, parts.Length - 1)].center;
+                float sign = (alongX ? toward.x : toward.z) >= 0 ? 1 : -1;
+                Vector3 min = b.min, max = b.max;
+                if (alongX) { if (sign > 0) min.x = max.x - left; else max.x = min.x + left; }
+                else { if (sign > 0) min.z = max.z - left; else max.z = min.z + left; }
+                var cut = new Bounds(); cut.SetMinMax(min, max); shown.Add(cut); left = 0;
+            }
+            // Nothing drawn yet (the first frame) still needs a road of two parts for the caller.
+            if (shown.Count == 0) shown.Add(new Bounds(parts[0].min, Vector3.zero));
+            if (shown.Count == 1) { var only = shown[0]; var tiny = new Bounds(only.center, Vector3.zero); tiny.SetMinMax(only.min, only.min); shown.Add(tiny); }
+            return shown.ToArray();
         }
 
         void LateUpdate() => RefreshIfActing();
@@ -109,9 +143,9 @@ namespace CodingGame.Defense
                     // The placement area is the whole map: clickable (AddArea adds it to the clicks), but drawing it would hide the focus.
                     if (AddRoad(key) || AddArea(key) == 0 || key == TutorialKeys.Deployment) continue;
                     // With a focus on screen the focus carries the box; the action targets only stay lit.
-                    Show(start, outlined && focus.Length == 0);
+                    Show(start, outlined && focus.Length == 0 && !dismissed);
                 }
-            if (currentStep != null)
+            if (currentStep != null && !dismissed)
                 foreach (var key in focus)
                     // "a|b": the first one on screen (e.g. the empty slot once the block is placed, else the place to drop it).
                     foreach (var option in key.Split('|'))
@@ -121,7 +155,7 @@ namespace CodingGame.Defense
                         if (AddArea(option.Trim()) > 0) { Show(start, true); break; }
                     }
             // Focus uses the same spotlight as action steps: dim everything but the holes.
-            bool dim = currentStep == null || !currentStep.undimmed && (currentStep.dim || focus.Length > 0 || Acting);
+            bool dim = currentStep == null || !currentStep.undimmed && !dismissed && (currentStep.dim || focus.Length > 0 || Acting);
             spotlight.SetRoad(roadBoxes, roadDim);
             spotlight.SetHoles(screenAreas, visibleAreas, outlinedAreas, roundAreas, currentStep?.highlightPadding ?? 0, dim);
         }
@@ -139,6 +173,7 @@ namespace CodingGame.Defense
         bool AddRoad(string key)
         {
             if (!TryGetParts(key, out var parts, out bool round) || round || parts.Length < 2 || IsBox(key)) return false;
+            if (key == TutorialKeys.Route) parts = Reveal(parts);
             float y = parts[0].center.y;
             var box = Rect.zero;
             for (int i = 0; i < parts.Length * 4; i++)
@@ -191,7 +226,8 @@ namespace CodingGame.Defense
             return true;
         }
         static bool OnRoad(Bounds[] parts, Vector2 ground) => Array.Exists(parts, b => ground.x >= b.min.x && ground.x <= b.max.x && ground.y >= b.min.z && ground.y <= b.max.z);
-        bool ToLocal(Vector3 world, out Vector2 local)
+        // A world point in spotlight-local space (what TutorialPointer draws in); false when behind the camera.
+        public bool ToLocal(Vector3 world, out Vector2 local)
         {
             var p = worldCamera.WorldToScreenPoint(world); local = default;
             return p.z > 0 && RectTransformUtility.ScreenPointToLocalPointInRectangle(spotlight.rectTransform, p, CanvasCamera, out local);

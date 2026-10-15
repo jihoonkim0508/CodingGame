@@ -15,6 +15,7 @@ namespace CodingGame.Defense
         [SerializeField] TMP_Text speaker, stageWave, dialogue;
         [SerializeField] Button previousText, nextText;
         [SerializeField, Tooltip("Top position keeps this gap so the HUD header stays readable.")] float topInset = 96;
+        [SerializeField, Tooltip("Bottom position sits this much higher than authored, clear of the HUD's bottom bar.")] float bottomLift = 170;
         Coroutine typing, entrance;
         RectTransform panelRect;
         Vector2 bottomAnchorMin, bottomAnchorMax, bottomPosition, bottomPivot;
@@ -42,7 +43,7 @@ namespace CodingGame.Defense
             panelRect.anchorMin = new Vector2(bottomAnchorMin.x, top ? 1 - bottomAnchorMax.y : bottomAnchorMin.y);
             panelRect.anchorMax = new Vector2(bottomAnchorMax.x, top ? 1 - bottomAnchorMin.y : bottomAnchorMax.y);
             panelRect.pivot = new Vector2(bottomPivot.x, top ? 1 - bottomPivot.y : bottomPivot.y);
-            panelRect.anchoredPosition = new Vector2(bottomPosition.x, top ? -bottomPosition.y - topInset : bottomPosition.y);
+            panelRect.anchoredPosition = new Vector2(bottomPosition.x, top ? -bottomPosition.y - topInset : bottomPosition.y + bottomLift);
             panel.SetActive(true);
             portrait.sprite = sequence.speakerPortrait;
             portrait.enabled = sequence.speakerPortrait;
@@ -75,6 +76,23 @@ namespace CodingGame.Defense
             StopTyping(); dialogue.maxVisibleCharacters = int.MaxValue;
         }
 
+        // Editor only: the line's id (e.g. "1-1 A04b") in the panel's top-right corner, to match playtest notes to the script.
+        TMP_Text idLabel;
+        public void SetDebugId(string id)
+        {
+#if UNITY_EDITOR
+            if (!idLabel)
+            {
+                idLabel = new GameObject("Debug id", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                var rect = idLabel.rectTransform; rect.SetParent(panelRect, false);
+                rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one; rect.anchoredPosition = new Vector2(-14, -8); rect.sizeDelta = new Vector2(240, 28);
+                idLabel.font = dialogue.font; idLabel.fontSize = 18; idLabel.alignment = TextAlignmentOptions.TopRight;
+                idLabel.color = new Color(1, 1, 1, .45f); idLabel.raycastTarget = false;
+            }
+            idLabel.text = id;
+#endif
+        }
+
         public void SetNavigation(bool canPrevious, bool canNext)
         { previousText.interactable = canPrevious; nextText.interactable = canNext; }
 
@@ -93,21 +111,22 @@ namespace CodingGame.Defense
         // Centred mode (the opening lines): the world turns grey and the dialogue sits large in the middle of the screen,
         // punching in when it first appears. Leaving it shrinks the dialogue back into its usual place and brings the
         // colour back. Call after Show, every time a line is shown.
-        public void SetCentered(bool on)
+        // grey: the opening lines (grey world, extra large); otherwise a plain explanation line, moderately larger.
+        public void SetCentered(bool on, bool grey = true)
         {
             var parent = (RectTransform)panelRect.parent;
             Vector3 home = panelRect.localPosition;   // where Show just put it
-            float scale = Mathf.Min(CenterScale, parent.rect.width * .9f / panelRect.rect.width);
+            float scale = Mathf.Min(grey ? CenterScale : PlainScale, parent.rect.width * .9f / panelRect.rect.width);
             // Where the pivot sits when the panel's middle is the screen's middle, at that scale.
             Vector3 middle = parent.rect.center + Vector2.Scale(panelRect.pivot - new Vector2(.5f, .5f), panelRect.rect.size) * scale;
             if (entrance != null) StopCoroutine(entrance);
             entrance = null;
-            if (on) { entrance = StartCoroutine(centered ? Hold(middle, scale) : PunchIn(middle, scale)); SetGrey(1); }
+            if (on) { entrance = StartCoroutine(centered ? Hold(middle, scale) : PunchIn(middle, scale)); SetGrey(grey ? 1 : 0); }
             else if (centered) entrance = StartCoroutine(Shrink(middle, scale, home));
             else { panelRect.localScale = Vector3.one; SetGrey(0); }
             centered = on;
         }
-        const float CenterScale = 1.6f, PunchSeconds = .35f, ShrinkSeconds = .6f;
+        const float CenterScale = 1.6f, PlainScale = 1.25f, PunchSeconds = .35f, ShrinkSeconds = .6f;
         bool centered;
         Volume grey;
         UniversalAdditionalCameraData greyCamera;
@@ -140,7 +159,7 @@ namespace CodingGame.Defense
                 float k = Mathf.SmoothStep(0, 1, t / ShrinkSeconds);
                 panelRect.localPosition = Vector3.Lerp(middle, home, k);
                 panelRect.localScale = Vector3.one * Mathf.Lerp(scale, 1, k);
-                SetGrey(1 - k);
+                if (grey) SetGrey(1 - k);
                 yield return null;
             }
             panelRect.localPosition = home; panelRect.localScale = Vector3.one; SetGrey(0);

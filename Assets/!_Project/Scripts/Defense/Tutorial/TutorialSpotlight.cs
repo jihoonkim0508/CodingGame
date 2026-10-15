@@ -117,7 +117,7 @@ namespace CodingGame.Defense
             }
             // Breathing outline, brighter and thicker while the hole closes in.
             float breath = .5f + .5f * Mathf.Sin(Time.unscaledTime * 4);
-            var outline = Color.Lerp(new Color(1, .82f, .38f, .7f), new Color(1, .95f, .7f, 1), Mathf.Max(breath * .6f, 1 - intro));
+            var outline = Color.Lerp(new Color(.2f, .95f, 1, .8f), new Color(.8f, 1, 1, 1), Mathf.Max(breath * .6f, 1 - intro));
             float OutlineWidth = TutorialSpotlight.OutlineWidth * (1 + .5f * breath + 1.5f * (1 - intro));
             foreach (var r in outlines)
             {
