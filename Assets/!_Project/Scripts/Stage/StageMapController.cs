@@ -90,8 +90,28 @@ namespace CodingGame.StageMap
             GUI.Label(new Rect(34f, 25f, 480f, 30f), "도우미 로봇", guideTitleStyle);
             GUI.Label(new Rect(34f, 53f, 480f, 28f), "빛나는 1스테이지를 클릭해! 바로 작전지로 이동할게.", guideBodyStyle);
             GUI.Label(new Rect(18f, Screen.height - 38f, 420f, 28f), "DEV  Z: 클리어    Q: 초기화", bodyStyle);
+            DrawEnterHint();
             if (Time.unscaledTime < toastUntil)
                 GUI.Box(new Rect((Screen.width - 430f) * 0.5f, Screen.height - 80f, 430f, 45f), toast, toastStyle);
+        }
+
+        // A bouncing arrow over the first stage that can be entered, so the player knows where to click.
+        GUIStyle arrowStyle, hintStyle;
+        void DrawEnterHint()
+        {
+            var node = nodes?.FirstOrDefault(n => n && n.State == StageState.Available);
+            if (!node || !mapCamera || cameraController.IsMoving) return;
+            var bounds = node.GetComponent<Renderer>() ? node.GetComponent<Renderer>().bounds : new Bounds(node.transform.position, Vector3.one);
+            Vector3 top = mapCamera.WorldToScreenPoint(bounds.center + Vector3.up * bounds.extents.y);
+            if (top.z <= 0) return;
+            if (arrowStyle == null) arrowStyle = new GUIStyle(GUI.skin.label) { fontSize = 46, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
+            if (hintStyle == null) hintStyle = new GUIStyle(guideBodyStyle) { fontSize = 22, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
+            float bounce = Mathf.Abs(Mathf.Sin(Time.unscaledTime * 4)) * 16;
+            var old = GUI.color;
+            GUI.color = new Color(1, .85f, .25f, 1);
+            GUI.Label(new Rect(top.x - 40, Screen.height - top.y - 80 - bounce, 80, 60), "▼", arrowStyle);
+            GUI.Label(new Rect(top.x - 100, Screen.height - top.y - 118 - bounce, 200, 34), "여기를 클릭!", hintStyle);
+            GUI.color = old;
         }
 
         static void DrawRect(Rect rect, Color color)
