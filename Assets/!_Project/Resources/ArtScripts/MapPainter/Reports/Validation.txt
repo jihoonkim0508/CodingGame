@@ -7,11 +7,11 @@ PASS: painting, duplicate prevention, local edge/diagonal updates, road floor re
 PASS: all 16 road masks and rotations (test bindings only), road erasing, prefab roundtrip and re-editing.
 PASS: independent upper/lower previews, unchanged shared materials and prefab color restoration.
 PASS: cell size 2, independent floor thickness, road scaling and prefab size/color restoration.
-PASS: supplied straight/corner road geometry matches canonical connection masks; road colors have two slots; URP shader compiles.
+PASS: supplied straight/corner/T road geometry matches canonical connection masks; road colors have two slots; URP shader compiles.
 PASS: continuous orthogonal strokes with negative and positive coordinates.
 Preview material: StylizedMapSurface / CodingGame/Art/Stylized Map Surface / color=RGBA(0.680, 0.720, 0.780, 1.000)
 PASS: isolated floor preview rendered at 1280x800; camera pitch 55 degrees, yaw 0, orthographic; all cells in frame.
 PASS: blueprint viewport coverage, background below map, solid blue camera, visibility toggle, bounds exclusion, prefab mesh/material/settings restoration and real URP rendering.
-LIMIT: endpoints use open straight tiles; dedicated end caps, T and cross models are not supplied.
+LIMIT: endpoints use open straight tiles; dedicated end caps and cross models are not supplied.
 LIMIT: mouse gestures and interactive Undo/Redo still need an editor interaction check.
 RESULT: PASS

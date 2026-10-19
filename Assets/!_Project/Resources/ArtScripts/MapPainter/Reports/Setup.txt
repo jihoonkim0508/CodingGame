@@ -2,6 +2,6 @@ Map Painter setup; Unity 6000.3.21f1
 ArtTestScene camera and painter root updated in memory. Save with Ctrl+S: pre-existing unsaved changes were preserved.
 Window: Tools > Art > Modular Map Painter
 Prefab output: Assets/!_Project/Resources/ArtPrefabs
-Camera: orthographic, pitch=55, yaw=0, size=5.175
+Camera: orthographic, pitch=55, yaw=0, size=14.23125
 Source floor FBX and importer settings preserved.
 RESULT: PASS
