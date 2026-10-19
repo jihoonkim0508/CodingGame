@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 738eba9307f20ee42a83dec5842c42c2
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 163173
+  packageName: Object Glitch Shader
+  packageVersion: 1.2
+  assetPath: Assets/InanEvin/ObjectGlitchShader/Editor/ObjectGlitchShaderStartupEditor.cs
+  uploadId: 395489
