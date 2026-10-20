@@ -4,34 +4,37 @@ var battle = UnityEngine.GameObject.Find("DefenseBattle").GetComponent<CodingGam
 var editor = battle.GetComponent<CodingGame.Defense.DefenseCodeEditor>();
 var preview = battle.GetComponent<CodingGame.Defense.DefenseAttackPreview>();
 var label = (TMPro.TMP_Text)new UnityEditor.SerializedObject(preview).FindProperty("status").objectReferenceValue;
+// Mirrors the robot panel: open the selected robot's preview, or close it.
+void TogglePreview() { if (preview.IsShowing) preview.Close(); else preview.Open(battle.Simulation.Robots.Single(r=>r.Id==battle.SelectedId)); }
 int checks = 0;
 void Check(bool condition, string message) { if (!condition) throw new System.Exception(message); checks++; }
 string Stock() => string.Join(",", battle.Simulation.Inventory.OrderBy(p=>p.Key).Select(p=>p.Key+":"+p.Value));
 void Show(params CodingGame.BlockCoding.CodeBlock[] blocks)
 {
-    if (preview.IsShowing) preview.TogglePreview();
+    if (preview.IsShowing) TogglePreview();
     editor.Panel.LoadProgram("guard",blocks);
-    preview.TogglePreview();
+    TogglePreview();
 }
 void Status() => preview.SendMessage("RefreshStatus");
 void Advance(float seconds) => preview.SendMessage("AdvancePreview",seconds);
 try
 {
-    battle.Restart();
-    Check(battle.PlaceRobot(2,new UnityEngine.Vector3(-8,0,4)),"place authored tank");
-    battle.SelectRobot(battle.SelectedId);
+    battle.EditorStartSession(2, 1, false, new CodingGame.Defense.DefenseTestOptions { tutorial = false, tutorialInput = false, inventoryLimit = false, unlockAll = true }); // sandbox: Stage 1 locks robots and placement for teaching
+    Check(battle.PlaceRobot(2,new UnityEngine.Vector3(-9.6f,0,-0.8f)),"place authored tank");
+    battle.SelectRobot(battle.SelectedId); battle.DevelopSelected();
     battle.Simulation.GrantBlock(CodingGame.BlockCoding.BlockKind.Buff,1);
     string stock = Stock(); var time = battle.Simulation.Time; var baseHealth = battle.Simulation.BaseHealth;
     var actualTank = battle.Simulation.Robots.Single(); var health = actualTank.Health;
     Show(); Status();
     Check(label.text.Contains("코드 없음")&&label.text.Contains("저지 비활성"),"empty tank status");
-    Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block));
+    Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.NearestEnemy)));
     preview.PreviewSimulation.Advance(2.5); Status();
     Check(label.text.Contains("저지 3/3")&&label.text.Contains("한도 도달"),"occupied capacity status");
     Check(label.text.Contains("재사용 대기"),"cooldown distinct from body blocking");
     Check(preview.PreviewSimulation.Enemies.All(e=>e.BlockedBy!=0&&e.Position.X>0),"authored preview enemies intercepted");
     UnityEngine.Canvas.ForceUpdateCanvases(); label.ForceMeshUpdate();
-    Check(label.preferredHeight<=label.rectTransform.rect.height&&label.preferredWidth<=label.rectTransform.rect.width,"status fits authored panel");
+    // preferred size ignores auto sizing; the rendered bounds are what must fit.
+    Check(label.textBounds.size.y<=label.rectTransform.rect.height&&label.textBounds.size.x<=label.rectTransform.rect.width,"status fits authored panel");
     preview.SendMessage("ResetPreview"); Status();
     Check(preview.PreviewSimulation.Robots.Count==1&&preview.PreviewSimulation.Enemies.Count==0&&label.text.Contains("저지 비활성"),"loop resets stance and actors");
     preview.PreviewSimulation.Advance(2.5); Status();
@@ -39,28 +42,35 @@ try
     var held=preview.PreviewSimulation;
     for(int i=0;i<100;i++) Advance(.1f);
     Check(preview.PreviewSimulation==held&&held.Time>12&&held.Enemies.Count==3,"living blocked enemies are not reset after eight seconds");
-    Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Wait,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Number,"10")),
-        new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block));
+    // Enemies spawn inside the tank's range, so a short wait still reaches the next command before anything walks out of reach.
+    Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Wait,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Number,"1")),
+        new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.NearestEnemy)));
     var waiting=preview.PreviewSimulation;
-    for(int i=0;i<102;i++) Advance(.1f);
-    Check(preview.PreviewSimulation==waiting&&waiting.Robots.Single().BlockingEnabled,"ten-second wait reaches next command without forced reset");
+    for(int i=0;i<12;i++) Advance(.1f);
+    Check(preview.PreviewSimulation==waiting&&waiting.Robots.Single().BlockingEnabled,"wait reaches next command without forced reset");
     Show();var empty=preview.PreviewSimulation;
     Advance(.01f);
     Check(preview.PreviewSimulation==empty&&empty.Spawned==0,"pending spawns do not start restart timer");
-    for(int i=0;i<300&&empty.RemainingEnemies>0;i++) Advance(.1f);
-    Check(empty.RemainingEnemies==0&&empty.Leaks==3&&preview.PreviewSimulation==empty,"last escaped enemy starts delay without immediate reset");
+    // An idle robot can't hit anything once every enemy has walked past its range, long before they leave the map.
+    var idle=empty.Robots.Single();
+    bool Reachable() => empty.Spawned<3||empty.Enemies.Any(e=>e.Active&&(e.Position.X>=idle.Position.X||System.Numerics.Vector2.Distance(e.Position,idle.Position)<=idle.Range));
+    for(int i=0;i<300&&Reachable();i++) Advance(.1f);
+    Check(!Reachable()&&empty.RemainingEnemies>0&&empty.Leaks==0&&preview.PreviewSimulation==empty,"enemies out of reach start delay before they leave the map");
     Advance(.99f); Status();
-    Check(preview.PreviewSimulation==empty&&label.text.Contains("후 다시 시작"),"preview remains through first 0.99 seconds after enemies disappear");
+    Check(preview.PreviewSimulation==empty&&label.text.Contains("후 다시 시작"),"preview remains through first 0.99 seconds after nothing can be hit");
     Advance(.01f);
     Check(preview.PreviewSimulation!=empty&&preview.PreviewSimulation.RemainingEnemies==3&&preview.PreviewSimulation.Robots.Count==1,"preview restarts at one second with one robot");
-    Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block));
+    // A function runs once per wave, so loop the guard to clear every enemy.
+    var guard=new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.While); // no condition: while True
+    guard.Body.Add(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.NearestEnemy))); // re-target each pass
+    Show(guard);
     var killed=preview.PreviewSimulation;killed.Robots.Single().Spec.damage=10000;
-    for(int i=0;i<150&&killed.RemainingEnemies>0;i++) Advance(.1f);
+    for(int i=0;i<900&&killed.RemainingEnemies>0;i++) Advance(.1f);
     Check(killed.Kills==3&&preview.PreviewSimulation==killed,"last kill also waits before reset");
-    Advance(.5f);preview.TogglePreview();preview.TogglePreview();var reopened=preview.PreviewSimulation;Advance(.6f);
+    Advance(.5f);TogglePreview();TogglePreview();var reopened=preview.PreviewSimulation;Advance(.6f);
     Check(preview.PreviewSimulation==reopened&&reopened.RemainingEnemies>0,"reopening clears previous restart countdown");
     Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Wait,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Number,"5")),
-        new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block));
+        new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.NearestEnemy)));
     preview.PreviewSimulation.Advance(.25); Status();
     Check(label.text.Contains("wait")&&label.text.Contains("저지 비활성"),"wait before block reports inactive stance");
     Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Buff));

@@ -18,6 +18,9 @@ namespace CodingGame.Art.MapPainter.Editor
         [SerializeField] private bool gridVisible = true;
         [SerializeField] private GameObject savedMap;
         [SerializeField] private string prefabName = "ModularMap";
+        // 0 off, 1 place base, 2 add start, 3 draw the selected start's path.
+        [SerializeField] private int marker;
+        [SerializeField] private int selectedRoute = -1;
         private Vector2 scroll;
         private GridCell hover, start, last;
         private bool hasHover, dragging, eraseStroke;
@@ -29,10 +32,10 @@ namespace CodingGame.Art.MapPainter.Editor
             var window = GetWindow<ModularMapPainterWindow>("Map Painter");
             window.minSize = new Vector2(330,400); window.Show(); return window;
         }
+        const int MaxCellsPerAction = 4096;
         public void SetMap(ModularMapRoot root) { map = root; Repaint(); }
         private void OnEnable()
         {
-            if(prefabName.StartsWith("Stage01Map",System.StringComparison.Ordinal))prefabName="ModularMap"+prefabName.Substring("Stage01Map".Length);
             SceneView.duringSceneGui += OnSceneGUI;
             Undo.undoRedoPerformed += RepaintViews;
             wantsMouseMove = true;
@@ -43,11 +46,6 @@ namespace CodingGame.Art.MapPainter.Editor
             FinishStroke(); SceneView.duringSceneGui -= OnSceneGUI; Undo.undoRedoPerformed -= RepaintViews;
         }
         private void RepaintViews() { if(map)map.ApplyFloorColors(); Repaint(); SceneView.RepaintAll(); }
-        private ModularMapRoot FindMap()
-        {
-            var scene = SceneManager.GetActiveScene();
-            return scene.GetRootGameObjects().SelectMany(go => go.GetComponentsInChildren<ModularMapRoot>(true)).FirstOrDefault();
-        }
         private void OnGUI()
         {
             scroll = EditorGUILayout.BeginScrollView(scroll);
@@ -56,7 +54,7 @@ namespace CodingGame.Art.MapPainter.Editor
             var scene = SceneManager.GetActiveScene();
             bool artScene = scene.path == MapPainterAssets.ArtScene;
             if (!artScene) EditorGUILayout.HelpBox("ArtTestScene을 열어 사용하세요.", MessageType.Info);
-            if (!map) map = FindMap();
+            if (!map) map = MapPainterEditing.FindMap(scene);
             map = (ModularMapRoot)EditorGUILayout.ObjectField("작업 맵",map,typeof(ModularMapRoot),true);
             using (new EditorGUI.DisabledScope(!artScene || EditorApplication.isPlayingOrWillChangePlaymode))
             {
@@ -84,6 +82,7 @@ namespace CodingGame.Art.MapPainter.Editor
             {
                 DrawMapSize();
                 painting = GUILayout.Toggle(painting,painting?"■ 페인트 모드 켜짐":"▶ 페인트 모드 시작","Button");
+                if(painting) marker=0;
                 if(!painting) FinishStroke();
                 layer = GUILayout.Toolbar(layer,new[] { "바닥", "경로" });
                 tool = GUILayout.Toolbar(tool,new[] { "칠하기", "지우기" });
@@ -116,6 +115,7 @@ namespace CodingGame.Art.MapPainter.Editor
                     var prefab = PrefabUtility.SaveAsPrefabAsset(map.gameObject,path);
                     EditorGUIUtility.PingObject(prefab);
                 }
+                DrawRoutes();
                 DrawBlueprintBackground();
                 DrawFloorColors();
                 DrawSurfaceStyle();
@@ -152,9 +152,67 @@ namespace CodingGame.Art.MapPainter.Editor
             if(MapBuildPreview.IsRunning)
             {
                 EditorGUI.ProgressBar(GUILayoutUtility.GetRect(100,18),MapBuildPreview.Progress,"맵 생성 중");
-                if(GUILayout.Button("■ 중지 · 원래 맵 복원"))MapBuildPreview.Stop();Repaint();
+                if(GUILayout.Button("■ 중지 · 원래 맵 복원"))MapBuildPreview.Stop();
+                Repaint();
             }
             EditorGUILayout.HelpBox("미리보기는 반복 재생할 수 있습니다. 게임에서는 스테이지 입장 때 재생하고 같은 입장 중의 재도전은 생략합니다.",MessageType.None);
+        }
+        private void DrawRoutes()
+        {
+            EditorGUILayout.Space(); EditorGUILayout.LabelField("출발 · 기지 · 이동 경로",EditorStyles.boldLabel);
+            int chosen=GUILayout.Toolbar(marker,new[] { "끄기", "기지 지정", "출발 추가", "경로 그리기" });
+            if(chosen!=marker) { marker=chosen; if(marker!=0) { painting=false; FinishStroke(); } SceneView.RepaintAll(); }
+            if(selectedRoute>=map.routes.Count) selectedRoute=map.routes.Count-1;
+            EditorGUILayout.LabelField(map.hasBase?$"기지 ({map.baseCell.x}, {map.baseCell.z})":"기지 미지정");
+            for(int i=0;i<map.routes.Count;i++)
+            {
+                var route=map.routes[i];
+                using(new EditorGUILayout.HorizontalScope())
+                {
+                    if(GUILayout.Toggle(selectedRoute==i,$"S{i+1}","Button",GUILayout.Width(40))&&selectedRoute!=i) { selectedRoute=i; SceneView.RepaintAll(); }
+                    EditorGUILayout.LabelField($"({route.start.x}, {route.start.z}) · {route.path.Count}칸 · "+(map.IsComplete(route)?"완료":"미완성"));
+                    if(GUILayout.Button("도로 자동",GUILayout.Width(64))&&!MapRouteEditing.AutoRoute(map,route)) ShowNotification(new GUIContent("도로가 출발과 기지를 잇지 않습니다."));
+                    if(GUILayout.Button("비우기",GUILayout.Width(48))) MapRouteEditing.ClearPath(map,route);
+                    if(GUILayout.Button("삭제",GUILayout.Width(40))) { MapRouteEditing.RemoveRoute(map,i); if(selectedRoute>=i) selectedRoute--; GUIUtility.ExitGUI(); }
+                }
+            }
+            EditorGUILayout.HelpBox("기지·출발: 바닥 칸을 클릭합니다. 출발은 여러 개 둘 수 있습니다.\n경로 그리기: S 버튼으로 출발을 고르고 칸을 클릭·드래그해 기지까지 잇습니다. 도로 위는 도로를 따라 채웁니다.\n경로 위의 칸이나 출발을 다시 클릭하면 그 뒤를 잘라냅니다.",MessageType.None);
+            foreach(var problem in MapRouteEditing.Problems(map)) EditorGUILayout.HelpBox(problem,MessageType.Warning);
+        }
+        // A click or drag cell in the active marker tool. Returns true when the map changed.
+        private bool ApplyMarker(GridCell cell,bool dragged)
+        {
+            switch(marker)
+            {
+                case 1: return !dragged && MapRouteEditing.SetBase(map,cell);
+                case 2:
+                    if(dragged) return false;
+                    int added=MapRouteEditing.AddStart(map,cell);
+                    if(added>=0) selectedRoute=added;
+                    return added>=0;
+                default:
+                    if(selectedRoute<0||selectedRoute>=map.routes.Count) { ShowNotification(new GUIContent("S 버튼으로 출발을 먼저 고르세요.")); return false; }
+                    return MapRouteEditing.Extend(map,map.routes[selectedRoute],cell);
+            }
+        }
+        private void DrawMarkers()
+        {
+            Vector3 Lift(GridCell c)=>map.CellPosition(c)+Vector3.up*(.06f+map.palette.roadLift);
+            float radius=map.cellSize*.32f;
+            for(int i=0;i<map.routes.Count;i++)
+            {
+                var route=map.routes[i];
+                var color=Color.HSVToRGB((.33f+i*.17f)%1,.75f,1);
+                Handles.color=color;
+                var line=new[] { route.start }.Concat(route.path).Select(Lift).ToArray();
+                if(line.Length>1) Handles.DrawAAPolyLine(i==selectedRoute?8:4,line);
+                Handles.DrawSolidDisc(Lift(route.start),Vector3.up,radius);
+                Handles.Label(Lift(route.start)+Vector3.up*.3f,$"S{i+1}",EditorStyles.whiteLargeLabel);
+            }
+            if(!map.hasBase) return;
+            Handles.color=new Color(1,.25f,.3f);
+            Handles.DrawSolidDisc(Lift(map.baseCell),Vector3.up,radius*1.3f);
+            Handles.Label(Lift(map.baseCell)+Vector3.up*.3f,"기지",EditorStyles.whiteLargeLabel);
         }
         private void DrawBlueprintBackground()
         {
@@ -206,7 +264,7 @@ namespace CodingGame.Art.MapPainter.Editor
             if(EditorGUI.EndChangeCheck())RunAction("Change map shading",()=>
             {
                 Undo.RecordObject(map,"Change map shading"); map.lightSoftness=softness; map.shadowStrength=shadow;
-                map.bodyGradient=gradient; map.bevelHighlight=bevel; map.ApplyFloorColors(); EditorSceneManager.MarkSceneDirty(map.gameObject.scene);
+                map.bodyGradient=gradient; map.bevelHighlight=bevel; EditorSceneManager.MarkSceneDirty(map.gameObject.scene);
             });
         }
         private void DrawFloorColors()
@@ -219,7 +277,7 @@ namespace CodingGame.Art.MapPainter.Editor
             if(EditorGUI.EndChangeCheck())RunAction("Change floor colors",()=>
             {
                 Undo.RecordObject(map,"Change floor colors"); map.useFloorColors=enabled; map.upperColor=upper; map.lowerColor=lower;
-                map.ApplyFloorColors(); EditorUtility.SetDirty(map); EditorSceneManager.MarkSceneDirty(map.gameObject.scene);
+                EditorSceneManager.MarkSceneDirty(map.gameObject.scene);
             });
             EditorGUILayout.HelpBox("홈 가운데를 경계로 두 단색을 적용합니다. 이 맵의 색만 바꾸며, 프리팹 저장 시 함께 보관합니다. 단색에는 UV 수정이 필요 없습니다.",MessageType.None);
             if(GUILayout.Button("원본 FBX 변경 후 바닥 모듈 갱신"))
@@ -239,7 +297,7 @@ namespace CodingGame.Art.MapPainter.Editor
             if(EditorGUI.EndChangeCheck())RunAction("Change road colors",()=>
             {
                 Undo.RecordObject(map,"Change road colors"); map.useRoadColors=colors; map.roadInnerColor=inner; map.roadBorderColor=border;
-                map.ApplyFloorColors(); EditorSceneManager.MarkSceneDirty(map.gameObject.scene);
+                EditorSceneManager.MarkSceneDirty(map.gameObject.scene);
             });
             if(GUILayout.Button("Map/Road의 경로 모델 갱신"))RunAction("Refresh road models",()=>
             { RoadModuleAssets.Setup(map.palette,true); MapPainterEditing.RebuildAll(map); });
@@ -286,27 +344,36 @@ namespace CodingGame.Art.MapPainter.Editor
         {
             if (!map || !MapPainterEditing.CanEdit(map)||MapBuildPreview.IsRunning) { FinishStroke(); return; }
             Event e=Event.current;
-            if(e.type==EventType.KeyDown && e.keyCode==KeyCode.Escape) { painting=false; FinishStroke(); e.Use(); RepaintViews(); }
+            if(e.type==EventType.KeyDown && e.keyCode==KeyCode.Escape) { painting=false; marker=0; FinishStroke(); e.Use(); RepaintViews(); }
             bool active=painting && !e.alt && !Tools.viewToolActive;
+            bool marking=marker!=0 && !painting && !e.alt && !Tools.viewToolActive;
             control=GUIUtility.GetControlID(FocusType.Passive);
-            if(active && e.type==EventType.Layout) HandleUtility.AddDefaultControl(control);
+            if((active||marking) && e.type==EventType.Layout) HandleUtility.AddDefaultControl(control);
             var plane=new Plane(Vector3.up,map.transform.position);
             var ray=HandleUtility.GUIPointToWorldRay(e.mousePosition);
             hasHover=plane.Raycast(ray,out float distance);
             if(hasHover)
             {
-                Vector3 p=ray.GetPoint(distance)-map.transform.position;
-                hover=new GridCell(Mathf.FloorToInt(p.x/map.cellSize+.5f),Mathf.FloorToInt(p.z/map.cellSize+.5f));
+                hover=map.WorldToCell(ray.GetPoint(distance));
             }
             if(e.type==EventType.Repaint)
             {
                 if(gridVisible) DrawGrid();
                 DrawRoads();
+                DrawMarkers();
+                if(marking && hasHover) DrawCell(hover,new Color(1,1,1,.2f));
                 if(active && hasHover)
                 {
                     var cells=rectangle&&dragging?Rectangle(start,hover):Brush(hover);
-                    foreach(var cell in cells.Take(4096)) DrawCell(cell,tool==1||e.shift?new Color(1,.2f,.2f,.25f):new Color(.2f,.85f,1,.2f));
+                    foreach(var cell in cells.Take(MaxCellsPerAction)) DrawCell(cell,tool==1||e.shift?new Color(1,.2f,.2f,.25f):new Color(.2f,.85f,1,.2f));
                 }
+            }
+            if(marking && hasHover && e.button==0 && (e.type==EventType.MouseDown || dragging && e.type==EventType.MouseDrag && marker==3 && !hover.Equals(last)))
+            {
+                if(e.type==EventType.MouseDown) { dragging=true; Undo.IncrementCurrentGroup(); undoGroup=Undo.GetCurrentGroup(); Undo.SetCurrentGroupName("Edit routes"); GUIUtility.hotControl=control; }
+                last=hover;
+                if(ApplyMarker(hover,e.type==EventType.MouseDrag)) Repaint();
+                e.Use(); SceneView.RepaintAll();
             }
             if(active && hasHover && e.type==EventType.MouseDown && e.button==0)
             {
@@ -316,12 +383,12 @@ namespace CodingGame.Art.MapPainter.Editor
                 if(!rectangle) MapPainterEditing.Paint(map,Brush(hover),layer==1,eraseStroke);
                 e.Use(); RepaintViews();
             }
-            if(dragging && e.type==EventType.MouseDrag && e.button==0 && hasHover && !e.alt)
+            if(active && dragging && e.type==EventType.MouseDrag && e.button==0 && hasHover && !e.alt)
             {
                 if(!rectangle)
                 {
                     long length=System.Math.Abs((long)hover.x-last.x)+System.Math.Abs((long)hover.z-last.z)+1;
-                    if(length*brush*brush<=4096)
+                    if(length*brush*brush<=MaxCellsPerAction)
                     {
                         var cells=new HashSet<GridCell>();
                         foreach(var cell in GridTopology.Stroke(last,hover)) cells.UnionWith(Brush(cell));
@@ -332,11 +399,11 @@ namespace CodingGame.Art.MapPainter.Editor
             }
             if(dragging && e.rawType==EventType.MouseUp && e.button==0)
             {
-                if(rectangle && hasHover)
+                if(active && rectangle && hasHover)
                 {
                     long count=((long)System.Math.Abs((long)hover.x-start.x)+1)*(System.Math.Abs((long)hover.z-start.z)+1);
-                    if(count<=4096) MapPainterEditing.Paint(map,Rectangle(start,hover),layer==1,eraseStroke);
-                    else ShowNotification(new GUIContent("한 번에 최대 4096칸까지 배치합니다."));
+                    if(count<=MaxCellsPerAction) MapPainterEditing.Paint(map,Rectangle(start,hover),layer==1,eraseStroke);
+                    else ShowNotification(new GUIContent($"한 번에 최대 {MaxCellsPerAction}칸까지 배치합니다."));
                 }
                 FinishStroke(); e.Use(); RepaintViews();
             }

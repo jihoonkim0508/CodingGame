@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,6 +12,25 @@ namespace CodingGame.BlockCoding
         [SerializeField] bool control;
         public float HeaderHeight { get; set; } = 48;
         public bool JoinNext { get; set; }
+        readonly List<UIVertex> hitTriangles = new List<UIVertex>();
+#if UNITY_EDITOR
+        public IReadOnlyList<UIVertex> EditorTriangles => hitTriangles;
+#endif
+
+        public override bool Raycast(Vector2 screenPoint, Camera eventCamera)
+        {
+            if (!base.Raycast(screenPoint, eventCamera) ||
+                !RectTransformUtility.ScreenPointToLocalPointInRectangle(rectTransform, screenPoint, eventCamera, out var point)) return false;
+            for (int i = 0; i < hitTriangles.Count; i += 3)
+            {
+                Vector2 a = hitTriangles[i].position, b = hitTriangles[i + 1].position, c = hitTriangles[i + 2].position;
+                float ab = Cross(b - a, point - a), bc = Cross(c - b, point - b), ca = Cross(a - c, point - c);
+                if (Mathf.Abs(Cross(b - a, c - a)) > .0001f &&
+                    (ab >= 0 && bc >= 0 && ca >= 0 || ab <= 0 && bc <= 0 && ca <= 0)) return true;
+            }
+            return false;
+        }
+        static float Cross(Vector2 a, Vector2 b) => a.x * b.y - a.y * b.x;
 
         public void Configure(BlockSlotKind output, bool hasBody)
         {
@@ -22,6 +42,7 @@ namespace CodingGame.BlockCoding
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear();
+            hitTriangles.Clear();
             Rect r = rectTransform.rect;
             float w = r.width, h = r.height;
             if (w <= 0 || h <= 0) return;
@@ -51,6 +72,7 @@ namespace CodingGame.BlockCoding
                     if (!JoinNext) Quad(vh, r, 0, h - 18, w, 18);
                 }
             }
+            vh.GetUIVertexStream(hitTriangles);
         }
 
         void Quad(VertexHelper vh, Rect r, float x, float y, float w, float h)

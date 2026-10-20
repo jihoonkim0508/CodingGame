@@ -16,7 +16,7 @@ foreach (var owner in new UnityEngine.Object[] { battle, preview })
     var offset = owner == battle ? UnityEngine.Vector3.zero : parent.position;
     var evt = new CodingGame.Defense.CombatEvent { Kind = "slash", Origin = new System.Numerics.Vector2(4,5),
         Position = new System.Numerics.Vector2(3,5), Radius = 3 };
-    object[] arguments = { evt, parent, offset, UnityEngine.Quaternion.identity };
+    object[] arguments = { evt, parent, offset, UnityEngine.Quaternion.identity, null, null };
     type.GetMethod("Clear").Invoke(effects, null);
     type.GetMethod("Show").Invoke(effects, arguments);
     if (ranges.Count != 0) throw new System.Exception("OFF spawned a hit range.");
@@ -41,7 +41,8 @@ foreach (var owner in new UnityEngine.Object[] { battle, preview })
     if (ranges.Count != 0 || line.enabled) throw new System.Exception("OFF did not immediately hide existing range.");
     type.GetMethod("Clear").Invoke(effects, null);
 }
-var mesh = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.Mesh>("Assets/!_Project/Defense/Effects/WarriorSlashSemicircle.asset");
-if (!mesh || mesh.vertices.Any(v => v.z < -.00001f || new UnityEngine.Vector2(v.x,v.z).magnitude * 200 > 1.0001f))
-    throw new System.Exception("Slash mesh extends outside the forward semicircle.");
-return "PASS: visible developer toggle, battle/preview ON/OFF, robot pivot, direction/radius, pause and VFX bounds";
+var slash = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.GameObject>("Assets/!_Project/Defense/Effects/WarriorSlash.prefab");
+var graph = slash.GetComponent<UnityEngine.VFX.VisualEffect>().visualEffectAsset;
+if (UnityEditor.AssetDatabase.GetAssetPath(graph) != "Assets/ThirdParty/slash5-HungNguyen/slash 5 visual vfx profiles/slash-white-yellow bolder.vfx")
+    throw new System.Exception("Original slash mesh and rotation graph must be used.");
+return "PASS: visible developer toggle, battle/preview ON/OFF, robot pivot, damage range, pause and original slash graph";

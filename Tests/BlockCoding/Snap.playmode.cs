@@ -7,9 +7,9 @@ int checks = 0;
 void Check(bool condition, string name) { if (!condition) throw new System.Exception(name); checks++; }
 try
 {
-    battle.Restart();
+    battle.EditorStartSession(2, 1, false, new CodingGame.Defense.DefenseTestOptions { tutorial = false, tutorialInput = false, inventoryLimit = false, unlockAll = true }); // sandbox: Stage 1 locks robots and placement for teaching
     Check(battle.PlaceRobot(4, new UnityEngine.Vector3(-8, 0, 6)), "place robot");
-    battle.SelectRobot(battle.SelectedId);
+    battle.SelectRobot(battle.SelectedId); battle.DevelopSelected();
     var panel = editor.Panel;
     var program = panel.Program;
     var marker = (UnityEngine.RectTransform)typeof(CodingGame.BlockCoding.CommandCodingPanel)
@@ -44,6 +44,8 @@ try
     Check(!marker.gameObject.activeSelf, "existing block free placement has no preview");
     Drop(pointer);
     Check(UnityEngine.Vector2.Distance(existing.Rect.anchoredPosition, far) < .1f, "free placement preserves drop position");
+    bool parked = false; try { program.Read(); } catch (System.FormatException) { parked = true; }
+    Check(parked, "chain away from the start anchor does not run");
     pointer = Begin(existing); Move(pointer, near);
     Check(marker.gameObject.activeSelf, "existing block returning to first line shows preview");
     Drop(pointer);
@@ -57,6 +59,8 @@ try
     Check(marker.gameObject.activeSelf, "whole chain shows first-line anchor");
     Drop(pointer);
     Check(existing.Rect.anchoredPosition == first && program.Read().Count == 2, "whole chain snaps without losing links");
+    panel.DeleteOne(existing);
+    Check(program.Blocks[0].Rect.anchoredPosition == first && program.Read().Count == 1, "deleting the first block keeps the rest at the start");
     panel.ClearProgram();
     pointer = Begin(palette); Move(pointer, far);
     Check(!marker.gameObject.activeSelf, "new block far from first line has no false preview");

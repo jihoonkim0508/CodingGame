@@ -18,12 +18,12 @@ namespace CodingGame.Defense
                 float t = Mathf.Clamp01((float)((simulation.Time - shot.LaunchedAt) / (shot.ImpactAt - shot.LaunchedAt)));
                 var p = System.Numerics.Vector2.Lerp(shot.Origin, shot.Destination, t);
                 float height = Mathf.Lerp(1.1f, .12f, t) + Mathf.Sin(t * Mathf.PI) * 1.8f;
-                view.position = offset + new Vector3(p.X, height, p.Y);
+                view.position = offset + DefenseViews.World(p, height);
             }
         }
         public void Clear()
         {
-            foreach (var view in views.Values) if (view) { view.gameObject.SetActive(false); Object.Destroy(view.gameObject); }
+            foreach (var view in views.Values) DefenseViews.Discard(view);
             views.Clear();
         }
     }

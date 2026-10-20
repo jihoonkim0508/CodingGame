@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace CodingGame.BlockCoding
 {
@@ -12,7 +13,7 @@ namespace CodingGame.BlockCoding
     public static class PythonTreeCompiler
     {
         [Flags]
-        enum ValueType { Integer = 1, Float = 2, Enemy = 4, Boolean = 8 }
+        enum ValueType { Integer = 1, Float = 2, Enemy = 4, Boolean = 8, Vector2 = 16 }
         const ValueType Numeric = ValueType.Integer | ValueType.Float;
         static readonly HashSet<string> Keywords = new HashSet<string>(
             ("False None True and as assert async await break class continue def del elif else except finally for from " +
@@ -25,7 +26,8 @@ namespace CodingGame.BlockCoding
                 case BlockKind.Comparison: case BlockKind.True: case BlockKind.False:
                     return BlockSlotKind.Condition;
                 case BlockKind.Number: case BlockKind.Variable: case BlockKind.NearestEnemy:
-                case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.Distance:
+                case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.Distance: case BlockKind.Hp:
+                case BlockKind.MyAttackRange: case BlockKind.MyPos:
                     return BlockSlotKind.Value;
                 case BlockKind.Attack: case BlockKind.Wait: case BlockKind.DeclareVariable:
                 case BlockKind.For: case BlockKind.While: case BlockKind.If: case BlockKind.Elif:
@@ -49,9 +51,9 @@ namespace CodingGame.BlockCoding
             switch (kind)
             {
                 case BlockKind.For: case BlockKind.If: case BlockKind.Elif:
-                case BlockKind.Attack: case BlockKind.Wait: case BlockKind.DeclareVariable: return 1;
+                case BlockKind.Wait: case BlockKind.DeclareVariable: case BlockKind.Hp: return 1; // Hp: receiver
                 case BlockKind.Comparison: return 2;
-                case BlockKind.Distance: return 3; // receiver, x, y
+                case BlockKind.Distance: return 2; // receiver, position (Vector2)
                 default: return 0;
             }
         }
@@ -81,15 +83,26 @@ namespace CodingGame.BlockCoding
             return true;
         }
 
-        static bool IsBranch(BlockKind kind) => kind == BlockKind.Elif || kind == BlockKind.Else;
+        internal static bool IsBranch(BlockKind kind) => kind == BlockKind.Elif || kind == BlockKind.Else;
 
         public static string Compile(string functionName, IReadOnlyList<CodeBlock> blocks)
         {
             if (blocks == null) throw new ArgumentNullException(nameof(blocks));
             ValidateTree(blocks, new HashSet<CodeBlock>());
-            var source = new StringBuilder("def ").Append(NormalizeIdentifier(functionName)).Append("(enemy):\n");
-            EmitSuite(blocks, source, 1, 0, new Dictionary<string, ValueType> { ["enemy"] = ValueType.Enemy });
+            var source = new StringBuilder("def ").Append(NormalizeIdentifier(functionName)).Append("():\n");
+            // No implicit names: every variable, including the enemy target, has to be declared first.
+            EmitSuite(blocks, source, 1, 0, new Dictionary<string, ValueType>());
             return source.ToString();
+        }
+        static IEnumerable<CodeBlock> All(IEnumerable<CodeBlock> blocks) =>
+            blocks.Where(b => b != null).SelectMany(b => new[] { b }.Concat(All(b.Arguments)).Concat(All(b.Body)));
+        // A loop that acts on an enemy variable without re-assigning it keeps aiming at the first target after it is gone.
+        public static bool HasStaleEnemyLoop(IReadOnlyList<CodeBlock> blocks)
+        {
+            var enemies = new HashSet<string>(All(blocks).Where(b => b.Kind == BlockKind.DeclareVariable && b.Arguments.FirstOrDefault()?.Kind == BlockKind.NearestEnemy).Select(b => b.Value));
+            return All(blocks).Any(loop => (loop.Kind == BlockKind.For || loop.Kind == BlockKind.While) &&
+                All(loop.Body).Where(b => b.Kind == BlockKind.Variable && enemies.Contains(b.Value)).Select(b => b.Value)
+                    .Except(All(loop.Body).Where(b => b.Kind == BlockKind.DeclareVariable).Select(b => b.Value)).Any());
         }
 
         static void ValidateTree(IReadOnlyList<CodeBlock> blocks, HashSet<CodeBlock> path)
@@ -99,12 +112,12 @@ namespace CodingGame.BlockCoding
                 if (block == null) throw new FormatException("비어 있는 블록 슬롯이 있습니다.");
                 if (!path.Add(block)) throw new FormatException("블록을 자기 자신의 내부에 연결할 수 없습니다.");
                 OutputSlot(block.Kind);
-                if (block.Arguments == null || (block.Arguments.Count != ArgumentCount(block.Kind) &&
-                    !(HasEnemyArgument(block.Kind) && block.Arguments.Count == 0)))
+                if (HasEnemyArgument(block.Kind) && (block.Arguments == null || block.Arguments.Count == 0 || block.Arguments[0] == null))
+                    throw new FormatException("공격 대상을 넣어 주세요. 예: enemy = get_nearest_enemy() 다음에 attack(enemy)");
+                if (block.Arguments == null || block.Arguments.Count != ArgumentCount(block.Kind))
                     throw new FormatException($"{block.Kind}: 입력 슬롯을 모두 채워 주세요.");
                 for (int i = 0; i < block.Arguments.Count; i++)
-                    if (!(HasEnemyArgument(block.Kind) && block.Arguments[i] == null) &&
-                        (block.Arguments[i] == null || !Accepts(ArgumentSlot(block.Kind, i), block.Arguments[i].Kind)))
+                    if (block.Arguments[i] == null || !Accepts(ArgumentSlot(block.Kind, i), block.Arguments[i].Kind))
                         throw new FormatException($"{block.Kind}: {i + 1}번째 슬롯에는 {ArgumentSlot(block.Kind, i)} 블록이 필요합니다.");
                 if (block.Body == null || (!HasBody(block.Kind) && block.Body.Count != 0))
                     throw new FormatException($"{block.Kind}: 내부 명령을 가질 수 없는 블록입니다.");
@@ -196,7 +209,9 @@ namespace CodingGame.BlockCoding
             {
                 case BlockKind.Number:
                     return NormalizeNumber(block.Value).Contains(".") ? ValueType.Float : ValueType.Integer;
-                case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.Distance: return ValueType.Float;
+                case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.Distance: case BlockKind.Hp:
+                case BlockKind.MyAttackRange: return ValueType.Float;
+                case BlockKind.MyPos: return ValueType.Vector2;
                 case BlockKind.NearestEnemy: return ValueType.Enemy;
                 case BlockKind.True: case BlockKind.False: case BlockKind.Comparison: return ValueType.Boolean;
                 case BlockKind.Variable:
@@ -213,13 +228,44 @@ namespace CodingGame.BlockCoding
             if ((TypeOf(block, variables) & ~allowed) != 0) throw new FormatException(message);
         }
 
+        // Blocks that read as a fixed call or literal.
+        static string Call(BlockKind kind)
+        {
+            switch (kind)
+            {
+                case BlockKind.PositionX: return "get_pos_x()";
+                case BlockKind.PositionY: return "get_pos_y()";
+                case BlockKind.MyAttackRange: return "my_attack_range()";
+                case BlockKind.MyPos: return "get_my_pos()";
+                case BlockKind.NearestEnemy: return "get_nearest_enemy()";
+                case BlockKind.True: return "True";
+                case BlockKind.False: return "False";
+                case BlockKind.Buff: return "buff()";
+                default: return null;
+            }
+        }
+
+        /// <summary>Python text of an expression block without type checks, e.g. a condition not yet connected to the program.</summary>
+        public static string ExpressionText(CodeBlock block)
+        {
+            if (block == null) return "";
+            string Arg(int index) => index < block.Arguments.Count ? ExpressionText(block.Arguments[index]) : "";
+            switch (block.Kind)
+            {
+                case BlockKind.Number: case BlockKind.Variable: return block.Value;
+                case BlockKind.Distance: return Arg(0) + ".distance(" + Arg(1) + ")";
+                case BlockKind.Hp: return Arg(0) + ".hp";
+                case BlockKind.Comparison: return Arg(0) + " " + block.Value + " " + Arg(1);
+                default: return Call(block.Kind) ?? block.Kind.ToString();
+            }
+        }
+
         static string Expression(CodeBlock block, IReadOnlyDictionary<string, ValueType> variables)
         {
             string Arg(int index) => Expression(block.Arguments[index], variables);
             if (HasEnemyArgument(block.Kind))
             {
-                var target = block.Arguments.Count == 0 || block.Arguments[0] == null
-                    ? new CodeBlock(BlockKind.Variable, "enemy") : block.Arguments[0];
+                var target = block.Arguments[0];
                 Require(target, variables, ValueType.Enemy, "공격 대상에는 enemy 객체가 필요합니다.");
                 string method = block.Kind == BlockKind.Shot || block.Kind == BlockKind.Attack ? "attack" : block.Kind.ToString().ToLowerInvariant();
                 return method + "(" + Expression(target, variables) + ")";
@@ -230,22 +276,21 @@ namespace CodingGame.BlockCoding
                 case BlockKind.Variable:
                     TypeOf(block, variables);
                     return NormalizeIdentifier(block.Value);
-                case BlockKind.PositionX: return "get_pos_x()";
-                case BlockKind.PositionY: return "get_pos_y()";
-                case BlockKind.NearestEnemy: return "get_nearest_enemy()";
-                case BlockKind.True: return "True";
-                case BlockKind.False: return "False";
-                case BlockKind.Buff: return "buff()";
+                case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.MyAttackRange: case BlockKind.MyPos: case BlockKind.NearestEnemy:
+                case BlockKind.True: case BlockKind.False: case BlockKind.Buff:
+                    return Call(block.Kind);
                 case BlockKind.Wait:
                     Require(block.Arguments[0], variables, Numeric, "wait에는 초 단위의 숫자가 필요합니다.");
                     return "wait(" + Arg(0) + ")";
                 case BlockKind.Distance:
-                    Require(block.Arguments[0], variables, ValueType.Enemy, "get_distance의 대상은 Enemy 객체여야 합니다.");
-                    Require(block.Arguments[1], variables, Numeric, "x좌표는 숫자여야 합니다.");
-                    Require(block.Arguments[2], variables, Numeric, "y좌표는 숫자여야 합니다.");
-                    return Arg(0) + ".get_distance(" + Arg(1) + ", " + Arg(2) + ")";
+                    Require(block.Arguments[0], variables, ValueType.Enemy, "distance의 대상은 Enemy 객체여야 합니다.");
+                    Require(block.Arguments[1], variables, ValueType.Vector2, "distance에는 위치(Vector2)가 필요합니다. 예: enemy.distance(get_my_pos())");
+                    return Arg(0) + ".distance(" + Arg(1) + ")";
+                case BlockKind.Hp:
+                    Require(block.Arguments[0], variables, ValueType.Enemy, "hp는 Enemy 객체에서만 읽을 수 있습니다.");
+                    return Arg(0) + ".hp";
                 case BlockKind.Comparison:
-                    if (!PythonBlockCompiler.Comparisons.Contains(block.Value)) throw new FormatException("지원하지 않는 비교 연산자입니다.");
+                    if (!Comparisons.Contains(block.Value)) throw new FormatException("지원하지 않는 비교 연산자입니다.");
                     if (block.Value != "==")
                     {
                         Require(block.Arguments[0], variables, Numeric, "대소 비교에는 숫자가 필요합니다.");
@@ -256,11 +301,21 @@ namespace CodingGame.BlockCoding
             }
         }
 
+        public static readonly string[] Comparisons = { "==", "<", ">", "<=", ">=" };
+        static readonly Regex Number = new Regex(@"\A[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)\z");
+
         public static string NormalizeNumber(string text)
         {
             if (string.IsNullOrEmpty(text) || text.IndexOfAny(new[] { 'e', 'E', 'f', 'F' }) >= 0)
                 throw new FormatException("수치를 입력해 주세요. 소수점(.)이 있으면 float, 없으면 int입니다.");
-            return PythonBlockCompiler.NormalizeNumber(text);
+            if (!Number.IsMatch(text)) throw new FormatException("올바른 숫자를 입력해 주세요.");
+            // Keep arbitrary-length input as text; parsing as float would lose precision or impose a range.
+            string sign = text[0] == '-' ? "-" : "";
+            string unsigned = text.TrimStart('+', '-');
+            int end = unsigned.IndexOf('.');
+            if (end < 0) end = unsigned.Length;
+            string integer = unsigned.Substring(0, end).TrimStart('0');
+            return sign + (integer.Length == 0 ? "0" : integer) + unsigned.Substring(end);
         }
 
         public static string NormalizeIdentifier(string name)
@@ -283,29 +338,6 @@ namespace CodingGame.BlockCoding
                 i += code > 0xFFFF ? 2 : 1;
             }
             return name;
-        }
-
-        /// <summary>Names for a variable palette, also available while other blocks are incomplete.</summary>
-        public static IReadOnlyCollection<string> DeclaredVariables(IReadOnlyList<CodeBlock> blocks)
-        {
-            var names = new HashSet<string>();
-            CollectNames(blocks, names, new HashSet<CodeBlock>());
-            return names;
-        }
-
-        static void CollectNames(IReadOnlyList<CodeBlock> blocks, HashSet<string> names, HashSet<CodeBlock> visited)
-        {
-            foreach (var block in blocks)
-            {
-                if (block == null || !visited.Add(block)) continue;
-                if (block.Kind == BlockKind.DeclareVariable)
-                {
-                    try { names.Add(NormalizeIdentifier(block.Value)); }
-                    catch (FormatException) { }
-                }
-                if (block.Kind == BlockKind.For) names.Add("i");
-                if (block.Body != null) CollectNames(block.Body, names, visited);
-            }
         }
 
         static void Append(StringBuilder source, int depth, string text) => source.Append(' ', depth * 4).Append(text).Append('\n');

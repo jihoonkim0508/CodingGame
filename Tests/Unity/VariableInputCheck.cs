@@ -14,7 +14,7 @@ public static class VariableInputCheck
         (T)new SerializedObject(o).FindProperty(name).objectReferenceValue;
     public static string Main()
     {
-        var battle = UnityEngine.Object.FindFirstObjectByType<DefenseBattle>(); battle.Restart();
+        var battle = UnityEngine.Object.FindFirstObjectByType<DefenseBattle>(); battle.EditorStartSession(2, 1, false, new CodingGame.Defense.DefenseTestOptions { tutorial = false, tutorialInput = false, inventoryLimit = false, unlockAll = true }); // sandbox: Stage 1 locks robots and placement for teaching
         if (!battle.DeveloperMode) battle.ToggleDeveloper();
         UnityEngine.Object.FindFirstObjectByType<DefenseInventoryUI>().GrantAll(); battle.ToggleDeveloper();
         Require(battle.PlaceRobot(4, new Vector3(0, 0, 4)), "Robot placed");
@@ -24,8 +24,8 @@ public static class VariableInputCheck
         battle.DevelopSelected();
         var panel = UnityEngine.Object.FindFirstObjectByType<DefenseCodeEditor>().Panel;
         panel.ClearProgram(); panel.ShowCategory(2);
-        Require(panel.VariablePalette.Count == 1 && panel.VariablePalette.ContainsKey("variable"), "One variable palette entry");
-        var template = panel.VariablePalette["variable"];
+        Require(panel.VariableTemplate, "Variable palette entry");
+        var template = panel.VariableTemplate;
         panel.AddFromPalette(template);
         var variable = panel.Program.Blocks.Single();
         Require(variable.Read().Value == "variable" && variable.Kind == BlockKind.Variable, "Default editable variable");
@@ -41,10 +41,9 @@ public static class VariableInputCheck
         variable = panel.Program.Blocks[1].Arguments[0].Blocks.Single();
         variable.SetText("enemy."); variable.SelectOption(1);
         Require(variable.Kind == BlockKind.Distance, "Distance selected");
-        var x = panel.Palette.Single(p => p.view.Kind == BlockKind.PositionX).view;
-        var y = panel.Palette.Single(p => p.view.Kind == BlockKind.PositionY).view;
-        Require(variable.Arguments[0].Insert(x, 0) && variable.Arguments[1].Insert(y, 0), "Method argument slots usable");
-        Require(panel.IsApplied && panel.AppliedSource.Contains("enemy.get_distance(get_pos_x(), get_pos_y())"), "Typed method compiles");
+        var position = panel.Palette.Single(p => p.view.Kind == BlockKind.MyPos).view;
+        Require(variable.Arguments.Count == 1 && variable.Arguments[0].Insert(position, 0), "Method argument slot usable");
+        Require(panel.IsApplied && panel.AppliedSource.Contains("enemy.distance(get_my_pos())"), "Typed method compiles");
         Require(new SerializedObject(Ref<CommandBlockShape>(variable, "shape")).FindProperty("slot").enumValueIndex == (int)BlockSlotKind.Value, "Returning method has round value shape");
         variable.SetText("enemy");
         Require(variable.Kind == BlockKind.Variable && !Ref<GameObject>(variable, "methodArguments").activeSelf, "Backspace restores plain reference");

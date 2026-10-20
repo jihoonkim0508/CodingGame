@@ -23,3 +23,4 @@ MonoBehaviour:
     attackInterval: 1.2
     leakDamage: 1
   prefab: {fileID: 8292641712839652615, guid: ed407c76a0f580e4ebe2c4735f5d5317, type: 3}
+  icon: {fileID: 2800000, guid: 6d0cf05ac340f5a47bdeaab446a7816d, type: 3}

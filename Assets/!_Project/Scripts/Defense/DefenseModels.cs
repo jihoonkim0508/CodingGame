@@ -56,20 +56,28 @@ namespace CodingGame.Defense
         public RobotRole role;
         public RobotAction action;
         public float strength = .5f;
+        public ActionPermission Copy() => (ActionPermission)MemberwiseClone();
     }
 
     public static class Rules
     {
-        public static bool Nonnegative(float v) => !float.IsNaN(v) && !float.IsInfinity(v) && v >= 0;
-        public static bool Positive(float v) => Nonnegative(v) && v > 0;
         public static bool Finite(float v) => !float.IsNaN(v) && !float.IsInfinity(v);
+        public static bool Nonnegative(float v) => Finite(v) && v >= 0;
+        public static bool Positive(float v) => Nonnegative(v) && v > 0;
+        public static bool Finite(Vector2 p) => Finite(p.X) && Finite(p.Y);
+        public static bool ValidBox(Vector2 min, Vector2 max) => Finite(min) && Finite(max) && min.X < max.X && min.Y < max.Y;
+        // Block and Buff need an explicit permission row to work on another role; other actions run at reduced strength.
+        public static bool NeedsPermission(RobotAction action) => action == RobotAction.Block || action == RobotAction.Buff;
+        public static EnemyState Nearest(IEnumerable<EnemyState> enemies, Vector2 from) =>
+            enemies.OrderBy(e => Vector2.DistanceSquared(e.Position, from)).ThenBy(e => e.Id).FirstOrDefault();
         public static RobotAction NativeAction(RobotRole role) => (RobotAction)(int)role;
+        public static float RangedDamageFactor(float range, float distance) => range / Math.Max(1f, distance);
         public static ActionCompatibility Compatibility(RobotRole role, RobotAction action, IReadOnlyList<ActionPermission> permissions = null)
         {
             if (NativeAction(role) == action) return ActionCompatibility.Native;
             if ((role == RobotRole.Bomber || role == RobotRole.Shooter) && action == RobotAction.Block ||
                 role == RobotRole.Tank && action == RobotAction.Buff) return ActionCompatibility.Ineffective;
-            if (action != RobotAction.Block && action != RobotAction.Buff) return ActionCompatibility.Reduced;
+            if (!NeedsPermission(action)) return ActionCompatibility.Reduced;
             if (permissions != null)
                 foreach (var entry in permissions)
                     if (entry.role == role && entry.action == action) return ActionCompatibility.Reduced;
@@ -94,18 +102,6 @@ namespace CodingGame.Defense
             t = (-bb - (float)Math.Sqrt(discriminant)) / (2 * aa);
             return t >= 0 && t <= 1;
         }
-        public static string ActionName(RobotAction action)
-        {
-            switch (action)
-            {
-                case RobotAction.Buff: return "buff()";
-                case RobotAction.Slash: return "slash(enemy)";
-                case RobotAction.Block: return "block(enemy)";
-                case RobotAction.Boom: return "boom(enemy)";
-                case RobotAction.Attack: return "attack(enemy)";
-                default: return "slow(enemy)";
-            }
-        }
     }
 
     public sealed class Route
@@ -118,7 +114,7 @@ namespace CodingGame.Defense
             if (Points.Length < 2 || !Rules.Positive(halfWidth)) throw new ArgumentException("경로에는 2개 이상의 지점과 양수 폭이 필요합니다.");
             for (int i = 0; i < Points.Length; i++)
             {
-                if (float.IsNaN(Points[i].X) || float.IsInfinity(Points[i].X) || float.IsNaN(Points[i].Y) || float.IsInfinity(Points[i].Y))
+                if (!Rules.Finite(Points[i]))
                     throw new ArgumentException("경로 좌표가 유효하지 않습니다.");
                 if (i > 0 && Vector2.DistanceSquared(Points[i - 1], Points[i]) < .0001f)
                     throw new ArgumentException("연속 경로 지점은 달라야 합니다.");
@@ -141,6 +137,12 @@ namespace CodingGame.Defense
 
     public sealed class BattleSetup
     {
+        public DefenseBalanceRules RulesConfig = new DefenseBalanceRules();
+        public DefenseTestOptions TestOptions = new DefenseTestOptions();
+        public SpawnGroup[][][] CampaignWaves;
+        public float[] CampaignSeconds;
+        public int InitialWave;
+        public bool PreviousStageRewards = true;
         public int FunctionRepeatLimit = 5;
         public Vector2 Min, Max;
         public Route[] Routes;
@@ -150,23 +152,22 @@ namespace CodingGame.Defense
         public int BaseHealth = 12, RobotLimit = 18;
         public bool PlayerFlow;
         public float WaveSeconds;
-        public int DropSeed;
         public DefenseProgression Progression = new DefenseProgression();
         public ActionPermission[] Permissions = Array.Empty<ActionPermission>();
         public RobotSpec[] ActionProfiles = Array.Empty<RobotSpec>();
         public PlacementObstacle[] Obstacles = Array.Empty<PlacementObstacle>();
         public void Validate()
         {
+            RulesConfig.Validate();
+            if (TestOptions == null || InitialWave < 0) throw new ArgumentException("테스트 설정·초기 웨이브 오류");
             if (Stage < 0) throw new ArgumentException("스테이지는 0 이상이어야 합니다.");
             if (!Rules.Nonnegative(WaveSeconds)) throw new ArgumentException("웨이브 시간은 0 이상이어야 합니다.");
             if (PlayerFlow) { if (Progression == null) throw new ArgumentException("보상 설정 누락"); Progression.Validate(); }
-            if (!Rules.Finite(Min.X) || !Rules.Finite(Min.Y) || !Rules.Finite(Max.X) || !Rules.Finite(Max.Y) ||
-                Min.X >= Max.X || Min.Y >= Max.Y || BaseHealth < 1 || RobotLimit < 1 || Routes == null || Routes.Length == 0 ||
+            if (!Rules.ValidBox(Min, Max) || BaseHealth < 1 || RobotLimit < 1 || Routes == null || Routes.Length == 0 ||
                 Routes.Any(r => r == null) || Waves == null || Waves.Length == 0 || Permissions == null || Obstacles == null)
                 throw new ArgumentException("전장 영역·경로·웨이브·제한 설정을 확인하세요.");
             foreach (var area in Obstacles)
-                if (area == null || !Rules.Finite(area.Min.X) || !Rules.Finite(area.Min.Y) || !Rules.Finite(area.Max.X) ||
-                    !Rules.Finite(area.Max.Y) || area.Min.X >= area.Max.X || area.Min.Y >= area.Max.Y)
+                if (area == null || !Rules.ValidBox(area.Min, area.Max))
                     throw new ArgumentException("설치 금지 영역을 확인하세요.");
             if (ActionProfiles == null || ActionProfiles.Any(p => p == null) ||
                 ActionProfiles.Select(p => p.role).Distinct().Count() != 6 || ActionProfiles.Length != 6)
@@ -181,6 +182,15 @@ namespace CodingGame.Defense
                         !Rules.Nonnegative(g.Delay) || !Rules.Positive(g.Interval)) throw new ArgumentException("스폰 항목이 올바르지 않습니다.");
                     g.Enemy.Validate();
                 }
+            }
+            if (InitialWave >= Waves.Length) throw new ArgumentException("초기 웨이브 범위 오류");
+            if (CampaignWaves != null)
+            {
+                if (CampaignSeconds == null || CampaignSeconds.Length != CampaignWaves.Length || Stage < 1 || Stage > CampaignWaves.Length)
+                    throw new ArgumentException("캠페인 단계·시간 설정 오류");
+                foreach (var stageWaves in CampaignWaves)
+                    if (stageWaves == null || stageWaves.Length == 0 || stageWaves.Any(w => w == null || w.Length == 0 || w.Any(g => g == null || g.RouteIndex < 0 || g.RouteIndex >= Routes.Length)))
+                        throw new ArgumentException("캠페인 경로·웨이브 설정 오류");
             }
             var seen = new HashSet<string>();
             foreach (var p in Permissions)
@@ -215,27 +225,26 @@ namespace CodingGame.Defense
     }
     public sealed class RobotState
     {
-        public const int MaxLevel = 2;
-        public const float UpgradeMultiplier = 1.2f;
         public int Level { get; internal set; } = 1;
-        public bool IsMaxLevel => Level >= MaxLevel;
-        public float LevelMultiplier => Level == 1 ? 1 : UpgradeMultiplier;
+        public int LevelCap { get; internal set; } = 2;
+        public float UpgradeFactor { get; internal set; } = 1.2f;
+        public bool IsMaxLevel => Level >= LevelCap;
+        public float LevelMultiplier => (float)Math.Pow(UpgradeFactor, Level - 1);
         public float MaxHealth => Spec.health * LevelMultiplier;
         internal int UpgradeCostPaid;
         public int Id, DefinitionIndex;
         public Vector2 Position;
         public RobotSpec Spec;
         public RobotAction Action;
-        public float RangeSetting;
         public float? Health;
         public double NextAction;
         public bool AutoExecute;
         public bool BlockingEnabled;
         public ActionResult LastResult;
-        public int Executions;
+        public int Executions, AttacksThisWave;
         public readonly List<BuffState> Buffs = new List<BuffState>();
         public DefenseProgram Program;
-        public float Range => RangeSetting * Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Range));
+        public float Range => Spec.range * Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Range));
         public float DamageMultiplier => Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Damage)) * LevelMultiplier;
         public float Damage => Spec.damage * DamageMultiplier;
         public float Interval => Spec.interval * Buffs.Aggregate(1f, (v, b) => Math.Min(v, b.Interval));
@@ -262,10 +271,11 @@ namespace CodingGame.Defense
     public sealed class CombatEvent
     {
         public string Kind;
+        public string Reason;
         public bool Melee;
         public Vector2 Origin;
         public int Source, Target;
         public Vector2 Position;
-        public float Amount, Radius;
+        public float Amount, AppliedAmount, Radius;
     }
 }

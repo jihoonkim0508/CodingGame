@@ -26,8 +26,10 @@ namespace CodingGame.BlockCoding
         public CommandCodingPanel Panel { get; private set; }
         public CommandDropZone Owner { get; private set; }
         public bool IsPalette { get; private set; }
+        static readonly string[] Methods = { "distance(", "hp" };
         bool HasDot => kind == BlockKind.Variable && input && input.text.EndsWith(".", StringComparison.Ordinal);
-        public BlockKind Kind => HasDot && dropdown.value == 1 ? BlockKind.Distance : kind;
+        // Dropdown after `name.`: 1 = distance(position), 2 = the read-only hp property.
+        public BlockKind Kind => !HasDot ? kind : dropdown.value == 1 ? BlockKind.Distance : dropdown.value == 2 ? BlockKind.Hp : kind;
         public BlockKind BaseKind => kind;
         public CommandDropZone Body => body;
         public IReadOnlyList<CommandDropZone> Arguments => arguments;
@@ -54,10 +56,9 @@ namespace CodingGame.BlockCoding
             if (!rect || !header || !canvasGroup || !shape ||
                 ((kind == BlockKind.Number || kind == BlockKind.DeclareVariable || kind == BlockKind.Variable) && !input) ||
                 ((kind == BlockKind.Variable || kind == BlockKind.Comparison) && !dropdown) ||
-                (PythonTreeCompiler.HasBody(kind) && !body))
+                (PythonTreeCompiler.HasBody(kind) && !body) || (stockLabel && !stockColumn))
                 throw new InvalidOperationException(name + ": Inspector 참조가 누락되었습니다.");
             Panel = panel;
-            if (stockLabel && !stockColumn) throw new InvalidOperationException(name + ": 수량 열 참조를 연결하세요.");
             Owner = owner;
             IsPalette = palette;
             if (stockLabel) stockLabel.gameObject.SetActive(palette && panel.Remaining != null);
@@ -72,14 +73,12 @@ namespace CodingGame.BlockCoding
             }
             foreach (var argument in arguments) argument.Bind(panel, this);
             if (body) body.Bind(panel, this);
-            if (kind == BlockKind.Variable) RefreshVariableOptions();
             if (kind == BlockKind.DeclareVariable)
             {
                 try { RetainedName = PythonTreeCompiler.NormalizeIdentifier(input.text); }
                 catch (FormatException) { }
             }
-            if (methodArguments) methodArguments.SetActive(Kind == BlockKind.Distance);
-            shape.Configure(PythonTreeCompiler.OutputSlot(Kind), body);
+            if (kind == BlockKind.Variable) RefreshVariableOptions(); else RefreshShape();
             SetDragAppearance(false);
         }
 
@@ -101,7 +100,6 @@ namespace CodingGame.BlockCoding
         void SelectionChanged(int value)
         {
             if (kind == BlockKind.Variable) RefreshVariableOptions();
-            shape.Configure(PythonTreeCompiler.OutputSlot(Kind), body);
             if (!IsPalette) Panel.Changed();
             LayoutRebuilder.MarkLayoutForRebuild(rect);
         }
@@ -118,19 +116,31 @@ namespace CodingGame.BlockCoding
         {
             int selection = dropdown.value;
             var options = new List<string> { "메서드 선택" };
-            if (selection == 1 || (Panel && Panel.IsEnemyVariable(VariableName))) options.Add("get_distance(");
+            if (selection > 0 || (Panel && Panel.IsEnemyVariable(VariableName))) options.AddRange(Methods);
             else options[0] = "사용 가능한 메서드 없음";
             dropdown.ClearOptions();
             dropdown.AddOptions(options);
             dropdown.SetValueWithoutNotify(HasDot ? Mathf.Min(selection, options.Count - 1) : 0);
             dropdown.RefreshShownValue();
             dropdown.gameObject.SetActive(HasDot);
-            if (methodArguments) methodArguments.SetActive(Kind == BlockKind.Distance);
-            shape.Configure(PythonTreeCompiler.OutputSlot(Kind), body);
+            RefreshShape();
             LayoutRebuilder.MarkLayoutForRebuild(rect);
         }
+        void RefreshShape()
+        {
+            if (methodArguments) methodArguments.SetActive(Kind == BlockKind.Distance);
+            shape.Configure(PythonTreeCompiler.OutputSlot(Kind), body);
+        }
         public void SetText(string value) { input.text = value; }
-        public void SetStock(int count) { if (stockLabel) { stockLabel.text = count.ToString(); stockLabel.gameObject.SetActive(IsPalette && Panel.Remaining != null); } }
+        public void SetStock(int count)
+        {
+            if (!stockLabel) return;
+            bool counted = IsPalette && Panel.Remaining != null;
+            stockLabel.text = count >= int.MaxValue / 2 ? "∞" : "×" + count; // unlimited stock minus blocks in use is still unlimited
+            stockLabel.gameObject.SetActive(counted);
+            // Out-of-stock palette blocks stay visible (so players learn they exist) but read as unavailable.
+            if (counted) canvasGroup.alpha = count > 0 ? 1 : .4f;
+        }
         void LateUpdate()
         {
             if (!IsPalette || !stockLabel || !stockLabel.gameObject.activeSelf) return;
@@ -144,14 +154,15 @@ namespace CodingGame.BlockCoding
         {
             if (kind == BlockKind.Number || kind == BlockKind.DeclareVariable) input.SetTextWithoutNotify(data.Value);
             if (kind == BlockKind.DeclareVariable) RetainedName = data.Value;
-            if (kind == BlockKind.Comparison) dropdown.SetValueWithoutNotify(Array.IndexOf(PythonBlockCompiler.Comparisons, data.Value));
+            if (kind == BlockKind.Comparison) dropdown.SetValueWithoutNotify(Array.IndexOf(PythonTreeCompiler.Comparisons, data.Value));
             int skip = 0;
             if (kind == BlockKind.Variable)
             {
-                variableName = data.Kind == BlockKind.Distance ? data.Arguments[0].Value : data.Value;
-                input.SetTextWithoutNotify(variableName + (data.Kind == BlockKind.Distance ? "." : ""));
-                dropdown.ClearOptions(); dropdown.AddOptions(new List<string> { "메서드 선택", "get_distance(" });
-                dropdown.SetValueWithoutNotify(data.Kind == BlockKind.Distance ? 1 : 0);
+                bool member = data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp;
+                variableName = member ? data.Arguments[0].Value : data.Value;
+                input.SetTextWithoutNotify(variableName + (member ? "." : ""));
+                dropdown.ClearOptions(); dropdown.AddOptions(new List<string> { "메서드 선택" }); dropdown.AddOptions(new List<string>(Methods));
+                dropdown.SetValueWithoutNotify(data.Kind == BlockKind.Distance ? 1 : data.Kind == BlockKind.Hp ? 2 : 0);
                 RefreshVariableOptions();
                 if (data.Kind == BlockKind.Variable) return;
                 skip = 1;
@@ -165,11 +176,12 @@ namespace CodingGame.BlockCoding
         {
             var block = new CodeBlock(Kind);
             if (kind == BlockKind.Number || kind == BlockKind.DeclareVariable) block.Value = input.text;
-            if (kind == BlockKind.Comparison) block.Value = PythonBlockCompiler.Comparisons[dropdown.value];
+            if (kind == BlockKind.Comparison) block.Value = PythonTreeCompiler.Comparisons[dropdown.value];
             if (kind == BlockKind.Variable)
             {
                 if (Kind == BlockKind.Variable) { block.Value = input.text; return block; }
                 block.Arguments.Add(new CodeBlock(BlockKind.Variable, VariableName));
+                if (Kind == BlockKind.Hp) return block;
             }
             foreach (var argument in arguments) block.Arguments.Add(argument.ReadArgument());
             if (body) block.Body.AddRange(body.Read());

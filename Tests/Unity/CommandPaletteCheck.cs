@@ -12,7 +12,7 @@ internal class CommandScript : IRunCommand
     {
         if (!Application.isPlaying) throw new InvalidOperationException("Enter Play Mode first.");
         var battle = UnityEngine.Object.FindFirstObjectByType<DefenseBattle>();
-        battle.Restart();
+        battle.EditorStartSession(2, 1, false, new CodingGame.Defense.DefenseTestOptions { tutorial = false, tutorialInput = false, inventoryLimit = false, unlockAll = true }); // sandbox: Stage 1 locks robots and placement for teaching
         battle.Simulation.GrantBlock(BlockKind.For, 3);
         battle.Simulation.GrantBlock(BlockKind.Number, 3);
         Require(battle.PlaceRobot(4, new Vector3(-9, 0, 2)), "Place shooter");
@@ -49,7 +49,11 @@ internal class CommandScript : IRunCommand
             Require(loop.Arguments[0].Blocks.Single().Read().Value == "5", "Move preserves chosen count");
             Require(loop.Body.Insert(source, 0), "Insert nested loop");
             Require(loop.Body.Blocks.Single().Arguments[0].Blocks.Single().Read().Value == "10", "Nested loop fills number");
-            result.Log("PASS: for auto-fill, stock, availability, click, drag, nested loop, move, undo/redo");
+            var hint = panel.transform.GetComponentsInChildren<Transform>(true).First(t => t.name == "EmptyHint").gameObject;
+            Require(!hint.activeSelf, "Empty hint hidden while blocks exist");
+            panel.ClearProgram();
+            Require(hint.activeSelf, "Empty hint shown for a blank program");
+            result.Log("PASS: for auto-fill, stock, availability, click, drag, nested loop, move, undo/redo, empty-state hint");
         }
         finally
         {

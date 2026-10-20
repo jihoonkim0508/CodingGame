@@ -597,6 +597,8 @@ MonoBehaviour:
   methodArguments: {fileID: 0}
   arguments: []
   body: {fileID: 8085591160395291716}
+  stockLabel: {fileID: 0}
+  stockColumn: {fileID: 0}
   variableName: enemy
 --- !u!222 &4115841654867005934
 CanvasRenderer:
@@ -869,7 +871,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 0.03, g: 0.06, b: 0.1, a: 0.25}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:

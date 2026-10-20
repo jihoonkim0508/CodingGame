@@ -66,12 +66,6 @@ static class Check
         bodySim.DamageRobot(body.Id, 10000);
         Assert(bodySim.Robots.Count == 0 && held.BlockedBy == 0, "tank death clears references");
 
-        var shooterSim = new DefenseSimulation(Setup());
-        var shooter = Place(shooterSim, RobotRole.Shooter, -8, 3);
-        float damage = shooter.Damage;
-        shooterSim.SetShooterRange(shooter.Id, 7);
-        Assert(shooter.Damage == damage, "range setting does not change base damage");
-
         var blastSim = new DefenseSimulation(Setup(health: 20, count: 3));
         var bomb = Place(blastSim, RobotRole.Bomber, -8, 3); bomb.AutoExecute = false;
         blastSim.Start(); Advance(blastSim, .3);

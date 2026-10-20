@@ -1,6 +1,0 @@
-Road normal preservation; Unity 6000.3.21f1
-PASS: RoadBase original geometry/UV/normals retained, two color slots, zero invalid normals; 0 tiny triangles checked.
-PASS: RoadCorner original geometry/UV/normals retained, two color slots, zero invalid normals; 6 tiny triangles checked.
-PASS: RoadCorner2 original geometry/UV/normals retained, two color slots, zero invalid normals; 0 tiny triangles checked.
-PASS: corner close-ups rendered with directional shadows disabled/enabled; shaders compile.
-RESULT: PASS

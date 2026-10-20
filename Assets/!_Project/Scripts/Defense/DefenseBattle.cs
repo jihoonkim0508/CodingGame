@@ -10,7 +10,7 @@ using Point = System.Numerics.Vector2;
 
 namespace CodingGame.Defense
 {
-    public sealed class DefenseBattle : MonoBehaviour
+    public sealed partial class DefenseBattle : MonoBehaviour
     {
         [Serializable] public sealed class SpawnEntry
         {
@@ -20,6 +20,7 @@ namespace CodingGame.Defense
         }
         [Serializable] public sealed class Wave { public SpawnEntry[] groups = Array.Empty<SpawnEntry>(); }
 
+        [SerializeField] DefenseCampaignDefinition campaign;
         [Header("Authored scene references")]
         [SerializeField] Camera battleCamera;
         [SerializeField] EventSystem eventSystem;
@@ -28,6 +29,10 @@ namespace CodingGame.Defense
         [SerializeField] Collider[] blockedAreas = Array.Empty<Collider>();
         [SerializeField] Transform actorsRoot;
         [SerializeField] DefenseRoute[] routes = Array.Empty<DefenseRoute>();
+        [Tooltip("Moved onto the painted map's base cell when the routes come from a map.")]
+        [SerializeField] Transform core;
+        static readonly Color RangeRed = new Color(1, .22f, .22f); // attack ranges (planner: red reads at a glance)
+        Bounds[] floorParts;
         [SerializeField] RobotDefinition[] robots = Array.Empty<RobotDefinition>();
         [SerializeField] EnemyDefinition[] enemies = Array.Empty<EnemyDefinition>();
         [SerializeField] DefenseRangeRing rangeRing;
@@ -36,7 +41,6 @@ namespace CodingGame.Defense
         [SerializeField] Transform blockDropPrefab;
         [SerializeField] Transform projectilePrefab;
         [SerializeField] DefenseHitVisuals hitEffects = new DefenseHitVisuals();
-        [SerializeField] DefenseProgression progression = new DefenseProgression();
         [SerializeField] GameObject developerRoot;
         [SerializeField] TutorialDirector tutorial;
         [SerializeField] Button hitRangeButton;
@@ -45,17 +49,11 @@ namespace CodingGame.Defense
         [SerializeField] DefenseSelectionCamera selectionCamera;
         [SerializeField] DefenseInventoryUI inventoryUI;
         [SerializeField] DefenseAttackPreview attackPreview;
-        [SerializeField, Min(.1f)] float waveSeconds = 35;
         [SerializeField, Min(1)] int stage = 1;
         public int Stage => stage;
+        public bool FromStageMap => StageMap.StageProgress.SelectedStage > 0;
         public RobotDefinition RobotDefinition(int index) => robots[index];
         public EnemyDefinition PreviewEnemy => enemies[0];
-        public string EnemyName(int index) => enemies[index].displayName;
-        public string EnemyDescription(int index) => enemies[index].description;
-        [Header("Test content — provisional values")]
-        [SerializeField] Wave[] waves = Array.Empty<Wave>();
-        [SerializeField] int baseHealth = 12, robotLimit = 18;
-        [SerializeField] ActionPermission[] approvedCrossRoleActions = Array.Empty<ActionPermission>();
         [Header("Authored HUD")]
         [SerializeField] TMP_Text header;
         [SerializeField] TMP_Text selectionText;
@@ -77,20 +75,25 @@ namespace CodingGame.Defense
         public bool HelpOpen { get; internal set; }
         int palette = -1, selected;
         bool draggingRobot;
-        float speed = 1, effectTime;
-        string shownMessage;
         public DefenseSimulation Simulation { get; private set; }
         public int SelectedId => selected;
-        public float BattleSpeed => speed;
-        public string StatusMessage => shownMessage;
+        public bool IsPlacing => palette >= 0;
+        public float BattleSpeed { get; private set; } = 1;
+        public string StatusMessage { get; private set; }
         public TutorialDirector Tutorial => tutorial;
-        public bool CanShowRobotActions => Simulation != null && Simulation.CanPrepare && !DeveloperMode && !HelpOpen && !codeEditor.IsOpen && !inventoryUI.IsOpen;
+        public DefenseCodeEditor CodeEditor => codeEditor;
+        int tutorialUnits;
+        public bool TutorialBlocksInput => tutorial && tutorial.BlocksGameplayInput;
+        public bool TutorialBlocksPreview => tutorial && tutorial.BlocksPreview;
+        public bool CanShowRobotActions => Simulation != null && Simulation.CanPrepare && !DeveloperMode && !HelpOpen && !codeEditor.IsOpen && !inventoryUI.IsOpen &&
+            (TutorialAllows("Battle.Develop") || TutorialAllows("Battle.Upgrade") || TutorialAllows("Battle.Recall"));
         public string DefinitionName(int index) => robots[index].displayName;
         public RobotRole DefinitionRole(int index) => robots[index].stats.role;
+        public EnemyDefinition EnemyAt(int index) => enemies[index];
         public void BeginCodeView(RobotState robot)
         {
             inventoryUI.Close(); playerHUD.SetVisible(false); developerRoot.SetActive(false);
-            if (!tutorial || !tutorial.BlocksGameplayInput || tutorial.AllowPreview) attackPreview.Open(robot);
+            if (!TutorialBlocksPreview) attackPreview.Open(robot);
             else attackPreview.Close();
         }
         public void EndCodeView()
@@ -99,10 +102,12 @@ namespace CodingGame.Defense
             attackPreview.Close();
         }
         public string RobotName(int id)
-        { var bot = Simulation.Robots.Find(r => r.Id == id); return bot == null ? "로봇 없음" : robots[bot.DefinitionIndex].displayName; }
+        { var bot = Simulation.FindRobot(id); return bot == null ? "로봇 없음" : robots[bot.DefinitionIndex].displayName; }
 
         void Start()
         {
+            if (!campaign) throw new InvalidOperationException("DefenseBattle에 캠페인 asset을 연결하세요.");
+            campaign.ValidateContent(); robots = campaign.robots; enemies = campaign.enemies;
             ValidateReferences();
             developerRoot.SetActive(false);
             startButton.onClick.AddListener(StartBattle);
@@ -113,6 +118,7 @@ namespace CodingGame.Defense
             hitRangeLabel.text = "근접 피격범위: OFF";
             removeButton.onClick.AddListener(RemoveSelected);
             for (int i = 0; i < robotButtons.Length; i++) { int index = i; robotButtons[i].onClick.AddListener(() => inventoryUI.SelectRobotItem(index)); }
+            if (FromStageMap) stage = StageMap.StageProgress.SelectedStage;
             Restart();
         }
         void ValidateReferences()
@@ -132,37 +138,52 @@ namespace CodingGame.Defense
             if (warrior && bomber && Mathf.Abs(bomber.stats.range - warrior.stats.range * 1.5f) > .001f)
                 throw new InvalidOperationException("시험 정의의 폭탄 사거리는 전사 기본 사거리의 1.5배여야 합니다.");
         }
-        BattleSetup MakeSetup()
+        BattleSetup MakeSetup(DefenseCampaignDefinition content, int selectedStage)
         {
-            var bounds = deploymentArea.bounds;
-            return new BattleSetup { PlayerFlow = true, Stage = stage, WaveSeconds = waveSeconds, Progression = progression, DropSeed = Environment.TickCount,
-                Min = new Point(bounds.min.x, bounds.min.z), Max = new Point(bounds.max.x, bounds.max.z),
-                Routes = routes.Select(r => r.Read()).ToArray(), BaseHealth = baseHealth, RobotLimit = robotLimit,
-                ActionProfiles = robots.GroupBy(r => r.stats.role).Select(g => g.First().stats.Copy()).ToArray(),
-                Obstacles = blockedAreas.Select(area => new PlacementObstacle {
-                    Min = new Point(area.bounds.min.x, area.bounds.min.z), Max = new Point(area.bounds.max.x, area.bounds.max.z) }).ToArray(),
-                Permissions = approvedCrossRoleActions.Select(p => new ActionPermission { role = p.role, action = p.action, strength = p.strength }).ToArray(),
-                Waves = waves.Select(w => w.groups.Select(g => {
-                    if (!g.enemy || Array.IndexOf(enemies, g.enemy) < 0) throw new InvalidOperationException("스폰 적을 등록된 Enemy 목록에 연결하세요.");
-                    return new SpawnGroup { Enemy = g.enemy.stats.Copy(), DefinitionIndex = Array.IndexOf(enemies, g.enemy),
-                        RouteIndex = g.route, Count = g.count, Delay = g.delay, Interval = g.interval };
-                }).ToArray()).ToArray() };
+            content.ValidateContent();
+            if (selectedStage < 1 || selectedStage > content.stages.Length) throw new ArgumentException("스테이지 범위 오류");
+            var bounds=deploymentArea.bounds;
+            var map=routes[0].Map;
+            if(map&&map.hasBase&&core)core.position=map.CellPosition(map.baseCell);
+            return new BattleSetup {
+                PlayerFlow=true, Stage=selectedStage, BaseHealth=content.baseHealth, RobotLimit=content.robotLimit,
+                WaveSeconds=content.stages[selectedStage-1].waveSeconds,
+                RulesConfig=JsonUtility.FromJson<DefenseBalanceRules>(JsonUtility.ToJson(content.rules)),
+                Progression=content.progression.Copy(),
+                Permissions=content.permissions.Select(p=>p.Copy()).ToArray(),
+                ActionProfiles=content.robots.Select(r=>r.stats.Copy()).ToArray(),
+                Min=new Point(bounds.min.x,bounds.min.z), Max=new Point(bounds.max.x,bounds.max.z),
+                Routes=routes.Select(r=>r.Read()).ToArray(),
+                Obstacles=blockedAreas.Select(a=>new PlacementObstacle {Min=new Point(a.bounds.min.x,a.bounds.min.z),Max=new Point(a.bounds.max.x,a.bounds.max.z)}).ToArray(),
+                Waves=content.ReadWaves(selectedStage),
+                CampaignWaves=Enumerable.Range(1,content.stages.Length).Select(content.ReadWaves).ToArray(),
+                CampaignSeconds=content.stages.Select(s=>s.waveSeconds).ToArray()
+            };
         }
         public void Restart()
         {
             if (!TutorialAllows("Battle.Restart") && !(Simulation != null && Simulation.Phase == BattlePhase.Defeat && TutorialAllows("Battle.ContinueCampaign"))) return;
+            var setup = MakeSetup(campaign, stage);
+            setup.PreviousStageRewards = FromStageMap;
+#if UNITY_EDITOR
+            setup.TestOptions=EditorOptions;
+#endif
+            ResetSession(setup);
+        }
+        void ResetSession(BattleSetup setup)
+        {
+            setup.Validate();
             inventoryUI.Close();
             codeEditor.Close(false);
-            tutorial?.UnregisterRuntimeTarget("Robot.Selected", null);
-            foreach (var view in robotViews.Values) { view.gameObject.SetActive(false); Destroy(view.gameObject); }
-            foreach (var view in enemyViews.Values) { view.gameObject.SetActive(false); Destroy(view.gameObject); }
+            tutorial?.UnregisterRuntimeTarget(TutorialKeys.SelectedRobot, null);
+            foreach (var view in robotViews.Values.Concat(enemyViews.Values)) DefenseViews.Discard(view);
             robotViews.Clear(); enemyViews.Clear();
             ClearDrops();
             projectileViews.Clear();
             hitEffects.Clear();
-            Simulation = new DefenseSimulation(MakeSetup());
-            selected = 0; palette = -1; speed = 1; effectTime = 0;
-            placementMarker.gameObject.SetActive(false); rangeRing.Hide(); effectRing.Hide(); resultPanel.SetActive(false);
+            Simulation = new DefenseSimulation(setup);
+            selected = 0; BattleSpeed = 1; HidePlacement();
+            rangeRing.Hide(); effectRing.Hide(); resultPanel.SetActive(false);
             Tell("로봇을 선택하고 허용 영역을 클릭하세요. 탱커만 경로 위에 설치합니다.");
             RefreshHUD();
         }
@@ -171,11 +192,10 @@ namespace CodingGame.Defense
             if (!TutorialAllows("Battle.Start")) return;
             string error = Simulation.StartError();
             if (error != null) { Tell(error); return; }
-            palette = -1; placementMarker.gameObject.SetActive(false);
+            HidePlacement();
             Trace("wave-start " + string.Join(", ", Simulation.UpcomingWave.Select(g => $"{enemies[g.DefinitionIndex].name} x{g.Count} HP={g.Enemy.health:0.0} speed={g.Enemy.speed:0.00}")));
             Simulation.Start(); Tell("전투 중 · 웨이브 종료 후 지정 보상을 수령하세요."); RefreshHUD();
-            tutorial?.ReportSuccess("Battle.Start", "TargetClicked");
-            tutorial?.ReportSuccess("Battle.Start", "BattleStarted");
+            ReportTutorialAction("Battle.Start", "TargetClicked", "BattleStarted");
         }
         public void ClaimRewards()
         {
@@ -186,51 +206,53 @@ namespace CodingGame.Defense
             ClearDrops(); Tell(Simulation.Phase == BattlePhase.Victory ? Simulation.CanAdvanceStage ?
                 "스테이지 완료 · 다음 스테이지로 진행하세요." : "모든 스테이지를 완료했습니다." :
                 "보상을 수령했습니다. 로봇과 코드를 정비하고 다음 전투를 시작하세요."); RefreshHUD();
-            tutorial?.ReportSuccess("Battle.ClaimRewards", "TargetClicked");
-            tutorial?.ReportSuccess("Battle.ClaimRewards", "RewardsClaimed");
-            tutorial?.ReportSuccess("Battle.ContinueCampaign", "TargetClicked");
-            tutorial?.ReportSuccess("Battle.ContinueCampaign", "RewardsClaimed");
+            ReportTutorialAction("Battle.ClaimRewards", "TargetClicked", "RewardsClaimed");
+            ReportTutorialAction("Battle.ContinueCampaign", "TargetClicked", "RewardsClaimed");
         }
         void ClearDrops() { foreach (var drop in dropViews) if (drop) Destroy(drop.gameObject); dropViews.Clear(); }
         public void ContinueCampaign()
         {
             if (Simulation.Phase == BattlePhase.Reward) { ClaimRewards(); return; }
-            if (Simulation.Phase == BattlePhase.Defeat)
+            if (Simulation.Phase == BattlePhase.Defeat) { Restart(); return; }
+            if (!TutorialAllows("Battle.ContinueCampaign")) return;
+            if (FromStageMap)
             {
-                if (TutorialAllows("Battle.ContinueCampaign") || TutorialAllows("Battle.Restart")) Restart();
+                StageMap.StageProgress.MarkCleared(stage);
+                GameFlow.LoadScene(GameFlow.StageScene);
                 return;
             }
-            if (!TutorialAllows("Battle.ContinueCampaign")) return;
             if (Simulation.CanAdvanceStage)
             {
                 codeEditor.Close(false); inventoryUI.Close();
                 Simulation.AdvanceStage(); stage = Simulation.Setup.Stage;
                 selected = 0; ClearDrops(); ClearCombatVisuals();
                 Tell($"STAGE {stage} · {Simulation.Lesson?.topic}"); RefreshHUD();
-                tutorial?.ReportSuccess("Battle.ContinueCampaign", "TargetClicked");
-                tutorial?.ReportSuccess("Battle.ContinueCampaign", "StageAdvanced");
+                ReportTutorialAction("Battle.ContinueCampaign", "TargetClicked", "StageAdvanced");
             }
         }
         public void NotifyCodeApplied(int id, bool empty)
         {
             Tell(RobotName(id) + (empty ? " · 코드 없음" : " · 적용 완료"));
-            tutorial?.ReportSuccess("Editor.ApplyProgram", "TargetClicked");
-            tutorial?.ReportSuccess("Editor.ApplyProgram", "ProgramApplied");
+            ReportTutorialAction("Editor.ApplyProgram", "TargetClicked", "ProgramApplied");
         }
         public bool TutorialAllows(string key) => !tutorial || tutorial.CanPerformAction(key);
-        public void ReportTutorialAction(string key, string signal) => tutorial?.ReportSuccess(key, signal);
+        public void ReportTutorialAction(string key, params string[] signals) { if (tutorial) foreach (var signal in signals) tutorial.ReportSuccess(key, signal); }
         public void ReportTutorialDrop(RectTransform source, RectTransform destination, string signal) => tutorial?.ReportDrop(source, destination, signal);
         public void ToggleDeveloper()
         {
             if (!TutorialAllows("Battle.ToggleDeveloper")) return;
-            inventoryUI.Close(); codeEditor.Close(); CancelPlacement(); DeveloperMode = !DeveloperMode;
-            developerRoot.SetActive(DeveloperMode); playerHUD.SetVisible(!DeveloperMode);
-            tutorial?.ReportSuccess("Battle.ToggleDeveloper", "TargetClicked");
+            SetDeveloperMode(!DeveloperMode);
+            ReportTutorialAction("Battle.ToggleDeveloper", "TargetClicked");
+        }
+        void SetDeveloperMode(bool on)
+        {
+            inventoryUI.Close(); codeEditor.Close(); CancelPlacement(); DeveloperMode = on;
+            developerRoot.SetActive(on); playerHUD.SetVisible(!on);
         }
         public void TogglePause()
         {
             if (!TutorialAllows("Battle.TogglePause")) return;
-            Simulation.TogglePause(); RefreshHUD(); tutorial?.ReportSuccess("Battle.TogglePause", "TargetClicked");
+            Simulation.TogglePause(); RefreshHUD(); ReportTutorialAction("Battle.TogglePause", "TargetClicked");
         }
         public void ToggleHitRanges()
         {
@@ -239,14 +261,14 @@ namespace CodingGame.Defense
             hitRangeLabel.text = "근접 피격범위: " + (ShowHitRanges ? "ON" : "OFF");
             hitEffects.SetHitRangesVisible(ShowHitRanges);
             attackPreview.SetHitRangesVisible(ShowHitRanges);
-            tutorial?.ReportSuccess("Battle.ToggleHitRanges", "TargetClicked");
+            ReportTutorialAction("Battle.ToggleHitRanges", "TargetClicked");
         }
         public void ToggleSpeed()
         {
             if (!TutorialAllows("Battle.ToggleSpeed")) return;
             if (Simulation.Phase != BattlePhase.Running && Simulation.Phase != BattlePhase.Paused) return;
-            speed = speed == 1 ? 2 : 1; RefreshHUD();
-            tutorial?.ReportSuccess("Battle.ToggleSpeed", "TargetClicked");
+            BattleSpeed = BattleSpeed >= 3 ? 1 : BattleSpeed + 1; RefreshHUD();
+            ReportTutorialAction("Battle.ToggleSpeed", "TargetClicked");
         }
         public void ChooseRobot(int index)
         {
@@ -258,7 +280,7 @@ namespace CodingGame.Defense
             palette = index; selected = 0;
             Tell(robots[index].displayName + " 배치 · 허용 위치 클릭 / 우클릭 또는 ESC 취소");
             RefreshHUD();
-            tutorial?.ReportSuccess(tutorialKey, "TargetClicked");
+            ReportTutorialAction(tutorialKey, "TargetClicked");
         }
         public void BeginRobotDrag(int index)
         {
@@ -274,7 +296,7 @@ namespace CodingGame.Defense
             var hits = new List<RaycastResult>();
             eventSystem.RaycastAll(new PointerEventData(eventSystem) { position = screen }, hits);
             if (index >= 0 && hits.Count == 0 && PointerPosition(screen, out var point)) PlaceRobot(index, point);
-            palette = -1; placementMarker.gameObject.SetActive(false); rangeRing.Hide();
+            HidePlacement(); rangeRing.Hide();
         }
         public bool PlaceRobot(int index, Vector3 position)
         {
@@ -282,9 +304,10 @@ namespace CodingGame.Defense
                 tutorial && (!tutorial.AllowsWorldPoint(position) || !tutorial.AllowsRobotChoice(index))) return false;
             var bot = Simulation.Place(robots[index].stats, index, new Point(position.x, position.z), out var error);
             if (bot == null) { RejectPlacement(index, error); return false; }
-            var view = Instantiate(robots[index].prefab, World(bot.Position), Quaternion.identity, actorsRoot);
-            view.Id = bot.Id; robotViews.Add(bot.Id, view);
-            selected = bot.Id; palette = -1; placementMarker.gameObject.SetActive(false);
+            var view = Instantiate(robots[index].prefab, DefenseViews.World(bot.Position), Quaternion.identity, actorsRoot);
+            robotViews.Add(bot.Id, view);
+            // The tutorial asks the player to click the new robot next, so its range and menu stay hidden until then.
+            selected = TutorialBlocksInput ? 0 : bot.Id; HidePlacement();
             RegisterSelectedRobot(bot, view);
             Tell(robots[index].displayName + " 배치 완료 · 개발 버튼으로 코드 작성");
             SyncViews(0); RefreshHUD();
@@ -295,32 +318,31 @@ namespace CodingGame.Defense
         public void SelectRobot(int id)
         {
             if (!robotViews.TryGetValue(id, out var view) || !view) return;
-            string key = TutorialAllows("Robot.Selected") ? "Robot.Selected" : "Battle.SelectRobot";
+            string unit = TutorialKeys.Unit(Simulation.Robots.OrderBy(r => r.Id).ToList().FindIndex(r => r.Id == id));
+            string key = TutorialAllows(unit) ? unit : TutorialAllows(TutorialKeys.SelectedRobot) ? TutorialKeys.SelectedRobot : "Battle.SelectRobot";
             if (!TutorialAllows(key)) return;
-            var robot = Simulation.Robots.Find(r => r.Id == id);
+            var robot = Simulation.FindRobot(id);
             if (robot == null) return;
-            selected = id; palette = -1; placementMarker.gameObject.SetActive(false);
+            selected = id; HidePlacement();
             RegisterSelectedRobot(robot, view);
             RefreshHUD();
-            tutorial?.ReportSuccess(key, "TargetClicked", key == "Robot.Selected" ? view.gameObject : null);
+            tutorial?.ReportSuccess(key, TutorialSignals.TargetClicked, key == "Battle.SelectRobot" ? null : view.gameObject);
         }
         void RegisterSelectedRobot(RobotState robot, DefenseActorView view)
         {
-            if (!tutorial || robot == null || !view) return;
+            if (tutorial) tutorial.RegisterWorldTarget(TutorialKeys.SelectedRobot, view.gameObject, RobotBounds(robot));
+        }
+        // A robot's clickable body as a tutorial target.
+        static Bounds RobotBounds(RobotState robot)
+        {
             float radius = robot.Spec.radius;
-            var center = World(robot.Position) + Vector3.up * .65f;
-            tutorial.RegisterWorldTarget("Robot.Selected", view.gameObject,
-                new Bounds(center, new Vector3(radius * 2.5f, 1.5f, radius * 2.5f)));
+            return new Bounds(DefenseViews.World(robot.Position, .65f), new Vector3(radius * 2.5f, 1.5f, radius * 2.5f));
         }
         public void DevelopSelected()
         {
             if (!TutorialAllows("Battle.Develop")) return;
-            codeEditor.OpenSelected();
-            if (codeEditor.IsOpen)
-            {
-                tutorial?.ReportSuccess("Battle.Develop", "TargetClicked");
-                tutorial?.ReportSuccess("Battle.Develop", "EditorOpened");
-            }
+            codeEditor.Open(selected);
+            if (codeEditor.IsOpen) ReportTutorialAction("Battle.Develop", "TargetClicked", "EditorOpened");
         }
         public void UpgradeSelected()
         {
@@ -330,26 +352,26 @@ namespace CodingGame.Defense
             if (Simulation.UpgradeRobot(selected))
             {
                 Tell(RobotName(selected) + " · 레벨업 완료");
-                tutorial?.ReportSuccess("Battle.Upgrade", "TargetClicked");
-                tutorial?.ReportSuccess("Battle.Upgrade", "RobotUpgraded");
+                ReportTutorialAction("Battle.Upgrade", "TargetClicked", "RobotUpgraded");
             }
         }
         public void RemoveSelected()
         {
             if (!TutorialAllows("Battle.Recall")) return;
             if (!Simulation.CanPrepare) return;
+            if (!Simulation.RecallUnlocked) { Tell("회수는 1-3부터 열립니다."); return; }
             codeEditor.Close();
-            if (robotViews.TryGetValue(selected, out var removed)) tutorial?.UnregisterRuntimeTarget("Robot.Selected", removed.gameObject);
+            if (robotViews.TryGetValue(selected, out var removed)) tutorial?.UnregisterRuntimeTarget(TutorialKeys.SelectedRobot, removed.gameObject);
             Simulation.RemoveRobot(selected); selected = 0; rangeRing.Hide();
             Tell("로봇과 사용 블록을 인벤토리로 회수했습니다."); SyncViews(0); RefreshHUD();
-            tutorial?.ReportSuccess("Battle.Recall", "TargetClicked");
-            tutorial?.ReportSuccess("Battle.Recall", "RobotRecalled");
+            ReportTutorialAction("Battle.Recall", "TargetClicked", "RobotRecalled");
         }
         void Update()
         {
             if (Simulation == null || HelpOpen) return;
+            SetPlacementTint(palette >= 0);
             var mouse = Mouse.current; var keyboard = Keyboard.current;
-            bool tutorialActive = tutorial && tutorial.BlocksGameplayInput;
+            bool tutorialActive = TutorialBlocksInput;
             // Keep F1 and offer F2 when a recording overlay intercepts the help key.
             if (!tutorialActive && keyboard != null && (keyboard.f1Key.wasPressedThisFrame || keyboard.f2Key.wasPressedThisFrame)) ToggleDeveloper();
             if (!tutorialActive && keyboard != null && keyboard.tabKey.wasPressedThisFrame && !codeEditor.IsOpen)
@@ -372,53 +394,58 @@ namespace CodingGame.Defense
                     if (palette >= 0)
                     {
                         var def = robots[palette]; string error = Simulation.PlacementError(def.stats, new Point(point.x, point.z));
-                        bool tutorialAllowed = !tutorialActive || tutorial.AllowsWorldPoint(point);
+                        bool tutorialAllowed = !tutorial || tutorial.AllowsWorldPoint(point);
                         placementMarker.gameObject.SetActive(true); placementMarker.position = point + Vector3.up * .08f;
-                        rangeRing.Show(point, def.stats.range, error == null ? new Color(.25f,1,.7f) : new Color(1,.3f,.32f));
+                        rangeRing.Show(point, def.stats.range, error == null ? RangeRed : new Color(.55f,.55f,.58f));
                         if (mouse.leftButton.wasPressedThisFrame && tutorialAllowed) PlaceRobot(palette, point);
                     }
                     else if (mouse.leftButton.wasPressedThisFrame)
                     {
-                        var bot = Simulation.Robots.OrderBy(r => Point.DistanceSquared(r.Position, new Point(point.x, point.z))).FirstOrDefault();
-                        if (bot != null && Point.Distance(bot.Position, new Point(point.x, point.z)) <= bot.Spec.radius + .5f &&
-                            (!tutorialActive || tutorial.AllowsWorldPoint(point))) SelectRobot(bot.Id);
+                        var bot = RobotUnder(mouse.position.ReadValue());
+                        if (bot != null && (!tutorial || tutorial.AllowsWorldPoint(DefenseViews.World(bot.Position)))) SelectRobot(bot.Id);
                         else if (!tutorialActive) { selected = 0; rangeRing.Hide(); }
                     }
                 }
                 else if (palette >= 0) { placementMarker.gameObject.SetActive(false); rangeRing.Hide(); }
             }
             double previous = Simulation.Time;
-            Simulation.Advance(tutorial && tutorial.PauseBattle ? 0 : UnityEngine.Time.deltaTime * speed);
+#if UNITY_EDITOR
+            if (!EditorManualClock)
+#endif
+            Simulation.Advance(tutorial && tutorial.PauseBattle ? 0 : UnityEngine.Time.deltaTime * BattleSpeed);
             float elapsed = (float)(Simulation.Time - previous);
             SyncViews(elapsed);
+            SyncTutorialTargets();
             hitEffects.Tick(Simulation.Phase == BattlePhase.Paused ? 0 :
-                Simulation.Phase == BattlePhase.Running ? elapsed : UnityEngine.Time.deltaTime * speed);
+                Simulation.Phase == BattlePhase.Running ? elapsed : UnityEngine.Time.deltaTime * BattleSpeed);
             foreach (var evt in Simulation.Events)
             {
-                hitEffects.Show(evt, actorsRoot, Vector3.zero, battleCamera.transform.rotation);
-                if (evt.Kind == "drop") dropViews.Add(Instantiate(blockDropPrefab, World(evt.Position) + Vector3.up * .35f, Quaternion.Euler(0, 45, 0), actorsRoot));
-                if (robotViews.TryGetValue(evt.Source, out var source))
-                {
-                    if (evt.Kind == "launch" || evt.Kind == "slash") source.AimAt(World(evt.Position));
-                    else if (!evt.Melee && (evt.Kind == "hit" || evt.Kind == "buff" || evt.Kind == "stun")) source.FireAt(World(evt.Position));
-                }
-                if (evt.Radius > 0 && evt.Kind != "slash") { effectRing.Show(World(evt.Position), evt.Radius, evt.Kind == "buff" ? new Color(.4f,1,.5f) : new Color(1,.65f,.25f)); effectTime = .25f; }
+                robotViews.TryGetValue(evt.Source, out var source);
+                #if UNITY_EDITOR
+                EditorObserve("Battle",Simulation,evt);
+#endif
+                hitEffects.Show(evt, actorsRoot, Vector3.zero, battleCamera.transform.rotation, source, effectRing);
+                if (evt.Kind == "drop") dropViews.Add(Instantiate(blockDropPrefab, DefenseViews.World(evt.Position, .35f), Quaternion.Euler(0, 45, 0), actorsRoot));
             }
-            Simulation.Events.Clear(); effectTime -= elapsed;
-            if (effectTime <= 0) effectRing.Hide();
+            Simulation.Events.Clear();
             if (Simulation.Phase != BattlePhase.Running && Simulation.Phase != BattlePhase.Paused) ClearCombatVisuals();
-            var current = Simulation.Robots.Find(r => r.Id == selected);
-            if (current != null && palette < 0 && !codeEditor.IsOpen && !inventoryUI.IsOpen && !DeveloperMode)
-                rangeRing.Show(World(current.Position), current.Range, robots[current.DefinitionIndex].color);
+            var current = Simulation.FindRobot(selected);
+            // A tutorial highlight (Robot.Range.N) shows that robot's range glowing, selected or not.
+            var lit = tutorial ? Simulation.Robots.OrderBy(r => r.Id).Where((r, i) => tutorial.Highlighted(TutorialKeys.Range(i))).FirstOrDefault() : null;
+            if (lit != null && palette < 0 && !codeEditor.IsOpen)
+                rangeRing.Show(DefenseViews.World(lit.Position), lit.Range, RangeRed, .65f + .35f * Mathf.Sin(Time.unscaledTime * 5));
+            else if (Simulation.Options.ranges && current != null && palette < 0 && !codeEditor.IsOpen && !inventoryUI.IsOpen && !DeveloperMode)
+                rangeRing.Show(DefenseViews.World(current.Position), current.Range, RangeRed, 0);
             else if (palette < 0) rangeRing.Hide();
             if (current == null) selected = 0;
             RefreshHUD();
         }
         void CancelPlacement()
-        { draggingRobot = false; palette = -1; placementMarker.gameObject.SetActive(false); rangeRing.Hide(); Tell("배치 취소 · 설치한 로봇을 클릭하면 상세 정보를 볼 수 있습니다."); }
+        { draggingRobot = false; HidePlacement(); rangeRing.Hide(); Tell("배치 취소 · 설치한 로봇을 클릭하면 상세 정보를 볼 수 있습니다."); }
+        void HidePlacement() { palette = -1; placementMarker.gameObject.SetActive(false); }
         void ClearCombatVisuals()
         {
-            effectTime = 0; effectRing.Hide();
+            effectRing.Hide();
             foreach (var view in robotViews.Values) view.ClearVisuals();
             foreach (var view in enemyViews.Values) view.ClearVisuals();
         }
@@ -430,27 +457,131 @@ namespace CodingGame.Defense
             if (plane.Raycast(ray, out float distance)) { point = ray.GetPoint(distance); return true; }
             point = default; return false;
         }
-        static Vector3 World(Point point) => new Vector3(point.X, 0, point.Y);
+        // Tutorial world targets: Robot.Unit.N / Robot.Range.N for each robot in id order, Battle.Route for the routes in use.
+        // The robot whose body (a capsule from the ground to its head, seen on screen) is under the pointer, nearest first.
+        RobotState RobotUnder(Vector2 screen)
+        {
+            RobotState best = null; float bestDistance = float.MaxValue;
+            foreach (var bot in Simulation.Robots)
+            {
+                Vector2 foot = battleCamera.WorldToScreenPoint(DefenseViews.World(bot.Position));
+                Vector2 head = battleCamera.WorldToScreenPoint(DefenseViews.World(bot.Position, RobotClickHeight));
+                float radius = Vector2.Distance(foot, (Vector2)battleCamera.WorldToScreenPoint(DefenseViews.World(bot.Position + new Point(bot.Spec.radius + .5f, 0))));
+                Vector2 axis = head - foot; float t = Mathf.Clamp01(Vector2.Dot(screen - foot, axis) / Mathf.Max(1, axis.sqrMagnitude));
+                float distance = Vector2.Distance(screen, foot + axis * t);
+                if (distance <= radius && distance < bestDistance) { best = bot; bestDistance = distance; }
+            }
+            return best;
+        }
+        const float RobotClickHeight = 1.8f;
+        // While a robot is being placed the map shows where it may go: floor white, road red. Restored when placing ends.
+        bool placementTint;
+        (Color upper, Color inner, Color border, bool floors, bool roads) mapColors;
+        void SetPlacementTint(bool on)
+        {
+            var map = routes.Length > 0 ? routes[0].Map : null;
+            if (on == placementTint || !map) return;
+            placementTint = on;
+            if (on)
+            {
+                mapColors = (map.upperColor, map.roadInnerColor, map.roadBorderColor, map.useFloorColors, map.useRoadColors);
+                map.upperColor = Color.white; map.roadInnerColor = new Color(.95f, .27f, .27f); map.roadBorderColor = new Color(.7f, .12f, .12f);
+                map.useFloorColors = map.useRoadColors = true;
+            }
+            else
+            {
+                map.upperColor = mapColors.upper; map.roadInnerColor = mapColors.inner; map.roadBorderColor = mapColors.border;
+                map.useFloorColors = mapColors.floors; map.useRoadColors = mapColors.roads;
+            }
+            map.ApplyFloorColors();
+        }
+        void OnDisable() => SetPlacementTint(false);
+        // The route's points with the last one pulled back one cell: the walk ends on the core, the painted road a cell before.
+        static Point[] RoadPoints(Route path)
+        {
+            var points = path.Points.ToArray();
+            if (points.Length < 2) return points;
+            Point last = points[points.Length - 1], before = points[points.Length - 2];
+            float cell = path.HalfWidth * 2, length = Point.Distance(before, last);
+            if (length > cell) points[points.Length - 1] = last + (before - last) / length * cell;
+            return points;
+        }
+        // The first route in use, entrance to the road's end, in world space (tutorial path arrows).
+        public IEnumerable<Vector3> TutorialRoutePath()
+        {
+            if (Simulation == null) yield break;
+            for (int i = 0; i < Simulation.Setup.Routes.Length; i++)
+            {
+                if (!Simulation.RouteInUse(i)) continue;
+                foreach (var point in RoadPoints(Simulation.Setup.Routes[i])) yield return DefenseViews.World(point, .1f);
+                yield break;
+            }
+        }
+        void SyncTutorialTargets()
+        {
+            if (!tutorial) return;
+            var bots = Simulation.Robots.OrderBy(r => r.Id).ToList();
+            for (int i = 0; i < bots.Count; i++)
+            {
+                if (!robotViews.TryGetValue(bots[i].Id, out var view) || !view) continue;
+                float range = bots[i].Range;
+                tutorial.RegisterWorldTarget(TutorialKeys.Unit(i), view.gameObject, RobotBounds(bots[i]));
+                tutorial.RegisterWorldTarget(TutorialKeys.Range(i), view.gameObject,
+                    new Bounds(DefenseViews.World(bots[i].Position), new Vector3(range * 2, .1f, range * 2)), true);
+            }
+            for (int i = bots.Count; i < tutorialUnits; i++)
+            { tutorial.UnregisterRuntimeTarget(TutorialKeys.Unit(i), null); tutorial.UnregisterRuntimeTarget(TutorialKeys.Range(i), null); }
+            tutorialUnits = bots.Count;
+            var route = new List<Bounds>();
+            // Clipped to the map, in case a route starts off it.
+            var min = DefenseViews.World(Simulation.Setup.Min); var max = DefenseViews.World(Simulation.Setup.Max);
+            for (int i = 0; i < Simulation.Setup.Routes.Length; i++)
+            {
+                if (!Simulation.RouteInUse(i)) continue;
+                // The painted road is narrower than the walkable width; 1.25× the walkable width leaves a margin around it.
+                var path = Simulation.Setup.Routes[i]; var width = Vector3.one * (path.HalfWidth * 2.5f);
+                var points = RoadPoints(path);
+                for (int p = 1; p < points.Length; p++)
+                {
+                    // One ground rect per straight segment; the spotlight shapes the road on the ground (TutorialInputBridge.AddRoad).
+                    var b = new Bounds(DefenseViews.World(points[p - 1]), width);
+                    b.Encapsulate(new Bounds(DefenseViews.World(points[p]), width));
+                    b.SetMinMax(new Vector3(Mathf.Max(b.min.x, min.x), 0, Mathf.Max(b.min.z, min.z)), new Vector3(Mathf.Min(b.max.x, max.x), .1f, Mathf.Min(b.max.z, max.z)));
+                    if (b.size.x > 0 && b.size.z > 0) route.Add(b);
+                }
+            }
+            if (route.Count > 0) tutorial.RegisterWorldTarget(TutorialKeys.Route, gameObject, route.ToArray());
+            else tutorial.UnregisterRuntimeTarget(TutorialKeys.Route, null);
+            // Battle.Floor: the painted floor cells, boxed as one (tighter on screen than the placement area's rect in perspective).
+            if (floorParts == null)
+            {
+                var map = routes[0].Map;
+                float size = map ? map.cellSize * map.transform.lossyScale.x : 0;
+                floorParts = map ? map.floorCells.Select(c => new Bounds(map.CellPosition(c), new Vector3(size, .1f, size))).ToArray() : new[] { deploymentArea.bounds };
+            }
+            tutorial.RegisterWorldTarget(TutorialKeys.Floor, gameObject, floorParts, box: true);
+        }
         void SyncViews(float elapsed)
         {
-            projectileViews.Sync(Simulation, projectilePrefab, actorsRoot, Vector3.zero);
+            if (Simulation.Options.projectiles) projectileViews.Sync(Simulation, projectilePrefab, actorsRoot, Vector3.zero);
+            else projectileViews.Clear();
             foreach (var id in robotViews.Keys.Where(id => !Simulation.Robots.Any(r => r.Id == id)).ToArray())
-            { robotViews[id].gameObject.SetActive(false); Destroy(robotViews[id].gameObject); robotViews.Remove(id); }
+            { DefenseViews.Discard(robotViews[id]); robotViews.Remove(id); }
             foreach (var id in enemyViews.Keys.Where(id => !Simulation.Enemies.Any(e => e.Id == id)).ToArray())
-            { enemyViews[id].gameObject.SetActive(false); Destroy(enemyViews[id].gameObject); enemyViews.Remove(id); }
+            { DefenseViews.Discard(enemyViews[id]); enemyViews.Remove(id); }
             foreach (var bot in Simulation.Robots)
             {
                 var view = robotViews[bot.Id];
-                view.Sync(World(bot.Position), bot.Health, bot.MaxHealth, false, false, bot.Buffs.Count > 0, battleCamera.transform.rotation); view.TickVisual(elapsed);
+                view.SyncRobot(bot, DefenseViews.World(bot.Position), battleCamera.transform.rotation); view.TickVisual(elapsed);
             }
             foreach (var enemy in Simulation.Enemies)
             {
                 if (!enemyViews.TryGetValue(enemy.Id, out var view))
                 {
-                    view = Instantiate(enemies[enemy.DefinitionIndex].prefab, World(enemy.Position), Quaternion.identity, actorsRoot);
-                    view.Id = enemy.Id; enemyViews.Add(enemy.Id, view);
+                    view = Instantiate(enemies[enemy.DefinitionIndex].prefab, DefenseViews.World(enemy.Position), Quaternion.identity, actorsRoot);
+                    enemyViews.Add(enemy.Id, view);
                 }
-                view.Sync(World(enemy.Position), enemy.Health, enemy.Spec.health, enemy.Stunned(Simulation.Time), enemy.Speed(Simulation.Time) < enemy.Spec.speed, false, battleCamera.transform.rotation);
+                view.SyncEnemy(enemy, Simulation.Time, DefenseViews.World(enemy.Position), battleCamera.transform.rotation);
                 view.TickVisual(elapsed);
             }
         }
@@ -459,8 +590,8 @@ namespace CodingGame.Defense
             switch (Simulation.Compatibility(bot, bot.Action))
             {
                 case ActionCompatibility.Native: return "전문 행동 · 정상 실행";
-                case ActionCompatibility.Reduced: return bot.Action != RobotAction.Block && bot.Action != RobotAction.Buff ? "비전문 행동 · 효율 10%" : "승인된 비전문 행동 · 낮은 효율";
-                case ActionCompatibility.Ineffective: return "실행 무효 · 이 로봇에서는 " + Rules.ActionName(bot.Action) + "이 동작하지 않습니다.";
+                case ActionCompatibility.Reduced: return !Rules.NeedsPermission(bot.Action) ? "비전문 행동 · 효율 10%" : "승인된 비전문 행동 · 낮은 효율";
+                case ActionCompatibility.Ineffective: return "실행 무효 · 이 로봇에서는 " + ActionName(bot.Action) + "이 동작하지 않습니다.";
                 default: return "호환 미정 · 효과를 실행하지 않습니다. 기획 확정 후 데이터에 등록하세요.";
             }
         }
@@ -468,36 +599,35 @@ namespace CodingGame.Defense
         {
             if (Simulation == null) return;
             bool ended = Simulation.Phase == BattlePhase.Victory || Simulation.Phase == BattlePhase.Defeat;
-            if (ended) speed = 1;
+            if (ended) BattleSpeed = 1;
             string phase = Simulation.Phase == BattlePhase.Ready ? "준비" : Simulation.Phase == BattlePhase.Running ? "전투 중" :
                 Simulation.Phase == BattlePhase.Paused ? "일시정지" : Simulation.Phase == BattlePhase.Reward ? "보상 수령 대기 · F1/F2 사용자 화면" : Simulation.Phase == BattlePhase.Victory ? "방어 성공" : "방어 실패";
             header.text = $"WAVE {Simulation.WaveIndex + 1:00} / {Simulation.Setup.Waves.Length:00}    |    CORE {Simulation.BaseHealth:00}    |    KILL {Simulation.Kills:00}  LEAK {Simulation.Leaks:00}";
-            stateText.text = $"{phase}   ·   {Simulation.Time:0.0}s   ·   적 {Simulation.Enemies.Count}   ·   로봇 {Simulation.Robots.Count}/{robotLimit}";
+            stateText.text = $"{phase}   ·   {Simulation.Time:0.0}s   ·   적 {Simulation.Enemies.Count}   ·   로봇 {Simulation.Robots.Count}/{Simulation.Setup.RobotLimit}";
             pauseLabel.text = Simulation.Phase == BattlePhase.Paused ? "재개" : "일시정지";
-            speedLabel.text = speed == 1 ? "1x" : "2x";
+            speedLabel.text = BattleSpeed + "x";
             startButton.interactable = Simulation.Phase == BattlePhase.Ready;
             pauseButton.interactable = Simulation.Phase == BattlePhase.Running || Simulation.Phase == BattlePhase.Paused;
             speedButton.interactable = !ended;
+            for (int i = 0; i < routes.Length; i++) routes[i].ShowVisual(Simulation.RouteInUse(i));
             for (int i = 0; i < robotButtons.Length; i++)
-            {
-                robotButtons[i].interactable = true;
                 developerRobotLabels[i].text = robots[i].displayName + "   ×" + Simulation.RobotAvailable(robots[i].stats.role);
-            }
-            var bot = Simulation.Robots.Find(r => r.Id == selected);
+            var bot = Simulation.FindRobot(selected);
             removeButton.interactable = bot != null && Simulation.CanPrepare;
             if (bot != null)
             {
                 string health = bot.Health.HasValue ? $"HP {bot.Health:0}/{bot.MaxHealth:0} · 저지 {Simulation.Enemies.Count(e => e.BlockedBy == bot.Id)}/{bot.Spec.blockCapacity}" : "체력 없음 · 적 피해 대상 제외";
                 string control = bot.Program == null || bot.Program.IsEmpty ? "빈 로봇 · 코드 필요" : bot.Program.Fault == null ? "코드: " + bot.Program.Name : "코드 중지: " + bot.Program.Fault;
                 if (bot.Program != null && !bot.Program.IsEmpty) control += $" · 함수 {bot.Program.CompletedRuns}/{Simulation.FunctionRepeatLimit}회";
-                selectionText.text = $"{robots[bot.DefinitionIndex].displayName}  #{bot.Id}\n\n{health}\n사거리 {bot.Range:0.00}    피해 {Simulation.ActionDamage(bot, bot.Action):0.0}\n공격 간격 {Simulation.ActionInterval(bot, bot.Action):0.00}s\n\n{Rules.ActionName(bot.Action)}\n{CompatibilityText(bot)}\n{control}\n실행 {bot.Executions}회 · 버프 {bot.Buffs.Count}개";
+                string attacks = $"공격 {bot.AttacksThisWave}회";
+                selectionText.text = $"{robots[bot.DefinitionIndex].displayName}  #{bot.Id}\n\n{health}\n사거리 {bot.Range:0.00}    피해 {Simulation.ActionDamage(bot, bot.Action):0.0}\n공격 간격 {Simulation.ActionInterval(bot, bot.Action):0.00}s\n\n{ActionName(bot.Action)}\n{CompatibilityText(bot)}\n{control}\n실행 {bot.Executions}회 · {attacks} · 버프 {bot.Buffs.Count}개";
             }
             else if (palette >= 0) selectionText.text = robots[palette].displayName + "\n\n자유 배치 중\n초록: 설치 가능\n빨강: 설치 불가\n\n탱커: 경로 안\n일반 로봇: 경로 밖\n\n클릭 설치 / 우클릭 취소";
             else selectionText.text = "로봇 클릭: 코드 편집\nTAB 인벤토리\nSPACE 시작 / 정지";
             resultPanel.SetActive(ended);
             if (ended)
             {
-                palette = -1; placementMarker.gameObject.SetActive(false);
+                HidePlacement();
                 resultText.text = (Simulation.Phase == BattlePhase.Victory ? "DEFENSE COMPLETE\n방어 성공" : "CORE LOST\n방어 실패") + $"\n\n처치 {Simulation.Kills} · 돌파 {Simulation.Leaks}\n상단 초기화로 다시 시작";
             }
         }
@@ -508,6 +638,7 @@ namespace CodingGame.Defense
         }
         [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
         void Trace(string text) => Debug.Log($"[Defense] S{stage} W{Simulation.WaveIndex + 1} {Simulation.Phase} robots={Simulation.Robots.Count}/{Simulation.Setup.RobotLimit} core={Simulation.BaseHealth} | {text}", this);
-        void Tell(string text) { shownMessage = text; message.text = text; Trace(text); }
+        void Tell(string text) { StatusMessage = text; message.text = text; Trace(text); }
+        static string ActionName(RobotAction action) => DefenseProgression.Label(DefenseProgression.ActionBlock(action));
     }
 }

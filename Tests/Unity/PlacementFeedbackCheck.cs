@@ -24,8 +24,9 @@ public static class PlacementFeedbackCheck
     {
         Require(Application.isPlaying, "Enter Play Mode first");
         var battle = UnityEngine.Object.FindFirstObjectByType<DefenseBattle>();
-        var data = new SerializedObject(battle);
-        data.FindProperty("stage").intValue = 2; data.ApplyModifiedProperties(); battle.Restart();
+        // Stage 2 with the Stage 1 rewards carried over (Restart alone only carries them when entered from the stage map).
+        battle.EditorStartSession(2, 1, true, new DefenseTestOptions());
+        SerializedObject data;
         Place(battle, RobotRole.Shooter); Place(battle, RobotRole.Shooter); Place(battle, RobotRole.Warrior);
         Place(battle, RobotRole.Utility);
         Require(battle.Simulation.Robots.Count == 4, "Stage 2 wave 1 utility must fit");

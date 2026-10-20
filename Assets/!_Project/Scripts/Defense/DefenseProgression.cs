@@ -31,6 +31,16 @@ namespace CodingGame.Defense
             new BlockDrop { kind = BlockKind.Elif, firstWave = 3 }, new BlockDrop { kind = BlockKind.Break, firstWave = 3 },
             new BlockDrop { kind = BlockKind.Continue, firstWave = 3 }
         };
+        public DefenseProgression Copy() => new DefenseProgression {
+            initialCoins = initialCoins, coinsPerKill = coinsPerKill, upgradeCost = upgradeCost,
+            robots = robots.Select(r => new RobotStock {role=r.role,count=r.count}).ToArray(),
+            initial = initial.Select(b => new BlockStock {kind=b.kind,count=b.count}).ToArray(),
+            drops = drops.Select(d => new BlockDrop {kind=d.kind,firstWave=d.firstWave,weight=d.weight}).ToArray(),
+            lessons = lessons.Select(l => new WaveLesson {stage=l.stage,wave=l.wave,topic=l.topic,
+                robots=l.robots.Select(r=>new RobotStock {role=r.role,count=r.count}).ToArray(),
+                blocks=l.blocks.Select(b=>new BlockStock {kind=b.kind,count=b.count}).ToArray(),
+                rewards=l.rewards.Select(b=>new BlockStock {kind=b.kind,count=b.count}).ToArray()}).ToArray()
+        };
         public void Validate()
         {
             if (lessons == null || lessons.Any(l => l == null || l.stage < 1 || l.stage > DefenseCurriculum.StageCount || l.wave < 1 || l.wave > 5 ||
@@ -47,7 +57,20 @@ namespace CodingGame.Defense
                 drops.Any(d => d == null || !Consumes(d.kind) || d.firstWave < 1 || d.weight < 1 || d.weight > 1000))
                 throw new ArgumentException("초기 블록 수량·드랍 표를 확인하세요.");
         }
-        public static BlockKind Canonical(BlockKind kind) => kind == BlockKind.Attack ? BlockKind.Shot : kind == BlockKind.Distance ? BlockKind.Variable : kind;
+        // The block that triggers a robot action (Attack is written as the shot block).
+        public static BlockKind ActionBlock(RobotAction action)
+        {
+            switch (action)
+            {
+                case RobotAction.Buff: return BlockKind.Buff;
+                case RobotAction.Slash: return BlockKind.Slash;
+                case RobotAction.Block: return BlockKind.Block;
+                case RobotAction.Boom: return BlockKind.Boom;
+                case RobotAction.Attack: return BlockKind.Shot;
+                default: return BlockKind.Slow;
+            }
+        }
+        public static BlockKind Canonical(BlockKind kind) => kind == BlockKind.Attack ? BlockKind.Shot : kind == BlockKind.Distance || kind == BlockKind.Hp ? BlockKind.Variable : kind;
         public static bool Consumes(BlockKind kind) => Enum.IsDefined(typeof(BlockKind), kind);
         public static BlockKind[] ItemKinds => Enum.GetValues(typeof(BlockKind)).Cast<BlockKind>().Select(Canonical).Distinct().ToArray();
         public static IEnumerable<BlockKind> Used(IEnumerable<CodeBlock> blocks)
@@ -57,7 +80,7 @@ namespace CodingGame.Defense
                 if (block == null) continue;
                 if (Consumes(block.Kind)) yield return Canonical(block.Kind);
                 // 메서드 수신자는 편집기에서 같은 변수 블록이므로 아이템을 중복 차감하지 않습니다.
-                foreach (var kind in Used(block.Kind == BlockKind.Distance ? block.Arguments.Skip(1) : block.Arguments)) yield return kind;
+                foreach (var kind in Used(block.Kind == BlockKind.Distance || block.Kind == BlockKind.Hp ? block.Arguments.Skip(1) : block.Arguments)) yield return kind;
                 foreach (var kind in Used(block.Body)) yield return kind;
             }
         }
@@ -72,6 +95,7 @@ namespace CodingGame.Defense
                 case BlockKind.Comparison: return "<"; case BlockKind.DeclareVariable: return "variable =";
                 case BlockKind.Variable: return "variable"; case BlockKind.NearestEnemy: return "get_nearest_enemy()";
                 case BlockKind.PositionX: return "get_pos_x()"; case BlockKind.PositionY: return "get_pos_y()";
+                case BlockKind.MyAttackRange: return "my_attack_range()"; case BlockKind.MyPos: return "get_my_pos()";
                 case BlockKind.True: return "True"; case BlockKind.False: return "False";
                 default: return kind.ToString().ToLowerInvariant();
             }

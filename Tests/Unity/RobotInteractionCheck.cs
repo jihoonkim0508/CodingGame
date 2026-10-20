@@ -19,12 +19,20 @@ public static class RobotInteractionCheck
         var hud = UnityEngine.Object.FindFirstObjectByType<DefensePlayerHUD>();
         var inv = UnityEngine.Object.FindFirstObjectByType<DefenseInventoryUI>();
         var editor = UnityEngine.Object.FindFirstObjectByType<DefenseCodeEditor>();
-        battle.Restart(); var sim = battle.Simulation;
+        // Stage 1 rules (only the warrior unlocked) without the tutorial gating input.
+        battle.EditorStartSession(1, 1, false, new DefenseTestOptions { tutorial = false, tutorialInput = false });
+        int warriorIndex = Enumerable.Range(0, 6).Single(i => battle.DefinitionRole(i) == RobotRole.Warrior);
+        for (float x = battle.Simulation.Setup.Min.X + 1; x < battle.Simulation.Setup.Max.X - 1 && battle.Simulation.Robots.Count == 0; x++)
+            for (float y = battle.Simulation.Setup.Min.Y + 1; y < battle.Simulation.Setup.Max.Y - 1 && battle.Simulation.Robots.Count == 0; y++)
+                if (battle.Simulation.PlacementError(battle.RobotDefinition(warriorIndex).stats, new Point(x, y)) == null) battle.PlaceRobot(warriorIndex, new Vector3(x, 0, y));
+        battle.SelectRobot(battle.SelectedId); hud.SendMessage("LateUpdate");
+        Require(!Ref<Button>(hud, "upgradeRobotButton").interactable && Ref<TMPro.TMP_Text>(hud, "upgradeRobotLabel").text.Contains("1-2"), "Level-up greyed out in 1-1");
+        battle.EditorStartSession(1, 2, true, new DefenseTestOptions { tutorial = false, tutorialInput = false }); var sim = battle.Simulation; // level-up opens in 1-2
         hud.SendMessage("LateUpdate");
         var buttons = new SerializedObject(hud).FindProperty("robotButtons");
         for (int i = 0; i < 6; i++) Require(((Button)buttons.GetArrayElementAtIndex(i).objectReferenceValue).gameObject.activeSelf ==
-            (battle.DefinitionRole(i) == RobotRole.Shooter), "Only unlocked robot visible");
-        int index = Enumerable.Range(0, 6).Single(i => battle.DefinitionRole(i) == RobotRole.Shooter);
+            (battle.DefinitionRole(i) == RobotRole.Warrior), "Only unlocked robot visible");
+        int index = Enumerable.Range(0, 6).Single(i => battle.DefinitionRole(i) == RobotRole.Warrior);
         bool placed = false;
         for (float x = sim.Setup.Min.X + 1; x < sim.Setup.Max.X - 1 && !placed; x++)
             for (float y = sim.Setup.Min.Y + 1; y < sim.Setup.Max.Y - 1 && !placed; y++)
@@ -54,7 +62,7 @@ public static class RobotInteractionCheck
         Require(camera.transform.position == position, "Right drag ignored");
         control.ResetView();
         ScreenCapture.CaptureScreenshot("C:/Users/jihoon/.codex/tmp/code-preview-new.png");
-        return "PASS: locked robots hidden, 3-button menu, paid upgrade, develop, automatic preview, left drag, wheel zoom";
+        return "PASS: 1-1 level-up greyed out, locked robots hidden, 3-button menu, paid upgrade, develop, automatic preview, left drag, wheel zoom";
     }
     public static string GrantsAndRecall()
     {
