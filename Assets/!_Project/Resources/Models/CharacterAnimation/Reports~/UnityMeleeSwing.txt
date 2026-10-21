@@ -1,0 +1,4 @@
+PASS: existing AttackRobot prefab/controller and original clip GUID retained.
+PASS: 1905 imported vertices, 7 bones, curve paths, large sword sweep (2.437 units), stationary actor root.
+PASS: 1 second attack, Idle start error=0.000001, return error=0, Attack trigger and Idle return.
+RESULT: PASS
