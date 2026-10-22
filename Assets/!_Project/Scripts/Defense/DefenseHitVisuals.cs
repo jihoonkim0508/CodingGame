@@ -11,6 +11,10 @@ namespace CodingGame.Defense
         [SerializeField] ParticleSystem slashPrefab; // SwordSlash_3 (planner)
         [SerializeField] DefenseRangeRing hitRangePrefab;
         [SerializeField, Min(.01f)] float lifetime = 1.5f;
+        // Ranged attack (Stylized Projectile Pack, Laser_Blue_Small): flare at the muzzle, a shot flying to the target, impact there.
+        [SerializeField] ParticleSystem shotPrefab, shotFlarePrefab, shotImpactPrefab;
+        [SerializeField, Min(1)] float shotSpeed = 30;
+        readonly List<(ParticleSystem shot, Vector3 target, Quaternion rotation)> shots = new List<(ParticleSystem, Vector3, Quaternion)>();
         readonly List<(ParticleSystem effect, float remaining)> active = new List<(ParticleSystem, float)>();
         readonly List<(ParticleSystem effect, float remaining)> slashes = new List<(ParticleSystem, float)>();
         readonly List<(DefenseRangeRing ring, float remaining)> hitRanges = new List<(DefenseRangeRing, float)>();
@@ -18,7 +22,7 @@ namespace CodingGame.Defense
         bool showHitRanges;
         DefenseRangeRing areaRing;
         float areaSeconds;
-        public bool IsConfigured => prefab && slashPrefab && hitRangePrefab && lifetime > 0 && !float.IsInfinity(lifetime);
+        public bool IsConfigured => prefab && slashPrefab && hitRangePrefab && shotPrefab && shotFlarePrefab && shotImpactPrefab && lifetime > 0 && !float.IsInfinity(lifetime);
         public void SetHitRangesVisible(bool visible)
         {
             showHitRanges = visible;
@@ -34,9 +38,11 @@ namespace CodingGame.Defense
             DefenseActorView source, DefenseRangeRing area)
         {
             var position = offset + DefenseViews.World(evt.Position);
+            bool shot = evt.Kind == "hit" && !evt.Melee && source;
             if (source && Options.launchEffects)
             {
                 if (evt.Kind == "launch" || evt.Kind == "slash") source.AimAt(position);
+                else if (shot) Fire(source, position + Vector3.up * .45f, rotation, parent);
                 else if (!evt.Melee && (evt.Kind == "hit" || evt.Kind == "buff" || evt.Kind == "stun")) source.FireAt(position);
             }
             if (Options.ranges && area && evt.Radius > 0 && evt.Kind != "slash")
@@ -72,7 +78,8 @@ namespace CodingGame.Defense
                 return;
             }
             if (!Options.hitEffects) return;
-            if ((evt.Kind != "hit" && evt.Kind != "projectile-hit") || evt.Amount <= 0) return;
+            // A ranged hit shows its impact when the shot arrives (Tick).
+            if ((evt.Kind != "hit" && evt.Kind != "projectile-hit") || evt.Amount <= 0 || shot) return;
             var effect = UnityEngine.Object.Instantiate(prefab,
                 offset + DefenseViews.World(evt.Position, .45f), rotation, parent);
             // Manual simulation keeps every child particle in sync with battle pause and speed.
@@ -80,9 +87,37 @@ namespace CodingGame.Defense
             active.Add((effect, lifetime));
         }
 
+        void Fire(DefenseActorView source, Vector3 target, Quaternion rotation, Transform parent)
+        {
+            source.AimAt(target);
+            var from = source.Muzzle;
+            var facing = Quaternion.LookRotation(target - from);
+            Play(active, shotFlarePrefab, from, facing, parent);
+            var flying = UnityEngine.Object.Instantiate(shotPrefab, from, facing, parent);
+            flying.Simulate(0, true, true, false);
+            shots.Add((flying, target, rotation));
+        }
+        void Play(List<(ParticleSystem, float)> list, ParticleSystem effectPrefab, Vector3 position, Quaternion rotation, Transform parent)
+        {
+            var effect = UnityEngine.Object.Instantiate(effectPrefab, position, rotation, parent);
+            effect.Simulate(0, true, true, false);
+            list.Add((effect, lifetime));
+        }
+
         public void Tick(float elapsed)
         {
             if (elapsed <= 0) return;
+            for (int i = shots.Count - 1; i >= 0; i--)
+            {
+                var (flying, target, rotation) = shots[i];
+                if (!flying) { shots.RemoveAt(i); continue; }
+                flying.transform.position = Vector3.MoveTowards(flying.transform.position, target, shotSpeed * elapsed);
+                flying.Simulate(elapsed, true, false, false);
+                if (flying.transform.position != target) continue;
+                if (Options.hitEffects) Play(active, shotImpactPrefab, target, rotation, flying.transform.parent);
+                UnityEngine.Object.Destroy(flying.gameObject);
+                shots.RemoveAt(i);
+            }
             areaSeconds -= elapsed;
             if (areaRing && areaSeconds <= 0) areaRing.Hide();
             // Simulate leaves systems paused, so IsAlive remains true after their last particle; expire by time instead.
@@ -110,6 +145,8 @@ namespace CodingGame.Defense
             active.Clear();
             foreach (var (effect, _) in slashes) DefenseViews.Discard(effect);
             slashes.Clear();
+            foreach (var (flying, _, _) in shots) DefenseViews.Discard(flying);
+            shots.Clear();
             ClearRanges();
         }
     }
