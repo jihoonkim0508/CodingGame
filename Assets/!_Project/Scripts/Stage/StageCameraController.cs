@@ -5,7 +5,7 @@ namespace CodingGame.StageMap
     [DisallowMultipleComponent]
     public sealed class StageCameraController : MonoBehaviour
     {
-        const float Duration = 1.15f;
+        public const float Duration = 1.15f;
         Camera controlledCamera;
         Vector3 startPosition, controlPosition, targetPosition;
         Quaternion startRotation, targetRotation;
@@ -26,7 +26,7 @@ namespace CodingGame.StageMap
             camera.transform.SetPositionAndRotation(bounds.center - view * Vector3.forward * distance, view);
         }
 
-        // Arcs toward the chosen stage while the scene fades out.
+        // Arcs toward the chosen stage; the scene fades out once it arrives.
         public void Focus(Transform stage)
         {
             Quaternion rotation = Quaternion.Euler(23f, -27f, 0f);

@@ -12,6 +12,7 @@ namespace CodingGame.StageMap
         StageCameraController cameraController;
         GUIStyle bodyStyle, toastStyle, guideTitleStyle, guideBodyStyle;
         string toast;
+        bool entering; // a stage was chosen: the camera flies there and the scene fades, no more "click here"
         float toastUntil;
 
         public void Configure(StageNode[] stageNodes, Camera camera)
@@ -42,8 +43,10 @@ namespace CodingGame.StageMap
         {
             if (node.State == StageState.Locked) { ShowToast($"STAGE {node.Number} - LOCKED"); return; }
             StageProgress.SelectedStage = node.Number;
+            entering = true;
             cameraController.Focus(node.transform);
-            GameFlow.LoadScene(GameFlow.DefenseScene);
+            // The fade waits for the camera to land on the stage (planner: the click moved on too fast).
+            GameFlow.LoadScene(GameFlow.DefenseScene, StageCameraController.Duration);
         }
 
         void DeveloperClear()
@@ -100,7 +103,7 @@ namespace CodingGame.StageMap
         void DrawEnterHint()
         {
             var node = nodes?.FirstOrDefault(n => n && n.State == StageState.Available);
-            if (!node || !mapCamera || cameraController.IsMoving) return;
+            if (!node || !mapCamera || cameraController.IsMoving || entering) return;
             var bounds = node.GetComponent<Renderer>() ? node.GetComponent<Renderer>().bounds : new Bounds(node.transform.position, Vector3.one);
             Vector3 top = mapCamera.WorldToScreenPoint(bounds.center + Vector3.up * bounds.extents.y);
             if (top.z <= 0) return;
