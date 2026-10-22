@@ -125,17 +125,28 @@ namespace CodingGame.Defense
                 enemyCounts[i].text = "× " + types[i].Sum(g => g.Count);
             }
         }
+        const float ButtonGap = 6;
         void RefreshRobotActions(DefenseSimulation sim)
         {
             var selected = sim.FindRobot(battle.SelectedId);
             robotActions.gameObject.SetActive(selected != null && battle.CanShowRobotActions);
             if (!robotActions.gameObject.activeSelf) return;
-            var screen = battleCamera.WorldToScreenPoint(DefenseViews.World(selected.Position, .6f));
             var canvas = (RectTransform)canvasRoot.transform;
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, screen, null, out var point);
+            Vector2 Local(float height)
+            {
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, battleCamera.WorldToScreenPoint(DefenseViews.World(selected.Position, height)), null, out var p);
+                return p;
+            }
+            // The buttons go above the robot's head and below its feet, measured on screen (the robot models are 2.5 tall).
+            Vector2 foot = Local(0), head = Local(DefenseBattle.RobotHeight), point = (foot + head) / 2;
+            float above = head.y - point.y + ButtonGap, below = point.y - foot.y + ButtonGap;
             point.x = Mathf.Clamp(point.x, canvas.rect.xMin + 160, canvas.rect.xMax - 160);
-            point.y = Mathf.Clamp(point.y, canvas.rect.yMin + 230, canvas.rect.yMax - 170);
+            point.y = Mathf.Clamp(point.y, canvas.rect.yMin + below + 90, canvas.rect.yMax - above - 90);
             robotActions.anchoredPosition = point;
+            foreach (var button in new[] { upgradeRobotButton, developRobotButton })
+            { var r = (RectTransform)button.transform; r.anchoredPosition = new Vector2(r.anchoredPosition.x, above + r.rect.height / 2); }
+            var recall = (RectTransform)recallRobotButton.transform;
+            recall.anchoredPosition = new Vector2(recall.anchoredPosition.x, -below - recall.rect.height / 2);
             upgradeRobotButton.interactable = sim.UpgradeError(selected.Id) == null;
             recallRobotButton.interactable = sim.RecallUnlocked;
             upgradeRobotLabel.text = !sim.UpgradeUnlocked ? "레벨업\n1-2 해금" : selected.IsMaxLevel ? "최고 레벨" : $"레벨업\n{sim.UpgradeCost} 코인";

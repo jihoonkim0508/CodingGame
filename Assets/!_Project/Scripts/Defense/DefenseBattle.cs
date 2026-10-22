@@ -355,8 +355,8 @@ namespace CodingGame.Defense
         // A robot's clickable body as a tutorial target.
         static Bounds RobotBounds(RobotState robot)
         {
-            float radius = robot.Spec.radius;
-            return new Bounds(DefenseViews.World(robot.Position, .65f), new Vector3(radius * 2.5f, 1.5f, radius * 2.5f));
+            float width = Mathf.Max(robot.Spec.radius * 2.5f, RobotWidth);
+            return new Bounds(DefenseViews.World(robot.Position, RobotHeight / 2), new Vector3(width, RobotHeight, width));
         }
         public void DevelopSelected()
         {
@@ -493,7 +493,9 @@ namespace CodingGame.Defense
             }
             return best;
         }
-        const float RobotClickHeight = 1.8f;
+        // The robot models at scale 1.15 (CharacterAnimation): about 2.5-2.6 tall and 1.9 wide, standing on a .24 plate.
+        public const float RobotHeight = 2.7f;
+        const float RobotWidth = 2f, RobotClickHeight = RobotHeight;
         // While a robot is being placed the map shows where it may go: floor white, road red. Restored when placing ends.
         bool placementTint;
         (Color upper, Color inner, Color border, bool floors, bool roads) mapColors;
