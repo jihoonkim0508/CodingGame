@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.VFX;
 
 namespace CodingGame.Defense
 {
@@ -9,17 +8,17 @@ namespace CodingGame.Defense
     sealed class DefenseHitVisuals
     {
         [SerializeField] ParticleSystem prefab;
-        [SerializeField] VisualEffect slashPrefab;
+        [SerializeField] ParticleSystem slashPrefab; // SwordSlash_3 (planner)
         [SerializeField] DefenseRangeRing hitRangePrefab;
         [SerializeField, Min(.01f)] float lifetime = 1.5f;
         readonly List<(ParticleSystem effect, float remaining)> active = new List<(ParticleSystem, float)>();
-        readonly List<(VisualEffect effect, float remaining)> slashes = new List<(VisualEffect, float)>();
+        readonly List<(ParticleSystem effect, float remaining)> slashes = new List<(ParticleSystem, float)>();
         readonly List<(DefenseRangeRing ring, float remaining)> hitRanges = new List<(DefenseRangeRing, float)>();
         public DefenseTestOptions Options { get; set; } = new DefenseTestOptions();
         bool showHitRanges;
         DefenseRangeRing areaRing;
         float areaSeconds;
-        public bool IsConfigured => prefab && slashPrefab && slashPrefab.visualEffectAsset && hitRangePrefab && lifetime > 0 && !float.IsInfinity(lifetime);
+        public bool IsConfigured => prefab && slashPrefab && hitRangePrefab && lifetime > 0 && !float.IsInfinity(lifetime);
         public void SetHitRangesVisible(bool visible)
         {
             showHitRanges = visible;
@@ -50,15 +49,20 @@ namespace CodingGame.Defense
             {
                 var origin = offset + DefenseViews.World(evt.Origin, .1f);
                 var direction = position + Vector3.up * .1f - origin;
-                // The slash graph sweeps 180° starting at its local forward; turning it +90° makes the sweep run
-                // from 90° right through the facing to 90° left, matching the half-plane the hit rule uses.
+                // SwordSlash_3 arcs around its forward and is sized for a human-scale character: at scale 1 the arc
+                // reaches about 3.2 units, so radius / 3.2 makes it reach the attack range (planner; checked in play).
                 var facing = direction.sqrMagnitude > .0001f ? Quaternion.LookRotation(direction) : Quaternion.identity;
-                var slash = Options.slashEffects ? UnityEngine.Object.Instantiate(slashPrefab, origin, facing * Quaternion.Euler(0, 90, 0), parent) : null;
-                if (slash) { slash.transform.localScale *= evt.Radius;
-                slash.pause = true;
-                slash.Reinit();
-                slash.Play();
-                slashes.Add((slash, .6f)); }
+                var slash = Options.slashEffects ? UnityEngine.Object.Instantiate(slashPrefab, origin, facing, parent) : null;
+                if (slash)
+                {
+                    float scale = evt.Radius / 3.2f;
+                    slash.transform.localScale *= scale;
+                    // The prefab draws its arc 2 units above its origin (at a character's chest); lowered so the arc sweeps
+                    // around the robot's lower body, .45 above the ground point (planner).
+                    slash.transform.position += Vector3.up * (.45f - 2f * scale);
+                    slash.Simulate(0, true, true, false);
+                    slashes.Add((slash, slash.main.duration));
+                }
                 if (showHitRanges)
                 {
                     var ring = UnityEngine.Object.Instantiate(hitRangePrefab, parent);
@@ -83,7 +87,7 @@ namespace CodingGame.Defense
             if (areaRing && areaSeconds <= 0) areaRing.Hide();
             // Simulate leaves systems paused, so IsAlive remains true after their last particle; expire by time instead.
             foreach (var (effect, _) in active) effect.Simulate(elapsed, true, false, false);
-            foreach (var (effect, _) in slashes) effect.Simulate(elapsed, 1); // real time: at 3x the arc was gone before it could be seen
+            foreach (var (effect, _) in slashes) effect.Simulate(elapsed, true, false, false);
             Expire(active, elapsed); Expire(slashes, elapsed); Expire(hitRanges, elapsed);
         }
         static void Expire<T>(List<(T, float)> items, float elapsed) where T : Component

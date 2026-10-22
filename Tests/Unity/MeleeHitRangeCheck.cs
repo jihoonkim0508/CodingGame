@@ -41,8 +41,7 @@ foreach (var owner in new UnityEngine.Object[] { battle, preview })
     if (ranges.Count != 0 || line.enabled) throw new System.Exception("OFF did not immediately hide existing range.");
     type.GetMethod("Clear").Invoke(effects, null);
 }
-var slash = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.GameObject>("Assets/!_Project/Defense/Effects/WarriorSlash.prefab");
-var graph = slash.GetComponent<UnityEngine.VFX.VisualEffect>().visualEffectAsset;
-if (UnityEditor.AssetDatabase.GetAssetPath(graph) != "Assets/ThirdParty/slash5-HungNguyen/slash 5 visual vfx profiles/slash-white-yellow bolder.vfx")
-    throw new System.Exception("Original slash mesh and rotation graph must be used.");
-return "PASS: visible developer toggle, battle/preview ON/OFF, robot pivot, damage range, pause and original slash graph";
+var slash = new UnityEditor.SerializedObject(UnityEngine.Object.FindFirstObjectByType<CodingGame.Defense.DefenseBattle>()).FindProperty("hitEffects.slashPrefab").objectReferenceValue;
+if (UnityEditor.AssetDatabase.GetAssetPath(slash) != "Assets/!_Project/Defense/Effects/SwordSlashFlat.prefab")
+    throw new System.Exception("The slash effect must be SwordSlash_3 (planner).");
+return "PASS: visible developer toggle, battle/preview ON/OFF, robot pivot, damage range, pause and SwordSlash_3";

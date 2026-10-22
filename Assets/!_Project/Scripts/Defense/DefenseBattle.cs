@@ -31,7 +31,8 @@ namespace CodingGame.Defense
         [SerializeField] DefenseRoute[] routes = Array.Empty<DefenseRoute>();
         [Tooltip("Moved onto the painted map's base cell when the routes come from a map.")]
         [SerializeField] Transform core;
-        static readonly Color RangeRed = new Color(1, .22f, .22f); // attack ranges (planner: red reads at a glance)
+        DefenseCoreGlitch coreGlitch;
+        static readonly Color RangeColor = new Color(.35f, .9f, 1); // attack ranges: a MOBA-like cyan rim; the tutorial highlight pulses red (DefenseRangeRing)
         Bounds[] floorParts;
         [SerializeField] RobotDefinition[] robots = Array.Empty<RobotDefinition>();
         [SerializeField] EnemyDefinition[] enemies = Array.Empty<EnemyDefinition>();
@@ -119,6 +120,7 @@ namespace CodingGame.Defense
             removeButton.onClick.AddListener(RemoveSelected);
             for (int i = 0; i < robotButtons.Length; i++) { int index = i; robotButtons[i].onClick.AddListener(() => inventoryUI.SelectRobotItem(index)); }
             if (FromStageMap) stage = StageMap.StageProgress.SelectedStage;
+            if (core) core.TryGetComponent(out coreGlitch);
             Restart();
         }
         void ValidateReferences()
@@ -154,11 +156,29 @@ namespace CodingGame.Defense
                 ActionProfiles=content.robots.Select(r=>r.stats.Copy()).ToArray(),
                 Min=new Point(bounds.min.x,bounds.min.z), Max=new Point(bounds.max.x,bounds.max.z),
                 Routes=routes.Select(r=>r.Read()).ToArray(),
-                Obstacles=blockedAreas.Select(a=>new PlacementObstacle {Min=new Point(a.bounds.min.x,a.bounds.min.z),Max=new Point(a.bounds.max.x,a.bounds.max.z)}).ToArray(),
+                Obstacles=blockedAreas.Select(a=>a.bounds).Concat(MapProps(map)).Select(b=>new PlacementObstacle {Min=new Point(b.min.x,b.min.z),Max=new Point(b.max.x,b.max.z)}).ToArray(),
                 Waves=content.ReadWaves(selectedStage),
                 CampaignWaves=Enumerable.Range(1,content.stages.Length).Select(content.ReadWaves).ToArray(),
                 CampaignSeconds=content.stages.Select(s=>s.waveSeconds).ToArray()
             };
+        }
+        // Props the map carries besides its floor, road and backdrop (Stage01 Workshop's pots, books, base…): no robot on them
+        // (planner). One footprint per prop, the box around its renderers.
+        static IEnumerable<Bounds> MapProps(CodingGame.Art.MapPainter.ModularMapRoot map)
+        {
+            if (!map) yield break;
+            foreach (Transform group in map.transform)
+            {
+                if (group == map.floorGroup || group == map.roadGroup || group.GetComponent<CodingGame.Art.MapPainter.BlueprintBackdrop>()) continue;
+                foreach (Transform prop in group)
+                {
+                    var parts = prop.GetComponentsInChildren<Renderer>();
+                    if (parts.Length == 0) continue;
+                    var box = parts[0].bounds;
+                    foreach (var part in parts) box.Encapsulate(part.bounds);
+                    yield return box;
+                }
+            }
         }
         public void Restart()
         {
@@ -396,7 +416,7 @@ namespace CodingGame.Defense
                         var def = robots[palette]; string error = Simulation.PlacementError(def.stats, new Point(point.x, point.z));
                         bool tutorialAllowed = !tutorial || tutorial.AllowsWorldPoint(point);
                         placementMarker.gameObject.SetActive(true); placementMarker.position = point + Vector3.up * .08f;
-                        rangeRing.Show(point, def.stats.range, error == null ? RangeRed : new Color(.55f,.55f,.58f));
+                        rangeRing.Show(point, def.stats.range, error == null ? RangeColor : new Color(.55f,.55f,.58f));
                         if (mouse.leftButton.wasPressedThisFrame && tutorialAllowed) PlaceRobot(palette, point);
                     }
                     else if (mouse.leftButton.wasPressedThisFrame)
@@ -433,9 +453,9 @@ namespace CodingGame.Defense
             // A tutorial highlight (Robot.Range.N) shows that robot's range glowing, selected or not.
             var lit = tutorial ? Simulation.Robots.OrderBy(r => r.Id).Where((r, i) => tutorial.Highlighted(TutorialKeys.Range(i))).FirstOrDefault() : null;
             if (lit != null && palette < 0 && !codeEditor.IsOpen)
-                rangeRing.Show(DefenseViews.World(lit.Position), lit.Range, RangeRed, .65f + .35f * Mathf.Sin(Time.unscaledTime * 5));
+                rangeRing.Show(DefenseViews.World(lit.Position), lit.Range, RangeColor, .65f + .35f * Mathf.Sin(Time.unscaledTime * 5));
             else if (Simulation.Options.ranges && current != null && palette < 0 && !codeEditor.IsOpen && !inventoryUI.IsOpen && !DeveloperMode)
-                rangeRing.Show(DefenseViews.World(current.Position), current.Range, RangeRed, 0);
+                rangeRing.Show(DefenseViews.World(current.Position), current.Range, RangeColor, 0);
             else if (palette < 0) rangeRing.Hide();
             if (current == null) selected = 0;
             RefreshHUD();
@@ -563,16 +583,20 @@ namespace CodingGame.Defense
         }
         void SyncViews(float elapsed)
         {
+            if (coreGlitch) coreGlitch.Show(Simulation.BaseHealth, Simulation.Phase == BattlePhase.Defeat);
             if (Simulation.Options.projectiles) projectileViews.Sync(Simulation, projectilePrefab, actorsRoot, Vector3.zero);
             else projectileViews.Clear();
             foreach (var id in robotViews.Keys.Where(id => !Simulation.Robots.Any(r => r.Id == id)).ToArray())
             { DefenseViews.Discard(robotViews[id]); robotViews.Remove(id); }
             foreach (var id in enemyViews.Keys.Where(id => !Simulation.Enemies.Any(e => e.Id == id)).ToArray())
             { DefenseViews.Discard(enemyViews[id]); enemyViews.Remove(id); }
+            // Animations follow the battle: still while paused (or held by the tutorial), faster at 2x/3x, normal outside a wave.
+            bool held = Simulation.Phase == BattlePhase.Paused || Simulation.Phase == BattlePhase.Running && tutorial && tutorial.PauseBattle;
+            float pace = held ? 0 : Simulation.Phase == BattlePhase.Running ? BattleSpeed : 1;
             foreach (var bot in Simulation.Robots)
             {
                 var view = robotViews[bot.Id];
-                view.SyncRobot(bot, DefenseViews.World(bot.Position), battleCamera.transform.rotation); view.TickVisual(elapsed);
+                view.SyncRobot(bot, DefenseViews.World(bot.Position), battleCamera.transform.rotation); view.TickVisual(elapsed); view.SetPace(pace);
             }
             foreach (var enemy in Simulation.Enemies)
             {
@@ -582,7 +606,7 @@ namespace CodingGame.Defense
                     enemyViews.Add(enemy.Id, view);
                 }
                 view.SyncEnemy(enemy, Simulation.Time, DefenseViews.World(enemy.Position), battleCamera.transform.rotation);
-                view.TickVisual(elapsed);
+                view.TickVisual(elapsed); view.SetPace(pace);
             }
         }
         string CompatibilityText(RobotState bot)

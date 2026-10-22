@@ -54,6 +54,9 @@ namespace CodingGame.Defense
         [SerializeField] Transform healthFill;
         [SerializeField] LineRenderer beam;
         MaterialPropertyBlock colors;
+        // The rigged models (CharacterAnimation): robots idle and play "Attack" on each attack, the monster walks on its own.
+        Animator animator;
+        static readonly int AttackTrigger = Animator.StringToHash("Attack");
         Color baseColor;
         Vector3 fullHealthScale;
         float beamTime;
@@ -73,11 +76,19 @@ namespace CodingGame.Defense
             var trailColors = new MaterialPropertyBlock(); trailColors.SetColor("_BaseColor", TrailColor); trailColors.SetColor("_Color", TrailColor);
             foreach (var renderer in healthTrail.GetComponentsInChildren<Renderer>()) renderer.SetPropertyBlock(trailColors);
             beam.enabled = false;
+            animator = GetComponentInChildren<Animator>();
         }
         public void SyncRobot(RobotState bot, Vector3 position, Quaternion viewRotation) =>
             Sync(position, bot.Health, bot.MaxHealth, false, false, bot.Buffs.Count > 0, viewRotation);
-        public void SyncEnemy(EnemyState enemy, double time, Vector3 position, Quaternion viewRotation) =>
+        public void SyncEnemy(EnemyState enemy, double time, Vector3 position, Quaternion viewRotation)
+        {
+            // Faces the way it walks (the monster model has a walk cycle).
+            var step = position - transform.position; step.y = 0;
+            if (step.sqrMagnitude > 1e-6f) transform.rotation = Quaternion.LookRotation(step);
             Sync(position, enemy.Health, enemy.Spec.health, enemy.Stunned(time), enemy.Speed(time) < enemy.Spec.speed, false, viewRotation);
+        }
+        // Animation speed follows the battle clock: 0 while paused, 2-3 at 2x/3x.
+        public void SetPace(float pace) { if (animator) animator.speed = pace; }
         void Sync(Vector3 position, float? health, float maximum, bool stunned, bool slowed, bool buffed, Quaternion viewRotation)
         {
             transform.position = position;
@@ -92,8 +103,10 @@ namespace CodingGame.Defense
             Color tint = stunned ? new Color(.8f,.4f,1) : slowed ? new Color(.2f,.8f,1) : buffed ? Color.Lerp(baseColor, Color.white, .35f) : baseColor;
             colors.SetColor("_BaseColor", tint); body.SetPropertyBlock(colors);
         }
+        // Called on every attack (slash, launch, ranged shot).
         public void AimAt(Vector3 target)
         {
+            if (animator) animator.SetTrigger(AttackTrigger);
             Vector3 direction = target - head.position; direction.y = 0;
             if (direction.sqrMagnitude > .001f) head.rotation = Quaternion.LookRotation(direction);
         }
