@@ -58,8 +58,11 @@ namespace CodingGame.Defense
         // The rigged models (CharacterAnimation): robots idle and play "Attack" on each attack, the monster walks on its own.
         Animator animator;
         static readonly int AttackTrigger = Animator.StringToHash("Attack"), AttackState = Animator.StringToHash("Attack");
-        // The attack clip plays faster when the robot attacks more often than the clip lasts (1.0 s melee clip, 0.8 s interval).
-        float attackClip, attackInterval, pace = 1;
+        // The attack clip plays faster when the robot attacks more often than the clip lasts (0.8 s ranged clip);
+        // a slash plays it so the sword passes straight ahead when the simulation's strike lands.
+        float attackClip, attackInterval, strikeSpeed, pace = 1;
+        // Melee_Attack (1 s): the sampled sword sweeps clockwise from the left (-64° at .40, -10° at .45, +22° at .50).
+        const float StrikeAt = .46f;
         Color baseColor;
         Vector3 fullHealthScale;
         float beamTime;
@@ -110,9 +113,10 @@ namespace CodingGame.Defense
             Color tint = stunned ? new Color(.8f,.4f,1) : slowed ? new Color(.2f,.8f,1) : buffed ? Color.Lerp(baseColor, Color.white, .35f) : baseColor;
             colors.SetColor("_BaseColor", tint); body.SetPropertyBlock(colors);
         }
-        // Called on every attack (slash, launch, ranged shot).
-        public void AimAt(Vector3 target)
+        // Called on every attack (slash, launch, ranged shot); strikeSeconds: a slash's time until its damage lands.
+        public void AimAt(Vector3 target, float strikeSeconds = 0)
         {
+            strikeSpeed = strikeSeconds > 0 ? StrikeAt * attackClip / strikeSeconds : 0;
             if (animator) animator.SetTrigger(AttackTrigger);
             Face(target);
         }
@@ -123,6 +127,8 @@ namespace CodingGame.Defense
             if (direction.sqrMagnitude > .001f) head.rotation = Quaternion.LookRotation(direction);
         }
         public Vector3 Muzzle => muzzle ? muzzle.position : head.position;
+        public bool HasMuzzle => muzzle;
+        float AttackSpeed => strikeSpeed > 0 ? strikeSpeed : attackInterval > 0 ? Mathf.Max(1, attackClip / (attackInterval * .9f)) : 1;
         public void FireAt(Vector3 target)
         {
             AimAt(target);
@@ -135,7 +141,7 @@ namespace CodingGame.Defense
             if (animator)
             {
                 bool attacking = animator.GetCurrentAnimatorStateInfo(0).shortNameHash == AttackState || animator.GetNextAnimatorStateInfo(0).shortNameHash == AttackState;
-                animator.speed = pace * (attacking && attackInterval > 0 ? Mathf.Max(1, attackClip / (attackInterval * .9f)) : 1);
+                animator.speed = pace * (attacking ? AttackSpeed : 1);
             }
             beamTime -= delta;
             if (beamTime <= 0) beam.enabled = false;

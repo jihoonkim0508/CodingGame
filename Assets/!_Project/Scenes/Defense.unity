@@ -7901,7 +7901,6 @@ MonoBehaviour:
     shotPrefab: {fileID: 1478078783599965658, guid: fee6e71f0488a1d4480be2b3d6e1bbf7, type: 3}
     shotFlarePrefab: {fileID: 1729001793886802925, guid: 81ca5e8e87cc3d84abc2c5795762cad1, type: 3}
     shotImpactPrefab: {fileID: 109465435430222712, guid: 2962580bd2f9cc948b8c2586f46186fc, type: 3}
-    shotSpeed: 30
   developerRoot: {fileID: 1770769377}
   tutorial: {fileID: 712009699}
   hitRangeButton: {fileID: 1063092869}
@@ -8181,7 +8180,6 @@ MonoBehaviour:
     shotPrefab: {fileID: 1478078783599965658, guid: fee6e71f0488a1d4480be2b3d6e1bbf7, type: 3}
     shotFlarePrefab: {fileID: 1729001793886802925, guid: 81ca5e8e87cc3d84abc2c5795762cad1, type: 3}
     shotImpactPrefab: {fileID: 109465435430222712, guid: 2962580bd2f9cc948b8c2586f46186fc, type: 3}
-    shotSpeed: 30
   damageFont: {fileID: 11400000, guid: c584473245b076b48ad67c345560e4ec, type: 2}
 --- !u!114 &420160343
 MonoBehaviour:

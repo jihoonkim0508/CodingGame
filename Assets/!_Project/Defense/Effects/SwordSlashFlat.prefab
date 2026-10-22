@@ -16,6 +16,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: SwordSlashFlat
       objectReference: {fileID: 0}
+    - target: {fileID: 3977233616966373383, guid: 5c93a84cef604614bbcc2ce9df6b4017, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7577895318062408974, guid: 5c93a84cef604614bbcc2ce9df6b4017, type: 3}
+      propertyPath: m_LocalScale.x
+      value: -1
+      objectReference: {fileID: 0}
     - target: {fileID: 7577895318062408974, guid: 5c93a84cef604614bbcc2ce9df6b4017, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

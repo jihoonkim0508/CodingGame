@@ -12,7 +12,8 @@ namespace CodingGame.Defense
         {
             foreach (var id in views.Keys.Where(id => !simulation.Projectiles.Any(p => p.Id == id)).ToArray())
             { Object.Destroy(views[id].gameObject); views.Remove(id); }
-            foreach (var shot in simulation.Projectiles)
+            // Shots at one enemy are the shooter's laser, drawn by DefenseHitVisuals.
+            foreach (var shot in simulation.Projectiles.Where(p => p.Target == 0))
             {
                 if (!views.TryGetValue(shot.Id, out var view)) { view = Object.Instantiate(prefab, parent); views.Add(shot.Id, view); }
                 float t = Mathf.Clamp01((float)((simulation.Time - shot.LaunchedAt) / (shot.ImpactAt - shot.LaunchedAt)));

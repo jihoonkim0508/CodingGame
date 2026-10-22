@@ -15,6 +15,9 @@ namespace CodingGame.Defense
         public readonly List<RobotState> Robots = new List<RobotState>();
         public readonly List<EnemyState> Enemies = new List<EnemyState>();
         public readonly List<ProjectileState> Projectiles = new List<ProjectileState>();
+        // 근접 베기: 휘두른 검이 정면을 지날 때(공격 간격의 40% 뒤) 피해를 줍니다(기획: 이펙트·애니메이션과 같은 순간).
+        const double StrikeShare = .4;
+        readonly List<(double at, RobotState bot, Vector2 direction, float damage)> strikes = new List<(double, RobotState, Vector2, float)>();
         public readonly List<CombatEvent> Events = new List<CombatEvent>();
         public BattlePhase Phase { get; private set; } = BattlePhase.Ready;
         public double Time { get; private set; }
@@ -131,7 +134,7 @@ namespace CodingGame.Defense
             Setup.BaseHealth=incoming.BaseHealth;Setup.RobotLimit=incoming.RobotLimit;Setup.RulesConfig=incoming.RulesConfig;
             Setup.Progression=incoming.Progression;Setup.Permissions=incoming.Permissions;Setup.ActionProfiles=incoming.ActionProfiles;
             Setup.Waves=incoming.Waves;Setup.CampaignWaves=incoming.CampaignWaves;Setup.CampaignSeconds=incoming.CampaignSeconds;Setup.WaveSeconds=incoming.WaveSeconds;
-            BaseHealth=Setup.BaseHealth;Projectiles.Clear();
+            BaseHealth=Setup.BaseHealth;Projectiles.Clear();strikes.Clear();
             foreach(var bot in Robots)
             {
                 bot.Spec=robots[bot.DefinitionIndex].Copy();bot.LevelCap=Setup.RulesConfig.maxLevel;bot.UpgradeFactor=Setup.RulesConfig.upgradeMultiplier;
@@ -351,7 +354,7 @@ namespace CodingGame.Defense
                 {
                     case RobotAction.Block: Stun(bot, profile, strength, targets, target); break;
                     case RobotAction.Boom: Launch(bot, profile, strength, target); break;
-                    case RobotAction.Slash: Slash(bot, targets, target); break;
+                    case RobotAction.Slash: Slash(bot, target); break;
                     default: Shoot(bot, action, profile, strength, target); break;
                 }
             }
@@ -387,21 +390,41 @@ namespace CodingGame.Defense
                 Damage = profile.damage * bot.DamageMultiplier * strength, Radius = profile.effectRadius });
             Emit("launch", bot.Id, target.Id, target.Position);
         }
-        void Slash(RobotState bot, List<EnemyState> targets, EnemyState target)
+        void Slash(RobotState bot, EnemyState target)
         {
             var direction = target.Position - bot.Position;
             if (direction.LengthSquared() < .000001f) direction = Vector2.UnitY;
             direction = Vector2.Normalize(direction);
-            float damage = ActionDamage(bot, RobotAction.Slash);
+            double strike = ActionInterval(bot, RobotAction.Slash) * StrikeShare;
             Events.Add(new CombatEvent { Kind = "slash", Source = bot.Id, Target = target.Id,
-                Origin = bot.Position, Position = bot.Position + direction, Radius = bot.Range });
-            foreach (var enemy in targets)
-                if (Vector2.Dot(enemy.Position - bot.Position, direction) >= -.00001f)
-                    Hit(enemy, damage, bot.Id, meleeSource: bot);
+                Origin = bot.Position, Position = bot.Position + direction, Radius = bot.Range, Seconds = (float)strike });
+            strikes.Add((Time + strike, bot, direction, ActionDamage(bot, RobotAction.Slash)));
+        }
+        // Hits the enemies in range on the slash side when the sword gets there; a robot recalled meanwhile does not hit.
+        void ResolveStrikes()
+        {
+            foreach (var (at, bot, direction, damage) in strikes.Where(s => Time + 1e-8 >= s.at).ToArray())
+            {
+                strikes.Remove((at, bot, direction, damage));
+                if (!Robots.Contains(bot)) continue;
+                foreach (var enemy in Enemies.Where(e => e.Active && Vector2.DistanceSquared(e.Position, bot.Position) <= bot.Range * bot.Range).ToArray())
+                    if (Vector2.Dot(enemy.Position - bot.Position, direction) >= -.00001f)
+                        Hit(enemy, damage, bot.Id, meleeSource: bot);
+            }
         }
         void Shoot(RobotState bot, RobotAction action, RobotSpec profile, float strength, EnemyState target)
         {
-            Hit(target, ActionDamage(bot, action, Vector2.Distance(bot.Position, target.Position)), bot.Id);
+            float distance = Vector2.Distance(bot.Position, target.Position), damage = ActionDamage(bot, action, distance);
+            if (action == RobotAction.Attack)
+            {
+                // 사격형 탄은 날아가서 도착할 때 피해를 줍니다(기획). 도착 시점에 같은 적을 맞힙니다.
+                double flight = Math.Max(TickDuration, distance / profile.projectileSpeed);
+                Projectiles.Add(new ProjectileState { Id = nextId++, Source = bot.Id, Target = target.Id, Origin = bot.Position, Destination = target.Position,
+                    LaunchedAt = Time, ImpactAt = Time + flight, Damage = damage });
+                Events.Add(new CombatEvent { Kind = "shot", Source = bot.Id, Target = target.Id, Position = target.Position, Seconds = (float)flight });
+                return;
+            }
+            Hit(target, damage, bot.Id);
             if (action == RobotAction.Slow && target.Active)
             {
                 var effect = Effect(target, bot.Id); effect.SlowUntil = Time + profile.duration;
@@ -464,10 +487,16 @@ namespace CodingGame.Defense
         {
             foreach (var shot in Projectiles.Where(p => Time + 1e-8 >= p.ImpactAt).ToArray())
             {
+                Projectiles.Remove(shot);
+                if (shot.Target != 0)
+                {
+                    var enemy = Enemies.Find(e => e.Id == shot.Target);
+                    if (enemy != null) Hit(enemy, shot.Damage, shot.Source, true);
+                    continue;
+                }
                 foreach (var enemy in Enemies.Where(e => e.Active && Vector2.DistanceSquared(e.Position, shot.Destination) <= shot.Radius * shot.Radius).ToArray())
                     Hit(enemy, shot.Damage, shot.Source, true);
                 Emit("blast", shot.Source, 0, shot.Destination, 0, shot.Radius);
-                Projectiles.Remove(shot);
             }
         }
         void Tick()
@@ -495,10 +524,10 @@ namespace CodingGame.Defense
                 }
                 if (Options.enemyMovement && e.BlockedBy == 0) Move(e, e.Speed(Time) * dt);
             }
-            if (BaseHealth <= 0) { Enemies.RemoveAll(e => !e.Active); Projectiles.Clear(); Phase = BattlePhase.Defeat; return; }
+            if (BaseHealth <= 0) { Enemies.RemoveAll(e => !e.Active); Projectiles.Clear(); strikes.Clear(); Phase = BattlePhase.Defeat; return; }
             // 시간 종료 시 비행 중인 투사체를 취소해 종료 후 피해나 드랍이 발생하지 않게 합니다.
             bool timedOut = Options.waveTimeout && Setup.WaveSeconds > 0 && Time - waveStart + 1e-8 >= Setup.WaveSeconds;
-            if (!timedOut) ResolveProjectiles();
+            if (!timedOut) { ResolveProjectiles(); ResolveStrikes(); }
             Enemies.RemoveAll(e => !e.Active);
             int remaining = RemainingEnemies;
             if (remaining == 0 || timedOut) CompleteWave(remaining);
@@ -523,7 +552,7 @@ namespace CodingGame.Defense
             }
             if (WaveIndex + 1 < Setup.Waves.Length) nextWave = nextWave.Concat(carry).ToArray();
             Enemies.Clear();
-            Projectiles.Clear();
+            Projectiles.Clear(); strikes.Clear();
             Emit("wave-completed", 0, WaveIndex, Vector2.Zero);
             if (Setup.PlayerFlow)
             {

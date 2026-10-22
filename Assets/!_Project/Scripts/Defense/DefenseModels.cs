@@ -264,6 +264,7 @@ namespace CodingGame.Defense
     public sealed class ProjectileState
     {
         public int Id, Source;
+        public int Target; // a shot at one enemy (Attack); 0 = an area blast at Destination (Boom)
         public Vector2 Origin, Destination;
         public double LaunchedAt, ImpactAt;
         public float Damage, Radius;
@@ -277,5 +278,6 @@ namespace CodingGame.Defense
         public int Source, Target;
         public Vector2 Position;
         public float Amount, AppliedAmount, Radius;
+        public float Seconds; // "shot"/"slash": time until the damage lands
     }
 }
