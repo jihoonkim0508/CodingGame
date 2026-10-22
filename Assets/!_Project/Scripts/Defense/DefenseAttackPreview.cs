@@ -104,7 +104,7 @@ namespace CodingGame.Defense
                 TestOptions = battle.Simulation.Options,
                 Min = new Point(-50,-50), Max = new Point(50,50), BaseHealth = 100,
                 Routes = new[] { new Route(new[] { new Point(2,0), new Point(-20,0) }, 1.2f) },
-                Waves = new[] { new[] { new SpawnGroup { Enemy = HarmlessEnemy(), Count = 3, Interval = .7f } } }
+                Waves = new[] { new[] { new SpawnGroup { Enemy = HarmlessEnemy(), Count = 3, Interval = 1.4f } } } // spaced out (planner: they looked bunched)
             };
             CopyRules(setup);
             simulation = new DefenseSimulation(setup);
@@ -115,6 +115,7 @@ namespace CodingGame.Defense
             if (bot.Health.HasValue) bot.Health = bot.MaxHealth;
             if (source != null) simulation.ApplyProgram(bot.Id, source.Name, source.CopyBlocks());
             AddView(bot.Id, battle.RobotDefinition(bot.DefinitionIndex).prefab);
+            views[bot.Id].Face(previewCamera.transform.position);
             rangeRing.Show(World(bot.Position), bot.Range, battle.RobotDefinition(bot.DefinitionIndex).color);
             simulation.Start();
         }

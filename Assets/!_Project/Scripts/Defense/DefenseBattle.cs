@@ -325,6 +325,7 @@ namespace CodingGame.Defense
             var bot = Simulation.Place(robots[index].stats, index, new Point(position.x, position.z), out var error);
             if (bot == null) { RejectPlacement(index, error); return false; }
             var view = Instantiate(robots[index].prefab, DefenseViews.World(bot.Position), Quaternion.identity, actorsRoot);
+            view.Face(battleCamera.transform.position); // face shown to the player when placed
             robotViews.Add(bot.Id, view);
             // The tutorial asks the player to click the new robot next, so its range and menu stay hidden until then.
             selected = TutorialBlocksInput ? 0 : bot.Id; HidePlacement();

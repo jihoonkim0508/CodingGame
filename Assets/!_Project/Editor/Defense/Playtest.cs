@@ -541,6 +541,12 @@ namespace CodingGame.Defense.Editor
                     : new[] { new CodeBlock(BlockKind.Shot, "0", new CodeBlock(BlockKind.NearestEnemy)) });
             yield return .5f;
             var robots = Field<IDictionary>(Battle, "robotViews");
+            var camera = Field<Camera>(Battle, "battleCamera").transform.position;
+            foreach (DictionaryEntry pair in robots)
+            {
+                var head = ((Component)pair.Value).transform.Find("Head"); var toCamera = camera - head.position; toCamera.y = 0;
+                Check(Vector3.Dot(head.forward, toCamera.normalized) > .95f, $"{sim.Robots.First(r => r.Id == (int)pair.Key).Spec.role}: 설치하면 카메라 쪽을 봄");
+            }
             var roleOf = sim.Robots.ToDictionary(r => r.Id, r => r.Spec.role);
             foreach (DictionaryEntry pair in robots)
             {
@@ -558,19 +564,26 @@ namespace CodingGame.Defense.Editor
             yield return .3f;
             var moved = monsterTransform.position - before; moved.y = 0;
             Check(moved.sqrMagnitude > 1e-4f && Vector3.Dot(monsterTransform.forward, moved.normalized) > .9f, $"몬스터가 걷는 방향을 봄 (dot {(moved.sqrMagnitude > 0 ? Vector3.Dot(monsterTransform.forward, moved.normalized) : 0):0.00})");
-            var attacked = new HashSet<RobotRole>();
+            var attacked = new HashSet<RobotRole>(); var attackSpeeds = new List<string>();
             yield return Wait(() =>
             {
                 foreach (DictionaryEntry pair in robots)
                 {
                     var animator = AnimatorOf(pair.Value);
-                    if (animator && animator.GetCurrentAnimatorStateInfo(0).IsName("Attack")) attacked.Add(roleOf[(int)pair.Key]);
+                    if (animator && animator.GetCurrentAnimatorStateInfo(0).IsName("Attack") && attacked.Add(roleOf[(int)pair.Key]))
+                    {
+                        var bot = sim.Robots.First(r => r.Id == (int)pair.Key);
+                        float lasts = animator.GetCurrentAnimatorStateInfo(0).length; // already at the sped-up rate
+                        attackSpeeds.Add($"{bot.Spec.role}: 공격 간격 {bot.Interval:0.00}s, 공격 동작 {lasts:0.00}s (배속 {animator.speed:0.00})");
+                        Check(lasts <= bot.Interval + .01f, $"{bot.Spec.role}: 공격 동작이 다음 공격 전에 끝남");
+                    }
                 }
                 if (attacked.Count == 1 && !shotTaken) { shotTaken = true; Shot(); }
                 return attacked.Count == 2;
             }, "두 로봇의 공격 동작", 60);
             Check(attacked.Contains(RobotRole.Warrior), "전사형(AttackRobot): 공격할 때 Attack 재생");
             Check(attacked.Contains(RobotRole.Shooter), "사격형(ShotRobot): 공격할 때 Attack 재생");
+            foreach (var line in attackSpeeds) checks.Add("ℹ " + line);
             Battle.TogglePause();
             yield return .3f;
             var live = enemies.Values.Cast<object>().Select(AnimatorOf).FirstOrDefault(a => a);
