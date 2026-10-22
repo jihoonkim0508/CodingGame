@@ -69,6 +69,8 @@ namespace CodingGame.BlockCoding
             {
                 initialized = true;
                 if (input) input.onValueChanged.AddListener(InputChanged);
+                // Only a Python name can be typed (a name like "123" left the code unapplied without a word).
+                if (input && kind == BlockKind.DeclareVariable) input.onValidateInput = (text, index, c) => c == '_' || char.IsLetter(c) || (char.IsDigit(c) && index > 0) ? c : '\0';
                 if (dropdown) dropdown.onValueChanged.AddListener(SelectionChanged);
             }
             foreach (var argument in arguments) argument.Bind(panel, this);

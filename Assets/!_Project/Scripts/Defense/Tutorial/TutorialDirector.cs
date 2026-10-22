@@ -33,13 +33,18 @@ namespace CodingGame.Defense
         string pointedAt;
         // A line that moves on by itself: set once its text has finished typing (planner: no skipping the dot operator lines).
         float autoNextAt = -1;
+        // holdSeconds: when the current line may move on (MaxValue while it still types), and an action that came too early.
+        float heldUntil;
+        TutorialStep held;
+        // Free coding (1-2 C06, 1-4 D04): the player pressed next, so the guide is gone until the step is done.
+        bool guideDismissed;
         string[] highlight = Array.Empty<string>(), focused = Array.Empty<string>();
         readonly List<Vector2> pathPoints = new List<Vector2>();
         bool targetsSeen;
         string shownText;
         bool initialized, bannerUp;
         // Waiting for a trigger hides the dialogue and leaves the game free; a system banner still holds input.
-        public bool IsActive => active && view && (view.IsVisible || bannerUp);
+        public bool IsActive => active && view && (view.IsVisible || bannerUp || guideDismissed);
         public bool BlocksGameplayInput => IsActive && InputLimited;
         public bool BlocksPreview => BlocksGameplayInput && !AllowPreview;
         // Tutorial off, idle, or with input limiting disabled in the developer options.
@@ -110,6 +115,7 @@ namespace CodingGame.Defense
             if (step == null) return;
             if (step.completionSignal == TutorialSignals.ConditionBuilt && Editor &&
                 Editor.LooseExpressions().Any(text => Same(text, step.expectedCode))) Signal(TutorialSignals.ConditionBuilt);
+            if (step.completionSignal == TutorialSignals.SlotFilled && Editor && Editor.SlotFilled(step.expectedCode)) Signal(TutorialSignals.SlotFilled);
             if (Current != step) return;
             if (!string.IsNullOrWhiteSpace(step.skipIf) && signals.Contains(step.skipIf) && Triggered(step) && viewedStep == progressStep) { Enter(progressStep + 1); return; }
             if (!Triggered(step))
@@ -118,12 +124,17 @@ namespace CodingGame.Defense
                 if (signals.Contains(TutorialSignals.WaveCleared)) { Enter(progressStep + 1); return; }
                 Hide(); return;
             }
-            if (!view.IsVisible && !bannerUp) { ShowText(true); return; }
+            if (!view.IsVisible && !bannerUp && !guideDismissed) { ShowText(true); return; }
+            // Opening the hint is the player's own help: the highlight and the arrow step aside (planner).
+            if (Editor && Editor.HintOpen) bridge.Dismiss();
             if (autoNextAt == float.MaxValue && !view.IsTyping) autoNextAt = Time.unscaledTime + step.autoAdvance;
+            if (heldUntil == float.MaxValue && !view.IsTyping) heldUntil = Time.unscaledTime + step.holdSeconds;
+            if (held == step && Time.unscaledTime >= heldUntil) { held = null; CompleteAction(step); return; }
             if (autoNextAt > 0 && autoNextAt != float.MaxValue && Time.unscaledTime >= autoNextAt) { autoNextAt = -1; Enter(progressStep + 1); return; }
             // The banner faded: same as pressing next (ShowText resets bannerUp for the following line).
             if (bannerUp && alert && !alert.IsShowing) { NextText(); return; }
             UpdatePointer(step);
+            AvoidTargets(step);
             // Reading an earlier line turns the step's actions off, so its targets (the robot menu) hide; that is not a loss.
             if (step.kind != TutorialStepKind.ActionGuide || completedStep.Contains(step.stepId) || viewedStep != progressStep)
             { targetsLostAt = -1; return; }
@@ -153,7 +164,7 @@ namespace CodingGame.Defense
         {
             if (!pointer) return;
             Rect area = default; string chosen = null;
-            bool show = viewedStep == progressStep && !completedStep.Contains(step.stepId) && !string.IsNullOrWhiteSpace(step.pointerKey) &&
+            bool show = viewedStep == progressStep && !completedStep.Contains(step.stepId) && !string.IsNullOrWhiteSpace(step.pointerKey) && !(Editor && Editor.HintOpen) &&
                 Time.unscaledTime - stepEntered >= step.pointerDelay && bridge.TryGetArea(step.pointerKey, out area, out chosen);
             // Slots under or inside a code line are pointed at from below; from above the arrow would cover the line above.
             if (show) pointer.Show(area, chosen.Contains(".After.") || chosen.Contains(".Arg.")); else pointer.HideArrow();
@@ -162,6 +173,24 @@ namespace CodingGame.Defense
             // Once the arrow moves to an empty argument slot, open the values tab, where the variables to drop in are.
             if (show && chosen != pointedAt && chosen.Contains(".Arg.") && Editor) Editor.RevealPalette(TutorialKeys.PalettePrefix + "Variable");
             if (show) pointedAt = chosen;
+        }
+
+        // A bottom dialogue that covers what the step points at or waits on moves to the top, unless the top covers one too.
+        // Checked every frame: targets such as the robot menu or the reward panel appear after the line does.
+        void AvoidTargets(TutorialStep step)
+        {
+            if (!view.IsVisible || view.AtTop || view.IsCentered || viewedStep != progressStep || completedStep.Contains(step.stepId)) return;
+            if (!CoversTarget(step)) return;
+            var from = view.Panel.localPosition;
+            view.Place(TutorialDialoguePosition.Top);
+            if (CoversTarget(step)) view.Place(TutorialDialoguePosition.Bottom); else view.SlideFrom(from);
+        }
+        bool CoversTarget(TutorialStep step)
+        {
+            var panel = bridge.ToLocal(view.Panel);
+            foreach (var key in new[] { step.pointerKey }.Concat(step.targetKeys ?? Array.Empty<string>()))
+                if (bridge.TryGetArea(key, out var area) && area.Overlaps(panel)) return true;
+            return false;
         }
 
         // While the road is focused, arrows run along it from the entrance to the core, once it is drawn.
@@ -239,10 +268,11 @@ namespace CodingGame.Defense
         void Enter(int index)
         {
             if (index >= active.steps.Length) { Finish(); return; }
-            progressStep = viewedStep = index; viewedText = 0; stepEntered = Time.unscaledTime;
+            progressStep = viewedStep = index; viewedText = 0; stepEntered = Time.unscaledTime; guideDismissed = false;
             targetsSeen = false; targetsLostAt = -1;
             if (pointer) pointer.Hide();
             var step = active.steps[index];
+            held = null; heldUntil = step.holdSeconds > 0 ? float.MaxValue : 0;
             ApplyEntry(step);
             // ShowText / Hide set the bridge step.
             if (Triggered(step)) ShowText(true); else Hide();
@@ -272,11 +302,12 @@ namespace CodingGame.Defense
             visitedText.Add(key); shownText = text.text;
             bridge.SetStep(active.steps[progressStep], viewedStep == progressStep);
             var focus = text.focusKeys ?? Array.Empty<string>();
-            if (Editor) foreach (var target in focus) Editor.RevealPalette(target);
+            // Open the palette tab holding what this line shows or the arrow points at (1-3 C03's comparison sits in another tab).
+            if (Editor) foreach (var target in focus.Concat((step.pointerKey ?? "").Split('|').Select(k => k.Trim()))) Editor.RevealPalette(target);
             pointedAt = null;
             bridge.SetFocus(focus);
             highlight = text.highlightKeys ?? Array.Empty<string>(); focused = focus;
-            bool system = alert && text.speaker == TutorialSignals.SystemSpeaker;
+            bool system = IsAlert(text);
             if (system)
             {
                 view.Hide(); alert.Show(text.text, step.alertCards); bannerUp = true;
@@ -286,9 +317,10 @@ namespace CodingGame.Defense
             view.Show(active, step.dialoguePosition, Code(text.text), animate, text.speaker);
             view.SetDebugId(active.sequenceId + " " + step.stepId);
             // Lines that only explain (no action, nothing to look at) sit in the middle while preparing; battle and
-            // reward screens and the code editor keep the bottom, where the dialogue covers nothing important.
+            // reward screens, the code editor and a selected robot's range circle (1-1 B05 "이 원") keep the bottom.
             bool explain = step.kind != TutorialStepKind.ActionGuide && focus.Length == 0 && highlight.Length == 0 &&
-                string.IsNullOrEmpty(step.trigger) && session != null && session.Phase == BattlePhase.Ready && !(Editor && Editor.IsOpen);
+                string.IsNullOrEmpty(step.trigger) && session != null && session.Phase == BattlePhase.Ready && !(Editor && Editor.IsOpen) &&
+                session.FindRobot(battle.SelectedId) == null;
             view.SetCentered(step.introEntrance || explain, step.introEntrance);
             autoNextAt = step.autoAdvance > 0 && viewedStep == progressStep ? float.MaxValue : -1;
             bool previous = (viewedStep > 0 || viewedText > 0) && !Waiting;
@@ -310,13 +342,20 @@ namespace CodingGame.Defense
         // The player owes the current step an action: going back would hide the targets it asks for (planner request, 1-2 A05).
         bool Waiting => active && viewedStep == progressStep && progressStep < active.steps.Length &&
             active.steps[progressStep].kind == TutorialStepKind.ActionGuide && !completedStep.Contains(active.steps[progressStep].stepId);
+        bool IsAlert(TutorialText text) => alert && text.speaker == TutorialSignals.SystemSpeaker;
         void PreviousText()
         {
             if (!IsActive || Waiting) return;
             if (view.IsTyping) view.FinishTyping();
-            if (viewedText > 0) viewedText--;
-            else if (viewedStep > 0) { viewedStep--; viewedText = active.steps[viewedStep].texts.Length - 1; }
-            else return;
+            // Warning banners play once: going back steps over them to the line before (planner, 1-1 E01).
+            int step = viewedStep, text = viewedText;
+            do
+            {
+                if (text > 0) text--;
+                else if (step > 0) { step--; text = active.steps[step].texts.Length - 1; }
+                else return;
+            } while (IsAlert(active.steps[step].texts[text]));
+            viewedStep = step; viewedText = text;
             ShowText(false);
         }
 
@@ -326,16 +365,22 @@ namespace CodingGame.Defense
             var step = active.steps[viewedStep];
             if (autoNextAt > 0) return;
             if (view.IsTyping) { view.FinishTyping(); return; }
-            if (Waiting && step.dismissable) { bridge.Dismiss(); view.SetNavigation(false, false); return; }
+            if (Waiting && step.dismissable) { bridge.Dismiss(); view.Hide(); guideDismissed = true; return; }
             if (viewedText + 1 < step.texts.Length) { viewedText++; ShowText(true); return; }
-            if (viewedStep < progressStep) { viewedStep++; viewedText = 0; ShowText(!visitedText.Contains(TextKey(active.steps[viewedStep],active.steps[viewedStep].texts[0]))); return; }
+            if (viewedStep < progressStep)
+            {
+                do { viewedStep++; viewedText = 0; } while (viewedStep < progressStep && IsAlert(active.steps[viewedStep].texts[0]));
+                ShowText(!visitedText.Contains(TextKey(active.steps[viewedStep],active.steps[viewedStep].texts[0]))); return;
+            }
             if (viewedStep != progressStep || step.kind == TutorialStepKind.ActionGuide && !completedStep.Contains(step.stepId)) return;
             Enter(progressStep + 1);
         }
 
         void CompleteAction(TutorialStep step)
         {
-            if (!active || progressStep >= active.steps.Length || active.steps[progressStep] != step || !completedStep.Add(step.stepId)) return;
+            if (!active || progressStep >= active.steps.Length || active.steps[progressStep] != step) return;
+            if (step.holdSeconds > 0 && Time.unscaledTime < heldUntil) { held = step; return; }
+            if (!completedStep.Add(step.stepId)) return;
             Enter(progressStep + 1);
         }
 
@@ -368,6 +413,8 @@ namespace CodingGame.Defense
 
         #if UNITY_EDITOR
         TutorialSequence editorSequence;
+        // False until Update has picked up a new battle session (it resets the tutorial then, undoing an earlier jump).
+        public bool EditorSynced => battle && session == battle.Simulation;
         public TutorialStep EditorStep => active && viewedStep < active.steps.Length ? active.steps[viewedStep] : null;
         public TutorialInputBridge EditorBridge => bridge;
         public void EditorStop() { Finish(); if(editorSequence) Destroy(editorSequence); editorSequence=null; }

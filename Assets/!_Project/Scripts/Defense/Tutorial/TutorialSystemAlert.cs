@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -16,7 +17,6 @@ namespace CodingGame.Defense
         [SerializeField] TMP_Text message;
         [SerializeField] AudioSource warning;
         [SerializeField, Min(.1f)] float seconds = 1.5f, fadeSeconds = .6f;
-        [SerializeField, Min(0), Tooltip("경고 카드가 있는 배너(1-1 A01)에 더하는 표시 시간")] float cardSeconds = 3.2f;
         // ponytail: the card wording is fixed here (1-1 A01 only); move it to the sequence if another alert needs cards.
         static readonly (string title, string body)[] Cards =
         {
@@ -25,7 +25,7 @@ namespace CodingGame.Defense
             ("시스템 이상", "개발 환경의 이상 행위가\n발견되었습니다."),
         };
         static readonly Color Red = new Color(1, .16f, .2f), DarkRed = new Color(.32f, .02f, .04f);
-        float shown, until;
+        float clock, duration;
         bool withCards;
         RectTransform bar, stripes, shake;
         Image vignette;
@@ -43,7 +43,10 @@ namespace CodingGame.Defense
         public void Show(string text, bool showCards = false)
         {
             message.text = text ?? ""; withCards = showCards;
-            shown = Time.unscaledTime; until = shown + seconds + (showCards ? cardSeconds : 0);
+            // New glyphs join the dynamic font atlas while the alert is still dark, not when a card lands: adding them mid
+            // sequence stalled a frame (about 1 s in the Editor, which re-imports the font asset) and broke the beat.
+            message.font.TryAddCharacters(message.text + (showCards ? string.Concat(Cards.Select(c => c.title + c.body)) : ""));
+            clock = 0; duration = seconds + (showCards ? Land(Cards.Length) : 0);
             foreach (var card in cards) card.rect.gameObject.SetActive(showCards);
             // The bar sits under the cards, or in the middle on its own.
             bar.anchoredPosition = new Vector2(0, showCards ? -40 : 0);
@@ -56,14 +59,19 @@ namespace CodingGame.Defense
         void Update()
         {
             if (!IsShowing) return;
-            if (Time.unscaledTime >= until) { Hide(); return; }
+            // Stalled frames do not count: the first frames after the scene opens (1-1 A01) freeze for over a second, and a card
+            // landing just before one read as "탁 … 탁 탁" (play test). Slow but running frames still count (a 1/30 cap slowed
+            // every beat at 20 fps).
+            float step = Time.unscaledDeltaTime;
+            if (step < .25f) clock += step;
+            if (clock >= duration) { Hide(); return; }
             Animate();
         }
 
         void Animate()
         {
-            float t = Time.unscaledTime - shown;
-            fade.alpha = Mathf.Min(Mathf.Clamp01(t / .12f), Mathf.Clamp01((until - Time.unscaledTime) / fadeSeconds));
+            float t = clock;
+            fade.alpha = Mathf.Min(Mathf.Clamp01(t / .12f), Mathf.Clamp01((duration - t) / fadeSeconds));
             vignette.color = new Color(Red.r, Red.g, Red.b, .24f + .16f * Mathf.Sin(t * 7));
             // Cards slam in one after another (big and clear, then settle).
             for (int i = 0; i < cards.Count; i++)
@@ -72,8 +80,8 @@ namespace CodingGame.Defense
                 cards[i].group.alpha = k;
                 cards[i].rect.localScale = Vector3.one * Mathf.Lerp(1.35f, 1, 1 - (1 - k) * (1 - k));
             }
-            // The bar opens sideways once the cards are in; the message flickers on like a failing screen.
-            float barStart = withCards ? Land(cards.Count - 1) + .5f : 0;
+            // The bar opens sideways one beat after the last card; the message flickers on like a failing screen.
+            float barStart = withCards ? Land(cards.Count) : 0;
             float open = Mathf.Clamp01((t - barStart) / .25f);
             bar.localScale = new Vector3(1 - (1 - open) * (1 - open), 1, 1);
             float lit = t - barStart - .2f;
@@ -85,8 +93,9 @@ namespace CodingGame.Defense
             shake.anchoredPosition = new Vector2(Mathf.Sin(t * 83) * 9, Mathf.Cos(t * 71) * 6) * jolt;
         }
 
-        // Cards come one per second (planner).
-        static float Land(int card) => .1f + card * 1f;
+        // The three cards and then the bar come at one even beat (planner); the bar then stays as long as a bar-only alert.
+        const float Beat = .5f;
+        static float Land(int panel) => .1f + panel * Beat;
 
         // ---- run-time visuals ----
         void Build()
@@ -117,7 +126,7 @@ namespace CodingGame.Defense
             var text = message.rectTransform;
             text.anchorMin = text.anchorMax = text.pivot = new Vector2(.5f, .5f);
             text.sizeDelta = new Vector2(1000, 90); text.anchoredPosition = Vector2.zero;
-            message.enableWordWrapping = false; message.alignment = TextAlignmentOptions.Center;
+            message.textWrappingMode = TextWrappingModes.NoWrap; message.alignment = TextAlignmentOptions.Center;
             message.fontSize = 42; message.fontStyle = FontStyles.Bold; message.color = new Color(1, .25f, .28f);
             message.fontMaterial = glow;
 

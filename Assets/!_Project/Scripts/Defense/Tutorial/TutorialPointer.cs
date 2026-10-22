@@ -38,6 +38,7 @@ namespace CodingGame.Defense
 
         // Path arrows: copies of the arrow marching along a polyline (spotlight-local points), fading in and out at the ends.
         const float PathSpacing = 80, PathSpeed = 140, PathScale = .7f, PathFade = 40;
+        static readonly Color PathColor = new Color(.45f, .85f, 1); // sky blue (planner, 1-1 A04a)
         readonly List<RectTransform> chevrons = new List<RectTransform>();
         public void ShowPath(IReadOnlyList<Vector2> points)
         {
@@ -64,7 +65,7 @@ namespace CodingGame.Defense
                 // The arrow sprite points down (0°); turn it to the travel direction.
                 chevron.localEulerAngles = new Vector3(0, 0, Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg + 90);
                 var image = chevron.GetComponent<Graphic>();
-                if (image) image.color = new Color(1, 1, 1, .95f * Mathf.Clamp01(Mathf.Min(s, total - s) / PathFade)); // white reads on the orange road
+                if (image) image.color = new Color(PathColor.r, PathColor.g, PathColor.b, .95f * Mathf.Clamp01(Mathf.Min(s, total - s) / PathFade));
             }
         }
         public void HidePath() { foreach (var chevron in chevrons) if (chevron) chevron.gameObject.SetActive(false); }

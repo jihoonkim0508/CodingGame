@@ -11,6 +11,9 @@ namespace CodingGame.Defense
         public const string FirstKill = "FirstKill", FirstAttack = "FirstAttack", Leak = "Leak", WaveCleared = "WaveCleared", ProgramMatches = "ProgramMatches";
         // Produced by TutorialDirector: a loose condition block in the editor reads as the step's expectedCode.
         public const string ConditionBuilt = "ConditionBuilt";
+        // Produced by TutorialDirector: the editor slot named by the step's expectedCode (an Editor.Code.Arg.* key) holds a block,
+        // before the line compiles (1-1 D04 places the variable block first, the name is typed in the next step).
+        public const string SlotFilled = "SlotFilled";
         // Speaker whose lines show as the system alert banner instead of the dialogue box.
         public const string SystemSpeaker = "시스템";
     }

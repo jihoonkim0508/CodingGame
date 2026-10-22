@@ -30,7 +30,7 @@ namespace CodingGame.Defense
         }
         static List<string> Lines(string text) =>
             (text ?? "").Replace("\r", "").Split('\n').Select(line => line.Trim()).Where(line => line.Length > 0).ToList();
-        static readonly Regex Assignment = new Regex(@"^([A-Za-z_]\w*)\s*=(?!=)");
+        static readonly Regex Assignment = new Regex(@"^([^\W\d]\w*)\s*=(?!=)"); // any Python name, Korean included
         // Variables renamed v0, v1… in the order they are first set; attributes and calls (.hp, get_my_pos()) keep their names.
         static List<string> Canonical(List<string> lines)
         {

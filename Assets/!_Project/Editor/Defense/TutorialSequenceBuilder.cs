@@ -51,6 +51,7 @@ namespace CodingGame.Defense.Editor
             public string SkipIf;
             public string Demo;
             public bool Top;
+            public float Hold;
         }
 
         static Dictionary<string, Line> lines;
@@ -92,10 +93,14 @@ namespace CodingGame.Defense.Editor
             L("1-1.C16", Code("enemy = get_nearest_enemy()", With(s => s.Pointer = "Editor.Code.Start", Focus("Editor.Code.Start"),
                 s => s.Demo = "Editor.Palette.NearestEnemy>Editor.Code.Arg.1.0|Editor.Palette.DeclareVariable>Editor.Code.Start"))),
             L("1-1.C17", Ed), L("1-1.C18", Ed), L("1-1.D01", Ed), L("1-1.D02", Ed), L("1-1.D03", Ed),
-            L("1-1.D04", Code(Code11, With(s => s.Pointer = "Editor.Code.Arg.2.0|Editor.Code.After.1", Focus("Editor.Code.Arg.2.0|Editor.Code.After.1", "Editor.Palette.Slash"),
+            // D04 places slash() and a variable block in it; D04a has the player type enemy into that block (planner: two lines).
+            L("1-1.D04", Signal(TutorialSignals.SlotFilled, new[] { Drop, Palette }, With(s => { s.Expected = "Editor.Code.Arg.2.0"; s.Preview = true; },
+                s => s.Pointer = "Editor.Code.Arg.2.0|Editor.Code.After.1", Focus("Editor.Code.Arg.2.0|Editor.Code.After.1", "Editor.Palette.Slash"),
                 s => s.Demo = "Editor.Palette.Variable>Editor.Code.Arg.2.0|Editor.Palette.Slash>Editor.Code.After.1"))),
+            L("1-1.D04a", Code(Code11, With(s => s.Pointer = "Editor.Code.Arg.2.0", Focus("Editor.Code.Arg.2.0")))),
             L("1-1.D05", Ed),
-            L("1-1.D06", Signal(TutorialSignals.PreviewHit, new[] { Preview }, s => s.Preview = true)),
+            // D06: the preview can hit at once; the line stays 1.5 s after it is typed out (planner).
+            L("1-1.D06", Signal(TutorialSignals.PreviewHit, new[] { Preview }, s => { s.Preview = true; s.Hold = 1.5f; })),
             L("1-1.D07", Ed), L("1-1.D08", Ed), L("1-1.D09", Ed), L("1-1.D10", Ed),
             L("1-1.D11", s => s.CloseEditor = true),
             L("1-1.E01", Focus(TutorialKeys.NextWave)), L("1-1.E02"),
@@ -109,7 +114,8 @@ namespace CodingGame.Defense.Editor
 
         static List<S> OneTwo()
         {
-            var steps = new List<S> { L("1-2.A01"), L("1-2.A02"), L("1-2.A03"), L("1-2.A04") };
+            // A01 opens like 1-1's intro: grey screen behind a large centred dialogue (planner).
+            var steps = new List<S> { L("1-2.A01", s => s.Intro = true), L("1-2.A02"), L("1-2.A03"), L("1-2.A04") };
             steps.AddRange(OpenEditor("1-2.A05"));
             steps.Add(L("1-2.B01", With(Ed, Focus(Drop, Preview))));
             // B04~B07 introduce the dot operator: no skipping, each moves on 2 s after its text is out (planner).
@@ -132,7 +138,8 @@ namespace CodingGame.Defense.Editor
             steps.AddRange(OpenEditor("1-3.A05"));
             steps.AddRange(new[] {
                 L("1-3.B01", Ed),
-                L("1-3.B02", Code(Code13Distance, s => s.Pointer = "Editor.Code.After.1")),
+                L("1-3.B02", With(Ed, Focus("Editor.Code.Line.1"))), L("1-3.B02a", With(Ed, Focus("Editor.Palette.Variable"))),
+                L("1-3.B02b", Code(Code13Distance, s => s.Pointer = "Editor.Code.After.1")),
                 L("1-3.B03", With(Ed, Focus("Editor.Code.Line.1", "Editor.Code.Arg.2.0"))), L("1-3.B04", With(Ed, Focus("Editor.Code.Line.2"))),
                 L("1-3.C01", With(Ed, Focus("Editor.Palette.MyAttackRange"))), L("1-3.C02", Ed),
                 L("1-3.C03", Signal(TutorialSignals.ConditionBuilt, new[] { Drop, Palette }, s =>
@@ -170,7 +177,7 @@ namespace CodingGame.Defense.Editor
                 L("1-4.D02", s => { s.Robot = 1; s.HintCode = Code14; s.Preview = true; }),
                 L("1-4.D03", With(Focus(Hint), s => { s.Robot = 1; s.HintCode = Code14; s.Preview = true; })),
                 L("1-4.D04", Signal(TutorialSignals.ProgramMatches, new[] { Drop, Palette, Hint }, s =>
-                    { s.Robot = 1; s.Expected = Code14; s.HintCode = Code14; s.Pointer = Hint; s.PointerDelay = 60; s.Preview = true; })),
+                    { s.Robot = 1; s.Expected = Code14; s.HintCode = Code14; s.Pointer = Hint; s.PointerDelay = 60; s.Preview = true; s.Dismissable = true; })),
                 L("1-4.D04", Signal(TutorialSignals.EditorClosed, new[] { Close }, s => { s.Id += "c"; s.Robot = 1; s.Preview = true; s.Undimmed = true; s.Pointer = Close; })),
                 L("1-4.D05"),
                 L("1-4.E01"), L("1-4.E02"), L("1-4.E03"),
@@ -221,7 +228,7 @@ namespace CodingGame.Defense.Editor
                     skipIf = s.SkipIf, pauseBattle = !battle, allowPreview = s.Preview, highlightPadding = s.Padding, trigger = s.Trigger, expectedCode = s.Expected,
                     pointerKey = s.Pointer, hintCode = s.HintCode, pointerDelay = s.PointerDelay,
                     closeEditor = s.CloseEditor, clearProgram = s.ClearProgram, openEditor = s.OpenEditor, robotIndex = s.Robot,
-                    introEntrance = s.Intro, undimmed = s.Undimmed, alertCards = s.Cards, autoAdvance = s.Auto, dismissable = s.Dismissable, dragDemo = s.Demo };
+                    introEntrance = s.Intro, undimmed = s.Undimmed, alertCards = s.Cards, autoAdvance = s.Auto, dismissable = s.Dismissable, holdSeconds = s.Hold, dragDemo = s.Demo };
             }).ToArray();
             EditorUtility.SetDirty(sequence);
             return sequence;

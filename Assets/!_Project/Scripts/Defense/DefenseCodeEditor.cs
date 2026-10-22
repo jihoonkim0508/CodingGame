@@ -25,6 +25,7 @@ namespace CodingGame.Defense
         DefenseSimulation draftSession;
         readonly Dictionary<int, CommandCodingPanel.EditHistory> drafts = new Dictionary<int, CommandCodingPanel.EditHistory>();
         public bool IsOpen => editorRoot && editorRoot.activeSelf;
+        public bool HintOpen => IsOpen && hintPopup && hintPopup.activeSelf;
         public int EditingId => editingId;
         public CommandCodingPanel Panel => panel;
         bool HasCurrentSession => editingSession != null && editingSession == battle.Simulation;
@@ -146,6 +147,23 @@ namespace CodingGame.Defense
                     return Corners(slot ? slot.Rect : null, null, corners);
                 default: return false;
             }
+        }
+        // An Editor.Code.Arg.N.i[.j…] slot that holds a block (the slot exists, empty, as soon as its line does).
+        public bool SlotFilled(string key)
+        {
+            if (!IsOpen || key == null || !key.StartsWith(TutorialKeys.CodePrefix + "Arg.")) return false;
+            var parts = key.Substring(TutorialKeys.CodePrefix.Length).Split('.');
+            var chain = panel.Program.StartChain();
+            if (parts.Length < 3 || !int.TryParse(parts[1], out int line) || line < 1 || line > chain.Count) return false;
+            var block = chain[line - 1];
+            CommandDropZone slot = null;
+            for (int i = 2; i < parts.Length; i++)
+            {
+                if (slot) { if (slot.Blocks.Count == 0) return false; block = slot.Blocks[0]; }
+                if (!int.TryParse(parts[i], out int index) || index < 0 || index >= block.Arguments.Count) return false;
+                slot = block.Arguments[index];
+            }
+            return slot && slot.Blocks.Count > 0;
         }
         static bool Corners(RectTransform target, Rect? local, Vector3[] corners)
         {

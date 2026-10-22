@@ -40,7 +40,11 @@ namespace CodingGame.Defense
             dim = darken;
             foreach (var area in clickable) if (Expand(area, padding, out var r)) clicks.Add(r);
             foreach (var area in visible) if (Expand(area, padding, out var r)) holes.Add(r);
-            foreach (var area in outlined) if (Expand(area, padding, out var r)) outlines.Add(r);
+            // Outlines are drawn outside their rect (up to ~9 px while breathing); keep them that far inside the screen
+            // so a target on the edge (the start button) shows its whole frame.
+            var screen = rectTransform.rect; const float Edge = 10;
+            var inner = Rect.MinMaxRect(screen.xMin + Edge, screen.yMin + Edge, screen.xMax - Edge, screen.yMax - Edge);
+            foreach (var area in outlined) if (Expand(area, padding, out var r)) outlines.Add(Intersect(inner, r));
             foreach (var area in round) if (Expand(area, padding, out var r)) rounds.Add(r);
             SetVerticesDirty();
         }

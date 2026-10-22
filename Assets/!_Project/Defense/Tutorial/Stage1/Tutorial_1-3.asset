@@ -56,6 +56,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: A02
     kind: 0
     dialoguePosition: 0
@@ -93,6 +94,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: A03
     kind: 0
     dialoguePosition: 0
@@ -132,6 +134,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: A04
     kind: 0
     dialoguePosition: 0
@@ -170,6 +173,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: A05a
     kind: 1
     dialoguePosition: 0
@@ -208,6 +212,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: A05b
     kind: 1
     dialoguePosition: 0
@@ -246,6 +251,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: B01
     kind: 0
     dialoguePosition: 0
@@ -283,15 +289,96 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: B02
+    kind: 0
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uC548\uB0B4\uC790"
+      text: "\uC88B\uC544! `enemy` \uB4A4\uC5D0 \uC810(.)\uC744 \uBD99\uC774\uBA74
+        \uC801\uC758 \uC815\uBCF4\uB098 \uAE30\uB2A5\uC744 \uC0AC\uC6A9\uD560 \uC218
+        \uC788\uC5B4!"
+      focusKeys:
+      - Editor.Code.Line.1
+      highlightKeys: []
+    targetKeys: []
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    completionMode: 0
+    completionSignal: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    allowPreview: 1
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+  - stepId: B02a
+    kind: 0
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uC548\uB0B4\uC790"
+      text: "\uC5EC\uAE30\uC11C distance()\uB97C \uC0AC\uC6A9\uD558\uBA74 \uB450
+        \uC704\uCE58 \uC0AC\uC774\uC758 \uAC70\uB9AC\uB97C \uACC4\uC0B0\uD560 \uC218
+        \uC788\uC9C0!"
+      focusKeys:
+      - Editor.Palette.Variable
+      highlightKeys: []
+    targetKeys: []
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    completionMode: 0
+    completionSignal: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    allowPreview: 1
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+  - stepId: B02b
     kind: 1
     dialoguePosition: 0
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "`enemy.distance()`\uC5D0 `get_my_pos()`\uB97C \uC804\uB2EC\uD558\uBA74
-        \uD604\uC7AC \uB85C\uBD07\uC758 \uC704\uCE58\uB97C \uAE30\uC900\uC73C\uB85C
-        \uAC70\uB9AC\uB97C \uAD6C\uD574."
+      text: "distance() \uC548\uC5D0 `get_my_pos()`\uB97C \uB123\uC5B4\uBCF4\uC790!
+        \uADF8\uB7EC\uBA74 \uD604\uC7AC \uB85C\uBD07\uACFC \uC801 \uC0AC\uC774\uC758
+        \uAC70\uB9AC\uB97C \uAD6C\uD560 \uC218 \uC788\uC5B4!"
       focusKeys: []
       highlightKeys: []
     targetKeys:
@@ -327,6 +414,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: B03
     kind: 0
     dialoguePosition: 0
@@ -366,6 +454,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: B04
     kind: 0
     dialoguePosition: 0
@@ -404,6 +493,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: C01
     kind: 0
     dialoguePosition: 0
@@ -442,6 +532,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: C02
     kind: 0
     dialoguePosition: 0
@@ -479,6 +570,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: C03
     kind: 1
     dialoguePosition: 0
@@ -519,6 +611,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: C04
     kind: 0
     dialoguePosition: 0
@@ -556,6 +649,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: C05
     kind: 0
     dialoguePosition: 0
@@ -594,6 +688,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: C06
     kind: 0
     dialoguePosition: 0
@@ -632,6 +727,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: D01
     kind: 0
     dialoguePosition: 0
@@ -669,6 +765,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: D02
     kind: 1
     dialoguePosition: 0
@@ -710,6 +807,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: D03
     kind: 0
     dialoguePosition: 0
@@ -747,6 +845,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: D04
     kind: 0
     dialoguePosition: 0
@@ -784,6 +883,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: E01
     kind: 0
     dialoguePosition: 0
@@ -821,6 +921,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: E02
     kind: 1
     dialoguePosition: 0
@@ -861,6 +962,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: E03
     kind: 0
     dialoguePosition: 0
@@ -898,6 +1000,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: E04
     kind: 0
     dialoguePosition: 0
@@ -936,6 +1039,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: E05
     kind: 0
     dialoguePosition: 0
@@ -973,6 +1077,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0
   - stepId: E06
     kind: 0
     dialoguePosition: 0
@@ -1010,3 +1115,4 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
+    holdSeconds: 0

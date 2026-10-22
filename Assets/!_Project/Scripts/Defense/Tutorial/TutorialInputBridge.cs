@@ -97,7 +97,7 @@ namespace CodingGame.Defense
         }
 
         // The player read the line and pressed next on a step that still waits (1-2 C06): the highlight steps aside.
-        public void Dismiss() { dismissed = true; RefreshAreas(); }
+        public void Dismiss() { if (dismissed) return; dismissed = true; RefreshAreas(); }
         bool dismissed;
         float roadShown = -10;
         const float RoadRevealSeconds = 1.2f;
@@ -231,6 +231,19 @@ namespace CodingGame.Defense
         {
             var p = worldCamera.WorldToScreenPoint(world); local = default;
             return p.z > 0 && RectTransformUtility.ScreenPointToLocalPointInRectangle(spotlight.rectTransform, p, CanvasCamera, out local);
+        }
+        // A UI rect (from any canvas) in spotlight-local space, to compare with TryGetArea.
+        public Rect ToLocal(RectTransform rect)
+        {
+            var corners = new Vector3[4]; rect.GetWorldCorners(corners);
+            var own = rect.GetComponentInParent<Canvas>(); var camera = own && own.renderMode != RenderMode.ScreenSpaceOverlay ? own.worldCamera : null;
+            Vector2 Local(Vector3 corner)
+            {
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(spotlight.rectTransform, RectTransformUtility.WorldToScreenPoint(camera, corner), CanvasCamera, out var p);
+                return p;
+            }
+            Vector2 a = Local(corners[0]), b = Local(corners[2]);
+            return Rect.MinMaxRect(Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y), Mathf.Max(a.x, b.x), Mathf.Max(a.y, b.y));
         }
         bool ToGround(Vector2 local, float y, out Vector2 ground)
         {

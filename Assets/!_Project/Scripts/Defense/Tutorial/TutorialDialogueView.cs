@@ -38,12 +38,7 @@ namespace CodingGame.Defense
         public void Show(TutorialSequence sequence, TutorialDialoguePosition position, string text, bool animate, string speakerName)
         {
             StopTyping();
-            // Mirror the authored bottom layout; retain width, height and edge spacing at any resolution.
-            bool top = position == TutorialDialoguePosition.Top;
-            panelRect.anchorMin = new Vector2(bottomAnchorMin.x, top ? 1 - bottomAnchorMax.y : bottomAnchorMin.y);
-            panelRect.anchorMax = new Vector2(bottomAnchorMax.x, top ? 1 - bottomAnchorMin.y : bottomAnchorMax.y);
-            panelRect.pivot = new Vector2(bottomPivot.x, top ? 1 - bottomPivot.y : bottomPivot.y);
-            panelRect.anchoredPosition = new Vector2(bottomPosition.x, top ? -bottomPosition.y - topInset : bottomPosition.y + bottomLift);
+            Place(position);
             panel.SetActive(true);
             portrait.sprite = sequence.speakerPortrait;
             portrait.enabled = sequence.speakerPortrait;
@@ -54,6 +49,19 @@ namespace CodingGame.Defense
             int characterCount = dialogue.textInfo.characterCount;
             dialogue.maxVisibleCharacters = animate ? 0 : int.MaxValue;
             if (animate && characterCount > 0) typing = StartCoroutine(Type(sequence.typeSpeed, characterCount));
+        }
+
+        public RectTransform Panel => panelRect;
+        public bool IsCentered => centered;
+        public bool AtTop { get; private set; }
+        // Mirror the authored bottom layout; retain width, height and edge spacing at any resolution.
+        public void Place(TutorialDialoguePosition position)
+        {
+            bool top = AtTop = position == TutorialDialoguePosition.Top;
+            panelRect.anchorMin = new Vector2(bottomAnchorMin.x, top ? 1 - bottomAnchorMax.y : bottomAnchorMin.y);
+            panelRect.anchorMax = new Vector2(bottomAnchorMax.x, top ? 1 - bottomAnchorMin.y : bottomAnchorMax.y);
+            panelRect.pivot = new Vector2(bottomPivot.x, top ? 1 - bottomPivot.y : bottomPivot.y);
+            panelRect.anchoredPosition = new Vector2(bottomPosition.x, top ? -bottomPosition.y - topInset : bottomPosition.y + bottomLift);
         }
 
         IEnumerator Type(float charactersPerSecond, int characterCount)
@@ -126,6 +134,23 @@ namespace CodingGame.Defense
             else { panelRect.localScale = Vector3.one; SetGrey(0); }
             centered = on;
         }
+        // Glides from where the panel was to where Place just put it.
+        public void SlideFrom(Vector3 from)
+        {
+            if (entrance != null) StopCoroutine(entrance);
+            entrance = StartCoroutine(Slide(from, panelRect.localPosition));
+        }
+        IEnumerator Slide(Vector3 from, Vector3 to)
+        {
+            for (float t = 0; t < SlideSeconds; t += Time.unscaledDeltaTime)
+            {
+                panelRect.localPosition = Vector3.Lerp(from, to, Mathf.SmoothStep(0, 1, t / SlideSeconds));
+                yield return null;
+            }
+            panelRect.localPosition = to;
+            entrance = null;
+        }
+        const float SlideSeconds = .3f;
         const float CenterScale = 1.6f, PlainScale = 1.25f, PunchSeconds = .35f, ShrinkSeconds = .6f;
         bool centered;
         Volume grey;
