@@ -1,0 +1,1 @@
+PASS: real EventSystem drags for 1-3 distance declaration/variable/get_my_pos and 1-4 range declaration/value; adaptive arrows avoid old slash/if slots; True/False use live preview distances; no info/code overlap.

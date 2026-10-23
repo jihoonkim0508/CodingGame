@@ -1,0 +1,1 @@
+PASS: G01-G04 failure dialogue, two buttons, input lock, camera cleanup, H01 retry, wave/core/enemies/projectiles/robots/code/inventory restoration. Exit listener is wired; application exit was not invoked during QA.

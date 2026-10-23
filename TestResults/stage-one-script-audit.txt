@@ -1,0 +1,6 @@
+PASS: 449 script/asset checks
+1-1: 55 steps, 0 failure steps; all dialogue IDs covered (1-1 E04 approved omission).
+1-2: 26 steps, 0 failure steps; all dialogue IDs covered (1-1 E04 approved omission).
+1-3: 28 steps, 0 failure steps; all dialogue IDs covered (1-1 E04 approved omission).
+1-4: 41 steps, 0 failure steps; all dialogue IDs covered (1-1 E04 approved omission).
+1-5: 28 steps, 4 failure steps; all dialogue IDs covered (1-1 E04 approved omission).
