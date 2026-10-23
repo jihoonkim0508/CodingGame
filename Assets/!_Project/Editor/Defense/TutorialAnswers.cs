@@ -24,7 +24,13 @@ namespace CodingGame.Defense.Editor
                 string raw = lines[index]; int depth = raw.Length - raw.TrimStart().Length;
                 if (depth < indent) break;
                 string line = raw.Trim(); index++;
-                if (line.StartsWith("if ") && line.EndsWith(":"))
+                if (line.StartsWith("for i in range(") && line.EndsWith("):"))
+                {
+                    var block = new CodeBlock(BlockKind.For, "0", Value(line.Substring(15, line.Length - 17)));
+                    block.Body.AddRange(Suite(lines, ref index, depth + 4));
+                    result.Add(block);
+                }
+                else if (line.StartsWith("if ") && line.EndsWith(":"))
                 {
                     var block = new CodeBlock(BlockKind.If, "0", Condition(line.Substring(3, line.Length - 4)));
                     block.Body.AddRange(Suite(lines, ref index, depth + 4));
@@ -48,6 +54,7 @@ namespace CodingGame.Defense.Editor
         }
         static CodeBlock Value(string text)
         {
+            if (int.TryParse(text, out _)) return new CodeBlock(BlockKind.Number, text);
             if (text == "get_nearest_enemy()") return new CodeBlock(BlockKind.NearestEnemy);
             if (text == "my_attack_range()") return new CodeBlock(BlockKind.MyAttackRange);
             if (text == "get_my_pos()") return new CodeBlock(BlockKind.MyPos);

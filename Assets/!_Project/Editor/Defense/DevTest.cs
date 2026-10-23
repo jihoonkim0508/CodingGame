@@ -120,27 +120,32 @@ namespace CodingGame.Defense.Editor
 
         // Stage 1 tutorial steps of a wave ("stepId first line"), from the TutorialSequence assets.
         public static string[] TutorialSections(int wave)
+            => TutorialSections(1, wave);
+        public static string[] TutorialSections(int stage, int wave)
         {
-            var sequence = StageOneSequence(wave);
+            var sequence = TutorialSequenceFor(stage, wave);
             return sequence ? sequence.steps.Select(s => s.stepId + " " + (s.texts.Length > 0 ? s.texts[0].text : "")).ToArray() : Array.Empty<string>();
         }
-        static TutorialSequence StageOneSequence(int wave) => AssetDatabase.FindAssets("t:TutorialSequence")
+        static TutorialSequence StageOneSequence(int wave) => TutorialSequenceFor(1, wave);
+        static TutorialSequence TutorialSequenceFor(int stage, int wave) => AssetDatabase.FindAssets("t:TutorialSequence")
             .Select(guid => AssetDatabase.LoadAssetAtPath<TutorialSequence>(AssetDatabase.GUIDToAssetPath(guid)))
-            .FirstOrDefault(s => s && s.enabled && s.stage == 1 && s.wave == wave); // skips the disabled SequenceTest sample
+            .FirstOrDefault(s => s && s.enabled && s.stage == stage && s.wave == wave);
         // Jumps to a Stage 1 tutorial step (0-based), starting that wave with the tutorial when needed.
         public static void JumpTutorial(int wave, int step)
+            => JumpTutorial(1, wave, step);
+        public static void JumpTutorial(int stage, int wave, int step)
         {
             var b = Battle;
             if (b && b.Simulation != null && !b.Tutorial) throw new InvalidOperationException(NoTutorial);
-            if (OnStageOneWave(b, wave)) { JumpNow(b, wave, step); return; }
-            SessionState.SetString(RequestKey + ".jump", wave + "," + step);
-            PlayDefense(1, wave, true, wave > 1);
+            if (OnTutorialWave(b, stage, wave)) { JumpNow(b, wave, step); return; }
+            SessionState.SetString(RequestKey + ".jump", stage + "," + wave + "," + step);
+            PlayDefense(stage, wave, true, true);
         }
-        static bool OnStageOneWave(DefenseBattle b, int wave) => b && b.Simulation != null && b.Stage == 1 && b.Simulation.WaveIndex + 1 == wave;
+        static bool OnTutorialWave(DefenseBattle b, int stage, int wave) => b && b.Simulation != null && b.Stage == stage && b.Simulation.WaveIndex + 1 == wave;
         static void JumpNow(DefenseBattle b, int wave, int step)
         {
-            var sequence = StageOneSequence(wave);
-            if (!sequence) throw new InvalidOperationException($"1-{wave} 튜토리얼 시퀀스가 없습니다.");
+            var sequence = TutorialSequenceFor(b.Stage, wave);
+            if (!sequence) throw new InvalidOperationException($"{b.Stage}-{wave} 튜토리얼 시퀀스가 없습니다.");
             RestoreTutorialWork(b, wave, step);
             b.Tutorial.EditorRun(sequence, step);
         }
@@ -148,8 +153,8 @@ namespace CodingGame.Defense.Editor
         // they taught on each warrior; restarting or jumping there rebuilds that. Code a robot already has is left alone.
         static void RestoreTutorialWork(DefenseBattle b, int wave, int step = 0)
         {
-            var current = StageOneSequence(wave);
-            var done = Enumerable.Range(1, wave - 1).Select(StageOneSequence).Where(s => s).SelectMany(s => s.steps)
+            var current = TutorialSequenceFor(b.Stage, wave);
+            var done = Enumerable.Range(1, wave - 1).Select(w => TutorialSequenceFor(b.Stage, w)).Where(s => s).SelectMany(s => s.steps)
                 .Concat(current ? current.steps.Take(step) : Enumerable.Empty<TutorialStep>()).ToList();
             int robots = done.Count(s => s.completionSignal == TutorialSignals.RobotPlaced);
             while (b.Simulation.Robots.Count < robots) PlaceTeachingRobot(b, RobotRole.Warrior);
@@ -196,10 +201,11 @@ namespace CodingGame.Defense.Editor
             var jump = SessionState.GetString(RequestKey + ".jump", "");
             if (jump == "") return;
             if (!EditorApplication.isPlayingOrWillChangePlaymode) { SessionState.EraseString(RequestKey + ".jump"); return; }
-            var parts = jump.Split(','); int wave = int.Parse(parts[0]), step = int.Parse(parts[1]);
+            var parts = jump.Split(','); int stage = parts.Length == 3 ? int.Parse(parts[0]) : 1;
+            int wave = int.Parse(parts[parts.Length - 2]), step = int.Parse(parts[parts.Length - 1]);
             var b = Battle;
             if (b && b.Simulation != null && !b.Tutorial) { SessionState.EraseString(RequestKey + ".jump"); Debug.LogWarning(NoTutorial); return; }
-            if (!OnStageOneWave(b, wave) || !b.Tutorial.EditorSynced) return; // the session starts, and the tutorial resets for it, on a later Update
+            if (!OnTutorialWave(b, stage, wave) || !b.Tutorial.EditorSynced) return;
             SessionState.EraseString(RequestKey + ".jump");
             try { JumpNow(b, wave, step); } catch (Exception e) { Debug.LogException(e); }
         }
@@ -208,7 +214,7 @@ namespace CodingGame.Defense.Editor
             battle.EditorManualClock = false;
             battle.EditorStartSession(stage, wave, previousStageRewards, Options, pendingContent);
             // Starting mid Stage 1 with the earlier rewards: also the robots and code the earlier tutorials left.
-            if (stage == 1 && wave > 1 && previousStageRewards) RestoreTutorialWork(battle, wave);
+            if (stage <= 2 && wave > 1 && previousStageRewards) RestoreTutorialWork(battle, wave);
             Events.Clear(); Metrics.Clear(); Subscribe(battle);
         }
 

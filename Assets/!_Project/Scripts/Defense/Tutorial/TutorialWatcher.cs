@@ -24,12 +24,27 @@ namespace CodingGame.Defense
         public static bool Matches(DefenseProgram program, string expected)
         {
             if (program == null) return false;
+            // A loop's scope is part of the answer: finding the enemy before the loop must not pass.
+            if ((expected ?? "").Contains("for ") || (expected ?? "").Contains("while "))
+            {
+                var body = program.Source.Replace("\r", "").Split('\n').Skip(1).ToArray();
+                var wantedBody = (expected ?? "").Replace("\r", "").Split('\n');
+                return Scoped(body).SequenceEqual(Scoped(wantedBody));
+            }
             var actual = Canonical(Lines(string.Join("\n", program.Source.Replace("\r", "").Split('\n').Skip(1))));
             var wanted = Canonical(Lines(expected));
             return actual.SequenceEqual(wanted) || actual.OrderBy(l => l).SequenceEqual(wanted.OrderBy(l => l));
         }
         static List<string> Lines(string text) =>
             (text ?? "").Replace("\r", "").Split('\n').Select(line => line.Trim()).Where(line => line.Length > 0).ToList();
+        static IEnumerable<string> Scoped(IEnumerable<string> source)
+        {
+            var rows = source.Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
+            if (rows.Length == 0) return System.Array.Empty<string>();
+            int baseline = rows.Min(l => l.Length - l.TrimStart().Length);
+            var normalized = Canonical(rows.Select(l => l.Trim()).ToList());
+            return rows.Select((l, i) => (l.Length - l.TrimStart().Length - baseline) + ":" + normalized[i]);
+        }
         static readonly Regex Assignment = new Regex(@"^([^\W\d]\w*)\s*=(?!=)"); // any Python name, Korean included
         // Variables renamed v0, v1… in the order they are first set; attributes and calls (.hp, get_my_pos()) keep their names.
         static List<string> Canonical(List<string> lines)

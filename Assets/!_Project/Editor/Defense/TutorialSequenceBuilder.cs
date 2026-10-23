@@ -14,7 +14,7 @@ using UnityEngine;
 
 namespace CodingGame.Defense.Editor
 {
-    public static class TutorialSequenceBuilder
+    public static partial class TutorialSequenceBuilder
     {
         [MenuItem("Tools/Develop/Stage 1 튜토리얼 asset 다시 만들기")]
         public static void Menu() => Debug.Log(Run());
@@ -211,10 +211,13 @@ namespace CodingGame.Defense.Editor
 
         static TutorialSequence Write(string id, int wave, List<S> steps)
         {
-            string path = $"{Folder}/Tutorial_{id}.asset";
+            int stage = int.Parse(id.Split('-')[0]);
+            string folder = stage == 1 ? Folder : "Assets/!_Project/Defense/Tutorial/Stage2";
+            if (!AssetDatabase.IsValidFolder(folder)) AssetDatabase.CreateFolder("Assets/!_Project/Defense/Tutorial", "Stage2");
+            string path = $"{folder}/Tutorial_{id}.asset";
             var sequence = AssetDatabase.LoadAssetAtPath<TutorialSequence>(path);
             if (!sequence) { sequence = ScriptableObject.CreateInstance<TutorialSequence>(); AssetDatabase.CreateAsset(sequence, path); }
-            sequence.sequenceId = id; sequence.enabled = true; sequence.stage = 1; sequence.wave = wave;
+            sequence.sequenceId = id; sequence.enabled = true; sequence.stage = stage; sequence.wave = wave;
             sequence.entryPhase = TutorialEntryPhase.Preparation; sequence.typeSpeed = 30;
             bool battle = false;
             sequence.steps = steps.Select(s =>
@@ -277,18 +280,24 @@ namespace CodingGame.Defense.Editor
 
         public static string Run()
         {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Play Mode를 종료한 뒤 실행하세요.");
+            var director = UnityEngine.Object.FindObjectsByType<TutorialDirector>(FindObjectsInactive.Include, FindObjectsSortMode.None).SingleOrDefault();
+            if (!director) throw new InvalidOperationException("Defense 씬을 연 뒤 실행하세요.");
             var log = new System.Text.StringBuilder();
             lines = ParseScript(Path.Combine(Directory.GetCurrentDirectory(), Script));
             log.AppendLine("lines " + lines.Count);
-            var sequences = new[] { Write("1-1", 1, OneOne()), Write("1-2", 2, OneTwo()), Write("1-3", 3, OneThree()), Write("1-4", 4, OneFour()) };
+            var sequences = new List<TutorialSequence> { Write("1-1", 1, OneOne()), Write("1-2", 2, OneTwo()), Write("1-3", 3, OneThree()), Write("1-4", 4, OneFour()) };
+            lines = ParseScript(Path.Combine(Directory.GetCurrentDirectory(), "Docs/flow_stage2/tutorial_stage2_대본.md"));
+            sequences.Add(Write("1-5", 5, Finale()));
+            for (int wave = 1; wave <= 5; wave++) sequences.Add(Write("2-" + wave, wave, StageTwo(wave)));
             foreach (var s in sequences) log.AppendLine(s.sequenceId + ": " + s.steps.Length + " steps");
             log.AppendLine(Campaign());
+            ConfigureContinuation();
             AssetDatabase.SaveAssets();
-            var director = UnityEngine.Object.FindObjectsByType<TutorialDirector>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single();
             var so = new SerializedObject(director);
             var list = so.FindProperty("sequences");
-            list.arraySize = sequences.Length;
-            for (int i = 0; i < sequences.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = sequences[i];
+            list.arraySize = sequences.Count;
+            for (int i = 0; i < sequences.Count; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = sequences[i];
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorSceneManager.MarkSceneDirty(director.gameObject.scene);
             log.AppendLine("scene saved " + EditorSceneManager.SaveScene(director.gameObject.scene));
