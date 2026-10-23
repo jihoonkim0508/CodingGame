@@ -41,12 +41,13 @@ namespace CodingGame.Defense
         public string completionSignal;
         public string sourceKey, destinationKey;
         public bool pauseBattle = true, allowPreview;
+        public bool showEnemyInfo, showCondition;
         [Min(0)] public float highlightPadding = 10;
         [Tooltip("이 신호가 올 때까지 단계를 숨기고 기다립니다(예: FirstKill, WaveCleared, EditorClosed). 비우면 바로 표시.")]
         public string trigger;
         [Tooltip("이 신호가 이번 웨이브에 이미 왔으면 단계를 건너뜁니다(예: Leak이면 '다 막았어' 대사를 건너뜀).")]
         public string skipIf;
-        [Tooltip("ProgramMatches 판정용 정답 Python(함수 머리줄 제외). 줄 단위, 들여쓰기 무시.")]
+        [Tooltip("ProgramMatches 판정용 정답 Python(함수 머리줄 제외). 공백·변수 이름 차이는 허용하며 블록의 안쪽 연결을 검사.")]
         [TextArea(2, 6)] public string expectedCode;
         [Tooltip("화살표를 띄울 대상 키. 'a|b'면 앞에서부터 화면에 있는 것. 비우면 화살표 없음.")]
         public string pointerKey;
@@ -80,5 +81,7 @@ namespace CodingGame.Defense
         [Range(1f, 40f), Tooltip("초당 글자 수")]
         public float typeSpeed = 3f;
         public TutorialStep[] steps = Array.Empty<TutorialStep>();
+        public TutorialStep[] failureSteps = Array.Empty<TutorialStep>();
+        [TextArea] public string retryText;
     }
 }

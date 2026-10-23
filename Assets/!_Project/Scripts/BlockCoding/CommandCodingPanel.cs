@@ -333,6 +333,9 @@ namespace CodingGame.BlockCoding
                 float overlap = Mathf.Max(0, Mathf.Min(bounds.xMax, area.xMax) - Mathf.Max(bounds.xMin, area.xMin)) *
                     Mathf.Max(0, Mathf.Min(bounds.yMax, area.yMax) - Mathf.Max(bounds.yMin, area.yMin));
                 overlap /= Mathf.Max(1, Mathf.Min(bounds.width * bounds.height, area.width * area.height));
+                // When inserting just above an if, the bottom of the dragged header can graze its body.
+                // That sliver must not steal a root-chain insertion and put the declaration inside the if.
+                if (!socket && !zone.FreePlacement && !pointerOver && overlap < .5f) continue;
                 float distance = (bounds.center - area.center).sqrMagnitude;
                 if (!target || socket && !targetIsSocket || socket == targetIsSocket &&
                     (socket ? overlap > targetOverlap || Mathf.Approximately(overlap, targetOverlap) && distance < targetDistance :

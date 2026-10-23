@@ -40,6 +40,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 0
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -78,6 +80,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 0
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -118,6 +122,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 0
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -157,6 +163,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 0
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -196,6 +204,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 0
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -235,6 +245,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 1
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -273,6 +285,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 1
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -313,6 +327,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 1
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -353,6 +369,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 1
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -394,6 +412,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 1
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -402,7 +422,7 @@ MonoBehaviour:
       enemy_distance = enemy.distance(get_my_pos())
 
       slash(enemy)'
-    pointerKey: Editor.Code.After.1
+    pointerKey: Editor.Code.DistancePosition|Editor.Code.DistanceValue|Editor.Code.After.1
     hintCode: 
     pointerDelay: 0
     closeEditor: 0
@@ -411,7 +431,7 @@ MonoBehaviour:
     robotIndex: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo: Editor.Palette.MyPos>Editor.Code.DistancePosition|Editor.Palette.Variable>Editor.Code.DistanceValue|Editor.Palette.DeclareVariable>Editor.Code.After.1
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -438,6 +458,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 1
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -477,6 +499,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 1
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -503,7 +527,7 @@ MonoBehaviour:
       text: "\uC624\uB978\uCABD UI\uC5D0 \uD45C\uC2DC\uB41C `my_attack_range()`\uB294
         \uB85C\uBD07\uC758 \uACF5\uACA9 \uC0AC\uAC70\uB9AC\uC57C."
       focusKeys:
-      - Editor.Palette.MyAttackRange
+      - Editor.Code.EnemyInfo
       highlightKeys: []
     targetKeys: []
     dim: 0
@@ -516,6 +540,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 1
+    showEnemyInfo: 1
+    showCondition: 1
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -554,6 +580,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 1
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -595,6 +623,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 1
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -621,6 +651,7 @@ MonoBehaviour:
       text: "`<=`\uB294 \u201C\uC791\uAC70\uB098 \uAC19\uB2E4\u201D\uB294 \uB73B\uC774\uC57C."
       focusKeys:
       - Editor.Code.Loose
+      - Editor.Code.EnemyInfo
       highlightKeys: []
     targetKeys: []
     dim: 0
@@ -633,6 +664,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 1
+    showEnemyInfo: 1
+    showCondition: 1
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -660,6 +693,7 @@ MonoBehaviour:
         \uD06C\uBA74 \uC870\uAC74\uC740 \uAC70\uC9D3\uC774\uC57C."
       focusKeys:
       - Editor.Code.Loose
+      - Editor.Code.EnemyInfo
       highlightKeys: []
     targetKeys: []
     dim: 0
@@ -672,6 +706,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 1
+    showEnemyInfo: 1
+    showCondition: 1
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -699,6 +735,7 @@ MonoBehaviour:
         \uC791\uC73C\uBA74 \uC870\uAC74\uC740 \uCC38\uC774\uC57C."
       focusKeys:
       - Editor.Code.Loose
+      - Editor.Code.EnemyInfo
       highlightKeys: []
     targetKeys: []
     dim: 0
@@ -711,6 +748,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 1
+    showEnemyInfo: 1
+    showCondition: 1
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -736,7 +775,8 @@ MonoBehaviour:
       speaker: "\uC548\uB0B4\uC790"
       text: "\uC870\uAC74\uC774 \uCC38\uC77C \uB54C\uB9CC \uC548\uCABD\uC758 \uD589\uB3D9\uC744
         \uC2E4\uD589\uD558\uB824\uBA74 `if` \uBE14\uB85D\uC744 \uC0AC\uC6A9\uD574."
-      focusKeys: []
+      focusKeys:
+      - Editor.Palette.If
       highlightKeys: []
     targetKeys: []
     dim: 0
@@ -749,6 +789,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 1
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -790,6 +832,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 1
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -804,7 +848,7 @@ MonoBehaviour:
     robotIndex: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo: Editor.Palette.If>Editor.Code.After.2
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -829,6 +873,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 1
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -867,6 +913,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 1
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -905,6 +953,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 0
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -924,7 +974,7 @@ MonoBehaviour:
     holdSeconds: 0
   - stepId: E02
     kind: 1
-    dialoguePosition: 0
+    dialoguePosition: 1
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
@@ -946,11 +996,13 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     allowPreview: 0
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
     expectedCode: 
-    pointerKey: 
+    pointerKey: Battle.Start
     hintCode: 
     pointerDelay: 0
     closeEditor: 0
@@ -984,6 +1036,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 0
     allowPreview: 0
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -1023,6 +1077,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 0
     allowPreview: 0
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: FirstAttack
     skipIf: 
@@ -1061,6 +1117,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 0
     allowPreview: 0
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: WaveCleared
     skipIf: 
@@ -1099,6 +1157,8 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 0
     allowPreview: 0
+    showEnemyInfo: 0
+    showCondition: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -1116,3 +1176,5 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+  failureSteps: []
+  retryText:

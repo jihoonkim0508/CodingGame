@@ -10,6 +10,7 @@ namespace CodingGame.Defense
         // Produced by TutorialWatcher from the live simulation.
         public const string FirstKill = "FirstKill", FirstAttack = "FirstAttack", Leak = "Leak", WaveCleared = "WaveCleared", ProgramMatches = "ProgramMatches";
         // Produced by TutorialDirector: a loose condition block in the editor reads as the step's expectedCode.
+        public const string BossSpawned = "BossSpawned", BossAttacked = "BossAttacked";
         public const string ConditionBuilt = "ConditionBuilt";
         // Produced by TutorialDirector: the editor slot named by the step's expectedCode (an Editor.Code.Arg.* key) holds a block,
         // before the line compiles (1-1 D04 places the variable block first, the name is typed in the next step).
@@ -24,7 +25,7 @@ namespace CodingGame.Defense
         public const string Start = "Battle.Start", Develop = "Battle.Develop", Deployment = "Battle.DeploymentArea", SelectedRobot = "Robot.Selected",
             DropZone = "Editor.ProgramDropZone", Palette = "Editor.BlockPalette", Close = "Editor.Close", RestoreAutomatic = "Editor.RestoreAutomatic",
             Hint = "Editor.Hint", Preview = "Editor.Preview", CoreHealth = "Battle.CoreHealth", Route = "Battle.Route", RewardPanel = "Battle.RewardPanel", NextWave = "Battle.NextWave",
-            Floor = "Battle.Floor";
+            Floor = "Battle.Floor", RetryFinale = "Battle.RetryFinale", Quit = "Battle.Quit";
         public const string CodePrefix = "Editor.Code.", PalettePrefix = "Editor.Palette.";
         const string UnitPrefix = "Robot.Unit.", RangePrefix = "Robot.Range.";
         public const string RobotButtonPrefix = "Battle.Robot.";

@@ -133,6 +133,7 @@ namespace CodingGame.Defense
         public EnemySpec Enemy;
         public int DefinitionIndex, RouteIndex, Count;
         public float Delay, Interval;
+        public bool WaitForClear;
     }
 
     public sealed class BattleSetup
@@ -251,6 +252,8 @@ namespace CodingGame.Defense
     }
     public sealed class EnemyState
     {
+        public int SpawnGroupIndex;
+        public bool IsFinaleBoss;
         public int Id, DefinitionIndex, RouteIndex, NextPoint = 1, BlockedBy;
         public Vector2 Position;
         public EnemySpec Spec;

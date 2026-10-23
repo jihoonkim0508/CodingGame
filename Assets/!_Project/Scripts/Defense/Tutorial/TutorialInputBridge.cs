@@ -86,6 +86,10 @@ namespace CodingGame.Defense
             RefreshAreas();
         }
 
+        public void RegisterUI(string key, RectTransform rect)
+        {
+            byKey[key] = new TutorialTargetBinding { key = key, uiTarget = rect };
+        }
         public void SetEditorAreas(Func<string, Vector3[], bool> resolver) => editorArea = resolver;
         // Outlined, not clickable: the dialogue's focus targets. Clicks still pass the game's TutorialAllows checks.
         public void SetFocus(string[] keys)
@@ -467,7 +471,7 @@ namespace CodingGame.Defense
             return false;
         }
 
-        public bool HasTarget(string key) => !string.IsNullOrWhiteSpace(key) && (TutorialKeys.IsRuntime(key) || TutorialKeys.IsEditorArea(key) ||
+        public bool HasTarget(string key) => !string.IsNullOrWhiteSpace(key) && (key == TutorialKeys.RetryFinale || key == TutorialKeys.Quit || TutorialKeys.IsRuntime(key) || TutorialKeys.IsEditorArea(key) ||
             Array.Exists(targets, binding => binding != null && binding.key == key && (binding.allowRuntimeTarget || binding.uiTarget || binding.worldTarget)));
         public bool HasRuntimeTarget(string key) => !string.IsNullOrWhiteSpace(key) &&
             (TutorialKeys.IsRuntime(key) || byKey.TryGetValue(key, out var binding) && binding.allowRuntimeTarget);

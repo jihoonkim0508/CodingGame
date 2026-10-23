@@ -28,7 +28,7 @@ namespace CodingGame.Defense
             return stages[stage - 1].waves.Select(w => w.groups.Select(g => new SpawnGroup {
                 Enemy = g.enemy ? g.enemy.stats.Copy() : throw new ArgumentException("스폰 적 참조 누락"),
                 DefinitionIndex = Array.IndexOf(enemies, g.enemy), RouteIndex = g.route, Count = g.count,
-                Delay = g.delay, Interval = g.interval
+                Delay = g.delay, Interval = g.interval, WaitForClear = g.waitForClear
             }).ToArray()).ToArray();
         }
         public void ValidateContent()

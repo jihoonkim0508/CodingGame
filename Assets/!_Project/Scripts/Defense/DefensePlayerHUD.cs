@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 namespace CodingGame.Defense
 {
-    public sealed class DefensePlayerHUD : MonoBehaviour
+    public sealed partial class DefensePlayerHUD : MonoBehaviour
     {
         [SerializeField] DefenseBattle battle;
         [SerializeField] GameObject canvasRoot, rewardPanel;
@@ -92,8 +92,10 @@ namespace CodingGame.Defense
             pauseLabel.text = sim.Phase == BattlePhase.Paused ? "계속" : "일시정지"; speedLabel.text = battle.BattleSpeed + "x";
             RefreshRobotButtons(battle, robotButtons, robotLabels, "\nx");
             RefreshRobotActions(sim);
-            rewardPanel.SetActive(reward || ended);
-            if (reward || ended) RefreshRewardPanel(sim, reward);
+            bool finaleFailure = battle.IsTutorialFinale && sim.Phase == BattlePhase.Defeat;
+            RefreshFinaleFailure(finaleFailure);
+            rewardPanel.SetActive((reward || ended) && !finaleFailure);
+            if ((reward || ended) && !finaleFailure) RefreshRewardPanel(sim, reward);
             else resultShown = -100; // a restart right after the result clears its banner too, not only after BannerSeconds
             shownRewardPhase = sim.Phase; shownRewardWave = sim.WaveIndex; shownRewardStage = battle.Stage;
         }

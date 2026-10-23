@@ -242,7 +242,12 @@ namespace CodingGame.BlockCoding
             CommandBlockView.Place(first.Rect, position.x, -position.y, first.preferredWidth, first.preferredHeight);
 
             FindSnap(placed, position, out var attachAfter, out var attachBefore);
-            if (attachAfter) next[attachAfter] = first;
+            if (attachAfter)
+            {
+                next.TryGetValue(attachAfter, out var following);
+                next[attachAfter] = first;
+                if (following && !placed.Contains(following)) next[last] = following;
+            }
             else if (attachBefore)
             {
                 // Insert at the visible first row and move its chain down instead of clipping above the workspace.
@@ -274,10 +279,12 @@ namespace CodingGame.BlockCoding
             if (placed.All(b => PythonTreeCompiler.OutputSlot(b.Kind) == BlockSlotKind.Statement))
                 foreach (var target in blocks.Where(b => !placed.Contains(b) && PythonTreeCompiler.OutputSlot(b.Kind) == BlockSlotKind.Statement))
                 {
-                    if (!next.TryGetValue(target, out var following) || placed.Contains(following))
+                    // Tutorial 1-3/1-4 inserts a declaration between existing statements. Preserve the suffix,
+                    // and validate the resulting order (inserting between if/elif still remains forbidden).
                     {
                         var root = Roots().First(r => Group(r).Contains(target));
-                        var chain = Group(root).Where(b => !placed.Contains(b)).Concat(placed).ToList();
+                        var chain = Group(root).Where(b => !placed.Contains(b)).ToList();
+                        chain.InsertRange(chain.IndexOf(target) + 1, placed);
                         var edge = target.Rect.anchoredPosition + new Vector2(0, -target.preferredHeight + (IsBranch(first) ? BranchOverlap : 0));
                         float distance = Gap(position, edge, Mathf.Max(target.preferredWidth, first.preferredWidth));
                         if (distance < nearest && ValidChain(chain)) { nearest = distance; attachAfter = target; attachBefore = null; }

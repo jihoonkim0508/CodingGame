@@ -17,6 +17,7 @@ namespace CodingGame.Defense
             public EnemyDefinition enemy;
             public int route, count = 5;
             public float delay, interval = 1.5f;
+            public bool waitForClear;
         }
         [Serializable] public sealed class Wave { public SpawnEntry[] groups = Array.Empty<SpawnEntry>(); }
 
@@ -83,6 +84,7 @@ namespace CodingGame.Defense
         public string StatusMessage { get; private set; }
         public TutorialDirector Tutorial => tutorial;
         public DefenseCodeEditor CodeEditor => codeEditor;
+        public DefenseSimulation PreviewSimulation => attackPreview ? attackPreview.PreviewSimulation : null;
         int tutorialUnits;
         public bool TutorialBlocksInput => tutorial && tutorial.BlocksGameplayInput;
         public bool TutorialBlocksPreview => tutorial && tutorial.BlocksPreview;
@@ -201,6 +203,7 @@ namespace CodingGame.Defense
             ClearDrops();
             projectileViews.Clear();
             hitEffects.Clear();
+            CancelFinalePresentation();
             Simulation = new DefenseSimulation(setup);
             selected = 0; BattleSpeed = 1; HidePlacement();
             rangeRing.Hide(); effectRing.Hide(); resultPanel.SetActive(false);
@@ -437,6 +440,7 @@ namespace CodingGame.Defense
             float elapsed = (float)(Simulation.Time - previous);
             SyncViews(elapsed);
             SyncTutorialTargets();
+            TickFinalePresentation();
             hitEffects.Tick(Simulation.Phase == BattlePhase.Paused ? 0 :
                 Simulation.Phase == BattlePhase.Running ? elapsed : UnityEngine.Time.deltaTime * BattleSpeed);
             foreach (var evt in Simulation.Events)

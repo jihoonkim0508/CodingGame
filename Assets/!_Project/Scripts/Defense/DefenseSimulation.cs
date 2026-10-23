@@ -28,6 +28,39 @@ namespace CodingGame.Defense
         public int Kills { get; private set; }
         public int Leaks { get; private set; }
         public int Spawned { get; private set; }
+        public int FinaleBossId { get; private set; }
+        public bool FinaleBossAttacked { get; private set; }
+        // A retry restores the wave entrance, including rewards and spent combat state, without regranting supply.
+        int retryHealth, retryCoins, retryKills, retryLeaks, retrySpawned, retryNextId;
+        double retryTime;
+        RobotState[] retryRobots;
+        BlockKind[] retryDrops;
+        static RobotState CopyRobot(RobotState r) => new RobotState {
+            Id = r.Id, DefinitionIndex = r.DefinitionIndex, Position = r.Position, Spec = r.Spec.Copy(),
+            Level = r.Level, LevelCap = r.LevelCap, UpgradeFactor = r.UpgradeFactor, UpgradeCostPaid = r.UpgradeCostPaid,
+            Action = r.Action, Health = r.Health, AutoExecute = r.AutoExecute,
+            Program = r.Program == null ? null : new DefenseProgram(r.Program.Name, r.Program.CopyBlocks())
+        };
+        void CaptureWaveStart()
+        {
+            retryHealth = BaseHealth; retryCoins = Coins; retryKills = Kills; retryLeaks = Leaks;
+            retrySpawned = Spawned; retryNextId = nextId; retryTime = Time;
+            retryRobots = Robots.Select(CopyRobot).ToArray(); retryDrops = PendingDrops.ToArray();
+        }
+        public bool RetryFinale()
+        {
+            if (Phase != BattlePhase.Defeat || Setup.Stage != 1 || WaveIndex != 4 || retryRobots == null) return false;
+            BaseHealth = retryHealth; Coins = retryCoins; Kills = retryKills; Leaks = retryLeaks;
+            Spawned = retrySpawned; nextId = retryNextId; Time = retryTime;
+            Robots.Clear(); Robots.AddRange(retryRobots.Select(CopyRobot));
+            foreach (var robot in Robots) robot.NextAction = Time;
+            Enemies.Clear(); Projectiles.Clear(); strikes.Clear(); Events.Clear(); carry.Clear();
+            PendingDrops.Clear(); PendingDrops.AddRange(retryDrops);
+            groupCounts = new int[currentWave.Length]; accumulated = spawnElapsed = 0; waveStart = Time;
+            FinaleBossId = 0; FinaleBossAttacked = false; LastSurvivors = 0; LastWaveTimedOut = false;
+            Phase = BattlePhase.Ready;
+            return true;
+        }
         public double WaveRemaining
         {
             get
@@ -170,7 +203,7 @@ namespace CodingGame.Defense
             {
                 var enemy = Setup.RulesConfig.Scale(group.Enemy, Setup.Stage, waveIndex);
                 return new SpawnGroup { Enemy = enemy, DefinitionIndex = group.DefinitionIndex, RouteIndex = group.RouteIndex,
-                    Count = group.Count, Delay = group.Delay, Interval = group.Interval };
+                    Count = group.Count, Delay = group.Delay, Interval = group.Interval, WaitForClear = group.WaitForClear };
             }).ToArray();
         }
         public string StartError()
@@ -179,7 +212,7 @@ namespace CodingGame.Defense
             if (Setup.PlayerFlow && Robots.Count == 0) return "로봇을 먼저 배치하세요.";
             return null;
         }
-        public void Start() { if (StartError() == null) { accumulated = 0; waveStart = Time; Phase = BattlePhase.Running; } }
+        public void Start() { if (StartError() == null) { CaptureWaveStart(); accumulated = 0; waveStart = Time; Phase = BattlePhase.Running; } }
         public bool ClaimRewards()
         {
             if (Phase != BattlePhase.Reward) return false;
@@ -442,6 +475,7 @@ namespace CodingGame.Defense
         void Hit(EnemyState e, float damage, int source, bool projectile = false, RobotState meleeSource = null)
         {
             if (!e.Active) return;
+            if (e.IsFinaleBoss) FinaleBossAttacked = true;
             float applied=Options.attackDamage?Math.Min(e.Health,damage):0;
             if (!Options.attackDamage) { Emit("damage-suppressed", source, e.Id, e.Position, damage); damage = 0; }
             e.Health = Math.Max(0, e.Health - damage);
@@ -529,7 +563,11 @@ namespace CodingGame.Defense
             bool timedOut = Options.waveTimeout && Setup.WaveSeconds > 0 && Time - waveStart + 1e-8 >= Setup.WaveSeconds;
             if (!timedOut) { ResolveProjectiles(); ResolveStrikes(); }
             Enemies.RemoveAll(e => !e.Active);
+            // The last normal enemy can die during ResolveStrikes: release the boss in this very tick.
+            if (Options.enemySpawn && currentWave.Any(g => g.WaitForClear)) Spawn();
             int remaining = RemainingEnemies;
+            if (timedOut && remaining > 0 && currentWave.Any(g => g.WaitForClear))
+            { BaseHealth = 0; Projectiles.Clear(); strikes.Clear(); Phase = BattlePhase.Defeat; return; }
             if (remaining == 0 || timedOut) CompleteWave(remaining);
         }
         // Carries survivors and unspawned enemies into the next wave, then moves to rewards or the next wave.
@@ -569,11 +607,15 @@ namespace CodingGame.Defense
             for (int i = 0; i < wave.Length; i++)
             {
                 var g = wave[i];
+                if (g.WaitForClear && (Enumerable.Range(0, i).Any(n => groupCounts[n] < wave[n].Count) ||
+                    Enemies.Any(e => e.Active && e.SpawnGroupIndex < i))) continue;
                 while (groupCounts[i] < g.Count && spawnElapsed + .000001 >= g.Delay + groupCounts[i] * g.Interval)
                 {
                     var spec = g.Enemy.Copy();
-                    Enemies.Add(new EnemyState { Id = nextId++, DefinitionIndex = g.DefinitionIndex, Spec = spec, Health = spec.health,
-                        Position = Setup.Routes[g.RouteIndex].Points[0], RouteIndex = g.RouteIndex, NextAttack = Time + spec.attackInterval });
+                    var spawned = new EnemyState { Id = nextId++, SpawnGroupIndex = i, IsFinaleBoss = g.WaitForClear, DefinitionIndex = g.DefinitionIndex, Spec = spec, Health = spec.health,
+                        Position = Setup.Routes[g.RouteIndex].Points[0], RouteIndex = g.RouteIndex, NextAttack = Time + spec.attackInterval };
+                    Enemies.Add(spawned);
+                    if (spawned.IsFinaleBoss) { FinaleBossId = spawned.Id; Emit("boss-spawned", spawned.Id, 0, spawned.Position); }
                     groupCounts[i]++; Spawned++;
                 }
             }

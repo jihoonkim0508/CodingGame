@@ -1,4 +1,4 @@
-﻿// Builds Tutorial_1-1 ~ Tutorial_1-4 from Docs/flow_stage1/tutorial_stage1_대본.md (dialogue stays verbatim),
+﻿// Builds Tutorial_1-1 ~ Tutorial_1-5 from Docs/flow_stage1/tutorial_stage1_대본.md (dialogue stays verbatim),
 // sets the Stage 1 grants/topics/1-4 enemy count (명세서 §2-1) and wires the sequences into Defense.unity.
 // Run from Tools/Develop after editing the script document; Defense.unity must be the open scene.
 using System;
@@ -52,6 +52,7 @@ namespace CodingGame.Defense.Editor
             public string Demo;
             public bool Top;
             public float Hold;
+            public bool Info, Condition;
         }
 
         static Dictionary<string, Line> lines;
@@ -119,14 +120,14 @@ namespace CodingGame.Defense.Editor
             steps.AddRange(OpenEditor("1-2.A05"));
             steps.Add(L("1-2.B01", With(Ed, Focus(Drop, Preview))));
             // B04~B07 introduce the dot operator: no skipping, each moves on 2 s after its text is out (planner).
-            steps.AddRange(new[] { "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B09" }.Select(id => L("1-2." + id, With(Ed, s => { if (string.CompareOrdinal(id, "B04") >= 0 && string.CompareOrdinal(id, "B07") <= 0) s.Auto = 2; }))));
+            steps.AddRange(new[] { "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B09" }.Select(id => L("1-2." + id, With(Ed, s => { s.Info = id == "B05" || id == "B06"; if (string.CompareOrdinal(id, "B04") >= 0 && string.CompareOrdinal(id, "B07") <= 0) s.Auto = 2; }))));
             steps.AddRange(new[] {
                 L("1-2.C01", Ed), L("1-2.C02", Ed), L("1-2.C03", Ed), L("1-2.C04", Ed),
                 L("1-2.C05", With(Ed, Focus(Hint), s => { s.ClearProgram = true; s.HintCode = Code11; })),
                 L("1-2.C06", Signal(TutorialSignals.ProgramMatches, new[] { Drop, Palette, Hint }, s =>
                     { s.Expected = Code11; s.HintCode = Code11; s.Pointer = Hint; s.PointerDelay = 60; s.Preview = true; s.Dismissable = true; })),
                 L("1-2.C06c", Signal(TutorialSignals.EditorClosed, new[] { Close }, s => { s.Pointer = Close; s.Preview = true; s.Undimmed = true; })),
-                L("1-2.D01", Signal(TutorialSignals.BattleStarted, new[] { Start })),
+                L("1-2.D01", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => { s.Pointer = Start; s.Top = true; })),
                 L("1-2.D02", s => s.Trigger = TutorialSignals.WaveCleared), L("1-2.D03"), L("1-2.D04"),
             });
             return steps;
@@ -139,17 +140,17 @@ namespace CodingGame.Defense.Editor
             steps.AddRange(new[] {
                 L("1-3.B01", Ed),
                 L("1-3.B02", With(Ed, Focus("Editor.Code.Line.1"))), L("1-3.B02a", With(Ed, Focus("Editor.Palette.Variable"))),
-                L("1-3.B02b", Code(Code13Distance, s => s.Pointer = "Editor.Code.After.1")),
+                L("1-3.B02b", Code(Code13Distance, s => { s.Pointer = "Editor.Code.DistancePosition|Editor.Code.DistanceValue|Editor.Code.After.1"; s.Demo = "Editor.Palette.MyPos>Editor.Code.DistancePosition|Editor.Palette.Variable>Editor.Code.DistanceValue|Editor.Palette.DeclareVariable>Editor.Code.After.1"; })),
                 L("1-3.B03", With(Ed, Focus("Editor.Code.Line.1", "Editor.Code.Arg.2.0"))), L("1-3.B04", With(Ed, Focus("Editor.Code.Line.2"))),
-                L("1-3.C01", With(Ed, Focus("Editor.Palette.MyAttackRange"))), L("1-3.C02", Ed),
+                L("1-3.C01", With(Ed, Focus("Editor.Code.EnemyInfo"), s => { s.Info = true; s.Condition = true; })), L("1-3.C02", Ed),
                 L("1-3.C03", Signal(TutorialSignals.ConditionBuilt, new[] { Drop, Palette }, s =>
                     { s.Expected = "enemy_distance <= my_attack_range()"; s.Pointer = "Editor.Palette.Comparison"; s.Preview = true; })),
-                L("1-3.C04", With(Ed, Focus("Editor.Code.Loose"))), L("1-3.C05", With(Ed, Focus("Editor.Code.Loose"))), L("1-3.C06", With(Ed, Focus("Editor.Code.Loose"))),
-                L("1-3.D01", Ed),
-                L("1-3.D02", Code(Code13, With(s => s.Pointer = "Editor.Code.Body.3|Editor.Code.After.2", Focus("Editor.Code.Body.3")))),
+                L("1-3.C04", With(Ed, Focus("Editor.Code.Loose", "Editor.Code.EnemyInfo"), s => { s.Info = true; s.Condition = true; })), L("1-3.C05", With(Ed, Focus("Editor.Code.Loose", "Editor.Code.EnemyInfo"), s => { s.Info = true; s.Condition = true; })), L("1-3.C06", With(Ed, Focus("Editor.Code.Loose", "Editor.Code.EnemyInfo"), s => { s.Info = true; s.Condition = true; })),
+                L("1-3.D01", With(Ed, Focus("Editor.Palette.If"))),
+                L("1-3.D02", Code(Code13, With(s => { s.Pointer = "Editor.Code.Body.3|Editor.Code.After.2"; s.Demo = "Editor.Palette.If>Editor.Code.After.2"; }, Focus("Editor.Code.Body.3")))),
                 L("1-3.D03", Ed), L("1-3.D04", Ed),
                 L("1-3.E01", s => s.CloseEditor = true),
-                L("1-3.E02", Signal(TutorialSignals.BattleStarted, new[] { Start }, Focus(Route, Range0, Core))),
+                L("1-3.E02", Signal(TutorialSignals.BattleStarted, new[] { Start }, With(Focus(Route, Range0, Core), s => { s.Pointer = Start; s.Top = true; }))),
                 L("1-3.E03", Fight),
                 L("1-3.E04", With(Fight, Focus(Range0), s => s.Trigger = TutorialSignals.FirstAttack)),
                 L("1-3.E05", s => s.Trigger = TutorialSignals.WaveCleared), L("1-3.E06"),
@@ -169,7 +170,7 @@ namespace CodingGame.Defense.Editor
             steps.AddRange(new[] {
                 L("1-4.B02", Ed), L("1-4.B03", Ed), L("1-4.B04", Ed),
                 L("1-4.C01", With(Ed, Focus("Editor.Palette.DeclareVariable"))), L("1-4.C02", Ed), L("1-4.C03", With(Ed, Focus("Editor.Palette.MyAttackRange"))),
-                L("1-4.C04", Code(Code14Middle, s => s.Pointer = "Editor.Code.After.2")),
+                L("1-4.C04", Code(Code14Middle, s => { s.Pointer = "Editor.Code.RangeValue|Editor.Code.After.2"; s.Demo = "Editor.Palette.MyAttackRange>Editor.Code.RangeValue|Editor.Palette.DeclareVariable>Editor.Code.After.2"; })),
                 L("1-4.C05", Ed), L("1-4.C06", With(Ed, Focus("Editor.Code.Arg.4.0.1"))),
                 L("1-4.C07", Code(Code14, With(s => s.Pointer = "Editor.Code.Arg.4.0.1", Focus("Editor.Code.Arg.4.0.1")))),
                 L("1-4.C08", Ed), L("1-4.C09", Ed), L("1-4.C10", Ed), L("1-4.C11", Ed),
@@ -181,7 +182,7 @@ namespace CodingGame.Defense.Editor
                 L("1-4.D04", Signal(TutorialSignals.EditorClosed, new[] { Close }, s => { s.Id += "c"; s.Robot = 1; s.Preview = true; s.Undimmed = true; s.Pointer = Close; })),
                 L("1-4.D05"),
                 L("1-4.E01"), L("1-4.E02"), L("1-4.E03"),
-                L("1-4.E04", Signal(TutorialSignals.BattleStarted, new[] { Start }, Focus(Route, Range0, Range1, Core))),
+                L("1-4.E04", Signal(TutorialSignals.BattleStarted, new[] { Start }, With(Focus(Route, Range0, Range1, Core), s => { s.Pointer = Start; s.Top = true; }))),
                 L("1-4.E05", With(Fight, s => s.Trigger = TutorialSignals.FirstAttack)),
                 L("1-4.E06", With(Fight, Focus(Range0, Range1))),
                 L("1-4.F01", s => s.Trigger = TutorialSignals.WaveCleared), L("1-4.F02"), L("1-4.F03"), L("1-4.F04"),
@@ -231,7 +232,7 @@ namespace CodingGame.Defense.Editor
                     skipIf = s.SkipIf, pauseBattle = !battle, allowPreview = s.Preview, highlightPadding = s.Padding, trigger = s.Trigger, expectedCode = s.Expected,
                     pointerKey = s.Pointer, hintCode = s.HintCode, pointerDelay = s.PointerDelay,
                     closeEditor = s.CloseEditor, clearProgram = s.ClearProgram, openEditor = s.OpenEditor, robotIndex = s.Robot,
-                    introEntrance = s.Intro, undimmed = s.Undimmed, alertCards = s.Cards, autoAdvance = s.Auto, dismissable = s.Dismissable, holdSeconds = s.Hold, dragDemo = s.Demo };
+                    introEntrance = s.Intro, undimmed = s.Undimmed, alertCards = s.Cards, autoAdvance = s.Auto, dismissable = s.Dismissable, holdSeconds = s.Hold, dragDemo = s.Demo, showEnemyInfo = s.Info, showCondition = s.Condition };
             }).ToArray();
             EditorUtility.SetDirty(sequence);
             return sequence;
@@ -287,8 +288,11 @@ namespace CodingGame.Defense.Editor
             lines = ParseScript(Path.Combine(Directory.GetCurrentDirectory(), Script));
             log.AppendLine("lines " + lines.Count);
             var sequences = new List<TutorialSequence> { Write("1-1", 1, OneOne()), Write("1-2", 2, OneTwo()), Write("1-3", 3, OneThree()), Write("1-4", 4, OneFour()) };
+            var finale = Write("1-5", 5, Finale());
+            finale.failureSteps = WriteFinaleFailure();
+            finale.retryText = lines["1-5.H01"].Text;
+            sequences.Add(finale);
             lines = ParseScript(Path.Combine(Directory.GetCurrentDirectory(), "Docs/flow_stage2/tutorial_stage2_대본.md"));
-            sequences.Add(Write("1-5", 5, Finale()));
             for (int wave = 1; wave <= 5; wave++) sequences.Add(Write("2-" + wave, wave, StageTwo(wave)));
             foreach (var s in sequences) log.AppendLine(s.sequenceId + ": " + s.steps.Length + " steps");
             log.AppendLine(Campaign());

@@ -20,6 +20,8 @@ namespace CodingGame.Defense
         [SerializeField, Tooltip("'비우기' 오른쪽 힌트 버튼. 튜토리얼이 힌트를 줄 때만 보입니다.")] Button hintButton;
         [SerializeField] GameObject hintPopup;
         [SerializeField] TMP_Text hintText;
+        TMP_Text tutorialInfo;
+        bool showTutorialInfo, showTutorialCondition;
         int editingId;
         DefenseSimulation editingSession;
         DefenseSimulation draftSession;
@@ -112,10 +114,23 @@ namespace CodingGame.Defense
         public bool TryGetTutorialCorners(string key, Vector3[] corners)
         {
             if (!IsOpen || key == null) return false;
+            if (key == "Editor.Code.EnemyInfo") return Corners(tutorialInfo && tutorialInfo.gameObject.activeSelf ? tutorialInfo.rectTransform : null, null, corners);
             if (key.StartsWith(TutorialKeys.PalettePrefix)) return Corners(TutorialPaletteItem(key), null, corners);
             if (!key.StartsWith(TutorialKeys.CodePrefix)) return false;
             var program = panel.Program;
             var parts = key.Substring(TutorialKeys.CodePrefix.Length).Split('.');
+            // New declarations are inserted before existing slash/if blocks. Point at their sockets only once the
+            // declaration is actually there; a same-numbered socket on the old slash/if is the wrong destination.
+            if (parts[0] == "DistanceValue" || parts[0] == "DistancePosition" || parts[0] == "RangeValue")
+            {
+                var current = program.StartChain(); int row = parts[0] == "RangeValue" ? 2 : 1;
+                if (current.Count <= row || current[row].BaseKind != BlockKind.DeclareVariable) return false;
+                var value = current[row].Arguments[0];
+                if (parts[0] != "DistancePosition") return Corners(value.Rect, null, corners);
+                var distance = value.Blocks.FirstOrDefault();
+                return distance && distance.Kind == BlockKind.Distance && distance.Arguments.Count > 0 &&
+                    Corners(distance.Arguments[0].Rect, null, corners);
+            }
             // The start slot, or the block once one sits there (the slot is narrower than e.g. enemy = get_nearest_enemy()).
             if (parts[0] == "Start")
             {
@@ -202,11 +217,45 @@ namespace CodingGame.Defense
             panel.ShowMessage("코드를 비웠습니다. 블록 예약이 해제됩니다.");
             battle.ReportTutorialAction(TutorialKeys.RestoreAutomatic, TutorialSignals.TargetClicked);
         }
+        public void SetTutorialInfo(bool visible, bool condition)
+        {
+            showTutorialInfo = visible; showTutorialCondition = condition;
+            if (!visible && tutorialInfo) tutorialInfo.gameObject.SetActive(false);
+        }
+        void RefreshTutorialInfo()
+        {
+            if (!showTutorialInfo) return;
+            if (!tutorialInfo)
+            {
+                tutorialInfo = new GameObject("Tutorial enemy information", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                tutorialInfo.transform.SetParent(editorRoot.transform, false);
+                var rect = tutorialInfo.rectTransform;
+                rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1, 1);
+                rect.anchoredPosition = new Vector2(-28, -58); rect.sizeDelta = new Vector2(600, 82);
+                tutorialInfo.font = title.font; tutorialInfo.fontSize = 20; tutorialInfo.textWrappingMode = TextWrappingModes.NoWrap; tutorialInfo.alignment = TextAlignmentOptions.TopRight;
+                tutorialInfo.raycastTarget = false; tutorialInfo.color = new Color(.43f, 1, .82f);
+            }
+            tutorialInfo.gameObject.SetActive(true);
+            var sim = battle.PreviewSimulation;
+            var robot = sim?.Robots.FirstOrDefault();
+            var enemy = robot == null ? null : Rules.Nearest(sim.Enemies.Where(e => e.Active).ToList(), robot.Position);
+            string details = enemy == null ? "enemy: 대상 없음" :
+                $"enemy_distance = {System.Numerics.Vector2.Distance(robot.Position, enemy.Position):0.00}   enemy.hp = {enemy.Health:0.#}";
+            if (showTutorialCondition && robot != null)
+            {
+                float distance = enemy == null ? float.PositiveInfinity : System.Numerics.Vector2.Distance(robot.Position, enemy.Position);
+                details += $"\nmy_attack_range() = {robot.Range:0.0}\nenemy_distance <= my_attack_range(): " +
+                    (enemy == null ? "대상 없음" : distance <= robot.Range ? "<color=#FFD84D>True</color>" : "<color=#FF7777>False</color>");
+            }
+            tutorialInfo.text = details;
+        }
+
         void Update()
         {
             if (battle.HelpOpen) return;
             var sim = battle.Simulation;
             if (!IsOpen) return;
+            RefreshTutorialInfo();
             // 재시작이나 도메인 리로드로 세션이 사라지면 이전 로봇 편집을 즉시 종료합니다.
             if (!HasCurrentSession || !sim.CanEdit || !sim.Robots.Exists(r => r.Id == editingId)) { Close(false); return; }
             var keyboard = Keyboard.current;

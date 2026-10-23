@@ -37,14 +37,52 @@ namespace CodingGame.Defense.Editor
 
         static List<S> Finale()
         {
-            var steps = new List<S> { L("1-5.A01"), L("1-5.A02", Focus(Route)) };
-            steps.AddRange(OpenEditor("1-5.B01"));
-            steps.Add(Practice("1-5.C01", Code14));
-            steps.Add(L("1-5.C02", s => { s.OpenEditor = true; s.Robot = 1; s.Preview = true; s.HintCode = Code14; }));
-            steps.Add(Practice("1-5.C03", Code14, 1));
-            FinishWave(steps, "1-5");
+            var steps = new List<S> {
+                L("1-5.A01"), L("1-5.A02", Focus(TutorialKeys.NextWave)), L("1-5.A03"),
+                L("1-5.A04", With(Focus(Route, Unit0, Core), Highlight(Range0, Range1))),
+                L("1-5.B01"), L("1-5.B02"), L("1-5.B03"),
+            };
+            steps.AddRange(OpenEditor("1-5.B04"));
+            steps.Add(L("1-5.B05", With(Ed, Focus("Editor.Code.Line.4"))));
+            steps.Add(L("1-5.B06", With(Ed, Focus("Editor.Code.Line.1", "Editor.Code.Line.2", "Editor.Code.Line.3"), s => s.HintCode = Code14)));
+            // Hints are available during the actual practice, before returning to the battle screen.
+            steps.Add(L("1-5.C01", With(Ed, s => s.HintCode = Code14)));
+            steps.Add(L("1-5.C02", With(Ed, Focus(Hint), s => s.HintCode = Code14)));
+            for (int robot = 0; robot < 2; robot++)
+            {
+                int r = robot;
+                var practice = Practice("1-5.B06", Code14, r);
+                practice.Id += "r" + r; practice.Hold = 1.5f;
+                if (r == 1) practice.OpenEditor = true;
+                steps.Add(practice);
+            }
+            steps.Add(L("1-5.B06", Signal(TutorialSignals.EditorClosed, new[] { Close }, s => {
+                s.Id += "c"; s.Robot = 1; s.Preview = true; s.Pointer = Close; s.Undimmed = true;
+            })));
+            steps.Add(L("1-5.D01"));
+            steps.Add(L("1-5.D02", With(Focus(Route, Core), Highlight(Range0, Range1))));
+            steps.Add(L("1-5.D03", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => { s.Pointer = Start; s.Top = true; })));
+            // These lines never pause the fight or require a click while the boss entrance is playing.
+            steps.Add(L("1-5.E01", With(Fight, s => s.Trigger = TutorialSignals.BossSpawned)));
+            foreach (string id in new[] { "E02", "E03", "E04" })
+                steps.Add(L("1-5." + id, With(Fight, s => { s.Auto = .6f; s.SkipIf = TutorialSignals.WaveCleared; }, Highlight(Range0, Range1))));
+            steps.Add(L("1-5.E05", With(Fight, s => { s.Trigger = TutorialSignals.BossAttacked; s.Auto = .6f; })));
+            steps.Add(L("1-5.F01", s => s.Trigger = TutorialSignals.WaveCleared));
+            steps.Add(L("1-5.F02")); steps.Add(L("1-5.F03")); steps.Add(L("1-5.F04"));
             return steps;
         }
+
+        static TutorialStep[] WriteFinaleFailure() => new[] { "G01", "G02", "G03", "G04" }.Select(id => {
+            var line = lines["1-5." + id];
+            bool choice = id == "G04";
+            return new TutorialStep {
+                stepId = id, texts = new[] { new TutorialText { textId = "t1", speaker = line.Speaker, text = line.Text } },
+                kind = choice ? TutorialStepKind.ActionGuide : TutorialStepKind.Dialogue,
+                completionMode = choice ? TutorialCompletionMode.TargetClick : TutorialCompletionMode.Unconfigured,
+                targetKeys = choice ? new[] { TutorialKeys.RetryFinale, TutorialKeys.Quit } : Array.Empty<string>(),
+                dim = true, pauseBattle = true, blockInput = true,
+            };
+        }).ToArray();
 
         static List<S> StageTwo(int wave)
         {
@@ -95,6 +133,15 @@ namespace CodingGame.Defense.Editor
             BlockStock[] Kit() => new[] { B(BlockKind.DeclareVariable, 3), B(BlockKind.NearestEnemy), B(BlockKind.Variable, 4),
                 B(BlockKind.MyPos), B(BlockKind.MyAttackRange), B(BlockKind.If), B(BlockKind.Comparison), B(BlockKind.Slash) };
             Lesson(1, 5, "변수와 조건: 보스 종합 실습", 0);
+            var normal = campaign.stages[0].waves[0].groups[0].enemy;
+            var boss = AssetDatabase.LoadAssetAtPath<EnemyDefinition>(Folder + "/TutorialBoss.asset");
+            boss.stats.health = 30; // two warriors have ten invocations; normal enemies consume part of that budget
+            boss.stats.leakDamage = campaign.baseHealth;
+            EditorUtility.SetDirty(boss);
+            campaign.stages[0].waves[4].groups = new[] {
+                new DefenseBattle.SpawnEntry { enemy = normal, route = 0, count = 2, interval = 2 },
+                new DefenseBattle.SpawnEntry { enemy = boss, route = 0, count = 1, interval = 2, waitForClear = true },
+            };
             Lesson(2, 1, "조건 복습: 사거리 안의 적 공격하기", 1, Kit());
             Lesson(2, 2, "반복: for로 다섯 번 실행하기", 0, B(BlockKind.For), B(BlockKind.Number));
             Lesson(2, 3, "반복: 횟수와 대상 갱신", 0);

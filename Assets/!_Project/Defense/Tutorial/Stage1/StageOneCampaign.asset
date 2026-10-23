@@ -329,35 +329,41 @@ MonoBehaviour:
         count: 2
         delay: 0
         interval: 2
+        waitForClear: 0
     - groups:
       - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
         route: 0
         count: 2
         delay: 0
         interval: 2
+        waitForClear: 0
     - groups:
       - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
         route: 0
         count: 2
         delay: 0
         interval: 2
+        waitForClear: 0
     - groups:
       - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
         route: 0
         count: 4
         delay: 0
         interval: 2
+        waitForClear: 0
     - groups:
+      - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
+        route: 0
+        count: 2
+        delay: 0
+        interval: 2
+        waitForClear: 0
       - enemy: {fileID: 11400000, guid: cf273f278dd8c1d46a9cf5129cd7955d, type: 2}
         route: 0
         count: 1
         delay: 0
         interval: 2
-      - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
-        route: 1
-        count: 3
-        delay: 4
-        interval: 2
+        waitForClear: 1
     waveSeconds: 120
   - waves:
     - groups:
@@ -366,30 +372,35 @@ MonoBehaviour:
         count: 2
         delay: 0
         interval: 0.4
+        waitForClear: 0
     - groups:
       - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
         route: 0
         count: 3
         delay: 0
         interval: 0.4
+        waitForClear: 0
     - groups:
       - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
         route: 0
         count: 4
         delay: 0
         interval: 0.4
+        waitForClear: 0
     - groups:
       - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
         route: 0
         count: 4
         delay: 0
         interval: 0.4
+        waitForClear: 0
     - groups:
       - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
         route: 0
         count: 6
         delay: 0
         interval: 0.4
+        waitForClear: 0
     waveSeconds: 120
   - waves:
     - groups:
@@ -398,48 +409,57 @@ MonoBehaviour:
         count: 5
         delay: 0
         interval: 2
+        waitForClear: 0
     - groups:
       - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
         route: 0
         count: 8
         delay: 0
         interval: 1.7
+        waitForClear: 0
     - groups:
       - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
         route: 0
         count: 5
         delay: 0
         interval: 1.4
+        waitForClear: 0
       - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
         route: 0
         count: 4
         delay: 5
         interval: 1.6
+        waitForClear: 0
     - groups:
       - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
         route: 0
         count: 4
         delay: 0
         interval: 2.4
+        waitForClear: 0
       - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
         route: 0
         count: 6
         delay: 3
         interval: 1.4
+        waitForClear: 0
     - groups:
       - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
         route: 0
         count: 6
         delay: 0
         interval: 2.4
+        waitForClear: 0
       - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
         route: 0
         count: 8
         delay: 4
         interval: 1.1
+        waitForClear: 0
       - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
         route: 0
         count: 6
         delay: 10
         interval: 1.4
+        waitForClear: 0
     waveSeconds: 35

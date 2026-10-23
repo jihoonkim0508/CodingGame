@@ -10,7 +10,8 @@ namespace CodingGame.Defense
     {
         DefenseSimulation session;
         int wave = -1, killsAtWaveStart, leaks;
-        bool firstKill, firstAttack, cleared;
+        bool firstKill, firstAttack, cleared, bossSpawned, bossAttacked;
+        public void Reset() { session = null; wave = -1; }
         readonly List<string> signals = new List<string>();
 
         // The index-th warrior placed this stage (by id): 0 is the robot the tutorial teaches, 1 the second warrior of 1-4.
@@ -18,9 +19,9 @@ namespace CodingGame.Defense
             sim?.Robots.Where(r => r.Spec.role == RobotRole.Warrior).OrderBy(r => r.Id).ElementAtOrDefault(index);
         public static RobotState TeachingRobot(DefenseSimulation sim) => Robot(sim, 0);
 
-        // Generated Python body equals the expected lines, ignoring the def header, indentation, blank lines and the names the
+        // Generated Python body equals the expected lines, ignoring the def header, blank lines and the names the
         // player gave variables (any name holding the enemy object works, not only `enemy`). The same lines in another order
-        // also count: the program only runs once it compiles, so a line that uses a variable before it is set never gets here.
+        // also count when their nesting is unchanged: a slash outside its if must never count as the answer.
         public static bool Matches(DefenseProgram program, string expected)
         {
             if (program == null) return false;
@@ -31,8 +32,8 @@ namespace CodingGame.Defense
                 var wantedBody = (expected ?? "").Replace("\r", "").Split('\n');
                 return Scoped(body).SequenceEqual(Scoped(wantedBody));
             }
-            var actual = Canonical(Lines(string.Join("\n", program.Source.Replace("\r", "").Split('\n').Skip(1))));
-            var wanted = Canonical(Lines(expected));
+            var actual = Scoped(program.Source.Replace("\r", "").Split('\n').Skip(1)).ToList();
+            var wanted = Scoped((expected ?? "").Replace("\r", "").Split('\n')).ToList();
             return actual.SequenceEqual(wanted) || actual.OrderBy(l => l).SequenceEqual(wanted.OrderBy(l => l));
         }
         static List<string> Lines(string text) =>
@@ -63,8 +64,10 @@ namespace CodingGame.Defense
             if (sim == null) return signals;
             if (sim != session || sim.WaveIndex != wave)
             {
-                session = sim; wave = sim.WaveIndex; killsAtWaveStart = sim.Kills; leaks = sim.Leaks; firstKill = firstAttack = cleared = false;
+                session = sim; wave = sim.WaveIndex; killsAtWaveStart = sim.Kills; leaks = sim.Leaks; firstKill = firstAttack = cleared = bossSpawned = bossAttacked = false;
             }
+            if (!bossSpawned && sim.FinaleBossId != 0) { bossSpawned = true; signals.Add(TutorialSignals.BossSpawned); }
+            if (!bossAttacked && sim.FinaleBossAttacked) { bossAttacked = true; signals.Add(TutorialSignals.BossAttacked); }
             if (!firstKill && sim.Kills > killsAtWaveStart) { firstKill = true; signals.Add(TutorialSignals.FirstKill); }
             if (!firstAttack && sim.Robots.Any(r => r.AttacksThisWave > 0)) { firstAttack = true; signals.Add(TutorialSignals.FirstAttack); }
             if (sim.Leaks > leaks) { leaks = sim.Leaks; signals.Add(TutorialSignals.Leak); }

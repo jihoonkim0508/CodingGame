@@ -20,6 +20,14 @@ namespace CodingGame.Defense
             homeRect = battleCamera.rect; homeFov = battleCamera.fieldOfView; initialized = true;
             destination = homePosition; rotation = homeRotation; viewport = homeRect; fov = homeFov; elapsed = transitionSeconds;
         }
+        public void Focus(Vector3 target)
+        {
+            Initialize(); Begin();
+            var ray = new Ray(homePosition, homeRotation * Vector3.forward);
+            var floor = new Plane(Vector3.up, Vector3.zero);
+            Vector3 centre = floor.Raycast(ray, out var distance) ? ray.GetPoint(distance) : Vector3.zero;
+            destination = homePosition + target - centre; rotation = homeRotation; viewport = homeRect; fov = homeFov * .78f;
+        }
         public void Restore()
         {
             if (!initialized) return;

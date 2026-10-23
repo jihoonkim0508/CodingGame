@@ -26,7 +26,8 @@ namespace CodingGame.Defense
         // Signals seen during the current wave; Poll and ReportSuccess say each one once, trigger steps may come later.
         readonly HashSet<string> signals = new HashSet<string>();
         int signalWave = -1;
-        TutorialSequence active;
+        TutorialSequence active, transientSequence;
+        bool inFailure;
         DefenseSimulation session;
         int viewedStep, viewedText, progressStep;
         float stepEntered, targetsLostAt = -1;
@@ -87,10 +88,20 @@ namespace CodingGame.Defense
             if (battle.Simulation != null && !battle.Simulation.Options.tutorial) { Finish(); return; }
             if (session != battle.Simulation)
             {
-                Finish(); session = battle.Simulation; launched.Clear(); rejected.Clear(); duplicateEntries.Clear(); visitedText.Clear(); completedStep.Clear();
+                Finish(); session = battle.Simulation; launched.Clear(); rejected.Clear(); duplicateEntries.Clear(); visitedText.Clear(); completedStep.Clear(); inFailure = false; watcher.Reset(); signals.Clear(); signalWave = -1;
             }
             if (session == null) return;
             if (session.WaveIndex != signalWave) { signals.Clear(); signalWave = session.WaveIndex; }
+            if (session.Phase == BattlePhase.Defeat && battle.Stage == 1 && session.WaveIndex == 4 && !inFailure)
+            {
+                var source = sequences.FirstOrDefault(s => s && s.stage == 1 && s.wave == 5);
+                Finish(); inFailure = true;
+                if (source && source.failureSteps.Length > 0)
+                {
+                    transientSequence = Instantiate(source); transientSequence.sequenceId += "-failure";
+                    transientSequence.steps = source.failureSteps; Begin(transientSequence);
+                }
+            }
             var step = Current;
             foreach (var signal in watcher.Poll(session, step != null && step.completionSignal == TutorialSignals.ProgramMatches ? step.expectedCode : null, step?.robotIndex ?? 0))
                 Signal(signal);
@@ -286,6 +297,7 @@ namespace CodingGame.Defense
             if (step.clearProgram && robot != null) Editor.ClearRobotProgram(robot.Id);
             if (step.openEditor && robot != null) { Editor.Close(false); Editor.Open(robot.Id); }
             Editor.SetHint(step.hintCode);
+            Editor.SetTutorialInfo(step.showEnemyInfo, step.showCondition);
         }
 
         string TextKey(TutorialStep step, TutorialText text) => active.sequenceId + "/" + step.stepId + "/" + text.textId;
@@ -396,10 +408,25 @@ namespace CodingGame.Defense
         }
         public void ReportWorldSuccess(Vector3 point,string signal) { if (initialized) bridge.ReportWorldSuccess(point,signal); }
         public void ReportDrop(RectTransform source, RectTransform destination, string signal) { if (initialized) bridge.ReportDrop(source,destination,signal); }
+        public void RegisterUI(string key, RectTransform rect) { if (initialized) bridge.RegisterUI(key, rect); }
         public void RegisterWorldTarget(string key, GameObject owner, Bounds bounds, bool round = false) => RegisterWorldTarget(key, owner, new[] { bounds }, round);
         public void RegisterWorldTarget(string key, GameObject owner, Bounds[] parts, bool round = false, bool box = false)
         { if (initialized && bridge.HasRuntimeTarget(key)) bridge.RegisterWorldTarget(key,owner,parts,round,box); }
         public void UnregisterRuntimeTarget(string key, GameObject owner) { if (initialized) bridge.UnregisterRuntimeTarget(key,owner); }
+
+        public void RestartFinale()
+        {
+            var source = sequences.First(s => s && s.stage == 1 && s.wave == 5);
+            Finish(); inFailure = false; signals.Clear(); watcher.Reset(); visitedText.Clear();
+            transientSequence = Instantiate(source);
+            int practice = Array.FindIndex(source.steps, s => s.stepId == "B01");
+            var retry = new TutorialStep {
+                stepId = "H01", texts = new[] { new TutorialText { textId = "t1", speaker = "안내자", text = source.retryText,
+                    focusKeys = new[] { TutorialKeys.Route, TutorialKeys.Unit(0) } } }, pauseBattle = true
+            };
+            transientSequence.steps = new[] { retry }.Concat(source.steps.Skip(practice)).ToArray();
+            Begin(transientSequence);
+        }
 
         void Finish()
         {
@@ -408,7 +435,8 @@ namespace CodingGame.Defense
             if (view) view.Hide();
             if (alert) alert.Hide();
             if (pointer) pointer.Hide();
-            if (initialized && Editor) Editor.SetHint(null);
+            if (initialized && Editor) { Editor.SetHint(null); Editor.SetTutorialInfo(false, false); }
+            if (transientSequence) { Destroy(transientSequence); transientSequence = null; }
         }
 
         #if UNITY_EDITOR
