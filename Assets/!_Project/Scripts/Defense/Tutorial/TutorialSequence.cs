@@ -59,6 +59,8 @@ namespace CodingGame.Defense
         [Tooltip("단계 진입 시 편집기를 닫고 robotIndex 로봇의 편집기를 엽니다.")] public bool openEditor;
         [Tooltip("판정·코드 삭제·편집기 대상. 0 = 교육 로봇(처음 배치한 전사), 1 = 두 번째 전사.")]
         [Min(0)] public int robotIndex;
+        [Tooltip("1-3 조건문 소개용으로 적 찾기·거리 저장 두 줄을 준비합니다. 다른 로봇의 코드는 유지합니다.")]
+        public bool prepareDistanceExample;
         [Tooltip("흑백 화면 가운데에 대화창을 크게 띄웁니다. 이어지는 단계도 켜 두면 가운데에 남고, 꺼진 단계로 넘어갈 때 원래 자리로 줄어들며 이동합니다.")] public bool introEntrance;
         [Tooltip("시스템 배너에 경고 카드 세 장을 함께 띄웁니다(1-1 A01).")] public bool alertCards;
         [Tooltip("끌어다 놓기 시연: '팔레트 키>놓을 키', 'a>b|c>d'면 앞에서부터 둘 다 화면에 있는 것. 반투명 블록이 반복해서 움직입니다.")]

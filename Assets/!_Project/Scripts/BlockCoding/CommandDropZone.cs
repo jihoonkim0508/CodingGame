@@ -71,6 +71,9 @@ namespace CodingGame.BlockCoding
             Panel = panel;
             panel.RegisterZone(this);
             ParentBlock = parent;
+            // A placed control block's empty body is a selectable statement slot. Palette bodies
+            // pass clicks to their template so clicking the block still adds it to the workspace.
+            if (parent && parent.Body == this) background.raycastTarget = !parent.IsPalette;
             foreach (var block in blocks) block.Bind(panel, this);
             Refresh();
         }

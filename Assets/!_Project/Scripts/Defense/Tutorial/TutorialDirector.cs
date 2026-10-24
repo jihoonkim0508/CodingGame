@@ -116,6 +116,10 @@ namespace CodingGame.Defense
             if (step.completionSignal == TutorialSignals.ConditionBuilt && Editor &&
                 Editor.LooseExpressions().Any(text => Same(text, step.expectedCode))) Signal(TutorialSignals.ConditionBuilt);
             if (step.completionSignal == TutorialSignals.SlotFilled && Editor && Editor.SlotFilled(step.expectedCode)) Signal(TutorialSignals.SlotFilled);
+            if (step.completionSignal == TutorialSignals.CodeLinePlaced && Editor && Editor.CodeLinePlaced(step.expectedCode)) Signal(TutorialSignals.CodeLinePlaced);
+            if (step.completionSignal == TutorialSignals.SlotSelected && Editor && Editor.SlotSelected(step.expectedCode)) Signal(TutorialSignals.SlotSelected);
+            if (step.completionSignal == TutorialSignals.DraftValueMatches && Editor && Editor.DraftValueMatches(step.expectedCode)) Signal(TutorialSignals.DraftValueMatches);
+            if (step.completionSignal == TutorialSignals.ConditionBuilt && Editor && Editor.ConditionMatches(step.expectedCode)) Signal(TutorialSignals.ConditionBuilt);
             if (Current != step) return;
             if (!string.IsNullOrWhiteSpace(step.skipIf) && signals.Contains(step.skipIf) && Triggered(step) && viewedStep == progressStep) { Enter(progressStep + 1); return; }
             if (!Triggered(step))
@@ -167,7 +171,7 @@ namespace CodingGame.Defense
             bool show = viewedStep == progressStep && !completedStep.Contains(step.stepId) && !string.IsNullOrWhiteSpace(step.pointerKey) && !(Editor && Editor.HintOpen) &&
                 Time.unscaledTime - stepEntered >= step.pointerDelay && bridge.TryGetArea(step.pointerKey, out area, out chosen);
             // Slots under or inside a code line are pointed at from below; from above the arrow would cover the line above.
-            if (show) pointer.Show(area, chosen.Contains(".After.") || chosen.Contains(".Arg.")); else pointer.HideArrow();
+            if (show) pointer.Show(area, chosen.Contains(".After.") || chosen.Contains(".Arg.") || chosen.Contains(".Name.") || chosen.Contains(".Option.") || chosen.Contains(".Body")); else pointer.HideArrow();
             UpdateDragDemo(step);
             UpdateRoutePath();
             // Once the arrow moves to an empty argument slot, open the values tab, where the variables to drop in are.
@@ -285,6 +289,7 @@ namespace CodingGame.Defense
             if (step.closeEditor) Editor.Close(false);
             if (step.clearProgram && robot != null) Editor.ClearRobotProgram(robot.Id);
             if (step.openEditor && robot != null) { Editor.Close(false); Editor.Open(robot.Id); }
+            if (step.prepareDistanceExample) Editor.PrepareDistanceExample();
             Editor.SetHint(step.hintCode);
         }
 
@@ -381,6 +386,7 @@ namespace CodingGame.Defense
             if (!active || progressStep >= active.steps.Length || active.steps[progressStep] != step) return;
             if (step.holdSeconds > 0 && Time.unscaledTime < heldUntil) { held = step; return; }
             if (!completedStep.Add(step.stepId)) return;
+            if ((step.completionSignal == TutorialSignals.ProgramMatches || step.completionSignal == TutorialSignals.DraftValueMatches) && Editor) Editor.FinishTutorialInput();
             Enter(progressStep + 1);
         }
 

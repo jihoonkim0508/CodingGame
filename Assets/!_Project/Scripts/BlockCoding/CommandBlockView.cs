@@ -34,6 +34,8 @@ namespace CodingGame.BlockCoding
         public CommandDropZone Body => body;
         public IReadOnlyList<CommandDropZone> Arguments => arguments;
         public RectTransform Rect => rect;
+        public RectTransform InputRect => input ? input.transform as RectTransform : null;
+        public RectTransform OptionRect => dropdown ? dropdown.transform as RectTransform : null;
         public string VariableName => kind == BlockKind.DeclareVariable ? input.text :
             kind == BlockKind.Variable ? (HasDot ? input.text.Substring(0, input.text.Length - 1) : input.text) : variableName;
         public string RetainedName { get; private set; }

@@ -63,6 +63,7 @@ namespace CodingGame.BlockCoding
         bool dropAccepted;
         static int nextName;
         public CommandDropZone Program => program;
+        public CommandDropZone SelectedZone => selected;
 #if UNITY_EDITOR
         public CommandDropZone EditorSnapTarget => snapTarget;
 #endif
