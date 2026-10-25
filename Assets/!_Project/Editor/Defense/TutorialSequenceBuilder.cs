@@ -25,8 +25,12 @@ namespace CodingGame.Defense.Editor
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Play 종료 후 적용하세요.");
             lines = ParseScript(Path.Combine(Directory.GetCurrentDirectory(), Script));
             var sequence = Write("1-1", 1, OneOne());
+            var campaign = AssetDatabase.LoadAssetAtPath<DefenseCampaignDefinition>($"{Folder}/StageOneCampaign.asset");
+            var so = new SerializedObject(campaign);
+            SetupIntroEncounter(so);
+            so.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(campaign);
             AssetDatabase.SaveAssets();
-            Debug.Log("Beginner tutorial 1-1 applied: " + sequence.steps.Length + " steps (other waves unchanged)");
+            Debug.Log("Beginner tutorial 1-1 applied: " + sequence.steps.Length + " steps and intro encounter (other waves unchanged)");
         }
 
         const string Folder = "Assets/!_Project/Defense/Tutorial/Stage1";
@@ -47,7 +51,7 @@ namespace CodingGame.Defense.Editor
 
         const string Code11 = "enemy = get_nearest_enemy()\nslash(enemy)";
         const string Code13Distance = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nslash(enemy)";
-        const string Code13 = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= my_attack_range():\n    slash(enemy)";
+        const string Code13 = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= 2.5:\n    slash(enemy)";
         const string Code14Middle = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nattack_range = my_attack_range()\nif enemy_distance <= my_attack_range():\n    slash(enemy)";
         const string Code14 = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nattack_range = my_attack_range()\n\nif enemy_distance <= attack_range:\n    slash(enemy)";
 
@@ -62,7 +66,7 @@ namespace CodingGame.Defense.Editor
             public TutorialCompletionMode Mode;
             public string Signal, Trigger, Expected, Pointer, HintCode;
             public float PointerDelay;
-            public bool Dim, CloseEditor, ClearProgram, OpenEditor, Preview, Battle;
+            public bool Dim, CloseEditor, ClearProgram, OpenEditor, Preview, Battle, HoldBattle, SlowBattle;
             public int Robot;
             public float Padding = 10;
             public string[] Highlight = Array.Empty<string>();
@@ -72,7 +76,7 @@ namespace CodingGame.Defense.Editor
             public string Demo;
             public bool Top;
             public float Hold;
-            public bool DistanceExample;
+            public bool DistanceExample, BaselineExample, RestartPreview;
         }
 
         static Dictionary<string, Line> lines;
@@ -137,7 +141,11 @@ namespace CodingGame.Defense.Editor
             L("1-1.D09", With(Ed, Focus(Preview))), L("1-1.D10", s => s.CloseEditor = true),
             L("1-1.E01", Focus(TutorialKeys.NextWave)),
             L("1-1.E03", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => s.Top = true)),
-            L("1-1.E05", With(Fight, s => s.Trigger = TutorialSignals.Leak)),
+            L("1-1.E04", s => { s.Trigger = TutorialSignals.FirstKill; s.SlowBattle = true; }),
+            L("1-1.E04a", Click(TutorialKeys.Pause, s => { s.Pointer = TutorialKeys.Pause; s.SlowBattle = true; })),
+            L("1-1.E04b", Click(TutorialKeys.Pause, s => { s.Pointer = TutorialKeys.Pause; s.HoldBattle = true; })),
+            L("1-1.E04c", Click(TutorialKeys.Speed, s => s.Pointer = TutorialKeys.Speed)),
+            L("1-1.E05", With(Fight, Focus(Core), s => s.Trigger = TutorialSignals.Leak)),
             L("1-1.E06", s => s.Trigger = TutorialSignals.WaveCleared),
             L("1-1.E07"), L("1-1.E08", Focus(TutorialKeys.RewardPanel)),
             // Claiming the reward starts 1-2, so it comes last.
@@ -164,6 +172,8 @@ namespace CodingGame.Defense.Editor
                 L("1-3.A01"), L("1-3.A02"),
                 L("1-3.A03", Click(Unit0, s => s.Pointer = Unit0)),
                 L("1-3.A04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
+                L("1-3.A05", Signal(TutorialSignals.PreviewSingleHit, new[] { Preview }, With(
+                    s => { s.BaselineExample = true; s.Preview = true; s.Hold = 1.5f; }, Focus(Preview)))),
                 L("1-3.B01", With(s => s.DistanceExample = true, Focus("Editor.Code.Line.1"))),
                 L("1-3.B02", Focus("Editor.Code.Line.2")),
                 L("1-3.B03", Focus("Editor.Palette.MyAttackRange")),
@@ -176,14 +186,15 @@ namespace CodingGame.Defense.Editor
                 L("1-3.C06", EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.3.0.0", "Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.Arg.3.0.0")),
                 L("1-3.C07", EditSignal(TutorialSignals.DraftValueMatches, "3.0.0|enemy_distance", "Editor.Code.Name.3.0.0", "Editor.Code.Name.3.0.0")),
                 L("1-3.C08", EditSignal(TutorialSignals.SlotSelected, "Editor.Code.Arg.3.0.1", "Editor.Code.Arg.3.0.1", "Editor.Code.Arg.3.0.1")),
-                L("1-3.C09", EditSignal(TutorialSignals.ConditionBuilt, "enemy_distance <= my_attack_range()", "Editor.Palette.MyAttackRange", "Editor.Palette.MyAttackRange", "Editor.Code.Arg.3.0.1")),
+                L("1-3.C09", EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.3.0.1", "Editor.Palette.Number", "Editor.Palette.Number", "Editor.Code.Arg.3.0.1")),
+                L("1-3.C09a", EditSignal(TutorialSignals.DraftValueMatches, "3.0.1|2.5", "Editor.Code.Name.3.0.1", "Editor.Code.Name.3.0.1")),
                 L("1-3.C10", Focus("Editor.Code.Arg.3.0")),
                 L("1-3.D01", EditSignal(TutorialSignals.SlotSelected, "Editor.Code.Body.3", "Editor.Code.Body.3", "Editor.Code.Body.3")),
                 L("1-3.D02", EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Body.3", "Editor.Palette.Slash", "Editor.Palette.Slash", "Editor.Code.Body.3")),
                 L("1-3.D03", EditSignal(TutorialSignals.SlotSelected, "Editor.Code.BodyArg.3.0.0", "Editor.Code.BodyArg.3.0.0", "Editor.Code.BodyArg.3.0.0")),
                 L("1-3.D04", EditSignal(TutorialSignals.SlotFilled, "Editor.Code.BodyArg.3.0.0", "Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.BodyArg.3.0.0")),
                 L("1-3.D05", EditSignal(TutorialSignals.ProgramMatches, Code13, "Editor.Code.BodyName.3.0.0", "Editor.Code.BodyName.3.0.0")),
-                L("1-3.D06", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(s => { s.Preview = true; s.Hold = 2; }, Focus(Preview)))),
+                L("1-3.D06", Signal(TutorialSignals.PreviewMultiHit, new[] { Preview }, With(s => { s.Preview = true; s.RestartPreview = true; s.Hold = 2; }, Focus(Preview)))),
                 L("1-3.D07", With(Ed, Focus("Editor.Code.Body.3"))),
                 L("1-3.E01", s => s.CloseEditor = true),
                 L("1-3.E02", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => s.Top = true)),
@@ -261,9 +272,11 @@ namespace CodingGame.Defense.Editor
                     texts = new[] { new TutorialText { textId = "t1", speaker = s.Speaker, text = s.Text, focusKeys = s.Focus, highlightKeys = s.Highlight } },
                     targetKeys = s.Targets, dim = s.Dim, blockInput = true, outline = true,
                     completionMode = s.Kind == TutorialStepKind.ActionGuide ? s.Mode : TutorialCompletionMode.Unconfigured, completionSignal = s.Signal,
-                    skipIf = s.SkipIf, pauseBattle = !battle, allowPreview = s.Preview, highlightPadding = s.Padding, trigger = s.Trigger, expectedCode = s.Expected,
+                    skipIf = s.SkipIf, pauseBattle = s.HoldBattle || !battle, slowBattle = s.SlowBattle,
+                    allowPreview = s.Preview, highlightPadding = s.Padding, trigger = s.Trigger, expectedCode = s.Expected,
                     pointerKey = s.Pointer, hintCode = s.HintCode, pointerDelay = s.PointerDelay,
-                    closeEditor = s.CloseEditor, clearProgram = s.ClearProgram, openEditor = s.OpenEditor, robotIndex = s.Robot, prepareDistanceExample = s.DistanceExample,
+                    closeEditor = s.CloseEditor, clearProgram = s.ClearProgram, openEditor = s.OpenEditor, robotIndex = s.Robot,
+                    prepareDistanceExample = s.DistanceExample, prepareBaselineExample = s.BaselineExample, restartPreview = s.RestartPreview,
                     introEntrance = s.Intro, undimmed = s.Undimmed, alertCards = s.Cards, autoAdvance = s.Auto, dismissable = s.Dismissable, holdSeconds = s.Hold, dragDemo = s.Demo };
             }).ToArray();
             EditorUtility.SetDirty(sequence);
@@ -299,8 +312,13 @@ namespace CodingGame.Defense.Editor
             }
             Lesson(1, "변수와 게임 플레이 방법 소개", 1, (BlockKind.DeclareVariable, 1), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 1), (BlockKind.Slash, 1));
             Lesson(2, "변수 자유 플레이", 1, (BlockKind.DeclareVariable, 1), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 1));
-            Lesson(3, "조건: 사거리 안의 적만 공격하기", 0, (BlockKind.DeclareVariable, 1), (BlockKind.Variable, 2), (BlockKind.MyPos, 1),
-                (BlockKind.If, 1), (BlockKind.Comparison, 1), (BlockKind.MyAttackRange, 1));
+            Lesson(3, "조건: 적이 모였을 때 베기", 0, (BlockKind.DeclareVariable, 1), (BlockKind.Variable, 2), (BlockKind.MyPos, 1),
+                (BlockKind.If, 1), (BlockKind.Comparison, 1), (BlockKind.MyAttackRange, 1), (BlockKind.Number, 1));
+            SetupIntroEncounter(so);
+            // The first slash at the full 3.2 range catches one enemy; waiting until 2.5 groups the pair.
+            var practiceGroup = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves").GetArrayElementAtIndex(2)
+                .FindPropertyRelative("groups").GetArrayElementAtIndex(0);
+            practiceGroup.FindPropertyRelative("interval").floatValue = .5f;
             if (firstThreeOnly)
             {
                 so.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(campaign);
@@ -314,6 +332,25 @@ namespace CodingGame.Defense.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(campaign);
             return "campaign: grants, topics, 1-4 enemies 4";
+        }
+
+        static void SetupIntroEncounter(SerializedObject so)
+        {
+            var stage = so.FindProperty("stages").GetArrayElementAtIndex(0);
+            var firstGroups = stage.FindPropertyRelative("waves").GetArrayElementAtIndex(0).FindPropertyRelative("groups");
+            firstGroups.arraySize = 2;
+            var basicEnemy = AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"{Folder}/TutorialError.asset");
+            if (!basicEnemy) throw new InvalidOperationException("1-1의 기본 적 asset이 없습니다.");
+            var strongGroup = firstGroups.GetArrayElementAtIndex(1);
+            strongGroup.FindPropertyRelative("enemy").objectReferenceValue = basicEnemy;
+            strongGroup.FindPropertyRelative("route").intValue = 0;
+            strongGroup.FindPropertyRelative("count").intValue = 1;
+            strongGroup.FindPropertyRelative("delay").floatValue = 12;
+            strongGroup.FindPropertyRelative("interval").floatValue = 2;
+            strongGroup.FindPropertyRelative("healthOverride").floatValue = 500;
+            strongGroup.FindPropertyRelative("speedOverride").floatValue = 1.6f;
+            // All three enemies use the same basic prefab; only this last spawn has stronger stats.
+            stage.FindPropertyRelative("waveSeconds").floatValue = 120;
         }
 
         public static string Run()

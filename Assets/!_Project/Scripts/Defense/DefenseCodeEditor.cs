@@ -115,6 +115,17 @@ namespace CodingGame.Defense
             });
             if (!panel.IsApplied) throw new InvalidOperationException("조건문 기초 코드의 블록 지급량을 확인하세요.");
         }
+        public void PrepareBaselineExample()
+        {
+            if (!IsOpen || !HasCurrentSession) return;
+            panel.LoadProgram(panel.FunctionName, new[] {
+                new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)),
+                new CodeBlock(BlockKind.Slash, "0", new CodeBlock(BlockKind.Variable, "enemy"))
+            });
+            if (!panel.IsApplied) throw new InvalidOperationException("비교용 기본 베기 코드의 블록 지급량을 확인하세요.");
+            RestartPreview();
+        }
+        public void RestartPreview() => battle.RestartCodePreview();
         // Python text of condition/value blocks lying in the workspace away from the start anchor (not part of the program).
         public IEnumerable<string> LooseExpressions() => !IsOpen ? Enumerable.Empty<string>() : panel.Program.LooseRoots()
             .Where(root => PythonTreeCompiler.OutputSlot(root.Kind) != BlockSlotKind.Statement)

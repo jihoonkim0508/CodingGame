@@ -50,6 +50,7 @@ namespace CodingGame.Defense
         public event Action<TutorialStep> Completed;
         public bool IsGuiding => director && director.IsActive;
         public bool PauseBattle => IsGuiding && currentStep != null && currentStep.pauseBattle;
+        public bool SlowBattle => IsGuiding && currentStep != null && currentStep.slowBattle;
         public bool AllowPreview => IsGuiding && currentStep != null && currentStep.allowPreview;
         Camera CanvasCamera => canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
         bool Acting => allowActions && currentStep != null && currentStep.kind == TutorialStepKind.ActionGuide;

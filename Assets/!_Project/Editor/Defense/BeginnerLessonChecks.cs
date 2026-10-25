@@ -20,7 +20,8 @@ namespace CodingGame.Defense.Editor
         static double bodyReadyAt;
         static string last;
         static double since, next;
-        static bool practiced;
+        static bool practiced, previewLogged;
+        static int coreAtThirdWave;
         static BeginnerLessonChecks()
         {
             EditorApplication.update += Tick;
@@ -53,9 +54,20 @@ namespace CodingGame.Defense.Editor
             TutorialSequenceBuilder.ApplyFirstThree();
             Directory.CreateDirectory(Path.GetDirectoryName(LogPath));
             File.WriteAllText(LogPath, "START beginner lessons integration check\n");
-            last = null; practiced = false; next = 0;
+            last = null; practiced = false; previewLogged = false; coreAtThirdWave = -1; next = 0;
             SessionState.SetBool(Running, true);
             DevTest.PlayDefense(1, 1, true, false);
+        }
+
+        [MenuItem("Tools/Develop/Verify Beginner Lesson 1-3 Only")]
+        public static void RunConditionOnly()
+        {
+            TutorialSequenceBuilder.ApplyFirstThree();
+            Directory.CreateDirectory(Path.GetDirectoryName(LogPath));
+            File.WriteAllText(LogPath, "START beginner lesson 1-3 integration check\n");
+            last = null; practiced = false; previewLogged = false; coreAtThirdWave = -1; next = 0;
+            SessionState.SetBool(Running, true);
+            DevTest.PlayDefense(1, 3, true, true);
         }
 
         static void Log(string value) => File.AppendAllText(LogPath, value + "\n");
@@ -82,7 +94,7 @@ namespace CodingGame.Defense.Editor
                 director.EditorStop();
                 battle.SelectRobot(TutorialWatcher.TeachingRobot(DevTest.Sim).Id); battle.DevelopSelected();
                 battle.CodeEditor.Panel.LoadProgram("condition_example", TutorialAnswers.Parse(
-                    "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= my_attack_range():"));
+                    "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= 2.5:"));
                 director.EditorRun(sequence, Array.FindIndex(sequence.steps, s => s.stepId == "D01"));
             }
             if (!SessionState.GetBool(Running, false)) return;
@@ -110,10 +122,27 @@ namespace CodingGame.Defense.Editor
             if (key != last)
             {
                 last = key; since = now;
+                if (key == "1/A01")
+                {
+                    var groups = sim.UpcomingWave.ToArray();
+                    Require(groups.Length == 2 && groups[0].DefinitionIndex == groups[1].DefinitionIndex &&
+                        groups[0].Count == 2 && groups[1].Count == 1 &&
+                        groups[1].Enemy.health > groups[0].Enemy.health * 10 &&
+                        groups[1].Enemy.speed > groups[0].Enemy.speed,
+                        "1-1 must use basic enemy visuals for all three spawns and strengthen only the last one");
+                }
+                if (key == "3/A01") coreAtThirdWave = sim.BaseHealth;
                 Log("STEP " + key + " " + step.completionSignal + " " + step.trigger);
                 return; // Wait for layout and target registration.
             }
             Require(now - since < 85, "Stalled at " + key);
+            if (key == "3/A05" && now - since > 5 && !previewLogged)
+            {
+                previewLogged = true;
+                var preview = Field<DefenseAttackPreview>(battle, "attackPreview");
+                Log("PREVIEW A05 firstHits=" + Field<int>(preview, "firstHitCount") +
+                    " signals=" + string.Join(",", Field<System.Collections.Generic.HashSet<string>>(director, "signals")));
+            }
             if (sim.WaveIndex == 1 && !director.IsActive && sim.Phase == BattlePhase.Ready && !practiced)
             {
                 FreePlay(battle); practiced = true; return;
@@ -121,6 +150,14 @@ namespace CodingGame.Defense.Editor
             if (!director.IsActive) { Time.timeScale = 3; return; }
             var view = Field<TutorialDialogueView>(director, "view");
             if (!view.IsVisible) return; // System banner.
+            if (key == "1/E04" || key == "1/E04a")
+                Require(sim.Phase == BattlePhase.Running && Math.Abs(director.BattlePace - .2f) < .001f,
+                    "1-1 pause introduction must show a moving slow-motion battle at " + key);
+            if (key == "1/E04b")
+                Require(sim.Phase == BattlePhase.Paused, "Pause button did not fully stop the battle");
+            if (key == "1/E04c")
+                Require(sim.Phase == BattlePhase.Running && Math.Abs(director.BattlePace - 1f) < .001f,
+                    "Battle did not return to normal speed after Continue");
             director.EditorFinishTyping(); Canvas.ForceUpdateCanvases();
             foreach (var text in view.GetComponentsInChildren<TMP_Text>().Where(t => t.name == "Dialogue"))
             { text.ForceMeshUpdate(); Require(!text.isTextOverflowing, "Dialogue overflow at " + key); }
@@ -130,15 +167,35 @@ namespace CodingGame.Defense.Editor
             var editor = battle.CodeEditor; var panel = editor.Panel;
             if (step.targetKeys.Contains("Battle.ClaimRewards"))
             {
-                Log("CLEAR wave=" + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills);
+                Log("CLEAR wave=" + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills +
+                    " leaks=" + sim.Leaks + " survivors=" + sim.LastSurvivors + " timedOut=" + sim.LastWaveTimedOut);
+                if (sim.WaveIndex == 0) Require(sim.BaseHealth == 11 && sim.Kills == 2 && sim.Leaks == 1,
+                    "1-1 did not teach exactly one strong-enemy leak; core=" + sim.BaseHealth + " kills=" + sim.Kills + " leaks=" + sim.Leaks);
+                if (sim.WaveIndex == 2) Require(sim.BaseHealth == coreAtThirdWave && sim.Kills >= 2,
+                    "1-3's condition did not defend both enemies; core=" + sim.BaseHealth + " kills=" + sim.Kills);
                 battle.ClaimRewards(); return;
+            }
+            if (step.targetKeys.Contains(TutorialKeys.Pause))
+            {
+                Require(battle.TutorialAllows(TutorialKeys.Pause), "Pause control blocked at " + key);
+                Field<Button>(Field<DefensePlayerHUD>(battle, "playerHUD"), "pauseButton").onClick.Invoke();
+                Require(sim.Phase == (step.stepId == "E04a" ? BattlePhase.Paused : BattlePhase.Running), "Pause/resume failed at " + key);
+                return;
+            }
+            if (step.targetKeys.Contains(TutorialKeys.Speed))
+            {
+                Require(battle.TutorialAllows(TutorialKeys.Speed), "Speed control blocked at " + key);
+                Field<Button>(Field<DefensePlayerHUD>(battle, "playerHUD"), "speedButton").onClick.Invoke();
+                Require(battle.BattleSpeed == 2, "Speed did not change to 2x at " + key);
+                return;
             }
             if (step.targetKeys.Contains(TutorialKeys.RobotButton(1))) { battle.ChooseRobot(1); return; }
             if (step.completionSignal == TutorialSignals.RobotPlaced) { PlaceBest(battle, 1); return; }
             if (step.targetKeys.Contains(TutorialKeys.Unit(0))) { battle.SelectRobot(TutorialWatcher.TeachingRobot(sim).Id); return; }
             if (step.completionSignal == TutorialSignals.EditorOpened) { battle.DevelopSelected(); return; }
             if (step.completionSignal == TutorialSignals.BattleStarted) { battle.StartBattle(); return; }
-            if (step.completionSignal == TutorialSignals.PreviewHit)
+            if (step.completionSignal == TutorialSignals.PreviewHit ||
+                step.completionSignal == TutorialSignals.PreviewSingleHit || step.completionSignal == TutorialSignals.PreviewMultiHit)
             { Require(Field<DefenseAttackPreview>(battle, "attackPreview").IsShowing, "Preview is closed at " + key); return; }
             Require(editor.IsOpen && battle.TutorialAllows(TutorialKeys.Palette), "Editor action blocked at " + key);
             if (step.completionSignal == TutorialSignals.SlotSelected) { Select(panel, Slot(editor, step.expectedCode)); return; }
@@ -168,6 +225,9 @@ namespace CodingGame.Defense.Editor
         static void FreePlay(DefenseBattle battle)
         {
             var sim = battle.Simulation; var first = TutorialWatcher.TeachingRobot(sim);
+            var goal = Field<TMP_Text>(Field<DefensePlayerHUD>(battle, "playerHUD"), "guide");
+            Require(goal.transform.parent.gameObject.activeSelf && goal.text.Contains("변수를 사용해 적을 찾고 공격"),
+                "1-2 free-play goal is not visible at the top of the HUD");
             string preserved = first.Program.Source;
             Require(battle.TutorialAllows(TutorialKeys.Start) && battle.TutorialAllows(TutorialKeys.Close), "Free play still restricts input");
             battle.ChooseRobot(1); PlaceBest(battle, 1);

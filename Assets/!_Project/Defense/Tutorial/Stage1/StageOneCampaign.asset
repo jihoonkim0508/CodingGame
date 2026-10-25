@@ -88,7 +88,7 @@ MonoBehaviour:
         count: 1
     - stage: 1
       wave: 3
-      topic: "\uC870\uAC74: \uC0AC\uAC70\uB9AC \uC548\uC758 \uC801\uB9CC \uACF5\uACA9\uD558\uAE30"
+      topic: "\uC870\uAC74: \uC801\uC774 \uBAA8\uC600\uC744 \uB54C \uBCA0\uAE30"
       robots: []
       blocks:
       - kind: 14
@@ -102,6 +102,8 @@ MonoBehaviour:
       - kind: 11
         count: 1
       - kind: 26
+        count: 1
+      - kind: 10
         count: 1
       rewards:
       - kind: 11
@@ -337,6 +339,13 @@ MonoBehaviour:
         count: 2
         delay: 0
         interval: 2
+      - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
+        route: 0
+        count: 1
+        delay: 12
+        interval: 2
+        healthOverride: 500
+        speedOverride: 1.6
     - groups:
       - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
         route: 0
@@ -348,7 +357,7 @@ MonoBehaviour:
         route: 0
         count: 2
         delay: 0
-        interval: 2
+        interval: 0.5
     - groups:
       - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
         route: 0

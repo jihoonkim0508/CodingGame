@@ -17,6 +17,7 @@ namespace CodingGame.Defense
             public EnemyDefinition enemy;
             public int route, count = 5;
             public float delay, interval = 1.5f;
+            public float healthOverride, speedOverride;
         }
         [Serializable] public sealed class Wave { public SpawnEntry[] groups = Array.Empty<SpawnEntry>(); }
 
@@ -102,6 +103,7 @@ namespace CodingGame.Defense
             selectionCamera.Restore(); playerHUD.SetVisible(!DeveloperMode); developerRoot.SetActive(DeveloperMode);
             attackPreview.Close();
         }
+        public void RestartCodePreview() => attackPreview.Restart();
         public string RobotName(int id)
         { var bot = Simulation.FindRobot(id); return bot == null ? "로봇 없음" : robots[bot.DefinitionIndex].displayName; }
 
@@ -271,8 +273,8 @@ namespace CodingGame.Defense
         }
         public void TogglePause()
         {
-            if (!TutorialAllows("Battle.TogglePause")) return;
-            Simulation.TogglePause(); RefreshHUD(); ReportTutorialAction("Battle.TogglePause", "TargetClicked");
+            if (!TutorialAllows(TutorialKeys.Pause)) return;
+            Simulation.TogglePause(); RefreshHUD(); ReportTutorialAction(TutorialKeys.Pause, TutorialSignals.TargetClicked);
         }
         public void ToggleHitRanges()
         {
@@ -285,10 +287,10 @@ namespace CodingGame.Defense
         }
         public void ToggleSpeed()
         {
-            if (!TutorialAllows("Battle.ToggleSpeed")) return;
+            if (!TutorialAllows(TutorialKeys.Speed)) return;
             if (Simulation.Phase != BattlePhase.Running && Simulation.Phase != BattlePhase.Paused) return;
             BattleSpeed = BattleSpeed >= 3 ? 1 : BattleSpeed + 1; RefreshHUD();
-            ReportTutorialAction("Battle.ToggleSpeed", "TargetClicked");
+            ReportTutorialAction(TutorialKeys.Speed, TutorialSignals.TargetClicked);
         }
         public void ChooseRobot(int index)
         {
@@ -433,7 +435,7 @@ namespace CodingGame.Defense
 #if UNITY_EDITOR
             if (!EditorManualClock)
 #endif
-            Simulation.Advance(tutorial && tutorial.PauseBattle ? 0 : UnityEngine.Time.deltaTime * BattleSpeed);
+            Simulation.Advance(UnityEngine.Time.deltaTime * BattleSpeed * (tutorial ? tutorial.BattlePace : 1f));
             float elapsed = (float)(Simulation.Time - previous);
             SyncViews(elapsed);
             SyncTutorialTargets();
@@ -594,8 +596,8 @@ namespace CodingGame.Defense
             foreach (var id in enemyViews.Keys.Where(id => !Simulation.Enemies.Any(e => e.Id == id)).ToArray())
             { DefenseViews.Discard(enemyViews[id]); enemyViews.Remove(id); }
             // Animations follow the battle: still while paused (or held by the tutorial), faster at 2x/3x, normal outside a wave.
-            bool held = Simulation.Phase == BattlePhase.Paused || Simulation.Phase == BattlePhase.Running && tutorial && tutorial.PauseBattle;
-            float pace = held ? 0 : Simulation.Phase == BattlePhase.Running ? BattleSpeed : 1;
+            float pace = Simulation.Phase == BattlePhase.Paused ? 0 : Simulation.Phase == BattlePhase.Running
+                ? BattleSpeed * (tutorial ? tutorial.BattlePace : 1f) : 1;
             foreach (var bot in Simulation.Robots)
             {
                 var view = robotViews[bot.Id];

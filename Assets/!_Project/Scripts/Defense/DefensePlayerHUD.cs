@@ -31,6 +31,12 @@ namespace CodingGame.Defense
         DefenseHoverInfo[] enemyHovers;
         Coroutine placementFeedback;
         Vector2 toastPosition;
+        RectTransform goalRect;
+        Image goalBackground;
+        Vector2 goalPosition;
+        Vector3 goalScale;
+        Color goalColor;
+        float goalAnimationStart;
         BattlePhase shownRewardPhase;
         int shownRewardWave = -1, shownRewardStage = -1;
         void Start()
@@ -48,6 +54,15 @@ namespace CodingGame.Defense
             toastPosition = ((RectTransform)placementToast.transform).anchoredPosition;
             placementToast.alpha = 0;
             upcoming.text = "다음 웨이브";
+            goalRect = (RectTransform)guide.transform.parent;
+            goalRect.anchorMin = goalRect.anchorMax = new Vector2(.5f, 1);
+            goalRect.sizeDelta = new Vector2(Mathf.Min(800, ((RectTransform)canvasRoot.transform).rect.width - 48), 56);
+            goalRect.anchoredPosition = new Vector2(0, -128);
+            goalPosition = goalRect.anchoredPosition;
+            goalScale = goalRect.localScale;
+            guide.alignment = TextAlignmentOptions.Center;
+            goalBackground = goalRect.GetComponent<Image>();
+            if (goalBackground) { goalBackground.raycastTarget = false; goalColor = goalBackground.color; }
             for (int i = 0; i < robotButtons.Length; i++) { int index = i; robotButtons[i].onClick.AddListener(() => battle.ChooseRobot(index)); }
             enemyImages = enemyCards.Select(c => c.GetComponentInChildren<RawImage>(true)).ToArray();
             enemyHovers = enemyCards.Select(c => c.GetComponent<DefenseHoverInfo>()).ToArray();
@@ -82,20 +97,46 @@ namespace CodingGame.Defense
             counters.text = $"{battle.Stage}-{sim.WaveIndex + 1:00}     {state}     WAVE {sim.WaveIndex + 1}/{sim.Setup.Waves.Length}     적 {sim.RemainingEnemies}     {Math.Ceiling(sim.WaveRemaining):00}s     코인 {sim.Coins:N0}";
             combatControls.SetActive(fighting);
             RefreshEnemyCards(sim);
-            guide.text = ready ? $"{sim.Lesson?.topic} · 로봇 배치 → 코드 작성 → 전투 시작" :
-                reward ? "WAVE CLEAR  ·  블록을 수령하고 다음 전투를 준비하세요" : ended ? "작전 종료" : "DEFENDING  ·  블록 드랍 " + sim.PendingDrops.Count + "개  /  전투 종료 후 수령";
+            bool freePlayGoal = battle.Tutorial && battle.Tutorial.ShowFreePlayGoal && !reward && !ended;
+            if (freePlayGoal && !goalRect.gameObject.activeSelf) goalAnimationStart = Time.unscaledTime;
+            guide.transform.parent.gameObject.SetActive(freePlayGoal);
+            if (freePlayGoal)
+            {
+                guide.text = "목표 · 변수를 사용해 적을 찾고 공격한 뒤 웨이브 완료하기";
+                AnimateGoal();
+            }
+            else
+            {
+                goalRect.anchoredPosition = goalPosition;
+                goalRect.localScale = goalScale;
+                if (goalBackground) goalBackground.color = goalColor;
+            }
             notice.text = battle.StatusMessage;
             inventory.text = $"설치 {sim.Robots.Count} / {sim.Setup.RobotLimit}대  ·  버프형 최대 1대";
             inventory.color = sim.Robots.Count >= sim.Setup.RobotLimit ? new Color(1, .45f, .4f) : new Color(.75f, .9f, .95f);
             startButton.interactable = ready;
             pauseButton.interactable = speedButton.interactable = fighting;
-            pauseLabel.text = sim.Phase == BattlePhase.Paused ? "계속" : "일시정지"; speedLabel.text = battle.BattleSpeed + "x";
+            pauseLabel.text = sim.Phase == BattlePhase.Paused ? "계속" : "일시정지";
+            speedLabel.text = fighting && battle.Tutorial && Mathf.Approximately(battle.Tutorial.BattlePace, .2f)
+                ? "0.2x" : battle.BattleSpeed + "x";
             RefreshRobotButtons(battle, robotButtons, robotLabels, "\nx");
             RefreshRobotActions(sim);
             rewardPanel.SetActive(reward || ended);
             if (reward || ended) RefreshRewardPanel(sim, reward);
             else resultShown = -100; // a restart right after the result clears its banner too, not only after BannerSeconds
             shownRewardPhase = sim.Phase; shownRewardWave = sim.WaveIndex; shownRewardStage = battle.Stage;
+        }
+        void AnimateGoal()
+        {
+            // Unscaled time keeps the gentle motion consistent while the player pauses or changes battle speed.
+            float phase = (Time.unscaledTime - goalAnimationStart) * (2 * Mathf.PI / 3.6f);
+            float wave = Mathf.Sin(phase);
+            goalRect.anchoredPosition = goalPosition + Vector2.up * (2f * wave);
+            goalRect.localScale = goalScale * (1f + .004f * (.5f + .5f * Mathf.Sin(phase + .5f)));
+            if (!goalBackground) return;
+            float glow = .5f + .5f * Mathf.Sin(phase - .7f);
+            goalBackground.color = new Color(goalColor.r + .015f * glow,
+                goalColor.g + .025f * glow, goalColor.b + .03f * glow, goalColor.a);
         }
         // Shared with the inventory window: unlocked robots show, and only stocked ones can be picked while preparing.
         internal static void RefreshRobotButtons(DefenseBattle battle, Button[] buttons, TMP_Text[] labels, string separator)

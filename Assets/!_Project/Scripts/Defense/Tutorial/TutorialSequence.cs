@@ -40,7 +40,7 @@ namespace CodingGame.Defense
         public TutorialCompletionMode completionMode;
         public string completionSignal;
         public string sourceKey, destinationKey;
-        public bool pauseBattle = true, allowPreview;
+        public bool pauseBattle = true, slowBattle, allowPreview;
         [Min(0)] public float highlightPadding = 10;
         [Tooltip("이 신호가 올 때까지 단계를 숨기고 기다립니다(예: FirstKill, WaveCleared, EditorClosed). 비우면 바로 표시.")]
         public string trigger;
@@ -61,6 +61,8 @@ namespace CodingGame.Defense
         [Min(0)] public int robotIndex;
         [Tooltip("1-3 조건문 소개용으로 적 찾기·거리 저장 두 줄을 준비합니다. 다른 로봇의 코드는 유지합니다.")]
         public bool prepareDistanceExample;
+        public bool prepareBaselineExample;
+        public bool restartPreview;
         [Tooltip("흑백 화면 가운데에 대화창을 크게 띄웁니다. 이어지는 단계도 켜 두면 가운데에 남고, 꺼진 단계로 넘어갈 때 원래 자리로 줄어들며 이동합니다.")] public bool introEntrance;
         [Tooltip("시스템 배너에 경고 카드 세 장을 함께 띄웁니다(1-1 A01).")] public bool alertCards;
         [Tooltip("끌어다 놓기 시연: '팔레트 키>놓을 키', 'a>b|c>d'면 앞에서부터 둘 다 화면에 있는 것. 반투명 블록이 반복해서 움직입니다.")]
