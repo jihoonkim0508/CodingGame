@@ -45,7 +45,9 @@ namespace CodingGame.Defense
         bool initialized, bannerUp;
         // Waiting for a trigger hides the dialogue and leaves the game free; a system banner still holds input.
         public bool IsActive => active && view && (view.IsVisible || bannerUp || guideDismissed);
-        public bool ShowFreePlayGoal => active && active.sequenceId == "1-2" && Current?.stepId == "B01" && !view.IsVisible;
+        public bool ShowFreePlayGoal => active &&
+            (active.sequenceId == "1-2" || active.sequenceId == "1-4" || active.sequenceId == "1-5") &&
+            Current?.stepId == "B01" && !view.IsVisible;
         public bool BlocksGameplayInput => IsActive && InputLimited;
         public bool BlocksPreview => BlocksGameplayInput && !AllowPreview;
         // Tutorial off, idle, or with input limiting disabled in the developer options.
@@ -302,6 +304,8 @@ namespace CodingGame.Defense
             if (step.prepareBaselineExample) Editor.PrepareBaselineExample();
             if (step.prepareDistanceExample) Editor.PrepareDistanceExample();
             if (step.restartPreview) Editor.RestartPreview();
+            if (!string.IsNullOrEmpty(step.autoSelectSlot) && !Editor.SelectTutorialSlot(step.autoSelectSlot))
+                throw new InvalidOperationException("튜토리얼 자동 선택 슬롯을 찾지 못했습니다: " + step.autoSelectSlot);
             Editor.SetHint(step.hintCode);
         }
 

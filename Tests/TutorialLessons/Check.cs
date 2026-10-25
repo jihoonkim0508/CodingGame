@@ -10,7 +10,7 @@ static class Check
     static CodeBlock[] Program(string op, string target = "enemy", string distance = "enemy_distance")
     {
         var condition = new CodeBlock(BlockKind.If, "0", new CodeBlock(BlockKind.Comparison, op,
-            new CodeBlock(BlockKind.Variable, distance), new CodeBlock(BlockKind.Number, "2.5")));
+            new CodeBlock(BlockKind.Variable, distance), new CodeBlock(BlockKind.MyAttackRange)));
         condition.Body.Add(new CodeBlock(BlockKind.Slash, "0", new CodeBlock(BlockKind.Variable, target)));
         return new[] {
             new CodeBlock(BlockKind.DeclareVariable, target, new CodeBlock(BlockKind.NearestEnemy)),
@@ -105,16 +105,16 @@ static class Check
     }
     static void Main()
     {
-        const string answer = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= 2.5:\n    slash(enemy)";
+        const string answer = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= my_attack_range():\n    slash(enemy)";
         Require(Attacks("<=") > 0, "True distance condition must execute the attack inside if");
         Require(Attacks(">") == 0, "False condition must skip the attack even when the enemy is in attack range");
         Require(TutorialWatcher.Matches(new DefenseProgram("renamed", Program("<=", "target", "distance")), answer), "Consistent custom variable names should be accepted");
         Require(!TutorialWatcher.Matches(new DefenseProgram("wrong", Program(">")), answer), "Wrong comparison must not finish the guided lesson");
-        Require(FirstSlashHits(false) == 1, "Without the timing condition, the first slash should hit only the lead enemy");
-        Require(FirstSlashHits(true) == 2, "Waiting until distance 2.5 should let the first slash hit both enemies");
-        Require(FirstSlashHits(false, 7, 1.2f, .5f, 1.8f, 2) == 1, "The preview's first unguarded slash should hit one enemy");
-        Require(FirstSlashHits(true, 7, 1.2f, .5f, 1.8f, 2) == 2, "The preview's first guarded slash should hit both enemies");
+        Require(FirstSlashHits(false) == 1 && FirstSlashHits(true) == 1,
+            "Comparing against the robot's actual range should preserve the first attack timing");
+        Require(FirstSlashHits(true, 7, 1.2f, .5f, 1.8f, 2) > 0,
+            "The preview must still show an attack with my_attack_range()");
         IntroLeak();
-        Console.WriteLine("PASS: 1-1 strong enemy leaks once after two kills; pause freezes battle; 1-3 conditional timing and comparison checks pass.");
+        Console.WriteLine("PASS: 1-1 strong enemy leaks once after two kills; pause freezes battle; 1-3 dynamic attack range comparison checks pass.");
     }
 }

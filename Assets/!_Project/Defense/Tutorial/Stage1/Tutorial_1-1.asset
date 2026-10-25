@@ -47,6 +47,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -89,6 +90,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -131,6 +133,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -173,6 +176,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -216,6 +220,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -259,6 +264,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -302,6 +308,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -344,6 +351,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -386,6 +394,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -428,6 +437,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -473,6 +483,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -516,6 +527,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey: Robot.Unit.0
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -559,6 +571,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -603,6 +616,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -646,6 +660,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey: Battle.Develop
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -683,12 +698,13 @@ MonoBehaviour:
     destinationKey:
     pauseBattle: 1
     slowBattle: 0
-    allowPreview: 0
+    allowPreview: 1
     highlightPadding: 10
     trigger:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -710,8 +726,9 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uC67C\uCABD\uC744 \uBD10. \uC544\uC9C1 \uBA85\uB839\uC774 \uC5C6\uC5B4\uC11C
-        \uB85C\uBD07\uC774 \uACF5\uACA9\uD558\uC9C0 \uC54A\uACE0 \uC788\uC5B4."
+      text: "\uC67C\uCABD \uBBF8\uB9AC\uBCF4\uAE30\uB97C \uBD10. \uC544\uC9C1 \uBA85\uB839\uC774
+        \uC5C6\uC5B4\uC11C \uB85C\uBD07\uC774 \uACF5\uACA9\uD558\uC9C0 \uC54A\uACE0
+        \uC788\uC5B4."
       focusKeys:
       - Editor.Preview
       highlightKeys: []
@@ -726,12 +743,13 @@ MonoBehaviour:
     destinationKey:
     pauseBattle: 1
     slowBattle: 0
-    allowPreview: 0
+    allowPreview: 1
     highlightPadding: 10
     trigger:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -768,12 +786,13 @@ MonoBehaviour:
     destinationKey:
     pauseBattle: 1
     slowBattle: 0
-    allowPreview: 0
+    allowPreview: 1
     highlightPadding: 10
     trigger:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -815,12 +834,13 @@ MonoBehaviour:
     destinationKey:
     pauseBattle: 1
     slowBattle: 0
-    allowPreview: 0
+    allowPreview: 1
     highlightPadding: 10
     trigger:
     skipIf:
     expectedCode: 1:DeclareVariable
     pointerKey: Editor.Palette.DeclareVariable
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -832,7 +852,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo:
+    dragDemo: Editor.Palette.DeclareVariable>Editor.Code.Start
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -859,57 +879,13 @@ MonoBehaviour:
     destinationKey:
     pauseBattle: 1
     slowBattle: 0
-    allowPreview: 0
+    allowPreview: 1
     highlightPadding: 10
     trigger:
     skipIf:
     expectedCode:
     pointerKey:
-    hintCode:
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    prepareDistanceExample: 0
-    prepareBaselineExample: 0
-    restartPreview: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo:
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: C07
-    kind: 1
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uB4F1\uD638 \uC624\uB978\uCABD\uC758 <b>\uBE48\uCE78</b>\uC744 \uB20C\uB7EC
-        \uBD10."
-      focusKeys:
-      - Editor.Code.Arg.1.0
-      highlightKeys: []
-    targetKeys:
-    - Editor.ProgramDropZone
-    - Editor.BlockPalette
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 3
-    completionSignal: SlotSelected
-    sourceKey:
-    destinationKey:
-    pauseBattle: 1
-    slowBattle: 0
-    allowPreview: 0
-    highlightPadding: 10
-    trigger:
-    skipIf:
-    expectedCode: Editor.Code.Arg.1.0
-    pointerKey: Editor.Code.Arg.1.0
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -932,8 +908,8 @@ MonoBehaviour:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
       text: "\uC774\uC81C \u2018`get_nearest_enemy()`\u2019 \uBE14\uB85D\uC744 \uB20C\uB7EC\uC11C
-        \uBE48\uCE78\uC5D0 \uB123\uC5B4 \uC918.\n<b>\uAC00\uC7A5 \uAC00\uAE4C\uC6B4
-        \uC801\uC744 \uCC3E\uB294 \uBE14\uB85D\uC774\uC57C.</b>"
+        \uB4F1\uD638 \uC624\uB978\uCABD\uC5D0 \uB123\uC5B4 \uC918.\n<b>\uAC00\uC7A5
+        \uAC00\uAE4C\uC6B4 \uC801\uC744 \uCC3E\uB294 \uBE14\uB85D\uC774\uC57C.</b>"
       focusKeys:
       - Editor.Palette.NearestEnemy
       - Editor.Code.Arg.1.0
@@ -951,12 +927,13 @@ MonoBehaviour:
     destinationKey:
     pauseBattle: 1
     slowBattle: 0
-    allowPreview: 0
+    allowPreview: 1
     highlightPadding: 10
     trigger:
     skipIf:
     expectedCode: enemy = get_nearest_enemy()
     pointerKey: Editor.Palette.NearestEnemy
+    autoSelectSlot: Editor.Code.Arg.1.0
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -968,7 +945,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo:
+    dragDemo: Editor.Palette.NearestEnemy>Editor.Code.Arg.1.0
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -994,12 +971,13 @@ MonoBehaviour:
     destinationKey:
     pauseBattle: 1
     slowBattle: 0
-    allowPreview: 0
+    allowPreview: 1
     highlightPadding: 10
     trigger:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -1037,12 +1015,13 @@ MonoBehaviour:
     destinationKey:
     pauseBattle: 1
     slowBattle: 0
-    allowPreview: 0
+    allowPreview: 1
     highlightPadding: 10
     trigger:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -1080,12 +1059,13 @@ MonoBehaviour:
     destinationKey:
     pauseBattle: 1
     slowBattle: 0
-    allowPreview: 0
+    allowPreview: 1
     highlightPadding: 10
     trigger:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -1127,12 +1107,13 @@ MonoBehaviour:
     destinationKey:
     pauseBattle: 1
     slowBattle: 0
-    allowPreview: 0
+    allowPreview: 1
     highlightPadding: 10
     trigger:
     skipIf:
     expectedCode: 2:Slash
     pointerKey: Editor.Palette.Slash
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -1144,52 +1125,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo:
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: D02
-    kind: 1
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uAD04\uD638 \uC548\uC740 <b>\u2018\uB204\uAD6C\uB97C \uACF5\uACA9\uD560\uAE4C?\u2019</b>\uB97C
-        \uC815\uD558\uB294 \uC790\uB9AC\uC57C. \uBE48\uCE78\uC744 \uB20C\uB7EC \uBD10."
-      focusKeys:
-      - Editor.Code.Arg.2.0
-      highlightKeys: []
-    targetKeys:
-    - Editor.ProgramDropZone
-    - Editor.BlockPalette
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 3
-    completionSignal: SlotSelected
-    sourceKey:
-    destinationKey:
-    pauseBattle: 1
-    slowBattle: 0
-    allowPreview: 0
-    highlightPadding: 10
-    trigger:
-    skipIf:
-    expectedCode: Editor.Code.Arg.2.0
-    pointerKey: Editor.Code.Arg.2.0
-    hintCode:
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    prepareDistanceExample: 0
-    prepareBaselineExample: 0
-    restartPreview: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo:
+    dragDemo: Editor.Palette.Slash>Editor.Code.After.1
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -1199,9 +1135,9 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uAC00\uC6B4\uB370\uC758 <b>\uB4F1\uD638 \uC5C6\uB294 \u2018variable\u2019
-        \uBE14\uB85D</b>\uC744 \uB123\uC790.\n\uAE00\uC790 \uC606\uC758 <b>\uC8FC\uD669\uC0C9
-        \uD14C\uB450\uB9AC</b>\uB97C \uB20C\uB7EC \uC918."
+      text: "\uAD04\uD638 \uC548\uC740 <b>\u2018\uB204\uAD6C\uB97C \uACF5\uACA9\uD560\uAE4C?\u2019</b>\uB97C
+        \uC815\uD558\uB294 \uC790\uB9AC\uC57C.\n\uAC00\uC6B4\uB370\uC758 <b>\uB4F1\uD638
+        \uC5C6\uB294 \u2018variable\u2019 \uBE14\uB85D</b>\uC744 \uB123\uC790."
       focusKeys:
       - Editor.Palette.Variable
       - Editor.Code.Arg.2.0
@@ -1219,12 +1155,13 @@ MonoBehaviour:
     destinationKey:
     pauseBattle: 1
     slowBattle: 0
-    allowPreview: 0
+    allowPreview: 1
     highlightPadding: 10
     trigger:
     skipIf:
     expectedCode: Editor.Code.Arg.2.0
     pointerKey: Editor.Palette.Variable
+    autoSelectSlot: Editor.Code.Arg.2.0
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -1236,7 +1173,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo:
+    dragDemo: Editor.Palette.Variable>Editor.Code.Arg.2.0
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -1265,7 +1202,7 @@ MonoBehaviour:
     destinationKey:
     pauseBattle: 1
     slowBattle: 0
-    allowPreview: 0
+    allowPreview: 1
     highlightPadding: 10
     trigger:
     skipIf:
@@ -1273,6 +1210,7 @@ MonoBehaviour:
 
       slash(enemy)'
     pointerKey: Editor.Code.Name.2.0
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -1312,12 +1250,13 @@ MonoBehaviour:
     destinationKey:
     pauseBattle: 1
     slowBattle: 0
-    allowPreview: 0
+    allowPreview: 1
     highlightPadding: 10
     trigger:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -1356,12 +1295,13 @@ MonoBehaviour:
     destinationKey:
     pauseBattle: 1
     slowBattle: 0
-    allowPreview: 0
+    allowPreview: 1
     highlightPadding: 10
     trigger:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -1399,12 +1339,13 @@ MonoBehaviour:
     destinationKey:
     pauseBattle: 1
     slowBattle: 0
-    allowPreview: 0
+    allowPreview: 1
     highlightPadding: 10
     trigger:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -1450,6 +1391,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -1494,6 +1436,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -1536,6 +1479,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 1
@@ -1579,6 +1523,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -1622,6 +1567,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -1665,6 +1611,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -1709,6 +1656,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey: Battle.Pause
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -1753,6 +1701,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey: Battle.Pause
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -1798,6 +1747,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey: Battle.ToggleSpeed
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -1843,6 +1793,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -1886,6 +1837,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -1929,6 +1881,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -1971,6 +1924,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -2014,6 +1968,7 @@ MonoBehaviour:
     skipIf:
     expectedCode:
     pointerKey: Battle.ClaimRewards
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0

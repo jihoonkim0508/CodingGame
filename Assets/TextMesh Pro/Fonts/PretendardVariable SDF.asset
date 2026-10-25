@@ -10224,6 +10224,21 @@ MonoBehaviour:
           m_XAdvance: 0
           m_YAdvance: 0
       m_FeatureLookupFlags: -532005283
+    - m_FirstAdjustmentRecord:
+        m_GlyphIndex: 13845
+        m_GlyphValueRecord:
+          m_XPlacement: 0
+          m_YPlacement: 0
+          m_XAdvance: 0
+          m_YAdvance: 0
+      m_SecondAdjustmentRecord:
+        m_GlyphIndex: 950
+        m_GlyphValueRecord:
+          m_XPlacement: 0
+          m_YPlacement: 0
+          m_XAdvance: 0
+          m_YAdvance: 0
+      m_FeatureLookupFlags: -660390307
     m_MarkToBaseAdjustmentRecords:
     - m_BaseGlyphID: 570
       m_BaseGlyphAnchorPoint:

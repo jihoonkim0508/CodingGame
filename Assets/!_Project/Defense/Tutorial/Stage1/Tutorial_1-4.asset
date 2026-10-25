@@ -20,92 +20,14 @@ MonoBehaviour:
   speakerPortrait: {fileID: 0}
   typeSpeed: 30
   steps:
-  - stepId: P01
-    kind: 1
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uC544\uB798\uC5D0\uC11C \uC804\uC0AC\uD615 \uB85C\uBD07\uC744 \uC120\uD0DD\uD574."
-      focusKeys: []
-      highlightKeys: []
-    targetKeys:
-    - Battle.Robot.1
-    dim: 1
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 1
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 0
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: P02
-    kind: 1
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uC774\uC81C \uB9F5\uC5D0\uC11C \uB85C\uBD07\uC744 \uB193\uC744 \uC704\uCE58\uB97C
-        \uC815\uD558\uC790, \uCC38\uACE0\uB85C \uC801\uC774 \uC774\uB3D9\uD558\uB294
-        \uAE38\uC704\uC5D0\uB294 \uB85C\uBD07\uC744 \uC124\uCE58\uD560\uC218\uC5C6\uC5B4!"
-      focusKeys:
-      - Battle.Floor
-      highlightKeys: []
-    targetKeys:
-    - Battle.DeploymentArea
-    dim: 1
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 3
-    completionSignal: RobotPlaced
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 0
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
   - stepId: A01
     kind: 0
     dialoguePosition: 0
     texts:
     - textId: t1
       speaker: "\uC2DC\uC2A4\uD15C"
-      text: "\uC0C8\uB85C\uC6B4 \uC624\uB958 \uCF54\uB4DC\uB4E4\uC774 \uB098\uD0C0\uB0AC\uC2B5\uB2C8\uB2E4!"
+      text: "\uC0C8\uB85C\uC6B4 \uC624\uB958 \uCF54\uB4DC \uBB34\uB9AC\uAC00 \uC811\uADFC
+        \uC911\uC785\uB2C8\uB2E4!"
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -114,25 +36,30 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionSignal:
+    sourceKey:
+    destinationKey:
     pauseBattle: 1
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
-    alertCards: 0
-    dragDemo: 
+    alertCards: 1
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -142,8 +69,8 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uC0C8\uB85C\uC6B4 \uC624\uB958 \uCF54\uB4DC\uB4E4\uC774 \uB2E4\uAC00\uC624\uACE0
-        \uC788\uC5B4!"
+      text: "\uC9C0\uB09C\uBC88\uC5D0\uB294 `if`\uB85C \uC801\uC774 \uAC00\uAE4C\uC6CC\uC9C8
+        \uB54C\uAE4C\uC9C0 \uAE30\uB2E4\uB838\uB2E4\uAC00 \uBCA0\uC5C8\uC9C0."
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -152,25 +79,30 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionSignal:
+    sourceKey:
+    destinationKey:
     pauseBattle: 1
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -180,8 +112,11 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uC9C0\uB09C \uC804\uD22C\uC5D0\uC11C \uC6B0\uB9AC\uAC00 \uB9CC\uB4E0
-        \uCF54\uB4DC\uB97C \uAE30\uC5B5\uD558\uACE0 \uC788\uC9C0?"
+      text: "\uC774\uBC88\uC5D4 \uC0C8 \uC804\uC0AC\uB3C4 \uBC30\uCE58\uD558\uACE0,
+        \uB450 \uC804\uC0AC \uBAA8\uB450 \uAC70\uB9AC \uC870\uAC74\uC744 \uC9C1\uC811
+        \uB9CC\uB4E4\uC5B4 \uBCF4\uC790. \uC801\uC774 \uBAA8\uC774\uB294 \uC21C\uAC04\uC744
+        \uB178\uB9AC\uBA74 \uC5EC\uB7EC \uB9C8\uB9AC\uB97C \uD55C \uBC88\uC5D0 \uBCA8
+        \uC218 \uC788\uC5B4."
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -190,25 +125,30 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionSignal:
+    sourceKey:
+    destinationKey:
     pauseBattle: 1
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -218,8 +158,9 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uBA3C\uC800 `enemy_distance`\uB85C \uC801\uACFC\uC758 \uAC70\uB9AC\uB97C
-        \uACC4\uC0B0\uD588\uC5C8\uC5B4."
+      text: "\uB9C9\uD788\uBA74 \uD3B8\uC9D1\uAE30\uC758 \uD78C\uD2B8\uB97C \uC0B4\uD3B4\uBD10.
+        \uC900\uBE44\uAC00 \uB05D\uB098\uBA74 \uC804\uD22C\uB97C \uC2DC\uC791\uD574!
+        \uBAA9\uD45C\uB294 \uD654\uBA74 \uC704\uC5D0 \uB0A8\uACA8 \uB458\uAC8C."
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -228,222 +169,73 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionSignal:
+    sourceKey:
+    destinationKey:
     pauseBattle: 1
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
-  - stepId: A05
+  - stepId: B01
     kind: 0
     dialoguePosition: 0
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uADF8\uB9AC\uACE0 `if` \uC870\uAC74\uBB38\uC744 \uC0AC\uC6A9\uD574\uC11C
-        \uC801\uC774 \uACF5\uACA9 \uC0AC\uAC70\uB9AC \uC548\uC5D0 \uC788\uC744 \uB54C\uB9CC
-        `slash(enemy)`\uB97C \uC2E4\uD589\uD558\uB3C4\uB85D \uB9CC\uB4E4\uC5C8\uC9C0!"
-      focusKeys:
-      - Robot.Unit.0
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 0
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: A06
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uB355\uBD84\uC5D0 \uC801\uC774 \uC0AC\uAC70\uB9AC \uBC16\uC5D0 \uC788\uC744
-        \uB54C\uB294 \uACF5\uACA9\uD558\uC9C0 \uC54A\uACE0, \uC0AC\uAC70\uB9AC \uC548\uC5D0
-        \uB4E4\uC5B4\uC624\uBA74 \uACF5\uACA9\uD560 \uC218 \uC788\uC5B4."
-      focusKeys:
-      - Battle.Route
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 0
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: A07
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uC774\uBC88\uC5D0\uB294 \uC6B0\uB9AC\uAC00 \uB9CC\uB4E0 \uD504\uB85C\uADF8\uB7A8\uC5D0
-        \uC0C8\uB85C\uC6B4 \uBE14\uB85D\uC744 \uCD94\uAC00\uD574 \uBCFC \uAC70\uC57C!"
-      focusKeys:
-      - Robot.Range.0
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 0
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: B01a
-    kind: 1
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uBA3C\uC800 \uB85C\uBD07\uC744 \uC120\uD0DD\uD558\uACE0 \uAC1C\uBC1C
-        \uBC84\uD2BC\uC744 \uB20C\uB7EC \uBCF4\uC790."
+      text: "\uC88B\uC544! \uC870\uAC74\uC774 \uCC38\uC77C \uB54C\uB9CC \uBCA0\uB3C4\uB85D
+        \uB9CC\uB4E0 \uB355\uBD84\uC5D0 \uBAB0\uB824\uC628 \uC801\uC744 \uB9C9\uC544\uB0C8\uC5B4."
       focusKeys: []
       highlightKeys: []
-    targetKeys:
-    - Robot.Unit.0
+    targetKeys: []
     dim: 0
     undimmed: 0
     blockInput: 1
     outline: 1
-    completionMode: 1
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
+    completionMode: 0
+    completionSignal:
+    sourceKey:
+    destinationKey:
+    pauseBattle: 0
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: Robot.Unit.0
-    hintCode: 
+    trigger: WaveCleared
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: B01b
-    kind: 1
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uBA3C\uC800 \uB85C\uBD07\uC744 \uC120\uD0DD\uD558\uACE0 \uAC1C\uBC1C
-        \uBC84\uD2BC\uC744 \uB20C\uB7EC \uBCF4\uC790."
-      focusKeys: []
-      highlightKeys: []
-    targetKeys:
-    - Battle.Develop
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 3
-    completionSignal: EditorOpened
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 1
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: Battle.Develop
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -453,8 +245,9 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uC9C0\uB09C\uBC88\uC5D0 \uB9CC\uB4E0 \uCF54\uB4DC\uAC00 \uADF8\uB300\uB85C
-        \uB0A8\uC544 \uC788\uB124!"
+      text: "\uAC19\uC740 `if`\uB77C\uB3C4 \uBE44\uAD50\uD558\uB294 \uAC70\uB9AC\uB97C
+        \uBC14\uAFB8\uBA74 \uBCA0\uB294 \uC2DC\uC810\uC774 \uB2EC\uB77C\uC838. \uC774\uBC88\uC5D0\uB294
+        \uB124\uAC00 \uC9C1\uC811 \uADF8 \uC2DC\uC810\uC744 \uC815\uD588\uC5B4."
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -463,25 +256,30 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 1
+    completionSignal:
+    sourceKey:
+    destinationKey:
+    pauseBattle: 0
+    slowBattle: 0
+    allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -491,8 +289,9 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uC5EC\uAE30\uC11C `my_attack_range()`\uB294 \uB85C\uBD07\uC758 \uACF5\uACA9
-        \uC0AC\uAC70\uB9AC\uB97C \uB098\uD0C0\uB0B4\uACE0 \uC788\uC5B4."
+      text: "\uB2E4\uC74C\uC740 \uBCC0\uC218\uB97C \uC368\uC11C \uAC15\uD55C \uC801\uACFC
+        \uC8FC\uBCC0 \uC801\uC744 \uD568\uAED8 \uC0C1\uB300\uD558\uB294 \uB9C8\uC9C0\uB9C9
+        \uC2E4\uC2B5\uC774\uC57C."
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -501,1122 +300,73 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 1
+    completionSignal:
+    sourceKey:
+    destinationKey:
+    pauseBattle: 0
+    slowBattle: 0
+    allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
   - stepId: B04
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uC774\uBC88\uC5D0\uB294 \uC774 \uAC12\uC744 \uC0C8\uB85C\uC6B4 \uBCC0\uC218\uC5D0
-        \uC800\uC7A5\uD574\uC11C \uC870\uAC74\uBB38\uC5D0 \uC0AC\uC6A9\uD574 \uBCF4\uC790!"
-      focusKeys: []
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 1
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: C01
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uBA3C\uC800 \uBCC0\uC218 \uBE14\uB85D\uC744 \uD558\uB098 \uCD94\uAC00\uD574
-        \uBCF4\uC790!"
-      focusKeys:
-      - Editor.Palette.DeclareVariable
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 1
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: C02
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uBCC0\uC218 \uC774\uB984\uC740 `attack_range`\uB85C \uC815\uD560 \uAC70\uC57C."
-      focusKeys: []
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 1
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: C03
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uADF8\uB9AC\uACE0 `my_attack_range()`\uC758 \uAC12\uC744 `attack_range`\uC5D0
-        \uC800\uC7A5\uD558\uB294 \uAC70\uC9C0!"
-      focusKeys:
-      - Editor.Palette.MyAttackRange
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 1
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: C04
     kind: 1
-    dialoguePosition: 0
+    dialoguePosition: 1
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uC774\uC81C \uC774 \uBE14\uB85D\uC744 `enemy_distance`\uB97C \uACC4\uC0B0\uD558\uB294
-        \uBE14\uB85D \uC544\uB798\uC5D0 \uC5F0\uACB0\uD574 \uBCF4\uC790!"
+      text: "\uBCF4\uC0C1\uC744 \uBC1B\uACE0 1-5\uB85C \uAC00\uC790."
       focusKeys: []
       highlightKeys: []
     targetKeys:
-    - Editor.ProgramDropZone
-    - Editor.BlockPalette
+    - Battle.ClaimRewards
     dim: 0
     undimmed: 0
     blockInput: 1
     outline: 1
-    completionMode: 3
-    completionSignal: ProgramMatches
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 1
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nattack_range
-      = my_attack_range()\nif enemy_distance <= my_attack_range():\n    slash(enemy)"
-    pointerKey: Editor.Code.After.2
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: C05
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uC88B\uC544! \uC774\uC81C \uACF5\uACA9 \uC0AC\uAC70\uB9AC \uC815\uBCF4\uB3C4
-        \uBCC0\uC218\uC5D0 \uC800\uC7A5\uD588\uC5B4!"
-      focusKeys: []
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 1
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: C06
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uADF8\uB7F0\uB370 \uC544\uC9C1 `if` \uC870\uAC74\uBB38\uC5D0\uC11C\uB294
-        `my_attack_range()`\uB97C \uC9C1\uC811 \uC0AC\uC6A9\uD558\uACE0 \uC788\uC9C0?"
-      focusKeys:
-      - Editor.Code.Arg.4.0.1
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 1
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: C07
-    kind: 1
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uC774 \uBD80\uBD84\uC744 \uBC29\uAE08 \uB9CC\uB4E0 `attack_range` \uBCC0\uC218\uB85C
-        \uBC14\uAFD4 \uBCF4\uC790!"
-      focusKeys:
-      - Editor.Code.Arg.4.0.1
-      highlightKeys: []
-    targetKeys:
-    - Editor.ProgramDropZone
-    - Editor.BlockPalette
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 3
-    completionSignal: ProgramMatches
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 1
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nattack_range
-      = my_attack_range()\n\nif enemy_distance <= attack_range:\n    slash(enemy)"
-    pointerKey: Editor.Code.Arg.4.0.1
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: C08
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uC798\uD588\uC5B4! \uC774\uC81C \uB450 \uBCC0\uC218\uC5D0 \uC800\uC7A5\uB41C
-        \uAC12\uC744 \uBE44\uAD50\uD574\uC11C \uACF5\uACA9 \uC870\uAC74\uC744 \uD655\uC778\uD560
-        \uC218 \uC788\uC5B4!"
-      focusKeys: []
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 1
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: C09
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uACF5\uACA9\uD558\uB294 \uBC29\uC2DD\uC740 \uC774\uC804\uACFC \uAC19\uC9C0\uB9CC,
-        \uD544\uC694\uD55C \uC815\uBCF4\uB97C \uBCC0\uC218\uC5D0 \uC800\uC7A5\uD574\uC11C
-        \uD65C\uC6A9\uD558\uB3C4\uB85D \uC218\uC815\uD55C \uAC70\uC57C!"
-      focusKeys: []
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 1
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: C10
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uC88B\uC544! \uCCAB \uBC88\uC9F8 \uB85C\uBD07\uC740 \uC644\uBCBD\uD558\uAC8C
-        \uAC1C\uBC1C\uD588\uC5B4!"
-      focusKeys: []
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 1
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: C11
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uC774\uC81C \uB0A8\uC740 \uB85C\uBD07\uB3C4 \uC9C1\uC811 \uCF54\uB529\uD574\uC11C
-        \uACF5\uACA9\uD560 \uC218 \uC788\uB3C4\uB85D \uB9CC\uB4E4\uC5B4 \uBCF4\uC790!"
-      focusKeys: []
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 1
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: D01
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uCC38! \uC55E\uC73C\uB85C \uCF54\uB4DC\uB97C \uB9CC\uB4E4\uB2E4\uAC00
-        \uB9C9\uD788\uB294 \uACBD\uC6B0\uB3C4 \uC788\uC744 \uAC70\uC57C."
-      focusKeys: []
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 1
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nattack_range
-      = my_attack_range()\n\nif enemy_distance <= attack_range:\n    slash(enemy)"
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 1
-    robotIndex: 1
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: D02
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uADF8\uB7F4 \uB54C\uB294 \uD78C\uD2B8 \uAE30\uB2A5\uC744 \uC0AC\uC6A9\uD558\uBA74
-        \uB3FC!"
-      focusKeys: []
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 1
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nattack_range
-      = my_attack_range()\n\nif enemy_distance <= attack_range:\n    slash(enemy)"
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 1
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: D03
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uD78C\uD2B8 \uBC84\uD2BC\uC744 \uB204\uB974\uBA74 \uC5B4\uB5A4 \uBE14\uB85D\uC744
-        \uC5F0\uACB0\uD574\uC57C \uD558\uB294\uC9C0 \uD655\uC778\uD560 \uC218 \uC788\uC5B4!"
-      focusKeys:
-      - Editor.Hint
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 1
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nattack_range
-      = my_attack_range()\n\nif enemy_distance <= attack_range:\n    slash(enemy)"
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 1
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: D04
-    kind: 1
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uC774\uBC88\uC5D0 \uB9CC\uB4E0 \uCF54\uB4DC\uB3C4 \uD78C\uD2B8\uC5D0\uC11C
-        \uB2E4\uC2DC \uD655\uC778\uD560 \uC218 \uC788\uC73C\uB2C8\uAE4C \uAE30\uC5B5\uD574
-        \uB46C!"
-      focusKeys: []
-      highlightKeys: []
-    targetKeys:
-    - Editor.ProgramDropZone
-    - Editor.BlockPalette
-    - Editor.Hint
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 3
-    completionSignal: ProgramMatches
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 1
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nattack_range
-      = my_attack_range()\n\nif enemy_distance <= attack_range:\n    slash(enemy)"
-    pointerKey: Editor.Hint
-    hintCode: "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nattack_range
-      = my_attack_range()\n\nif enemy_distance <= attack_range:\n    slash(enemy)"
-    pointerDelay: 60
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 1
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 1
-    holdSeconds: 0
-  - stepId: D04c
-    kind: 1
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uC774\uBC88\uC5D0 \uB9CC\uB4E0 \uCF54\uB4DC\uB3C4 \uD78C\uD2B8\uC5D0\uC11C
-        \uB2E4\uC2DC \uD655\uC778\uD560 \uC218 \uC788\uC73C\uB2C8\uAE4C \uAE30\uC5B5\uD574
-        \uB46C!"
-      focusKeys: []
-      highlightKeys: []
-    targetKeys:
-    - Editor.Close
-    dim: 0
-    undimmed: 1
-    blockInput: 1
-    outline: 1
-    completionMode: 3
-    completionSignal: EditorClosed
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 1
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: Editor.Close
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 1
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: D05
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uC88B\uC544! \uC774\uC81C \uC6B0\uB9AC\uAC00 \uC218\uC815\uD55C \uD504\uB85C\uADF8\uB7A8\uC774
-        \uC81C\uB300\uB85C \uC791\uB3D9\uD558\uB294\uC9C0 \uD655\uC778\uD574 \uBCF4\uC790!"
-      focusKeys: []
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 0
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: E01
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC2DC\uC2A4\uD15C"
-      text: "\uC624\uB958 \uCF54\uB4DC \uC811\uADFC \uC911! \uCF54\uC5B4 \uBC29\uC5B4
-        \uC900\uBE44!"
-      focusKeys: []
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 0
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: E02
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uC774\uBC88\uC5D0\uB294 \uB354 \uB9CE\uC740 \uC624\uB958 \uCF54\uB4DC\uAC00
-        \uBAB0\uB824\uC62C \uAC70\uC57C!"
-      focusKeys: []
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 0
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: E03
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uB85C\uBD07\uC758 \uACF5\uACA9 \uBC94\uC704\uB97C \uD655\uC778\uD558\uACE0
-        \uC900\uBE44\uAC00 \uB05D\uB0AC\uB2E4\uBA74 \uC804\uD22C\uB97C \uC2DC\uC791\uD574
-        \uBCF4\uC790!"
-      focusKeys: []
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 0
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: E04
-    kind: 1
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uC804\uD22C \uC2DC\uC791 \uBC84\uD2BC\uC744 \uB20C\uB7EC!"
-      focusKeys:
-      - Battle.Route
-      - Robot.Range.0
-      - Robot.Range.1
-      - Battle.CoreHealth
-      highlightKeys: []
-    targetKeys:
-    - Battle.Start
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 3
-    completionSignal: BattleStarted
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    allowPreview: 0
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: E05
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uC801\uC774 \uB85C\uBD07\uC758 \uACF5\uACA9 \uBC94\uC704 \uC548\uC73C\uB85C
-        \uB4E4\uC5B4\uC654\uC5B4!"
-      focusKeys: []
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionMode: 1
+    completionSignal:
+    sourceKey:
+    destinationKey:
     pauseBattle: 0
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger: FirstAttack
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey: Battle.ClaimRewards
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: E06
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uC6B0\uB9AC\uAC00 \uB9CC\uB4E0 \uD504\uB85C\uADF8\uB7A8\uB300\uB85C
-        \uB85C\uBD07\uC774 \uACF5\uACA9\uD558\uACE0 \uC788\uC5B4!"
-      focusKeys:
-      - Robot.Range.0
-      - Robot.Range.1
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 0
-    allowPreview: 0
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: F01
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uC798\uD588\uC5B4! \uC774\uBC88\uC5D0\uB3C4 \uC624\uB958 \uCF54\uB4DC\uB4E4\uC744
-        \uB9C9\uC544\uB0C8\uC5B4!"
-      focusKeys: []
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 0
-    allowPreview: 0
-    highlightPadding: 10
-    trigger: WaveCleared
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: F02
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uC774\uBC88\uC5D0\uB294 \uC0C8\uB85C\uC6B4 \uBCC0\uC218\uB97C \uCD94\uAC00\uD558\uACE0,
-        \uAE30\uC874 \uC870\uAC74\uBB38\uC744 \uC218\uC815\uD558\uB294 \uBC29\uBC95\uC744
-        \uBC30\uC6E0\uC5B4!"
-      focusKeys: []
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 0
-    allowPreview: 0
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: F03
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uC774\uB807\uAC8C \uBCC0\uC218\uC640 \uC870\uAC74\uBB38\uC744 \uD568\uAED8
-        \uC0AC\uC6A9\uD558\uBA74 \uD504\uB85C\uADF8\uB7A8\uC744 \uB354 \uB2E4\uC591\uD558\uAC8C
-        \uB9CC\uB4E4 \uC218 \uC788\uC5B4!"
-      focusKeys: []
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 0
-    allowPreview: 0
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-  - stepId: F04
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uB2E4\uC74C\uC5D0\uB294 \uC9C0\uAE08\uAE4C\uC9C0 \uBC30\uC6B4 \uB0B4\uC6A9\uC744
-        \uD65C\uC6A9\uD574\uC11C \uB354 \uBCF5\uC7A1\uD55C \uD504\uB85C\uADF8\uB7A8\uC744
-        \uB9CC\uB4E4\uC5B4 \uBCF4\uC790!"
-      focusKeys: []
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 0
-    allowPreview: 0
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0

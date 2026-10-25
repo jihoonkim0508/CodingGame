@@ -18,6 +18,8 @@ namespace CodingGame.Defense
             public int route, count = 5;
             public float delay, interval = 1.5f;
             public float healthOverride, speedOverride;
+            public int leakDamageOverride;
+            public bool boss;
         }
         [Serializable] public sealed class Wave { public SpawnEntry[] groups = Array.Empty<SpawnEntry>(); }
 
@@ -72,6 +74,8 @@ namespace CodingGame.Defense
         readonly Dictionary<int, DefenseActorView> enemyViews = new Dictionary<int, DefenseActorView>();
         readonly List<Transform> dropViews = new List<Transform>();
         readonly DefenseProjectileVisuals projectileViews = new DefenseProjectileVisuals();
+        bool bossEntranceStarted, bossCameraRestored;
+        float bossEntranceUntil, bossCameraRestoreAt;
         public bool DeveloperMode { get; private set; }
         public bool ShowHitRanges { get; private set; }
         public bool HelpOpen { get; internal set; }
@@ -204,6 +208,9 @@ namespace CodingGame.Defense
             projectileViews.Clear();
             hitEffects.Clear();
             Simulation = new DefenseSimulation(setup);
+            bossEntranceStarted = bossCameraRestored = false;
+            bossEntranceUntil = bossCameraRestoreAt = 0;
+            selectionCamera.Restore();
             selected = 0; BattleSpeed = 1; HidePlacement();
             rangeRing.Hide(); effectRing.Hide(); resultPanel.SetActive(false);
             Tell("로봇을 선택하고 허용 영역을 클릭하세요. 탱커만 경로 위에 설치합니다.");
@@ -317,8 +324,9 @@ namespace CodingGame.Defense
             int index = palette;
             var hits = new List<RaycastResult>();
             eventSystem.RaycastAll(new PointerEventData(eventSystem) { position = screen }, hits);
-            if (index >= 0 && hits.Count == 0 && PointerPosition(screen, out var point)) PlaceRobot(index, point);
-            HidePlacement(); rangeRing.Hide();
+            if (index >= 0 && hits.Count == 0 && PointerPosition(screen, out var point) && PlaceRobot(index, point)) return;
+            // A short drag ending on the button is still a robot selection. Keep it armed for a map click.
+            placementMarker.gameObject.SetActive(false); rangeRing.Hide();
         }
         public bool PlaceRobot(int index, Vector3 position)
         {
@@ -435,7 +443,10 @@ namespace CodingGame.Defense
 #if UNITY_EDITOR
             if (!EditorManualClock)
 #endif
-            Simulation.Advance(UnityEngine.Time.deltaTime * BattleSpeed * (tutorial ? tutorial.BattlePace : 1f));
+            if (bossEntranceStarted && !bossCameraRestored && Time.unscaledTime >= bossCameraRestoreAt)
+            { selectionCamera.Restore(); bossCameraRestored = true; }
+            if (!bossEntranceStarted || Time.unscaledTime >= bossEntranceUntil)
+                Simulation.Advance(UnityEngine.Time.deltaTime * BattleSpeed * (tutorial ? tutorial.BattlePace : 1f));
             float elapsed = (float)(Simulation.Time - previous);
             SyncViews(elapsed);
             SyncTutorialTargets();
@@ -608,6 +619,18 @@ namespace CodingGame.Defense
                 if (!enemyViews.TryGetValue(enemy.Id, out var view))
                 {
                     view = Instantiate(enemies[enemy.DefinitionIndex].prefab, DefenseViews.World(enemy.Position), Quaternion.identity, actorsRoot);
+                    if (enemy.Boss)
+                    {
+                        view.gameObject.AddComponent<DefenseBossAura>();
+                        if (!bossEntranceStarted && Simulation.Setup.PlayerFlow && Simulation.Setup.Stage == 1 && Simulation.WaveIndex == 4)
+                        {
+                            bossEntranceStarted = true; bossCameraRestored = false;
+                            bossCameraRestoreAt = Time.unscaledTime + 2.1f;
+                            bossEntranceUntil = Time.unscaledTime + 2.9f;
+                            selectionCamera.FocusBoss(DefenseViews.World(enemy.Position, 1f));
+                            Tell("보스 출현! · 잡몹을 막아낸 뒤 강력한 오류 코드가 등장했습니다.");
+                        }
+                    }
                     enemyViews.Add(enemy.Id, view);
                 }
                 view.SyncEnemy(enemy, Simulation.Time, DefenseViews.World(enemy.Position), battleCamera.transform.rotation);
@@ -657,7 +680,9 @@ namespace CodingGame.Defense
             if (ended)
             {
                 HidePlacement();
-                resultText.text = (Simulation.Phase == BattlePhase.Victory ? "DEFENSE COMPLETE\n방어 성공" : "CORE LOST\n방어 실패") + $"\n\n처치 {Simulation.Kills} · 돌파 {Simulation.Leaks}\n상단 초기화로 다시 시작";
+                resultText.text = (Simulation.Phase == BattlePhase.Victory ? "DEFENSE COMPLETE\n방어 성공" :
+                    Simulation.ObjectiveFailed ? "MINIONS ESCAPED\n보스 등장 전 잡몹 방어 실패" : "CORE LOST\n방어 실패") +
+                    $"\n\n처치 {Simulation.Kills} · 돌파 {Simulation.Leaks}\n상단 초기화로 다시 시작";
             }
         }
         void RejectPlacement(int index, string error)

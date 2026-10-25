@@ -50,6 +50,8 @@ namespace CodingGame.Defense
         [TextArea(2, 6)] public string expectedCode;
         [Tooltip("화살표를 띄울 대상 키. 'a|b'면 앞에서부터 화면에 있는 것. 비우면 화살표 없음.")]
         public string pointerKey;
+        [Tooltip("이 단계 시작 시 자동으로 선택할 코드 슬롯. 빈칸을 별도로 누르지 않아도 목록의 블록을 바로 넣을 수 있습니다.")]
+        public string autoSelectSlot;
         [Tooltip("편집기 힌트 버튼에 보여 줄 코드. 비우면 힌트 버튼을 숨깁니다.")]
         [TextArea(2, 6)] public string hintCode;
         [Tooltip("이 시간(초) 동안 완료하지 못하면 화살표를 띄웁니다. 0이면 바로.")]

@@ -195,6 +195,14 @@ namespace CodingGame.Defense
         public bool SlotSelected(string key)
             => TutorialSlot(key) is CommandDropZone slot && (panel.SelectedZone == slot || slot.Blocks.Count > 0);
 
+        public bool SelectTutorialSlot(string key)
+        {
+            var slot = TutorialSlot(key);
+            if (slot == null || slot.Blocks.Count > 0) return false;
+            panel.Select(slot);
+            return true;
+        }
+
         // A draft block's input/option can be checked before its surrounding if is complete.
         // Expected: "3.0|<=" or "3.0.0|enemy_distance" (line, then argument indexes).
         public bool DraftValueMatches(string expected)

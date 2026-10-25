@@ -26,9 +26,9 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uC774\uBC88\uC5D0\uB294 \uB124\uAC00 \uC9C1\uC811 \uD574 \uBCFC \uCC28\uB840\uC57C!\n<b>\uBAA9\uD45C\uB294
-        \uBCC0\uC218\uB97C \uC368\uC11C \uC801\uC744 \uCC3E\uACE0, \uB85C\uBD07\uC774
-        \uACF5\uACA9\uD558\uAC8C \uB9CC\uB4E4\uAE30!</b>"
+      text: "\uC774\uBC88\uC5D0\uB294 \uB124\uAC00 \uC9C1\uC811 \uD574 \uBCFC \uCC28\uB840\uC57C!\n<b>\uC0C8
+        \uC804\uC0AC\uB97C \uB193\uACE0, \uBCC0\uC218\uB85C \uC801\uC744 \uCC3E\uC544
+        \uACF5\uACA9\uD558\uAC8C \uB9CC\uB4E4\uC5B4 \uBCF4\uC790!</b>"
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -41,12 +41,14 @@ MonoBehaviour:
     sourceKey:
     destinationKey:
     pauseBattle: 1
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
     trigger:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -54,6 +56,8 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
     dragDemo:
@@ -82,12 +86,14 @@ MonoBehaviour:
     sourceKey:
     destinationKey:
     pauseBattle: 1
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
     trigger:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -95,6 +101,8 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
     dragDemo:
@@ -124,12 +132,14 @@ MonoBehaviour:
     sourceKey:
     destinationKey:
     pauseBattle: 1
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
     trigger:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -137,6 +147,8 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
     dragDemo:
@@ -164,12 +176,14 @@ MonoBehaviour:
     sourceKey:
     destinationKey:
     pauseBattle: 0
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
     trigger: WaveCleared
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode: 'enemy = get_nearest_enemy()
 
       slash(enemy)'
@@ -179,6 +193,8 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
     dragDemo:
@@ -205,12 +221,14 @@ MonoBehaviour:
     sourceKey:
     destinationKey:
     pauseBattle: 0
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
     trigger:
     skipIf:
     expectedCode:
     pointerKey:
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -218,6 +236,8 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
     dragDemo:
@@ -245,12 +265,14 @@ MonoBehaviour:
     sourceKey:
     destinationKey:
     pauseBattle: 0
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
     trigger:
     skipIf:
     expectedCode:
     pointerKey: Battle.ClaimRewards
+    autoSelectSlot:
     hintCode:
     pointerDelay: 0
     closeEditor: 0
@@ -258,6 +280,8 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
     dragDemo:

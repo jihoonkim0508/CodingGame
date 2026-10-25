@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using CodingGame.BlockCoding;
 
@@ -51,6 +52,8 @@ namespace CodingGame.Defense.Editor
             if (text == "get_nearest_enemy()") return new CodeBlock(BlockKind.NearestEnemy);
             if (text == "my_attack_range()") return new CodeBlock(BlockKind.MyAttackRange);
             if (text == "get_my_pos()") return new CodeBlock(BlockKind.MyPos);
+            if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out _))
+                return new CodeBlock(BlockKind.Number, text);
             if (text.EndsWith(".distance(get_my_pos())"))
                 return new CodeBlock(BlockKind.Distance, "0", new CodeBlock(BlockKind.Variable, text.Substring(0, text.IndexOf('.'))), new CodeBlock(BlockKind.MyPos));
             return new CodeBlock(BlockKind.Variable, text);
