@@ -156,6 +156,8 @@ namespace CodingGame.Defense
         public ActionPermission[] Permissions = Array.Empty<ActionPermission>();
         public RobotSpec[] ActionProfiles = Array.Empty<RobotSpec>();
         public PlacementObstacle[] Obstacles = Array.Empty<PlacementObstacle>();
+        // The map's floor and road tiles; a robot must stand on them. Empty: only Min/Max applies (tests, preview).
+        public PlacementObstacle[] Floor = Array.Empty<PlacementObstacle>();
         public void Validate()
         {
             RulesConfig.Validate();
@@ -209,6 +211,7 @@ namespace CodingGame.Defense
             var nearest = Vector2.Clamp(position, Min, Max);
             return Vector2.DistanceSquared(position, nearest) <= radius * radius;
         }
+        public bool Contains(Vector2 position) => position.X >= Min.X && position.X <= Max.X && position.Y >= Min.Y && position.Y <= Max.Y;
     }
 
     public sealed class BuffState

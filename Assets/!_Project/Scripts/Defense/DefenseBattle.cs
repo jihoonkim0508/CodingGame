@@ -157,10 +157,22 @@ namespace CodingGame.Defense
                 Min=new Point(bounds.min.x,bounds.min.z), Max=new Point(bounds.max.x,bounds.max.z),
                 Routes=routes.Select(r=>r.Read()).ToArray(),
                 Obstacles=blockedAreas.Select(a=>a.bounds).Concat(MapProps(map)).Select(b=>new PlacementObstacle {Min=new Point(b.min.x,b.min.z),Max=new Point(b.max.x,b.max.z)}).ToArray(),
+                Floor=MapTiles(map).ToArray(),
                 Waves=content.ReadWaves(selectedStage),
                 CampaignWaves=Enumerable.Range(1,content.stages.Length).Select(content.ReadWaves).ToArray(),
                 CampaignSeconds=content.stages.Select(s=>s.waveSeconds).ToArray()
             };
+        }
+        // The ground of the map, one square per floor or road cell (cells are centred on CellPosition).
+        static IEnumerable<PlacementObstacle> MapTiles(CodingGame.Art.MapPainter.ModularMapRoot map)
+        {
+            if (!map) yield break;
+            foreach (var cell in map.floorCells.Concat(map.roadCells))
+            {
+                Vector3 a = map.transform.TransformPoint(new Vector3((cell.x - .5f) * map.cellSize, 0, (cell.z - .5f) * map.cellSize));
+                Vector3 b = map.transform.TransformPoint(new Vector3((cell.x + .5f) * map.cellSize, 0, (cell.z + .5f) * map.cellSize));
+                yield return new PlacementObstacle { Min = new Point(Mathf.Min(a.x, b.x), Mathf.Min(a.z, b.z)), Max = new Point(Mathf.Max(a.x, b.x), Mathf.Max(a.z, b.z)) };
+            }
         }
         // Props the map carries besides its floor, road and backdrop (Stage01 Workshop's pots, books, base…): no robot on them
         // (planner). One footprint per prop, the box around its renderers.

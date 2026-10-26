@@ -32,6 +32,12 @@ static class Check
         Place(sim, RobotRole.Buffer, 0, 3);
         Assert(sim.Place(Spec(RobotRole.Buffer), 0, new Vector2(5, 3), out _) == null, "one buffer limit");
         var tank = Place(sim, RobotRole.Tank, -7, 0); tank.AutoExecute = false;
+        // A map that is not a rectangle: robots stand only on its tiles, with the whole body on them.
+        var floored = Setup(); floored.Floor = new[] { new PlacementObstacle { Min = new Vector2(-10, 1), Max = new Vector2(0, 5) } };
+        var floorSim = new DefenseSimulation(floored);
+        Assert(floorSim.PlacementError(Spec(RobotRole.Warrior), new Vector2(-5, 3)) == null, "robot on a floor tile");
+        Assert(floorSim.PlacementError(Spec(RobotRole.Warrior), new Vector2(5, 3)) == "맵 밖에는 설치할 수 없습니다.", "robot off the map tiles rejected");
+        Assert(floorSim.PlacementError(Spec(RobotRole.Warrior), new Vector2(-.05f, 3)) != null, "robot hanging over the map edge rejected");
         sim.Start();
         Assert(!sim.DamageRobot(warrior.Id, 999), "no damage to ordinary robot");
         Assert(sim.RequestAction(tank.Id, RobotAction.Buff) == ActionResult.Ineffective, "tank buff ineffective");
