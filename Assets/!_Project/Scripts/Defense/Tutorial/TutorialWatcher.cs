@@ -28,6 +28,16 @@ namespace CodingGame.Defense
             var wanted = Canonical(Lines(expected));
             return actual.SequenceEqual(wanted) || actual.OrderBy(l => l).SequenceEqual(wanted.OrderBy(l => l));
         }
+        // A loose condition (1-3 C03) with the player's own variable names: names are matched by the order the robot's code
+        // sets them against reference, the code taught before (`dist <= my_attack_range()` passes for `enemy_distance <= …`).
+        public static bool ConditionMatches(string condition, DefenseProgram program, string expected, string reference)
+        {
+            string Bare(string text) => Regex.Replace(text ?? "", @"\s", "");
+            if (program == null || string.IsNullOrWhiteSpace(reference)) return Bare(condition) == Bare(expected);
+            var actual = Canonical(Lines(string.Join("\n", program.Source.Replace("\r", "").Split('\n').Skip(1))).Append("if " + condition).ToList());
+            var wanted = Canonical(Lines(reference).Append("if " + expected).ToList());
+            return Bare(actual.Last()) == Bare(wanted.Last());
+        }
         static List<string> Lines(string text) =>
             (text ?? "").Replace("\r", "").Split('\n').Select(line => line.Trim()).Where(line => line.Length > 0).ToList();
         static readonly Regex Assignment = new Regex(@"^([^\W\d]\w*)\s*=(?!=)"); // any Python name, Korean included

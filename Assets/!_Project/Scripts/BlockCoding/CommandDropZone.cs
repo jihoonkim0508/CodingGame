@@ -242,7 +242,11 @@ namespace CodingGame.BlockCoding
             CommandBlockView.Place(first.Rect, position.x, -position.y, first.preferredWidth, first.preferredHeight);
 
             FindSnap(placed, position, out var attachAfter, out var attachBefore);
-            if (attachAfter) next[attachAfter] = first;
+            if (attachAfter)
+            {
+                if (next.TryGetValue(attachAfter, out var following) && !placed.Contains(following)) next[last] = following;
+                next[attachAfter] = first;
+            }
             else if (attachBefore)
             {
                 // Insert at the visible first row and move its chain down instead of clipping above the workspace.
@@ -274,10 +278,12 @@ namespace CodingGame.BlockCoding
             if (placed.All(b => PythonTreeCompiler.OutputSlot(b.Kind) == BlockSlotKind.Statement))
                 foreach (var target in blocks.Where(b => !placed.Contains(b) && PythonTreeCompiler.OutputSlot(b.Kind) == BlockSlotKind.Statement))
                 {
-                    if (!next.TryGetValue(target, out var following) || placed.Contains(following))
+                    // Under target, also between target and the line that follows it (1-4 C04 adds attack_range above the if).
                     {
                         var root = Roots().First(r => Group(r).Contains(target));
-                        var chain = Group(root).Where(b => !placed.Contains(b)).Concat(placed).ToList();
+                        var rest = Group(root).Where(b => !placed.Contains(b)).ToList();
+                        int at = rest.IndexOf(target) + 1;
+                        var chain = rest.Take(at).Concat(placed).Concat(rest.Skip(at)).ToList();
                         var edge = target.Rect.anchoredPosition + new Vector2(0, -target.preferredHeight + (IsBranch(first) ? BranchOverlap : 0));
                         float distance = Gap(position, edge, Mathf.Max(target.preferredWidth, first.preferredWidth));
                         if (distance < nearest && ValidChain(chain)) { nearest = distance; attachAfter = target; attachBefore = null; }

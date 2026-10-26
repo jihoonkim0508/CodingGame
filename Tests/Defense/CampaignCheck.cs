@@ -47,6 +47,11 @@ static class CampaignCheck
             new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"e")),
             new CodeBlock(BlockKind.DeclareVariable,"d",new CodeBlock(BlockKind.Distance,"0",new CodeBlock(BlockKind.Variable,"e"),new CodeBlock(BlockKind.MyPos)))});
         Assert(TutorialWatcher.Matches(later,"enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nslash(enemy)"),"distance line set below the attack still matches");
+        const string taught="enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nslash(enemy)";
+        Assert(TutorialWatcher.ConditionMatches("d <= my_attack_range()",later,"enemy_distance <= my_attack_range()",taught)&&
+            !TutorialWatcher.ConditionMatches("e <= my_attack_range()",later,"enemy_distance <= my_attack_range()",taught)&&
+            !TutorialWatcher.ConditionMatches("d < my_attack_range()",later,"enemy_distance <= my_attack_range()",taught),
+            "loose condition matches with the player's own distance variable, not another variable or operator");
         var wrong=new DefenseProgram("robot",new[]{new CodeBlock(BlockKind.DeclareVariable,"e",new CodeBlock(BlockKind.NearestEnemy)),
             new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"e")),
             new CodeBlock(BlockKind.DeclareVariable,"d",new CodeBlock(BlockKind.Hp,"0",new CodeBlock(BlockKind.Variable,"e")))});

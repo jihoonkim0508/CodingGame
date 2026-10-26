@@ -113,10 +113,17 @@ namespace CodingGame.Defense
         {
             var step = Current;
             if (step == null) return;
-            if (step.completionSignal == TutorialSignals.ConditionBuilt && Editor &&
-                Editor.LooseExpressions().Any(text => Same(text, step.expectedCode))) Signal(TutorialSignals.ConditionBuilt);
+            if (step.completionSignal == TutorialSignals.ConditionBuilt && Editor)
+            {
+                var taught = active.steps.Take(progressStep).LastOrDefault(s => s.completionSignal == TutorialSignals.ProgramMatches)?.expectedCode;
+                var program = TutorialWatcher.Robot(session, step.robotIndex)?.Program;
+                if (Editor.LooseExpressions().Any(text => TutorialWatcher.ConditionMatches(text, program, step.expectedCode, taught))) Signal(TutorialSignals.ConditionBuilt);
+            }
             if (step.completionSignal == TutorialSignals.SlotFilled && Editor && Editor.SlotFilled(step.expectedCode)) Signal(TutorialSignals.SlotFilled);
             if (Current != step) return;
+            // Battle lines still unread when the wave ends (fast at 3x) would show over the reward panel: skip to the wave-cleared line.
+            if (signals.Contains(TutorialSignals.WaveCleared) && step.kind != TutorialStepKind.ActionGuide && step.trigger != TutorialSignals.WaveCleared &&
+                progressStep < Array.FindIndex(active.steps, s => s.trigger == TutorialSignals.WaveCleared)) { Enter(progressStep + 1); return; }
             if (!string.IsNullOrWhiteSpace(step.skipIf) && signals.Contains(step.skipIf) && Triggered(step) && viewedStep == progressStep) { Enter(progressStep + 1); return; }
             if (!Triggered(step))
             {
