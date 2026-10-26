@@ -39,6 +39,8 @@ namespace CodingGame.Defense
         public bool outline = true;
         public TutorialCompletionMode completionMode;
         public string completionSignal;
+        [Tooltip("완료 시 필요한 슬롯 블록. 'Editor.Code.Arg.2.0:Variable'처럼 슬롯 키:블록 종류로 지정합니다.")]
+        public string requiredSlotBlock;
         public string sourceKey, destinationKey;
         public bool pauseBattle = true, slowBattle, allowPreview;
         [Min(0)] public float highlightPadding = 10;

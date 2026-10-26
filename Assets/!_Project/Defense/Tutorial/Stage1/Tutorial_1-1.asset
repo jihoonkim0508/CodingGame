@@ -1151,6 +1151,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 3
     completionSignal: SlotFilled
+    requiredSlotBlock: Editor.Code.Arg.2.0:Variable
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -1198,6 +1199,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 3
     completionSignal: ProgramMatches
+    requiredSlotBlock: Editor.Code.Arg.2.0:Variable
     sourceKey:
     destinationKey:
     pauseBattle: 1

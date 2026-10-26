@@ -38,6 +38,7 @@ namespace CodingGame.Defense
         TutorialStep held;
         // Free coding (1-2 C06, 1-4 D04): the player pressed next, so the guide is gone until the step is done.
         bool guideDismissed;
+        bool pendingAutoSlot;
         string[] highlight = Array.Empty<string>(), focused = Array.Empty<string>();
         readonly List<Vector2> pathPoints = new List<Vector2>();
         bool targetsSeen;
@@ -127,6 +128,10 @@ namespace CodingGame.Defense
         {
             var step = Current;
             if (step == null) return;
+            // A disconnected line can be reattached while the guide stays open.
+            // Retry only until the slot is available, so later clicks keep their selection.
+            if (pendingAutoSlot && viewedStep == progressStep && Editor)
+                pendingAutoSlot = !Editor.SelectTutorialSlot(step.autoSelectSlot);
             if (step.completionSignal == TutorialSignals.ConditionBuilt && Editor &&
                 Editor.LooseExpressions().Any(text => Same(text, step.expectedCode))) Signal(TutorialSignals.ConditionBuilt);
             if (step.completionSignal == TutorialSignals.SlotFilled && Editor && Editor.SlotFilled(step.expectedCode)) Signal(TutorialSignals.SlotFilled);
@@ -299,6 +304,7 @@ namespace CodingGame.Defense
             if (step.completionSignal == TutorialSignals.PreviewSingleHit || step.completionSignal == TutorialSignals.PreviewMultiHit)
                 signals.Remove(step.completionSignal);
             held = null; heldUntil = step.holdSeconds > 0 ? float.MaxValue : 0;
+            pendingAutoSlot = false;
             ApplyEntry(step);
             // ShowText / Hide set the bridge step.
             if (Triggered(step)) ShowText(true); else Hide();
@@ -315,7 +321,10 @@ namespace CodingGame.Defense
             if (step.prepareDistanceExample) Editor.PrepareDistanceExample();
             if (step.restartPreview) Editor.RestartPreview();
             if (!string.IsNullOrEmpty(step.autoSelectSlot) && !Editor.SelectTutorialSlot(step.autoSelectSlot))
-                throw new InvalidOperationException("튜토리얼 자동 선택 슬롯을 찾지 못했습니다: " + step.autoSelectSlot);
+            {
+                pendingAutoSlot = true;
+                Editor.Panel.ShowMessage("안내할 값 칸을 찾을 수 없습니다. 필요한 블록을 시작 위치에 연결하고 값 칸을 확인해 주세요.");
+            }
             Editor.SetHint(step.hintCode);
         }
 
@@ -410,6 +419,7 @@ namespace CodingGame.Defense
         void CompleteAction(TutorialStep step)
         {
             if (!active || progressStep >= active.steps.Length || active.steps[progressStep] != step) return;
+            if (!string.IsNullOrEmpty(step.requiredSlotBlock) && (!Editor || !Editor.SlotFilled(step.requiredSlotBlock))) return;
             if (step.holdSeconds > 0 && Time.unscaledTime < heldUntil) { held = step; return; }
             if (!completedStep.Add(step.stepId)) return;
             if ((step.completionSignal == TutorialSignals.ProgramMatches || step.completionSignal == TutorialSignals.DraftValueMatches) && Editor) Editor.FinishTutorialInput();

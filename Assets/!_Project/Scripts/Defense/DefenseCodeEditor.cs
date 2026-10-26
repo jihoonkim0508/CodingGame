@@ -190,7 +190,15 @@ namespace CodingGame.Defense
         }
         // An Editor.Code.Arg.N.i[.j…] slot that holds a block (the slot exists, empty, as soon as its line does).
         public bool SlotFilled(string key)
-            => TutorialSlot(key) is CommandDropZone slot && slot.Blocks.Count > 0;
+        {
+            if (string.IsNullOrEmpty(key)) return false;
+            // Optional ':BlockKind' makes teaching steps check what was placed, not just occupancy.
+            var parts = key.Split(':');
+            var slot = TutorialSlot(parts[0]);
+            if (slot == null || slot.Blocks.Count == 0) return false;
+            return parts.Length == 1 || parts.Length == 2 &&
+                Enum.TryParse(parts[1], out BlockKind kind) && slot.Blocks[0].BaseKind == kind;
+        }
 
         public bool SlotSelected(string key)
             => TutorialSlot(key) is CommandDropZone slot && (panel.SelectedZone == slot || slot.Blocks.Count > 0);
@@ -198,7 +206,10 @@ namespace CodingGame.Defense
         public bool SelectTutorialSlot(string key)
         {
             var slot = TutorialSlot(key);
-            if (slot == null || slot.Blocks.Count > 0) return false;
+            if (slot == null) return false;
+            // A player may have filled the slot before this guide started. Keep their work;
+            // the tutorial's normal completion checks decide whether it is correct.
+            if (slot.Blocks.Count > 0) return true;
             panel.Select(slot);
             return true;
         }

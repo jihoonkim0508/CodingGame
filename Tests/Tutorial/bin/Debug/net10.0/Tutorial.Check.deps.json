@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "Tutorial.Check/1.0.0": {
+        "dependencies": {
+          "Defense.Check": "1.0.0"
+        },
+        "runtime": {
+          "Tutorial.Check.dll": {}
+        }
+      },
+      "Defense.Check/1.0.0": {
+        "runtime": {
+          "Defense.Check.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Tutorial.Check/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Defense.Check/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
