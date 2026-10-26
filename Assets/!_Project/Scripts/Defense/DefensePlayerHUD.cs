@@ -47,7 +47,6 @@ namespace CodingGame.Defense
             recallRobotButton.onClick.AddListener(battle.RemoveSelected);
             toastPosition = ((RectTransform)placementToast.transform).anchoredPosition;
             placementToast.alpha = 0;
-            upcoming.text = "다음 웨이브";
             for (int i = 0; i < robotButtons.Length; i++) { int index = i; robotButtons[i].onClick.AddListener(() => battle.ChooseRobot(index)); }
             enemyImages = enemyCards.Select(c => c.GetComponentInChildren<RawImage>(true)).ToArray();
             enemyHovers = enemyCards.Select(c => c.GetComponent<DefenseHoverInfo>()).ToArray();
@@ -81,7 +80,7 @@ namespace CodingGame.Defense
             string state = ended ? "작전 종료" : fighting ? "전투 중" : "정비 중";
             counters.text = $"{battle.Stage}-{sim.WaveIndex + 1:00}     {state}     WAVE {sim.WaveIndex + 1}/{sim.Setup.Waves.Length}     적 {sim.RemainingEnemies}     {Math.Ceiling(sim.WaveRemaining):00}s     코인 {sim.Coins:N0}";
             combatControls.SetActive(fighting);
-            RefreshEnemyCards(sim);
+            RefreshEnemyCards(sim, fighting);
             guide.text = ready ? $"{sim.Lesson?.topic} · 로봇 배치 → 코드 작성 → 전투 시작" :
                 reward ? "WAVE CLEAR  ·  블록을 수령하고 다음 전투를 준비하세요" : ended ? "작전 종료" : "DEFENDING  ·  블록 드랍 " + sim.PendingDrops.Count + "개  /  전투 종료 후 수령";
             notice.text = battle.StatusMessage;
@@ -110,11 +109,13 @@ namespace CodingGame.Defense
                 labels[i].text = battle.DefinitionName(i) + separator + count;
             }
         }
-        void RefreshEnemyCards(DefenseSimulation sim)
+        void RefreshEnemyCards(DefenseSimulation sim, bool fighting)
         {
-            // Cards follow the wave's own enemy types (in spawn order), so tutorial enemies get cards too.
-            var types = sim.UpcomingWave.GroupBy(g => g.DefinitionIndex).Take(enemyCards.Length).ToArray();
+            // Cards follow the wave's own enemy types (in spawn order), so tutorial enemies get cards too. While fighting they
+            // stay on the wave being fought and count down as its enemies die; between waves they show the next wave.
+            var types = (fighting ? sim.CurrentWave : sim.UpcomingWave).GroupBy(g => g.DefinitionIndex).Take(enemyCards.Length).ToArray();
             upcoming.gameObject.SetActive(types.Length > 0);
+            upcoming.text = fighting ? "이번 웨이브" : "다음 웨이브";
             for (int i = 0; i < enemyCards.Length; i++)
             {
                 enemyCards[i].SetActive(i < types.Length);
@@ -122,7 +123,7 @@ namespace CodingGame.Defense
                 var definition = battle.EnemyAt(types[i].Key);
                 if (definition.icon && enemyImages[i]) enemyImages[i].texture = definition.icon;
                 if (enemyHovers[i]) enemyHovers[i].SetEnemy(definition);
-                enemyCounts[i].text = "× " + types[i].Sum(g => g.Count);
+                enemyCounts[i].text = "× " + (fighting ? sim.RemainingOf(types[i].Key) : types[i].Sum(g => g.Count));
             }
         }
         const float ButtonGap = 6;

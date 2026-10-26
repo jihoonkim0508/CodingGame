@@ -39,6 +39,10 @@ namespace CodingGame.Defense
             }
         }
         public int RemainingEnemies => Enemies.Count(e => e.Active) + currentWave.Select((g, i) => g.Count - groupCounts[i]).Sum();
+        // The wave being fought, and how many of one enemy type are left in it (on the field plus not spawned yet).
+        public IReadOnlyList<SpawnGroup> CurrentWave => currentWave;
+        public int RemainingOf(int definition) => Enemies.Count(e => e.Active && e.DefinitionIndex == definition) +
+            currentWave.Select((g, i) => g.DefinitionIndex == definition ? g.Count - groupCounts[i] : 0).Sum();
         public int LastSurvivors { get; private set; }
         public bool LastWaveTimedOut { get; private set; }
         public readonly List<int> WaveSurvivors = new List<int>();

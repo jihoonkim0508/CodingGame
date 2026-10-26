@@ -49,6 +49,11 @@ static class Check
         var blocker = Place(blockSim, RobotRole.Tank, -5, 0); blocker.AutoExecute = false;
         blockSim.Start(); blockSim.Advance(1.0 / 60);
         Assert(blockSim.Enemies[0].BlockedBy == blocker.Id, "swept path cannot skip tank at high speed");
+        // The HUD's per-type cards count down the fought wave: spawned and unspawned enemies of each type add up to the total.
+        Assert(blockSim.CurrentWave.Select(g => g.DefinitionIndex).Distinct().Sum(blockSim.RemainingOf) == blockSim.RemainingEnemies && blockSim.Spawned > 0, "per-type remaining enemies add up");
+        blockSim.Enemies[0].Active = false;
+        Assert(blockSim.CurrentWave.Select(g => g.DefinitionIndex).Distinct().Sum(blockSim.RemainingOf) == blockSim.RemainingEnemies, "a removed enemy leaves its type's count");
+        blockSim.Enemies[0].Active = true; // the blocking checks below use this enemy
         var enemy = blockSim.Enemies[0]; var stopped = enemy.Position;
         enemy.Effects.Add(new MovementEffect { Source = blocker.Id, StunUntil = blockSim.Time + 1, SlowUntil = blockSim.Time + 3, Multiplier = .5f });
         blockSim.RemoveRobot(blocker.Id); blockSim.Advance(1.0 / 60);
