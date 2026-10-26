@@ -17,7 +17,7 @@ namespace CodingGame.Defense
         public readonly List<ProjectileState> Projectiles = new List<ProjectileState>();
         // 근접 베기: 휘두른 검이 정면을 지날 때(공격 간격의 40% 뒤) 피해를 줍니다(기획: 이펙트·애니메이션과 같은 순간).
         const double StrikeShare = .4;
-        readonly List<(double at, RobotState bot, Vector2 direction, float damage)> strikes = new List<(double, RobotState, Vector2, float)>();
+        readonly List<(double at, RobotState bot, EnemyState[] targets, float damage)> strikes = new List<(double, RobotState, EnemyState[], float)>();
         public readonly List<CombatEvent> Events = new List<CombatEvent>();
         public BattlePhase Phase { get; private set; } = BattlePhase.Ready;
         public double Time { get; private set; }
@@ -354,7 +354,7 @@ namespace CodingGame.Defense
                 {
                     case RobotAction.Block: Stun(bot, profile, strength, targets, target); break;
                     case RobotAction.Boom: Launch(bot, profile, strength, target); break;
-                    case RobotAction.Slash: Slash(bot, target); break;
+                    case RobotAction.Slash: Slash(bot, targets, target); break;
                     default: Shoot(bot, action, profile, strength, target); break;
                 }
             }
@@ -390,7 +390,7 @@ namespace CodingGame.Defense
                 Damage = profile.damage * bot.DamageMultiplier * strength, Radius = profile.effectRadius });
             Emit("launch", bot.Id, target.Id, target.Position);
         }
-        void Slash(RobotState bot, EnemyState target)
+        void Slash(RobotState bot, List<EnemyState> targets, EnemyState target)
         {
             var direction = target.Position - bot.Position;
             if (direction.LengthSquared() < .000001f) direction = Vector2.UnitY;
@@ -398,18 +398,17 @@ namespace CodingGame.Defense
             double strike = ActionInterval(bot, RobotAction.Slash) * StrikeShare;
             Events.Add(new CombatEvent { Kind = "slash", Source = bot.Id, Target = target.Id,
                 Origin = bot.Position, Position = bot.Position + direction, Radius = bot.Range, Seconds = (float)strike });
-            strikes.Add((Time + strike, bot, direction, ActionDamage(bot, RobotAction.Slash)));
+            // The swing hits the enemies in front when it starts, even if they move on before the sword gets there.
+            strikes.Add((Time + strike, bot, targets.Where(e => Vector2.Dot(e.Position - bot.Position, direction) >= -.00001f).ToArray(),
+                ActionDamage(bot, RobotAction.Slash)));
         }
-        // Hits the enemies in range on the slash side when the sword gets there; a robot recalled meanwhile does not hit.
+        // A robot recalled before its sword gets there does not hit.
         void ResolveStrikes()
         {
-            foreach (var (at, bot, direction, damage) in strikes.Where(s => Time + 1e-8 >= s.at).ToArray())
+            foreach (var strike in strikes.Where(s => Time + 1e-8 >= s.at).ToArray())
             {
-                strikes.Remove((at, bot, direction, damage));
-                if (!Robots.Contains(bot)) continue;
-                foreach (var enemy in Enemies.Where(e => e.Active && Vector2.DistanceSquared(e.Position, bot.Position) <= bot.Range * bot.Range).ToArray())
-                    if (Vector2.Dot(enemy.Position - bot.Position, direction) >= -.00001f)
-                        Hit(enemy, damage, bot.Id, meleeSource: bot);
+                strikes.Remove(strike);
+                if (Robots.Contains(strike.bot)) foreach (var enemy in strike.targets) Hit(enemy, strike.damage, strike.bot.Id, meleeSource: strike.bot);
             }
         }
         void Shoot(RobotState bot, RobotAction action, RobotSpec profile, float strength, EnemyState target)
