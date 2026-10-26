@@ -22,6 +22,7 @@ namespace CodingGame.BlockCoding
         readonly Dictionary<CommandBlockView, CommandBlockView> next = new Dictionary<CommandBlockView, CommandBlockView>();
         static readonly Vector2 FirstPosition = new Vector2(24, -24);
         const float SnapDistance = 30;
+        static readonly Color EmptyHint = new Color(1f, .45f, .4f, .9f);
         // elif/else rows tuck under the block above by this much.
         const float BranchOverlap = 18;
         public bool FreePlacement => freePlacement;
@@ -73,6 +74,8 @@ namespace CodingGame.BlockCoding
             ParentBlock = parent;
             // An if's body takes clicks: placed, it is selected (1-3 D01); in the palette, OnPointerClick hands the click to the block.
             if (parent && parent.Body == this) background.raycastTarget = true;
+            // A placed block's empty value slot shows its hint as a warning, so "slash(enemy)" is not read as already connected.
+            if (parent && !parent.IsPalette && slot != BlockSlotKind.Statement) { hint.fontStyle = FontStyles.Italic; hint.color = EmptyHint; if (!hint.text.StartsWith("+ ")) hint.text = "+ " + hint.text; }
             foreach (var block in blocks) block.Bind(panel, this);
             Refresh();
         }
