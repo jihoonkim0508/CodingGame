@@ -133,6 +133,7 @@ namespace CodingGame.Defense
         public EnemySpec Enemy;
         public int DefinitionIndex, RouteIndex, Count;
         public float Delay, Interval;
+        public bool Boss;
     }
 
     public sealed class BattleSetup
@@ -156,6 +157,8 @@ namespace CodingGame.Defense
         public ActionPermission[] Permissions = Array.Empty<ActionPermission>();
         public RobotSpec[] ActionProfiles = Array.Empty<RobotSpec>();
         public PlacementObstacle[] Obstacles = Array.Empty<PlacementObstacle>();
+        // The map's floor and road tiles; a robot must stand on them. Empty: only Min/Max applies (tests, preview).
+        public PlacementObstacle[] Floor = Array.Empty<PlacementObstacle>();
         public void Validate()
         {
             RulesConfig.Validate();
@@ -209,6 +212,7 @@ namespace CodingGame.Defense
             var nearest = Vector2.Clamp(position, Min, Max);
             return Vector2.DistanceSquared(position, nearest) <= radius * radius;
         }
+        public bool Contains(Vector2 position) => position.X >= Min.X && position.X <= Max.X && position.Y >= Min.Y && position.Y <= Max.Y;
     }
 
     public sealed class BuffState
@@ -252,6 +256,7 @@ namespace CodingGame.Defense
     public sealed class EnemyState
     {
         public int Id, DefinitionIndex, RouteIndex, NextPoint = 1, BlockedBy;
+        public bool Boss;
         public Vector2 Position;
         public EnemySpec Spec;
         public float Health;
@@ -264,6 +269,7 @@ namespace CodingGame.Defense
     public sealed class ProjectileState
     {
         public int Id, Source;
+        public int Target; // a shot at one enemy (Attack); 0 = an area blast at Destination (Boom)
         public Vector2 Origin, Destination;
         public double LaunchedAt, ImpactAt;
         public float Damage, Radius;
@@ -277,5 +283,6 @@ namespace CodingGame.Defense
         public int Source, Target;
         public Vector2 Position;
         public float Amount, AppliedAmount, Radius;
+        public float Seconds; // "shot"/"slash": time until the damage lands
     }
 }

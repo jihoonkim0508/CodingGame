@@ -50,6 +50,7 @@ namespace CodingGame.Defense
         public event Action<TutorialStep> Completed;
         public bool IsGuiding => director && director.IsActive;
         public bool PauseBattle => IsGuiding && currentStep != null && currentStep.pauseBattle;
+        public bool SlowBattle => IsGuiding && currentStep != null && currentStep.slowBattle;
         public bool AllowPreview => IsGuiding && currentStep != null && currentStep.allowPreview;
         Camera CanvasCamera => canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
         bool Acting => allowActions && currentStep != null && currentStep.kind == TutorialStepKind.ActionGuide;
@@ -97,7 +98,7 @@ namespace CodingGame.Defense
         }
 
         // The player read the line and pressed next on a step that still waits (1-2 C06): the highlight steps aside.
-        public void Dismiss() { dismissed = true; RefreshAreas(); }
+        public void Dismiss() { if (dismissed) return; dismissed = true; RefreshAreas(); }
         bool dismissed;
         float roadShown = -10;
         const float RoadRevealSeconds = 1.2f;
@@ -143,17 +144,25 @@ namespace CodingGame.Defense
                     // The placement area is the whole map: clickable (AddArea adds it to the clicks), but drawing it would hide the focus.
                     if (AddRoad(key) || AddArea(key) == 0 || key == TutorialKeys.Deployment) continue;
                     // With a focus on screen the focus carries the box; the action targets only stay lit.
-                    Show(start, outlined && focus.Length == 0 && !dismissed);
+                    Show(start, outlined && focus.Length == 0 && !dismissed && !TutorialKeys.IsRange(key));
                 }
             if (currentStep != null && !dismissed)
                 foreach (var key in focus)
                     // "a|b": the first one on screen (e.g. the empty slot once the block is placed, else the place to drop it).
                     foreach (var option in key.Split('|'))
                     {
+                        string target = option.Trim();
                         int start = screenAreas.Count;
-                        if (AddRoad(option.Trim())) break;
-                        if (AddArea(option.Trim()) > 0) { Show(start, true); break; }
+                        if (AddRoad(target)) break;
+                        if (AddArea(target) > 0) { Show(start, !TutorialKeys.IsRange(target)); break; }
                     }
+            // Once taught, speed remains clickable even while a later tutorial step limits other input.
+            if (currentStep != null && director && director.SpeedControlAvailable &&
+                !currentStep.targetKeys.Contains(TutorialKeys.Speed))
+            {
+                int start = screenAreas.Count;
+                if (AddArea(TutorialKeys.Speed) > 0) Show(start, false);
+            }
             // Focus uses the same spotlight as action steps: dim everything but the holes.
             bool dim = currentStep == null || !currentStep.undimmed && !dismissed && (currentStep.dim || focus.Length > 0 || Acting);
             spotlight.SetRoad(roadBoxes, roadDim);
@@ -231,6 +240,19 @@ namespace CodingGame.Defense
         {
             var p = worldCamera.WorldToScreenPoint(world); local = default;
             return p.z > 0 && RectTransformUtility.ScreenPointToLocalPointInRectangle(spotlight.rectTransform, p, CanvasCamera, out local);
+        }
+        // A UI rect (from any canvas) in spotlight-local space, to compare with TryGetArea.
+        public Rect ToLocal(RectTransform rect)
+        {
+            var corners = new Vector3[4]; rect.GetWorldCorners(corners);
+            var own = rect.GetComponentInParent<Canvas>(); var camera = own && own.renderMode != RenderMode.ScreenSpaceOverlay ? own.worldCamera : null;
+            Vector2 Local(Vector3 corner)
+            {
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(spotlight.rectTransform, RectTransformUtility.WorldToScreenPoint(camera, corner), CanvasCamera, out var p);
+                return p;
+            }
+            Vector2 a = Local(corners[0]), b = Local(corners[2]);
+            return Rect.MinMaxRect(Mathf.Min(a.x, b.x), Mathf.Min(a.y, b.y), Mathf.Max(a.x, b.x), Mathf.Max(a.y, b.y));
         }
         bool ToGround(Vector2 local, float y, out Vector2 ground)
         {
@@ -332,6 +354,7 @@ namespace CodingGame.Defense
 
         public bool CanPerformAction(string key, GameObject target = null)
         {
+            if (key == TutorialKeys.Speed && director && director.SpeedControlAvailable) return true;
             if (!IsGuiding) return true;
             if (!Acting || !ContainsKey(key)) return false;
             if (target && runtimeTargets.TryGetValue(key, out var runtime) && runtime.owner) return runtime.owner == target;

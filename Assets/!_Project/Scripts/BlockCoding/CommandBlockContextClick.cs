@@ -12,7 +12,9 @@ namespace CodingGame.BlockCoding
         public void OnPointerDown(PointerEventData e) => block.BringToFront();
         public void OnPointerClick(PointerEventData e)
         {
-            if (e.button != PointerEventData.InputButton.Right || block.IsPalette) return;
+            // In the palette the field is only a picture: a left click on it adds the block like a click anywhere else on it.
+            if (block.IsPalette) { block.OnPointerClick(e); return; }
+            if (e.button != PointerEventData.InputButton.Right) return;
             block.Panel.DeleteOne(block); e.Use();
         }
         public void OnBeginDrag(PointerEventData e)

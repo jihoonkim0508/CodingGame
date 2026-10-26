@@ -25,10 +25,13 @@ namespace CodingGame.Defense
         public SpawnGroup[][] ReadWaves(int stage)
         {
             if (stage < 1 || stage > stages.Length) throw new ArgumentException("스테이지 범위를 확인하세요.");
-            return stages[stage - 1].waves.Select(w => w.groups.Select(g => new SpawnGroup {
-                Enemy = g.enemy ? g.enemy.stats.Copy() : throw new ArgumentException("스폰 적 참조 누락"),
-                DefinitionIndex = Array.IndexOf(enemies, g.enemy), RouteIndex = g.route, Count = g.count,
-                Delay = g.delay, Interval = g.interval
+            return stages[stage - 1].waves.Select(w => w.groups.Select(g => {
+                var spec = g.enemy ? g.enemy.stats.Copy() : throw new ArgumentException("스폰 적 참조 누락");
+                if (g.healthOverride > 0) spec.health = g.healthOverride;
+                if (g.speedOverride > 0) spec.speed = g.speedOverride;
+                if (g.leakDamageOverride > 0) spec.leakDamage = g.leakDamageOverride;
+                return new SpawnGroup { Enemy = spec, DefinitionIndex = Array.IndexOf(enemies, g.enemy),
+                    RouteIndex = g.route, Count = g.count, Delay = g.delay, Interval = g.interval, Boss = g.boss };
             }).ToArray()).ToArray();
         }
         public void ValidateContent()
@@ -44,7 +47,8 @@ namespace CodingGame.Defense
                 if (s == null || !Rules.Positive(s.waveSeconds) || s.waves == null || s.waves.Length == 0 ||
                     s.waves.Any(w => w == null || w.groups == null || w.groups.Length == 0 ||
                         w.groups.Any(g => g == null || !g.enemy || !enemies.Contains(g.enemy) || g.count < 1 || g.route < 0 ||
-                            !Rules.Nonnegative(g.delay) || !Rules.Positive(g.interval)))) throw new ArgumentException("웨이브 설정 확인 필요");
+                            !Rules.Nonnegative(g.delay) || !Rules.Positive(g.interval) ||
+                            !Rules.Nonnegative(g.healthOverride) || !Rules.Nonnegative(g.speedOverride) || g.leakDamageOverride < 0))) throw new ArgumentException("웨이브 설정 확인 필요");
         }
     }
 }

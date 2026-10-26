@@ -94,18 +94,20 @@ namespace CodingGame
             fade.raycastTarget = alpha > 0.001f || changingScene;
         }
 
-        IEnumerator ChangeScene(string sceneName)
+        IEnumerator ChangeScene(string sceneName, float delay)
         {
             changingScene = true;
+            if (delay > 0) yield return new WaitForSecondsRealtime(delay);
             fade.gameObject.SetActive(true);
             yield return FadeTo(1f);
             SceneManager.LoadScene(sceneName);
         }
 
-        public static void LoadScene(string sceneName)
+        // delay: seconds to wait before the fade starts (the stage map's camera flies to the stage first).
+        public static void LoadScene(string sceneName, float delay = 0)
         {
             if (!instance || instance.changingScene) return;
-            instance.StartCoroutine(instance.ChangeScene(sceneName));
+            instance.StartCoroutine(instance.ChangeScene(sceneName, delay));
         }
 
         static void QuitGame()

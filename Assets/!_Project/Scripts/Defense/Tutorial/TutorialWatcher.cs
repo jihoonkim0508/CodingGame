@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -13,9 +14,23 @@ namespace CodingGame.Defense
         bool firstKill, firstAttack, cleared;
         readonly List<string> signals = new List<string>();
 
-        // The index-th warrior placed this stage (by id): 0 is the robot the tutorial teaches, 1 the second warrior of 1-4.
-        public static RobotState Robot(DefenseSimulation sim, int index) =>
-            sim?.Robots.Where(r => r.Spec.role == RobotRole.Warrior).OrderBy(r => r.Id).ElementAtOrDefault(index);
+        // In 1-3, Robot.Unit.0 is whichever deployed robot is closest to the current wave's entrance.
+        // Elsewhere the stable installation order keeps the existing tutorial targets unchanged.
+        public static IReadOnlyList<RobotState> OrderedRobots(DefenseSimulation sim)
+        {
+            if (sim == null) return Array.Empty<RobotState>();
+            var robots = sim.Robots.OrderBy(robot => robot.Id);
+            if (!sim.Setup.PlayerFlow || sim.Setup.Stage != 1 || sim.WaveIndex != 2 ||
+                sim.Setup.Waves.Length <= 2 || sim.Setup.Waves[2].Length == 0) return robots.ToArray();
+            int route = sim.Setup.Waves[2].OrderBy(group => group.Delay).First().RouteIndex;
+            var entrance = sim.Setup.Routes[route].Points[0];
+            return robots.OrderBy(robot => System.Numerics.Vector2.DistanceSquared(robot.Position, entrance))
+                .ThenBy(robot => robot.Id).ToArray();
+        }
+        public static RobotState Robot(DefenseSimulation sim, int index) => OrderedRobots(sim).ElementAtOrDefault(index);
+        public static int RobotIndex(DefenseSimulation sim, int id) =>
+            OrderedRobots(sim).Select((robot, index) => (robot, index)).Where(entry => entry.robot.Id == id)
+                .Select(entry => entry.index).DefaultIfEmpty(-1).First();
         public static RobotState TeachingRobot(DefenseSimulation sim) => Robot(sim, 0);
 
         // Generated Python body equals the expected lines, ignoring the def header, indentation, blank lines and the names the
@@ -28,9 +43,17 @@ namespace CodingGame.Defense
             var wanted = Canonical(Lines(expected));
             return actual.SequenceEqual(wanted) || actual.OrderBy(l => l).SequenceEqual(wanted.OrderBy(l => l));
         }
+        public static bool ConditionMatches(string condition, DefenseProgram program, string expected, string reference)
+        {
+            string Bare(string text) => Regex.Replace(text ?? "", @"\s", "");
+            if (program == null || string.IsNullOrWhiteSpace(reference)) return Bare(condition) == Bare(expected);
+            var actual = Canonical(Lines(string.Join("\n", program.Source.Replace("\r", "").Split('\n').Skip(1))).Append("if " + condition).ToList());
+            var wanted = Canonical(Lines(reference).Append("if " + expected).ToList());
+            return Bare(actual.Last()) == Bare(wanted.Last());
+        }
         static List<string> Lines(string text) =>
             (text ?? "").Replace("\r", "").Split('\n').Select(line => line.Trim()).Where(line => line.Length > 0).ToList();
-        static readonly Regex Assignment = new Regex(@"^([A-Za-z_]\w*)\s*=(?!=)");
+        static readonly Regex Assignment = new Regex(@"^([^\W\d]\w*)\s*=(?!=)"); // any Python name, Korean included
         // Variables renamed v0, v1… in the order they are first set; attributes and calls (.hp, get_my_pos()) keep their names.
         static List<string> Canonical(List<string> lines)
         {

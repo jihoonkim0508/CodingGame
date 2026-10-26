@@ -16,6 +16,8 @@ namespace CodingGame.Defense
         {
             if (!line || !line.sharedMaterial) throw new InvalidOperationException(name + ": 사거리 LineRenderer/Material 참조 누락");
             lineWidth = line.widthMultiplier;
+            // Hidden until shown: the scene keeps the line on for editing (AttackPreviewWorld's ring showed at start).
+            line.enabled = false;
             if (!fillMaterial) return;
             var fill = new GameObject("Fill", typeof(MeshFilter), typeof(MeshRenderer));
             fill.layer = gameObject.layer; fill.transform.SetParent(transform, false);
@@ -24,7 +26,7 @@ namespace CodingGame.Defense
             fillRenderer = fill.GetComponent<MeshRenderer>(); fillRenderer.sharedMaterial = fillMaterial;
             fillRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; fillRenderer.receiveShadows = false; fillRenderer.enabled = false;
         }
-        // glow 0..1 (tutorial highlight): a thick bright-red ring and a strong fill; the caller pulses glow.
+        // glow 0..1 (tutorial highlight): a thick bright-red ring and a stronger rim; the caller pulses glow.
         public void Show(Vector3 center, float radius, Color color, float glow)
         {
             this.glow = glow;
@@ -64,17 +66,26 @@ namespace CodingGame.Defense
             line.useWorldSpace = true; line.positionCount = points.Length;
             line.SetPositions(points); line.startColor = line.endColor = color; line.enabled = true;
         }
-        // Triangle fan from the centre to the outline points already computed (world space).
+        // Like a MOBA range indicator (planner reference): almost clear in the middle, glowing toward the rim. A fan from the
+        // centre to an inner ring, then a band from the inner ring out to the outline points already computed (world space).
+        const float Band = .78f;
         void Fill(Vector3 center, int count, Color color)
         {
             if (!fillRenderer) return;
-            var vertices = new Vector3[count + 1]; var colors = new Color[count + 1]; var triangles = new int[(count - 1) * 3];
-            var inside = new Color(color.r, color.g, color.b, Mathf.Lerp(fillAlpha, .55f, glow));
-            vertices[0] = transform.InverseTransformPoint(center); colors[0] = inside;
+            var vertices = new Vector3[1 + 2 * count]; var colors = new Color[vertices.Length]; var triangles = new int[(count - 1) * 9];
+            Color Tint(float alpha) => new Color(color.r, color.g, color.b, alpha);
+            float rim = Mathf.Lerp(fillAlpha, .6f, glow);
+            vertices[0] = transform.InverseTransformPoint(center); colors[0] = Tint(rim * .12f);
             for (int i = 0; i < count; i++)
             {
-                vertices[i + 1] = transform.InverseTransformPoint(new Vector3(points[i].x, center.y, points[i].z)); colors[i + 1] = inside;
-                if (i < count - 1) { triangles[i * 3] = 0; triangles[i * 3 + 1] = i + 2; triangles[i * 3 + 2] = i + 1; }
+                var edge = new Vector3(points[i].x, center.y, points[i].z);
+                vertices[1 + i] = transform.InverseTransformPoint(Vector3.Lerp(center, edge, Band)); colors[1 + i] = Tint(rim * .25f);
+                vertices[1 + count + i] = transform.InverseTransformPoint(edge); colors[1 + count + i] = Tint(rim);
+                if (i == count - 1) break;
+                int t = i * 9, inner = 1 + i, outer = 1 + count + i;
+                triangles[t] = 0; triangles[t + 1] = inner + 1; triangles[t + 2] = inner;
+                triangles[t + 3] = inner; triangles[t + 4] = inner + 1; triangles[t + 5] = outer + 1;
+                triangles[t + 6] = inner; triangles[t + 7] = outer + 1; triangles[t + 8] = outer;
             }
             fillMesh.Clear(); fillMesh.vertices = vertices; fillMesh.colors = colors; fillMesh.triangles = triangles; fillMesh.RecalculateBounds();
             fillRenderer.enabled = true;

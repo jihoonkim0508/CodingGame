@@ -32,6 +32,12 @@ static class Check
         Place(sim, RobotRole.Buffer, 0, 3);
         Assert(sim.Place(Spec(RobotRole.Buffer), 0, new Vector2(5, 3), out _) == null, "one buffer limit");
         var tank = Place(sim, RobotRole.Tank, -7, 0); tank.AutoExecute = false;
+        // A map that is not a rectangle: robots stand only on its tiles, with the whole body on them.
+        var floored = Setup(); floored.Floor = new[] { new PlacementObstacle { Min = new Vector2(-10, 1), Max = new Vector2(0, 5) } };
+        var floorSim = new DefenseSimulation(floored);
+        Assert(floorSim.PlacementError(Spec(RobotRole.Warrior), new Vector2(-5, 3)) == null, "robot on a floor tile");
+        Assert(floorSim.PlacementError(Spec(RobotRole.Warrior), new Vector2(5, 3)) == "맵 밖에는 설치할 수 없습니다.", "robot off the map tiles rejected");
+        Assert(floorSim.PlacementError(Spec(RobotRole.Warrior), new Vector2(-.05f, 3)) != null, "robot hanging over the map edge rejected");
         sim.Start();
         Assert(!sim.DamageRobot(warrior.Id, 999), "no damage to ordinary robot");
         Assert(sim.RequestAction(tank.Id, RobotAction.Buff) == ActionResult.Ineffective, "tank buff ineffective");
@@ -49,6 +55,11 @@ static class Check
         var blocker = Place(blockSim, RobotRole.Tank, -5, 0); blocker.AutoExecute = false;
         blockSim.Start(); blockSim.Advance(1.0 / 60);
         Assert(blockSim.Enemies[0].BlockedBy == blocker.Id, "swept path cannot skip tank at high speed");
+        // The HUD's per-type cards count down the fought wave: spawned and unspawned enemies of each type add up to the total.
+        Assert(blockSim.CurrentWave.Select(g => g.DefinitionIndex).Distinct().Sum(blockSim.RemainingOf) == blockSim.RemainingEnemies && blockSim.Spawned > 0, "per-type remaining enemies add up");
+        blockSim.Enemies[0].Active = false;
+        Assert(blockSim.CurrentWave.Select(g => g.DefinitionIndex).Distinct().Sum(blockSim.RemainingOf) == blockSim.RemainingEnemies, "a removed enemy leaves its type's count");
+        blockSim.Enemies[0].Active = true; // the blocking checks below use this enemy
         var enemy = blockSim.Enemies[0]; var stopped = enemy.Position;
         enemy.Effects.Add(new MovementEffect { Source = blocker.Id, StunUntil = blockSim.Time + 1, SlowUntil = blockSim.Time + 3, Multiplier = .5f });
         blockSim.RemoveRobot(blocker.Id); blockSim.Advance(1.0 / 60);
@@ -88,7 +99,10 @@ static class Check
         {
             var direct=new DefenseSimulation(Setup(speed:8));var attacker=Place(direct,role,-8,3);attacker.AutoExecute=false;
             direct.Start();Advance(direct,.2);direct.RequestAction(attacker.Id,attacker.Spec.NativeAction);
-            Assert(direct.Projectiles.Count==0&&Math.Abs(direct.Enemies[0].Health-(100-direct.ActionDamage(attacker,attacker.Spec.NativeAction,Vector2.Distance(attacker.Position,direct.Enemies[0].Position))))<.001f,"direct action hits fast in-range target immediately: "+role);
+            float expected=100-direct.ActionDamage(attacker,attacker.Spec.NativeAction,Vector2.Distance(attacker.Position,direct.Enemies[0].Position));
+            Assert(direct.Enemies[0].Health==100,"damage waits for the shot to arrive or the sword to pass: "+role);
+            Advance(direct,1);
+            Assert(direct.Projectiles.Count==0&&Math.Abs(direct.Enemies[0].Health-expected)<.001f,"direct action still hits a fast target that moved on: "+role);
         }
         var crossBomb=new DefenseSimulation(Setup());var crossThrower=Place(crossBomb,RobotRole.Warrior,-8,3);crossThrower.AutoExecute=false;
         crossBomb.Start();Advance(crossBomb,.2);crossBomb.RequestAction(crossThrower.Id,RobotAction.Boom);crossBomb.RemoveRobot(crossThrower.Id);Advance(crossBomb,1);
@@ -109,7 +123,7 @@ static class Check
         Assert(recipient.Range == recipient.Spec.range && recipient.Damage == recipient.Spec.damage, "buff cleanup restores original values");
 
         var win = new DefenseSimulation(Setup(health: 1));
-        var winner = Place(win, RobotRole.Shooter, -8, 2); win.Start(); Advance(win, .3);
+        var winner = Place(win, RobotRole.Shooter, -8, 2); win.Start(); Advance(win, 1);
         Assert(win.Phase == BattlePhase.Victory && win.Kills == 1 && win.Leaks == 0, "kill-only final wave victory");
         int events = win.Events.Count; Advance(win, 2);
         Assert(events == win.Events.Count, "result generates no extra events");
@@ -126,7 +140,7 @@ static class Check
 
         var setup = Setup();
         var reduced = new DefenseSimulation(setup); var trainee = Place(reduced, RobotRole.Warrior, -8, 2); trainee.AutoExecute = false;
-        reduced.Start(); Advance(reduced, .2); reduced.RequestAction(trainee.Id, RobotAction.Attack);
+        reduced.Start(); Advance(reduced, .2); reduced.RequestAction(trainee.Id, RobotAction.Attack); Advance(reduced, 1); // the shot lands on arrival
         Assert(reduced.Enemies[0].Health == 99.5f, "cross-role action uses 10 percent of specialist damage");
         bool rejected = false;
         setup.Permissions = new[] { new ActionPermission { role = RobotRole.Tank, action = RobotAction.Buff, strength = .5f } };
@@ -157,7 +171,7 @@ static class Check
         Assert(stunEnemy.Stunned(stunSim.Time) && stunEnemy.Health == 95, "sample block combines area stun with single-target low damage");
 
         var multi = Setup(health: 1); multi.Waves = new[] { multi.Waves[0], multi.Waves[0], multi.Waves[0] };
-        var multiSim = new DefenseSimulation(multi); Place(multiSim, RobotRole.Shooter,-8,2); multiSim.Start(); Advance(multiSim, 1);
+        var multiSim = new DefenseSimulation(multi); Place(multiSim, RobotRole.Shooter,-8,2); multiSim.Start(); Advance(multiSim, 3); // shots in flight add time
         Assert(multiSim.Phase == BattlePhase.Victory && multiSim.Spawned == 3 && multiSim.Kills == 3 && multiSim.WaveIndex == 2, "three waves finish without duplicate spawns");
 
         var slowSim = new DefenseSimulation(Setup(health: 1000)); var utility = Place(slowSim,RobotRole.Utility,-8,2); utility.AutoExecute = false;

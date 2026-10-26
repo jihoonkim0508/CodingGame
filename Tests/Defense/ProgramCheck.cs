@@ -107,7 +107,7 @@ static class ProgramCheck
                 if(action!=RobotAction.Block&&action!=RobotAction.Buff)
                     Assert(Rules.Compatibility(role,action)==(Rules.NativeAction(role)==action?ActionCompatibility.Native:ActionCompatibility.Reduced),$"compatibility {role}/{action}");
         var sim=Make();var robot=Bot(sim,RobotRole.Buffer);robot.AutoExecute=false;sim.Start();Tick(sim,6);
-        var target=sim.Enemies.Single();sim.RequestAction(robot.Id,RobotAction.Slash);
+        var target=sim.Enemies.Single();sim.RequestAction(robot.Id,RobotAction.Slash);Tick(sim,30); // the sword gets there after the wind-up
         Assert(target.Health==9998,"buffer with zero own damage uses 10 percent specialist slash damage");
         Tick(sim,6);sim.RequestAction(robot.Id,RobotAction.Slow);
         Assert(Math.Abs(target.Speed(sim.Time)/target.Spec.speed-.95)<.00001,"cross-role slow is 10 percent reduction strength, not 10 percent remaining speed");
@@ -119,7 +119,8 @@ static class ProgramCheck
         sim.ApplyProgram(robot.Id,"cross",new[]{attack});attack.Kind=BlockKind.Buff;
         Assert(!robot.AutoExecute&&robot.Program.Source.Contains("attack(get_nearest_enemy())"),"apply freezes source and disables automatic actions");
         sim.Start();Tick(sim,6);
-        Assert(robot.Executions==1&&sim.Enemies.Single().Health==9998,"code uses same ten percent combat path without duplicate native attack");
+        // The shot is in flight: it carries the ten percent damage and lands on arrival.
+        Assert(robot.Executions==1&&sim.Projectiles.Single().Damage==2&&sim.Enemies.Single().Health==10000,"code uses same ten percent combat path without duplicate native attack");
         Assert(other.Program==null&&other.Executions==0,"apply only changes selected robot");
         var copied=robot.Program.CopyBlocks();copied[0].Kind=BlockKind.Buff;
         Assert(robot.Program.CopyBlocks()[0].Kind==BlockKind.Shot,"editing copy does not mutate applied program");

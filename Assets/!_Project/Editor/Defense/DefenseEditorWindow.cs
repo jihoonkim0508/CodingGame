@@ -174,7 +174,8 @@ namespace CodingGame.Defense.Editor
                 DevTest.ResetSaveData(); feedback.text = "저장 데이터를 초기화했습니다.";
             }));
             var row = new VisualElement(); row.AddToClassList("row");
-            var waves = new PopupField<int>("Stage 1 튜토리얼", Enumerable.Range(1, 5).ToList(), Mathf.Clamp(jumpWave, 1, 5), w => "1-" + w, w => "1-" + w);
+            jumpWave = Mathf.Clamp(jumpWave, 1, 5);
+            var waves = new PopupField<int>("Stage 1 튜토리얼", Enumerable.Range(1, 5).ToList(), jumpWave - 1, w => "1-" + w, w => "1-" + w);
             var titles = DevTest.TutorialSections(jumpWave).Select((t, i) => $"{i + 1}. {t}").ToList();
             if (titles.Count == 0) titles.Add("(구간 없음)");
             var sections = new PopupField<string>(titles, Mathf.Clamp(jumpSection, 0, titles.Count - 1));

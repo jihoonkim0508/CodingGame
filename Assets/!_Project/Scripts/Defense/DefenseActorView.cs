@@ -53,7 +53,16 @@ namespace CodingGame.Defense
         [SerializeField] Transform healthRoot;
         [SerializeField] Transform healthFill;
         [SerializeField] LineRenderer beam;
+        [SerializeField, Tooltip("레이저가 나가는 곳(사격형: 포신 끝). 비우면 머리 위치")] Transform muzzle;
         MaterialPropertyBlock colors;
+        // The rigged models (CharacterAnimation): robots idle and play "Attack" on each attack, the monster walks on its own.
+        Animator animator;
+        static readonly int AttackTrigger = Animator.StringToHash("Attack"), AttackState = Animator.StringToHash("Attack");
+        // The attack clip plays faster when the robot attacks more often than the clip lasts (0.8 s ranged clip);
+        // a slash plays it so the sword passes straight ahead when the simulation's strike lands.
+        float attackClip, attackInterval, strikeSpeed, pace = 1;
+        // Melee_Attack (1 s): the sampled sword sweeps clockwise from the left (-64° at .40, -10° at .45, +22° at .50).
+        const float StrikeAt = .46f;
         Color baseColor;
         Vector3 fullHealthScale;
         float beamTime;
@@ -73,11 +82,23 @@ namespace CodingGame.Defense
             var trailColors = new MaterialPropertyBlock(); trailColors.SetColor("_BaseColor", TrailColor); trailColors.SetColor("_Color", TrailColor);
             foreach (var renderer in healthTrail.GetComponentsInChildren<Renderer>()) renderer.SetPropertyBlock(trailColors);
             beam.enabled = false;
+            animator = GetComponentInChildren<Animator>();
+            if (animator) attackClip = animator.runtimeAnimatorController.animationClips.Where(c => c.name.Contains("Attack")).Select(c => c.length).DefaultIfEmpty(0).First();
         }
-        public void SyncRobot(RobotState bot, Vector3 position, Quaternion viewRotation) =>
+        public void SyncRobot(RobotState bot, Vector3 position, Quaternion viewRotation)
+        {
+            attackInterval = bot.Interval;
             Sync(position, bot.Health, bot.MaxHealth, false, false, bot.Buffs.Count > 0, viewRotation);
-        public void SyncEnemy(EnemyState enemy, double time, Vector3 position, Quaternion viewRotation) =>
+        }
+        public void SyncEnemy(EnemyState enemy, double time, Vector3 position, Quaternion viewRotation)
+        {
+            // Faces the way it walks (the monster model has a walk cycle).
+            var step = position - transform.position; step.y = 0;
+            if (step.sqrMagnitude > 1e-6f) transform.rotation = Quaternion.LookRotation(step);
             Sync(position, enemy.Health, enemy.Spec.health, enemy.Stunned(time), enemy.Speed(time) < enemy.Spec.speed, false, viewRotation);
+        }
+        // Animation speed follows the battle clock: 0 while paused, 2-3 at 2x/3x.
+        public void SetPace(float pace) => this.pace = pace;
         void Sync(Vector3 position, float? health, float maximum, bool stunned, bool slowed, bool buffed, Quaternion viewRotation)
         {
             transform.position = position;
@@ -92,21 +113,36 @@ namespace CodingGame.Defense
             Color tint = stunned ? new Color(.8f,.4f,1) : slowed ? new Color(.2f,.8f,1) : buffed ? Color.Lerp(baseColor, Color.white, .35f) : baseColor;
             colors.SetColor("_BaseColor", tint); body.SetPropertyBlock(colors);
         }
-        public void AimAt(Vector3 target)
+        // Called on every attack (slash, launch, ranged shot); strikeSeconds: a slash's time until its damage lands.
+        public void AimAt(Vector3 target, float strikeSeconds = 0)
+        {
+            strikeSpeed = strikeSeconds > 0 ? StrikeAt * attackClip / strikeSeconds : 0;
+            if (animator) animator.SetTrigger(AttackTrigger);
+            Face(target);
+        }
+        // Turns the head (and the model under it) toward a point, level; robots face the camera when placed.
+        public void Face(Vector3 target)
         {
             Vector3 direction = target - head.position; direction.y = 0;
             if (direction.sqrMagnitude > .001f) head.rotation = Quaternion.LookRotation(direction);
         }
+        public Vector3 Muzzle => muzzle ? muzzle.position : head.position;
+        public bool HasMuzzle => muzzle;
+        float AttackSpeed => strikeSpeed > 0 ? strikeSpeed : attackInterval > 0 ? Mathf.Max(1, attackClip / (attackInterval * .9f)) : 1;
         public void FireAt(Vector3 target)
         {
             AimAt(target);
-            Vector3 from = head.position;
             beam.useWorldSpace = true; beam.positionCount = 2;
-            beam.SetPosition(0, from); beam.SetPosition(1, target + Vector3.up * .45f);
+            beam.SetPosition(0, Muzzle); beam.SetPosition(1, target + Vector3.up * .45f);
             beam.enabled = true; beamTime = .12f;
         }
         public void TickVisual(float delta)
         {
+            if (animator)
+            {
+                bool attacking = animator.GetCurrentAnimatorStateInfo(0).shortNameHash == AttackState || animator.GetNextAnimatorStateInfo(0).shortNameHash == AttackState;
+                animator.speed = pace * (attacking ? AttackSpeed : 1);
+            }
             beamTime -= delta;
             if (beamTime <= 0) beam.enabled = false;
         }

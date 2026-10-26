@@ -34,6 +34,8 @@ namespace CodingGame.Defense
         RenderTexture previewTexture;
         float emptyElapsed;
         int sourceLevel;
+        bool firstHitReported;
+        int firstHitCount;
         #if UNITY_EDITOR
         public void EditorApplyOptions(DefenseTestOptions options)
         {
@@ -62,6 +64,7 @@ namespace CodingGame.Defense
         }
         public DefenseSimulation PreviewSimulation => simulation;
         public bool IsShowing => selected != null && previewPanel.activeSelf;
+        public void Restart() { if (IsShowing) ResetPreview(); }
         public void SetHitRangesVisible(bool visible) => hitEffects.SetHitRangesVisible(visible);
         void Start()
         {
@@ -98,13 +101,17 @@ namespace CodingGame.Defense
         }
         void ResetPreview()
         {
-            ClearActors(); source = selected.Program; emptyElapsed = 0;
+            ClearActors(); source = selected.Program; emptyElapsed = 0; firstHitReported = false; firstHitCount = 0;
             sourceLevel = selected.Level;
             var setup = new BattleSetup {
                 TestOptions = battle.Simulation.Options,
                 Min = new Point(-50,-50), Max = new Point(50,50), BaseHealth = 100,
-                Routes = new[] { new Route(new[] { new Point(2,0), new Point(-20,0) }, 1.2f) },
-                Waves = new[] { new[] { new SpawnGroup { Enemy = HarmlessEnemy(), Count = 3, Interval = .7f } } }
+                Routes = new[] { new Route(new[] {
+                    battle.Simulation.Setup.Stage == 1 && battle.Simulation.WaveIndex == 2 ? new Point(7,0) : new Point(2,0),
+                    new Point(-20,0) }, 1.2f) },
+                Waves = new[] { new[] { new SpawnGroup { Enemy = HarmlessEnemy(),
+                    Count = battle.Simulation.Setup.Stage == 1 && battle.Simulation.WaveIndex == 2 ? 2 : 3,
+                    Interval = battle.Simulation.Setup.Stage == 1 && battle.Simulation.WaveIndex == 2 ? .5f : 1.4f } } }
             };
             CopyRules(setup);
             simulation = new DefenseSimulation(setup);
@@ -115,6 +122,7 @@ namespace CodingGame.Defense
             if (bot.Health.HasValue) bot.Health = bot.MaxHealth;
             if (source != null) simulation.ApplyProgram(bot.Id, source.Name, source.CopyBlocks());
             AddView(bot.Id, battle.RobotDefinition(bot.DefinitionIndex).prefab);
+            views[bot.Id].Face(previewCamera.transform.position);
             rangeRing.Show(World(bot.Position), bot.Range, battle.RobotDefinition(bot.DefinitionIndex).color);
             simulation.Start();
         }
@@ -211,6 +219,17 @@ namespace CodingGame.Defense
                 hitEffects.Show(e, arena, arena.position, previewCamera.transform.rotation, view, effectRing);
                 if ((e.Kind == "hit" || e.Kind == "projectile-hit") && e.Amount > 0)
                 { PopDamage(e); battle.ReportTutorialAction(TutorialKeys.Preview, TutorialSignals.PreviewHit); }
+            }
+            if (!firstHitReported)
+            {
+                var firstHits = simulation.Events.Where(e => e.Kind == "hit" && e.Amount > 0).Select(e => e.Target).Distinct().Count();
+                if (firstHits > 0)
+                {
+                    firstHitReported = true;
+                    firstHitCount = firstHits;
+                    battle.ReportTutorialAction(TutorialKeys.Preview,
+                        firstHits > 1 ? TutorialSignals.PreviewMultiHit : TutorialSignals.PreviewSingleHit);
+                }
             }
             simulation.Events.Clear();
             TickDamage(dt);

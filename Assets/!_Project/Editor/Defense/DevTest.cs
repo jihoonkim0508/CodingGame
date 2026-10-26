@@ -137,17 +137,33 @@ namespace CodingGame.Defense.Editor
             PlayDefense(1, wave, true, wave > 1);
         }
         static bool OnStageOneWave(DefenseBattle b, int wave) => b && b.Simulation != null && b.Stage == 1 && b.Simulation.WaveIndex + 1 == wave;
-        // ponytail: places the robots earlier steps would have placed, but not the code they would have written.
         static void JumpNow(DefenseBattle b, int wave, int step)
         {
             var sequence = StageOneSequence(wave);
             if (!sequence) throw new InvalidOperationException($"1-{wave} 튜토리얼 시퀀스가 없습니다.");
-            int robots = (wave > 1 ? 1 : 0) + sequence.steps.Take(step).Count(s => s.completionSignal == TutorialSignals.RobotPlaced);
-            while (b.Simulation.Robots.Count < robots) PlaceTeachingRobot(b, RobotRole.Warrior);
+            RestoreTutorialWork(b, wave, step);
             b.Tutorial.EditorRun(sequence, step);
         }
+        // A player who followed the Stage 1 tutorials up to (wave, step) has the warriors those tutorials placed and the code
+        // they taught on each warrior; restarting or jumping there rebuilds that. Code a robot already has is left alone.
+        static void RestoreTutorialWork(DefenseBattle b, int wave, int step = 0)
+        {
+            var current = StageOneSequence(wave);
+            var done = Enumerable.Range(1, wave - 1).Select(StageOneSequence).Where(s => s).SelectMany(s => s.steps)
+                .Concat(current ? current.steps.Take(step) : Enumerable.Empty<TutorialStep>()).ToList();
+            int robots = done.Count(s => s.completionSignal == TutorialSignals.RobotPlaced);
+            while (b.Simulation.Robots.Count < robots) PlaceTeachingRobot(b, RobotRole.Warrior);
+            var warriors = b.Simulation.Robots.Where(r => r.Spec.role == RobotRole.Warrior).OrderBy(r => r.Id).ToList();
+            foreach (var answers in done.Where(s => s.completionSignal == TutorialSignals.ProgramMatches).GroupBy(s => s.robotIndex))
+            {
+                var bot = answers.Key < warriors.Count ? warriors[answers.Key] : null;
+                if (bot == null || bot.Program != null) continue;
+                try { b.Simulation.ApplyProgram(bot.Id, "robot_" + bot.Id, TutorialAnswers.Parse(answers.Last().expectedCode)); }
+                catch (FormatException e) { Debug.LogWarning($"튜토리얼 코드 복원 실패 (로봇 {bot.Id}): {e.Message}"); }
+            }
+        }
         // Lifts the tutorial input lock just for this placement; the best route-coverage cell is used.
-        static void PlaceTeachingRobot(DefenseBattle b, RobotRole role)
+        internal static void PlaceTeachingRobot(DefenseBattle b, RobotRole role)
         {
             var sim = b.Simulation; int index = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => b.DefinitionRole(i) == role);
             var spec = b.RobotDefinition(index).stats;
@@ -183,7 +199,7 @@ namespace CodingGame.Defense.Editor
             var parts = jump.Split(','); int wave = int.Parse(parts[0]), step = int.Parse(parts[1]);
             var b = Battle;
             if (b && b.Simulation != null && !b.Tutorial) { SessionState.EraseString(RequestKey + ".jump"); Debug.LogWarning(NoTutorial); return; }
-            if (!OnStageOneWave(b, wave)) return; // the session starts on a later Update
+            if (!OnStageOneWave(b, wave) || !b.Tutorial.EditorSynced) return; // the session starts, and the tutorial resets for it, on a later Update
             SessionState.EraseString(RequestKey + ".jump");
             try { JumpNow(b, wave, step); } catch (Exception e) { Debug.LogException(e); }
         }
@@ -191,6 +207,8 @@ namespace CodingGame.Defense.Editor
         {
             battle.EditorManualClock = false;
             battle.EditorStartSession(stage, wave, previousStageRewards, Options, pendingContent);
+            // Starting mid Stage 1 with the earlier rewards: also the robots and code the earlier tutorials left.
+            if (stage == 1 && wave > 1 && previousStageRewards) RestoreTutorialWork(battle, wave);
             Events.Clear(); Metrics.Clear(); Subscribe(battle);
         }
 

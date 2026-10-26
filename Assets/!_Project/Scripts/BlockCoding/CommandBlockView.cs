@@ -34,6 +34,10 @@ namespace CodingGame.BlockCoding
         public CommandDropZone Body => body;
         public IReadOnlyList<CommandDropZone> Arguments => arguments;
         public RectTransform Rect => rect;
+        // Tutorial targets: the name field and the comparison picker, and what they hold before the line compiles.
+        public RectTransform InputRect => input ? input.transform as RectTransform : null;
+        public RectTransform OptionRect => dropdown ? dropdown.transform as RectTransform : null;
+        public string DraftValue => kind == BlockKind.Comparison ? PythonTreeCompiler.Comparisons[dropdown.value] : input ? input.text : null;
         public string VariableName => kind == BlockKind.DeclareVariable ? input.text :
             kind == BlockKind.Variable ? (HasDot ? input.text.Substring(0, input.text.Length - 1) : input.text) : variableName;
         public string RetainedName { get; private set; }
@@ -69,6 +73,8 @@ namespace CodingGame.BlockCoding
             {
                 initialized = true;
                 if (input) input.onValueChanged.AddListener(InputChanged);
+                // Only a Python name can be typed (a name like "123" left the code unapplied without a word).
+                if (input && kind == BlockKind.DeclareVariable) input.onValidateInput = (text, index, c) => c == '_' || char.IsLetter(c) || (char.IsDigit(c) && index > 0) ? c : '\0';
                 if (dropdown) dropdown.onValueChanged.AddListener(SelectionChanged);
             }
             foreach (var argument in arguments) argument.Bind(panel, this);
