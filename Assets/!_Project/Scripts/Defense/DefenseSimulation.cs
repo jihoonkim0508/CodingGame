@@ -87,9 +87,16 @@ namespace CodingGame.Defense
             if (!Setup.PlayerFlow || !Options.inventoryLimit || !DefenseProgression.Consumes(kind)) return int.MaxValue;
             int owned = Owned(kind);
             // 편집 중인 로봇의 기존 예약은 제외하고, 다른 로봇이 사용하는 수량만 차감합니다.
-            int used = Robots.Where(r => r.Id != editingRobot && r.Program != null).Sum(r => r.Program.BlockCount(kind));
+            int used = Robots.Where(r => r.Id != editingRobot).Sum(r => Reserved(r, kind));
             return owned - used;
         }
+        // A robot holds the blocks of its applied code, or of its unfinished code in the editor when that has more
+        // (a syntax error empties the applied code, but the blocks stay in that robot's editor).
+        readonly Dictionary<int, Dictionary<BlockKind, int>> drafts = new Dictionary<int, Dictionary<BlockKind, int>>();
+        public void SetDraft(int id, IEnumerable<BlockKind> blocks) =>
+            drafts[id] = blocks.Select(DefenseProgression.Canonical).GroupBy(k => k).ToDictionary(g => g.Key, g => g.Count());
+        public int Reserved(RobotState robot, BlockKind kind) => Math.Max(robot.Program?.BlockCount(kind) ?? 0,
+            drafts.TryGetValue(robot.Id, out var draft) && draft.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0);
         int nextId = 1;
         int[] groupCounts;
         double waveStart, accumulated, spawnElapsed;

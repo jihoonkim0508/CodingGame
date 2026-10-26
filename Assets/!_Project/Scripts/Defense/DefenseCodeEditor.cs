@@ -65,7 +65,10 @@ namespace CodingGame.Defense
         string Apply(string name, IReadOnlyList<CodeBlock> blocks)
         {
             if (!IsOpen || !HasCurrentSession) throw new FormatException("로봇을 다시 선택하세요.");
-            editingSession.ApplyProgram(editingId, name, blocks); panel.RefreshPalette();
+            editingSession.ApplyProgram(editingId, name, blocks);
+            // The blocks in the editor stay this robot's even when the code is unfinished and nothing was applied.
+            editingSession.SetDraft(editingId, panel.Program.AllBlocks().Select(b => b.Kind));
+            panel.RefreshPalette();
             battle.NotifyCodeApplied(editingId, blocks.Count == 0);
             return blocks.Count == 0 ? "코드 없음 · 행동하지 않음" : "자동 적용됨";
         }
@@ -102,7 +105,7 @@ namespace CodingGame.Defense
             drafts.Remove(id);
             if (IsOpen && editingId == id) { panel.ClearProgram(); panel.RefreshPalette(); return; }
             var sim = battle.Simulation; var robot = sim?.FindRobot(id);
-            if (robot != null && sim.CanEdit) sim.ApplyProgram(id, robot.Program?.Name ?? "robot_" + id, Array.Empty<CodeBlock>());
+            if (robot != null && sim.CanEdit) { sim.ApplyProgram(id, robot.Program?.Name ?? "robot_" + id, Array.Empty<CodeBlock>()); sim.SetDraft(id, Array.Empty<BlockKind>()); }
         }
 
         public void PrepareDistanceExample()
