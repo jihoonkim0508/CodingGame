@@ -27,7 +27,7 @@ namespace CodingGame.Defense
                 if (!map) throw new InvalidOperationException(name + ": 씬에 Modular Map이 없습니다.");
                 if (mapRoute >= map.routes.Count || !map.IsComplete(map.routes[mapRoute]))
                     throw new InvalidOperationException(name + ": 맵의 S" + (mapRoute + 1) + " 경로가 기지까지 이어지지 않았습니다. Modular Map Painter에서 출발·경로·기지를 지정하세요.");
-                return new Route(map.Waypoints(map.routes[mapRoute]).Select(p => new Point(p.x, p.z)), halfWidth);
+                return new Route(map.Waypoints(map.routes[mapRoute]).Select(p => new Point(p.x, p.z)), map.RoadHalfWidth);
             }
             if (waypoints.Length < 2 || waypoints.Any(p => !p)) throw new InvalidOperationException(name + ": 경로 참조를 연결하세요.");
             return new Route(waypoints.Select(p => new Point(p.position.x, p.position.z)), halfWidth);

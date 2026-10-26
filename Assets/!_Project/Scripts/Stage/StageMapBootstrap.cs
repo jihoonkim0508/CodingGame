@@ -14,7 +14,7 @@ namespace CodingGame.StageMap
             StageNode[] nodes = Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None)
                 .Where(renderer => renderer.gameObject.name == "Stage")
                 .OrderBy(renderer => renderer.transform.position.x)
-                .Select(renderer => renderer.gameObject.AddComponent<StageNode>())
+                .Select(renderer => renderer.GetComponent<StageNode>()??renderer.gameObject.AddComponent<StageNode>())
                 .ToArray();
             if (nodes.Length == 0) { Debug.LogError("[StageMap] 이름이 'Stage'인 오브젝트가 없습니다."); return; }
 

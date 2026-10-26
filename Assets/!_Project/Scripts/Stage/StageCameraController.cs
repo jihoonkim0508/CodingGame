@@ -19,11 +19,23 @@ namespace CodingGame.StageMap
         {
             controlledCamera = camera;
             camera.rect = new Rect(0f, 0f, 1f, 1f);
-            var bounds = new Bounds(nodes[0].transform.position, Vector3.zero);
-            foreach (StageNode node in nodes) bounds.Encapsulate(node.transform.position);
-            Quaternion view = Quaternion.Euler(55f, 0f, 0f);
-            float distance = Mathf.Max(13f, bounds.size.x * 0.78f);
+            var bounds = nodes[0].VisualBounds;
+            foreach (StageNode node in nodes) bounds.Encapsulate(node.VisualBounds);
+            Quaternion view = Quaternion.Euler(42f, 0f, 0f);
+            float distance=FrameDistance(camera,bounds,view);
             camera.transform.SetPositionAndRotation(bounds.center - view * Vector3.forward * distance, view);
+        }
+
+        public static float FrameDistance(Camera camera,Bounds bounds,Quaternion rotation)
+        {
+            float tanY=Mathf.Tan(camera.fieldOfView*Mathf.Deg2Rad*.5f),tanX=tanY*Mathf.Max(.5f,camera.aspect);
+            float distance=1;var inverse=Quaternion.Inverse(rotation);
+            for(int i=0;i<8;i++)
+            {
+                var p=inverse*Vector3.Scale(bounds.extents,new Vector3((i&1)==0?-1:1,(i&2)==0?-1:1,(i&4)==0?-1:1));
+                distance=Mathf.Max(distance,Mathf.Abs(p.x)/tanX-p.z,Mathf.Abs(p.y)/tanY-p.z);
+            }
+            return distance*1.17f;
         }
 
         // Arcs toward the chosen stage; the scene fades out once it arrives.
