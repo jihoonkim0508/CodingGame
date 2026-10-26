@@ -54,7 +54,7 @@ MonoBehaviour:
     lessons:
     - stage: 1
       wave: 1
-      topic: "\uBCC0\uC218: \uC801 \uC815\uBCF4 \uC800\uC7A5\uD558\uAE30"
+      topic: "\uBCC0\uC218\uC640 \uAC8C\uC784 \uD50C\uB808\uC774 \uBC29\uBC95 \uC18C\uAC1C"
       robots:
       - role: 1
         count: 1
@@ -72,9 +72,17 @@ MonoBehaviour:
         count: 1
     - stage: 1
       wave: 2
-      topic: "\uC810(.)\uC73C\uB85C \uC801 \uC815\uBCF4 \uD655\uC778\uD558\uAE30"
-      robots: []
-      blocks: []
+      topic: "\uBCC0\uC218 \uC790\uC720 \uD50C\uB808\uC774"
+      robots:
+      - role: 1
+        count: 1
+      blocks:
+      - kind: 14
+        count: 1
+      - kind: 6
+        count: 1
+      - kind: 15
+        count: 1
       rewards:
       - kind: 19
         count: 1

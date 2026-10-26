@@ -56,6 +56,8 @@ namespace CodingGame.Defense
         [Min(0)] public float pointerDelay;
         [Tooltip("단계 진입 시 코드 편집기를 닫습니다.")] public bool closeEditor;
         [Tooltip("단계 진입 시 robotIndex 로봇의 코드를 비웁니다(블록은 인벤토리로).")] public bool clearProgram;
+        [Tooltip("단계 진입 시 robotIndex 로봇에 넣어 줄 코드(1-3 기초 코드 두 줄). 다른 로봇의 코드는 그대로입니다.")]
+        [TextArea(2, 6)] public string presetCode;
         [Tooltip("단계 진입 시 편집기를 닫고 robotIndex 로봇의 편집기를 엽니다.")] public bool openEditor;
         [Tooltip("판정·코드 삭제·편집기 대상. 0 = 교육 로봇(처음 배치한 전사), 1 = 두 번째 전사.")]
         [Min(0)] public int robotIndex;

@@ -71,6 +71,8 @@ namespace CodingGame.BlockCoding
             Panel = panel;
             panel.RegisterZone(this);
             ParentBlock = parent;
+            // An if's body takes clicks: placed, it is selected (1-3 D01); in the palette, OnPointerClick hands the click to the block.
+            if (parent && parent.Body == this) background.raycastTarget = true;
             foreach (var block in blocks) block.Bind(panel, this);
             Refresh();
         }
@@ -404,6 +406,8 @@ namespace CodingGame.BlockCoding
         {
             if (Panel && e.button == PointerEventData.InputButton.Right && ParentBlock && !ParentBlock.IsPalette) Panel.DeleteOne(ParentBlock);
             else if (Panel && !(ParentBlock && ParentBlock.IsPalette)) Panel.Select(this);
+            // A slot drawn inside a palette block is part of that block: clicking it adds the block, like clicking its name.
+            else if (ParentBlock && ParentBlock.IsPalette) { ParentBlock.OnPointerClick(e); return; }
             e.Use();
         }
     }

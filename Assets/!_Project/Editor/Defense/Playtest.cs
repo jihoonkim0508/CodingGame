@@ -28,12 +28,12 @@ namespace CodingGame.Defense.Editor
             ("1-1 A01 경고 카드 박자", AlertBeat),
             ("1-1 E01 뒤로가기에 경고 재생 안 됨", BackSkipsAlert),
             ("1-1 설명 중 블록 미리 꺼내기 막힘", ExplanationBlocksDrag),
-            ("1-1 C16 꺼내 둔 블록 연결로 진행", PreplacedBlocksProgress),
-            ("1-3 B02 대사 세 줄", DistanceLines),
-            ("1-1 D04 변수 배치와 enemy 입력 두 단계", VariableThenName),
-            ("1-1 D06 바로 적중해도 1.5초 보여 줌", PreviewHitHold),
-            ("1-1 E06a 보상 집중이 대화창에 안 가림", RewardFocusClear),
-            ("1-2 A01 대화창 뒤 가림", OneTwoIntro),
+            ("1-1 C08 꺼내 둔 블록 연결로 진행", PreplacedBlocksProgress),
+            ("1-3 B01 기초 코드 두 줄 지급", DistanceLines),
+            ("1-1 D03 변수 배치와 D04 enemy 입력 두 단계", VariableThenName),
+            ("1-1 D08 바로 적중해도 1.5초 보여 줌", PreviewHitHold),
+            ("1-1 E08 보상 집중이 대화창에 안 가림", RewardFocusClear),
+            ("1-2 B01 자유 플레이: 대사 숨고 조작 풀림, 힌트", OneTwoIntro),
             ("베기 이펙트 SwordSlash_3", Slash),
             ("코어 피격·사망 글리치", CoreGlitch),
             ("맵 소품 위 설치 막힘 · 기지 체력바 위치 · 사거리 색", PropsAndBase),
@@ -289,7 +289,7 @@ namespace CodingGame.Defense.Editor
             checks.Add($"ℹ 점프 후: {StepId}, 로봇 {Battle.Simulation.Robots.Count}");
             Director.EditorFinishTyping(); Director.EditorPrevious();
             yield return .3f;
-            Check(StepId == "D10", "E01에서 뒤로가기 → " + StepId + " (D10 기대, D11 경고 건너뜀)");
+            Check(StepId == "D09", "E01에서 뒤로가기 → " + StepId + " (D09 기대, D10 경고 건너뜀)");
             Check(!alert.IsShowing, "뒤로가기 후 경고 배너 안 나옴");
             Shot(); yield return .1f;
             Director.EditorFinishTyping(); Director.EditorNext();
@@ -300,11 +300,11 @@ namespace CodingGame.Defense.Editor
         static IEnumerator ExplanationBlocksDrag()
         {
             yield return Fresh();
-            yield return Jump(1, "C11");
+            yield return Jump(1, "C09");
             yield return OpenEditor();
             ClearProgram();
             yield return .2f;
-            foreach (var id in new[] { "C11", "C13" })
+            foreach (var id in new[] { "C09", "C10" })
             {
                 for (int tries = 0; StepId != id && tries < 8; tries++) { Director.EditorFinishTyping(); Director.EditorNext(); yield return .2f; }
                 if (StepId != id) { Fail($"{id}까지 넘기지 못함 (현재 {StepId}, 로봇 {Battle.Simulation.Robots.Count})"); yield break; }
@@ -320,43 +320,41 @@ namespace CodingGame.Defense.Editor
         static IEnumerator PreplacedBlocksProgress()
         {
             yield return OpenEditor();
-            yield return Jump(1, "C16");
+            yield return Jump(1, "C08");
             ClearProgram();
             Program.PlaceFree(Palette(BlockKind.DeclareVariable), Vector2.zero);
             Program.PlaceFree(Palette(BlockKind.NearestEnemy), new Vector2(300, -260));
             yield return .3f;
             Check(Program.StartChain().Count == 1 && Program.LooseRoots().Count() == 1, "사진과 같은 상태: 시작 위치에 enemy = value, get_nearest_enemy() 따로");
-            Check(StepId == "C16", "연결 전에는 C16에 머묾 (" + StepId + ")");
+            Check(StepId == "C08", "연결 전에는 C08에 머묾 (" + StepId + ")");
             var declare = Program.StartChain()[0];
             var pressed = Drag(ScreenPoint(Program.LooseRoots().First().Rect), ScreenPoint(declare.Arguments[0].Rect, .2f));
-            yield return Wait(() => StepId != "C16", "C16 완료", 3);
-            Check(StepId == "C17", $"드래그로 연결하면 다음 대사로 ({pressed} → {StepId})");
+            yield return Wait(() => StepId != "C08", "C08 완료", 3);
+            Check(StepId == "C09", $"드래그로 연결하면 다음 대사로 ({pressed} → {StepId})");
             Shot();
         }
 
+        // 1-3 B01 hands the first robot the two given lines; B02 explains the second; C01 asks for the if under them.
         static IEnumerator DistanceLines()
         {
             DevTest.JumpTutorial(3, 0);
             yield return Wait(() => Battle.Simulation.WaveIndex == 2 && Director.EditorSynced && StepId == "A01", "1-3 시작", 15);
             yield return OpenEditor();
-            yield return Jump(3, "B02");
-            var expected = new[]
+            yield return Jump(3, "B01");
+            yield return .3f;
+            string code = string.Join(" / ", Program.StartChain().Select(v => v.Kind + (v.DraftValue != null ? " " + v.DraftValue : "")));
+            Check(Program.StartChain().Count == 2 && Program.StartChain()[1].DraftValue == "enemy_distance", "B01: 기초 코드 두 줄 (" + code + ")");
+            foreach (var id in new[] { "B01", "B02" })
             {
-                ("B02", "좋아! enemy 뒤에 점(.)을 붙이면 적의 정보나 기능을 사용할 수 있어!"),
-                ("B02a", "여기서 distance()를 사용하면 두 위치 사이의 거리를 계산할 수 있지!"),
-                ("B02b", "distance() 안에 get_my_pos()를 넣어보자! 그러면 현재 로봇과 적 사이의 거리를 구할 수 있어!"),
-            };
-            foreach (var (id, text) in expected)
-            {
-                yield return .3f;
                 var step = Director.EditorStep;
-                Check(step.stepId == id && step.texts[0].text.Replace("`", "") == text, $"{id}: \"{step.texts[0].text}\"");
+                Check(step.stepId == id, id + ": \"" + step.texts[0].text + "\"");
                 foreach (var key in step.texts[0].focusKeys ?? Array.Empty<string>())
                     Check(Director.EditorBridge.TryGetArea(key, out _), $"{id}: 강조 대상 {key} 화면에 있음");
-                if (id == "B02a") { Shot(); yield return .1f; }
-                if (id != "B02b") { Director.EditorFinishTyping(); Director.EditorNext(); }
+                if (id == "B02") { Shot(); yield return .1f; }
+                Director.EditorFinishTyping(); Director.EditorNext(); yield return .3f;
             }
-            Check(Director.EditorStep.completionSignal == TutorialSignals.ProgramMatches, "B02b가 코드 작성 단계");
+            yield return NextUntil("C01");
+            Check(Director.EditorStep.completionSignal == TutorialSignals.SlotFilled && Director.EditorStep.expectedCode == "Editor.Code.Line.3:If", "C01: 셋째 줄에 if 놓기 단계");
         }
 
         static void Load(string code) => Battle.CodeEditor.Panel.LoadProgram(Battle.CodeEditor.Panel.FunctionName, TutorialAnswers.Parse(code));
@@ -369,30 +367,31 @@ namespace CodingGame.Defense.Editor
         static IEnumerator VariableThenName()
         {
             yield return Fresh();
-            yield return Jump(1, "D03");
+            yield return Jump(1, "C04");
             yield return OpenEditor();
-            Load("enemy = get_nearest_enemy()");
-            yield return NextUntil("D04");
-            Check(Director.EditorStep.completionSignal == TutorialSignals.SlotFilled, "D04: 변수 블록을 놓는 단계 — \"" + Director.EditorStep.texts[0].text + "\"");
+            yield return Jump(1, "D03");
+            Check(Director.EditorStep.completionSignal == TutorialSignals.SlotFilled, "D03: 변수 블록을 놓는 단계 — \"" + Director.EditorStep.texts[0].text + "\"");
             Load("enemy = get_nearest_enemy()\nslash(variable)"); // slash() with a variable block not named yet
-            yield return Wait(() => StepId == "D04a", "D04 → D04a", 3);
-            Check(StepId == "D04a", "변수 블록을 놓으면 다음 단계: " + StepId + " — \"" + Director.EditorStep.texts[0].text + "\"");
+            yield return Wait(() => StepId == "D04", "D03 → D04", 3);
+            Check(StepId == "D04", "변수 블록을 놓으면 다음 단계: " + StepId + " — \"" + Director.EditorStep.texts[0].text + "\"");
             Shot(); yield return .1f;
             Load("enemy = get_nearest_enemy()\nslash(enemy)");
-            yield return Wait(() => StepId == "D05", "D04a → D05", 3);
+            yield return Wait(() => StepId == "D05", "D04 → D05", 3);
             Check(StepId == "D05", "enemy를 입력하면 다음 대사: " + StepId);
         }
 
         static IEnumerator PreviewHitHold()
         {
-            yield return Jump(1, "D06");
+            yield return Jump(1, "C04");
+            yield return OpenEditor();
+            yield return Jump(1, "D08");
             double shown = EditorApplication.timeSinceStartup;
             Director.ReportSuccess(TutorialKeys.Preview, TutorialSignals.PreviewHit); // the preview hits at once
             yield return .8f;
-            Check(StepId == "D06", "바로 적중해도 0.8초 뒤 아직 D06 (" + StepId + ")");
-            yield return Wait(() => StepId != "D06", "D06 넘어감", 10);
+            Check(StepId == "D08", "바로 적중해도 0.8초 뒤 아직 D08 (" + StepId + ")");
+            yield return Wait(() => StepId != "D08", "D08 넘어감", 10);
             double held = EditorApplication.timeSinceStartup - shown;
-            Check(StepId == "D07" && held >= 1.5, $"D07로 넘어감, D06이 {held:0.0}초 보임 (타이핑 + 1.5초)");
+            Check(StepId == "D09" && held >= 1.5, $"D09로 넘어감, D08이 {held:0.0}초 보임 (타이핑 + 1.5초)");
         }
 
         static IEnumerator RewardFocusClear()
@@ -401,14 +400,14 @@ namespace CodingGame.Defense.Editor
             yield return Fresh(); // from the editor steps the start button is not back yet; a new session starts clean
             yield return Jump(1, "E03");
             Battle.StartBattle(); Time.timeScale = 3;
-            // Lines on the way (E05 on a leak, E06) wait for "next" like a player reading them.
+            // Lines on the way (E05 on a leak, E06, E07) wait for "next" like a player reading them.
             yield return Wait(() =>
             {
-                if (StepId == "E06a") return true;
+                if (StepId == "E08") return true;
                 var step = Director.EditorStep;
                 if (step != null && step.kind == TutorialStepKind.Dialogue) { Director.EditorFinishTyping(); Director.EditorNext(); }
                 return false;
-            }, "웨이브 끝나고 E06a", 120);
+            }, "웨이브 끝나고 E08", 120);
             Time.timeScale = 1;
             yield return 2.5f; // the result banner plays, then the reward card fades in
             Check(Director.EditorBridge.TryGetArea(TutorialKeys.RewardPanel, out var focus), "보상 집중 영역 있음");
@@ -423,13 +422,17 @@ namespace CodingGame.Defense.Editor
             Shot(); yield return .1f;
         }
 
+        // 1-2 is free play: after A01~A03 the guide hides and the game is the player's until the wave ends.
         static IEnumerator OneTwoIntro()
         {
             DevTest.JumpTutorial(2, 0);
             yield return Wait(() => Battle.Simulation.WaveIndex == 1 && Director.EditorSynced && StepId == "A01", "1-2 시작", 15);
-            yield return .8f;
-            var view = Object.FindFirstObjectByType<TutorialDialogueView>();
-            Check(Director.EditorStep.introEntrance && view.IsCentered, "1-2 A01: 1-1 도입처럼 가운데 큰 대화창 + 흑백 배경");
+            yield return NextUntil("B01");
+            yield return .5f;
+            var view = Object.FindFirstObjectByType<TutorialDialogueView>(FindObjectsInactive.Include);
+            Check(!view.IsVisible && !Battle.TutorialBlocksInput, "B01: 대사 숨김, 조작 가능");
+            Check(Battle.Simulation.RobotAvailable(RobotRole.Warrior) == 1, "새 전사 1대 지급 (" + Battle.Simulation.RobotAvailable(RobotRole.Warrior) + ")");
+            Check(Field<UnityEngine.UI.Button>(Battle.CodeEditor, "hintButton").gameObject.activeSelf, "힌트 버튼 보임");
             Shot(); yield return .1f;
         }
 

@@ -14,6 +14,9 @@ namespace CodingGame.Defense
         // Produced by TutorialDirector: the editor slot named by the step's expectedCode (an Editor.Code.Arg.* key) holds a block,
         // before the line compiles (1-1 D04 places the variable block first, the name is typed in the next step).
         public const string SlotFilled = "SlotFilled";
+        // Also checked on the draft: the slot was clicked (SlotSelected), a name field or comparison picker holds a value
+        // (DraftValueMatches, expectedCode "Editor.Code.Name.….|value"). 1-1 and 1-3 teach one small action per line.
+        public const string SlotSelected = "SlotSelected", DraftValueMatches = "DraftValueMatches";
         // Speaker whose lines show as the system alert banner instead of the dialogue box.
         public const string SystemSpeaker = "시스템";
     }

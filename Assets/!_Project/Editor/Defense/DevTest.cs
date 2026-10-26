@@ -149,16 +149,30 @@ namespace CodingGame.Defense.Editor
         static void RestoreTutorialWork(DefenseBattle b, int wave, int step = 0)
         {
             var current = StageOneSequence(wave);
-            var done = Enumerable.Range(1, wave - 1).Select(StageOneSequence).Where(s => s).SelectMany(s => s.steps)
+            var earlier = Enumerable.Range(1, wave - 1).Select(StageOneSequence).Where(s => s).ToList();
+            var done = earlier.SelectMany(s => s.steps)
                 .Concat(current ? current.steps.Take(step) : Enumerable.Empty<TutorialStep>()).ToList();
-            int robots = done.Count(s => s.completionSignal == TutorialSignals.RobotPlaced);
+            // A free-play wave (1-2) has no placing step: the player placed its warrior and coded it like the hint.
+            bool FreePlay(TutorialSequence s) => !s.steps.Any(x => x.completionSignal == TutorialSignals.RobotPlaced) && s.steps.Any(x => !string.IsNullOrEmpty(x.hintCode));
+            int robots = done.Count(s => s.completionSignal == TutorialSignals.RobotPlaced) + earlier.Count(FreePlay);
             while (b.Simulation.Robots.Count < robots) PlaceTeachingRobot(b, RobotRole.Warrior);
             var warriors = b.Simulation.Robots.Where(r => r.Spec.role == RobotRole.Warrior).OrderBy(r => r.Id).ToList();
-            foreach (var answers in done.Where(s => s.completionSignal == TutorialSignals.ProgramMatches).GroupBy(s => s.robotIndex))
+            int placed = 0;
+            foreach (var s in earlier)
+            {
+                placed += s.steps.Count(x => x.completionSignal == TutorialSignals.RobotPlaced);
+                if (!FreePlay(s)) continue;
+                if (placed < warriors.Count && warriors[placed].Program == null)
+                    b.Simulation.ApplyProgram(warriors[placed].Id, "robot_" + warriors[placed].Id, TutorialAnswers.Parse(s.steps.First(x => !string.IsNullOrEmpty(x.hintCode)).hintCode));
+                placed++;
+            }
+            // The latest code each robot got: a taught answer, or code a step handed over (1-3 B01), which replaces what was there.
+            foreach (var answers in done.Where(s => s.completionSignal == TutorialSignals.ProgramMatches || !string.IsNullOrEmpty(s.presetCode)).GroupBy(s => s.robotIndex))
             {
                 var bot = answers.Key < warriors.Count ? warriors[answers.Key] : null;
-                if (bot == null || bot.Program != null) continue;
-                try { b.Simulation.ApplyProgram(bot.Id, "robot_" + bot.Id, TutorialAnswers.Parse(answers.Last().expectedCode)); }
+                var last = answers.Last(); bool preset = !string.IsNullOrEmpty(last.presetCode);
+                if (bot == null || bot.Program != null && !preset) continue;
+                try { b.Simulation.ApplyProgram(bot.Id, "robot_" + bot.Id, TutorialAnswers.Parse(preset ? last.presetCode : last.expectedCode)); }
                 catch (FormatException e) { Debug.LogWarning($"튜토리얼 코드 복원 실패 (로봇 {bot.Id}): {e.Message}"); }
             }
         }

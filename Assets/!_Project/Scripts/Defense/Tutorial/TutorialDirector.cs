@@ -120,6 +120,8 @@ namespace CodingGame.Defense
                 if (Editor.LooseExpressions().Any(text => TutorialWatcher.ConditionMatches(text, program, step.expectedCode, taught))) Signal(TutorialSignals.ConditionBuilt);
             }
             if (step.completionSignal == TutorialSignals.SlotFilled && Editor && Editor.SlotFilled(step.expectedCode)) Signal(TutorialSignals.SlotFilled);
+            if (step.completionSignal == TutorialSignals.SlotSelected && Editor && Editor.SlotSelected(step.expectedCode)) Signal(TutorialSignals.SlotSelected);
+            if (step.completionSignal == TutorialSignals.DraftValueMatches && Editor && Editor.DraftValueMatches(step.expectedCode)) Signal(TutorialSignals.DraftValueMatches);
             if (Current != step) return;
             // Battle lines still unread when the wave ends (fast at 3x) would show over the reward panel: skip to the wave-cleared line.
             if (signals.Contains(TutorialSignals.WaveCleared) && step.kind != TutorialStepKind.ActionGuide && step.trigger != TutorialSignals.WaveCleared &&
@@ -174,7 +176,7 @@ namespace CodingGame.Defense
             bool show = viewedStep == progressStep && !completedStep.Contains(step.stepId) && !string.IsNullOrWhiteSpace(step.pointerKey) && !(Editor && Editor.HintOpen) &&
                 Time.unscaledTime - stepEntered >= step.pointerDelay && bridge.TryGetArea(step.pointerKey, out area, out chosen);
             // Slots under or inside a code line are pointed at from below; from above the arrow would cover the line above.
-            if (show) pointer.Show(area, chosen.Contains(".After.") || chosen.Contains(".Arg.")); else pointer.HideArrow();
+            if (show) pointer.Show(area, chosen.Contains(".After.") || chosen.Contains(".Arg.") || chosen.Contains(".Name.") || chosen.Contains(".Option.") || chosen.Contains(".Body.")); else pointer.HideArrow();
             UpdateDragDemo(step);
             UpdateRoutePath();
             // Once the arrow moves to an empty argument slot, open the values tab, where the variables to drop in are.
@@ -292,6 +294,7 @@ namespace CodingGame.Defense
             if (step.closeEditor) Editor.Close(false);
             if (step.clearProgram && robot != null) Editor.ClearRobotProgram(robot.Id);
             if (step.openEditor && robot != null) { Editor.Close(false); Editor.Open(robot.Id); }
+            if (!string.IsNullOrWhiteSpace(step.presetCode) && robot != null) Editor.LoadTutorialCode(robot.Id, step.presetCode);
             Editor.SetHint(step.hintCode);
         }
 
