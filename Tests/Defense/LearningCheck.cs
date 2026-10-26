@@ -24,6 +24,18 @@ static class LearningCheck
         Require(Math.Abs(sim.ActionDamage(bot,RobotAction.Attack,2)-2*sim.ActionDamage(bot,RobotAction.Attack,4))<.001f,"Distance double, damage half");
         Require(sim.ActionDamage(bot,RobotAction.Attack,0)==sim.ActionDamage(bot,RobotAction.Attack,1),"Near-distance damage capped");
         sim.ApplyProgram(bot.Id,"fire",new[]{new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy))});
+        // Stage 1 starts 1-2 and 1-4 only with two warriors whose code finds an enemy and slashes it when the distance check passes.
+        sim.Options.unlockAll=true; sim.Options.inventoryLimit=false;
+        foreach(var x in new[]{-6f,6f})
+        {
+            var warrior=sim.Place(profiles[(int)RobotRole.Warrior],1,new Vector2(x,3),out _);
+            Require(warrior!=null,"Warrior placed for the 1-2 and 1-4 start goals");
+            sim.ApplyProgram(warrior.Id,"guard",new[]{
+                new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)),
+                new CodeBlock(BlockKind.DeclareVariable,"enemy_distance",new CodeBlock(BlockKind.Distance,"0",new CodeBlock(BlockKind.Variable,"enemy"),new CodeBlock(BlockKind.MyPos))),
+                new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,"<=",new CodeBlock(BlockKind.Variable,"enemy_distance"),new CodeBlock(BlockKind.MyAttackRange))) { Body={ new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"enemy")) } } });
+        }
+        sim.Options.unlockAll=false; sim.Options.inventoryLimit=true;
         RobotState tank=null;
         for(int stage=1;stage<=3;stage++)
         {
