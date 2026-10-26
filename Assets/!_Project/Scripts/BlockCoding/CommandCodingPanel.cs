@@ -116,8 +116,9 @@ namespace CodingGame.BlockCoding
         internal void Select(CommandDropZone zone)
         {
             selected = zone;
-            ShowMessage(zone.Slot == BlockSlotKind.Statement ? "명령 영역 선택됨 · 블록을 드래그하거나 목록에서 클릭하세요." :
-                zone.Slot == BlockSlotKind.Condition ? "조건 슬롯 선택됨 · 논리 블록을 선택하세요." : "값 슬롯 선택됨 · 값 블록을 선택하세요.");
+            // Selecting the command area says nothing: the message line keeps showing the last syntax error.
+            if (zone.Slot != BlockSlotKind.Statement)
+                ShowMessage(zone.Slot == BlockSlotKind.Condition ? "조건 슬롯 선택됨 · 논리 블록을 선택하세요." : "값 슬롯 선택됨 · 값 블록을 선택하세요.");
         }
         public void AddFromPalette(CommandBlockView source)
         {
@@ -177,7 +178,12 @@ namespace CodingGame.BlockCoding
                 var blocks = CompilePreview(out string source);
                 if (!loading) Publish(blocks, source);
             }
-            catch (FormatException error) { pythonPreview.text = "# 미완성: 블록 연결과 입력을 완성해 주세요."; ShowMessage("미완성 · 이전 적용 코드 유지 · " + error.Message); }
+            catch (FormatException error)
+            {
+                pythonPreview.text = "# 미완성: 블록 연결과 입력을 완성해 주세요.";
+                if (!loading) ClearTarget();
+                ShowMessage("미완성 · 로봇이 행동하지 않음 · " + error.Message);
+            }
             finally
             {
                 updating = false;
@@ -237,7 +243,14 @@ namespace CodingGame.BlockCoding
                 var blocks = CompilePreview(out string source);
                 Publish(blocks, source);
             }
-            catch (FormatException error) { IsApplied = false; AppliedSource = null; ShowMessage("미완성 · " + error.Message); }
+            catch (FormatException error) { IsApplied = false; AppliedSource = null; ClearTarget(); ShowMessage("미완성 · 로봇이 행동하지 않음 · " + error.Message); }
+        }
+        // A draft with a syntax error is still saved: the robot gets no code (it stops) instead of keeping the last working one.
+        void ClearTarget()
+        {
+            try { ApplyToTarget?.Invoke(functionName.text, Array.Empty<CodeBlock>()); }
+            catch (FormatException) { } // no robot to apply to (editor closing); the draft stays in the editor
+            AppliedSource = null;
         }
         List<CodeBlock> CompilePreview(out string source)
         {
