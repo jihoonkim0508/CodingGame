@@ -91,15 +91,33 @@ namespace CodingGame.StageMap
             EnsureStyles();
             DrawRect(new Rect(18f, 18f, 510f, 76f), new Color(0.04f, 0.09f, 0.16f, 0.92f));
             GUI.Label(new Rect(34f, 25f, 480f, 30f), "도우미 로봇", guideTitleStyle);
-            GUI.Label(new Rect(34f, 53f, 480f, 28f), "빛나는 1스테이지를 클릭해! 바로 작전지로 이동할게.", guideBodyStyle);
+            var available = nodes?.FirstOrDefault(n => n && n.State == StageState.Available);
+            GUI.Label(new Rect(34f, 53f, 480f, 28f), available ? $"빛나는 {available.Number}스테이지를 클릭해! 바로 작전지로 이동할게." : "모든 스테이지를 완료했어! 다시 하고 싶은 스테이지를 골라 봐.", guideBodyStyle);
             GUI.Label(new Rect(18f, Screen.height - 38f, 420f, 28f), "DEV  Z: 클리어    Q: 초기화", bodyStyle);
+            DrawNodeNumbers();
             DrawEnterHint();
             if (Time.unscaledTime < toastUntil)
                 GUI.Box(new Rect((Screen.width - 430f) * 0.5f, Screen.height - 80f, 430f, 45f), toast, toastStyle);
         }
 
+        // Each node's number under it, so players can tell the stages apart before clicking.
+        void DrawNodeNumbers()
+        {
+            if (nodes == null || !mapCamera || entering) return;
+            foreach (var node in nodes)
+            {
+                if (!node) continue;
+                Vector3 p = mapCamera.WorldToScreenPoint(node.transform.position);
+                if (p.z <= 0) continue;
+                if (numberStyle == null) numberStyle = new GUIStyle(guideBodyStyle) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold, wordWrap = false };
+                var rect = new Rect(p.x - 50, Screen.height - p.y + 30, 100, 28);
+                DrawRect(rect, new Color(0.04f, 0.09f, 0.16f, 0.85f));
+                GUI.Label(rect, $"STAGE {node.Number}", numberStyle);
+            }
+        }
+
         // A bouncing arrow over the first stage that can be entered, so the player knows where to click.
-        GUIStyle arrowStyle, hintStyle;
+        GUIStyle arrowStyle, hintStyle, numberStyle;
         void DrawEnterHint()
         {
             var node = nodes?.FirstOrDefault(n => n && n.State == StageState.Available);
@@ -108,12 +126,12 @@ namespace CodingGame.StageMap
             Vector3 top = mapCamera.WorldToScreenPoint(bounds.center + Vector3.up * bounds.extents.y);
             if (top.z <= 0) return;
             if (arrowStyle == null) arrowStyle = new GUIStyle(GUI.skin.label) { fontSize = 46, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
-            if (hintStyle == null) hintStyle = new GUIStyle(guideBodyStyle) { fontSize = 22, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
+            if (hintStyle == null) hintStyle = new GUIStyle(guideBodyStyle) { fontSize = 22, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold, wordWrap = false };
             float bounce = Mathf.Abs(Mathf.Sin(Time.unscaledTime * 4)) * 16;
             var old = GUI.color;
             GUI.color = new Color(1, .85f, .25f, 1);
             GUI.Label(new Rect(top.x - 40, Screen.height - top.y - 80 - bounce, 80, 60), "▼", arrowStyle);
-            GUI.Label(new Rect(top.x - 100, Screen.height - top.y - 118 - bounce, 200, 34), "여기를 클릭!", hintStyle);
+            GUI.Label(new Rect(top.x - 160, Screen.height - top.y - 118 - bounce, 320, 34), $"{node.Number}스테이지 · 여기를 클릭!", hintStyle);
             GUI.color = old;
         }
 
