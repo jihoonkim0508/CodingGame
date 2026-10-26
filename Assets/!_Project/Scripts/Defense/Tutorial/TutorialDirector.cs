@@ -45,12 +45,26 @@ namespace CodingGame.Defense
         bool initialized, bannerUp;
         // Waiting for a trigger hides the dialogue and leaves the game free; a system banner still holds input.
         public bool IsActive => active && view && (view.IsVisible || bannerUp || guideDismissed);
+        public bool ShowFreePlayGoal => active &&
+            (active.sequenceId == "1-2" || active.sequenceId == "1-4" || active.sequenceId == "1-5") &&
+            Current?.stepId == "B01" && !view.IsVisible;
         public bool BlocksGameplayInput => IsActive && InputLimited;
         public bool BlocksPreview => BlocksGameplayInput && !AllowPreview;
         // Tutorial off, idle, or with input limiting disabled in the developer options.
         bool Unrestricted => !initialized || !IsActive || !InputLimited;
         bool InputLimited => !battle || battle.Simulation == null || battle.Simulation.Options.tutorialInput;
         public bool PauseBattle => IsActive && bridge && bridge.PauseBattle;
+        public float BattlePace => PauseBattle ? 0 : IsActive && bridge && bridge.SlowBattle ? .2f : 1f;
+        public bool SpeedLessonReached
+        {
+            get
+            {
+                if (!active || active.stage != 1 || active.wave != 1) return false;
+                int index = Array.FindIndex(active.steps, step => step.stepId == "E04c");
+                return index >= 0 && progressStep >= index;
+            }
+        }
+        public bool SpeedControlAvailable => battle && battle.SpeedUnlocked;
         public bool AllowPreview => IsActive && bridge && bridge.AllowPreview;
         public IReadOnlyList<TutorialSequence> Sequences => sequences;
         // The dialogue on screen asks the game to make this target glow (e.g. Robot.Range.0).
@@ -113,19 +127,20 @@ namespace CodingGame.Defense
         {
             var step = Current;
             if (step == null) return;
-            if (step.completionSignal == TutorialSignals.ConditionBuilt && Editor)
-            {
-                var taught = active.steps.Take(progressStep).LastOrDefault(s => s.completionSignal == TutorialSignals.ProgramMatches)?.expectedCode;
-                var program = TutorialWatcher.Robot(session, step.robotIndex)?.Program;
-                if (Editor.LooseExpressions().Any(text => TutorialWatcher.ConditionMatches(text, program, step.expectedCode, taught))) Signal(TutorialSignals.ConditionBuilt);
-            }
+            if (step.completionSignal == TutorialSignals.ConditionBuilt && Editor &&
+                Editor.LooseExpressions().Any(text => Same(text, step.expectedCode))) Signal(TutorialSignals.ConditionBuilt);
             if (step.completionSignal == TutorialSignals.SlotFilled && Editor && Editor.SlotFilled(step.expectedCode)) Signal(TutorialSignals.SlotFilled);
+            if (step.completionSignal == TutorialSignals.CodeLinePlaced && Editor && Editor.CodeLinePlaced(step.expectedCode)) Signal(TutorialSignals.CodeLinePlaced);
             if (step.completionSignal == TutorialSignals.SlotSelected && Editor && Editor.SlotSelected(step.expectedCode)) Signal(TutorialSignals.SlotSelected);
             if (step.completionSignal == TutorialSignals.DraftValueMatches && Editor && Editor.DraftValueMatches(step.expectedCode)) Signal(TutorialSignals.DraftValueMatches);
+            if (step.completionSignal == TutorialSignals.ConditionBuilt && Editor && Editor.ConditionMatches(step.expectedCode)) Signal(TutorialSignals.ConditionBuilt);
             if (Current != step) return;
-            // Battle lines still unread when the wave ends (fast at 3x) would show over the reward panel: skip to the wave-cleared line.
-            if (signals.Contains(TutorialSignals.WaveCleared) && step.kind != TutorialStepKind.ActionGuide && step.trigger != TutorialSignals.WaveCleared &&
-                progressStep < Array.FindIndex(active.steps, s => s.trigger == TutorialSignals.WaveCleared)) { Enter(progressStep + 1); return; }
+            // A preview strike can occur while the dialogue is opening. Keep that result for this step
+            // so the player does not have to wait for the looping demonstration to strike again.
+            if (step.kind == TutorialStepKind.ActionGuide && step.completionMode == TutorialCompletionMode.ExternalSignal &&
+                (step.completionSignal == TutorialSignals.PreviewSingleHit || step.completionSignal == TutorialSignals.PreviewMultiHit) &&
+                signals.Contains(step.completionSignal) && viewedStep == progressStep && !view.IsTyping)
+            { CompleteAction(step); return; }
             if (!string.IsNullOrWhiteSpace(step.skipIf) && signals.Contains(step.skipIf) && Triggered(step) && viewedStep == progressStep) { Enter(progressStep + 1); return; }
             if (!Triggered(step))
             {
@@ -176,7 +191,7 @@ namespace CodingGame.Defense
             bool show = viewedStep == progressStep && !completedStep.Contains(step.stepId) && !string.IsNullOrWhiteSpace(step.pointerKey) && !(Editor && Editor.HintOpen) &&
                 Time.unscaledTime - stepEntered >= step.pointerDelay && bridge.TryGetArea(step.pointerKey, out area, out chosen);
             // Slots under or inside a code line are pointed at from below; from above the arrow would cover the line above.
-            if (show) pointer.Show(area, chosen.Contains(".After.") || chosen.Contains(".Arg.") || chosen.Contains(".Name.") || chosen.Contains(".Option.") || chosen.Contains(".Body.")); else pointer.HideArrow();
+            if (show) pointer.Show(area, chosen.Contains(".After.") || chosen.Contains(".Arg.") || chosen.Contains(".Name.") || chosen.Contains(".Option.") || chosen.Contains(".Body")); else pointer.HideArrow();
             UpdateDragDemo(step);
             UpdateRoutePath();
             // Once the arrow moves to an empty argument slot, open the values tab, where the variables to drop in are.
@@ -281,6 +296,8 @@ namespace CodingGame.Defense
             targetsSeen = false; targetsLostAt = -1;
             if (pointer) pointer.Hide();
             var step = active.steps[index];
+            if (step.completionSignal == TutorialSignals.PreviewSingleHit || step.completionSignal == TutorialSignals.PreviewMultiHit)
+                signals.Remove(step.completionSignal);
             held = null; heldUntil = step.holdSeconds > 0 ? float.MaxValue : 0;
             ApplyEntry(step);
             // ShowText / Hide set the bridge step.
@@ -294,7 +311,11 @@ namespace CodingGame.Defense
             if (step.closeEditor) Editor.Close(false);
             if (step.clearProgram && robot != null) Editor.ClearRobotProgram(robot.Id);
             if (step.openEditor && robot != null) { Editor.Close(false); Editor.Open(robot.Id); }
-            if (!string.IsNullOrWhiteSpace(step.presetCode) && robot != null) Editor.LoadTutorialCode(robot.Id, step.presetCode);
+            if (step.prepareBaselineExample) Editor.PrepareBaselineExample();
+            if (step.prepareDistanceExample) Editor.PrepareDistanceExample();
+            if (step.restartPreview) Editor.RestartPreview();
+            if (!string.IsNullOrEmpty(step.autoSelectSlot) && !Editor.SelectTutorialSlot(step.autoSelectSlot))
+                throw new InvalidOperationException("튜토리얼 자동 선택 슬롯을 찾지 못했습니다: " + step.autoSelectSlot);
             Editor.SetHint(step.hintCode);
         }
 
@@ -391,6 +412,7 @@ namespace CodingGame.Defense
             if (!active || progressStep >= active.steps.Length || active.steps[progressStep] != step) return;
             if (step.holdSeconds > 0 && Time.unscaledTime < heldUntil) { held = step; return; }
             if (!completedStep.Add(step.stepId)) return;
+            if ((step.completionSignal == TutorialSignals.ProgramMatches || step.completionSignal == TutorialSignals.DraftValueMatches) && Editor) Editor.FinishTutorialInput();
             Enter(progressStep + 1);
         }
 

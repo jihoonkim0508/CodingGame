@@ -63,6 +63,7 @@ namespace CodingGame.BlockCoding
         bool dropAccepted;
         static int nextName;
         public CommandDropZone Program => program;
+        public CommandDropZone SelectedZone => selected;
 #if UNITY_EDITOR
         public CommandDropZone EditorSnapTarget => snapTarget;
 #endif
@@ -112,7 +113,6 @@ namespace CodingGame.BlockCoding
             for (int i = 0; i < categoryButtons.Length; i++)
                 categoryButtons[i].targetGraphic.color = i == category ? new Color(0.15f, 0.45f, 0.65f) : new Color(0.13f, 0.17f, 0.24f);
         }
-        public CommandDropZone SelectedZone => selected;
         internal void Select(CommandDropZone zone)
         {
             selected = zone;

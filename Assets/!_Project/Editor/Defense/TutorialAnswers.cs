@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using CodingGame.BlockCoding;
 
-namespace CodingGame.Defense
+namespace CodingGame.Defense.Editor
 {
     // Reads the Stage 1 tutorial answers (TutorialStep.expectedCode) into blocks: "name = get_nearest_enemy()",
     // "x = enemy.distance(get_my_pos())", "name = my_attack_range()", "slash(name)", "if a <= b:" with an indented body.
@@ -51,6 +52,8 @@ namespace CodingGame.Defense
             if (text == "get_nearest_enemy()") return new CodeBlock(BlockKind.NearestEnemy);
             if (text == "my_attack_range()") return new CodeBlock(BlockKind.MyAttackRange);
             if (text == "get_my_pos()") return new CodeBlock(BlockKind.MyPos);
+            if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out _))
+                return new CodeBlock(BlockKind.Number, text);
             if (text.EndsWith(".distance(get_my_pos())"))
                 return new CodeBlock(BlockKind.Distance, "0", new CodeBlock(BlockKind.Variable, text.Substring(0, text.IndexOf('.'))), new CodeBlock(BlockKind.MyPos));
             return new CodeBlock(BlockKind.Variable, text);

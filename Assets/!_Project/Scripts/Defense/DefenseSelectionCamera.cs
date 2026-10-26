@@ -11,6 +11,7 @@ namespace CodingGame.Defense
         Quaternion homeRotation, fromRotation, rotation;
         Rect homeRect, fromRect, viewport;
         float homeFov, fromFov, fov, elapsed;
+        float activeSeconds;
         bool initialized;
         void Initialize()
         {
@@ -19,22 +20,31 @@ namespace CodingGame.Defense
             homePosition = battleCamera.transform.position; homeRotation = battleCamera.transform.rotation;
             homeRect = battleCamera.rect; homeFov = battleCamera.fieldOfView; initialized = true;
             destination = homePosition; rotation = homeRotation; viewport = homeRect; fov = homeFov; elapsed = transitionSeconds;
+            activeSeconds = transitionSeconds;
         }
         public void Restore()
         {
             if (!initialized) return;
-            Begin(); destination = homePosition; rotation = homeRotation; viewport = homeRect; fov = homeFov;
+            Begin(transitionSeconds); destination = homePosition; rotation = homeRotation; viewport = homeRect; fov = homeFov;
         }
-        void Begin()
+        public void FocusBoss(Vector3 target)
+        {
+            Initialize(); Begin(.75f);
+            destination = target - homeRotation * Vector3.forward * 13f;
+            rotation = Quaternion.LookRotation(target - destination, Vector3.up);
+            viewport = homeRect;
+            fov = Mathf.Min(homeFov, 48f);
+        }
+        void Begin(float seconds)
         {
             fromPosition = battleCamera.transform.position; fromRotation = battleCamera.transform.rotation;
-            fromRect = battleCamera.rect; fromFov = battleCamera.fieldOfView; elapsed = 0;
+            fromRect = battleCamera.rect; fromFov = battleCamera.fieldOfView; elapsed = 0; activeSeconds = seconds;
         }
         void LateUpdate()
         {
-            Initialize(); if (elapsed >= transitionSeconds) return;
+            Initialize(); if (elapsed >= activeSeconds) return;
             elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.SmoothStep(0, 1, Mathf.Clamp01(elapsed / Mathf.Max(.01f, transitionSeconds)));
+            float t = Mathf.SmoothStep(0, 1, Mathf.Clamp01(elapsed / Mathf.Max(.01f, activeSeconds)));
             battleCamera.transform.SetPositionAndRotation(Vector3.Lerp(fromPosition, destination, t), Quaternion.Slerp(fromRotation, rotation, t));
             battleCamera.rect = new Rect(Mathf.Lerp(fromRect.x, viewport.x, t), Mathf.Lerp(fromRect.y, viewport.y, t),
                 Mathf.Lerp(fromRect.width, viewport.width, t), Mathf.Lerp(fromRect.height, viewport.height, t));
