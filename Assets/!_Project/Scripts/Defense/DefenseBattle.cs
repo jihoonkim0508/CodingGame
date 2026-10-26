@@ -17,6 +17,9 @@ namespace CodingGame.Defense
             public EnemyDefinition enemy;
             public int route, count = 5;
             public float delay, interval = 1.5f;
+            public float healthOverride, speedOverride;
+            public int leakDamageOverride;
+            public bool boss;
         }
         [Serializable] public sealed class Wave { public SpawnEntry[] groups = Array.Empty<SpawnEntry>(); }
 
@@ -71,6 +74,8 @@ namespace CodingGame.Defense
         readonly Dictionary<int, DefenseActorView> enemyViews = new Dictionary<int, DefenseActorView>();
         readonly List<Transform> dropViews = new List<Transform>();
         readonly DefenseProjectileVisuals projectileViews = new DefenseProjectileVisuals();
+        bool bossEntranceStarted, bossCameraRestored;
+        float bossEntranceUntil, bossCameraRestoreAt;
         public bool DeveloperMode { get; private set; }
         public bool ShowHitRanges { get; private set; }
         public bool HelpOpen { get; internal set; }
@@ -80,6 +85,8 @@ namespace CodingGame.Defense
         public int SelectedId => selected;
         public bool IsPlacing => palette >= 0;
         public float BattleSpeed { get; private set; } = 1;
+        public bool SpeedUnlocked => Simulation != null && (!Simulation.Setup.PlayerFlow || !Simulation.Options.tutorial ||
+            Stage != 1 || Simulation.WaveIndex > 0 || tutorial && tutorial.SpeedLessonReached);
         public string StatusMessage { get; private set; }
         public TutorialDirector Tutorial => tutorial;
         public DefenseCodeEditor CodeEditor => codeEditor;
@@ -102,6 +109,7 @@ namespace CodingGame.Defense
             selectionCamera.Restore(); playerHUD.SetVisible(!DeveloperMode); developerRoot.SetActive(DeveloperMode);
             attackPreview.Close();
         }
+        public void RestartCodePreview() => attackPreview.Restart();
         public string RobotName(int id)
         { var bot = Simulation.FindRobot(id); return bot == null ? "로봇 없음" : robots[bot.DefinitionIndex].displayName; }
 
@@ -214,6 +222,9 @@ namespace CodingGame.Defense
             projectileViews.Clear();
             hitEffects.Clear();
             Simulation = new DefenseSimulation(setup);
+            bossEntranceStarted = bossCameraRestored = false;
+            bossEntranceUntil = bossCameraRestoreAt = 0;
+            selectionCamera.Restore();
             selected = 0; BattleSpeed = 1; HidePlacement();
             rangeRing.Hide(); effectRing.Hide(); resultPanel.SetActive(false);
             Tell("로봇을 선택하고 허용 영역을 클릭하세요. 탱커만 경로 위에 설치합니다.");
@@ -283,8 +294,8 @@ namespace CodingGame.Defense
         }
         public void TogglePause()
         {
-            if (!TutorialAllows("Battle.TogglePause")) return;
-            Simulation.TogglePause(); RefreshHUD(); ReportTutorialAction("Battle.TogglePause", "TargetClicked");
+            if (!TutorialAllows(TutorialKeys.Pause)) return;
+            Simulation.TogglePause(); RefreshHUD(); ReportTutorialAction(TutorialKeys.Pause, TutorialSignals.TargetClicked);
         }
         public void ToggleHitRanges()
         {
@@ -297,10 +308,10 @@ namespace CodingGame.Defense
         }
         public void ToggleSpeed()
         {
-            if (!TutorialAllows("Battle.ToggleSpeed")) return;
+            if (!SpeedUnlocked || !TutorialAllows(TutorialKeys.Speed)) return;
             if (Simulation.Phase != BattlePhase.Running && Simulation.Phase != BattlePhase.Paused) return;
             BattleSpeed = BattleSpeed >= 3 ? 1 : BattleSpeed + 1; RefreshHUD();
-            ReportTutorialAction("Battle.ToggleSpeed", "TargetClicked");
+            ReportTutorialAction(TutorialKeys.Speed, TutorialSignals.TargetClicked);
         }
         public void ChooseRobot(int index)
         {
@@ -327,8 +338,9 @@ namespace CodingGame.Defense
             int index = palette;
             var hits = new List<RaycastResult>();
             eventSystem.RaycastAll(new PointerEventData(eventSystem) { position = screen }, hits);
-            if (index >= 0 && hits.Count == 0 && PointerPosition(screen, out var point)) PlaceRobot(index, point);
-            HidePlacement(); rangeRing.Hide();
+            if (index >= 0 && hits.Count == 0 && PointerPosition(screen, out var point) && PlaceRobot(index, point)) return;
+            // A short drag ending on the button is still a robot selection. Keep it armed for a map click.
+            placementMarker.gameObject.SetActive(false); rangeRing.Hide();
         }
         public bool PlaceRobot(int index, Vector3 position)
         {
@@ -351,7 +363,7 @@ namespace CodingGame.Defense
         public void SelectRobot(int id)
         {
             if (!robotViews.TryGetValue(id, out var view) || !view) return;
-            string unit = TutorialKeys.Unit(Simulation.Robots.OrderBy(r => r.Id).ToList().FindIndex(r => r.Id == id));
+            string unit = TutorialKeys.Unit(TutorialWatcher.RobotIndex(Simulation, id));
             string key = TutorialAllows(unit) ? unit : TutorialAllows(TutorialKeys.SelectedRobot) ? TutorialKeys.SelectedRobot : "Battle.SelectRobot";
             if (!TutorialAllows(key)) return;
             var robot = Simulation.FindRobot(id);
@@ -415,9 +427,10 @@ namespace CodingGame.Defense
             if (!tutorialActive && keyboard != null && !DeveloperMode && !codeEditor.IsOpen && !inventoryUI.IsOpen)
             {
                 if (keyboard.spaceKey.wasPressedThisFrame) { if (Simulation.Phase == BattlePhase.Ready) StartBattle(); else TogglePause(); }
-                if (keyboard.fKey.wasPressedThisFrame) ToggleSpeed();
                 if (keyboard.escapeKey.wasPressedThisFrame) CancelPlacement();
             }
+            if (keyboard != null && keyboard.fKey.wasPressedThisFrame && SpeedUnlocked && !DeveloperMode &&
+                !codeEditor.IsOpen && !inventoryUI.IsOpen) ToggleSpeed();
             if (draggingRobot && mouse != null && mouse.leftButton.wasReleasedThisFrame) EndRobotDrag(mouse.position.ReadValue());
             if (mouse != null && !codeEditor.IsOpen && !inventoryUI.IsOpen && !DeveloperMode)
             {
@@ -445,7 +458,10 @@ namespace CodingGame.Defense
 #if UNITY_EDITOR
             if (!EditorManualClock)
 #endif
-            Simulation.Advance(tutorial && tutorial.PauseBattle ? 0 : UnityEngine.Time.deltaTime * BattleSpeed);
+            if (bossEntranceStarted && !bossCameraRestored && Time.unscaledTime >= bossCameraRestoreAt)
+            { selectionCamera.Restore(); bossCameraRestored = true; }
+            if (!bossEntranceStarted || Time.unscaledTime >= bossEntranceUntil)
+                Simulation.Advance(UnityEngine.Time.deltaTime * BattleSpeed * (tutorial ? tutorial.BattlePace : 1f));
             float elapsed = (float)(Simulation.Time - previous);
             SyncViews(elapsed);
             SyncTutorialTargets();
@@ -464,7 +480,7 @@ namespace CodingGame.Defense
             if (Simulation.Phase != BattlePhase.Running && Simulation.Phase != BattlePhase.Paused) ClearCombatVisuals();
             var current = Simulation.FindRobot(selected);
             // A tutorial highlight (Robot.Range.N) shows that robot's range glowing, selected or not.
-            var lit = tutorial ? Simulation.Robots.OrderBy(r => r.Id).Where((r, i) => tutorial.Highlighted(TutorialKeys.Range(i))).FirstOrDefault() : null;
+            var lit = tutorial ? TutorialWatcher.OrderedRobots(Simulation).Where((r, i) => tutorial.Highlighted(TutorialKeys.Range(i))).FirstOrDefault() : null;
             if (lit != null && palette < 0 && !codeEditor.IsOpen)
                 rangeRing.Show(DefenseViews.World(lit.Position), lit.Range, RangeColor, .65f + .35f * Mathf.Sin(Time.unscaledTime * 5));
             else if (Simulation.Options.ranges && current != null && palette < 0 && !codeEditor.IsOpen && !inventoryUI.IsOpen && !DeveloperMode)
@@ -555,7 +571,7 @@ namespace CodingGame.Defense
         void SyncTutorialTargets()
         {
             if (!tutorial) return;
-            var bots = Simulation.Robots.OrderBy(r => r.Id).ToList();
+            var bots = TutorialWatcher.OrderedRobots(Simulation);
             for (int i = 0; i < bots.Count; i++)
             {
                 if (!robotViews.TryGetValue(bots[i].Id, out var view) || !view) continue;
@@ -606,8 +622,8 @@ namespace CodingGame.Defense
             foreach (var id in enemyViews.Keys.Where(id => !Simulation.Enemies.Any(e => e.Id == id)).ToArray())
             { DefenseViews.Discard(enemyViews[id]); enemyViews.Remove(id); }
             // Animations follow the battle: still while paused (or held by the tutorial), faster at 2x/3x, normal outside a wave.
-            bool held = Simulation.Phase == BattlePhase.Paused || Simulation.Phase == BattlePhase.Running && tutorial && tutorial.PauseBattle;
-            float pace = held ? 0 : Simulation.Phase == BattlePhase.Running ? BattleSpeed : 1;
+            float pace = Simulation.Phase == BattlePhase.Paused ? 0 : Simulation.Phase == BattlePhase.Running
+                ? BattleSpeed * (tutorial ? tutorial.BattlePace : 1f) : 1;
             foreach (var bot in Simulation.Robots)
             {
                 var view = robotViews[bot.Id];
@@ -618,6 +634,18 @@ namespace CodingGame.Defense
                 if (!enemyViews.TryGetValue(enemy.Id, out var view))
                 {
                     view = Instantiate(enemies[enemy.DefinitionIndex].prefab, DefenseViews.World(enemy.Position), Quaternion.identity, actorsRoot);
+                    if (enemy.Boss)
+                    {
+                        view.gameObject.AddComponent<DefenseBossAura>();
+                        if (!bossEntranceStarted && Simulation.Setup.PlayerFlow && Simulation.Setup.Stage == 1 && Simulation.WaveIndex == 4)
+                        {
+                            bossEntranceStarted = true; bossCameraRestored = false;
+                            bossCameraRestoreAt = Time.unscaledTime + 2.1f;
+                            bossEntranceUntil = Time.unscaledTime + 2.9f;
+                            selectionCamera.FocusBoss(DefenseViews.World(enemy.Position, 1f));
+                            Tell("보스 출현! · 잡몹을 막아낸 뒤 강력한 오류 코드가 등장했습니다.");
+                        }
+                    }
                     enemyViews.Add(enemy.Id, view);
                 }
                 view.SyncEnemy(enemy, Simulation.Time, DefenseViews.World(enemy.Position), battleCamera.transform.rotation);
@@ -647,7 +675,8 @@ namespace CodingGame.Defense
             speedLabel.text = BattleSpeed + "x";
             startButton.interactable = Simulation.Phase == BattlePhase.Ready;
             pauseButton.interactable = Simulation.Phase == BattlePhase.Running || Simulation.Phase == BattlePhase.Paused;
-            speedButton.interactable = !ended;
+            speedButton.interactable = SpeedUnlocked &&
+                (Simulation.Phase == BattlePhase.Running || Simulation.Phase == BattlePhase.Paused);
             for (int i = 0; i < routes.Length; i++) routes[i].ShowVisual(Simulation.RouteInUse(i));
             for (int i = 0; i < robotButtons.Length; i++)
                 developerRobotLabels[i].text = robots[i].displayName + "   ×" + Simulation.RobotAvailable(robots[i].stats.role);
@@ -667,7 +696,9 @@ namespace CodingGame.Defense
             if (ended)
             {
                 HidePlacement();
-                resultText.text = (Simulation.Phase == BattlePhase.Victory ? "DEFENSE COMPLETE\n방어 성공" : "CORE LOST\n방어 실패") + $"\n\n처치 {Simulation.Kills} · 돌파 {Simulation.Leaks}\n상단 초기화로 다시 시작";
+                resultText.text = (Simulation.Phase == BattlePhase.Victory ? "DEFENSE COMPLETE\n방어 성공" :
+                    Simulation.ObjectiveFailed ? "MINIONS ESCAPED\n보스 등장 전 잡몹 방어 실패" : "CORE LOST\n방어 실패") +
+                    $"\n\n처치 {Simulation.Kills} · 돌파 {Simulation.Leaks}\n상단 초기화로 다시 시작";
             }
         }
         void RejectPlacement(int index, string error)

@@ -37,17 +37,19 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionSignal:
+    sourceKey:
+    destinationKey:
     pauseBattle: 1
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
@@ -56,7 +58,7 @@ MonoBehaviour:
     robotIndex: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -78,26 +80,31 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionSignal:
+    sourceKey:
+    destinationKey:
     pauseBattle: 1
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     presetCode: 
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -120,17 +127,19 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionSignal:
+    sourceKey:
+    destinationKey:
     pauseBattle: 1
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
@@ -164,6 +173,7 @@ MonoBehaviour:
     sourceKey: 
     destinationKey: 
     pauseBattle: 0
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
     trigger: WaveCleared
@@ -179,6 +189,9 @@ MonoBehaviour:
     presetCode: 
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
     dragDemo: 

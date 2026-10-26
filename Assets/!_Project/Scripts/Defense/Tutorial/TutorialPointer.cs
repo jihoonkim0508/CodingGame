@@ -20,6 +20,7 @@ namespace CodingGame.Defense
         float dragStarted;
         void Awake() { if (!arrow) throw new System.InvalidOperationException(name + ": 화살표 RectTransform 참조 누락"); Hide(); }
         public bool IsVisible => arrow.gameObject.activeSelf;
+        public bool IsDragVisible => ghost && ghost.gameObject.activeInHierarchy;
         public void Show(Rect area, bool below = false) { target = area; fromBelow = below; arrow.gameObject.SetActive(true); Place(); }
         public void Hide() { HideArrow(); HideDrag(); HidePath(); }
         public void HideArrow() => arrow.gameObject.SetActive(false);

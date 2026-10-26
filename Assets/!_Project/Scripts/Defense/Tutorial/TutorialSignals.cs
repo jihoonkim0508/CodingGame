@@ -6,7 +6,8 @@ namespace CodingGame.Defense
     {
         // Reported by DefenseBattle / DefenseCodeEditor / DefenseAttackPreview through ReportTutorialAction.
         public const string TargetClicked = "TargetClicked", RobotPlaced = "RobotPlaced", EditorOpened = "EditorOpened",
-            EditorClosed = "EditorClosed", BattleStarted = "BattleStarted", PreviewHit = "PreviewHit";
+            EditorClosed = "EditorClosed", BattleStarted = "BattleStarted", PreviewHit = "PreviewHit",
+            PreviewSingleHit = "PreviewSingleHit", PreviewMultiHit = "PreviewMultiHit";
         // Produced by TutorialWatcher from the live simulation.
         public const string FirstKill = "FirstKill", FirstAttack = "FirstAttack", Leak = "Leak", WaveCleared = "WaveCleared", ProgramMatches = "ProgramMatches";
         // Produced by TutorialDirector: a loose condition block in the editor reads as the step's expectedCode.
@@ -24,7 +25,7 @@ namespace CodingGame.Defense
     // Target keys bound in TutorialInputBridge (scene) and checked by DefenseBattle.TutorialAllows.
     public static class TutorialKeys
     {
-        public const string Start = "Battle.Start", Develop = "Battle.Develop", Deployment = "Battle.DeploymentArea", SelectedRobot = "Robot.Selected",
+        public const string Start = "Battle.Start", Pause = "Battle.Pause", Speed = "Battle.ToggleSpeed", Develop = "Battle.Develop", Deployment = "Battle.DeploymentArea", SelectedRobot = "Robot.Selected",
             DropZone = "Editor.ProgramDropZone", Palette = "Editor.BlockPalette", Close = "Editor.Close", RestoreAutomatic = "Editor.RestoreAutomatic",
             Hint = "Editor.Hint", Preview = "Editor.Preview", CoreHealth = "Battle.CoreHealth", Route = "Battle.Route", RewardPanel = "Battle.RewardPanel", NextWave = "Battle.NextWave",
             Floor = "Battle.Floor";
@@ -36,6 +37,7 @@ namespace CodingGame.Defense
         // TutorialStep.robotIndex counts warriors only; the two agree while Stage 1 has only warriors.
         public static string Unit(int index) => UnitPrefix + index;
         public static string Range(int index) => RangePrefix + index;
+        public static bool IsRange(string key) => key != null && key.StartsWith(RangePrefix, System.StringComparison.Ordinal);
         // World targets the game registers at run time; they need no scene binding.
         public static bool IsRuntime(string key) => key != null && (key == Route || key == Floor || key.StartsWith(UnitPrefix) || key.StartsWith(RangePrefix));
         // Positions inside the code editor (Editor.Code.*, Editor.Palette.*), resolved by DefenseCodeEditor each frame.

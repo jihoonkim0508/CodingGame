@@ -5,6 +5,7 @@ using CodingGame.BlockCoding;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace CodingGame.Defense
@@ -103,6 +104,28 @@ namespace CodingGame.Defense
             var sim = battle.Simulation; var robot = sim?.FindRobot(id);
             if (robot != null && sim.CanEdit) sim.ApplyProgram(id, robot.Program?.Name ?? "robot_" + id, Array.Empty<CodeBlock>());
         }
+
+        public void PrepareDistanceExample()
+        {
+            if (!IsOpen || !HasCurrentSession) return;
+            panel.LoadProgram(panel.FunctionName, new[] {
+                new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)),
+                new CodeBlock(BlockKind.DeclareVariable, "enemy_distance", new CodeBlock(BlockKind.Distance, "0",
+                    new CodeBlock(BlockKind.Variable, "enemy"), new CodeBlock(BlockKind.MyPos)))
+            });
+            if (!panel.IsApplied) throw new InvalidOperationException("조건문 기초 코드의 블록 지급량을 확인하세요.");
+        }
+        public void PrepareBaselineExample()
+        {
+            if (!IsOpen || !HasCurrentSession) return;
+            panel.LoadProgram(panel.FunctionName, new[] {
+                new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)),
+                new CodeBlock(BlockKind.Slash, "0", new CodeBlock(BlockKind.Variable, "enemy"))
+            });
+            if (!panel.IsApplied) throw new InvalidOperationException("비교용 기본 베기 코드의 블록 지급량을 확인하세요.");
+            RestartPreview();
+        }
+        public void RestartPreview() => battle.RestartCodePreview();
         // Python text of condition/value blocks lying in the workspace away from the start anchor (not part of the program).
         public IEnumerable<string> LooseExpressions() => !IsOpen ? Enumerable.Empty<string>() : panel.Program.LooseRoots()
             .Where(root => PythonTreeCompiler.OutputSlot(root.Kind) != BlockSlotKind.Statement)
@@ -131,6 +154,18 @@ namespace CodingGame.Defense
             if (!block) return false;
             switch (parts[0])
             {
+                case "Name":
+                case "Option":
+                    for (int i = 2; i < parts.Length; i++)
+                    {
+                        if (!int.TryParse(parts[i], out int arg) || arg < 0 || arg >= block.Arguments.Count || block.Arguments[arg].Blocks.Count == 0) return false;
+                        block = block.Arguments[arg].Blocks[0];
+                    }
+                    return Corners(parts[0] == "Name" ? block.InputRect : block.OptionRect, null, corners);
+                case "BodyArg":
+                case "BodyName":
+                    var bodySlot = BodyArgument(parts);
+                    return Corners(parts[0] == "BodyArg" ? bodySlot?.Rect : bodySlot?.Blocks.FirstOrDefault()?.InputRect, null, corners);
                 case "Line": return Corners(block.Rect, null, corners);
                 // The slot where the next block snaps: one line high, right under line N; with a line already there (1-4 C04 puts
                 // attack_range between enemy_distance and the if), only the seam between them, so the arrow does not land on the if.

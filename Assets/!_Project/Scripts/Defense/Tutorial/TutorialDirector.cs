@@ -45,12 +45,26 @@ namespace CodingGame.Defense
         bool initialized, bannerUp;
         // Waiting for a trigger hides the dialogue and leaves the game free; a system banner still holds input.
         public bool IsActive => active && view && (view.IsVisible || bannerUp || guideDismissed);
+        public bool ShowFreePlayGoal => active &&
+            (active.sequenceId == "1-2" || active.sequenceId == "1-4" || active.sequenceId == "1-5") &&
+            Current?.stepId == "B01" && !view.IsVisible;
         public bool BlocksGameplayInput => IsActive && InputLimited;
         public bool BlocksPreview => BlocksGameplayInput && !AllowPreview;
         // Tutorial off, idle, or with input limiting disabled in the developer options.
         bool Unrestricted => !initialized || !IsActive || !InputLimited;
         bool InputLimited => !battle || battle.Simulation == null || battle.Simulation.Options.tutorialInput;
         public bool PauseBattle => IsActive && bridge && bridge.PauseBattle;
+        public float BattlePace => PauseBattle ? 0 : IsActive && bridge && bridge.SlowBattle ? .2f : 1f;
+        public bool SpeedLessonReached
+        {
+            get
+            {
+                if (!active || active.stage != 1 || active.wave != 1) return false;
+                int index = Array.FindIndex(active.steps, step => step.stepId == "E04c");
+                return index >= 0 && progressStep >= index;
+            }
+        }
+        public bool SpeedControlAvailable => battle && battle.SpeedUnlocked;
         public bool AllowPreview => IsActive && bridge && bridge.AllowPreview;
         public IReadOnlyList<TutorialSequence> Sequences => sequences;
         // The dialogue on screen asks the game to make this target glow (e.g. Robot.Range.0).
@@ -281,6 +295,8 @@ namespace CodingGame.Defense
             targetsSeen = false; targetsLostAt = -1;
             if (pointer) pointer.Hide();
             var step = active.steps[index];
+            if (step.completionSignal == TutorialSignals.PreviewSingleHit || step.completionSignal == TutorialSignals.PreviewMultiHit)
+                signals.Remove(step.completionSignal);
             held = null; heldUntil = step.holdSeconds > 0 ? float.MaxValue : 0;
             ApplyEntry(step);
             // ShowText / Hide set the bridge step.
@@ -391,6 +407,7 @@ namespace CodingGame.Defense
             if (!active || progressStep >= active.steps.Length || active.steps[progressStep] != step) return;
             if (step.holdSeconds > 0 && Time.unscaledTime < heldUntil) { held = step; return; }
             if (!completedStep.Add(step.stepId)) return;
+            if ((step.completionSignal == TutorialSignals.ProgramMatches || step.completionSignal == TutorialSignals.DraftValueMatches) && Editor) Editor.FinishTutorialInput();
             Enter(progressStep + 1);
         }
 

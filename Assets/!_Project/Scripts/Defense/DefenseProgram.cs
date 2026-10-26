@@ -21,6 +21,7 @@ namespace CodingGame.Defense
         readonly Dictionary<int, LoopState> loops = new Dictionary<int, LoopState>();
         int pc, nextLoop;
         bool invocationStarted;
+        bool actedThisInvocation;
         double wakeTime;
         public string Name { get; }
         public string Source { get; }
@@ -32,7 +33,7 @@ namespace CodingGame.Defense
         public int BlockCount(BlockKind kind) => blockCounts.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0;
         public double WaitRemaining(double time) => Math.Max(0, wakeTime - time);
         public IReadOnlyList<CodeBlock> CopyBlocks() => blocks.Select(Clone).ToList();
-        void EndInvocation() { pc = 0; invocationStarted = false; variables.Clear(); loops.Clear(); }
+        void EndInvocation() { pc = 0; invocationStarted = actedThisInvocation = false; variables.Clear(); loops.Clear(); }
         public const int InstructionBudget = 64;
 
         public DefenseProgram(string name, IReadOnlyList<CodeBlock> program)
@@ -106,7 +107,14 @@ namespace CodingGame.Defense
                 // 무한 반복문도 한 틱을 독점하지 못하도록 실행 예산을 나눕니다.
                 while (StepsLastTick++ < InstructionBudget)
                 {
-                    if (pc == code.Count) { CompletedRuns++; EndInvocation(); return; }
+                    if (pc == code.Count)
+                    {
+                        // A false condition has not used an action. It must be retried after enemies move,
+                        // without spending one of the wave's limited successful program runs.
+                        if (actedThisInvocation) CompletedRuns++;
+                        else wakeTime = Math.Max(wakeTime, sim.Time + .25);
+                        EndInvocation(); return;
+                    }
                     var instruction = code[pc];
                     switch (instruction.Op)
                     {
@@ -149,6 +157,7 @@ namespace CodingGame.Defense
                                 { robot.LastResult = ActionResult.NoTarget; pc++; return; }
                             }
                             var result = sim.RequestAction(robot.Id, action, target);
+                            if (result == ActionResult.Executed) actedThisInvocation = true;
                             // 재사용 대기 중에는 같은 명령에서 기다리고, 실행 결과가 나오면 다음으로 이동합니다.
                             if (result != ActionResult.CoolingDown) pc++;
                             return;

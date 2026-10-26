@@ -1,5 +1,5 @@
-﻿// Builds Tutorial_1-1 ~ Tutorial_1-4 from Docs/flow_stage1/tutorial_stage1_대본.md (dialogue stays verbatim),
-// sets the Stage 1 grants/topics/1-4 enemy count (명세서 §2-1) and wires the sequences into Defense.unity.
+// Builds Stage 1 tutorial sequences from Docs/flow_stage1/tutorial_stage1_대본.md,
+// applies wave settings, and wires the sequences into Defense.unity.
 // Run from Tools/Develop after editing the script document; Defense.unity must be the open scene.
 using System;
 using System.Collections.Generic;
@@ -19,7 +19,39 @@ namespace CodingGame.Defense.Editor
         [MenuItem("Tools/Develop/Stage 1 튜토리얼 asset 다시 만들기")]
         public static void Menu() => Debug.Log(Run());
 
+        [MenuItem("Tools/Develop/Apply Stage 1 Tutorials 1-1 to 1-5")]
+        public static void ApplyAllFive()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Play 종료 후 적용하세요.");
+            EditorSceneManager.OpenScene("Assets/!_Project/Scenes/Defense.unity", OpenSceneMode.Single);
+            Debug.Log(Run());
+        }
+
+        [MenuItem("Tools/Develop/Apply Beginner Tutorial 1-1")]
+        public static void ApplyOneOne()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Play 종료 후 적용하세요.");
+            lines = ParseScript(Path.Combine(Directory.GetCurrentDirectory(), Script));
+            var sequence = Write("1-1", 1, OneOne());
+            var campaign = AssetDatabase.LoadAssetAtPath<DefenseCampaignDefinition>($"{Folder}/StageOneCampaign.asset");
+            var so = new SerializedObject(campaign);
+            SetupIntroEncounter(so);
+            so.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(campaign);
+            AssetDatabase.SaveAssets();
+            Debug.Log("Beginner tutorial 1-1 applied: " + sequence.steps.Length + " steps and intro encounter (other waves unchanged)");
+        }
+
         const string Folder = "Assets/!_Project/Defense/Tutorial/Stage1";
+        [MenuItem("Tools/Develop/Apply Beginner Lessons 1-1 to 1-3")]
+        public static void ApplyFirstThree()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Play 종료 후 적용하세요.");
+            lines = ParseScript(Path.Combine(Directory.GetCurrentDirectory(), Script));
+            var updated = new[] { Write("1-1", 1, OneOne()), Write("1-2", 2, OneTwo()), Write("1-3", 3, OneThree()) };
+            Campaign(true);
+            AssetDatabase.SaveAssets();
+            Debug.Log("Beginner lessons applied: " + string.Join(", ", updated.Select(s => s.sequenceId + "=" + s.steps.Length)) + " (1-4 onward unchanged)");
+        }
         const string Script = "Docs/flow_stage1/tutorial_stage1_대본.md";
         const string Start = TutorialKeys.Start, Develop = TutorialKeys.Develop, Drop = TutorialKeys.DropZone, Palette = TutorialKeys.Palette,
             Hint = TutorialKeys.Hint, Close = TutorialKeys.Close, Route = TutorialKeys.Route, Core = TutorialKeys.CoreHealth, Preview = TutorialKeys.Preview;
@@ -28,8 +60,6 @@ namespace CodingGame.Defense.Editor
         const string Code11 = "enemy = get_nearest_enemy()\nslash(enemy)";
         const string Code13Base = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())";
         const string Code13 = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= my_attack_range():\n    slash(enemy)";
-        const string Code14Middle = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nattack_range = my_attack_range()\nif enemy_distance <= my_attack_range():\n    slash(enemy)";
-        const string Code14 = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nattack_range = my_attack_range()\n\nif enemy_distance <= attack_range:\n    slash(enemy)";
 
         sealed class Line { public string Speaker, Text; }
 
@@ -42,7 +72,7 @@ namespace CodingGame.Defense.Editor
             public TutorialCompletionMode Mode;
             public string Signal, Trigger, Expected, Pointer, HintCode, Preset;
             public float PointerDelay;
-            public bool Dim, CloseEditor, ClearProgram, OpenEditor, Preview, Battle;
+            public bool Dim, CloseEditor, ClearProgram, OpenEditor, Preview, Battle, HoldBattle, SlowBattle;
             public int Robot;
             public float Padding = 10;
             public string[] Highlight = Array.Empty<string>();
@@ -52,6 +82,7 @@ namespace CodingGame.Defense.Editor
             public string Demo;
             public bool Top;
             public float Hold;
+            public bool DistanceExample, BaselineExample, RestartPreview;
         }
 
         static Dictionary<string, Line> lines;
@@ -192,6 +223,19 @@ namespace CodingGame.Defense.Editor
             return steps;
         }
 
+        static List<S> OneFour() => new List<S> {
+            L("1-4.A01", s => s.Cards = true), L("1-4.A02"), L("1-4.A03"), L("1-4.A04"),
+            L("1-4.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.Battle = true; }),
+            L("1-4.B02"), L("1-4.B03"),
+            L("1-4.B04", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
+        };
+
+        static List<S> OneFive() => new List<S> {
+            L("1-5.A01", s => s.Cards = true), L("1-5.A02"), L("1-5.A03"), L("1-5.A04"),
+            L("1-5.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.Battle = true; }),
+            L("1-5.B02"), L("1-5.B03"),
+            L("1-5.B04", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
+        };
         // Script code names in the code colour (1-4 already has backticks).
         static readonly Regex CodeNames = new Regex(@"(?<![A-Za-z0-9_.`])(" + string.Join("|", new[] {
             "enemy.distance(get_my_pos())", ".distance(get_my_pos())", "enemy.distance()", "get_nearest_enemy()", "get_my_pos()", "my_attack_range()",
@@ -237,8 +281,8 @@ namespace CodingGame.Defense.Editor
             return sequence;
         }
 
-        // Grants per wave (명세서 §2-1), topics, and the 1-4 enemy count.
-        static string Campaign()
+        // Grants, learning topics, the 1-4 swarm, and the 1-5 boss.
+        static string Campaign(bool firstThreeOnly = false)
         {
             var campaign = AssetDatabase.LoadAssetAtPath<DefenseCampaignDefinition>($"{Folder}/StageOneCampaign.asset");
             var so = new SerializedObject(campaign);
@@ -268,14 +312,70 @@ namespace CodingGame.Defense.Editor
             Lesson(2, "변수 자유 플레이", 1, (BlockKind.DeclareVariable, 1), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 1));
             Lesson(3, "조건: 사거리 안의 적만 공격하기", 0, (BlockKind.DeclareVariable, 1), (BlockKind.Variable, 2), (BlockKind.MyPos, 1),
                 (BlockKind.If, 1), (BlockKind.Comparison, 1), (BlockKind.MyAttackRange, 1));
-            Lesson(4, "변수에 사거리 저장하기", 1, (BlockKind.DeclareVariable, 4), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 5), (BlockKind.Slash, 1),
-                (BlockKind.MyPos, 1), (BlockKind.If, 1), (BlockKind.Comparison, 1), (BlockKind.MyAttackRange, 2));
-            var group = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves").GetArrayElementAtIndex(3)
+            SetupIntroEncounter(so);
+            // Keep the two-enemy preview so the range comparison is visible during movement.
+            var practiceGroup = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves").GetArrayElementAtIndex(2)
                 .FindPropertyRelative("groups").GetArrayElementAtIndex(0);
-            group.FindPropertyRelative("count").intValue = 4;
+            practiceGroup.FindPropertyRelative("interval").floatValue = .5f;
+            if (firstThreeOnly)
+            {
+                so.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(campaign);
+                return "campaign: lessons 1-1 to 1-3 only";
+            }
+            Lesson(4, "조건문 활용 자유 플레이", 1, (BlockKind.DeclareVariable, 2), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 3), (BlockKind.Slash, 1),
+                (BlockKind.MyPos, 1), (BlockKind.If, 1), (BlockKind.Comparison, 1), (BlockKind.MyAttackRange, 1), (BlockKind.Number, 1));
+            Lesson(5, "변수와 조건문: 보스 종합 실습", 0,
+                (BlockKind.DeclareVariable, 3), (BlockKind.Variable, 5), (BlockKind.Number, 2),
+                (BlockKind.If, 2), (BlockKind.Comparison, 2), (BlockKind.MyAttackRange, 2),
+                (BlockKind.MyPos, 1), (BlockKind.NearestEnemy, 1), (BlockKind.Slash, 1));
+            var waves = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves");
+            var fourth = waves.GetArrayElementAtIndex(3).FindPropertyRelative("groups").GetArrayElementAtIndex(0);
+            fourth.FindPropertyRelative("count").intValue = 6;
+            fourth.FindPropertyRelative("interval").floatValue = .6f;
+            var fifth = waves.GetArrayElementAtIndex(4).FindPropertyRelative("groups");
+            var basic = AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"{Folder}/TutorialError.asset");
+            var minions = fifth.GetArrayElementAtIndex(0);
+            minions.FindPropertyRelative("enemy").objectReferenceValue = basic;
+            minions.FindPropertyRelative("route").intValue = 1;
+            minions.FindPropertyRelative("count").intValue = 3;
+            minions.FindPropertyRelative("delay").floatValue = 0;
+            minions.FindPropertyRelative("interval").floatValue = 2;
+            minions.FindPropertyRelative("healthOverride").floatValue = 0;
+            minions.FindPropertyRelative("speedOverride").floatValue = 0;
+            minions.FindPropertyRelative("leakDamageOverride").intValue = 0;
+            minions.FindPropertyRelative("boss").boolValue = false;
+            var boss = fifth.GetArrayElementAtIndex(1);
+            boss.FindPropertyRelative("enemy").objectReferenceValue = basic;
+            boss.FindPropertyRelative("route").intValue = 0;
+            boss.FindPropertyRelative("count").intValue = 1;
+            boss.FindPropertyRelative("delay").floatValue = 0;
+            boss.FindPropertyRelative("interval").floatValue = 2;
+            boss.FindPropertyRelative("healthOverride").floatValue = 84;
+            boss.FindPropertyRelative("speedOverride").floatValue = .65f;
+            boss.FindPropertyRelative("leakDamageOverride").intValue = 12;
+            boss.FindPropertyRelative("boss").boolValue = true;
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(campaign);
-            return "campaign: grants, topics, 1-4 enemies 4";
+            return "campaign: lessons 1-1 to 1-5, 1-4 swarm, 1-5 basic-enemy boss";
+        }
+
+        static void SetupIntroEncounter(SerializedObject so)
+        {
+            var stage = so.FindProperty("stages").GetArrayElementAtIndex(0);
+            var firstGroups = stage.FindPropertyRelative("waves").GetArrayElementAtIndex(0).FindPropertyRelative("groups");
+            firstGroups.arraySize = 2;
+            var basicEnemy = AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"{Folder}/TutorialError.asset");
+            if (!basicEnemy) throw new InvalidOperationException("1-1의 기본 적 asset이 없습니다.");
+            var strongGroup = firstGroups.GetArrayElementAtIndex(1);
+            strongGroup.FindPropertyRelative("enemy").objectReferenceValue = basicEnemy;
+            strongGroup.FindPropertyRelative("route").intValue = 0;
+            strongGroup.FindPropertyRelative("count").intValue = 1;
+            strongGroup.FindPropertyRelative("delay").floatValue = 12;
+            strongGroup.FindPropertyRelative("interval").floatValue = 2;
+            strongGroup.FindPropertyRelative("healthOverride").floatValue = 500;
+            strongGroup.FindPropertyRelative("speedOverride").floatValue = 1.6f;
+            // All three enemies use the same basic prefab; only this last spawn has stronger stats.
+            stage.FindPropertyRelative("waveSeconds").floatValue = 120;
         }
 
         public static string Run()
@@ -283,7 +383,7 @@ namespace CodingGame.Defense.Editor
             var log = new System.Text.StringBuilder();
             lines = ParseScript(Path.Combine(Directory.GetCurrentDirectory(), Script));
             log.AppendLine("lines " + lines.Count);
-            var sequences = new[] { Write("1-1", 1, OneOne()), Write("1-2", 2, OneTwo()), Write("1-3", 3, OneThree()), Write("1-4", 4, OneFour()) };
+            var sequences = new[] { Write("1-1", 1, OneOne()), Write("1-2", 2, OneTwo()), Write("1-3", 3, OneThree()), Write("1-4", 4, OneFour()), Write("1-5", 5, OneFive()) };
             foreach (var s in sequences) log.AppendLine(s.sequenceId + ": " + s.steps.Length + " steps");
             log.AppendLine(Campaign());
             AssetDatabase.SaveAssets();

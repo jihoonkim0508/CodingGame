@@ -39,26 +39,31 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionSignal:
+    sourceKey:
+    destinationKey:
     pauseBattle: 1
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     presetCode: 
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -81,26 +86,31 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionSignal:
+    sourceKey:
+    destinationKey:
     pauseBattle: 1
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     presetCode: 
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -121,26 +131,31 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 1
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionSignal:
+    sourceKey:
+    destinationKey:
     pauseBattle: 1
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
+    trigger:
+    skipIf:
+    expectedCode:
     pointerKey: Robot.Unit.0
-    hintCode: 
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     presetCode: 
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -162,28 +177,79 @@ MonoBehaviour:
     outline: 1
     completionMode: 3
     completionSignal: EditorOpened
-    sourceKey: 
-    destinationKey: 
+    sourceKey:
+    destinationKey:
     pauseBattle: 1
+    slowBattle: 0
     allowPreview: 1
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
+    trigger:
+    skipIf:
+    expectedCode:
     pointerKey: Battle.Develop
-    hintCode: 
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     presetCode: 
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+  - stepId: A05
+    kind: 1
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uC548\uB0B4\uC790"
+      text: "\uBA3C\uC800 \uC870\uAC74\uC774 \uC5C6\uB294 \uAE30\uC874 \uBCA0\uAE30\uB97C
+        \uC67C\uCABD\uC5D0\uC11C \uBCF4\uC790.\n\uC801\uC774 \uB2FF\uB294 \uAC70\uB9AC\uAE4C\uC9C0
+        \uC624\uBA74 \uB85C\uBD07\uC774 \uBCA0\uC5B4."
+      focusKeys:
+      - Editor.Preview
+      highlightKeys: []
+    targetKeys:
+    - Editor.Preview
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    completionMode: 3
+    completionSignal: PreviewSingleHit
+    sourceKey:
+    destinationKey:
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 1
+    highlightPadding: 10
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 1
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo:
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 1.5
   - stepId: B01
     kind: 0
     dialoguePosition: 0
@@ -202,17 +268,19 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionSignal:
+    sourceKey:
+    destinationKey:
     pauseBattle: 1
-    allowPreview: 1
+    slowBattle: 0
+    allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
@@ -221,9 +289,12 @@ MonoBehaviour:
       enemy_distance = enemy.distance(get_my_pos())'
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 1
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -246,26 +317,31 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionSignal:
+    sourceKey:
+    destinationKey:
     pauseBattle: 1
-    allowPreview: 1
+    slowBattle: 0
+    allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     presetCode: 
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -287,26 +363,31 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionSignal:
+    sourceKey:
+    destinationKey:
     pauseBattle: 1
-    allowPreview: 1
+    slowBattle: 0
+    allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     presetCode: 
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -327,17 +408,19 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionSignal:
+    sourceKey:
+    destinationKey:
     pauseBattle: 1
-    allowPreview: 1
+    slowBattle: 0
+    allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
@@ -472,13 +555,61 @@ MonoBehaviour:
     presetCode: 
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
-  - stepId: C03
+  - stepId: B05
+    kind: 0
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uC548\uB0B4\uC790"
+      text: "<b>\u2264\uB294 \u2018\uC791\uAC70\uB098 \uAC19\uB2E4\u2019</b>\uB294
+        \uB73B\uC774\uC57C.\n\uC801\uAE4C\uC9C0\uC758 \uAC70\uB9AC\uAC00 \uB0B4 \uACF5\uACA9
+        \uC0AC\uAC70\uB9AC \uC774\uD558\uBA74 \uC870\uAC74\uC774 \u2018\uCC38\u2019,
+        \uB354 \uBA40\uBA74 \u2018\uAC70\uC9D3\u2019\uC774\uC57C."
+      focusKeys: []
+      highlightKeys: []
+    targetKeys: []
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    completionMode: 0
+    completionSignal:
+    sourceKey:
+    destinationKey:
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    highlightPadding: 10
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo:
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+  - stepId: C01
     kind: 1
     dialoguePosition: 0
     texts:
@@ -503,7 +634,8 @@ MonoBehaviour:
     sourceKey: 
     destinationKey: 
     pauseBattle: 1
-    allowPreview: 1
+    slowBattle: 0
+    allowPreview: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -516,9 +648,60 @@ MonoBehaviour:
     presetCode: 
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo: Editor.Palette.If>Editor.Code.After.2
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+  - stepId: C03
+    kind: 1
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uC548\uB0B4\uC790"
+      text: "`if` \uC606\uC5D0\uB294 <b>\u2018\uC5B4\uB5A4 \uB54C\uC5D0 \uD589\uB3D9\uD560\uC9C0\u2019</b>\uB97C
+        \uB123\uC5B4\uC57C \uD574.\n\uAC00\uC6B4\uB370\uC758 <b>\uBE44\uAD50 \uBE14\uB85D</b>\uC744
+        \uB20C\uB7EC \uB123\uC5B4 \uC918."
+      focusKeys:
+      - Editor.Palette.Comparison
+      - Editor.Code.Arg.3.0
+      highlightKeys: []
+    targetKeys:
+    - Editor.ProgramDropZone
+    - Editor.BlockPalette
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    completionMode: 3
+    completionSignal: SlotFilled
+    sourceKey:
+    destinationKey:
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    highlightPadding: 10
+    trigger:
+    skipIf:
+    expectedCode: Editor.Code.Arg.3.0
+    pointerKey: Editor.Palette.Comparison
+    autoSelectSlot: Editor.Code.Arg.3.0
+    hintCode:
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: Editor.Palette.Comparison>Editor.Code.Arg.3.0
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -546,7 +729,8 @@ MonoBehaviour:
     sourceKey: 
     destinationKey: 
     pauseBattle: 1
-    allowPreview: 1
+    slowBattle: 0
+    allowPreview: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -559,6 +743,9 @@ MonoBehaviour:
     presetCode: 
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
     dragDemo: 
@@ -792,32 +979,39 @@ MonoBehaviour:
       focusKeys:
       - Editor.Code.Arg.3.0
       highlightKeys: []
-    targetKeys: []
+    targetKeys:
+    - Editor.ProgramDropZone
+    - Editor.BlockPalette
     dim: 0
     undimmed: 0
     blockInput: 1
     outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionMode: 3
+    completionSignal: SlotFilled
+    sourceKey:
+    destinationKey:
     pauseBattle: 1
-    allowPreview: 1
+    slowBattle: 0
+    allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode: Editor.Code.Arg.3.0.0
+    pointerKey: Editor.Palette.Variable
+    autoSelectSlot: Editor.Code.Arg.3.0.0
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     presetCode: 
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo: Editor.Palette.Variable>Editor.Code.Arg.3.0.0
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -845,7 +1039,8 @@ MonoBehaviour:
     sourceKey: 
     destinationKey: 
     pauseBattle: 1
-    allowPreview: 1
+    slowBattle: 0
+    allowPreview: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -858,9 +1053,57 @@ MonoBehaviour:
     presetCode: 
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+  - stepId: C10
+    kind: 0
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uC548\uB0B4\uC790"
+      text: "\uC644\uC131\uB41C \uC870\uAC74\uC744 \uC77D\uC5B4 \uBCF4\uC790.\n<b>\u2018\uC801\uAE4C\uC9C0\uC758
+        \uAC70\uB9AC \u2264 \uB0B4 \uACF5\uACA9 \uC0AC\uAC70\uB9AC\uC774\uBA74!\u2019</b>\n\uCC38\uC77C
+        \uB54C\uB9CC `if` \uC548\uCABD \uBA85\uB839\uC744 \uC2E4\uD589\uD574."
+      focusKeys:
+      - Editor.Code.Arg.3.0
+      highlightKeys: []
+    targetKeys: []
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    completionMode: 0
+    completionSignal:
+    sourceKey:
+    destinationKey:
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    highlightPadding: 10
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -1017,7 +1260,8 @@ MonoBehaviour:
     sourceKey: 
     destinationKey: 
     pauseBattle: 1
-    allowPreview: 1
+    slowBattle: 0
+    allowPreview: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -1031,6 +1275,9 @@ MonoBehaviour:
     presetCode: 
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
     dragDemo: 
@@ -1097,26 +1344,31 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionSignal:
+    sourceKey:
+    destinationKey:
     pauseBattle: 1
+    slowBattle: 0
     allowPreview: 1
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     presetCode: 
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -1137,26 +1389,31 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionSignal:
+    sourceKey:
+    destinationKey:
     pauseBattle: 1
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 1
     clearProgram: 0
     presetCode: 
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -1179,25 +1436,30 @@ MonoBehaviour:
     outline: 1
     completionMode: 3
     completionSignal: BattleStarted
-    sourceKey: 
-    destinationKey: 
+    sourceKey:
+    destinationKey:
     pauseBattle: 1
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     presetCode: 
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -1218,10 +1480,11 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionSignal:
+    sourceKey:
+    destinationKey:
     pauseBattle: 0
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
     trigger: FirstAttack
@@ -1235,9 +1498,12 @@ MonoBehaviour:
     presetCode: 
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -1258,26 +1524,31 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionSignal:
+    sourceKey:
+    destinationKey:
     pauseBattle: 0
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger: WaveCleared
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     presetCode: 
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -1292,23 +1563,26 @@ MonoBehaviour:
         \uACF5\uACA9\uD558\uAE30!</b>"
       focusKeys: []
       highlightKeys: []
-    targetKeys: []
+    targetKeys:
+    - Battle.ClaimRewards
     dim: 0
     undimmed: 0
     blockInput: 1
     outline: 1
-    completionMode: 0
-    completionSignal: 
-    sourceKey: 
-    destinationKey: 
+    completionMode: 1
+    completionSignal:
+    sourceKey:
+    destinationKey:
     pauseBattle: 0
+    slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    hintCode: 
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey: Battle.ClaimRewards
+    autoSelectSlot:
+    hintCode:
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
@@ -1356,9 +1630,12 @@ MonoBehaviour:
     presetCode: 
     openEditor: 0
     robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
