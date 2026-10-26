@@ -165,7 +165,16 @@ namespace CodingGame.Defense.Editor
         static List<S> OneThree()
         {
             Action<S> EditSignal(string signal, string expected, string pointer, params string[] focus) =>
-                Signal(signal, new[] { Drop, Palette }, With(s => { s.Expected = expected; s.Pointer = pointer; }, Focus(focus)));
+                Signal(signal, new[] { Drop, Palette }, With(s => {
+                    s.Expected = expected; s.Pointer = pointer;
+                    // Every guided block placement previews its path from the palette to the actual slot.
+                    if (signal == TutorialSignals.CodeLinePlaced || signal == TutorialSignals.SlotFilled)
+                    {
+                        string slot = signal == TutorialSignals.SlotFilled ? expected :
+                            focus.LastOrDefault(key => key.StartsWith(TutorialKeys.CodePrefix, StringComparison.Ordinal));
+                        if (!string.IsNullOrEmpty(slot)) s.Demo = pointer + ">" + slot;
+                    }
+                }, Focus(focus)));
             return new List<S> {
                 L("1-3.A01"), L("1-3.A02"),
                 L("1-3.A03", Click(Unit0, s => s.Pointer = Unit0)),
@@ -301,7 +310,7 @@ namespace CodingGame.Defense.Editor
                 return "campaign: lessons 1-1 to 1-3 only";
             }
             Lesson(4, "조건문 활용 자유 플레이", 1, (BlockKind.DeclareVariable, 2), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 3), (BlockKind.Slash, 1),
-                (BlockKind.MyPos, 1), (BlockKind.If, 1), (BlockKind.Comparison, 1), (BlockKind.Number, 1));
+                (BlockKind.MyPos, 1), (BlockKind.If, 1), (BlockKind.Comparison, 1), (BlockKind.MyAttackRange, 1), (BlockKind.Number, 1));
             Lesson(5, "변수와 조건문: 보스 종합 실습", 0,
                 (BlockKind.DeclareVariable, 3), (BlockKind.Variable, 5), (BlockKind.Number, 2),
                 (BlockKind.If, 2), (BlockKind.Comparison, 2), (BlockKind.MyAttackRange, 2),

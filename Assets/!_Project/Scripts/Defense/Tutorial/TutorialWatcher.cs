@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -13,9 +14,23 @@ namespace CodingGame.Defense
         bool firstKill, firstAttack, cleared;
         readonly List<string> signals = new List<string>();
 
-        // The index-th warrior placed this stage (by id): 0 is the robot the tutorial teaches, 1 the second warrior of 1-4.
-        public static RobotState Robot(DefenseSimulation sim, int index) =>
-            sim?.Robots.Where(r => r.Spec.role == RobotRole.Warrior).OrderBy(r => r.Id).ElementAtOrDefault(index);
+        // In 1-3, Robot.Unit.0 is whichever deployed robot is closest to the current wave's entrance.
+        // Elsewhere the stable installation order keeps the existing tutorial targets unchanged.
+        public static IReadOnlyList<RobotState> OrderedRobots(DefenseSimulation sim)
+        {
+            if (sim == null) return Array.Empty<RobotState>();
+            var robots = sim.Robots.OrderBy(robot => robot.Id);
+            if (!sim.Setup.PlayerFlow || sim.Setup.Stage != 1 || sim.WaveIndex != 2 ||
+                sim.Setup.Waves.Length <= 2 || sim.Setup.Waves[2].Length == 0) return robots.ToArray();
+            int route = sim.Setup.Waves[2].OrderBy(group => group.Delay).First().RouteIndex;
+            var entrance = sim.Setup.Routes[route].Points[0];
+            return robots.OrderBy(robot => System.Numerics.Vector2.DistanceSquared(robot.Position, entrance))
+                .ThenBy(robot => robot.Id).ToArray();
+        }
+        public static RobotState Robot(DefenseSimulation sim, int index) => OrderedRobots(sim).ElementAtOrDefault(index);
+        public static int RobotIndex(DefenseSimulation sim, int id) =>
+            OrderedRobots(sim).Select((robot, index) => (robot, index)).Where(entry => entry.robot.Id == id)
+                .Select(entry => entry.index).DefaultIfEmpty(-1).First();
         public static RobotState TeachingRobot(DefenseSimulation sim) => Robot(sim, 0);
 
         // Generated Python body equals the expected lines, ignoring the def header, indentation, blank lines and the names the

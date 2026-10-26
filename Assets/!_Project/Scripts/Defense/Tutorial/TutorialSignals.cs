@@ -37,6 +37,7 @@ namespace CodingGame.Defense
         // TutorialStep.robotIndex counts warriors only; the two agree while Stage 1 has only warriors.
         public static string Unit(int index) => UnitPrefix + index;
         public static string Range(int index) => RangePrefix + index;
+        public static bool IsRange(string key) => key != null && key.StartsWith(RangePrefix, System.StringComparison.Ordinal);
         // World targets the game registers at run time; they need no scene binding.
         public static bool IsRuntime(string key) => key != null && (key == Route || key == Floor || key.StartsWith(UnitPrefix) || key.StartsWith(RangePrefix));
         // Positions inside the code editor (Editor.Code.*, Editor.Palette.*), resolved by DefenseCodeEditor each frame.

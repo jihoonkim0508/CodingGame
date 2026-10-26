@@ -59,7 +59,7 @@ namespace CodingGame.Defense
         [Tooltip("단계 진입 시 코드 편집기를 닫습니다.")] public bool closeEditor;
         [Tooltip("단계 진입 시 robotIndex 로봇의 코드를 비웁니다(블록은 인벤토리로).")] public bool clearProgram;
         [Tooltip("단계 진입 시 편집기를 닫고 robotIndex 로봇의 편집기를 엽니다.")] public bool openEditor;
-        [Tooltip("판정·코드 삭제·편집기 대상. 0 = 교육 로봇(처음 배치한 전사), 1 = 두 번째 전사.")]
+        [Tooltip("판정·코드 삭제·편집기 대상. 1-3에서는 0이 적 출현 지점에 가장 가까운 로봇, 다른 웨이브에서는 배치 순서입니다.")]
         [Min(0)] public int robotIndex;
         [Tooltip("1-3 조건문 소개용으로 적 찾기·거리 저장 두 줄을 준비합니다. 다른 로봇의 코드는 유지합니다.")]
         public bool prepareDistanceExample;

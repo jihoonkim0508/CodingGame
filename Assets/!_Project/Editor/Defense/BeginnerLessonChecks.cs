@@ -194,6 +194,24 @@ namespace CodingGame.Defense.Editor
             Require(now - since < 85, "Stalled at " + key + " phase=" + sim.Phase + " time=" + sim.Time.ToString("0.0") +
                 " enemies=" + string.Join(",", sim.Enemies.Select(e => (e.Boss ? "boss" : "minion") + ":" + e.Health.ToString("0.0"))) +
                 " runs=" + string.Join(",", sim.Robots.Select(r => r.Program?.CompletedRuns.ToString() ?? "none")));
+            if (key == "3/A03")
+            {
+                var entrance = sim.Setup.Routes[sim.Setup.Waves[2].OrderBy(group => group.Delay).First().RouteIndex].Points[0];
+                var nearest = sim.Robots.OrderBy(robot => System.Numerics.Vector2.DistanceSquared(robot.Position, entrance))
+                    .ThenBy(robot => robot.Id).First();
+                Require(TutorialWatcher.TeachingRobot(sim)?.Id == nearest.Id,
+                    "1-3 did not select the robot closest to the enemy entrance");
+                var views = Field<System.Collections.Generic.Dictionary<int, DefenseActorView>>(battle, "robotViews");
+                Require(Field<TutorialInputBridge>(director, "bridge").CanPerformAction(TutorialKeys.Unit(0), views[nearest.Id].gameObject),
+                    "1-3 tutorial arrow points at a different robot");
+            }
+            if (key == "1/B05")
+            {
+                var bridge = Field<TutorialInputBridge>(director, "bridge");
+                Require(Field<System.Collections.Generic.List<Rect>>(bridge, "roundAreas").Count > 0 &&
+                    Field<System.Collections.Generic.List<Rect>>(bridge, "outlinedAreas").Count == 0,
+                    "The tutorial draws a duplicate outline over the robot's range ring");
+            }
             if (key == "3/A05" && now - since > 5 && !previewLogged)
             {
                 previewLogged = true;
@@ -215,12 +233,20 @@ namespace CodingGame.Defense.Editor
             if (key == "1/C05" || key == "1/C08" || key == "1/D01" || key == "1/D03" || key == "1/D04")
                 Require(!battle.TutorialBlocksPreview && Field<DefenseAttackPreview>(battle, "attackPreview").IsShowing,
                     "1-1 preview stopped while placing blocks at " + key);
-            if (key == "1/C05" || key == "1/C08" || key == "1/D01" || key == "1/D03")
+            if (!string.IsNullOrWhiteSpace(step.dragDemo))
                 Require(Field<TutorialPointer>(director, "pointer").IsDragVisible,
                     "Block placement drag preview is missing at " + key);
             if (key == "1/E04" || key == "1/E04a")
                 Require(sim.Phase == BattlePhase.Running && Math.Abs(director.BattlePace - .2f) < .001f,
                     "1-1 pause introduction must show a moving slow-motion battle at " + key);
+            if (key == "1/E04" || key == "1/E04a" || key == "1/E04b")
+            {
+                var speed = Field<Button>(Field<DefensePlayerHUD>(battle, "playerHUD"), "speedButton");
+                Require(!battle.SpeedUnlocked && !speed.interactable && battle.BattleSpeed == 1,
+                    "Speed is available before its 1-1 introduction at " + key);
+                battle.ToggleSpeed();
+                Require(battle.BattleSpeed == 1, "Speed changed while locked at " + key);
+            }
             if (key == "1/E04b")
                 Require(sim.Phase == BattlePhase.Paused, "Pause button did not fully stop the battle");
             if (key == "1/E04c")
@@ -252,9 +278,18 @@ namespace CodingGame.Defense.Editor
             }
             if (step.targetKeys.Contains(TutorialKeys.Speed))
             {
-                Require(battle.TutorialAllows(TutorialKeys.Speed), "Speed control blocked at " + key);
-                Field<Button>(Field<DefensePlayerHUD>(battle, "playerHUD"), "speedButton").onClick.Invoke();
+                Require(battle.SpeedUnlocked && battle.TutorialAllows(TutorialKeys.Speed) &&
+                    Field<Button>(Field<DefensePlayerHUD>(battle, "playerHUD"), "speedButton").interactable,
+                    "Speed control did not unlock at " + key);
+                var speed = Field<Button>(Field<DefensePlayerHUD>(battle, "playerHUD"), "speedButton");
+                speed.onClick.Invoke();
                 Require(battle.BattleSpeed == 2, "Speed did not change to 2x at " + key);
+                Require(director.CanPerformAction(TutorialKeys.Speed) && speed.interactable,
+                    "Speed became locked again immediately after the lesson");
+                speed.onClick.Invoke();
+                Require(battle.BattleSpeed == 3, "Speed cannot reach 3x after the tutorial introduction");
+                speed.onClick.Invoke();
+                Require(battle.BattleSpeed == 1, "Speed cannot return to 1x after 3x");
                 return;
             }
             if (step.targetKeys.Contains(TutorialKeys.RobotButton(1))) { battle.ChooseRobot(1); return; }
@@ -340,8 +375,8 @@ namespace CodingGame.Defense.Editor
             var sim = battle.Simulation;
             if (sim.Robots.Count < 2) { battle.ChooseRobot(1); PlaceBest(battle, 1); }
             Require(sim.StartError()?.Contains("두 전사") == true, "1-4 allows battle without two conditional warriors");
-            var second = sim.Robots.OrderBy(r => r.Id).Skip(1).First();
-            battle.SelectRobot(second.Id); battle.DevelopSelected();
+            var learner = sim.Robots.OrderBy(r => r.Id).First(r => r.Program == null || !r.Program.Source.Contains("if "));
+            battle.SelectRobot(learner.Id); battle.DevelopSelected();
             battle.CodeEditor.Panel.LoadProgram("condition_practice", TutorialAnswers.Parse(
                 "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= my_attack_range():\n    slash(enemy)"));
             Require(battle.CodeEditor.Panel.IsApplied, "1-4 conditional code was not applied: " +

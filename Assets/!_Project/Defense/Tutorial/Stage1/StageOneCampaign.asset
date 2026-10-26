@@ -88,7 +88,8 @@ MonoBehaviour:
         count: 1
     - stage: 1
       wave: 3
-      topic: "\uC870\uAC74: \uC801\uC774 \uBAA8\uC600\uC744 \uB54C \uBCA0\uAE30"
+      topic: "\uC870\uAC74: \uB0B4 \uACF5\uACA9 \uC0AC\uAC70\uB9AC \uC548\uC774\uBA74
+        \uBCA0\uAE30"
       robots: []
       blocks:
       - kind: 14
@@ -102,8 +103,6 @@ MonoBehaviour:
       - kind: 11
         count: 1
       - kind: 26
-        count: 1
-      - kind: 10
         count: 1
       rewards:
       - kind: 11
@@ -128,6 +127,8 @@ MonoBehaviour:
       - kind: 3
         count: 1
       - kind: 11
+        count: 1
+      - kind: 26
         count: 1
       - kind: 10
         count: 1

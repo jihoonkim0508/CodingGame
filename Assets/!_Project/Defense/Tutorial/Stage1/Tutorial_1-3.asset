@@ -118,8 +118,9 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uD654\uC0B4\uD45C\uAC00 \uAC00\uB9AC\uD0A4\uB294 <b>\uCC98\uC74C \uB85C\uBD07</b>\uC744
-        \uB20C\uB7EC \uBD10."
+      text: "<b>\uC801\uC774 \uB098\uC624\uB294 \uACF3\uC5D0\uC11C \uAC00\uC7A5 \uAC00\uAE4C\uC6B4
+        \uB85C\uBD07</b>\uC744 \uB20C\uB7EC \uBD10.\n\uD654\uC0B4\uD45C\uAC00 \uADF8
+        \uB85C\uBD07\uC744 \uAC00\uB9AC\uD0A4\uACE0 \uC788\uC5B4."
       focusKeys: []
       highlightKeys: []
     targetKeys:
@@ -516,7 +517,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo:
+    dragDemo: Editor.Palette.If>Editor.Code.After.2
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -564,7 +565,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo:
+    dragDemo: Editor.Palette.Comparison>Editor.Code.Arg.3.0
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -660,7 +661,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo:
+    dragDemo: Editor.Palette.Variable>Editor.Code.Arg.3.0.0
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -755,7 +756,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo:
+    dragDemo: Editor.Palette.MyAttackRange>Editor.Code.Arg.3.0.1
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -894,7 +895,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo:
+    dragDemo: Editor.Palette.Slash>Editor.Code.Body.3
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -942,7 +943,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo:
+    dragDemo: Editor.Palette.Variable>Editor.Code.BodyArg.3.0.0
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0

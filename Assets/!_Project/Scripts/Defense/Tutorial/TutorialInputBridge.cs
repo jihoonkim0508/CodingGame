@@ -144,17 +144,25 @@ namespace CodingGame.Defense
                     // The placement area is the whole map: clickable (AddArea adds it to the clicks), but drawing it would hide the focus.
                     if (AddRoad(key) || AddArea(key) == 0 || key == TutorialKeys.Deployment) continue;
                     // With a focus on screen the focus carries the box; the action targets only stay lit.
-                    Show(start, outlined && focus.Length == 0 && !dismissed);
+                    Show(start, outlined && focus.Length == 0 && !dismissed && !TutorialKeys.IsRange(key));
                 }
             if (currentStep != null && !dismissed)
                 foreach (var key in focus)
                     // "a|b": the first one on screen (e.g. the empty slot once the block is placed, else the place to drop it).
                     foreach (var option in key.Split('|'))
                     {
+                        string target = option.Trim();
                         int start = screenAreas.Count;
-                        if (AddRoad(option.Trim())) break;
-                        if (AddArea(option.Trim()) > 0) { Show(start, true); break; }
+                        if (AddRoad(target)) break;
+                        if (AddArea(target) > 0) { Show(start, !TutorialKeys.IsRange(target)); break; }
                     }
+            // Once taught, speed remains clickable even while a later tutorial step limits other input.
+            if (currentStep != null && director && director.SpeedControlAvailable &&
+                !currentStep.targetKeys.Contains(TutorialKeys.Speed))
+            {
+                int start = screenAreas.Count;
+                if (AddArea(TutorialKeys.Speed) > 0) Show(start, false);
+            }
             // Focus uses the same spotlight as action steps: dim everything but the holes.
             bool dim = currentStep == null || !currentStep.undimmed && !dismissed && (currentStep.dim || focus.Length > 0 || Acting);
             spotlight.SetRoad(roadBoxes, roadDim);
@@ -346,6 +354,7 @@ namespace CodingGame.Defense
 
         public bool CanPerformAction(string key, GameObject target = null)
         {
+            if (key == TutorialKeys.Speed && director && director.SpeedControlAvailable) return true;
             if (!IsGuiding) return true;
             if (!Acting || !ContainsKey(key)) return false;
             if (target && runtimeTargets.TryGetValue(key, out var runtime) && runtime.owner) return runtime.owner == target;

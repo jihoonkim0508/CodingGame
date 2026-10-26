@@ -85,6 +85,8 @@ namespace CodingGame.Defense
         public int SelectedId => selected;
         public bool IsPlacing => palette >= 0;
         public float BattleSpeed { get; private set; } = 1;
+        public bool SpeedUnlocked => Simulation != null && (!Simulation.Setup.PlayerFlow || !Simulation.Options.tutorial ||
+            Stage != 1 || Simulation.WaveIndex > 0 || tutorial && tutorial.SpeedLessonReached);
         public string StatusMessage { get; private set; }
         public TutorialDirector Tutorial => tutorial;
         public DefenseCodeEditor CodeEditor => codeEditor;
@@ -294,7 +296,7 @@ namespace CodingGame.Defense
         }
         public void ToggleSpeed()
         {
-            if (!TutorialAllows(TutorialKeys.Speed)) return;
+            if (!SpeedUnlocked || !TutorialAllows(TutorialKeys.Speed)) return;
             if (Simulation.Phase != BattlePhase.Running && Simulation.Phase != BattlePhase.Paused) return;
             BattleSpeed = BattleSpeed >= 3 ? 1 : BattleSpeed + 1; RefreshHUD();
             ReportTutorialAction(TutorialKeys.Speed, TutorialSignals.TargetClicked);
@@ -349,7 +351,7 @@ namespace CodingGame.Defense
         public void SelectRobot(int id)
         {
             if (!robotViews.TryGetValue(id, out var view) || !view) return;
-            string unit = TutorialKeys.Unit(Simulation.Robots.OrderBy(r => r.Id).ToList().FindIndex(r => r.Id == id));
+            string unit = TutorialKeys.Unit(TutorialWatcher.RobotIndex(Simulation, id));
             string key = TutorialAllows(unit) ? unit : TutorialAllows(TutorialKeys.SelectedRobot) ? TutorialKeys.SelectedRobot : "Battle.SelectRobot";
             if (!TutorialAllows(key)) return;
             var robot = Simulation.FindRobot(id);
@@ -413,9 +415,10 @@ namespace CodingGame.Defense
             if (!tutorialActive && keyboard != null && !DeveloperMode && !codeEditor.IsOpen && !inventoryUI.IsOpen)
             {
                 if (keyboard.spaceKey.wasPressedThisFrame) { if (Simulation.Phase == BattlePhase.Ready) StartBattle(); else TogglePause(); }
-                if (keyboard.fKey.wasPressedThisFrame) ToggleSpeed();
                 if (keyboard.escapeKey.wasPressedThisFrame) CancelPlacement();
             }
+            if (keyboard != null && keyboard.fKey.wasPressedThisFrame && SpeedUnlocked && !DeveloperMode &&
+                !codeEditor.IsOpen && !inventoryUI.IsOpen) ToggleSpeed();
             if (draggingRobot && mouse != null && mouse.leftButton.wasReleasedThisFrame) EndRobotDrag(mouse.position.ReadValue());
             if (mouse != null && !codeEditor.IsOpen && !inventoryUI.IsOpen && !DeveloperMode)
             {
@@ -465,7 +468,7 @@ namespace CodingGame.Defense
             if (Simulation.Phase != BattlePhase.Running && Simulation.Phase != BattlePhase.Paused) ClearCombatVisuals();
             var current = Simulation.FindRobot(selected);
             // A tutorial highlight (Robot.Range.N) shows that robot's range glowing, selected or not.
-            var lit = tutorial ? Simulation.Robots.OrderBy(r => r.Id).Where((r, i) => tutorial.Highlighted(TutorialKeys.Range(i))).FirstOrDefault() : null;
+            var lit = tutorial ? TutorialWatcher.OrderedRobots(Simulation).Where((r, i) => tutorial.Highlighted(TutorialKeys.Range(i))).FirstOrDefault() : null;
             if (lit != null && palette < 0 && !codeEditor.IsOpen)
                 rangeRing.Show(DefenseViews.World(lit.Position), lit.Range, RangeColor, .65f + .35f * Mathf.Sin(Time.unscaledTime * 5));
             else if (Simulation.Options.ranges && current != null && palette < 0 && !codeEditor.IsOpen && !inventoryUI.IsOpen && !DeveloperMode)
@@ -556,7 +559,7 @@ namespace CodingGame.Defense
         void SyncTutorialTargets()
         {
             if (!tutorial) return;
-            var bots = Simulation.Robots.OrderBy(r => r.Id).ToList();
+            var bots = TutorialWatcher.OrderedRobots(Simulation);
             for (int i = 0; i < bots.Count; i++)
             {
                 if (!robotViews.TryGetValue(bots[i].Id, out var view) || !view) continue;
@@ -660,7 +663,8 @@ namespace CodingGame.Defense
             speedLabel.text = BattleSpeed + "x";
             startButton.interactable = Simulation.Phase == BattlePhase.Ready;
             pauseButton.interactable = Simulation.Phase == BattlePhase.Running || Simulation.Phase == BattlePhase.Paused;
-            speedButton.interactable = !ended;
+            speedButton.interactable = SpeedUnlocked &&
+                (Simulation.Phase == BattlePhase.Running || Simulation.Phase == BattlePhase.Paused);
             for (int i = 0; i < routes.Length; i++) routes[i].ShowVisual(Simulation.RouteInUse(i));
             for (int i = 0; i < robotButtons.Length; i++)
                 developerRobotLabels[i].text = robots[i].displayName + "   ×" + Simulation.RobotAvailable(robots[i].stats.role);

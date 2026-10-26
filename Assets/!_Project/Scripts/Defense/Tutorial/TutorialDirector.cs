@@ -55,6 +55,16 @@ namespace CodingGame.Defense
         bool InputLimited => !battle || battle.Simulation == null || battle.Simulation.Options.tutorialInput;
         public bool PauseBattle => IsActive && bridge && bridge.PauseBattle;
         public float BattlePace => PauseBattle ? 0 : IsActive && bridge && bridge.SlowBattle ? .2f : 1f;
+        public bool SpeedLessonReached
+        {
+            get
+            {
+                if (!active || active.stage != 1 || active.wave != 1) return false;
+                int index = Array.FindIndex(active.steps, step => step.stepId == "E04c");
+                return index >= 0 && progressStep >= index;
+            }
+        }
+        public bool SpeedControlAvailable => battle && battle.SpeedUnlocked;
         public bool AllowPreview => IsActive && bridge && bridge.AllowPreview;
         public IReadOnlyList<TutorialSequence> Sequences => sequences;
         // The dialogue on screen asks the game to make this target glow (e.g. Robot.Range.0).

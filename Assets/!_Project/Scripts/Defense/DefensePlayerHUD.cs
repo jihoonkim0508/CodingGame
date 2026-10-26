@@ -117,7 +117,8 @@ namespace CodingGame.Defense
             inventory.text = $"설치 {sim.Robots.Count} / {sim.Setup.RobotLimit}대  ·  버프형 최대 1대";
             inventory.color = sim.Robots.Count >= sim.Setup.RobotLimit ? new Color(1, .45f, .4f) : new Color(.75f, .9f, .95f);
             startButton.interactable = ready;
-            pauseButton.interactable = speedButton.interactable = fighting;
+            pauseButton.interactable = fighting;
+            speedButton.interactable = fighting && battle.SpeedUnlocked;
             pauseLabel.text = sim.Phase == BattlePhase.Paused ? "계속" : "일시정지";
             speedLabel.text = fighting && battle.Tutorial && Mathf.Approximately(battle.Tutorial.BattlePace, .2f)
                 ? "0.2x" : battle.BattleSpeed + "x";

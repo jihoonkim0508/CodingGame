@@ -103,6 +103,31 @@ static class Check
         Require(paused && sim.Kills == 2 && sim.Leaks == 1 && sim.BaseHealth == 11,
             $"Intro must kill two basic enemies and leak one strong enemy: kills={sim.Kills}, leaks={sim.Leaks}, core={sim.BaseHealth}");
     }
+    static void NearestTeachingRobot()
+    {
+        var warrior = new RobotSpec { role = RobotRole.Warrior, range = 3.2f, interval = .8f, damage = 14 };
+        var group = new SpawnGroup { Enemy = new EnemySpec { health = 20, speed = 1 }, RouteIndex = 0, Count = 1, Interval = 1 };
+        var sim = new DefenseSimulation(new BattleSetup {
+            Stage = 1, PlayerFlow = true, InitialWave = 2,
+            Progression = new DefenseProgression {
+                lessons = Array.Empty<WaveLesson>(),
+                robots = new[] { new RobotStock { role = RobotRole.Warrior, count = 2 } },
+                initial = DefenseProgression.ItemKinds.Select(kind => new BlockStock { kind = kind, count = 20 }).ToArray()
+            },
+            Min = new Vector2(-12, -5), Max = new Vector2(12, 5),
+            ActionProfiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>()
+                .Select(role => new RobotSpec { role = role, range = 3.2f, interval = .8f, damage = 14 }).ToArray(),
+            Routes = new[] { new Route(new[] { new Vector2(-10, 0), new Vector2(10, 0) }, 1) },
+            Waves = new[] { new[] { group }, new[] { group }, new[] { group } }
+        });
+        var first = sim.Place(warrior, 1, new Vector2(0, 2), out var firstError);
+        Require(first != null, firstError);
+        var nearEntrance = sim.Place(warrior, 1, new Vector2(-8, 2), out var secondError);
+        Require(nearEntrance != null, secondError);
+        Require(TutorialWatcher.TeachingRobot(sim)?.Id == nearEntrance.Id &&
+            TutorialWatcher.RobotIndex(sim, nearEntrance.Id) == 0 && TutorialWatcher.Robot(sim, 1)?.Id == first.Id,
+            "1-3 must teach the robot nearest the enemy entrance, even if it was placed second");
+    }
     static void Main()
     {
         const string answer = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= my_attack_range():\n    slash(enemy)";
@@ -115,6 +140,7 @@ static class Check
         Require(FirstSlashHits(true, 7, 1.2f, .5f, 1.8f, 2) > 0,
             "The preview must still show an attack with my_attack_range()");
         IntroLeak();
+        NearestTeachingRobot();
         Console.WriteLine("PASS: 1-1 strong enemy leaks once after two kills; pause freezes battle; 1-3 dynamic attack range comparison checks pass.");
     }
 }
