@@ -127,19 +127,20 @@ namespace CodingGame.Defense
         {
             var step = Current;
             if (step == null) return;
-            if (step.completionSignal == TutorialSignals.ConditionBuilt && Editor)
-            {
-                var taught = active.steps.Take(progressStep).LastOrDefault(s => s.completionSignal == TutorialSignals.ProgramMatches)?.expectedCode;
-                var program = TutorialWatcher.Robot(session, step.robotIndex)?.Program;
-                if (Editor.LooseExpressions().Any(text => TutorialWatcher.ConditionMatches(text, program, step.expectedCode, taught))) Signal(TutorialSignals.ConditionBuilt);
-            }
+            if (step.completionSignal == TutorialSignals.ConditionBuilt && Editor &&
+                Editor.LooseExpressions().Any(text => Same(text, step.expectedCode))) Signal(TutorialSignals.ConditionBuilt);
             if (step.completionSignal == TutorialSignals.SlotFilled && Editor && Editor.SlotFilled(step.expectedCode)) Signal(TutorialSignals.SlotFilled);
+            if (step.completionSignal == TutorialSignals.CodeLinePlaced && Editor && Editor.CodeLinePlaced(step.expectedCode)) Signal(TutorialSignals.CodeLinePlaced);
             if (step.completionSignal == TutorialSignals.SlotSelected && Editor && Editor.SlotSelected(step.expectedCode)) Signal(TutorialSignals.SlotSelected);
             if (step.completionSignal == TutorialSignals.DraftValueMatches && Editor && Editor.DraftValueMatches(step.expectedCode)) Signal(TutorialSignals.DraftValueMatches);
+            if (step.completionSignal == TutorialSignals.ConditionBuilt && Editor && Editor.ConditionMatches(step.expectedCode)) Signal(TutorialSignals.ConditionBuilt);
             if (Current != step) return;
-            // Battle lines still unread when the wave ends (fast at 3x) would show over the reward panel: skip to the wave-cleared line.
-            if (signals.Contains(TutorialSignals.WaveCleared) && step.kind != TutorialStepKind.ActionGuide && step.trigger != TutorialSignals.WaveCleared &&
-                progressStep < Array.FindIndex(active.steps, s => s.trigger == TutorialSignals.WaveCleared)) { Enter(progressStep + 1); return; }
+            // A preview strike can occur while the dialogue is opening. Keep that result for this step
+            // so the player does not have to wait for the looping demonstration to strike again.
+            if (step.kind == TutorialStepKind.ActionGuide && step.completionMode == TutorialCompletionMode.ExternalSignal &&
+                (step.completionSignal == TutorialSignals.PreviewSingleHit || step.completionSignal == TutorialSignals.PreviewMultiHit) &&
+                signals.Contains(step.completionSignal) && viewedStep == progressStep && !view.IsTyping)
+            { CompleteAction(step); return; }
             if (!string.IsNullOrWhiteSpace(step.skipIf) && signals.Contains(step.skipIf) && Triggered(step) && viewedStep == progressStep) { Enter(progressStep + 1); return; }
             if (!Triggered(step))
             {
@@ -190,7 +191,7 @@ namespace CodingGame.Defense
             bool show = viewedStep == progressStep && !completedStep.Contains(step.stepId) && !string.IsNullOrWhiteSpace(step.pointerKey) && !(Editor && Editor.HintOpen) &&
                 Time.unscaledTime - stepEntered >= step.pointerDelay && bridge.TryGetArea(step.pointerKey, out area, out chosen);
             // Slots under or inside a code line are pointed at from below; from above the arrow would cover the line above.
-            if (show) pointer.Show(area, chosen.Contains(".After.") || chosen.Contains(".Arg.") || chosen.Contains(".Name.") || chosen.Contains(".Option.") || chosen.Contains(".Body.")); else pointer.HideArrow();
+            if (show) pointer.Show(area, chosen.Contains(".After.") || chosen.Contains(".Arg.") || chosen.Contains(".Name.") || chosen.Contains(".Option.") || chosen.Contains(".Body")); else pointer.HideArrow();
             UpdateDragDemo(step);
             UpdateRoutePath();
             // Once the arrow moves to an empty argument slot, open the values tab, where the variables to drop in are.
@@ -310,7 +311,11 @@ namespace CodingGame.Defense
             if (step.closeEditor) Editor.Close(false);
             if (step.clearProgram && robot != null) Editor.ClearRobotProgram(robot.Id);
             if (step.openEditor && robot != null) { Editor.Close(false); Editor.Open(robot.Id); }
-            if (!string.IsNullOrWhiteSpace(step.presetCode) && robot != null) Editor.LoadTutorialCode(robot.Id, step.presetCode);
+            if (step.prepareBaselineExample) Editor.PrepareBaselineExample();
+            if (step.prepareDistanceExample) Editor.PrepareDistanceExample();
+            if (step.restartPreview) Editor.RestartPreview();
+            if (!string.IsNullOrEmpty(step.autoSelectSlot) && !Editor.SelectTutorialSlot(step.autoSelectSlot))
+                throw new InvalidOperationException("튜토리얼 자동 선택 슬롯을 찾지 못했습니다: " + step.autoSelectSlot);
             Editor.SetHint(step.hintCode);
         }
 

@@ -130,7 +130,7 @@ namespace CodingGame.Defense
         public IEnumerable<string> LooseExpressions() => !IsOpen ? Enumerable.Empty<string>() : panel.Program.LooseRoots()
             .Where(root => PythonTreeCompiler.OutputSlot(root.Kind) != BlockSlotKind.Statement)
             .Select(root => PythonTreeCompiler.ExpressionText(root.Read()));
-        // Tutorial targets inside the editor (TutorialKeys.IsEditorArea): Editor.Code.Start | Loose | Line.N | After.N | Body.N | Arg|Name|Option.N.path (see Walk),
+        // Tutorial targets inside the editor (TutorialKeys.IsEditorArea): Editor.Code.Start | Loose | Line.N | After.N | Body.N | Arg.N.i[.j…],
         // with N counted from 1 along the start chain, and Editor.Palette.<BlockKind>. False when not on screen.
         public bool TryGetTutorialCorners(string key, Vector3[] corners)
         {
@@ -146,12 +146,13 @@ namespace CodingGame.Defense
                 if (first) return Corners(first.Rect, null, corners);
                 // ponytail: an empty start is boxed at the size of 1-1's finished first line (enemy = get_nearest_enemy(), 352x46),
                 // the only step that points here; measure the expected block instead if another step needs it.
-                var area = program.StartArea;
-                return Corners(program.Rect, new Rect(area.xMin, area.yMax - 46, Mathf.Max(area.width, 352), 46), corners);
+                var slot = program.StartArea;
+                return Corners(program.Rect, new Rect(slot.xMin, slot.yMax - 46, Mathf.Max(slot.width, 352), 46), corners);
             }
             if (parts[0] == "Loose") { var loose = program.LooseRoots().FirstOrDefault(); return Corners(loose ? loose.Rect : null, null, corners); }
-            var (block, slot) = Walk(parts);
-            if (!block) return false;
+            var chain = program.StartChain();
+            if (parts.Length < 2 || !int.TryParse(parts[1], out int line) || line < 1 || line > chain.Count) return false;
+            var block = chain[line - 1];
             switch (parts[0])
             {
                 case "Name":
@@ -167,81 +168,126 @@ namespace CodingGame.Defense
                     var bodySlot = BodyArgument(parts);
                     return Corners(parts[0] == "BodyArg" ? bodySlot?.Rect : bodySlot?.Blocks.FirstOrDefault()?.InputRect, null, corners);
                 case "Line": return Corners(block.Rect, null, corners);
-                // The slot where the next block snaps: one line high, right under line N; with a line already there (1-4 C04 puts
-                // attack_range between enemy_distance and the if), only the seam between them, so the arrow does not land on the if.
-                case "After":
-                    var r = block.Rect.rect;
-                    return Corners(block.Rect, int.Parse(parts[1]) < program.StartChain().Count ? new Rect(r.xMin, r.yMin - 6, r.width, 12) : new Rect(r.xMin, r.yMin - r.height, r.width, r.height), corners);
-                case "Body": return Corners(block.Body ? block.Body.Rect : null, null, corners);
-                case "Arg": return Corners(slot ? slot.Rect : null, null, corners);
-                case "Name":
-                case "Option":
-                    var held = slot ? slot.Blocks.FirstOrDefault() : block;
-                    return Corners(!held ? null : parts[0] == "Name" ? held.InputRect : held.OptionRect, null, corners);
+                // The slot where the next block snaps: one line high, right under line N.
+                case "After": var r = block.Rect.rect; return Corners(block.Rect, new Rect(r.xMin, r.yMin - r.height, r.width, r.height), corners);
+                case "Body":
+                    if (!block.Body) return false;
+                    // Point at the beginning of an empty body, where the first action is inserted.
+                    var bodyRect = block.Body.Rect.rect;
+                    return Corners(block.Body.Rect, block.Body.Blocks.Count == 0
+                        ? new Rect(bodyRect.xMin, bodyRect.yMin, Mathf.Min(32, bodyRect.width), bodyRect.height) : (Rect?)null, corners);
+                case "Arg":
+                    CommandDropZone slot = null;
+                    for (int i = 2; i < parts.Length; i++)
+                    {
+                        if (slot) { if (slot.Blocks.Count == 0) return false; block = slot.Blocks[0]; }
+                        if (!int.TryParse(parts[i], out int index) || index < 0 || index >= block.Arguments.Count) return false;
+                        slot = block.Arguments[index];
+                    }
+                    return Corners(slot ? slot.Rect : null, null, corners);
                 default: return false;
             }
         }
-        // Follows an Editor.Code key from line N: a number steps into that argument slot of the block reached so far
-        // (the next part looks at the block in it), bK into the K-th block of its body. Line.3.b0.0 = the slot inside if's slash.
-        (CommandBlockView block, CommandDropZone slot) Walk(string[] parts)
+        // An Editor.Code.Arg.N.i[.j…] slot that holds a block (the slot exists, empty, as soon as its line does).
+        public bool SlotFilled(string key)
+            => TutorialSlot(key) is CommandDropZone slot && slot.Blocks.Count > 0;
+
+        public bool SlotSelected(string key)
+            => TutorialSlot(key) is CommandDropZone slot && (panel.SelectedZone == slot || slot.Blocks.Count > 0);
+
+        public bool SelectTutorialSlot(string key)
         {
-            var chain = panel.Program.StartChain();
-            if (parts.Length < 2 || !int.TryParse(parts[1], out int line) || line < 1 || line > chain.Count) return default;
-            CommandBlockView block = chain[line - 1]; CommandDropZone slot = null;
-            for (int i = 2; i < parts.Length; i++)
-            {
-                if (slot) { block = slot.Blocks.FirstOrDefault(); slot = null; if (!block) return default; }
-                if (parts[i].StartsWith("b"))
-                {
-                    if (!block.Body || !int.TryParse(parts[i].Substring(1), out int k) || k < 0 || k >= block.Body.Blocks.Count) return default;
-                    block = block.Body.Blocks[k];
-                }
-                else if (int.TryParse(parts[i], out int arg) && arg >= 0 && arg < block.Arguments.Count) slot = block.Arguments[arg];
-                else return default;
-            }
-            return (block, slot);
+            var slot = TutorialSlot(key);
+            if (slot == null || slot.Blocks.Count > 0) return false;
+            panel.Select(slot);
+            return true;
         }
-        // The drop zone an Arg.… or Body.N key names, empty or not.
-        CommandDropZone Zone(string key)
+
+        // A draft block's input/option can be checked before its surrounding if is complete.
+        // Expected: "3.0|<=" or "3.0.0|enemy_distance" (line, then argument indexes).
+        public bool DraftValueMatches(string expected)
+        {
+            if (!IsOpen || string.IsNullOrEmpty(expected)) return false;
+            var pair = expected.Split('|');
+            if (pair.Length != 2) return false;
+            var path = pair[0].Split('.');
+            var chain = panel.Program.StartChain();
+            if (!int.TryParse(path[0], out int line) || line < 1 || line > chain.Count) return false;
+            var block = chain[line - 1];
+            for (int i = 1; i < path.Length; i++)
+            {
+                if (!int.TryParse(path[i], out int arg) || arg < 0 || arg >= block.Arguments.Count) return false;
+                block = block.Arguments[arg].Blocks.FirstOrDefault();
+                if (!block) return false;
+            }
+            return block.Read().Value == pair[1];
+        }
+
+        public bool ConditionMatches(string expected)
+        {
+            if (!IsOpen) return false;
+            foreach (var block in panel.Program.AllBlocks().Where(b => PythonTreeCompiler.OutputSlot(b.Kind) == BlockSlotKind.Condition))
+            {
+                try { if (PythonTreeCompiler.ExpressionText(block.Read()) == expected) return true; }
+                catch (FormatException) { } // An unfinished comparison is not a match yet.
+            }
+            return false;
+        }
+
+        // Expected form: "1:DeclareVariable". Checks the connected draft, not the last compiled program.
+        public bool CodeLinePlaced(string expected)
+        {
+            if (!IsOpen || string.IsNullOrEmpty(expected)) return false;
+            var parts = expected.Split(':');
+            var chain = panel.Program.StartChain();
+            return parts.Length == 2 && int.TryParse(parts[0], out int line) && line > 0 && line <= chain.Count &&
+                Enum.TryParse(parts[1], out BlockKind kind) && chain[line - 1].BaseKind == kind;
+        }
+
+        // Finish editing before the next dialogue can receive stray keystrokes from the completed name field.
+        public void FinishTutorialInput()
+        {
+            var current = EventSystem.current;
+            var selected = current ? current.currentSelectedGameObject : null;
+            if (IsOpen && selected && selected.transform.IsChildOf(panel.transform) && panel.TextInputFocused)
+                current.SetSelectedGameObject(null);
+        }
+
+        CommandDropZone TutorialSlot(string key)
         {
             if (!IsOpen || key == null || !key.StartsWith(TutorialKeys.CodePrefix)) return null;
             var parts = key.Substring(TutorialKeys.CodePrefix.Length).Split('.');
-            var (block, slot) = Walk(parts);
-            return !block ? null : parts[0] == "Arg" ? slot : parts[0] == "Body" ? block.Body : null;
-        }
-        // Checked on the draft, before the line compiles: an Arg/Body slot holds a block, or line N exists
-        // ("Editor.Code.Line.1:DeclareVariable" also names the block kind it must be).
-        public bool SlotFilled(string key)
-        {
-            if (!IsOpen || key == null) return false;
-            var kind = key.Split(':');
-            if (kind[0].StartsWith(TutorialKeys.CodePrefix + "Line."))
+            if (parts[0] == "BodyArg") return BodyArgument(parts);
+            var chain = panel.Program.StartChain();
+            if (parts.Length < 2 || !int.TryParse(parts[1], out int line) || line < 1 || line > chain.Count) return null;
+            var block = chain[line - 1];
+            if (parts[0] == "Body") return block.Body;
+            if (parts[0] != "Arg" || parts.Length < 3) return null;
+            CommandDropZone slot = null;
+            for (int i = 2; i < parts.Length; i++)
             {
-                var (line, _) = Walk(kind[0].Substring(TutorialKeys.CodePrefix.Length).Split('.'));
-                return line && (kind.Length < 2 || line.BaseKind.ToString() == kind[1]);
+                if (slot) { if (slot.Blocks.Count == 0) return null; block = slot.Blocks[0]; }
+                if (!int.TryParse(parts[i], out int index) || index < 0 || index >= block.Arguments.Count) return null;
+                slot = block.Arguments[index];
             }
-            var zone = Zone(key);
-            return zone && zone.Blocks.Count > 0;
+            return slot;
         }
-        // The player clicked the slot (or already filled it).
-        public bool SlotSelected(string key) => Zone(key) is CommandDropZone zone && zone && (panel.SelectedZone == zone || zone.Blocks.Count > 0);
-        // "Editor.Code.Name.3.0.0|enemy_distance" / "Editor.Code.Option.3.0|<=": the name field or comparison picker holds the value.
-        public bool DraftValueMatches(string expected)
+
+        CommandDropZone BodyArgument(string[] parts)
         {
-            var pair = (expected ?? "").Split('|');
-            if (!IsOpen || pair.Length != 2 || !pair[0].StartsWith(TutorialKeys.CodePrefix)) return false;
-            var (block, slot) = Walk(pair[0].Substring(TutorialKeys.CodePrefix.Length).Split('.'));
-            var held = slot ? slot.Blocks.FirstOrDefault() : block;
-            return held && held.DraftValue == pair[1];
-        }
-        // Gives a robot a ready-made program (1-3 starts from two given lines); through the editor when it is open on that robot.
-        public void LoadTutorialCode(int id, string code)
-        {
-            var blocks = TutorialAnswers.Parse(code);
-            drafts.Remove(id);
-            if (IsOpen && editingId == id) { panel.LoadProgram(panel.FunctionName, blocks); panel.RefreshPalette(); return; }
-            var sim = battle.Simulation; var robot = sim?.FindRobot(id);
-            if (robot != null && sim.CanEdit) sim.ApplyProgram(id, robot.Program?.Name ?? "robot_" + id, blocks);
+            var chain = panel.Program.StartChain();
+            if (parts.Length < 4 || !int.TryParse(parts[1], out int line) || line < 1 || line > chain.Count) return null;
+            var body = chain[line - 1].Body;
+            if (!body || !int.TryParse(parts[2], out int index) || index < 0 || index >= body.Blocks.Count) return null;
+            var block = body.Blocks[index];
+            CommandDropZone slot = null;
+            for (int i = 3; i < parts.Length; i++)
+            {
+                if (slot) { block = slot.Blocks.FirstOrDefault(); if (!block) return null; }
+                if (!int.TryParse(parts[i], out int arg) || arg < 0 || arg >= block.Arguments.Count) return null;
+                slot = block.Arguments[arg];
+            }
+            return slot;
         }
         static bool Corners(RectTransform target, Rect? local, Vector3[] corners)
         {

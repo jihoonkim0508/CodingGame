@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Linq;
 using CodingGame.BlockCoding;
 
-namespace CodingGame.Defense
+namespace CodingGame.Defense.Editor
 {
     // Reads the Stage 1 tutorial answers (TutorialStep.expectedCode) into blocks: "name = get_nearest_enemy()",
     // "x = enemy.distance(get_my_pos())", "name = my_attack_range()", "slash(name)", "if a <= b:" with an indented body.
