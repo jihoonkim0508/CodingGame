@@ -150,7 +150,7 @@ namespace CodingGame.Defense
                             if (PythonTreeCompiler.HasEnemyArgument(block.Kind))
                             {
                                 var enemy = Value(block.Arguments[0], sim, robot) as EnemyValue;
-                                if (enemy == null) throw new FormatException("공격 대상에는 enemy 객체가 필요합니다.");
+                                if (enemy == null) throw new FormatException("공격 대상에는 Enemy 객체가 필요합니다.");
                                 target = enemy.Id;
                                 // 지정한 적이 사라져도 다른 적으로 자동 교체하지 않습니다.
                                 if (target == 0 || !sim.Enemies.Any(e => e.Id == target && e.Active))

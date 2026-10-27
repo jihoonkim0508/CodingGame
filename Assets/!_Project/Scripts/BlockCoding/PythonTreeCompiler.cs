@@ -266,7 +266,7 @@ namespace CodingGame.BlockCoding
             if (HasEnemyArgument(block.Kind))
             {
                 var target = block.Arguments[0];
-                Require(target, variables, ValueType.Enemy, "공격 대상에는 enemy 객체가 필요합니다.");
+                Require(target, variables, ValueType.Enemy, "공격 대상에는 Enemy 객체가 필요합니다.");
                 string method = block.Kind == BlockKind.Shot || block.Kind == BlockKind.Attack ? "attack" : block.Kind.ToString().ToLowerInvariant();
                 return method + "(" + Expression(target, variables) + ")";
             }
