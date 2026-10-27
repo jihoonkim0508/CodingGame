@@ -226,7 +226,8 @@ namespace CodingGame.Defense
         // The wave's result in large letters over the screen; the result panel fades in under it, then the rewarded blocks
         // pop out in turn. Driven from LateUpdate by the time it started, so an interrupted frame never leaves the panel or a
         // block invisible; a later result (the stage, right after the last wave) replaces the banner.
-        const float BannerSeconds = 1.4f, PanelFadeFrom = .8f, BlocksFrom = 1.1f, BlockStagger = .15f, BlockPop = .3f;
+        // The panel waits until the banner has nearly faded, so TIME UP/CLEAR never sits on top of the reward text.
+        const float BannerSeconds = 1.4f, PanelFadeFrom = 1.3f, BlocksFrom = 1.6f, BlockStagger = .15f, BlockPop = .3f;
         TextMeshProUGUI banner;
         CanvasGroup bannerGroup;
         CanvasGroup resultGroup;
