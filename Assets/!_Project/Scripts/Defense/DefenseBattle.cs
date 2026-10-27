@@ -631,7 +631,8 @@ namespace CodingGame.Defense
                 ? BattleSpeed * (tutorial ? tutorial.BattlePace : 1f) : 1;
             foreach (var bot in Simulation.Robots)
             {
-                var view = robotViews[bot.Id];
+                // A robot placed straight into the simulation (dev tools, tests) has no view; skip it instead of throwing every frame.
+                if (!robotViews.TryGetValue(bot.Id, out var view)) continue;
                 view.SyncRobot(bot, DefenseViews.World(bot.Position), battleCamera.transform.rotation); view.TickVisual(elapsed); view.SetPace(pace);
             }
             foreach (var enemy in Simulation.Enemies)
