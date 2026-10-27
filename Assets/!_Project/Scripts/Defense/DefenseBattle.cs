@@ -278,7 +278,9 @@ namespace CodingGame.Defense
         public void NotifyCodeApplied(int id, bool empty)
         {
             Tell(RobotName(id) + (empty ? " · 코드 없음" : " · 적용 완료"));
-            Trace(InventoryLine());
+            // Autosave applies on every edit; log the inventory only when the reservation actually changed.
+            string inventory = InventoryLine();
+            if (inventory != lastInventory) Trace(lastInventory = inventory);
             ReportTutorialAction("Editor.ApplyProgram", "TargetClicked", "ProgramApplied");
         }
         public bool TutorialAllows(string key) => !tutorial || tutorial.CanPerformAction(key);
@@ -713,6 +715,7 @@ namespace CodingGame.Defense
         void Trace(string text) => Debug.Log($"[Defense] S{stage} W{Simulation.WaveIndex + 1} {Simulation.Phase} robots={Simulation.Robots.Count}/{Simulation.Setup.RobotLimit} core={Simulation.BaseHealth} | {text}", this);
         void Tell(string text) { StatusMessage = text; message.text = text; Trace(text); }
         // One shared block inventory: "Slash 2 (free 1 · robot3 1)" = owned, left for a new robot, held by each robot.
+        string lastInventory;
         string InventoryLine() => "inventory " + string.Join(", ", Simulation.Inventory.OrderBy(p => p.Key).Select(p =>
             $"{p.Key} {p.Value} (free {Simulation.Available(p.Key)}" + string.Concat(Simulation.Robots.Select(r => (r, n: Simulation.Reserved(r, p.Key)))
                 .Where(x => x.n > 0).Select(x => $" · robot{x.r.Id} {x.n}")) + ")"));
