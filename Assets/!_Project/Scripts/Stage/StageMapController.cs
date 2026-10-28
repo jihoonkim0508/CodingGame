@@ -11,6 +11,7 @@ namespace CodingGame.StageMap
         Camera mapCamera;
         StageCameraController cameraController;
         GUIStyle bodyStyle, toastStyle, guideTitleStyle, guideBodyStyle;
+        GUIStyle islandTitleStyle,islandNumberStyle,islandStateStyle;
         string toast;
         bool entering; // a stage was chosen: the camera flies there and the scene fades, no more "click here"
         float toastUntil;
@@ -80,7 +81,7 @@ namespace CodingGame.StageMap
         {
             if (bodyStyle != null) return;
             Font font = Font.CreateDynamicFontFromOSFont(new[] { "Malgun Gothic", "Apple SD Gothic Neo", "Arial" }, 28);
-            bodyStyle = new GUIStyle(GUI.skin.label) { font = font, fontSize = 18, wordWrap = true, normal = { textColor = new Color(0.25f, 0.28f, 0.34f) } };
+            bodyStyle = new GUIStyle(GUI.skin.label) { font = font, fontSize = 18, wordWrap = true, normal = { textColor = new Color(.68f,.76f,.84f) } };
             toastStyle = new GUIStyle(GUI.skin.button) { font = font, fontSize = 18, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.12f, 0.14f, 0.18f) } };
             guideTitleStyle = new GUIStyle(bodyStyle) { fontSize = 20, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.35f, 0.9f, 1f) } };
             guideBodyStyle = new GUIStyle(bodyStyle) { normal = { textColor = Color.white } };
@@ -93,9 +94,12 @@ namespace CodingGame.StageMap
             GUI.Label(new Rect(34f, 25f, 480f, 30f), "도우미 로봇", guideTitleStyle);
             var available = nodes?.FirstOrDefault(n => n && n.State == StageState.Available);
             GUI.Label(new Rect(34f, 53f, 480f, 28f), available ? $"빛나는 {available.Number}스테이지를 클릭해! 바로 작전지로 이동할게." : "모든 스테이지를 완료했어! 다시 하고 싶은 스테이지를 골라 봐.", guideBodyStyle);
+            var available=nodes?.FirstOrDefault(n=>n.State==StageState.Available);
+            GUI.Label(new Rect(34f, 53f, 480f, 28f), available?$"빛나는 {available.Number}스테이지 섬을 클릭해 줘!":"클리어한 섬을 골라 다시 도전할 수 있어.", guideBodyStyle);
             GUI.Label(new Rect(18f, Screen.height - 38f, 420f, 28f), "DEV  Z: 클리어    Q: 초기화", bodyStyle);
             DrawNodeNumbers();
             DrawEnterHint();
+            DrawIslandNames();
             if (Time.unscaledTime < toastUntil)
                 GUI.Box(new Rect((Screen.width - 430f) * 0.5f, Screen.height - 80f, 430f, 45f), toast, toastStyle);
         }
@@ -122,7 +126,7 @@ namespace CodingGame.StageMap
         {
             var node = nodes?.FirstOrDefault(n => n && n.State == StageState.Available);
             if (!node || !mapCamera || cameraController.IsMoving || entering) return;
-            var bounds = node.GetComponent<Renderer>() ? node.GetComponent<Renderer>().bounds : new Bounds(node.transform.position, Vector3.one);
+            var bounds = node.VisualBounds;
             Vector3 top = mapCamera.WorldToScreenPoint(bounds.center + Vector3.up * bounds.extents.y);
             if (top.z <= 0) return;
             if (arrowStyle == null) arrowStyle = new GUIStyle(GUI.skin.label) { fontSize = 46, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
@@ -133,6 +137,28 @@ namespace CodingGame.StageMap
             GUI.Label(new Rect(top.x - 40, Screen.height - top.y - 80 - bounce, 80, 60), "▼", arrowStyle);
             GUI.Label(new Rect(top.x - 160, Screen.height - top.y - 118 - bounce, 320, 34), $"{node.Number}스테이지 · 여기를 클릭!", hintStyle);
             GUI.color = old;
+        }
+
+        void DrawIslandNames()
+        {
+            if(nodes==null||!mapCamera||entering||cameraController.IsMoving)return;
+            islandTitleStyle??=new GUIStyle(guideBodyStyle){fontSize=20,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleCenter};
+            islandNumberStyle??=new GUIStyle(islandTitleStyle){fontSize=12};
+            islandStateStyle??=new GUIStyle(islandTitleStyle){fontSize=12,fontStyle=FontStyle.Normal};
+            islandTitleStyle.fontSize=Mathf.Clamp(Mathf.RoundToInt(Screen.height*.021f),14,22);
+            islandNumberStyle.fontSize=Mathf.Clamp(Mathf.RoundToInt(Screen.height*.014f),10,14);
+            islandStateStyle.fontSize=Mathf.Clamp(Mathf.RoundToInt(Screen.height*.012f),9,12);
+            foreach(var node in nodes)
+            {
+                var island=node.GetComponent<CodingGame.Art.StageSelection.StageIslandView>();if(!island)continue;
+                var p=mapCamera.WorldToScreenPoint(node.transform.position+new Vector3(0,-.8f,-3.1f));if(p.z<=0)continue;
+                float y=Screen.height-p.y;var old=GUI.color;float width=Mathf.Min(340,Screen.width*.30f);
+                GUI.color=island.accent;GUI.Label(new Rect(p.x-width*.5f,y-9,width,22),$"STAGE {node.Number:00}",islandNumberStyle);
+                GUI.color=Color.white;GUI.Label(new Rect(p.x-width*.5f,y+13,width,30),island.stageTitle,islandTitleStyle);
+                GUI.color=node.State==StageState.Locked?new Color(.6f,.72f,.83f):island.accent;
+                GUI.Label(new Rect(p.x-width*.5f,y+43,width,22),node.State==StageState.Locked?"이전 스테이지 클리어 후 해금":node.State==StageState.Cleared?"CLEARED · 다시 플레이":"READY · 클릭하여 시작",islandStateStyle);
+                GUI.color=old;
+            }
         }
 
         static void DrawRect(Rect rect, Color color)

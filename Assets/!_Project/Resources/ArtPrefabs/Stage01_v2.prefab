@@ -133,6 +133,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6903142917231195201}
+  - {fileID: 3204769798001223363}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &492172698373410538
@@ -235,6 +236,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5588953248641316428}
+  - {fileID: 6965190212508747049}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2990684752698468576
@@ -286,6 +288,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7446489590759208273}
+  - {fileID: 6188186309802877364}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &3242219923797219645
@@ -459,6 +462,7 @@ MonoBehaviour:
   palette: {fileID: 11400000, guid: 535e01ff280742842960ee7855d51a66, type: 2}
   cellSize: 2
   floorHeight: 1
+  roadWidthScale: 1.5
   useFloorColors: 1
   upperColor: {r: 0.8117647, g: 0.8117647, b: 0.8117647, a: 1}
   lowerColor: {r: 0.4627451, g: 0.4627451, b: 0.4627451, a: 1}
@@ -1362,6 +1366,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 3595225605711454445, guid: ef3406914d40a8040a68be9d602a1eda, type: 3}
   turns: 2
+--- !u!1 &475643802966835846
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1091009127550641781}
+  - component: {fileID: 3319325313667271679}
+  - component: {fileID: 7515061073740394888}
+  - component: {fileID: 5761598300439999314}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1091009127550641781
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 475643802966835846}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3408345720831506144}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &3319325313667271679
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 475643802966835846}
+  m_Mesh: {fileID: 9209412842159820171, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &7515061073740394888
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 475643802966835846}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &5761598300439999314
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 475643802966835846}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 377679659421723295}
+  originalEnabled: 01
 --- !u!1 &479897730682456279
 GameObject:
   m_ObjectHideFlags: 0
@@ -1413,6 +1524,327 @@ MonoBehaviour:
   road: 0
   source: {fileID: 3595225605711454445, guid: ef3406914d40a8040a68be9d602a1eda, type: 3}
   turns: 0
+--- !u!1 &482194319161301028
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3551293148868312303}
+  - component: {fileID: 2982756522713763697}
+  - component: {fileID: 9167928700501424152}
+  - component: {fileID: 4692318015919822794}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3551293148868312303
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 482194319161301028}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6513710160296047578}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2982756522713763697
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 482194319161301028}
+  m_Mesh: {fileID: 4300000, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &9167928700501424152
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 482194319161301028}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &4692318015919822794
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 482194319161301028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 5107347027876294886}
+  originalEnabled: 01
+--- !u!1 &494768615636310294
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5412903373984953491}
+  - component: {fileID: 8213629474631467133}
+  - component: {fileID: 7550106044082387606}
+  - component: {fileID: 8215899902806527739}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5412903373984953491
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 494768615636310294}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2480490160770666396}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &8213629474631467133
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 494768615636310294}
+  m_Mesh: {fileID: 1288137347164128821, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &7550106044082387606
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 494768615636310294}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &8215899902806527739
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 494768615636310294}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 2407381833992532630}
+  originalEnabled: 01
+--- !u!1 &514547839631230236
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4723564048475387997}
+  - component: {fileID: 1799563512764871068}
+  - component: {fileID: 6016334620476192468}
+  - component: {fileID: 5611171503793257654}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4723564048475387997
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 514547839631230236}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2655028329976425122}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &1799563512764871068
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 514547839631230236}
+  m_Mesh: {fileID: -6093310212409616067, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &6016334620476192468
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 514547839631230236}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &5611171503793257654
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 514547839631230236}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 6696800385091833514}
+  originalEnabled: 01
 --- !u!1 &528029784069153050
 GameObject:
   m_ObjectHideFlags: 0
@@ -1546,6 +1978,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7808484264799764639}
+  - {fileID: 4723564048475387997}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &8652891873518276289
@@ -1597,6 +2030,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2433195944188956540}
+  - {fileID: 5427290059283333504}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4208483783219347944
@@ -1617,6 +2051,113 @@ MonoBehaviour:
   road: 1
   source: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
   turns: 0
+--- !u!1 &754863026936106892
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1642194818336994081}
+  - component: {fileID: 5382940358691707721}
+  - component: {fileID: 3573671411908929950}
+  - component: {fileID: 6940023456616104259}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1642194818336994081
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 754863026936106892}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6429847175650173967}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &5382940358691707721
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 754863026936106892}
+  m_Mesh: {fileID: 9017507568286236518, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &3573671411908929950
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 754863026936106892}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &6940023456616104259
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 754863026936106892}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 5079578223848517101}
+  originalEnabled: 01
 --- !u!1 &754884355285294549
 GameObject:
   m_ObjectHideFlags: 0
@@ -1801,6 +2342,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 211083138395118799}
+  - {fileID: 3420365711500867559}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &3458193056443670886
@@ -2005,6 +2547,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8326143681893424888}
+  - {fileID: 5511113543763656102}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5741985145988185688
@@ -2127,6 +2670,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 2255287691666254157, guid: 4846570de3edab0439c84ef3235eef53, type: 3}
   turns: 0
+--- !u!1 &1209937749464253542
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7071612630144147046}
+  - component: {fileID: 2060871596705877005}
+  - component: {fileID: 2365339459132735142}
+  - component: {fileID: 7738312256450052218}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7071612630144147046
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1209937749464253542}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2617486333026119596}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2060871596705877005
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1209937749464253542}
+  m_Mesh: {fileID: 5607637769751400011, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &2365339459132735142
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1209937749464253542}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &7738312256450052218
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1209937749464253542}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 6846681552078285490}
+  originalEnabled: 01
 --- !u!1 &1236040334776667299
 GameObject:
   m_ObjectHideFlags: 0
@@ -2382,6 +3032,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 2255287691666254157, guid: 4846570de3edab0439c84ef3235eef53, type: 3}
   turns: 0
+--- !u!1 &1450147880090151400
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7303294946391405779}
+  - component: {fileID: 4776759291503957132}
+  - component: {fileID: 6514561363836296889}
+  - component: {fileID: 7423028906115029678}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7303294946391405779
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1450147880090151400}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6060860568716856916}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &4776759291503957132
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1450147880090151400}
+  m_Mesh: {fileID: -4271211562830108240, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &6514561363836296889
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1450147880090151400}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &7423028906115029678
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1450147880090151400}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 985033063374318768}
+  originalEnabled: 01
 --- !u!1 &1455015288740539978
 GameObject:
   m_ObjectHideFlags: 0
@@ -2464,6 +3221,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5189122873575748702}
+  - {fileID: 6674310831896832700}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1944620636280319179
@@ -2515,6 +3273,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6091557847277029273}
+  - {fileID: 7493094114740407416}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &7331231240249941035
@@ -3045,6 +3804,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 2255287691666254157, guid: 4846570de3edab0439c84ef3235eef53, type: 3}
   turns: 0
+--- !u!1 &1837926009530368272
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 47881839616297334}
+  - component: {fileID: 2048787733832239562}
+  - component: {fileID: 1704609498432014581}
+  - component: {fileID: 6396251990364438080}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &47881839616297334
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1837926009530368272}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6825704002233635330}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2048787733832239562
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1837926009530368272}
+  m_Mesh: {fileID: -5844417333088379604, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &1704609498432014581
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1837926009530368272}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &6396251990364438080
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1837926009530368272}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 610762685737412733}
+  originalEnabled: 01
 --- !u!1 &1884718063105561888
 GameObject:
   m_ObjectHideFlags: 0
@@ -3147,6 +4013,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 2255287691666254157, guid: 4846570de3edab0439c84ef3235eef53, type: 3}
   turns: 0
+--- !u!1 &1917863317790339074
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6965190212508747049}
+  - component: {fileID: 3387631824862140912}
+  - component: {fileID: 1452683752674202188}
+  - component: {fileID: 2080386513960678961}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6965190212508747049
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1917863317790339074}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7571078946166190468}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &3387631824862140912
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1917863317790339074}
+  m_Mesh: {fileID: -624387451615897511, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &1452683752674202188
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1917863317790339074}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &2080386513960678961
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1917863317790339074}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 9024488213863004281}
+  originalEnabled: 01
 --- !u!1 &2107382803976411424
 GameObject:
   m_ObjectHideFlags: 0
@@ -3198,6 +4171,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 2255287691666254157, guid: 4846570de3edab0439c84ef3235eef53, type: 3}
   turns: 0
+--- !u!1 &2309484943980261016
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6135167383722672083}
+  - component: {fileID: 2815820598286884158}
+  - component: {fileID: 2791506817533373194}
+  - component: {fileID: 3381509081888622486}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6135167383722672083
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2309484943980261016}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2894579570109984845}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2815820598286884158
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2309484943980261016}
+  m_Mesh: {fileID: 2935824115286010675, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &2791506817533373194
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2309484943980261016}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &3381509081888622486
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2309484943980261016}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 4590422568700609628}
+  originalEnabled: 01
 --- !u!1 &2441977168647231210
 GameObject:
   m_ObjectHideFlags: 0
@@ -3249,6 +4329,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 2255287691666254157, guid: 4846570de3edab0439c84ef3235eef53, type: 3}
   turns: 0
+--- !u!1 &2494493458897021885
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3188169474642697503}
+  - component: {fileID: 602229319481984149}
+  - component: {fileID: 5499693789979164781}
+  - component: {fileID: 5894635929742928549}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3188169474642697503
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2494493458897021885}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5160177473519222638}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &602229319481984149
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2494493458897021885}
+  m_Mesh: {fileID: 7858171021354233948, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &5499693789979164781
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2494493458897021885}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &5894635929742928549
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2494493458897021885}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 2546611285518596086}
+  originalEnabled: 01
 --- !u!1 &2497974972029709988
 GameObject:
   m_ObjectHideFlags: 0
@@ -3300,6 +4487,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 1064417446516465558, guid: 11ccc43e93e8df5408fc011bdc070099, type: 3}
   turns: 0
+--- !u!1 &2513195457277050954
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 273750457951661278}
+  - component: {fileID: 8414897243443051319}
+  - component: {fileID: 2272552600489057407}
+  - component: {fileID: 8991259270490213767}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &273750457951661278
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2513195457277050954}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2632762207994286344}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &8414897243443051319
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2513195457277050954}
+  m_Mesh: {fileID: 4013567300223539831, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &2272552600489057407
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2513195457277050954}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &8991259270490213767
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2513195457277050954}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 1622101477717477265}
+  originalEnabled: 01
 --- !u!1 &2537654610349368386
 GameObject:
   m_ObjectHideFlags: 0
@@ -3331,6 +4625,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5096663346045567794}
+  - {fileID: 1170942467821681477}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5682394595044488682
@@ -3453,6 +4748,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 4635939651094508134, guid: b009717b390c6a149a292838f65bcffd, type: 3}
   turns: 1
+--- !u!1 &2666015046650066108
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7493094114740407416}
+  - component: {fileID: 7620019293578133299}
+  - component: {fileID: 5057095172751389237}
+  - component: {fileID: 244013653542776600}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7493094114740407416
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2666015046650066108}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 299476706044052469}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &7620019293578133299
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2666015046650066108}
+  m_Mesh: {fileID: 2920114822742943222, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &5057095172751389237
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2666015046650066108}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &244013653542776600
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2666015046650066108}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 5689543522927467624}
+  originalEnabled: 01
 --- !u!1 &2691335023926500853
 GameObject:
   m_ObjectHideFlags: 0
@@ -3586,6 +4988,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6673260601947532055}
+  - {fileID: 3551293148868312303}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2392007210165370732
@@ -3739,6 +5142,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8809353748978672239}
+  - {fileID: 2308935287862556064}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2198752908582865814
@@ -3810,6 +5214,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 2255287691666254157, guid: 4846570de3edab0439c84ef3235eef53, type: 3}
   turns: 0
+--- !u!1 &3030920229658682818
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3801640492968227309}
+  - component: {fileID: 4515326505663741034}
+  - component: {fileID: 4289328331248864288}
+  - component: {fileID: 5047839065416658725}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3801640492968227309
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3030920229658682818}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2909263904436946220}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &4515326505663741034
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3030920229658682818}
+  m_Mesh: {fileID: 3782327327435648124, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &4289328331248864288
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3030920229658682818}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &5047839065416658725
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3030920229658682818}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 5424093387930611788}
+  originalEnabled: 01
 --- !u!1 &3060635912493698725
 GameObject:
   m_ObjectHideFlags: 0
@@ -3963,6 +5474,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 2255287691666254157, guid: 4846570de3edab0439c84ef3235eef53, type: 3}
   turns: 0
+--- !u!1 &3171156672280964763
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7663628619795967059}
+  - component: {fileID: 8681437541201862288}
+  - component: {fileID: 3466458343498670363}
+  - component: {fileID: 9075143908304344381}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7663628619795967059
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3171156672280964763}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6661968056928315135}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &8681437541201862288
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3171156672280964763}
+  m_Mesh: {fileID: 876231329261663072, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &3466458343498670363
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3171156672280964763}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &9075143908304344381
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3171156672280964763}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 3335808754862408497}
+  originalEnabled: 01
 --- !u!1 &3225161887606749530
 GameObject:
   m_ObjectHideFlags: 0
@@ -4045,6 +5663,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 629025172983529537}
+  - {fileID: 765843536971803879}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &7639960635446608271
@@ -4622,6 +6241,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1082810493108816489}
+  - {fileID: 6135167383722672083}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &7205618509377787421
@@ -5101,6 +6721,220 @@ MonoBehaviour:
   road: 0
   source: {fileID: 2255287691666254157, guid: 4846570de3edab0439c84ef3235eef53, type: 3}
   turns: 0
+--- !u!1 &3896179295376600896
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3898052176172940281}
+  - component: {fileID: 765213265236764181}
+  - component: {fileID: 6953332845749893799}
+  - component: {fileID: 9021152522145720785}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3898052176172940281
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3896179295376600896}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7349300557555808303}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &765213265236764181
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3896179295376600896}
+  m_Mesh: {fileID: 1565872237395436079, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &6953332845749893799
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3896179295376600896}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &9021152522145720785
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3896179295376600896}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 5332218615671202209}
+  originalEnabled: 01
+--- !u!1 &4037187158297340107
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5511113543763656102}
+  - component: {fileID: 3146878377240039992}
+  - component: {fileID: 389789040272121687}
+  - component: {fileID: 6247861009360835904}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5511113543763656102
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4037187158297340107}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8307970930613813570}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &3146878377240039992
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4037187158297340107}
+  m_Mesh: {fileID: 4251531044392066452, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &389789040272121687
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4037187158297340107}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &6247861009360835904
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4037187158297340107}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 4845584001128845517}
+  originalEnabled: 01
 --- !u!1 &4065848198495040797
 GameObject:
   m_ObjectHideFlags: 0
@@ -5132,6 +6966,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8560452364955018200}
+  - {fileID: 1642194818336994081}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &6828759528893283268
@@ -5336,6 +7171,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3859398854654813354}
+  - {fileID: 1091009127550641781}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1068444256643636338
@@ -5387,6 +7223,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8049854419927278727}
+  - {fileID: 7071612630144147046}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4473543176528048271
@@ -5458,6 +7295,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 2255287691666254157, guid: 4846570de3edab0439c84ef3235eef53, type: 3}
   turns: 0
+--- !u!1 &4313643853394930400
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3420365711500867559}
+  - component: {fileID: 8196968398159543910}
+  - component: {fileID: 3792394345381450668}
+  - component: {fileID: 1605707773940455383}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3420365711500867559
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4313643853394930400}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 367394543534552977}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &8196968398159543910
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4313643853394930400}
+  m_Mesh: {fileID: 5722951950117635402, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &3792394345381450668
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4313643853394930400}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &1605707773940455383
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4313643853394930400}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 1770254231381083966}
+  originalEnabled: 01
 --- !u!1 &4405715437061385857
 GameObject:
   m_ObjectHideFlags: 0
@@ -5919,6 +7863,113 @@ Transform:
   - {fileID: 37821801974317877}
   m_Father: {fileID: 5839333639780278821}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &4663544536675277657
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1462672264629418783}
+  - component: {fileID: 6150910827561255342}
+  - component: {fileID: 9113734418518779001}
+  - component: {fileID: 8582755334498030652}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1462672264629418783
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4663544536675277657}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6426321738842771144}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &6150910827561255342
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4663544536675277657}
+  m_Mesh: {fileID: 2595012908986551813, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &9113734418518779001
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4663544536675277657}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &8582755334498030652
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4663544536675277657}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 8736388910840280991}
+  originalEnabled: 01
 --- !u!1 &4686868875588476469
 GameObject:
   m_ObjectHideFlags: 0
@@ -5970,6 +8021,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 2255287691666254157, guid: 4846570de3edab0439c84ef3235eef53, type: 3}
   turns: 0
+--- !u!1 &4795741247162281036
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 609047072921851445}
+  - component: {fileID: 3311795571993144568}
+  - component: {fileID: 4292448524360196169}
+  - component: {fileID: 4913785391825308309}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &609047072921851445
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4795741247162281036}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3922899388802864286}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &3311795571993144568
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4795741247162281036}
+  m_Mesh: {fileID: 2919808921395036947, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &4292448524360196169
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4795741247162281036}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &4913785391825308309
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4795741247162281036}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 5576998019948876646}
+  originalEnabled: 01
 --- !u!1 &4819302873526185305
 GameObject:
   m_ObjectHideFlags: 0
@@ -6072,6 +8230,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 4635939651094508134, guid: b009717b390c6a149a292838f65bcffd, type: 3}
   turns: 2
+--- !u!1 &4877251940599933320
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6188186309802877364}
+  - component: {fileID: 3998373579031100315}
+  - component: {fileID: 3031489410929485497}
+  - component: {fileID: 1869315238919531656}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6188186309802877364
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4877251940599933320}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6604176914519104372}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &3998373579031100315
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4877251940599933320}
+  m_Mesh: {fileID: 5332536031472637381, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &3031489410929485497
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4877251940599933320}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &1869315238919531656
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4877251940599933320}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 6333646284630506340}
+  originalEnabled: 01
 --- !u!1 &4905544537117770061
 GameObject:
   m_ObjectHideFlags: 0
@@ -6154,6 +8419,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7152065078656527470}
+  - {fileID: 1462672264629418783}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2207300293529054186
@@ -6409,6 +8675,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3205839176463125260}
+  - {fileID: 4239606400675245862}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &6731829346529528138
@@ -6480,6 +8747,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 1064417446516465558, guid: 11ccc43e93e8df5408fc011bdc070099, type: 3}
   turns: 3
+--- !u!1 &5411581315617559893
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 151273122716111446}
+  - component: {fileID: 213414808862077589}
+  - component: {fileID: 1812961843359355425}
+  - component: {fileID: 6601660991301276365}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &151273122716111446
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5411581315617559893}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 943845283293511482}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &213414808862077589
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5411581315617559893}
+  m_Mesh: {fileID: -1649534947972671037, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &1812961843359355425
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5411581315617559893}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &6601660991301276365
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5411581315617559893}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 4138901126474957413}
+  originalEnabled: 01
 --- !u!1 &5442075058607276251
 GameObject:
   m_ObjectHideFlags: 0
@@ -6511,6 +8885,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6287227565282668563}
+  - {fileID: 3553075006502754684}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5929784586515225376
@@ -6664,6 +9039,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8116144411431547159}
+  - {fileID: 5112898355254667610}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &619693799805409225
@@ -6684,6 +9060,113 @@ MonoBehaviour:
   road: 1
   source: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
   turns: 1
+--- !u!1 &5470574964324323546
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7053948675702027824}
+  - component: {fileID: 7449647375470943847}
+  - component: {fileID: 2934737506836485351}
+  - component: {fileID: 6350404541473482957}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7053948675702027824
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5470574964324323546}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4947995580317779549}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &7449647375470943847
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5470574964324323546}
+  m_Mesh: {fileID: -8422921188202189507, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &2934737506836485351
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5470574964324323546}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &6350404541473482957
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5470574964324323546}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 696708919556333125}
+  originalEnabled: 01
 --- !u!1 &5492791294686568210
 GameObject:
   m_ObjectHideFlags: 0
@@ -6735,6 +9218,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 2255287691666254157, guid: 4846570de3edab0439c84ef3235eef53, type: 3}
   turns: 0
+--- !u!1 &5536366404252024795
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3204769798001223363}
+  - component: {fileID: 3462425774236420056}
+  - component: {fileID: 9193313309618577904}
+  - component: {fileID: 7563105260466027752}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3204769798001223363
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5536366404252024795}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5335958237148747800}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &3462425774236420056
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5536366404252024795}
+  m_Mesh: {fileID: 8242517011909116387, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &9193313309618577904
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5536366404252024795}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &7563105260466027752
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5536366404252024795}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 5021581540611993520}
+  originalEnabled: 01
 --- !u!1 &5593698698120311742
 GameObject:
   m_ObjectHideFlags: 0
@@ -6817,6 +9407,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2232011949102681348}
+  - {fileID: 7663628619795967059}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &6411006872202687938
@@ -6919,6 +9510,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4114507181691719792}
+  - {fileID: 7053948675702027824}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4286823391490885666
@@ -7582,6 +10174,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 9067968506034330963}
+  - {fileID: 609047072921851445}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &469326639327911394
@@ -7837,6 +10430,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5752193945712445878}
+  - {fileID: 165793559491687720}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &3434012189975270099
@@ -8265,6 +10859,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 4635939651094508134, guid: b009717b390c6a149a292838f65bcffd, type: 3}
   turns: 0
+--- !u!1 &6577083699611020259
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6674310831896832700}
+  - component: {fileID: 511230873139211894}
+  - component: {fileID: 2072357933181416161}
+  - component: {fileID: 3742143408385901775}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6674310831896832700
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6577083699611020259}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6373119888616293589}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &511230873139211894
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6577083699611020259}
+  m_Mesh: {fileID: 6781797050023949458, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &2072357933181416161
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6577083699611020259}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &3742143408385901775
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6577083699611020259}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 8696988180455438955}
+  originalEnabled: 01
 --- !u!1 &6626009896832367206
 GameObject:
   m_ObjectHideFlags: 0
@@ -8398,6 +11099,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8740721604340330388}
+  - {fileID: 3898052176172940281}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &3465979863468971200
@@ -8653,6 +11355,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2751773977524013476}
+  - {fileID: 273750457951661278}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &3830090050570969697
@@ -9112,6 +11815,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2570480012402802468}
+  - {fileID: 2804112887242528667}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2523492531812978184
@@ -9285,6 +11989,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 3595225605711454445, guid: ef3406914d40a8040a68be9d602a1eda, type: 3}
   turns: 2
+--- !u!1 &7264439426676291050
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4239606400675245862}
+  - component: {fileID: 8990966456119734412}
+  - component: {fileID: 502249143564097097}
+  - component: {fileID: 1210119486187412359}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4239606400675245862
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7264439426676291050}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 497939891269469524}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &8990966456119734412
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7264439426676291050}
+  m_Mesh: {fileID: -762615836380533239, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &502249143564097097
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7264439426676291050}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &1210119486187412359
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7264439426676291050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 2076144961301677369}
+  originalEnabled: 01
 --- !u!1 &7275941738525191324
 GameObject:
   m_ObjectHideFlags: 0
@@ -9316,6 +12127,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4402573421313516165}
+  - {fileID: 7303294946391405779}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &7056836281438909464
@@ -9540,6 +12352,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 2255287691666254157, guid: 4846570de3edab0439c84ef3235eef53, type: 3}
   turns: 0
+--- !u!1 &7461985680814546267
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5112898355254667610}
+  - component: {fileID: 7555385802385309022}
+  - component: {fileID: 1147312036328768105}
+  - component: {fileID: 6589040619810152949}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5112898355254667610
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7461985680814546267}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6162560934734116080}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &7555385802385309022
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7461985680814546267}
+  m_Mesh: {fileID: -6230346696541952418, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &1147312036328768105
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7461985680814546267}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &6589040619810152949
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7461985680814546267}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 4616410886408584994}
+  originalEnabled: 01
 --- !u!1 &7515771874082178373
 GameObject:
   m_ObjectHideFlags: 0
@@ -9775,6 +12694,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6560979562623717539}
+  - {fileID: 5923743621437102610}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &7051146526482958069
@@ -9795,6 +12715,113 @@ MonoBehaviour:
   road: 1
   source: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
   turns: 0
+--- !u!1 &7676016879844608589
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3007151960267556059}
+  - component: {fileID: 2775000901903820321}
+  - component: {fileID: 6085985358833810937}
+  - component: {fileID: 7922545255135729630}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3007151960267556059
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7676016879844608589}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2112757385975320270}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2775000901903820321
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7676016879844608589}
+  m_Mesh: {fileID: -2582879761510515386, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &6085985358833810937
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7676016879844608589}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &7922545255135729630
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7676016879844608589}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 5937723863142678777}
+  originalEnabled: 01
 --- !u!1 &7686832063057218450
 GameObject:
   m_ObjectHideFlags: 0
@@ -10050,6 +13077,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 2255287691666254157, guid: 4846570de3edab0439c84ef3235eef53, type: 3}
   turns: 0
+--- !u!1 &8030418046947655248
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 765843536971803879}
+  - component: {fileID: 5160678826852371793}
+  - component: {fileID: 9138837687467568092}
+  - component: {fileID: 3570843732249865425}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &765843536971803879
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8030418046947655248}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6137662643854282094}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &5160678826852371793
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8030418046947655248}
+  m_Mesh: {fileID: 5430862461021584804, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &9138837687467568092
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8030418046947655248}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &3570843732249865425
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8030418046947655248}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 4037512691197234804}
+  originalEnabled: 01
 --- !u!1 &8041812604243414856
 GameObject:
   m_ObjectHideFlags: 0
@@ -10081,6 +13215,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1433831409630394819}
+  - {fileID: 3188169474642697503}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4232710310269389257
@@ -10458,6 +13593,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 4635939651094508134, guid: b009717b390c6a149a292838f65bcffd, type: 3}
   turns: 3
+--- !u!1 &8249832031009465629
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1170942467821681477}
+  - component: {fileID: 7953214553401668388}
+  - component: {fileID: 362130365167807568}
+  - component: {fileID: 1696879521937028905}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1170942467821681477
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8249832031009465629}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3733142573838516853}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &7953214553401668388
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8249832031009465629}
+  m_Mesh: {fileID: -2808582417601022627, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &362130365167807568
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8249832031009465629}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &1696879521937028905
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8249832031009465629}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 8505156911556709639}
+  originalEnabled: 01
 --- !u!1 &8310287634751490467
 GameObject:
   m_ObjectHideFlags: 0
@@ -10642,6 +13884,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 703348569067097168}
+  - {fileID: 151273122716111446}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &3843819038494955716
@@ -10815,6 +14058,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 2255287691666254157, guid: 4846570de3edab0439c84ef3235eef53, type: 3}
   turns: 0
+--- !u!1 &8639787961964388361
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2308935287862556064}
+  - component: {fileID: 8666806109472758805}
+  - component: {fileID: 1428025094405684974}
+  - component: {fileID: 3395322487598060946}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2308935287862556064
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8639787961964388361}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1726738608060786695}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &8666806109472758805
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8639787961964388361}
+  m_Mesh: {fileID: 8712805275885511798, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &1428025094405684974
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8639787961964388361}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &3395322487598060946
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8639787961964388361}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 5400805405438127194}
+  originalEnabled: 01
 --- !u!1 &8650227248402614828
 GameObject:
   m_ObjectHideFlags: 0
@@ -10846,6 +14196,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5195982174083177224}
+  - {fileID: 3007151960267556059}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2969972139444300492
@@ -11098,8 +14449,8 @@ Transform:
   m_GameObject: {fileID: 8798494598074778731}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: -1.08, z: 1.4411469}
-  m_LocalScale: {x: 47.1, y: 34.849407, z: 1}
+  m_LocalPosition: {x: 0, y: -1.08, z: 0}
+  m_LocalScale: {x: 88, y: 88, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5839333639780278821}
@@ -11204,6 +14555,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1286378493728095395}
+  - {fileID: 5412903373984953491}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &215296279273072513
@@ -11224,6 +14576,327 @@ MonoBehaviour:
   road: 1
   source: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
   turns: 0
+--- !u!1 &8839946920339621647
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3553075006502754684}
+  - component: {fileID: 2500713398871323760}
+  - component: {fileID: 664820407659684673}
+  - component: {fileID: 7873619851517408549}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3553075006502754684
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8839946920339621647}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4234009794364899714}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &2500713398871323760
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8839946920339621647}
+  m_Mesh: {fileID: -187014711899155621, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &664820407659684673
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8839946920339621647}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &7873619851517408549
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8839946920339621647}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 7490092292849581606}
+  originalEnabled: 01
+--- !u!1 &8840039215451547076
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5427290059283333504}
+  - component: {fileID: 5130919693060997217}
+  - component: {fileID: 7800071146616155367}
+  - component: {fileID: 9079337920547366930}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5427290059283333504
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8840039215451547076}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7421825775687728767}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &5130919693060997217
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8840039215451547076}
+  m_Mesh: {fileID: -8085940633662513461, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &7800071146616155367
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8840039215451547076}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &9079337920547366930
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8840039215451547076}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 1258454522889158985}
+  originalEnabled: 01
+--- !u!1 &8852421289942608485
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2804112887242528667}
+  - component: {fileID: 4660588524751984544}
+  - component: {fileID: 8190189577184257255}
+  - component: {fileID: 5388800756234970322}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2804112887242528667
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8852421289942608485}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8351835085777945613}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &4660588524751984544
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8852421289942608485}
+  m_Mesh: {fileID: 6172165430350621824, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &8190189577184257255
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8852421289942608485}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &5388800756234970322
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8852421289942608485}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 4166097752209827029}
+  originalEnabled: 01
 --- !u!1 &8891334226791378855
 GameObject:
   m_ObjectHideFlags: 0
@@ -11306,6 +14979,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8932009545075605113}
+  - {fileID: 3801640492968227309}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &9006007436008304248
@@ -11408,6 +15082,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4092437273456813640}
+  - {fileID: 47881839616297334}
   m_Father: {fileID: 8534300154688819478}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &3277387609269572481
@@ -11479,6 +15154,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 2255287691666254157, guid: 4846570de3edab0439c84ef3235eef53, type: 3}
   turns: 0
+--- !u!1 &9040312303121926825
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 165793559491687720}
+  - component: {fileID: 8901471287365752163}
+  - component: {fileID: 2829350641190050655}
+  - component: {fileID: 5881456109864950582}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &165793559491687720
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9040312303121926825}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3502905481027422702}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &8901471287365752163
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9040312303121926825}
+  m_Mesh: {fileID: 3899154765966252953, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &2829350641190050655
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9040312303121926825}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &5881456109864950582
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9040312303121926825}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 6174219362192347719}
+  originalEnabled: 01
 --- !u!1 &9099487063568406457
 GameObject:
   m_ObjectHideFlags: 0
@@ -11632,6 +15414,113 @@ MonoBehaviour:
   road: 0
   source: {fileID: 2255287691666254157, guid: 4846570de3edab0439c84ef3235eef53, type: 3}
   turns: 0
+--- !u!1 &9165275860045316644
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5923743621437102610}
+  - component: {fileID: 5418485599439015761}
+  - component: {fileID: 5118300399990028256}
+  - component: {fileID: 5967639691161982690}
+  m_Layer: 0
+  m_Name: Wide Road
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5923743621437102610
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9165275860045316644}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6780206239328266671}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &5418485599439015761
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9165275860045316644}
+  m_Mesh: {fileID: 2402472651952176340, guid: 936032a66d7ded540a0786c00058365b, type: 2}
+--- !u!23 &5118300399990028256
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9165275860045316644}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  - {fileID: 2100000, guid: f0a556162be98f34e8922edb61a95371, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &5967639691161982690
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9165275860045316644}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f817d9a37c0b65849a956edf30889040, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Art.MapPainter.WideRoadTile
+  originalRenderers:
+  - {fileID: 7764161020407307926}
+  originalEnabled: 01
 --- !u!1 &9168983224282859788
 GameObject:
   m_ObjectHideFlags: 0
@@ -12442,6 +16331,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 6604176914519104372}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -12503,6 +16396,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+--- !u!23 &6333646284630506340 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 534480277583352545}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &7446489590759208273 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
@@ -12922,6 +16820,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: RoadCorner
       objectReference: {fileID: 0}
+    - target: {fileID: 6883282226537525027, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -12930,6 +16832,11 @@ PrefabInstance:
 --- !u!4 &5752193945712445878 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5042495090921108690, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
+  m_PrefabInstance: {fileID: 732238990263401828}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &6174219362192347719 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 6883282226537525027, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
   m_PrefabInstance: {fileID: 732238990263401828}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &742283744183384133
@@ -13150,6 +17057,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2655028329976425122}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -13211,6 +17122,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+--- !u!23 &6696800385091833514 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 891901009960920879}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &7808484264799764639 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
@@ -13490,6 +17406,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: RoadCorner
       objectReference: {fileID: 0}
+    - target: {fileID: 6883282226537525027, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -13500,6 +17420,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5042495090921108690, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
   m_PrefabInstance: {fileID: 1000182656337293274}
   m_PrefabAsset: {fileID: 0}
+--- !u!23 &5937723863142678777 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 6883282226537525027, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
+  m_PrefabInstance: {fileID: 1000182656337293274}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1120050361190171447
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -13508,6 +17433,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2617486333026119596}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -13569,6 +17498,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+--- !u!23 &6846681552078285490 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 1120050361190171447}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &8049854419927278727 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
@@ -13722,6 +17656,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 6162560934734116080}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -13783,6 +17721,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+--- !u!23 &4616410886408584994 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 1197872254926476967}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &8116144411431547159 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
@@ -13852,11 +17795,20 @@ PrefabInstance:
       propertyPath: m_Name
       value: RoadCorner
       objectReference: {fileID: 0}
+    - target: {fileID: 6883282226537525027, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
+--- !u!23 &5689543522927467624 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 6883282226537525027, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
+  m_PrefabInstance: {fileID: 1257354252006732619}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &6091557847277029273 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5042495090921108690, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
@@ -14150,6 +18102,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 8307970930613813570}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -14211,6 +18167,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+--- !u!23 &4845584001128845517 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 1419060217987512648}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &8326143681893424888 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
@@ -14434,6 +18395,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 6429847175650173967}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -14495,6 +18460,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+--- !u!23 &5079578223848517101 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 1653157777773528168}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &8560452364955018200 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
@@ -14634,11 +18604,20 @@ PrefabInstance:
       propertyPath: m_Name
       value: RoadCorner
       objectReference: {fileID: 0}
+    - target: {fileID: 6883282226537525027, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
+--- !u!23 &5107347027876294886 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 6883282226537525027, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
+  m_PrefabInstance: {fileID: 1830332510894153669}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &6673260601947532055 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5042495090921108690, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
@@ -14652,6 +18631,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7349300557555808303}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -14713,6 +18696,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+--- !u!23 &5332218615671202209 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 1833145172009928740}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &8740721604340330388 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
@@ -14992,11 +18980,20 @@ PrefabInstance:
       propertyPath: m_Name
       value: RoadCorner
       objectReference: {fileID: 0}
+    - target: {fileID: 6883282226537525027, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
+--- !u!23 &5021581540611993520 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 6883282226537525027, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
+  m_PrefabInstance: {fileID: 1888813062196117651}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &6903142917231195201 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5042495090921108690, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
@@ -15010,6 +19007,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1726738608060786695}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -15071,6 +19072,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+--- !u!23 &5400805405438127194 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 1908673711946810847}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &8809353748978672239 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
@@ -15294,6 +19300,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2909263904436946220}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -15355,6 +19365,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+--- !u!23 &5424093387930611788 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 2002196882716580297}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &8932009545075605113 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
@@ -15648,6 +19663,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3922899388802864286}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -15709,6 +19728,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+--- !u!23 &5576998019948876646 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 2155536885769665251}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &9067968506034330963 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
@@ -16282,6 +20306,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3733142573838516853}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -16346,6 +20374,11 @@ PrefabInstance:
 --- !u!4 &5096663346045567794 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 2776214496779871362}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &8505156911556709639 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
   m_PrefabInstance: {fileID: 2776214496779871362}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &2785552630204240887
@@ -16482,6 +20515,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: RoadCorner
       objectReference: {fileID: 0}
+    - target: {fileID: 6883282226537525027, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -16490,6 +20527,11 @@ PrefabInstance:
 --- !u!4 &7152065078656527470 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5042495090921108690, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
+  m_PrefabInstance: {fileID: 2791026541349083324}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &8736388910840280991 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 6883282226537525027, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
   m_PrefabInstance: {fileID: 2791026541349083324}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &2872798611565576765
@@ -16570,6 +20612,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 6373119888616293589}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -16634,6 +20680,11 @@ PrefabInstance:
 --- !u!4 &5189122873575748702 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 2899917859599700974}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &8696988180455438955 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
   m_PrefabInstance: {fileID: 2899917859599700974}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &2904115355928447723
@@ -17274,6 +21325,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7571078946166190468}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -17338,6 +21393,11 @@ PrefabInstance:
 --- !u!4 &5588953248641316428 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 3292720053129155068}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &9024488213863004281 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
   m_PrefabInstance: {fileID: 3292720053129155068}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &3338253620785501666
@@ -18398,6 +22458,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4234009794364899714}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -18462,6 +22526,11 @@ PrefabInstance:
 --- !u!4 &6287227565282668563 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 3998453232507672483}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &7490092292849581606 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
   m_PrefabInstance: {fileID: 3998453232507672483}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &4085225855342343667
@@ -18682,6 +22751,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 6780206239328266671}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -18746,6 +22819,11 @@ PrefabInstance:
 --- !u!4 &6560979562623717539 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 4265098006016997139}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &7764161020407307926 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
   m_PrefabInstance: {fileID: 4265098006016997139}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &4288101100497997258
@@ -19386,6 +23464,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7421825775687728767}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -19447,6 +23529,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+--- !u!23 &1258454522889158985 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 4753996902525806796}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &2433195944188956540 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
@@ -19740,6 +23827,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2632762207994286344}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -19801,6 +23892,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+--- !u!23 &1622101477717477265 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 5047875428269551124}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &2751773977524013476 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
@@ -19870,6 +23966,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: RoadCorner
       objectReference: {fileID: 0}
+    - target: {fileID: 6883282226537525027, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -19878,6 +23978,11 @@ PrefabInstance:
 --- !u!4 &211083138395118799 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5042495090921108690, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
+  m_PrefabInstance: {fileID: 5122669132593850397}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &1770254231381083966 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 6883282226537525027, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
   m_PrefabInstance: {fileID: 5122669132593850397}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &5244395019705457483
@@ -20028,6 +24133,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 497939891269469524}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -20089,6 +24198,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+--- !u!23 &2076144961301677369 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 5494542803470642364}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &3205839176463125260 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
@@ -21082,6 +25196,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3408345720831506144}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -21143,6 +25261,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+--- !u!23 &377679659421723295 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 6175194714726826778}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &3859398854654813354 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
@@ -21646,6 +25769,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 6825704002233635330}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -21707,6 +25834,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+--- !u!23 &610762685737412733 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 6410493823522193912}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &4092437273456813640 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
@@ -21720,6 +25852,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4947995580317779549}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -21781,6 +25917,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+--- !u!23 &696708919556333125 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 6423345091264460736}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &4114507181691719792 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
@@ -22144,6 +26285,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 6060860568716856916}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -22205,6 +26350,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+--- !u!23 &985033063374318768 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 6711754447365702965}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &4402573421313516165 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
@@ -22974,6 +27124,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: RoadCorner
       objectReference: {fileID: 0}
+    - target: {fileID: 6883282226537525027, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -22982,6 +27136,11 @@ PrefabInstance:
 --- !u!4 &2570480012402802468 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5042495090921108690, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
+  m_PrefabInstance: {fileID: 7374265481051655158}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &4166097752209827029 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 6883282226537525027, guid: fc7d555925ca4974cb2b8b6f63581046, type: 3}
   m_PrefabInstance: {fileID: 7374265481051655158}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &7385109368494717866
@@ -23412,6 +27571,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 6137662643854282094}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -23478,6 +27641,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
   m_PrefabInstance: {fileID: 7532089097119082481}
   m_PrefabAsset: {fileID: 0}
+--- !u!23 &4037512691197234804 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 7532089097119082481}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &7637876146667809760
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -23486,6 +27654,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 943845283293511482}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -23550,6 +27722,11 @@ PrefabInstance:
 --- !u!4 &703348569067097168 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 7637876146667809760}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &4138901126474957413 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
   m_PrefabInstance: {fileID: 7637876146667809760}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &7646785426950408215
@@ -24330,6 +28507,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2894579570109984845}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -24394,6 +28575,11 @@ PrefabInstance:
 --- !u!4 &1082810493108816489 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 8015015662034841049}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &4590422568700609628 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
   m_PrefabInstance: {fileID: 8015015662034841049}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &8044324619495491756
@@ -24824,6 +29010,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2480490160770666396}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -24888,6 +29078,11 @@ PrefabInstance:
 --- !u!4 &1286378493728095395 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 8207746840214051603}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &2407381833992532630 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
   m_PrefabInstance: {fileID: 8207746840214051603}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &8235597435741749378
@@ -25038,6 +29233,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 5160177473519222638}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -25102,6 +29301,11 @@ PrefabInstance:
 --- !u!4 &1433831409630394819 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 8347450765384048243}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &2546611285518596086 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
   m_PrefabInstance: {fileID: 8347450765384048243}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &8374344471143717841
@@ -26372,6 +30576,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 6661968056928315135}
     m_Modifications:
+    - target: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6818964845500486498, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
       propertyPath: m_Name
       value: RoadBase
@@ -26436,6 +30644,11 @@ PrefabInstance:
 --- !u!4 &2232011949102681348 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6934949893548435376, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
+  m_PrefabInstance: {fileID: 9134521763536251572}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &3335808754862408497 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 5804993986029513093, guid: cb433d6570390bd48a374b8035d760c8, type: 3}
   m_PrefabInstance: {fileID: 9134521763536251572}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &9138983329976743044

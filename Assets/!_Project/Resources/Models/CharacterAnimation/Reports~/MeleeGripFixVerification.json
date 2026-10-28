@@ -1,0 +1,11 @@
+{
+  "max_vertex_displacements_from_previous": {
+    "ready": 1.5266237824995157e-06,
+    "middle": 0.32524697577857653,
+    "finish": 0.001317880903985987,
+    "return": 1.6603932711105489e-06
+  },
+  "middle_blade_face_up": true,
+  "approved_finish_preserved": true,
+  "result": "PASS"
+}
