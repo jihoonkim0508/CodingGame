@@ -70,7 +70,7 @@ namespace CodingGame.Defense.Editor
             public TutorialStepKind Kind = TutorialStepKind.Dialogue;
             public string[] Targets = Array.Empty<string>(), Focus = Array.Empty<string>();
             public TutorialCompletionMode Mode;
-            public string Signal, Trigger, Expected, Pointer, HintCode, AutoSlot;
+            public string Signal, Trigger, Expected, Pointer, HintCode, AutoSlot, RequiredSlotBlock;
             public float PointerDelay;
             public bool Dim, CloseEditor, ClearProgram, OpenEditor, Preview, Battle, HoldBattle, SlowBattle;
             public int Robot;
@@ -129,9 +129,11 @@ namespace CodingGame.Defense.Editor
                 Focus("Editor.Palette.Slash", "Editor.Code.After.1")))),
             L("1-1.D03", Signal(TutorialSignals.SlotFilled, new[] { Drop, Palette }, With(
                 s => { s.Expected = "Editor.Code.Arg.2.0"; s.AutoSlot = s.Expected; s.Pointer = "Editor.Palette.Variable";
+                    s.RequiredSlotBlock = "Editor.Code.Arg.2.0:Variable";
                     s.Demo = "Editor.Palette.Variable>Editor.Code.Arg.2.0"; },
                 Focus("Editor.Palette.Variable", "Editor.Code.Arg.2.0")))),
-            L("1-1.D04", Code(Code11, With(s => s.Pointer = "Editor.Code.Name.2.0", Focus("Editor.Code.Name.2.0")))),
+            L("1-1.D04", Code(Code11, With(s => { s.Pointer = "Editor.Code.Name.2.0";
+                s.RequiredSlotBlock = "Editor.Code.Arg.2.0:Variable"; }, Focus("Editor.Code.Name.2.0")))),
             L("1-1.D05", Focus("Editor.Code.Name.1", "Editor.Code.Name.2.0")),
             L("1-1.D06", Focus("Editor.Code.Line.1")), L("1-1.D07", Focus("Editor.Code.Line.2")),
             L("1-1.D08", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(
@@ -255,6 +257,7 @@ namespace CodingGame.Defense.Editor
                     texts = new[] { new TutorialText { textId = "t1", speaker = s.Speaker, text = s.Text, focusKeys = s.Focus, highlightKeys = s.Highlight } },
                     targetKeys = s.Targets, dim = s.Dim, blockInput = true, outline = true,
                     completionMode = s.Kind == TutorialStepKind.ActionGuide ? s.Mode : TutorialCompletionMode.Unconfigured, completionSignal = s.Signal,
+                    requiredSlotBlock = s.RequiredSlotBlock,
                     skipIf = s.SkipIf, pauseBattle = s.HoldBattle || !battle, slowBattle = s.SlowBattle,
                     allowPreview = s.Preview || id == "1-1" &&
                         ((s.Id.StartsWith("C", StringComparison.Ordinal) || s.Id.StartsWith("D", StringComparison.Ordinal)) && s.Id != "D10"),

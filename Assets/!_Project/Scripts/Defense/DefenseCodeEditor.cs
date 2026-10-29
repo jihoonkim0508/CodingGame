@@ -193,7 +193,15 @@ namespace CodingGame.Defense
         }
         // An Editor.Code.Arg.N.i[.j…] slot that holds a block (the slot exists, empty, as soon as its line does).
         public bool SlotFilled(string key)
-            => TutorialSlot(key) is CommandDropZone slot && slot.Blocks.Count > 0;
+        {
+            if (string.IsNullOrEmpty(key)) return false;
+            // Optional ':BlockKind' makes teaching steps check what was placed, not just occupancy.
+            var parts = key.Split(':');
+            var slot = TutorialSlot(parts[0]);
+            if (slot == null || slot.Blocks.Count == 0) return false;
+            return parts.Length == 1 || parts.Length == 2 &&
+                Enum.TryParse(parts[1], out BlockKind kind) && slot.Blocks[0].BaseKind == kind;
+        }
 
         public bool SlotSelected(string key)
             => TutorialSlot(key) is CommandDropZone slot && (panel.SelectedZone == slot || slot.Blocks.Count > 0);

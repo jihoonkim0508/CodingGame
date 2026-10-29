@@ -371,10 +371,16 @@ namespace CodingGame.Defense.Editor
             yield return OpenEditor();
             yield return Jump(1, "D03");
             Check(Director.EditorStep.completionSignal == TutorialSignals.SlotFilled, "D03: 변수 블록을 놓는 단계 — \"" + Director.EditorStep.texts[0].text + "\"");
+            Load("enemy = get_nearest_enemy()\nslash(get_nearest_enemy())");
+            yield return .3f;
+            Check(StepId == "D03", "적 찾기 함수를 직접 넣으면 D03을 통과하지 않음");
             Load("enemy = get_nearest_enemy()\nslash(variable)"); // slash() with a variable block not named yet
             yield return Wait(() => StepId == "D04", "D03 → D04", 3);
             Check(StepId == "D04", "변수 블록을 놓으면 다음 단계: " + StepId + " — \"" + Director.EditorStep.texts[0].text + "\"");
             Shot(); yield return .1f;
+            Load("enemy = get_nearest_enemy()\nslash(get_nearest_enemy())");
+            yield return .3f;
+            Check(StepId == "D04", "D04에서도 변수 블록을 함수로 바꾸면 통과하지 않음");
             Load("enemy = get_nearest_enemy()\nslash(enemy)");
             yield return Wait(() => StepId == "D05", "D04 → D05", 3);
             Check(StepId == "D05", "enemy를 입력하면 다음 대사: " + StepId);

@@ -419,6 +419,7 @@ namespace CodingGame.Defense
         void CompleteAction(TutorialStep step)
         {
             if (!active || progressStep >= active.steps.Length || active.steps[progressStep] != step) return;
+            if (!string.IsNullOrEmpty(step.requiredSlotBlock) && (!Editor || !Editor.SlotFilled(step.requiredSlotBlock))) return;
             if (step.holdSeconds > 0 && Time.unscaledTime < heldUntil) { held = step; return; }
             if (!completedStep.Add(step.stepId)) return;
             if ((step.completionSignal == TutorialSignals.ProgramMatches || step.completionSignal == TutorialSignals.DraftValueMatches) && Editor) Editor.FinishTutorialInput();
