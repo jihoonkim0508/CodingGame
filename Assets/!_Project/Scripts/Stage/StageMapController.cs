@@ -93,8 +93,6 @@ namespace CodingGame.StageMap
             DrawRect(new Rect(18f, 18f, 510f, 76f), new Color(0.04f, 0.09f, 0.16f, 0.92f));
             GUI.Label(new Rect(34f, 25f, 480f, 30f), "도우미 로봇", guideTitleStyle);
             var available = nodes?.FirstOrDefault(n => n && n.State == StageState.Available);
-            GUI.Label(new Rect(34f, 53f, 480f, 28f), available ? $"빛나는 {available.Number}스테이지를 클릭해! 바로 작전지로 이동할게." : "모든 스테이지를 완료했어! 다시 하고 싶은 스테이지를 골라 봐.", guideBodyStyle);
-            var available=nodes?.FirstOrDefault(n=>n.State==StageState.Available);
             GUI.Label(new Rect(34f, 53f, 480f, 28f), available?$"빛나는 {available.Number}스테이지 섬을 클릭해 줘!":"클리어한 섬을 골라 다시 도전할 수 있어.", guideBodyStyle);
             GUI.Label(new Rect(18f, Screen.height - 38f, 420f, 28f), "DEV  Z: 클리어    Q: 초기화", bodyStyle);
             DrawNodeNumbers();
@@ -110,7 +108,8 @@ namespace CodingGame.StageMap
             if (nodes == null || !mapCamera || entering) return;
             foreach (var node in nodes)
             {
-                if (!node) continue;
+                // Islands show their own STAGE number and title (DrawIslandNames).
+                if (!node || node.GetComponent<CodingGame.Art.StageSelection.StageIslandView>()) continue;
                 Vector3 p = mapCamera.WorldToScreenPoint(node.transform.position);
                 if (p.z <= 0) continue;
                 if (numberStyle == null) numberStyle = new GUIStyle(guideBodyStyle) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold, wordWrap = false };
