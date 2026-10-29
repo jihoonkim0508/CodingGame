@@ -70,7 +70,8 @@ namespace CodingGame
                 if (button.name == "GameStartBtn") button.onClick.AddListener(() => LoadScene(StageScene));
                 else if (button.name == "GameQuitBtn") button.onClick.AddListener(QuitGame);
                 else continue;
-                if (!button.TryGetComponent<TitleMenuButton>(out _)) button.gameObject.AddComponent<TitleMenuButton>();
+                // The art title animates its own buttons; the text highlight is only for plain buttons.
+                if (!button.TryGetComponent<TitleMenuButton>(out _) && !button.TryGetComponent<TitleScreen.TitleButtonMotion>(out _)) button.gameObject.AddComponent<TitleMenuButton>();
             }
         }
 
