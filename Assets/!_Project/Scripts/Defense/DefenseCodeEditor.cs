@@ -201,7 +201,10 @@ namespace CodingGame.Defense
         public bool SelectTutorialSlot(string key)
         {
             var slot = TutorialSlot(key);
-            if (slot == null || slot.Blocks.Count > 0) return false;
+            if (slot == null) return false;
+            // A player may have filled the slot before this guide started. Keep their work;
+            // the tutorial's normal completion checks decide whether it is correct.
+            if (slot.Blocks.Count > 0) return true;
             panel.Select(slot);
             return true;
         }
