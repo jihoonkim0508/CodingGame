@@ -354,7 +354,7 @@ namespace CodingGame.Defense.Editor
                 Director.EditorFinishTyping(); Director.EditorNext(); yield return .3f;
             }
             yield return NextUntil("C01");
-            Check(Director.EditorStep.completionSignal == TutorialSignals.SlotFilled && Director.EditorStep.expectedCode == "Editor.Code.Line.3:If", "C01: 셋째 줄에 if 놓기 단계");
+            Check(Director.EditorStep.completionSignal == TutorialSignals.CodeLinePlaced && Director.EditorStep.expectedCode == "3:If", "C01: 셋째 줄에 if 놓기 단계");
         }
 
         static void Load(string code) => Battle.CodeEditor.Panel.LoadProgram(Battle.CodeEditor.Panel.FunctionName, TutorialAnswers.Parse(code));
@@ -406,6 +406,9 @@ namespace CodingGame.Defense.Editor
                 if (StepId == "E08") return true;
                 var step = Director.EditorStep;
                 if (step != null && step.kind == TutorialStepKind.Dialogue) { Director.EditorFinishTyping(); Director.EditorNext(); }
+                // E04a-c ask for pause, resume and the speed button, like a player would click them.
+                else if (step != null && step.targetKeys.Contains(TutorialKeys.Pause)) Battle.TogglePause();
+                else if (step != null && step.targetKeys.Contains(TutorialKeys.Speed)) Battle.ToggleSpeed();
                 return false;
             }, "웨이브 끝나고 E08", 120);
             Time.timeScale = 1;
@@ -657,12 +660,18 @@ namespace CodingGame.Defense.Editor
             Check(core.GetComponent<DefenseCoreGlitch>(), "코어에 DefenseCoreGlitch 연결");
             var model = Field<Transform>(core.GetComponent<DefenseCoreGlitch>(), "model");
             checks.Add("ℹ 글리치 대상: " + (model ? model.name + " (맵 기지 모델)" : "코어 기본 도형"));
-            if (Battle.Simulation.Phase == BattlePhase.Running) yield return Wait(() => Battle.Simulation.Phase != BattlePhase.Running, "웨이브 끝", 90);
-            if (Battle.Simulation.Phase == BattlePhase.Reward) Battle.ClaimRewards();
+            // Stage 1 waves 2 and 4 only start with the warrior goals; a Stage 2 session lets enemies reach the core freely.
+            Battle.EditorStartSession(2, 1, true, DevTest.Options);
+            DevTest.PlaceTeachingRobot(Battle, RobotRole.Warrior);
             foreach (var bot in Battle.Simulation.Robots) Battle.Simulation.ApplyProgram(bot.Id, "robot_" + bot.Id, new List<CodeBlock>());
             int health = Battle.Simulation.BaseHealth;
             DevTest.StartWave(); Time.timeScale = 3;
-            yield return Wait(() => Battle.Simulation.BaseHealth < health, "적이 코어에 닿음", 90);
+            // A wave can time out before its enemies arrive; survivors carry into the next one.
+            yield return Wait(() =>
+            {
+                if (Battle.Simulation.Phase == BattlePhase.Reward) { Battle.ClaimRewards(); Battle.StartBattle(); }
+                return Battle.Simulation.BaseHealth < health;
+            }, "적이 코어에 닿음", 90);
             yield return null;
             Check(Look(core) == "피격", "코어 피격 직후: " + Look(core));
             Time.timeScale = 1; Shot();
