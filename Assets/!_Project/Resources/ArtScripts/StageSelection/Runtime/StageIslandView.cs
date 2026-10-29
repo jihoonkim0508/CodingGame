@@ -15,23 +15,29 @@ namespace CodingGame.Art.StageSelection
         public Transform[] rotors;
         StageState shown=(StageState)(-1);
         readonly Dictionary<Renderer,Color> originalColors=new Dictionary<Renderer,Color>();
+        Renderer[] boundsRenderers;
+        MaterialPropertyBlock block;
+        static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
         Vector3 rest;
         bool hovering;
         public Bounds VisualBounds
         {
             get
             {
-                var renderers=GetComponentsInChildren<Renderer>();
+                if (boundsRenderers == null) boundsRenderers = GetComponentsInChildren<Renderer>(true);
                 var bounds=new Bounds(transform.position,Vector3.zero);
-                foreach(var renderer in renderers)bounds.Encapsulate(renderer.bounds);
+                foreach(var renderer in boundsRenderers)
+                    if (renderer && renderer.gameObject.activeInHierarchy) bounds.Encapsulate(renderer.bounds);
                 return bounds;
             }
         }
         void OnEnable()
         {
             originalColors.Clear();shown=(StageState)(-1);
-            foreach(var renderer in GetComponentsInChildren<Renderer>(true))
-                if(renderer.sharedMaterial&&renderer.sharedMaterial.HasProperty("_BaseColor"))originalColors[renderer]=renderer.sharedMaterial.GetColor("_BaseColor");
+            boundsRenderers=GetComponentsInChildren<Renderer>(true);
+            if (block == null) block = new MaterialPropertyBlock();
+            foreach(var renderer in boundsRenderers)
+                if(renderer.sharedMaterial&&renderer.sharedMaterial.HasProperty(BaseColor))originalColors[renderer]=renderer.sharedMaterial.GetColor(BaseColor);
             if(visualRoot)rest=visualRoot.localPosition;
             RefreshState(Application.isPlaying?StageProgress.GetState(stageNumber):stageNumber==1?StageState.Available:StageState.Locked);
         }
@@ -40,11 +46,11 @@ namespace CodingGame.Art.StageSelection
             if(shown==state)return;shown=state;
             foreach(var pair in originalColors)
             {
-                if(!pair.Key)continue;var block=new MaterialPropertyBlock();pair.Key.GetPropertyBlock(block);
+                if(!pair.Key)continue;pair.Key.GetPropertyBlock(block);
                 Color color=pair.Value;
                 if(pair.Key==statusRing)color=state==StageState.Locked?new Color(.23f,.34f,.46f):state==StageState.Cleared?new Color(.33f,1,.69f)*1.35f:accent*1.6f;
                 else if(state==StageState.Locked)color=Color.Lerp(color,new Color(.30f,.38f,.48f),.22f)*.86f;
-                color.a=1;block.SetColor("_BaseColor",color);pair.Key.SetPropertyBlock(block);
+                color.a=1;block.SetColor(BaseColor,color);pair.Key.SetPropertyBlock(block);
             }
         }
         void OnMouseEnter(){hovering=true;}
@@ -56,11 +62,12 @@ namespace CodingGame.Art.StageSelection
             if(rotors!=null)foreach(var rotor in rotors)if(rotor)rotor.Rotate(0,Time.unscaledDeltaTime*18,0,Space.Self);
             if(statusRing&&shown!=StageState.Locked)
             {
-                var block=new MaterialPropertyBlock();statusRing.GetPropertyBlock(block);
+                statusRing.GetPropertyBlock(block);
                 var color=(shown==StageState.Cleared?new Color(.33f,1,.69f):accent)*(1.35f+.15f*Mathf.Sin(Time.unscaledTime*2.5f)+(hovering?.3f:0));
-                color.a=1;block.SetColor("_BaseColor",color);statusRing.SetPropertyBlock(block);
+                color.a=1;block.SetColor(BaseColor,color);statusRing.SetPropertyBlock(block);
             }
         }
         void OnDisable(){if(visualRoot)visualRoot.localPosition=rest;}
+        void OnTransformChildrenChanged(){boundsRenderers=null;}
     }
 }

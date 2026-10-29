@@ -15,10 +15,23 @@ namespace CodingGame.StageMap
         string toast;
         bool entering; // a stage was chosen: the camera flies there and the scene fades, no more "click here"
         float toastUntil;
+        StageNode recommendedStage;
+        string guideMessage = "클리어한 섬을 골라 다시 도전할 수 있어.";
+        CodingGame.Art.StageSelection.StageIslandView[] islands;
+        string[] stageLabels, stateLabels;
+        public StageNode RecommendedStage => recommendedStage;
+        public string GuideMessage => guideMessage;
 
         public void Configure(StageNode[] stageNodes, Camera camera)
         {
             nodes = stageNodes;
+            islands = new CodingGame.Art.StageSelection.StageIslandView[nodes.Length];
+            stageLabels = new string[nodes.Length]; stateLabels = new string[nodes.Length];
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                islands[i] = nodes[i].GetComponent<CodingGame.Art.StageSelection.StageIslandView>();
+                stageLabels[i] = $"STAGE {nodes[i].Number:00}";
+            }
             mapCamera = camera;
             cameraController = gameObject.AddComponent<StageCameraController>();
             cameraController.Configure(camera, stageNodes);
@@ -27,12 +40,14 @@ namespace CodingGame.StageMap
 
         void Update()
         {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
             Keyboard keyboard = Keyboard.current;
             if (keyboard != null)
             {
                 if (keyboard.zKey.wasPressedThisFrame) DeveloperClear();
                 if (keyboard.qKey.wasPressedThisFrame) DeveloperReset();
             }
+#endif
 
             Mouse mouse = Mouse.current;
             if (mouse == null || !mouse.leftButton.wasPressedThisFrame || cameraController.IsMoving) return;
@@ -54,8 +69,8 @@ namespace CodingGame.StageMap
         {
             StageNode target = nodes.FirstOrDefault(node => node.State == StageState.Available);
             if (target == null) { ShowToast("모든 스테이지가 클리어되었습니다."); return; }
-            StageProgress.MarkCleared(target.Number);
-            ShowToast($"DEV: STAGE {target.Number} 클리어");
+            StageProgress.MarkClearedForPreview(target.Number);
+            ShowToast($"DEV: STAGE {target.Number} 임시 클리어");
             RefreshNodes();
         }
 
@@ -68,7 +83,14 @@ namespace CodingGame.StageMap
 
         void RefreshNodes()
         {
-            foreach (StageNode node in nodes) node.Refresh();
+            recommendedStage = null;
+            for (int i = 0; i < nodes.Length; i++)
+            {
+                StageNode node = nodes[i]; node.Refresh();
+                if (node.State == StageState.Available && (!recommendedStage || node.Number < recommendedStage.Number)) recommendedStage = node;
+                stateLabels[i] = node.State == StageState.Locked ? "이전 스테이지 클리어 후 해금" : node.State == StageState.Cleared ? "CLEARED · 다시 플레이" : "READY · 클릭하여 시작";
+            }
+            guideMessage = recommendedStage ? $"빛나는 {recommendedStage.Number}스테이지 섬을 클릭해 줘!" : "클리어한 섬을 골라 다시 도전할 수 있어.";
         }
 
         void ShowToast(string message)
@@ -89,12 +111,15 @@ namespace CodingGame.StageMap
 
         void OnGUI()
         {
+            // Absolute-position labels have no input/layout work; draw once per repaint.
+            if (Event.current.type != EventType.Repaint) return;
             EnsureStyles();
             DrawRect(new Rect(18f, 18f, 510f, 76f), new Color(0.04f, 0.09f, 0.16f, 0.92f));
             GUI.Label(new Rect(34f, 25f, 480f, 30f), "도우미 로봇", guideTitleStyle);
-            var available = nodes?.FirstOrDefault(n => n && n.State == StageState.Available);
-            GUI.Label(new Rect(34f, 53f, 480f, 28f), available?$"빛나는 {available.Number}스테이지 섬을 클릭해 줘!":"클리어한 섬을 골라 다시 도전할 수 있어.", guideBodyStyle);
-            GUI.Label(new Rect(18f, Screen.height - 38f, 420f, 28f), "DEV  Z: 클리어    Q: 초기화", bodyStyle);
+            GUI.Label(new Rect(34f, 53f, 480f, 28f), GuideMessage, guideBodyStyle);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            GUI.Label(new Rect(18f, Screen.height - 38f, 420f, 28f), "DEV  Z: 임시 클리어    Q: 초기화", bodyStyle);
+#endif
             DrawNodeNumbers();
             DrawEnterHint();
             DrawIslandNames();
@@ -123,7 +148,7 @@ namespace CodingGame.StageMap
         GUIStyle arrowStyle, hintStyle, numberStyle;
         void DrawEnterHint()
         {
-            var node = nodes?.FirstOrDefault(n => n && n.State == StageState.Available);
+            var node = RecommendedStage;
             if (!node || !mapCamera || cameraController.IsMoving || entering) return;
             var bounds = node.VisualBounds;
             Vector3 top = mapCamera.WorldToScreenPoint(bounds.center + Vector3.up * bounds.extents.y);
@@ -133,8 +158,9 @@ namespace CodingGame.StageMap
             float bounce = Mathf.Abs(Mathf.Sin(Time.unscaledTime * 4)) * 16;
             var old = GUI.color;
             GUI.color = new Color(1, .85f, .25f, 1);
-            GUI.Label(new Rect(top.x - 40, Screen.height - top.y - 80 - bounce, 80, 60), "▼", arrowStyle);
-            GUI.Label(new Rect(top.x - 160, Screen.height - top.y - 118 - bounce, 320, 34), $"{node.Number}스테이지 · 여기를 클릭!", hintStyle);
+            const float hintLift = 12;
+            GUI.Label(new Rect(top.x - 40, Screen.height - top.y - 80 - bounce - hintLift, 80, 60), "▼", arrowStyle);
+            GUI.Label(new Rect(top.x - 160, Screen.height - top.y - 118 - bounce - hintLift, 320, 34), $"{node.Number}스테이지 · 여기를 클릭!", hintStyle);
             GUI.color = old;
         }
 
@@ -147,15 +173,15 @@ namespace CodingGame.StageMap
             islandTitleStyle.fontSize=Mathf.Clamp(Mathf.RoundToInt(Screen.height*.021f),14,22);
             islandNumberStyle.fontSize=Mathf.Clamp(Mathf.RoundToInt(Screen.height*.014f),10,14);
             islandStateStyle.fontSize=Mathf.Clamp(Mathf.RoundToInt(Screen.height*.012f),9,12);
-            foreach(var node in nodes)
+            for (int i = 0; i < nodes.Length; i++)
             {
-                var island=node.GetComponent<CodingGame.Art.StageSelection.StageIslandView>();if(!island)continue;
+                var node = nodes[i]; var island=islands[i];if(!island)continue;
                 var p=mapCamera.WorldToScreenPoint(node.transform.position+new Vector3(0,-.8f,-3.1f));if(p.z<=0)continue;
                 float y=Screen.height-p.y;var old=GUI.color;float width=Mathf.Min(340,Screen.width*.30f);
-                GUI.color=island.accent;GUI.Label(new Rect(p.x-width*.5f,y-9,width,22),$"STAGE {node.Number:00}",islandNumberStyle);
+                GUI.color=island.accent;GUI.Label(new Rect(p.x-width*.5f,y-9,width,22),stageLabels[i],islandNumberStyle);
                 GUI.color=Color.white;GUI.Label(new Rect(p.x-width*.5f,y+13,width,30),island.stageTitle,islandTitleStyle);
                 GUI.color=node.State==StageState.Locked?new Color(.6f,.72f,.83f):island.accent;
-                GUI.Label(new Rect(p.x-width*.5f,y+43,width,22),node.State==StageState.Locked?"이전 스테이지 클리어 후 해금":node.State==StageState.Cleared?"CLEARED · 다시 플레이":"READY · 클릭하여 시작",islandStateStyle);
+                GUI.Label(new Rect(p.x-width*.5f,y+43,width,22),stateLabels[i],islandStateStyle);
                 GUI.color=old;
             }
         }

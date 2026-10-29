@@ -12,7 +12,7 @@ namespace CodingGame.StageMap
 
         public int Number { get; private set; }
         public StageState State { get; private set; }
-        public Bounds VisualBounds => island ? island.VisualBounds : GetComponent<Renderer>() ? GetComponent<Renderer>().bounds : new Bounds(transform.position,Vector3.one);
+        public Bounds VisualBounds => island ? island.VisualBounds : targetRenderer ? targetRenderer.bounds : new Bounds(transform.position,Vector3.one);
 
         public void Configure(int number, StageMaterialPalette palette)
         {
