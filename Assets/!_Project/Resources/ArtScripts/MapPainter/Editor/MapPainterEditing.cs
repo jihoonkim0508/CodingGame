@@ -72,6 +72,7 @@ namespace CodingGame.Art.MapPainter.Editor
             foreach (var cell in changed)
                 for (int z = -1; z <= 1; z++) for (int x = -1; x <= 1; x++) affected.Add(cell + new GridCell(x, z));
             Rebuild(root, affected, false, undo);
+            WideRoadAssets.Apply(root,undo);
             root.ApplyFloorColors();
             EditorUtility.SetDirty(root);
             if (!EditorSceneManager.IsPreviewScene(root.gameObject.scene)) EditorSceneManager.MarkSceneDirty(root.gameObject.scene);
@@ -83,6 +84,7 @@ namespace CodingGame.Art.MapPainter.Editor
             var cells = new HashSet<GridCell>(root.floorCells); cells.UnionWith(root.roadCells);
             foreach (var tile in root.GetComponentsInChildren<MapTileMarker>(true)) cells.Add(tile.cell);
             Rebuild(root, cells, true, undo);
+            WideRoadAssets.Apply(root,undo);
             root.ApplyFloorColors();
         }
         private static void Rebuild(ModularMapRoot root, IEnumerable<GridCell> cells, bool force, bool undo)

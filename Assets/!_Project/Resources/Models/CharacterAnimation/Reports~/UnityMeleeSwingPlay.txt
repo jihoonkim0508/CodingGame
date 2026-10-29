@@ -1,0 +1,2 @@
+PASS: actual Play mode Attack trigger, large sword sweep, Idle return, stationary actor root and original material.
+RESULT: PASS

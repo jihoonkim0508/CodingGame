@@ -1,0 +1,130 @@
+[
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\FBX\\AttackRobot.fbx.meta",
+    "Hash": "952BB99AAB47BF124828DE21C0EA1C08F4693F1803192113A1A1264D114FFAE4"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\FBX\\Monster.fbx",
+    "Hash": "FBF737794089CEAA590B43B797A7451D4820024EB36C6FC30833435553B991EC"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\FBX\\Monster.fbx.meta",
+    "Hash": "8C28A8C7647CFB20EE746BDE8E57C3779BB30A34C0A5697A1ED458AE3CCA2F7C"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\FBX\\ShotRobot.fbx",
+    "Hash": "5099ED6885D9D3DC9F1F7FC6D1F91F96CA936512675C595444CA4987D470C204"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\FBX\\ShotRobot.fbx.meta",
+    "Hash": "5ACAFEE28A1BA788BEAA0AF599CB53845D2A1034C02F6A656840CB614EDE2A31"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Clips\\Melee_Attack.anim.meta",
+    "Hash": "90AED0EE91317BC8E70AEDEB4737A22F965CB1A6B76742F42781A3F17F92EB37"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Clips\\Melee_Idle.anim",
+    "Hash": "1F6BA9D6A2BF003AFB8548EB405BBFCDEE1921624175C2F2A0B0C506B697F492"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Clips\\Melee_Idle.anim.meta",
+    "Hash": "7AD9FF2A9D1C25C2BA36BE14BCBD35A4581581CA1FF2488A140720C9814DE75D"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Clips\\Monster_Walk.anim",
+    "Hash": "9BA8363CEB38AD7094D952C278173D4D65E9EC741A37D077BDD098008752C834"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Clips\\Monster_Walk.anim.meta",
+    "Hash": "BF3D1FA681DC2D0E21530A200613931E4035F52D9B5003771FD9F8BE540D602F"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Clips\\Ranged_Attack.anim",
+    "Hash": "7DC60566B953364EB51F2E48F15B6F7FAD964D1617925EE1B518317D59F525FE"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Clips\\Ranged_Attack.anim.meta",
+    "Hash": "32ED1327555D257D534F30A1804795B21C206157BE332DD4A6B79BDE502B9548"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Clips\\Ranged_Idle.anim",
+    "Hash": "5F26E8ACB4AF5373642C32F2F214B6514EBE3505D2197F863E870333DB86F811"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Clips\\Ranged_Idle.anim.meta",
+    "Hash": "E066058657C086B9BCDAF106574C87350C19A431F8512E6D04461CAF397ECAAC"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Materials\\MeleeRobot.mat",
+    "Hash": "44E42E3F2557CA21A298A0067FC62B75E915A80B2F9BA8C53B07A8985B02B8F8"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Materials\\MeleeRobot.mat.meta",
+    "Hash": "EDA30CBA70D4449D184E003061A57795E93444FB64DDDB90CCEF1AC7D7865D2F"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Materials\\Monster.mat",
+    "Hash": "FBC802599B6B27EF4323B8F008406BDCD247D37AD2075FBB280B086F89D7B290"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Materials\\Monster.mat.meta",
+    "Hash": "A9B565B904E27D49CDD396BA7B24174C0139F046CC20EC06D0F68E009FC2F12C"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Materials\\RangedRobot.mat",
+    "Hash": "FD78C01D6C556EE396F163B99D8F61A29E7304A85CE63601A85E6ED23177FCFC"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Materials\\RangedRobot.mat.meta",
+    "Hash": "59F4C1D6D0CD82322CB2295F26F625B66683A51F326A352DFD9D1ED5FE876D7B"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Controllers\\AttackRobot.controller",
+    "Hash": "CDC6FFD415017DC903D4E3FB313A72312E415D16457079AD51EFE2990F3173E8"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Controllers\\AttackRobot.controller.meta",
+    "Hash": "AB6DF4CE5379D7C49F1DC2BD7795A4D44462660DF2C01499F7B6BBFAFD85A536"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Controllers\\Monster.controller",
+    "Hash": "9797F4AA00047B2ADD9A9AC8CECF63ED8EAF440D6BDB6992399A088434B31987"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Controllers\\Monster.controller.meta",
+    "Hash": "F3537765E6639A5140D2998F3B8D340D47767E66A7E335DA72FEA6F3B925D3BC"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Controllers\\ShotRobot.controller",
+    "Hash": "3E263243E8AA9CED2E6C61D0093CF6C084ECC893900DA4260F8B70EA275AFD30"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Controllers\\ShotRobot.controller.meta",
+    "Hash": "07BF32B78D3869A9A4F0CD0FBFACCE1BECCA397973407435874EF0E7DBDFA5DC"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Prefabs\\AttackRobot.prefab",
+    "Hash": "03A76151E7AECA7DA6005662DBCB0E916A2AF290804124C9C57DCCA5B4BBDC52"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Prefabs\\AttackRobot.prefab.meta",
+    "Hash": "FACB078B6AF6BBEE15147BB1E868BF0B58D017E1E9B854F423849F052496AA02"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Prefabs\\Monster.prefab",
+    "Hash": "3441E191ECE2B10C6C5C3AD973C197023625DA2365CA3A7721E509394E00B8E1"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Prefabs\\Monster.prefab.meta",
+    "Hash": "C2AF72A16ACB63531F67D2155D31769F34E82FDA96939ED7F92F51C45C0E301E"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Prefabs\\ShotRobot.prefab",
+    "Hash": "B86ADDE999B463810B8B6113AAF829EC1B2E4F2E523C3DDA4ADF42F9C32AD76F"
+  },
+  {
+    "Path": "C:\\Fork\\CodingGame\\Assets\\!_Project\\Resources\\Models\\CharacterAnimation\\Prefabs\\ShotRobot.prefab.meta",
+    "Hash": "1DA774FBBDBD5892E39D019EFD6379801FC8B4BA48D3C5955ACFEDD598ECE6A3"
+  }
+]
