@@ -57,6 +57,7 @@ namespace CodingGame.Defense
         MaterialPropertyBlock colors;
         // The rigged models (CharacterAnimation): robots idle and play "Attack" on each attack, the monster walks on its own.
         Animator animator;
+        DefenseMonsterEffects monsterEffects;
         static readonly int AttackTrigger = Animator.StringToHash("Attack"), AttackState = Animator.StringToHash("Attack");
         // The attack clip plays faster when the robot attacks more often than the clip lasts (0.8 s ranged clip);
         // a slash plays it so the sword passes straight ahead when the simulation's strike lands.
@@ -83,6 +84,7 @@ namespace CodingGame.Defense
             foreach (var renderer in healthTrail.GetComponentsInChildren<Renderer>()) renderer.SetPropertyBlock(trailColors);
             beam.enabled = false;
             animator = GetComponentInChildren<Animator>();
+            monsterEffects = GetComponentInChildren<DefenseMonsterEffects>();
             if (animator) attackClip = animator.runtimeAnimatorController.animationClips.Where(c => c.name.Contains("Attack")).Select(c => c.length).DefaultIfEmpty(0).First();
         }
         public void SyncRobot(RobotState bot, Vector3 position, Quaternion viewRotation)
@@ -94,6 +96,7 @@ namespace CodingGame.Defense
         {
             // Faces the way it walks (the monster model has a walk cycle).
             var step = position - transform.position; step.y = 0;
+            if (monsterEffects) monsterEffects.SyncMovement(step.sqrMagnitude > 1e-6f, enemy.Stunned(time));
             if (step.sqrMagnitude > 1e-6f) transform.rotation = Quaternion.LookRotation(step);
             Sync(position, enemy.Health, enemy.Spec.health, enemy.Stunned(time), enemy.Speed(time) < enemy.Spec.speed, false, viewRotation);
         }
@@ -138,6 +141,7 @@ namespace CodingGame.Defense
         }
         public void TickVisual(float delta)
         {
+            if (monsterEffects) monsterEffects.Tick(delta);
             if (animator)
             {
                 bool attacking = animator.GetCurrentAnimatorStateInfo(0).shortNameHash == AttackState || animator.GetNextAnimatorStateInfo(0).shortNameHash == AttackState;
@@ -146,6 +150,6 @@ namespace CodingGame.Defense
             beamTime -= delta;
             if (beamTime <= 0) beam.enabled = false;
         }
-        public void ClearVisuals() { beamTime = 0; beam.enabled = false; }
+        public void ClearVisuals() { beamTime = 0; beam.enabled = false; if (monsterEffects) monsterEffects.Clear(); }
     }
 }
