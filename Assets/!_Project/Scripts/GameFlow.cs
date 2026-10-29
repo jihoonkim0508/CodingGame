@@ -14,6 +14,13 @@ namespace CodingGame
         Image fade;
         bool changingScene;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetSession()
+        {
+            if (instance) SceneManager.sceneLoaded -= instance.OnSceneLoaded;
+            instance = null;
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Install()
         {
@@ -44,7 +51,8 @@ namespace CodingGame
 
         void OnDestroy()
         {
-            if (instance == this) SceneManager.sceneLoaded -= OnSceneLoaded;
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            if (instance == this) instance = null;
         }
 
         void OnSceneLoaded(Scene scene, LoadSceneMode mode)
