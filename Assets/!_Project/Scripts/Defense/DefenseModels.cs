@@ -270,6 +270,22 @@ namespace CodingGame.Defense
         public bool Stunned(double time) => Effects.Any(e => e.StunUntil > time);
         public float Speed(double time) => Spec.speed * Effects.Where(e => e.SlowUntil > time).Aggregate(1f, (v, e) => Math.Min(v, e.Multiplier));
     }
+    // How a wave stood when it started, so a lost wave can be tried again with the same robots, code and coins.
+    public sealed class WaveCheckpoint
+    {
+        public int Stage, Wave, Coins, BaseHealth, Kills, Leaks;
+        public SpawnGroup[] Groups; // the wave as fought, with enemies carried over from the wave before
+        public RobotSnapshot[] Robots;
+    }
+    public sealed class RobotSnapshot
+    {
+        public RobotSpec Spec;
+        public int DefinitionIndex, Level, UpgradeCostPaid;
+        public Vector2 Position;
+        public float? Health;
+        public string Name;
+        public IReadOnlyList<CodingGame.BlockCoding.CodeBlock> Code; // null: no code
+    }
     public sealed class ProjectileState
     {
         public int Id, Source;

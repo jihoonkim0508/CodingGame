@@ -13,6 +13,7 @@
     <Compile Include="ProgramCheck.cs" />
     <Compile Include="CampaignCheck.cs" />
     <Compile Include="DebriefCheck.cs" />
+    <Compile Include="RetryCheck.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseDebrief.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseProgression.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseModels.cs" />

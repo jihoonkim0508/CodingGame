@@ -193,5 +193,6 @@ static class Check
         ProgramCheck.Run();
         CampaignCheck.Run();
         DebriefCheck.Run();
+        RetryCheck.Run();
     }
 }

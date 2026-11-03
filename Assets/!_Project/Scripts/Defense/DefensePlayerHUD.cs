@@ -310,6 +310,28 @@ namespace CodingGame.Defense
             }
             rewardItems.margin = new Vector4(0, y + rowHeight + 16, 0, 0);
         }
+        // On a defeat that can go back one wave, the result button retries the wave and a copy beside it restarts the stage
+        // (a wave that began with little core health may be better started over).
+        Button restartStageButton;
+        Vector2 claimAnchorMax;
+        void SplitDefeatButtons(bool split)
+        {
+            var claim = (RectTransform)claimButton.transform;
+            if (split && !restartStageButton)
+            {
+                claimAnchorMax = claim.anchorMax;
+                restartStageButton = Instantiate(claimButton, claim.parent);
+                restartStageButton.name = "RestartStage";
+                restartStageButton.onClick.AddListener(battle.Restart);
+                var label = restartStageButton.GetComponentInChildren<TMP_Text>();
+                label.text = "스테이지 처음부터"; label.fontSize = claimLabel.fontSize * .85f;
+                var r = (RectTransform)restartStageButton.transform;
+                r.anchorMin = new Vector2(.64f, claim.anchorMin.y); r.anchorMax = claimAnchorMax;
+            }
+            if (!restartStageButton) return;
+            restartStageButton.gameObject.SetActive(split);
+            claim.anchorMax = new Vector2(split ? .62f : claimAnchorMax.x, claimAnchorMax.y);
+        }
         // The robot debrief goes under the reward text as a child with a bottom margin (like the reward blocks' top margin),
         // so the tutorial's reward focus still ends at the reward text.
         TextMeshProUGUI debrief;
@@ -350,8 +372,10 @@ namespace CodingGame.Defense
         void RefreshRewardPanel(DefenseSimulation sim, bool reward)
         {
             claimButton.interactable = sim.Phase != BattlePhase.Victory || sim.CanAdvanceStage || battle.FromStageMap;
+            bool retry = battle.CanRetryWave;
+            SplitDefeatButtons(retry);
             claimLabel.text = reward ? (sim.WaveIndex + 1 == sim.Setup.Waves.Length ? "보상 수령 · 스테이지 완료" : "보상 수령 · 다음 준비") :
-                sim.Phase != BattlePhase.Victory ? "이 스테이지 재도전" : battle.FromStageMap ? "스테이지 맵으로" : sim.CanAdvanceStage ? $"스테이지 {battle.Stage + 1}로 진행" : "3스테이지 완료";
+                retry ? $"WAVE {sim.Checkpoint.Wave + 1} 다시 도전\n<size=70%>배치·코드 그대로</size>" : sim.Phase != BattlePhase.Victory ? "이 스테이지 재도전" : battle.FromStageMap ? "스테이지 맵으로" : sim.CanAdvanceStage ? $"스테이지 {battle.Stage + 1}로 진행" : "3스테이지 완료";
             if (shownRewardPhase != sim.Phase || shownRewardWave != sim.WaveIndex || shownRewardStage != battle.Stage)
             {
                 rewardTitle.text = reward ? $"WAVE {sim.WaveIndex + 1}  /  " + (sim.LastWaveTimedOut ? "TIME UP" : "CLEAR") :

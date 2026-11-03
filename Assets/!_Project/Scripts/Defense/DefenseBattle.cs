@@ -210,6 +210,30 @@ namespace CodingGame.Defense
 #endif
             ResetSession(setup);
         }
+        // A lost wave starts over as it began (robots, code, levels, coins, core health), so a defeat costs one wave, not the
+        // stage. Not on a wave with a tutorial sequence: the new session would replay that lesson over the restored robots.
+        public bool CanRetryWave => Simulation != null && Simulation.Phase == BattlePhase.Defeat && Simulation.Checkpoint != null &&
+            !(tutorial && tutorial.Sequences.Any(s => s && s.enabled && s.stage == stage && s.wave == Simulation.Checkpoint.Wave + 1));
+        public void RetryWave()
+        {
+            if (!CanRetryWave || !TutorialAllows("Battle.ContinueCampaign")) return;
+            var checkpoint = Simulation.Checkpoint;
+            var setup = MakeSetup(campaign, stage);
+            setup.InitialWave = checkpoint.Wave; setup.PreviousStageRewards = true;
+#if UNITY_EDITOR
+            setup.TestOptions=EditorOptions;
+#endif
+            ResetSession(setup);
+            try { Simulation.Restore(checkpoint); }
+            catch (Exception error) when (error is ArgumentException || error is FormatException)
+            {
+                Trace("retry-failed " + error.Message);
+                Restart(); Tell("웨이브를 되돌리지 못해 스테이지를 처음부터 시작합니다."); return;
+            }
+            foreach (var bot in Simulation.Robots) SpawnRobotView(bot);
+            Tell($"WAVE {checkpoint.Wave + 1} 다시 도전 · 배치와 코드를 고친 뒤 전투를 시작하세요.");
+            SyncViews(0); RefreshHUD();
+        }
         void ResetSession(BattleSetup setup)
         {
             setup.Validate();
@@ -258,7 +282,7 @@ namespace CodingGame.Defense
         public void ContinueCampaign()
         {
             if (Simulation.Phase == BattlePhase.Reward) { ClaimRewards(); return; }
-            if (Simulation.Phase == BattlePhase.Defeat) { Restart(); return; }
+            if (Simulation.Phase == BattlePhase.Defeat) { if (CanRetryWave) RetryWave(); else Restart(); return; }
             if (!TutorialAllows("Battle.ContinueCampaign")) return;
             if (FromStageMap)
             {
@@ -347,15 +371,20 @@ namespace CodingGame.Defense
             // A short drag ending on the button is still a robot selection. Keep it armed for a map click.
             placementMarker.gameObject.SetActive(false); rangeRing.Hide();
         }
+        DefenseActorView SpawnRobotView(RobotState bot)
+        {
+            var view = Instantiate(robots[bot.DefinitionIndex].prefab, DefenseViews.World(bot.Position), Quaternion.identity, actorsRoot);
+            view.Face(battleCamera.transform.position); // face shown to the player when placed
+            robotViews.Add(bot.Id, view);
+            return view;
+        }
         public bool PlaceRobot(int index, Vector3 position)
         {
             if (index < 0 || index >= robots.Length ||
                 tutorial && (!tutorial.AllowsWorldPoint(position) || !tutorial.AllowsRobotChoice(index))) return false;
             var bot = Simulation.Place(robots[index].stats, index, new Point(position.x, position.z), out var error);
             if (bot == null) { RejectPlacement(index, error); return false; }
-            var view = Instantiate(robots[index].prefab, DefenseViews.World(bot.Position), Quaternion.identity, actorsRoot);
-            view.Face(battleCamera.transform.position); // face shown to the player when placed
-            robotViews.Add(bot.Id, view);
+            var view = SpawnRobotView(bot);
             // The tutorial asks the player to click the new robot next, so its range and menu stay hidden until then.
             selected = TutorialBlocksInput ? 0 : bot.Id; HidePlacement();
             RegisterSelectedRobot(bot, view);

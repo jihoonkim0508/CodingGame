@@ -224,7 +224,31 @@ namespace CodingGame.Defense
             block.Arguments.Any(child => ContainsKind(child, kind)) || block.Body.Any(child => ContainsKind(child, kind));
         static bool ContainsVariable(CodeBlock block, string name) => block.Kind == BlockKind.Variable && block.Value == name ||
             block.Arguments.Any(child => ContainsVariable(child, name)) || block.Body.Any(child => ContainsVariable(child, name));
-        public void Start() { if (StartError() == null) { accumulated = 0; waveStart = Time; Phase = BattlePhase.Running; } }
+        public void Start() { if (StartError() == null) { Checkpoint = Capture(); accumulated = 0; waveStart = Time; Phase = BattlePhase.Running; } }
+        // The last wave start; a defeat can go back to it with Restore on a fresh simulation of the same stage and wave.
+        public WaveCheckpoint Checkpoint { get; private set; }
+        WaveCheckpoint Capture() => new WaveCheckpoint {
+            Stage = Setup.Stage, Wave = WaveIndex, Coins = Coins, BaseHealth = BaseHealth, Kills = Kills, Leaks = Leaks,
+            Groups = currentWave.Select(CopyGroup).ToArray(),
+            Robots = Robots.Select(r => new RobotSnapshot { Spec = r.Spec.Copy(), DefinitionIndex = r.DefinitionIndex, Position = r.Position,
+                Level = r.Level, UpgradeCostPaid = r.UpgradeCostPaid, Health = r.Health, Name = r.Program?.Name, Code = r.Program?.CopyBlocks() }).ToArray() };
+        static SpawnGroup CopyGroup(SpawnGroup g) => new SpawnGroup { Enemy = g.Enemy.Copy(), DefinitionIndex = g.DefinitionIndex, RouteIndex = g.RouteIndex,
+            Count = g.Count, Delay = g.Delay, Interval = g.Interval, Boss = g.Boss };
+        public void Restore(WaveCheckpoint checkpoint)
+        {
+            if (Phase != BattlePhase.Ready || Robots.Count > 0 || checkpoint.Stage != Setup.Stage || checkpoint.Wave != WaveIndex)
+                throw new ArgumentException("웨이브 재도전은 같은 웨이브의 빈 정비 단계에서만 할 수 있습니다.");
+            foreach (var saved in checkpoint.Robots)
+            {
+                var bot = Place(saved.Spec, saved.DefinitionIndex, saved.Position, out var error);
+                if (bot == null) throw new ArgumentException("로봇을 다시 놓지 못했습니다: " + error);
+                bot.Level = saved.Level; bot.UpgradeCostPaid = saved.UpgradeCostPaid; bot.Health = saved.Health;
+                if (saved.Code != null) ApplyProgram(bot.Id, saved.Name, saved.Code);
+            }
+            currentWave = checkpoint.Groups.Select(CopyGroup).ToArray(); groupCounts = new int[currentWave.Length];
+            Coins = checkpoint.Coins; BaseHealth = checkpoint.BaseHealth; Kills = checkpoint.Kills;
+            Leaks = waveLeaksAtStart = checkpoint.Leaks;
+        }
         public bool ClaimRewards()
         {
             if (Phase != BattlePhase.Reward) return false;
