@@ -69,29 +69,45 @@ namespace CodingGame.Defense
         // The HUD draws the dark backing as an Image: TMP's <mark> is an overlay on top of the letters.
         static string Tag(string color, string text) => $"<color=#{color}>{text}</color>";
 
-        // One stat line per robot, its advice under it, and a headline on top. Rich text for the reward panel.
-        public static string Report(DefenseSimulation sim, Func<RobotState, string> name)
+        // One robot's part of the debrief. Advice is null for the robot the headline already speaks about.
+        public sealed class Line
         {
-            if (sim.Robots.Count == 0) return "";
+            public RobotState Bot;
+            public Issue Issue;
+            public string Name, Stats, Advice;
+            public bool Mvp;
+        }
+        // The headline (rich text) and a line per robot, for the reward panel's cards.
+        public static (string headline, Line[] lines) Summary(DefenseSimulation sim, Func<RobotState, string> name)
+        {
+            if (sim.Robots.Count == 0) return ("", Array.Empty<Line>());
             var issues = sim.Robots.Select(bot => (bot, issue: Diagnose(sim, bot))).ToList();
-            var text = new StringBuilder();
             var worst = issues.OrderBy(x => x.issue).First();
+            var mvp = sim.Robots.OrderByDescending(bot => bot.DamageThisWave).First();
             int missed = Missed(sim);
             string tip = sim.Phase == BattlePhase.Defeat ? "다시 도전 팁" : "다음 웨이브 팁";
             // The headline carries the most serious robot's advice, so that robot's line below shows only its numbers.
-            if (worst.issue != Issue.None) text.Append($"<color=#FFD36B><b>{tip}</b> · {name(worst.bot)}: {Advice(sim, worst.bot, worst.issue)}</color>");
-            else if (missed == 0)
+            string headline = worst.issue != Issue.None ? $"<color=#FFD36B><b>{tip}</b> · {name(worst.bot)}: {Advice(sim, worst.bot, worst.issue)}</color>"
+                : missed == 0 ? $"<color=#7FF0B0><b>완벽 방어!</b> MVP {name(mvp)} · 피해 {mvp.DamageThisWave:0}</color>"
+                : $"<color=#FFD36B><b>{tip}</b> · 모든 로봇이 일했지만 {missed}마리를 놓쳤어요. 로봇을 더 놓거나 길이 꺾이는 곳 가까이 옮겨 보세요.</color>";
+            var lines = issues.Select(x => new Line
             {
-                var mvp = sim.Robots.OrderByDescending(bot => bot.DamageThisWave).First();
-                text.Append($"<color=#7FF0B0><b>완벽 방어!</b> MVP {name(mvp)} · 피해 {mvp.DamageThisWave:0}</color>");
-            }
-            else text.Append($"<color=#FFD36B><b>{tip}</b> · 모든 로봇이 일했지만 {missed}마리를 놓쳤어요. 로봇을 더 놓거나 길이 꺾이는 곳 가까이 옮겨 보세요.</color>");
-            foreach (var (bot, issue) in issues)
+                Bot = x.bot, Issue = x.issue, Name = name(x.bot), Mvp = x.bot == mvp && mvp.DamageThisWave > 0,
+                Stats = x.bot.Spec.role == RobotRole.Buffer ? $"버프 {x.bot.ActionsThisWave}" : $"공격 {x.bot.ActionsThisWave} · 피해 {x.bot.DamageThisWave:0} · 처치 {x.bot.KillsThisWave}",
+                Advice = x.bot == worst.bot ? null : Advice(sim, x.bot, x.issue),
+            }).ToArray();
+            return (headline, lines);
+        }
+
+        // The same as one rich-text block: headline, then each robot's numbers with its advice under them.
+        public static string Report(DefenseSimulation sim, Func<RobotState, string> name)
+        {
+            var (headline, lines) = Summary(sim, name);
+            var text = new StringBuilder(headline);
+            foreach (var line in lines)
             {
-                string actions = bot.Spec.role == RobotRole.Buffer ? $"버프 {bot.ActionsThisWave}" : $"공격 {bot.ActionsThisWave} · 피해 {bot.DamageThisWave:0} · 처치 {bot.KillsThisWave}";
-                text.Append($"\n\n<b>{name(bot)}</b>   {actions}");
-                string advice = bot == worst.bot ? null : Advice(sim, bot, issue);
-                if (advice != null) text.Append($"\n<color=#B9C7D2><size=90%>{advice}</size></color>");
+                text.Append($"\n\n<b>{line.Name}</b>   {line.Stats}");
+                if (line.Advice != null) text.Append($"\n<color=#B9C7D2><size=90%>{line.Advice}</size></color>");
             }
             return text.ToString();
         }

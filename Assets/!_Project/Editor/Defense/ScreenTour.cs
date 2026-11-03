@@ -110,6 +110,8 @@ namespace CodingGame.Defense.Editor
             yield return Seconds(.15); yield return Shot("2-1_battle");
             DevTest.RunWave();
             yield return Seconds(4); yield return Shot("2-1_result"); // past the clear banner, on the reward panel
+            var scroll = GameObject.Find("Debrief") ? GameObject.Find("Debrief").GetComponentInParent<UnityEngine.UI.ScrollRect>() : null;
+            if (scroll) { scroll.verticalNormalizedPosition = 0; yield return Seconds(.3); yield return Shot("2-1_result_cards"); }
 
             // 3-5 with one robot, sped up: the moment an enemy reaches the core.
             DevTest.PlayDefense(3, 5, true, Sandbox);

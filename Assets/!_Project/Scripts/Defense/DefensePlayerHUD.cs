@@ -543,30 +543,89 @@ namespace CodingGame.Defense
             restartStageButton.gameObject.SetActive(split);
             claim.anchorMax = new Vector2(split ? .62f : claimAnchorMax.x, claimAnchorMax.y);
         }
-        // The robot debrief goes under the reward text as a child with a bottom margin (like the reward blocks' top margin),
-        // so the tutorial's reward focus still ends at the reward text.
-        TextMeshProUGUI debrief;
         // Robots of one kind are numbered in placement order; the same name heads the debrief line and the robot's tag.
         string RobotLabel(DefenseSimulation sim, RobotState bot)
         {
             var same = sim.Robots.Where(r => r.DefinitionIndex == bot.DefinitionIndex).ToList();
             return battle.DefinitionName(bot.DefinitionIndex) + (same.Count > 1 ? " " + (same.IndexOf(bot) + 1) : "");
         }
+        // The debrief under the reward text: the headline, then a card per robot with a stripe in its state's colour
+        // (green MVP, yellow advice, blue fine), its numbers, a bar for its share of the wave's damage and its own advice.
+        // The cards sit in the reward text's bottom margin so the tutorial's reward focus above them is unchanged.
+        sealed class DebriefCard { public RectTransform root; public Image stripe, share; public TextMeshProUGUI title, advice; }
+        readonly System.Collections.Generic.List<DebriefCard> debriefCards = new System.Collections.Generic.List<DebriefCard>();
+        RectTransform debriefRoot;
+        TextMeshProUGUI debriefHeadline;
+        static readonly Color CardBack = new Color32(0x13, 0x22, 0x2E, 0xFF), MvpColor = new Color32(0x7F, 0xF0, 0xB0, 0xFF),
+            AdviceColor = new Color32(0xFF, 0xD3, 0x6B, 0xFF), FineColor = new Color32(0x6F, 0xB8, 0xE8, 0xFF);
         void ShowDebrief(DefenseSimulation sim)
         {
-            string report = DefenseDebrief.Report(sim, bot => RobotLabel(sim, bot));
-            if (!debrief)
+            var (headline, lines) = DefenseDebrief.Summary(sim, bot => RobotLabel(sim, bot));
+            if (!debriefRoot)
             {
-                debrief = new GameObject("Debrief", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
-                debrief.rectTransform.SetParent(rewardItems.transform, false);
-                debrief.rectTransform.anchorMin = Vector2.zero; debrief.rectTransform.anchorMax = new Vector2(1, 0); debrief.rectTransform.pivot = new Vector2(.5f, 0);
-                debrief.font = rewardItems.font; debrief.fontSize = rewardItems.fontSize * .85f; debrief.color = rewardItems.color;
-                debrief.alignment = rewardItems.alignment; debrief.raycastTarget = false;
+                debriefRoot = new GameObject("Debrief", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter)).GetComponent<RectTransform>();
+                debriefRoot.SetParent(rewardItems.transform, false);
+                debriefRoot.anchorMin = Vector2.zero; debriefRoot.anchorMax = new Vector2(1, 0); debriefRoot.pivot = new Vector2(.5f, 0);
+                debriefRoot.sizeDelta = Vector2.zero; // a new RectTransform is 100 wide: stretched, that would overhang both sides
+                var column = debriefRoot.GetComponent<VerticalLayoutGroup>(); column.spacing = 10;
+                column.childControlWidth = column.childControlHeight = true; column.childForceExpandWidth = true; column.childForceExpandHeight = false;
+                debriefRoot.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+                debriefHeadline = Text(debriefRoot, rewardItems.fontSize * .85f);
             }
-            debrief.text = report;
-            float height = report.Length == 0 ? 0 : debrief.GetPreferredValues(report, ((RectTransform)rewardItems.transform).rect.width, 0).y;
-            debrief.rectTransform.sizeDelta = new Vector2(0, height); debrief.rectTransform.anchoredPosition = Vector2.zero;
+            debriefHeadline.text = headline;
+            float most = Mathf.Max(1, lines.Length == 0 ? 0 : lines.Max(l => l.Bot.DamageThisWave));
+            for (int i = 0; i < lines.Length; i++)
+            {
+                var line = lines[i];
+                var card = i < debriefCards.Count ? debriefCards[i] : MakeDebriefCard();
+                card.root.gameObject.SetActive(true);
+                card.stripe.color = line.Mvp ? MvpColor : line.Issue != DefenseDebrief.Issue.None ? AdviceColor : FineColor;
+                card.title.text = $"<b>{line.Name}</b>" + (line.Mvp ? $"  <color=#{ColorUtility.ToHtmlStringRGB(MvpColor)}><size=80%>MVP</size></color>" : "") +
+                    $"\n<color=#B9C7D2><size=88%>{line.Stats}</size></color>";
+                card.share.rectTransform.anchorMax = new Vector2(line.Bot.DamageThisWave / most, 1);
+                card.share.color = card.stripe.color;
+                card.share.transform.parent.gameObject.SetActive(line.Bot.Spec.role != RobotRole.Buffer);
+                card.advice.text = line.Advice ?? "";
+                card.advice.gameObject.SetActive(line.Advice != null);
+            }
+            for (int i = lines.Length; i < debriefCards.Count; i++) debriefCards[i].root.gameObject.SetActive(false);
+            debriefRoot.gameObject.SetActive(lines.Length > 0);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(debriefRoot);
+            float height = lines.Length == 0 ? 0 : debriefRoot.rect.height;
+            debriefRoot.anchoredPosition = Vector2.zero;
             var margin = rewardItems.margin; margin.w = height > 0 ? height + 28 : 0; rewardItems.margin = margin;
+        }
+        TextMeshProUGUI Text(Transform parent, float size)
+        {
+            var text = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+            text.rectTransform.SetParent(parent, false);
+            text.font = rewardItems.font; text.fontSize = size; text.color = rewardItems.color;
+            text.alignment = TextAlignmentOptions.TopLeft; text.raycastTarget = false;
+            return text;
+        }
+        DebriefCard MakeDebriefCard()
+        {
+            var root = new GameObject("Robot card", typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup)).GetComponent<RectTransform>();
+            root.SetParent(debriefRoot, false);
+            var back = root.GetComponent<Image>(); back.color = CardBack; back.raycastTarget = false;
+            var column = root.GetComponent<VerticalLayoutGroup>(); column.padding = new RectOffset(22, 14, 10, 12); column.spacing = 6;
+            column.childControlWidth = column.childControlHeight = true; column.childForceExpandWidth = true; column.childForceExpandHeight = false;
+            var stripe = new GameObject("Stripe", typeof(RectTransform), typeof(Image), typeof(LayoutElement)).GetComponent<Image>();
+            stripe.rectTransform.SetParent(root, false); stripe.GetComponent<LayoutElement>().ignoreLayout = true; stripe.raycastTarget = false;
+            stripe.rectTransform.anchorMin = Vector2.zero; stripe.rectTransform.anchorMax = new Vector2(0, 1); stripe.rectTransform.pivot = new Vector2(0, .5f);
+            stripe.rectTransform.sizeDelta = new Vector2(6, 0); stripe.rectTransform.anchoredPosition = Vector2.zero;
+            var title = Text(root, rewardItems.fontSize * .85f);
+            // The share bar: a dark track with a fill whose width is this robot's damage over the top damage dealer's.
+            var track = new GameObject("Share", typeof(RectTransform), typeof(Image), typeof(LayoutElement)).GetComponent<Image>();
+            track.rectTransform.SetParent(root, false); track.color = new Color32(0x0A, 0x14, 0x1C, 0xFF); track.raycastTarget = false;
+            track.GetComponent<LayoutElement>().preferredHeight = 6;
+            var share = new GameObject("Fill", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            share.rectTransform.SetParent(track.rectTransform, false); share.raycastTarget = false;
+            share.rectTransform.anchorMin = Vector2.zero; share.rectTransform.anchorMax = Vector2.one; share.rectTransform.sizeDelta = Vector2.zero;
+            var advice = Text(root, rewardItems.fontSize * .76f); advice.color = new Color32(0xE6, 0xD9, 0xB0, 0xFF);
+            var card = new DebriefCard { root = root, stripe = stripe, share = share, title = title, advice = advice };
+            debriefCards.Add(card);
+            return card;
         }
         // The tutorial's reward focus (1-1 E06a) ends just under the reward text, so the dialogue box below does not cover it.
         const float FocusMargin = 24;
