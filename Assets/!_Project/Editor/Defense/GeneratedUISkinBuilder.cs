@@ -25,7 +25,8 @@ namespace CodingGame.Defense.Editor {
    if(roles.Length!=6||hud.Length!=6)throw new InvalidOperationException($"Atlas import incomplete: roles={roles.Length} hud={hud.Length}");
    LoadDistinct();
    string[] prefabs={"Assets/!_Project/Defense/Prefabs/RobotCodeEditor.prefab","Assets/!_Project/Defense/Tutorial/TutorialOverlay.prefab"};
-   foreach(var path in prefabs){File.Copy(path,backup+"/"+Path.GetFileName(path));var p=PrefabUtility.LoadPrefabContents(path);try{Style(p.transform);StyleDistinct(p.transform);PrefabUtility.SaveAsPrefabAsset(p,path);}finally{PrefabUtility.UnloadPrefabContents(p);}}
+   foreach(var path in prefabs){File.Copy(path,backup+"/"+Path.GetFileName(path));var p=PrefabUtility.LoadPrefabContents(path);try{Style(p.transform);StyleDistinct(p.transform);RecordUIOverrides(p.transform);PrefabUtility.SaveAsPrefabAsset(p,path);}finally{PrefabUtility.UnloadPrefabContents(p);}}
+   foreach(string name in new[]{"Comparison","Variable"}){string path="Assets/!_Project/UI/CommandBlocks/"+name+".prefab";File.Copy(path,backup+"/"+name+".prefab");var p=PrefabUtility.LoadPrefabContents(path);try{RefineBlockPickers(p.transform);PrefabUtility.SaveAsPrefabAsset(p,path);}finally{PrefabUtility.UnloadPrefabContents(p);}}
    if(EditorSceneManager.GetActiveScene().path!="Assets/!_Project/Scenes/Defense.unity")EditorSceneManager.OpenScene("Assets/!_Project/Scenes/Defense.unity");
    var canvases=Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include,FindObjectsSortMode.None);
    foreach(var c in canvases.Where(c=>c.name=="PlayerCanvas"||c.name=="DefenseCanvas"||c.name=="BlockHelpCanvas"))Style(c.transform);
@@ -45,6 +46,7 @@ namespace CodingGame.Defense.Editor {
     var offset=camera.GetComponent<DefenseCameraLensOffset>();if(!offset)offset=camera.gameObject.AddComponent<DefenseCameraLensOffset>();
     offset.Configure(old.center-new Vector2(.5f,.5f));
    }
+   foreach(var root in EditorSceneManager.GetActiveScene().GetRootGameObjects())RecordUIOverrides(root.transform);
    EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());AssetDatabase.SaveAssets();
    Debug.Log("Generated sprites applied: HUD, deck, dialogue, developer tool, blocks. Backup "+backup);
   }

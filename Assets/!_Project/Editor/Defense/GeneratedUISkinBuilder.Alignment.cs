@@ -10,14 +10,14 @@ namespace CodingGame.Defense.Editor
         static void AlignCategoryTabs(Transform root)
         {
             var categories=root.Find("Library/Categories");if(!categories)return;
-            Stretch((RectTransform)categories,new Vector2(0,1),Vector2.one,new Vector2(14,-50),new Vector2(-14,-14));
+            Stretch((RectTransform)categories,new Vector2(0,1),Vector2.one,new Vector2(20,-50),new Vector2(-20,-14));
             var layout=categories.GetComponent<HorizontalLayoutGroup>();
             if(layout){layout.padding=new RectOffset();layout.spacing=6;layout.childAlignment=TextAnchor.MiddleCenter;layout.childControlWidth=layout.childControlHeight=true;layout.childForceExpandWidth=layout.childForceExpandHeight=true;}
             foreach(var button in categories.GetComponentsInChildren<Button>(true))
             {
                 RoundedControl(button.GetComponent<Image>(),new Color(.13f,.23f,.34f),6);
                 var le=button.GetComponent<LayoutElement>();if(!le)le=button.gameObject.AddComponent<LayoutElement>();le.minWidth=0;le.preferredWidth=-1;le.flexibleWidth=1;le.minHeight=le.preferredHeight=34;le.flexibleHeight=1;
-                var text=button.GetComponentInChildren<TMP_Text>(true);Stretch(text.rectTransform,Vector2.zero,Vector2.one,new Vector2(4,2),new Vector2(-4,-2));text.margin=Vector4.zero;text.fontSize=17;text.alignment=TextAlignmentOptions.Midline;text.color=new Color(.88f,.95f,1);
+                var text=button.GetComponentInChildren<TMP_Text>(true);Stretch(text.rectTransform,Vector2.zero,Vector2.one,new Vector2(5,3),new Vector2(-5,-3));text.margin=Vector4.zero;text.fontSize=17;text.enableAutoSizing=true;text.fontSizeMin=14;text.fontSizeMax=17;text.alignment=TextAlignmentOptions.Midline;text.color=new Color(.88f,.95f,1);text.raycastTarget=false;
                 var colors=button.colors;colors.normalColor=colors.selectedColor=Color.white;colors.highlightedColor=new Color(.82f,.95f,1);colors.pressedColor=new Color(.65f,.87f,1);button.colors=colors;
             }
         }

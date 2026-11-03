@@ -29,6 +29,8 @@ namespace CodingGame.Defense.Editor {
    ImportDistinct("FormationStartWarm",new Rect(48,52,2004,640),new Vector4(130,90,130,90));
    ImportDistinct("RobotRoleTileClean",new Rect(34,64,1518,860),new Vector4(510,240,400,200));
    ImportDistinct("StudioPreviewFrame",new Rect(40,50,1004,1352),new Vector4(32,100,32,160));
+   ImportDistinct("WaveNoticeBanner",new Rect(38,318,1640,282),new Vector4(100,55,100,55));
+   ImportDistinct("RobotStatusHeader",new Rect(28,520,1318,102),new Vector4(68,20,68,20));
    ImportDistinct("PreviewMonitor",new Rect(41,56,1004,1354),new Vector4(135,140,135,125));
    ImportDistinct("DeploymentTile",new Rect(96,115,1344,794),new Vector4(120,200,160,100));
    ImportDistinct("RewardCardV2",new Rect(25,76,1400,955),new Vector4(64,120,64,160));
@@ -115,6 +117,7 @@ namespace CodingGame.Defense.Editor {
    }
    BuildStats(root);
    RefineEditor(root);
+   RefineBlockPickers(root);
   }
   static void FlatSlot(Image image,Color color){
    image.sprite=null;image.type=Image.Type.Simple;image.color=color;
@@ -158,6 +161,8 @@ namespace CodingGame.Defense.Editor {
    Specific(canvas,"Reward/Card","RewardCardV2",null,2);Specific(canvas,"Inventory/Card","PaletteTray",new Color(.85f,.9f,1f),4);Specific(canvas,"Tooltip","EnemyInfoCard",null,4);Specific(canvas,"PlacementToast","StatsCard",new Color(.65f,.38f,.4f),4);
    PolishHUD(canvas);
    RefinePlacementDock(canvas);
+   RefineWaveNotice(canvas);
+   RefineStatusHeader(canvas);
   }
  }
 }

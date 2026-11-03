@@ -821,7 +821,7 @@ GameObject:
   - component: {fileID: 3139500664670005250}
   - component: {fileID: 6717346910166155408}
   - component: {fileID: 1966806844485220660}
-  - component: {fileID: 5794721876165314314}
+  - component: {fileID: 6574874222917982300}
   m_Layer: 0
   m_Name: Category1
   m_TagString: Untagged
@@ -951,7 +951,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &5794721876165314314
+--- !u!114 &6574874222917982300
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1376,7 +1376,7 @@ GameObject:
   - component: {fileID: 4414823245145480007}
   - component: {fileID: 4178922279907538543}
   - component: {fileID: 3194588014517551281}
-  - component: {fileID: 8016955775653068947}
+  - component: {fileID: 2229318133122414488}
   m_Layer: 0
   m_Name: Automatic
   m_TagString: Untagged
@@ -1487,7 +1487,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &8016955775653068947
+--- !u!114 &2229318133122414488
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -7876,7 +7876,7 @@ GameObject:
   - component: {fileID: 7820660288718038048}
   - component: {fileID: 345862320961412052}
   - component: {fileID: 7399576223516348492}
-  - component: {fileID: 6208041014348674144}
+  - component: {fileID: 1701809479831565472}
   m_Layer: 0
   m_Name: Category0
   m_TagString: Untagged
@@ -8006,7 +8006,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &6208041014348674144
+--- !u!114 &1701809479831565472
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -11403,7 +11403,7 @@ GameObject:
   - component: {fileID: 7627332571414498362}
   - component: {fileID: 7279356484729223953}
   - component: {fileID: 2094564615182069935}
-  - component: {fileID: 4465114660843545504}
+  - component: {fileID: 2510603120666950616}
   m_Layer: 0
   m_Name: CloseEditor
   m_TagString: Untagged
@@ -11513,7 +11513,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &4465114660843545504
+--- !u!114 &2510603120666950616
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -13274,7 +13274,7 @@ GameObject:
   - component: {fileID: 8822371044200188240}
   - component: {fileID: 1326793013282030773}
   - component: {fileID: 5158703440453505241}
-  - component: {fileID: 6119803034525821798}
+  - component: {fileID: 2651055842588800179}
   m_Layer: 0
   m_Name: Category2
   m_TagString: Untagged
@@ -13404,7 +13404,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &6119803034525821798
+--- !u!114 &2651055842588800179
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -15799,7 +15799,7 @@ GameObject:
   - component: {fileID: 5096511607183535477}
   - component: {fileID: 8042808347884697356}
   - component: {fileID: 8722215587074604364}
-  - component: {fileID: 1625930115101704009}
+  - component: {fileID: 5700864617744401116}
   m_Layer: 0
   m_Name: SnapMarker
   m_TagString: Untagged
@@ -15864,7 +15864,7 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 6
---- !u!114 &1625930115101704009
+--- !u!114 &5700864617744401116
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -15894,7 +15894,7 @@ GameObject:
   - component: {fileID: 4037640926209666732}
   - component: {fileID: 8265139189629856128}
   - component: {fileID: 1571801400783478291}
-  - component: {fileID: 1679642043228152062}
+  - component: {fileID: 2233833091130455064}
   m_Layer: 0
   m_Name: Category3
   m_TagString: Untagged
@@ -16024,7 +16024,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &1679642043228152062
+--- !u!114 &2233833091130455064
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -17342,7 +17342,7 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 4269108155299311927, guid: 5aea154618d82e045b5c1ef4b95f35ca, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 7414229796567780468}
+      addedObject: {fileID: 778466574021699071}
   m_SourcePrefab: {fileID: 100100000, guid: 5aea154618d82e045b5c1ef4b95f35ca, type: 3}
 --- !u!114 &3108508316256418488 stripped
 MonoBehaviour:
@@ -17360,7 +17360,7 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 4269108155299311927, guid: 5aea154618d82e045b5c1ef4b95f35ca, type: 3}
   m_PrefabInstance: {fileID: 407125610333172559}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &7414229796567780468
+--- !u!114 &778466574021699071
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -17567,14 +17567,14 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 3454785778193232899, guid: 17139c8ec2c3c7e4ab5e31275f62439c, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 8824707128041490453}
+      addedObject: {fileID: 5462184599937762474}
   m_SourcePrefab: {fileID: 100100000, guid: 17139c8ec2c3c7e4ab5e31275f62439c, type: 3}
 --- !u!1 &2640157125722563835 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3454785778193232899, guid: 17139c8ec2c3c7e4ab5e31275f62439c, type: 3}
   m_PrefabInstance: {fileID: 815826317041701112}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &8824707128041490453
+--- !u!114 &5462184599937762474
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -17860,7 +17860,7 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 2545527264208953519, guid: 2e10b75d7c8ecc64a97dbcd1968d9545, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 3709241010829725150}
+      addedObject: {fileID: 2009514925337648078}
   m_SourcePrefab: {fileID: 100100000, guid: 2e10b75d7c8ecc64a97dbcd1968d9545, type: 3}
 --- !u!114 &3120447282740239324 stripped
 MonoBehaviour:
@@ -17878,7 +17878,7 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 2545527264208953519, guid: 2e10b75d7c8ecc64a97dbcd1968d9545, type: 3}
   m_PrefabInstance: {fileID: 991734118042944844}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &3709241010829725150
+--- !u!114 &2009514925337648078
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -19217,7 +19217,7 @@ PrefabInstance:
       addedObject: {fileID: 3402582307337787173}
     - targetCorrespondingSourceObject: {fileID: 4770126263596327421, guid: 30c3b74ed708d334ab9ccad845619d67, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 4757615885030793157}
+      addedObject: {fileID: 4000369603675810747}
   m_SourcePrefab: {fileID: 100100000, guid: 30c3b74ed708d334ab9ccad845619d67, type: 3}
 --- !u!224 &4672658578924736899 stripped
 RectTransform:
@@ -19253,7 +19253,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CodingGame.BlockCoding.CommandBlockContextClick
   block: {fileID: 8432429457577455280}
---- !u!114 &4757615885030793157
+--- !u!114 &4000369603675810747
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -19947,7 +19947,7 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 1159769099364621816, guid: 741d3834b53597b448ce23d9b5d1bc88, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 5610182543673694981}
+      addedObject: {fileID: 4862437395430699755}
     - targetCorrespondingSourceObject: {fileID: 4743336744891875878, guid: 741d3834b53597b448ce23d9b5d1bc88, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8095535370035835735}
@@ -19986,7 +19986,7 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 1159769099364621816, guid: 741d3834b53597b448ce23d9b5d1bc88, type: 3}
   m_PrefabInstance: {fileID: 5116097110911327904}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &5610182543673694981
+--- !u!114 &4862437395430699755
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -20373,14 +20373,14 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 8762506145433111401, guid: 6e0c8284e569a0a4dadc2d3ba5def574, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 7619835306832519438}
+      addedObject: {fileID: 7051517347260582589}
   m_SourcePrefab: {fileID: 100100000, guid: 6e0c8284e569a0a4dadc2d3ba5def574, type: 3}
 --- !u!1 &3436004683575086216 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8762506145433111401, guid: 6e0c8284e569a0a4dadc2d3ba5def574, type: 3}
   m_PrefabInstance: {fileID: 6212021790230022113}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &7619835306832519438
+--- !u!114 &7051517347260582589
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -20666,14 +20666,14 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 6699818768137564600, guid: c0e77f36d2505a54c8dff8e927b8a663, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 8883173703034343969}
+      addedObject: {fileID: 3476978596293975729}
   m_SourcePrefab: {fileID: 100100000, guid: c0e77f36d2505a54c8dff8e927b8a663, type: 3}
 --- !u!1 &309661388295051919 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6699818768137564600, guid: c0e77f36d2505a54c8dff8e927b8a663, type: 3}
   m_PrefabInstance: {fileID: 6392484499211332407}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &8883173703034343969
+--- !u!114 &3476978596293975729
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -20890,7 +20890,7 @@ PrefabInstance:
       addedObject: {fileID: 5167579081619628245}
     - targetCorrespondingSourceObject: {fileID: 1493190567537323888, guid: a67e6b1098563c74fa82c1f30e6a0c80, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 7960030977608510998}
+      addedObject: {fileID: 5698662030667503916}
   m_SourcePrefab: {fileID: 100100000, guid: a67e6b1098563c74fa82c1f30e6a0c80, type: 3}
 --- !u!224 &3561605719452154873 stripped
 RectTransform:
@@ -20915,7 +20915,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CodingGame.BlockCoding.CommandBlockContextClick
   block: {fileID: 5539591944386803409}
---- !u!114 &7960030977608510998
+--- !u!114 &5698662030667503916
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
