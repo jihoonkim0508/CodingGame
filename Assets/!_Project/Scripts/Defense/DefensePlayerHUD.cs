@@ -12,6 +12,7 @@ namespace CodingGame.Defense
         [SerializeField] DefenseBattle battle;
         [SerializeField] GameObject canvasRoot, rewardPanel;
         [SerializeField, Tooltip("튜토리얼 보상 집중(Battle.RewardPanel) 영역: 보상 카드 위쪽부터 '잔여 적' 줄 바로 아래까지")] RectTransform rewardFocus;
+        [SerializeField, Tooltip("상단 바 왼쪽: 스테이지-웨이브와 섬 이름")] TMP_Text brand;
         [SerializeField] TMP_Text counters, guide, inventory, notice, pauseLabel, speedLabel, rewardTitle, rewardItems, claimLabel;
         [SerializeField] Button startButton, pauseButton, speedButton, claimButton;
         [SerializeField] GameObject combatControls;
@@ -44,7 +45,7 @@ namespace CodingGame.Defense
         void Start()
         {
             if (!battleCamera || !robotActions || !upgradeRobotButton || !developRobotButton || !recallRobotButton || !upgradeRobotLabel || !placementToast || !placementToastText || !battle || !rewardScroll || !combatControls || enemyCards.Length != 3 || enemyCounts.Length != 3 || enemyCards.Any(x => !x) || enemyCounts.Any(x => !x) ||
-                !upcoming || !canvasRoot || !rewardPanel || !counters || !guide || !inventory || !notice || !pauseLabel || !speedLabel ||
+                !upcoming || !brand || !canvasRoot || !rewardPanel || !counters || !guide || !inventory || !notice || !pauseLabel || !speedLabel ||
                 !rewardTitle || !rewardItems || !claimLabel || !startButton || !pauseButton || !speedButton || !claimButton ||
                 robotLabels.Length != 6 || robotLabels.Any(t => !t) || robotButtons.Length != 6 || robotButtons.Any(b => !b)) throw new InvalidOperationException("DefensePlayerHUD Inspector 참조를 연결하세요.");
             startButton.onClick.AddListener(battle.StartBattle);
@@ -76,6 +77,7 @@ namespace CodingGame.Defense
             shownCardCounts = Enumerable.Repeat(-1, enemyCards.Length).ToArray();
             upperRobotButtons = new[] { upgradeRobotButton, developRobotButton };
         }
+        static string Label(string name) => $"<color=#8FA3B5><size=82%>{name}</size></color> ";
         public void SetVisible(bool visible) => canvasRoot.SetActive(visible);
         public void ShowPlacementError(string reason)
         {
@@ -102,10 +104,13 @@ namespace CodingGame.Defense
             bool ready = sim.CanPrepare, reward = sim.Phase == BattlePhase.Reward;
             bool ended = sim.Phase == BattlePhase.Victory || sim.Phase == BattlePhase.Defeat;
             bool fighting = sim.Phase == BattlePhase.Running || sim.Phase == BattlePhase.Paused;
-            string state = ended ? "작전 종료" : fighting ? "전투 중" : "정비 중";
-            string seconds = $"{Math.Ceiling(sim.WaveRemaining):00}s";
+            // Dim labels, bright values; the phase in its own colour so preparing and fighting read apart at a glance.
+            string state = ended ? "<color=#8FA3B5>작전 종료</color>" : fighting ? "<color=#FF9F6B><b>전투 중</b></color>" : "<color=#5FE0C8><b>정비 중</b></color>";
+            string seconds = $"<b>{Math.Ceiling(sim.WaveRemaining):0}초</b>";
             if (sim.FinalRush && !reward && !ended) seconds = $"<color=#FF8A7A>{seconds} · 끝나면 남은 적 돌진</color>";
-            counters.text = $"{battle.Stage}-{sim.WaveIndex + 1:00}     {state}     WAVE {sim.WaveIndex + 1}/{sim.Setup.Waves.Length}     적 {(reward ? sim.LastSurvivors : sim.RemainingEnemies)}     {seconds}     코인 {sim.Coins:N0}";
+            counters.text = $"{state}      {Label("웨이브")}<b>{sim.WaveIndex + 1} / {sim.Setup.Waves.Length}</b>      {Label("남은 적")}<b>{(reward ? sim.LastSurvivors : sim.RemainingEnemies)}</b>" +
+                $"      {Label("시간")}{seconds}      {Label("코인")}<b><color=#FFD36B>{sim.Coins:N0}</color></b>";
+            brand.text = $"<b>{battle.Stage}-{sim.WaveIndex + 1}</b>  <size=72%><color=#CFE8FF>{StageMap.StageProgress.Title(battle.Stage)}</color></size>";
             combatControls.SetActive(fighting);
             RefreshEnemyCards(sim, fighting);
             // Stage 1 goals come with its tutorial; later stages show the lesson's own goal line.

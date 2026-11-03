@@ -7976,6 +7976,7 @@ MonoBehaviour:
   canvasRoot: {fileID: 429884505}
   rewardPanel: {fileID: 1179369547}
   rewardFocus: {fileID: 1091901940}
+  brand: {fileID: 740566830}
   counters: {fileID: 43253172}
   guide: {fileID: 1501229289}
   inventory: {fileID: 1488289488}

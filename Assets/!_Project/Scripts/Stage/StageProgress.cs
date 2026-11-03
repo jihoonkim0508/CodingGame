@@ -11,6 +11,9 @@ namespace CodingGame.StageMap
         static readonly HashSet<int> previewClears = new HashSet<int>();
         // Stage number the map handed to the Defense scene; 0 when Defense was opened directly.
         public static int SelectedStage;
+        // The islands' names (the map's StageIslandView titles), for the battle HUD.
+        static readonly string[] Titles = { "개발자의 작업실", "데이터 분기 구역", "자동화 생산 공장" };
+        public static string Title(int number) => number >= 1 && number <= Titles.Length ? Titles[number - 1] : "";
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetSession()
