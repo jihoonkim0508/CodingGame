@@ -45,6 +45,20 @@ namespace CodingGame.Defense
             }
         }
 
+        // The tag over a robot's head: missing or stopped code at any time, and in battle its function runs against the wave's
+        // limit (5 before loops unlock), so a robot that stops attacking shows why. Null: nothing to show.
+        public static string LiveStatus(DefenseSimulation sim, RobotState bot)
+        {
+            if (bot.AutoExecute) return null;
+            if (bot.Program == null || bot.Program.IsEmpty) return sim.Setup.PlayerFlow ? Tag("FFD36B", "코드 없음") : null;
+            if (bot.Program.Fault != null) return Tag("FF7A7A", "코드 오류");
+            if (sim.Phase != BattlePhase.Running && sim.Phase != BattlePhase.Paused) return null;
+            int limit = sim.FunctionRepeatLimit;
+            if (bot.Program.Completed(sim)) return Tag("FFD36B", limit > 1 ? $"함수 {limit}/{limit} 끝" : "함수 끝");
+            return limit > 1 && limit < 1000 ? Tag("CFE8FF", $"함수 {bot.Program.CompletedRuns}/{limit}") : null;
+        }
+        static string Tag(string color, string text) => $"<mark=#0B1620D0 padding=\"60,60,25,25\"><color=#{color}>{text}</color></mark>";
+
         // One stat line per robot, its advice under it, and a headline on top. Rich text for the reward panel.
         public static string Report(DefenseSimulation sim, Func<RobotState, string> name)
         {

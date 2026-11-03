@@ -131,6 +131,7 @@ namespace CodingGame.Defense
                 ? "0.2x" : battle.BattleSpeed + "x";
             RefreshRobotButtons(battle, robotButtons, robotLabels, "\nx");
             RefreshRobotActions(sim);
+            RefreshRobotStatus(sim);
             rewardPanel.SetActive(reward || ended);
             if (reward || ended) RefreshRewardPanel(sim, reward);
             else resultShown = -100; // a restart right after the result clears its banner too, not only after BannerSeconds
@@ -222,6 +223,41 @@ namespace CodingGame.Defense
             upgradeRobotButton.interactable = sim.UpgradeError(selected.Id) == null;
             recallRobotButton.interactable = sim.RecallUnlocked;
             upgradeRobotLabel.text = !sim.UpgradeUnlocked ? "레벨업\n1-2 해금" : selected.IsMaxLevel ? "최고 레벨" : $"레벨업\n{sim.UpgradeCost} 코인";
+        }
+        // A tag over each robot's head (DefenseDebrief.LiveStatus). Labels sit in a layer behind the other HUD parts; the
+        // selected robot's tag hides while its action menu is open over its head.
+        RectTransform statusLayer;
+        readonly System.Collections.Generic.List<TextMeshProUGUI> statusLabels = new System.Collections.Generic.List<TextMeshProUGUI>();
+        void RefreshRobotStatus(DefenseSimulation sim)
+        {
+            var canvas = (RectTransform)canvasRoot.transform;
+            if (!statusLayer)
+            {
+                statusLayer = new GameObject("Robot status", typeof(RectTransform)).GetComponent<RectTransform>();
+                statusLayer.SetParent(canvas, false); statusLayer.SetSiblingIndex(0);
+                statusLayer.anchorMin = Vector2.zero; statusLayer.anchorMax = Vector2.one; statusLayer.sizeDelta = Vector2.zero; statusLayer.pivot = canvas.pivot;
+            }
+            int shown = 0;
+            foreach (var bot in sim.Robots)
+            {
+                string text = DefenseDebrief.LiveStatus(sim, bot);
+                if (text == null || robotActions.gameObject.activeSelf && bot.Id == battle.SelectedId) continue;
+                if (shown == statusLabels.Count)
+                {
+                    var made = new GameObject("Status", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                    made.rectTransform.SetParent(statusLayer, false);
+                    made.rectTransform.anchorMin = made.rectTransform.anchorMax = canvas.pivot; made.rectTransform.pivot = new Vector2(.5f, 0); made.rectTransform.sizeDelta = new Vector2(240, 32);
+                    made.font = rewardItems.font; made.fontSize = 20; made.fontStyle = FontStyles.Bold; made.alignment = TextAlignmentOptions.Bottom;
+                    made.textWrappingMode = TextWrappingModes.NoWrap; made.raycastTarget = false;
+                    statusLabels.Add(made);
+                }
+                var label = statusLabels[shown++];
+                if (label.text != text) label.text = text;
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, battleCamera.WorldToScreenPoint(DefenseViews.World(bot.Position, DefenseBattle.RobotHeight)), null, out var head);
+                label.rectTransform.anchoredPosition = head + Vector2.up * 10;
+                label.gameObject.SetActive(true);
+            }
+            for (int i = shown; i < statusLabels.Count; i++) statusLabels[i].gameObject.SetActive(false);
         }
         // The wave's result in large letters over the screen; the result panel fades in under it, then the rewarded blocks
         // pop out in turn. Driven from LateUpdate by the time it started, so an interrupted frame never leaves the panel or a

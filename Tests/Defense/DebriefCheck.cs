@@ -10,7 +10,7 @@ static class DebriefCheck
     static int checks;
     static void Assert(bool value, string message) { if (!value) throw new Exception(message); checks++; }
     static RobotSpec Spec(RobotRole role) => new RobotSpec { role = role, range = 5, interval = .1f, damage = 5 };
-    static DefenseSimulation Sim(float health, int count) => new DefenseSimulation(new BattleSetup { Progression = FixtureProgression.Create(),
+    static DefenseSimulation Sim(float health, int count, bool playerFlow = false) => new DefenseSimulation(new BattleSetup { Progression = FixtureProgression.Create(), PlayerFlow = playerFlow,
         Min = new Vector2(-12, -8), Max = new Vector2(12, 8), ActionProfiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(Spec).ToArray(),
         Routes = new[] { new Route(new[] { new Vector2(-10, 0), new Vector2(10, 0) }, 1.1f) },
         Waves = new[] { new[] { new SpawnGroup { Enemy = new EnemySpec { health = health, speed = 1 }, Count = count, Interval = .1f } } } });
@@ -60,6 +60,25 @@ static class DebriefCheck
         Bot(clean, RobotRole.Warrior, -8, 2, Slash());
         RunToEnd(clean);
         Assert(DefenseDebrief.Report(clean, bot => "R").Contains("완벽 방어!</b> MVP R"), "clean wave without issues praises the MVP");
+        CheckLiveStatus();
         Console.WriteLine($"Debrief checks passed: {checks}");
+    }
+
+    // The tag over a robot's head during battle.
+    static void CheckLiveStatus()
+    {
+        string Tag(DefenseSimulation s, RobotState bot) => DefenseDebrief.LiveStatus(s, bot) ?? "";
+        var live = Sim(1000, 1);
+        var runner = Bot(live, RobotRole.Warrior, -8, 2, Slash());
+        var sandbox = Bot(live, RobotRole.Shooter, -6, -2);
+        var broken = Bot(live, RobotRole.Shooter, -4, -2, new CodeBlock(BlockKind.Wait, "0", new CodeBlock(BlockKind.Number, "-1")));
+        Assert(Tag(live, runner) == "" && Tag(live, sandbox) == "", "no tag while preparing, none for a sandbox robot without code");
+        live.Start();
+        Assert(Tag(live, runner).Contains("함수 0/5"), "runs shown against the wave's limit in battle");
+        for (int i = 0; i < 60 * 30 && !runner.Program.Completed(live); i++) live.Advance(1.0 / 60);
+        Assert(Tag(live, runner).Contains("함수 5/5 끝"), "used-up runs say the function ended");
+        Assert(broken.Program.Fault != null && Tag(live, broken).Contains("코드 오류"), "stopped code is tagged");
+        var campaign = Sim(10, 1, playerFlow: true);
+        Assert(Tag(campaign, Bot(campaign, RobotRole.Shooter, -6, -2)).Contains("코드 없음"), "a campaign robot without code is tagged while preparing");
     }
 }
