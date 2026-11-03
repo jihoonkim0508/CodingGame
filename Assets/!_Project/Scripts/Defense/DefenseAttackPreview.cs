@@ -237,7 +237,7 @@ namespace CodingGame.Defense
         }
         void RefreshStatus()
         {
-            if (DemoOver) { status.text = $"시연 완료 · {Math.Max(0,1-emptyElapsed):0.0}s 후 다시 시작"; return; }
+            if (DemoOver) { status.text = $"시연 완료 · {Math.Max(0,1-emptyElapsed):0.0}초 뒤 다시 시작"; return; }
             var bot = simulation.Robots.FirstOrDefault();
             if (bot == null) { status.text = "시연 종료"; return; }
             var program = bot.Program;
@@ -247,13 +247,13 @@ namespace CodingGame.Defense
             // Explain a wasted command before "completed", or a one-run function hides why nothing happened.
             else if (bot.LastResult == ActionResult.Ineffective) state = "호환되지 않는 명령 · 이 로봇에서는 동작하지 않아요";
             else if (program.Completed(simulation)) state = $"함수 {program.CompletedRuns}/{simulation.FunctionRepeatLimit}회 완료";
-            else if (program.WaitRemaining(simulation.Time) is double wait && wait > 0) state = $"wait · {wait:0.0}s";
+            else if (program.WaitRemaining(simulation.Time) is double wait && wait > 0) state = $"wait() · {wait:0.0}초 기다리는 중";
             else if (program.StepsLastTick == 0) state = "코드 대기";
             else switch (bot.LastResult)
             {
                 case ActionResult.CoolingDown:
-                    state = $"재사용 대기 · {Math.Max(0, bot.NextAction - simulation.Time):0.0}s"; break;
-                case ActionResult.NoTarget: state = "대상 없음"; break;
+                    state = $"재사용 대기 · {Math.Max(0, bot.NextAction - simulation.Time):0.0}초"; break;
+                case ActionResult.NoTarget: state = "대상 없음 · 사거리에 적이 오길 기다리는 중"; break;
                 case ActionResult.Undecided: state = "호환 미정 명령"; break;
                 default: state = $"코드 시연 · {bot.Executions}회"; break;
             }
@@ -270,18 +270,20 @@ namespace CodingGame.Defense
         {
             var s = selected.Spec;
             float nextMultiplier = (float)Math.Pow(selected.UpgradeFactor, selected.Level);
-            stats.text = $"{battle.RobotName(selected.Id)}  Lv.{selected.Level}" + (selected.IsMaxLevel ? "" : $" → Lv.{selected.Level + 1}") +
-                (s.role == RobotRole.Buffer ? "" : $"\n공격력  {UpgradeValue(selected.Damage,selected.Damage/selected.LevelMultiplier*nextMultiplier)}") +
-                $"\n사거리  {selected.Range:0.##}\n공격 간격  {selected.Interval:0.##}s\n" +
-                (selected.Health.HasValue ? (selected.IsMaxLevel ? $"체력  {selected.Health:0}/{selected.MaxHealth:0}" : $"최대 체력  {UpgradeValue(selected.MaxHealth,s.health*nextMultiplier)}") + $"\n저지  {s.blockCapacity}" : "체력 없음") +
-                (s.role == RobotRole.Bomber ? $"\n폭발 반경  {s.effectRadius:0.##}" : s.role == RobotRole.Utility ? $"\n감속  {(1-s.slowMultiplier)*100:0}%" :
-                s.role == RobotRole.Buffer ? $"\n버프 피해  {UpgradeValue(1+(s.buffDamage-1)*selected.LevelMultiplier,1+(s.buffDamage-1)*nextMultiplier)}배" +
-                    $"\n버프 사거리  {UpgradeValue(1+(s.buffRange-1)*selected.LevelMultiplier,1+(s.buffRange-1)*nextMultiplier)}배" +
-                    $"\n버프 간격  {UpgradeValue(Math.Max(.01f,1-(1-s.buffInterval)*selected.LevelMultiplier),Math.Max(.01f,1-(1-s.buffInterval)*nextMultiplier))}배" : "");
-            coinLabel.text = $"코인  {battle.Simulation.Coins:N0}";
+            // Dim names, bright values: the same reading pattern as the battle's top bar.
+            stats.text = $"<b>{battle.RobotName(selected.Id)}  Lv.{selected.Level}</b>" + (selected.IsMaxLevel ? "" : $" <color=#6FFFD2>→ Lv.{selected.Level + 1}</color>") +
+                (s.role == RobotRole.Buffer ? "" : $"\n{Stat("공격력")}{UpgradeValue(selected.Damage,selected.Damage/selected.LevelMultiplier*nextMultiplier)}") +
+                $"\n{Stat("사거리")}<b>{selected.Range:0.#}</b>\n{Stat("공격 간격")}<b>{selected.Interval:0.##}초</b>\n" +
+                (selected.Health.HasValue ? (selected.IsMaxLevel ? $"{Stat("체력")}<b>{selected.Health:0}/{selected.MaxHealth:0}</b>" : $"{Stat("최대 체력")}{UpgradeValue(selected.MaxHealth,s.health*nextMultiplier)}") + $"\n{Stat("저지")}<b>{s.blockCapacity}마리</b>" : $"{Stat("체력")}공격받지 않음") +
+                (s.role == RobotRole.Bomber ? $"\n{Stat("폭발 반경")}<b>{s.effectRadius:0.#}</b>" : s.role == RobotRole.Utility ? $"\n{Stat("감속")}<b>{(1-s.slowMultiplier)*100:0}%</b>" :
+                s.role == RobotRole.Buffer ? $"\n{Stat("버프 피해")}{UpgradeValue(1+(s.buffDamage-1)*selected.LevelMultiplier,1+(s.buffDamage-1)*nextMultiplier)}배" +
+                    $"\n{Stat("버프 사거리")}{UpgradeValue(1+(s.buffRange-1)*selected.LevelMultiplier,1+(s.buffRange-1)*nextMultiplier)}배" +
+                    $"\n{Stat("버프 간격")}{UpgradeValue(Math.Max(.01f,1-(1-s.buffInterval)*selected.LevelMultiplier),Math.Max(.01f,1-(1-s.buffInterval)*nextMultiplier))}배" : "");
+            coinLabel.text = $"<color=#8FA3B5>코인</color>  <b><color=#FFD36B>{battle.Simulation.Coins:N0}</color></b>";
         }
+        static string Stat(string name) => $"<color=#8FA3B5>{name}</color>  ";
         string UpgradeValue(float current, float upgraded) => selected.IsMaxLevel || Mathf.Approximately(current, upgraded)
-            ? $"{current:0.##}" : $"{current:0.##} <color=#6FFFD2>→ {upgraded:0.##}</color>";
+            ? $"<b>{current:0.#}</b>" : $"<b>{current:0.#}</b> <color=#6FFFD2>→ {upgraded:0.#}</color>";
         public void Close()
         {
             selected = null; HidePreview();
