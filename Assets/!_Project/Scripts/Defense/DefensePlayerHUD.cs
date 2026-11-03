@@ -410,6 +410,7 @@ namespace CodingGame.Defense
             Add("이 스테이지 처음부터", -40, () => { ToggleMenu(); battle.Restart(); });
             Add(battle.FromStageMap ? "스테이지 맵으로" : "타이틀로", -120, () => GameFlow.LoadScene(battle.FromStageMap ? GameFlow.StageScene : GameFlow.TitleScene));
             Text("스테이지 도중에 나가면 이 스테이지 진행은 저장되지 않아요.", -200, 20).color = new Color(.72f, .8f, .86f);
+            menu.SetActive(false); // built closed, so the first Esc opens it
         }
         // On a defeat that can go back one wave, the result button retries the wave and a copy beside it restarts the stage
         // (a wave that began with little core health may be better started over).

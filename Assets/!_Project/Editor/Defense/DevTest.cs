@@ -250,8 +250,8 @@ namespace CodingGame.Defense.Editor
         {
             sim.ApplyProgram(bot.Id, "robot_" + bot.Id, Array.Empty<CodeBlock>());
             CodeBlock command = new CodeBlock(DefenseProgression.ActionBlock(bot.Spec.NativeAction));
-            if (sim.Available(BlockKind.While, bot.Id) > 0 && sim.Available(BlockKind.True, bot.Id) > 0)
-            { var loop = new CodeBlock(BlockKind.While, "0", new CodeBlock(BlockKind.True)); loop.Body.Add(command); command = loop; }
+            if (sim.Available(BlockKind.While, bot.Id) > 0)
+            { var loop = new CodeBlock(BlockKind.While); loop.Body.Add(command); command = loop; } // no condition slot: while True
             else if (sim.Available(BlockKind.For, bot.Id) > 0 && sim.Available(BlockKind.Number, bot.Id) > 0)
             { var loop = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "100")); loop.Body.Add(command); command = loop; }
             sim.ApplyProgram(bot.Id, "robot_" + bot.Id, new[] { command });
