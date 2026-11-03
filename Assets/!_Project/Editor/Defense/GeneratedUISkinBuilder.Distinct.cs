@@ -163,6 +163,7 @@ namespace CodingGame.Defense.Editor {
    RefinePlacementDock(canvas);
    RefineWaveNotice(canvas);
    RefineStatusHeader(canvas);
+   RefineCombatControls(canvas);
   }
  }
 }
