@@ -29,6 +29,11 @@ namespace CodingGame.Defense
         public int Leaks { get; private set; }
         public int Spawned { get; private set; }
         public int WaveLeaks => Leaks - waveLeaksAtStart;
+        // A stage's last wave after Stage 1 (the tutorial keeps its own rules): when time runs out the enemies left all
+        // rush the core instead of being carried, so slow code still costs at the end. LastRush: how many did, and the damage.
+        public bool FinalRush => Setup.PlayerFlow && Setup.Stage > 1 && WaveIndex + 1 == Setup.Waves.Length;
+        public int LastRush { get; private set; }
+        public int LastRushDamage { get; private set; }
         // Stage result: 3 stars with 80%+ of the core left, 2 with 40%+, 1 for a clear (12 HP: 10 and 5). Forgiving on
         // purpose: 1-1 lets one enemy through by design.
         public static int Stars(int core, int max) => core * 5 >= max * 4 ? 3 : core * 5 >= max * 2 ? 2 : 1;
@@ -130,7 +135,7 @@ namespace CodingGame.Defense
             currentWave = nextWave ?? ScaledWave(WaveIndex);
             nextWave = WaveIndex + 1 < Setup.Waves.Length ? ScaledWave(WaveIndex + 1) : Array.Empty<SpawnGroup>();
             carry.Clear(); groupCounts = new int[currentWave.Length]; waveStart = Time; spawnElapsed = 0;
-            waveLeaksAtStart = Leaks; ObjectiveFailed = false;
+            waveLeaksAtStart = Leaks; ObjectiveFailed = false; LastRush = LastRushDamage = 0;
             foreach (var bot in Robots) { bot.AttacksThisWave = bot.ActionsThisWave = bot.KillsThisWave = 0; bot.DamageThisWave = 0; bot.SawEnemyThisWave = false; }
             if (Setup.PlayerFlow && Lesson != null) GrantSupply(Lesson);
         }
@@ -616,6 +621,18 @@ namespace CodingGame.Defense
         void CompleteWave(int remaining)
         {
             LastWaveTimedOut = remaining > 0;
+            LastRush = LastRushDamage = 0;
+            if (LastWaveTimedOut && FinalRush)
+            {
+                // Nothing to carry into: every enemy still around (or not yet out) reaches the core at once.
+                LastRush = remaining; Leaks += remaining;
+                LastRushDamage = Enemies.Where(e => e.Active).Sum(e => e.Spec.leakDamage) +
+                    currentWave.Select((g, i) => (g.Count - groupCounts[i]) * g.Enemy.leakDamage).Sum();
+                if (Options.baseDamage) BaseHealth = Math.Max(0, BaseHealth - LastRushDamage);
+                Emit("rush", 0, remaining, Vector2.Zero, LastRushDamage);
+                Enemies.Clear(); groupCounts = currentWave.Select(g => g.Count).ToArray(); remaining = 0;
+                if (BaseHealth <= 0) { Projectiles.Clear(); strikes.Clear(); Phase = BattlePhase.Defeat; return; }
+            }
             LastSurvivors = remaining; WaveSurvivors.Add(LastSurvivors);
             // 살아 있는 적과 아직 생성되지 않은 적을 다음 웨이브로 이월하며 처치 보상은 주지 않습니다.
             carry.Clear();

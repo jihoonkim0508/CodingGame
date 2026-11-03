@@ -262,7 +262,9 @@ namespace CodingGame.Defense
             HidePlacement();
             Trace("wave-start " + string.Join(", ", Simulation.UpcomingWave.Select(g => $"{enemies[g.DefinitionIndex].name} x{g.Count} HP={g.Enemy.health:0.0} speed={g.Enemy.speed:0.00}")));
             Trace(InventoryLine());
-            Simulation.Start(); Tell("전투 중 · 웨이브 종료 후 지정 보상을 수령하세요."); RefreshHUD();
+            Simulation.Start();
+            Tell(Simulation.FinalRush ? "마지막 웨이브 · 시간이 끝나면 남은 적이 모두 코어로 돌진합니다." : "전투 중 · 웨이브 종료 후 지정 보상을 수령하세요.");
+            RefreshHUD();
             ReportTutorialAction("Battle.Start", "TargetClicked", "BattleStarted");
         }
         public void ClaimRewards()

@@ -103,7 +103,9 @@ namespace CodingGame.Defense
             bool ended = sim.Phase == BattlePhase.Victory || sim.Phase == BattlePhase.Defeat;
             bool fighting = sim.Phase == BattlePhase.Running || sim.Phase == BattlePhase.Paused;
             string state = ended ? "작전 종료" : fighting ? "전투 중" : "정비 중";
-            counters.text = $"{battle.Stage}-{sim.WaveIndex + 1:00}     {state}     WAVE {sim.WaveIndex + 1}/{sim.Setup.Waves.Length}     적 {(reward ? sim.LastSurvivors : sim.RemainingEnemies)}     {Math.Ceiling(sim.WaveRemaining):00}s     코인 {sim.Coins:N0}";
+            string seconds = $"{Math.Ceiling(sim.WaveRemaining):00}s";
+            if (sim.FinalRush && !reward && !ended) seconds = $"<color=#FF8A7A>{seconds} · 끝나면 남은 적 돌진</color>";
+            counters.text = $"{battle.Stage}-{sim.WaveIndex + 1:00}     {state}     WAVE {sim.WaveIndex + 1}/{sim.Setup.Waves.Length}     적 {(reward ? sim.LastSurvivors : sim.RemainingEnemies)}     {seconds}     코인 {sim.Coins:N0}";
             combatControls.SetActive(fighting);
             RefreshEnemyCards(sim, fighting);
             // Stage 1 goals come with its tutorial; later stages show the lesson's own goal line.
@@ -435,7 +437,8 @@ namespace CodingGame.Defense
                 if (shownRewardPhase != sim.Phase) ShowEndBanner(rewardTitle.text, sim.Phase == BattlePhase.Defeat);
                 rewardItems.text = reward ? (sim.PendingDrops.Count == 0 ? "지급할 블록이 없습니다." : "") :
                     (sim.Phase == BattlePhase.Victory ? battle.FromStageMap ? "5개 웨이브 방어 성공 · 스테이지 맵에서 다음 스테이지를 선택하세요." : sim.CanAdvanceStage ? "5개 웨이브 방어 성공 · 보유 블록과 로봇을 다음 스테이지로 가져갑니다." : "1~3스테이지, 총 15개 웨이브를 완료했습니다." : "방어 실패 · 배치와 코드를 바꿔 도전하세요") + $"\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
-                if (reward) rewardItems.text += $"\n\n잔여 적 {sim.LastSurvivors}" + (sim.WaveIndex + 1 < sim.Setup.Waves.Length ? " · 다음 웨이브에 추가" : " · 최종 기록");
+                if (sim.LastRush > 0) rewardItems.text += $"\n\n시간 종료 · 남은 적 {sim.LastRush}마리가 코어로 돌진 (코어 -{sim.LastRushDamage})";
+                else if (reward) rewardItems.text += $"\n\n잔여 적 {sim.LastSurvivors}" + (sim.WaveIndex + 1 < sim.Setup.Waves.Length ? " · 다음 웨이브에 추가" : " · 최종 기록");
                 if (sim.Phase == BattlePhase.Victory) rewardItems.text = StarLine(sim) + "\n\n" + rewardItems.text;
                 ShowRewardBlocks(reward ? sim.PendingDrops : null);
                 ShowDebrief(sim);

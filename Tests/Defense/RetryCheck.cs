@@ -46,6 +46,30 @@ static class RetryCheck
         Throws(() => new DefenseSimulation(Setup(1)).Restore(new WaveCheckpoint { Stage = 2, Wave = 0, Groups = checkpoint.Groups, Robots = checkpoint.Robots }), "checkpoint of another wave rejected");
         var twice = new DefenseSimulation(Setup(1)); twice.Restore(checkpoint);
         Throws(() => twice.Restore(checkpoint), "restore only onto an empty field");
+        CheckFinalRush();
         Console.WriteLine($"Retry checks passed: {checks}");
+    }
+
+    // A later stage's last wave: when time runs out, every enemy left rushes the core instead of becoming a "final record".
+    static DefenseSimulation LastWave(int stage, int core)
+    {
+        var setup = Setup(2); setup.Stage = stage; setup.BaseHealth = core;
+        var sim = new DefenseSimulation(setup);
+        // Out of range, so all 4 enemies of the last wave are still walking when the 1.1 s run out.
+        sim.Place(Spec(RobotRole.Shooter), (int)RobotRole.Shooter, new Vector2(8, 9.5f), out _);
+        sim.Start(); RunWave(sim);
+        return sim;
+    }
+    static void CheckFinalRush()
+    {
+        var survived = LastWave(2, 7);
+        Assert(survived.Phase == BattlePhase.Reward && survived.LastRush == 4 && survived.LastRushDamage == 4 && survived.BaseHealth == 3, "four left over hit the core for 4");
+        Assert(survived.LastSurvivors == 0 && survived.WaveLeaks == 4 && survived.Enemies.Count == 0, "they count as leaks, not survivors");
+        survived.ClaimRewards();
+        Assert(survived.Phase == BattlePhase.Victory && survived.StageStars == 2, "stage still won, with the stars the core earns");
+        var lost = LastWave(3, 3);
+        Assert(lost.Phase == BattlePhase.Defeat && lost.BaseHealth == 0 && lost.Checkpoint != null, "a rush that empties the core loses, and the wave can be retried");
+        var tutorial = LastWave(1, 7);
+        Assert(tutorial.Phase == BattlePhase.Reward && tutorial.LastRush == 0 && tutorial.LastSurvivors == 4 && tutorial.BaseHealth == 7, "Stage 1 keeps its time-up rule");
     }
 }
