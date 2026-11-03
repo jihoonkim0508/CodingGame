@@ -22,7 +22,13 @@ public static class StageUnlockCheck
     static async Task Wait(Func<bool> condition,string message,int milliseconds=10000)
     {
         float until=Time.realtimeSinceStartup+milliseconds/1000f;
-        while(!condition() && Time.realtimeSinceStartup<until) await Task.Delay(30);
+        while(!condition() && Time.realtimeSinceStartup<until)
+        {
+            var controller=Object.FindFirstObjectByType<StageMapController>();
+            if(controller&&controller.IsUnlocking)
+                Require(!controller.HUD.IsHintVisible,"Click/arrow hint stays hidden throughout the cinematic, including pauses between shots.");
+            await Task.Delay(30);
+        }
         Require(condition(),message);
     }
     static async Task Run()
@@ -75,9 +81,9 @@ public static class StageUnlockCheck
             Require(!Object.FindFirstObjectByType<StageCameraController>().IsMoving,"Camera returns to overview before input resumes.");
             ScreenCapture.CaptureScreenshot(Path.GetFullPath("Temp/StageSelection/purified-overview.png"));await Task.Delay(100);
             var lockPlate=Object.FindObjectsByType<UnityEngine.UI.Image>(FindObjectsInactive.Include,FindObjectsSortMode.None).First(i=>i.name=="Stage "+number+" lock");
-            Require(lockPlate.color.grayscale>.8f,"Lock background is a light plate.");
-            var lockBody=lockPlate.GetComponentsInChildren<UnityEngine.UI.Image>(true).First(i=>i.name=="Red orange lock body");
-            Require(lockBody.color.r>.9f && lockBody.color.g<.5f && lockBody.color.b<.2f,"Lock icon stays red-orange.");
+            Require(lockPlate.color.grayscale<.2f && lockPlate.color.a>.9f,"Lock background is an opaque dark plate.");
+            var lockBody=lockPlate.GetComponentsInChildren<UnityEngine.UI.Image>(true).First(i=>i.name=="Orange lock body");
+            Require(lockBody.color.r>.9f && lockBody.color.g>.55f && lockBody.color.g<.85f && lockBody.color.b<.4f,"Lock icon stays warm orange.");
             foreach(var scaler in Object.FindObjectsByType<UnityEngine.UI.CanvasScaler>(FindObjectsSortMode.None))
                 Require(scaler.referenceResolution==new Vector2(1920,1080),"Map and fade canvases share the requested reference resolution.");
             StageProgress.MarkClearedForPreview(number-1);
@@ -97,7 +103,7 @@ public static class StageUnlockCheck
                 await Wait(()=>!controller.IsUnlocking,"Last purification completes.");
                 Require(nodes.All(n=>n.State==StageState.Cleared && n.PurificationVisual.gameObject.activeSelf),"All cleared islands retain purification visuals.");
             }
-            File.WriteAllText("Temp/StageSelection/unlock-check.txt","PASS: purification sweep precedes path light and seal opening; cleared islands keep green fields; newly opened islands remain unpurified; red-orange icons on light backgrounds; closeup/crane/tracking camera restores overview; both unlock routes and final island purification; entry blocked; no duplicate replay; 1920x1080 Canvas Scalers.");
+            File.WriteAllText("Temp/StageSelection/unlock-check.txt","PASS: purification sweep precedes path light and seal opening; cleared islands keep green fields; newly opened islands remain unpurified; warm-orange icons on dark backgrounds; closeup/crane/tracking camera restores overview; both unlock routes and final island purification; entry blocked; no duplicate replay; 1920x1080 Canvas Scalers.");
         }
         catch(Exception error) { File.WriteAllText("Temp/StageSelection/unlock-check.txt","FAIL: "+error); }
         finally

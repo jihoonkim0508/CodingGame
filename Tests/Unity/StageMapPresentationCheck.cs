@@ -69,8 +69,6 @@ public static class StageMapPresentationCheck
                 Require(StageProgress.SelectedStage == selected && locked.LockVisual.Rejection > .9f,
                     "Locked click must react without selecting a stage.");
                 Require(!(bool)typeof(StageMapController).GetField("entering", Private).GetValue(controller), "Locked click must not begin scene transition.");
-                Require(((string)typeof(StageMapController).GetField("toast", Private).GetValue(controller)).Contains($"{locked.Number - 1}스테이지"),
-                    "Rejection explains the actual prerequisite.");
                 StageProgress.MarkClearedForPreview(locked.Number - 1);
                 refresh.Invoke(controller, null);
                 Require(locked.State == StageState.Available && !locked.LockVisual.gameObject.activeSelf, "Preview clear unlocks the next island and removes its barrier.");
@@ -102,7 +100,7 @@ public static class StageMapPresentationCheck
                 mover.RestoreOverview(); Tick(mover,1.051f);
                 foreach(var node in nodes) InFrame(camera,node);
             }
-            return $"PASS: native 1920x1080 Canvas Scaler; lock state, rejection, prerequisite text, preview unlock, effect bounds isolation; {framingSamples} camera samples and unlock route/closeup/overview shots at 16:9, 16:10 and 4:3.";
+            return $"PASS: native 1920x1080 Canvas Scaler; lock state, rejection, preview unlock, effect bounds isolation; {framingSamples} camera samples and unlock route/closeup/overview shots at 16:9, 16:10 and 4:3.";
         }
         finally
         {

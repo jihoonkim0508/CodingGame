@@ -67,7 +67,7 @@ namespace CodingGame.Art.StageSelection
             {
                 if(!pair.Key)continue;pair.Key.GetPropertyBlock(block);
                 Color color=pair.Value;
-                if(pair.Key==statusRing)color=shown==StageState.Locked?new Color(.6f,.19f,.08f):Color.Lerp(Unpurified,Purified,Purification)*1.7f;
+                if(pair.Key==statusRing)color=shown==StageState.Locked?new Color(.58f,.3f,.08f):Color.Lerp(Unpurified,Purified,Purification)*1.7f;
                 else if(shown==StageState.Locked)color=Color.Lerp(color,new Color(.25f,.32f,.42f),.65f)*.68f;
                 else color=Color.Lerp(Color.Lerp(color,new Color(.39f,.3f,.23f),.16f)*.80f,Color.Lerp(color,new Color(.68f,1,.82f),.18f)*1.16f,Purification);
                 color.a=1;block.SetColor(BaseColor,color);

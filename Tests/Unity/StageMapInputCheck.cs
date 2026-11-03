@@ -59,15 +59,14 @@ public static class StageMapInputCheck
             var controller = Object.FindFirstObjectByType<StageMapController>();
             var mover = Object.FindFirstObjectByType<StageCameraController>();
             var nodes = Object.FindObjectsByType<StageNode>(FindObjectsSortMode.None).OrderBy(n => n.Number).ToArray();
+            Require(controller.HUD.IsHintVisible,"Playable island shows the click/arrow hint after the camera settles.");
             var locked = nodes.LastOrDefault(n => n.State == StageState.Locked);
             int selected = StageProgress.SelectedStage;
             if (locked)
             {
-                int frameBefore = Time.frameCount;
                 var p = Camera.main.WorldToScreenPoint(locked.transform.position + Vector3.up * .7f);
                 await Click(mouse, new Vector2(p.x, p.y));
-                string toast = (string)typeof(StageMapController).GetField("toast", Private).GetValue(controller);
-                Require(toast != null && toast.Contains($"{locked.Number - 1}스테이지"), $"Pointer must show the clicked locked island's prerequisite. Frames {frameBefore}->{Time.frameCount}; mouse enabled {mouse.enabled}; position {mouse.position.ReadValue()}; toast {toast}");
+                Require(locked.LockVisual.Rejection>0,"Locked island reacts visually without a dialogue.");
                 Require(StageProgress.SelectedStage == selected && !mover.IsMoving && SceneManager.GetActiveScene().name == "Stage", "Locked pointer must not enter.");
             }
             int index = Array.FindIndex(nodes, n => n.State != StageState.Locked);
@@ -76,12 +75,13 @@ public static class StageMapInputCheck
             float clickedAt = Time.realtimeSinceStartup;
             await Click(mouse, new Vector2(card.center.x, Screen.height - card.center.y));
             Require(StageProgress.SelectedStage == nodes[index].Number && mover.IsMoving, "Clicking a status card must start the chosen island's camera move.");
+            Require(!controller.HUD.IsHintVisible,"Camera approach hides the click/arrow hint.");
             Require(SceneManager.GetActiveScene().name == "Stage", "Scene must wait for the camera.");
             while (SceneManager.GetActiveScene().name != "Defense" && Time.realtimeSinceStartup - clickedAt < 12)
                 await Task.Delay(50);
             Require(SceneManager.GetActiveScene().name == "Defense", "Camera and fade must reach Defense.");
             Require(Time.realtimeSinceStartup - clickedAt >= StageCameraController.Duration + .3f, "Fade must follow the completed approach.");
-            return "PASS: mouse raycast rejects locked island with the correct prerequisite; status-card click selects the playable island; camera completes before fade and Defense entry.";
+            return "PASS: click/arrow hint; locked island reacts visually and blocks entry; status-card click selects the playable island; camera completes before fade and Defense entry.";
         }
         finally
         {

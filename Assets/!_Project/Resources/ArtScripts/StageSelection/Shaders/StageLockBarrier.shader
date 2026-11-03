@@ -39,9 +39,13 @@ Shader "CodingGame/Stage Lock Barrier"
                 clip(uv.y - _Release * 1.1 + .01);
                 float scan = pow(saturate(1 - abs(uv.y - frac(_Time.y * .16)) * 16), 3);
                 float uprights = pow(saturate(1 - abs(frac(uv.x * 8) - .5) * 2), 32);
-                float stripes = step(.58, frac(uv.x * 50 - uv.y * 6 - _Time.y * .12));
+                float stripeWave=sin((uv.x*50-uv.y*6-_Time.y*.12)*6.283185);
+                float stripeWidth=max(fwidth(stripeWave),.04);
+                float stripes = smoothstep(-stripeWidth,stripeWidth,stripeWave);
                 float cautionBand = 1 - smoothstep(.025, .055, abs(uv.y - .15));
                 float alpha = .025 + scan * .11 + uprights * .2 + stripes * cautionBand * .35;
+                // Soften the transparent wall's silhouette independently from its visible rim.
+                alpha *= 1-smoothstep(.92,1,uv.y);
                 alpha *= _Pulse + _Reject * 1.6;
                 float openingEdge = (1 - smoothstep(.01,.08,abs(uv.y-_Release*1.1))) * step(.01,_Release);
                 half3 color = lerp(_BaseColor.rgb, half3(1,.45,.18), _Reject);

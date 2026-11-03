@@ -13,7 +13,8 @@ namespace CodingGame.StageMap
         LineRenderer lowerRing, upperRing;
         float rejectedAt = -10f;
         int stageNumber;
-        static readonly Color Amber = new Color(1f, .27f, .09f);
+        Camera presentationCamera;
+        static readonly Color Amber = new Color(1f, .64f, .19f);
         public bool IsLocked { get; private set; }
         public bool IsReleasing { get; private set; }
         public float ReleaseProgress { get; private set; }
@@ -22,6 +23,7 @@ namespace CodingGame.StageMap
         public void Configure(Bounds bounds, int number)
         {
             stageNumber = number;
+            presentationCamera=Camera.main;
             var center = transform.InverseTransformPoint(bounds.center);
             var size = bounds.size;
             float x = size.x * .52f, z = size.z * .52f;
@@ -32,7 +34,7 @@ namespace CodingGame.StageMap
             barrierMaterial = new Material(shader) { name = "Stage lock hologram" };
             barrierMaterial.SetColor("_BaseColor", Amber);
             lineMaterial = new Material(Shader.Find("Sprites/Default")) { name = "Stage lock outline" };
-            const int sides = 8;
+            const int sides = 64;
             var vertices = new Vector3[(sides + 1) * 2];
             var uv = new Vector2[vertices.Length];
             var triangles = new int[sides * 6];
@@ -40,8 +42,11 @@ namespace CodingGame.StageMap
             var upper = new Vector3[sides];
             for (int i = 0; i <= sides; i++)
             {
-                float angle = Mathf.PI * 2 * i / sides + Mathf.PI / 8;
-                var p = new Vector3(center.x + Mathf.Cos(angle) * x, bottom, center.z + Mathf.Sin(angle) * z);
+                float angle = Mathf.PI * 2 * (i % sides) / sides;
+                float cosine=Mathf.Cos(angle),sine=Mathf.Sin(angle);
+                // A rounded rectangular contour fits the island without eight hard corners.
+                var p = new Vector3(center.x + Mathf.Sign(cosine)*Mathf.Sqrt(Mathf.Abs(cosine))*x, bottom,
+                    center.z + Mathf.Sign(sine)*Mathf.Sqrt(Mathf.Abs(sine))*z);
                 vertices[i * 2] = p; vertices[i * 2 + 1] = p + Vector3.up * height;
                 uv[i * 2] = new Vector2(i / (float)sides, 0); uv[i * 2 + 1] = new Vector2(i / (float)sides, 1);
                 if (i == sides) continue;
@@ -50,14 +55,14 @@ namespace CodingGame.StageMap
                 triangles[t] = v; triangles[t + 1] = v + 1; triangles[t + 2] = v + 2;
                 triangles[t + 3] = v + 1; triangles[t + 4] = v + 3; triangles[t + 5] = v + 2;
             }
-            wallMesh = new Mesh { name = "Octagonal stage quarantine" };
+            wallMesh = new Mesh { name = "Rounded stage quarantine" };
             wallMesh.vertices = vertices; wallMesh.uv = uv; wallMesh.triangles = triangles; wallMesh.RecalculateBounds();
             gameObject.AddComponent<MeshFilter>().sharedMesh = wallMesh;
             var renderer = gameObject.AddComponent<MeshRenderer>();
             renderer.sharedMaterial = barrierMaterial;
             renderer.shadowCastingMode = ShadowCastingMode.Off; renderer.receiveShadows = false;
-            lowerRing = Ring("Sealed perimeter", lower, .045f);
-            upperRing = Ring("Hologram rim", upper, .022f);
+            lowerRing = Ring("Sealed perimeter", lower, .065f);
+            upperRing = Ring("Hologram rim", upper, .055f);
         }
 
         LineRenderer Ring(string label, Vector3[] points, float width)
@@ -97,6 +102,13 @@ namespace CodingGame.StageMap
             upperRing.startColor = upperRing.endColor = new Color(color.r, color.g, color.b, (.65f + .35f * Rejection)*(1-ReleaseProgress));
             barrierMaterial.SetFloat("_Pulse", pulse);
             barrierMaterial.SetFloat("_Reject", Rejection);
+            if(presentationCamera)
+            {
+                float depth=Vector3.Dot(upperRing.bounds.center-presentationCamera.transform.position,presentationCamera.transform.forward);
+                float perPixel=2*Mathf.Max(.1f,depth)*Mathf.Tan(presentationCamera.fieldOfView*Mathf.Deg2Rad*.5f)/Mathf.Max(1,presentationCamera.pixelHeight);
+                upperRing.widthMultiplier=Mathf.Max(.055f,perPixel*1.5f);
+                lowerRing.widthMultiplier=Mathf.Max(.065f,perPixel*1.8f);
+            }
         }
 
         void OnDestroy()
