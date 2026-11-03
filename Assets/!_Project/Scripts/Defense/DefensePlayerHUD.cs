@@ -229,7 +229,7 @@ namespace CodingGame.Defense
             recall.anchoredPosition = new Vector2(recall.anchoredPosition.x, -below - recall.rect.height / 2);
             upgradeRobotButton.interactable = sim.UpgradeError(selected.Id) == null;
             recallRobotButton.interactable = sim.RecallUnlocked;
-            upgradeRobotLabel.text = !sim.UpgradeUnlocked ? "레벨업\n1-2 해금" : selected.IsMaxLevel ? "최고 레벨" : $"레벨업\n{sim.UpgradeCost} 코인";
+            upgradeRobotLabel.text = !sim.UpgradeUnlocked ? "레벨업\n1-2 해금" : selected.IsMaxLevel ? "최고 레벨" : $"레벨업\n{sim.UpgradeCostFor(selected)} 코인";
         }
         // A tag over each robot's head (DefenseDebrief.LiveStatus). Labels sit in a layer behind the other HUD parts; the
         // selected robot's tag hides while its action menu is open over its head.

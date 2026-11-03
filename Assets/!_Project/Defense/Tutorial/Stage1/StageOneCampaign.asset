@@ -29,7 +29,7 @@ MonoBehaviour:
   baseHealth: 12
   robotLimit: 6
   rules:
-    maxLevel: 2
+    maxLevel: 3
     upgradeMultiplier: 1.2
     roleLimits: 010000001200000012000000120000001200000012000000
     healthLinear: 0.045

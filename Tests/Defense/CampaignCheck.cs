@@ -90,6 +90,14 @@ static class CampaignCheck
             sim.RemoveRobot(bot.Id);
             Assert(sim.Coins==100&&Place(sim,role).Level==1,"recall refunds upgrade and returns level one item "+role);
         }
+        // The campaign allows level 3: each level costs more (50, then 100) and recall refunds both.
+        var tallSetup=Setup();tallSetup.RulesConfig.maxLevel=3;
+        var tall=new DefenseSimulation(tallSetup);tall.SetCoins(140);var grown=Place(tall,RobotRole.Warrior);
+        Assert(tall.UpgradeCostFor(grown)==50&&tall.UpgradeRobot(grown.Id)&&tall.UpgradeCostFor(grown)==100&&tall.Coins==90,"second level costs double");
+        Assert(tall.UpgradeError(grown.Id)=="코인이 부족합니다."&&!tall.UpgradeRobot(grown.Id)&&tall.Coins==90,"cannot afford the dearer level");
+        tall.SetCoins(100);Assert(tall.UpgradeRobot(grown.Id)&&grown.Level==3&&grown.IsMaxLevel&&tall.Coins==0,"level 3 bought");
+        Assert(Math.Abs(grown.LevelMultiplier-1.44f)<.001f,"level 3 multiplier");
+        tall.RemoveRobot(grown.Id);Assert(tall.Coins==150,"recall refunds every level paid");
         var early=Setup();early.Stage=1;var first=new DefenseSimulation(early);var firstBot=Place(first,RobotRole.Warrior);
         Assert(!first.UpgradeUnlocked&&first.UpgradeError(firstBot.Id)!=null&&!first.UpgradeRobot(firstBot.Id)&&first.Coins==100,"level-up locked in 1-1");
         early=Setup();early.Stage=1;early.InitialWave=1;first=new DefenseSimulation(early);firstBot=Place(first,RobotRole.Warrior);

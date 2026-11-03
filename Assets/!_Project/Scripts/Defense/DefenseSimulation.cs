@@ -25,6 +25,8 @@ namespace CodingGame.Defense
         public int BaseHealth { get; private set; }
         public int Coins { get; private set; }
         public int UpgradeCost => Setup.Progression.upgradeCost;
+        // Each level costs more than the last (50, 100, ...), so coins become a choice of which robot to grow.
+        public int UpgradeCostFor(RobotState bot) => UpgradeCost * bot.Level;
         public int Kills { get; private set; }
         public int Leaks { get; private set; }
         public int Spawned { get; private set; }
@@ -350,7 +352,7 @@ namespace CodingGame.Defense
             if (!UpgradeUnlocked) return "레벨업은 1-2부터 열립니다.";
             if (bot.IsMaxLevel) return "최고레벨";
             if (!CanPrepare) return "정비 중에만 레벨업할 수 있습니다.";
-            if (Coins < UpgradeCost) return "코인이 부족합니다.";
+            if (Coins < UpgradeCostFor(bot)) return "코인이 부족합니다.";
             return null;
         }
         public bool UpgradeRobot(int id)
@@ -358,7 +360,8 @@ namespace CodingGame.Defense
             if (UpgradeError(id) != null) return false;
             var bot = FindRobot(id);
             float healthRatio = bot.Health.HasValue ? bot.Health.Value / bot.MaxHealth : 0;
-            Coins -= UpgradeCost; bot.UpgradeCostPaid += UpgradeCost; bot.Level++;
+            int cost = UpgradeCostFor(bot);
+            Coins -= cost; bot.UpgradeCostPaid += cost; bot.Level++;
             if (bot.Health.HasValue) bot.Health = bot.MaxHealth * healthRatio;
             return true;
         }
