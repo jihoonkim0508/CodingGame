@@ -29,6 +29,11 @@ namespace CodingGame.Defense
         public int Leaks { get; private set; }
         public int Spawned { get; private set; }
         public int WaveLeaks => Leaks - waveLeaksAtStart;
+        // Stage result: 3 stars with 80%+ of the core left, 2 with 40%+, 1 for a clear (12 HP: 10 and 5). Forgiving on
+        // purpose: 1-1 lets one enemy through by design.
+        public static int Stars(int core, int max) => core * 5 >= max * 4 ? 3 : core * 5 >= max * 2 ? 2 : 1;
+        public static int CoreForStars(int stars, int max) => stars >= 3 ? (max * 4 + 4) / 5 : stars == 2 ? (max * 2 + 4) / 5 : 1;
+        public int StageStars => Phase == BattlePhase.Victory ? Stars(BaseHealth, Setup.BaseHealth) : 0;
         public double WaveRemaining
         {
             get

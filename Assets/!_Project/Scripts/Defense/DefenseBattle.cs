@@ -286,6 +286,7 @@ namespace CodingGame.Defense
             if (!TutorialAllows("Battle.ContinueCampaign")) return;
             if (FromStageMap)
             {
+                StageMap.StageProgress.RecordStars(stage, Simulation.StageStars);
                 StageMap.StageProgress.MarkCleared(stage);
                 GameFlow.LoadScene(GameFlow.StageScene);
                 return;

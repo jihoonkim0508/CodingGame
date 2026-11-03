@@ -351,6 +351,17 @@ namespace CodingGame.Defense
             }
             rewardItems.margin = new Vector4(0, y + rowHeight + 16, 0, 0);
         }
+        // The stage's stars, the core left and what the next star needs, so a clear invites a better run.
+        string StarLine(DefenseSimulation sim)
+        {
+            int stars = sim.StageStars, max = sim.Setup.BaseHealth;
+            int best = battle.FromStageMap ? StageMap.StageProgress.BestStars(battle.Stage) : 0;
+            string line = $"<size=160%><color=#FFD36B>{new string('★', stars)}</color><color=#5A6B78>{new string('☆', 3 - stars)}</color></size>";
+            if (stars > best && best > 0) line += "   <color=#7FF0B0>새 기록!</color>";
+            else if (best > stars) line += $"   <color=#B9C7D2>최고 기록 {new string('★', best)}</color>";
+            line += $"\n코어 {sim.BaseHealth} / {max} · " + (stars < 3 ? $"코어를 {DefenseSimulation.CoreForStars(stars + 1, max)} 이상 남기면 ★{stars + 1}" : "최고 등급!");
+            return line;
+        }
         // On a defeat that can go back one wave, the result button retries the wave and a copy beside it restarts the stage
         // (a wave that began with little core health may be better started over).
         Button restartStageButton;
@@ -425,6 +436,7 @@ namespace CodingGame.Defense
                 rewardItems.text = reward ? (sim.PendingDrops.Count == 0 ? "지급할 블록이 없습니다." : "") :
                     (sim.Phase == BattlePhase.Victory ? battle.FromStageMap ? "5개 웨이브 방어 성공 · 스테이지 맵에서 다음 스테이지를 선택하세요." : sim.CanAdvanceStage ? "5개 웨이브 방어 성공 · 보유 블록과 로봇을 다음 스테이지로 가져갑니다." : "1~3스테이지, 총 15개 웨이브를 완료했습니다." : "방어 실패 · 배치와 코드를 바꿔 도전하세요") + $"\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
                 if (reward) rewardItems.text += $"\n\n잔여 적 {sim.LastSurvivors}" + (sim.WaveIndex + 1 < sim.Setup.Waves.Length ? " · 다음 웨이브에 추가" : " · 최종 기록");
+                if (sim.Phase == BattlePhase.Victory) rewardItems.text = StarLine(sim) + "\n\n" + rewardItems.text;
                 ShowRewardBlocks(reward ? sim.PendingDrops : null);
                 ShowDebrief(sim);
                 Canvas.ForceUpdateCanvases(); rewardScroll.verticalNormalizedPosition = 1;

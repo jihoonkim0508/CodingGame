@@ -35,11 +35,21 @@ namespace CodingGame.StageMap
             PlayerPrefs.Save();
         }
 
+        // Best star result per stage (0: none yet). Developer previews leave the save alone.
+        const string StarsPrefix = "CodingGame.StageMap.Stars.stage-";
+        public static int BestStars(int number) => PlayerPrefs.GetInt(StarsPrefix + number, 0);
+        public static void RecordStars(int number, int stars)
+        {
+            if (previewClears.Count > 0 || stars <= BestStars(number)) return;
+            PlayerPrefs.SetInt(StarsPrefix + number, stars);
+            PlayerPrefs.Save();
+        }
+
         public static void ResetAll(int count)
         {
             previewClears.Clear();
             SelectedStage = 0;
-            for (int number = 1; number <= count; number++) PlayerPrefs.DeleteKey(Prefix + number);
+            for (int number = 1; number <= count; number++) { PlayerPrefs.DeleteKey(Prefix + number); PlayerPrefs.DeleteKey(StarsPrefix + number); }
             PlayerPrefs.Save();
         }
 

@@ -61,6 +61,17 @@ static class DebriefCheck
         RunToEnd(clean);
         Assert(DefenseDebrief.Report(clean, bot => "R").Contains("완벽 방어!</b> MVP R"), "clean wave without issues praises the MVP");
         CheckLiveStatus();
+        Assert(DefenseSimulation.Stars(12, 12) == 3 && DefenseSimulation.Stars(10, 12) == 3 && DefenseSimulation.Stars(9, 12) == 2 &&
+            DefenseSimulation.Stars(5, 12) == 2 && DefenseSimulation.Stars(4, 12) == 1, "12 HP core: 10 for three stars, 5 for two");
+        bool thresholds = true;
+        for (int max = 1; max <= 30; max++) for (int s = 2; s <= 3; s++)
+        {
+            int need = DefenseSimulation.CoreForStars(s, max);
+            thresholds &= DefenseSimulation.Stars(need, max) >= s && (need == 1 || DefenseSimulation.Stars(need - 1, max) < s);
+        }
+        Assert(thresholds, "the core the next star asks for is exactly where the star starts");
+        Assert(tough.StageStars == 3 && tough.BaseHealth == 11, "one leak still earns three stars");
+        Assert(new DefenseSimulation(tough.Setup).StageStars == 0, "no stars before the stage is won");
         Console.WriteLine($"Debrief checks passed: {checks}");
     }
 

@@ -88,9 +88,12 @@ namespace CodingGame.StageMap
             {
                 StageNode node = nodes[i]; node.Refresh();
                 if (node.State == StageState.Available && (!recommendedStage || node.Number < recommendedStage.Number)) recommendedStage = node;
-                stateLabels[i] = node.State == StageState.Locked ? "이전 스테이지 클리어 후 해금" : node.State == StageState.Cleared ? "CLEARED · 다시 플레이" : "READY · 클릭하여 시작";
+                int stars = StageProgress.BestStars(node.Number);
+                stateLabels[i] = node.State == StageState.Locked ? "이전 스테이지 클리어 후 해금" : node.State != StageState.Cleared ? "READY · 클릭하여 시작" :
+                    stars > 0 ? new string('★', stars) + new string('☆', 3 - stars) + " · 다시 플레이" : "CLEARED · 다시 플레이";
             }
-            guideMessage = recommendedStage ? $"빛나는 {recommendedStage.Number}스테이지 섬을 클릭해 줘!" : "클리어한 섬을 골라 다시 도전할 수 있어.";
+            guideMessage = recommendedStage ? $"빛나는 {recommendedStage.Number}스테이지 섬을 클릭해 줘!" :
+                nodes.Any(node => StageProgress.BestStars(node.Number) < 3) ? "클리어한 섬에 다시 도전해 봐. 코어를 더 지키면 별이 늘어나!" : "모든 섬 ★3! 다른 코드로도 막아 볼래?";
         }
 
         void ShowToast(string message)
