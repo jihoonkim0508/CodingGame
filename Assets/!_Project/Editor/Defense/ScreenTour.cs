@@ -39,12 +39,14 @@ namespace CodingGame.Defense.Editor
             if (tour.Count > 0) return;
             EditorApplication.update -= Tick;
             Debug.Log($"[ScreenTour] {shot} shots → {Folder}");
+            // Quitting from inside Play Mode crashed the Editor on the way out: quit once it is back in Edit Mode.
+            if (System.Environment.GetCommandLineArgs().Contains("-executeMethod"))
+                EditorApplication.playModeStateChanged += state => { if (state == PlayModeStateChange.EnteredEditMode) EditorApplication.Exit(0); };
             EditorApplication.isPlaying = false;
-            // Quitting from inside Play Mode crashed the Editor on the way out; leave Play Mode first.
-            if (System.Environment.GetCommandLineArgs().Contains("-executeMethod")) EditorApplication.delayCall += () => EditorApplication.Exit(0);
         }
 
-        static IEnumerator Frames(int count) { for (int end = Time.frameCount + count; Time.frameCount < end;) yield return null; }
+        // Real seconds: the Editor runs at a few hundred frames a second, so frame counts end animations early.
+        static IEnumerator Seconds(double count) { for (double end = EditorApplication.timeSinceStartup + count; EditorApplication.timeSinceStartup < end;) yield return null; }
         static IEnumerator Until(System.Func<bool> done, double seconds = 60)
         {
             for (double end = EditorApplication.timeSinceStartup + seconds; !done() && EditorApplication.timeSinceStartup < end;) yield return null;
@@ -73,35 +75,35 @@ namespace CodingGame.Defense.Editor
         {
             DevTest.PlayTitle();
             yield return Until(() => EditorApplication.isPlaying);
-            yield return Frames(600); yield return Shot("title"); // after the intro, with the menu
+            yield return Seconds(9); yield return Shot("title"); // after the intro, with the menu
             DevTest.PlayStageMap();
-            yield return Frames(150); yield return Shot("map");
+            yield return Seconds(2.5); yield return Shot("map");
 
             DevTest.PlayDefense(1, 1, true);
             yield return Until(() => DevTest.Ready);
-            yield return Frames(90);
+            yield return Seconds(1.5);
             var steps = DevTest.TutorialSections(1);
             for (int i = 0; i < steps.Length; i++)
             {
                 try { DevTest.JumpTutorial(1, i); }
                 catch (System.InvalidOperationException error) { Debug.LogWarning($"[ScreenTour] 1-1 {steps[i]}: {error.Message}"); continue; }
-                yield return Frames(45);
+                yield return Seconds(1);
                 yield return Shot("1-1_" + steps[i].Split(' ')[0]);
             }
 
             DevTest.PlayDefense(2, 1, true, Sandbox);
             yield return Until(() => DevTest.Ready);
-            yield return Frames(30);
+            yield return Seconds(.5);
             DevTest.AutoDeploy();
-            yield return Frames(30); yield return Shot("2-1_ready");
+            yield return Seconds(.5); yield return Shot("2-1_ready");
             var battle = DevTest.Battle;
             battle.SelectRobot(battle.Simulation.Robots[0].Id); battle.DevelopSelected();
-            yield return Frames(60); yield return Shot("2-1_code");
+            yield return Seconds(1); yield return Shot("2-1_code");
             battle.CodeEditor.Close();
             battle.StartBattle();
-            yield return Frames(400); yield return Shot("2-1_battle");
+            yield return Seconds(5); yield return Shot("2-1_battle");
             DevTest.RunWave();
-            yield return Frames(240); yield return Shot("2-1_result"); // past the clear banner, on the reward panel
+            yield return Seconds(4); yield return Shot("2-1_result"); // past the clear banner, on the reward panel
         }
     }
 }

@@ -66,7 +66,8 @@ namespace CodingGame.Defense
         }
         // On the result screen: the robot's debrief name over its head, yellow when the debrief has advice for it.
         public static string ResultTag(DefenseSimulation sim, RobotState bot, string name) => Tag(Diagnose(sim, bot) == Issue.None ? "CFE8FF" : "FFD36B", name);
-        static string Tag(string color, string text) => $"<mark=#0B1620D0 padding=\"60,60,25,25\"><color=#{color}>{text}</color></mark>";
+        // The HUD draws the dark backing as an Image: TMP's <mark> is an overlay on top of the letters.
+        static string Tag(string color, string text) => $"<color=#{color}>{text}</color>";
 
         // One stat line per robot, its advice under it, and a headline on top. Rich text for the reward panel.
         public static string Report(DefenseSimulation sim, Func<RobotState, string> name)

@@ -46,6 +46,7 @@ namespace CodingGame.Defense
         [SerializeField] Transform projectilePrefab;
         [SerializeField] DefenseHitVisuals hitEffects = new DefenseHitVisuals();
         [SerializeField] GameObject developerRoot;
+        [SerializeField, Tooltip("상단 바의 'F1/F2 개발자' 안내. 에디터·개발 빌드에서만 보인다.")] GameObject developerHint;
         [SerializeField] TutorialDirector tutorial;
         [SerializeField] Button hitRangeButton;
         [SerializeField] TMP_Text hitRangeLabel;
@@ -78,6 +79,8 @@ namespace CodingGame.Defense
         bool bossEntranceStarted, bossCameraRestored;
         float bossEntranceUntil, bossCameraRestoreAt;
         public bool DeveloperMode { get; private set; }
+        // The developer panel (F1/F2) is for the team: the Editor and development builds, not a player's release build.
+        public static bool DeveloperTools => Application.isEditor || Debug.isDebugBuild;
         public bool ShowHitRanges { get; private set; }
         public bool HelpOpen { get; internal set; }
         int palette = -1, selected;
@@ -121,6 +124,7 @@ namespace CodingGame.Defense
             ValidateReferences();
             sounds = gameObject.AddComponent<DefenseSounds>();
             developerRoot.SetActive(false);
+            developerHint.SetActive(DeveloperTools);
             startButton.onClick.AddListener(StartBattle);
             pauseButton.onClick.AddListener(TogglePause);
             speedButton.onClick.AddListener(ToggleSpeed);
@@ -137,7 +141,7 @@ namespace CodingGame.Defense
         {
             if (!hitEffects.IsConfigured) throw new InvalidOperationException("피격 이펙트 프리팹을 Inspector에 연결하세요.");
             if (!selectionCamera || !inventoryUI || !attackPreview) throw new InvalidOperationException("선택 카메라·인벤토리·미리보기 참조를 연결하세요.");
-            if (!hitRangeButton || !hitRangeLabel || !projectilePrefab || !blockDropPrefab || !developerRoot || !playerHUD || !battleCamera || !eventSystem || !codeEditor || !deploymentArea || !actorsRoot || !rangeRing || !effectRing || !placementMarker ||
+            if (!hitRangeButton || !hitRangeLabel || !projectilePrefab || !blockDropPrefab || !developerRoot || !developerHint || !playerHUD || !battleCamera || !eventSystem || !codeEditor || !deploymentArea || !actorsRoot || !rangeRing || !effectRing || !placementMarker ||
                 !header || !selectionText || !message || !stateText || !resultText || !resultPanel || !startButton || !pauseButton ||
                 !speedButton || !resetButton || !removeButton || !pauseLabel || !speedLabel)
                 throw new InvalidOperationException("DefenseBattle의 필수 Inspector 참조가 누락되었습니다.");
@@ -459,7 +463,7 @@ namespace CodingGame.Defense
             var mouse = Mouse.current; var keyboard = Keyboard.current;
             bool tutorialActive = TutorialBlocksInput;
             // Keep F1 and offer F2 when a recording overlay intercepts the help key.
-            if (!tutorialActive && keyboard != null && (keyboard.f1Key.wasPressedThisFrame || keyboard.f2Key.wasPressedThisFrame)) ToggleDeveloper();
+            if (DeveloperTools && !tutorialActive && keyboard != null && (keyboard.f1Key.wasPressedThisFrame || keyboard.f2Key.wasPressedThisFrame)) ToggleDeveloper();
             if (!tutorialActive && keyboard != null && keyboard.tabKey.wasPressedThisFrame && !codeEditor.IsOpen)
             {
                 if (DeveloperMode) ToggleDeveloper();

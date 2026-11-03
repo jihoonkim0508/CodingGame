@@ -37,7 +37,7 @@ namespace CodingGame.Defense
             if (trail.JustHit) flash = FlashSeconds;
             flash = Mathf.Max(0, flash - Time.unscaledDeltaTime);
             label.color = Color.Lerp(labelColor, hitColor, flash / FlashSeconds);
-            label.text = $"기지 {sim.BaseHealth} / {sim.Setup.BaseHealth}";
+            label.text = $"코어 {sim.BaseHealth} / {sim.Setup.BaseHealth}";
             transform.rotation = battleCamera.transform.rotation;
         }
     }

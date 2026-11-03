@@ -253,20 +253,28 @@ namespace CodingGame.Defense
                 if (text == null || robotActions.gameObject.activeSelf && bot.Id == battle.SelectedId) continue;
                 if (shown == statusLabels.Count)
                 {
+                    // A dark plate sized to the text behind each tag.
+                    var plate = new GameObject("Status tag", typeof(RectTransform), typeof(Image), typeof(HorizontalLayoutGroup), typeof(ContentSizeFitter));
+                    var rect = (RectTransform)plate.transform; rect.SetParent(statusLayer, false);
+                    rect.anchorMin = rect.anchorMax = canvas.pivot; rect.pivot = new Vector2(.5f, 0);
+                    var back = plate.GetComponent<Image>(); back.color = new Color32(0x0B, 0x16, 0x20, 0xD8); back.raycastTarget = false;
+                    var layout = plate.GetComponent<HorizontalLayoutGroup>(); layout.padding = new RectOffset(12, 12, 4, 4);
+                    layout.childControlWidth = layout.childControlHeight = true; layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+                    var fit = plate.GetComponent<ContentSizeFitter>(); fit.horizontalFit = fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
                     var made = new GameObject("Status", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
-                    made.rectTransform.SetParent(statusLayer, false);
-                    made.rectTransform.anchorMin = made.rectTransform.anchorMax = canvas.pivot; made.rectTransform.pivot = new Vector2(.5f, 0); made.rectTransform.sizeDelta = new Vector2(240, 32);
-                    made.font = rewardItems.font; made.fontSize = 20; made.fontStyle = FontStyles.Bold; made.alignment = TextAlignmentOptions.Bottom;
+                    made.rectTransform.SetParent(rect, false);
+                    made.font = rewardItems.font; made.fontSize = 22; made.fontStyle = FontStyles.Bold; made.alignment = TextAlignmentOptions.Center;
                     made.textWrappingMode = TextWrappingModes.NoWrap; made.raycastTarget = false;
                     statusLabels.Add(made);
                 }
                 var label = statusLabels[shown++];
                 if (label.text != text) label.text = text;
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, battleCamera.WorldToScreenPoint(DefenseViews.World(bot.Position, DefenseBattle.RobotHeight)), null, out var head);
-                label.rectTransform.anchoredPosition = head + Vector2.up * 10;
-                label.gameObject.SetActive(true);
+                var tag = (RectTransform)label.transform.parent;
+                tag.anchoredPosition = head + Vector2.up * 10;
+                tag.gameObject.SetActive(true);
             }
-            for (int i = shown; i < statusLabels.Count; i++) statusLabels[i].gameObject.SetActive(false);
+            for (int i = shown; i < statusLabels.Count; i++) statusLabels[i].transform.parent.gameObject.SetActive(false);
         }
         // The wave's result in large letters over the screen; the result panel fades in under it, then the rewarded blocks
         // pop out in turn. Driven from LateUpdate by the time it started, so an interrupted frame never leaves the panel or a

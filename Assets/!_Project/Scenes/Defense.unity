@@ -7902,6 +7902,7 @@ MonoBehaviour:
     shotFlarePrefab: {fileID: 1729001793886802925, guid: 81ca5e8e87cc3d84abc2c5795762cad1, type: 3}
     shotImpactPrefab: {fileID: 109465435430222712, guid: 2962580bd2f9cc948b8c2586f46186fc, type: 3}
   developerRoot: {fileID: 1770769377}
+  developerHint: {fileID: 425399861}
   tutorial: {fileID: 712009699}
   hitRangeButton: {fileID: 1063092869}
   hitRangeLabel: {fileID: 1748000047}
