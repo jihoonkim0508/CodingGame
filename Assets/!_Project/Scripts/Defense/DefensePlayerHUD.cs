@@ -310,6 +310,31 @@ namespace CodingGame.Defense
             }
             rewardItems.margin = new Vector4(0, y + rowHeight + 16, 0, 0);
         }
+        // The robot debrief goes under the reward text as a child with a bottom margin (like the reward blocks' top margin),
+        // so the tutorial's reward focus still ends at the reward text.
+        TextMeshProUGUI debrief;
+        void ShowDebrief(DefenseSimulation sim)
+        {
+            // Robots of one kind are numbered in placement order.
+            string Name(RobotState bot)
+            {
+                var same = sim.Robots.Where(r => r.DefinitionIndex == bot.DefinitionIndex).ToList();
+                return battle.DefinitionName(bot.DefinitionIndex) + (same.Count > 1 ? " " + (same.IndexOf(bot) + 1) : "");
+            }
+            string report = DefenseDebrief.Report(sim, Name);
+            if (!debrief)
+            {
+                debrief = new GameObject("Debrief", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                debrief.rectTransform.SetParent(rewardItems.transform, false);
+                debrief.rectTransform.anchorMin = Vector2.zero; debrief.rectTransform.anchorMax = new Vector2(1, 0); debrief.rectTransform.pivot = new Vector2(.5f, 0);
+                debrief.font = rewardItems.font; debrief.fontSize = rewardItems.fontSize * .85f; debrief.color = rewardItems.color;
+                debrief.alignment = rewardItems.alignment; debrief.raycastTarget = false;
+            }
+            debrief.text = report;
+            float height = report.Length == 0 ? 0 : debrief.GetPreferredValues(report, ((RectTransform)rewardItems.transform).rect.width, 0).y;
+            debrief.rectTransform.sizeDelta = new Vector2(0, height); debrief.rectTransform.anchoredPosition = Vector2.zero;
+            var margin = rewardItems.margin; margin.w = height > 0 ? height + 28 : 0; rewardItems.margin = margin;
+        }
         // The tutorial's reward focus (1-1 E06a) ends just under the reward text, so the dialogue box below does not cover it.
         const float FocusMargin = 24;
         void FitRewardFocus()
@@ -336,6 +361,7 @@ namespace CodingGame.Defense
                     (sim.Phase == BattlePhase.Victory ? battle.FromStageMap ? "5개 웨이브 방어 성공 · 스테이지 맵에서 다음 스테이지를 선택하세요." : sim.CanAdvanceStage ? "5개 웨이브 방어 성공 · 보유 블록과 로봇을 다음 스테이지로 가져갑니다." : "1~3스테이지, 총 15개 웨이브를 완료했습니다." : "방어 실패 · 배치와 코드를 바꿔 도전하세요") + $"\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
                 if (reward) rewardItems.text += $"\n\n잔여 적 {sim.LastSurvivors}" + (sim.WaveIndex + 1 < sim.Setup.Waves.Length ? " · 다음 웨이브에 추가" : " · 최종 기록");
                 ShowRewardBlocks(reward ? sim.PendingDrops : null);
+                ShowDebrief(sim);
                 Canvas.ForceUpdateCanvases(); rewardScroll.verticalNormalizedPosition = 1;
                 FitRewardFocus();
             }

@@ -192,5 +192,6 @@ static class Check
         Console.WriteLine($"Defense checks passed: {checks}");
         ProgramCheck.Run();
         CampaignCheck.Run();
+        DebriefCheck.Run();
     }
 }

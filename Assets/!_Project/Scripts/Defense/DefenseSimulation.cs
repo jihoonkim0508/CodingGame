@@ -28,6 +28,7 @@ namespace CodingGame.Defense
         public int Kills { get; private set; }
         public int Leaks { get; private set; }
         public int Spawned { get; private set; }
+        public int WaveLeaks => Leaks - waveLeaksAtStart;
         public double WaveRemaining
         {
             get
@@ -125,7 +126,7 @@ namespace CodingGame.Defense
             nextWave = WaveIndex + 1 < Setup.Waves.Length ? ScaledWave(WaveIndex + 1) : Array.Empty<SpawnGroup>();
             carry.Clear(); groupCounts = new int[currentWave.Length]; waveStart = Time; spawnElapsed = 0;
             waveLeaksAtStart = Leaks; ObjectiveFailed = false;
-            foreach (var bot in Robots) bot.AttacksThisWave = 0;
+            foreach (var bot in Robots) { bot.AttacksThisWave = bot.ActionsThisWave = bot.KillsThisWave = 0; bot.DamageThisWave = 0; bot.SawEnemyThisWave = false; }
             if (Setup.PlayerFlow && Lesson != null) GrantSupply(Lesson);
         }
         void GrantSupply(WaveLesson lesson)
@@ -405,7 +406,7 @@ namespace CodingGame.Defense
                     default: Shoot(bot, action, profile, strength, target); break;
                 }
             }
-            bot.NextAction = Time + ActionInterval(bot, action); bot.Executions++;
+            bot.NextAction = Time + ActionInterval(bot, action); bot.Executions++; bot.ActionsThisWave++;
             if (action != RobotAction.Buff) bot.AttacksThisWave++;
             return bot.LastResult = ActionResult.Executed;
         }
@@ -491,6 +492,8 @@ namespace CodingGame.Defense
             float applied=Options.attackDamage?Math.Min(e.Health,damage):0;
             if (!Options.attackDamage) { Emit("damage-suppressed", source, e.Id, e.Position, damage); damage = 0; }
             e.Health = Math.Max(0, e.Health - damage);
+            var attacker = FindRobot(source);
+            if (attacker != null) { attacker.DamageThisWave += applied; if (e.Health <= 0) attacker.KillsThisWave++; }
             Events.Add(new CombatEvent { Kind = projectile ? "projectile-hit" : "hit", Source = source,
                 Target = e.Id, Position = e.Position, Amount = damage, AppliedAmount=applied, Melee = meleeSource != null,
                 Origin = meleeSource == null ? default : meleeSource.Position });
@@ -557,6 +560,8 @@ namespace CodingGame.Defense
                 if (e.BlockedBy != 0 && !Robots.Any(r => r.Id == e.BlockedBy)) e.BlockedBy = 0;
                 if (e.Active && e.BlockedBy == 0) TryBlock(e, e.Position, e.Position, out _);
             }
+            foreach (var bot in Robots)
+                if (!bot.SawEnemyThisWave) bot.SawEnemyThisWave = Enemies.Any(e => e.Active && Vector2.DistanceSquared(e.Position, bot.Position) <= bot.Range * bot.Range);
             if (Options.robotCode) foreach (var bot in Robots.ToArray())
                 if (bot.Program != null) bot.Program.Tick(this, bot);
                 else if (bot.AutoExecute) RequestAction(bot.Id, bot.Action);

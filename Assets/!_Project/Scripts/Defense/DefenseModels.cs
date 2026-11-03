@@ -246,6 +246,10 @@ namespace CodingGame.Defense
         public bool BlockingEnabled;
         public ActionResult LastResult;
         public int Executions, AttacksThisWave;
+        // This wave's record for the result debrief (reset when a wave is prepared).
+        public int ActionsThisWave, KillsThisWave;
+        public float DamageThisWave;
+        public bool SawEnemyThisWave;
         public readonly List<BuffState> Buffs = new List<BuffState>();
         public DefenseProgram Program;
         public float Range => Spec.range * Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Range));
