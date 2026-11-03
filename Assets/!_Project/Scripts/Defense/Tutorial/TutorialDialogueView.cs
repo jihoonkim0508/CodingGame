@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -16,6 +17,10 @@ namespace CodingGame.Defense
         [SerializeField] Button previousText, nextText;
         [SerializeField, Tooltip("Top position keeps this gap so the HUD header stays readable.")] float topInset = 96;
         [SerializeField, Tooltip("Bottom position sits this much higher than authored, clear of the HUD's bottom bar.")] float bottomLift = 170;
+        [SerializeField, Tooltip("안내 로봇 디버의 표정, GuideMood 순서(Normal, Blink, Happy, Surprised, Worried, Determined). 비우면 시퀀스 초상화를 쓴다.")]
+        Sprite[] guideFaces = Array.Empty<Sprite>();
+        GuideMood mood;
+        float nextBlink;
         Coroutine typing, entrance;
         RectTransform panelRect;
         Vector2 bottomAnchorMin, bottomAnchorMax, bottomPosition, bottomPivot;
@@ -40,8 +45,19 @@ namespace CodingGame.Defense
             StopTyping();
             Place(position);
             panel.SetActive(true);
-            portrait.sprite = sequence.speakerPortrait;
-            portrait.enabled = sequence.speakerPortrait;
+            if (HasGuideFaces)
+            {
+                // The guide's face replaces the placeholder drawn from the plate's child shapes.
+                mood = GuideMoods.For(text);
+                foreach (Transform shape in portrait.transform) shape.gameObject.SetActive(false);
+                portrait.type = Image.Type.Simple; portrait.preserveAspect = true; portrait.color = Color.white;
+                portrait.sprite = guideFaces[(int)mood]; portrait.enabled = true;
+            }
+            else
+            {
+                portrait.sprite = sequence.speakerPortrait;
+                portrait.enabled = sequence.speakerPortrait;
+            }
             speaker.text = speakerName ?? "";
             stageWave.text = sequence.stage + "-" + sequence.wave;
             dialogue.text = text ?? string.Empty;
@@ -50,6 +66,19 @@ namespace CodingGame.Defense
             dialogue.maxVisibleCharacters = animate ? 0 : int.MaxValue;
             if (animate && characterCount > 0) typing = StartCoroutine(Type(sequence.typeSpeed, characterCount));
         }
+
+        bool HasGuideFaces => guideFaces.Length == Enum.GetValues(typeof(GuideMood)).Length && guideFaces.All(face => face);
+        // A calm face blinks now and then; every face bobs while its line types out.
+        void Update()
+        {
+            if (!IsVisible || !HasGuideFaces) return;
+            float now = Time.unscaledTime;
+            if (now > nextBlink + BlinkSeconds) nextBlink = now + UnityEngine.Random.Range(2.5f, 4.5f);
+            bool blink = mood == GuideMood.Normal && now >= nextBlink;
+            portrait.sprite = guideFaces[(int)(blink ? GuideMood.Blink : mood)];
+            portrait.rectTransform.anchoredPosition = new Vector2(0, typing != null ? Mathf.Abs(Mathf.Sin(now * 14)) * 5 : 0);
+        }
+        const float BlinkSeconds = .12f;
 
         public RectTransform Panel => panelRect;
         public bool IsCentered => centered;

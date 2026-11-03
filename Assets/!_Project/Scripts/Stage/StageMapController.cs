@@ -118,7 +118,7 @@ namespace CodingGame.StageMap
             if (Event.current.type != EventType.Repaint) return;
             EnsureStyles();
             DrawRect(new Rect(18f, 18f, 510f, 76f), new Color(0.04f, 0.09f, 0.16f, 0.92f));
-            GUI.Label(new Rect(34f, 25f, 480f, 30f), "도우미 로봇", guideTitleStyle);
+            GUI.Label(new Rect(34f, 25f, 480f, 30f), "디버", guideTitleStyle);
             GUI.Label(new Rect(34f, 53f, 480f, 28f), GuideMessage, guideBodyStyle);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             GUI.Label(new Rect(18f, Screen.height - 38f, 420f, 28f), "DEV  Z: 임시 클리어    Q: 초기화", bodyStyle);

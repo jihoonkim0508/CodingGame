@@ -68,7 +68,7 @@ MonoBehaviour:
     dialoguePosition: 0
     texts:
     - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
+      speaker: "\uB514\uBC84"
       text: "\uC9C0\uB09C\uBC88\uC5D0\uB294 `if`\uB85C <b>\uC801\uAE4C\uC9C0\uC758
         \uAC70\uB9AC\uAC00 \uB0B4 \uACF5\uACA9 \uC0AC\uAC70\uB9AC \uC774\uD558\uC778\uC9C0</b>
         \uD655\uC778\uD588\uC9C0."
@@ -112,7 +112,7 @@ MonoBehaviour:
     dialoguePosition: 0
     texts:
     - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
+      speaker: "\uB514\uBC84"
       text: "\uC774\uBC88\uC5D4 \uC0C8 \uC804\uC0AC\uB3C4 \uBC30\uCE58\uD558\uACE0,
         \uB450 \uC804\uC0AC \uBAA8\uB450 \uAC70\uB9AC \uC870\uAC74\uC744 \uC9C1\uC811
         \uB9CC\uB4E4\uC5B4 \uBCF4\uC790. \uC801\uC774 \uBAA8\uC774\uB294 \uC21C\uAC04\uC744
@@ -158,7 +158,7 @@ MonoBehaviour:
     dialoguePosition: 0
     texts:
     - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
+      speaker: "\uB514\uBC84"
       text: "\uB9C9\uD788\uBA74 \uD3B8\uC9D1\uAE30\uC758 \uD78C\uD2B8\uB97C \uC0B4\uD3B4\uBD10.
         \uC900\uBE44\uAC00 \uB05D\uB098\uBA74 \uC804\uD22C\uB97C \uC2DC\uC791\uD574!
         \uBAA9\uD45C\uB294 \uD654\uBA74 \uC704\uC5D0 \uB0A8\uACA8 \uB458\uAC8C."
@@ -202,7 +202,7 @@ MonoBehaviour:
     dialoguePosition: 0
     texts:
     - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
+      speaker: "\uB514\uBC84"
       text: "\uC88B\uC544! \uC870\uAC74\uC774 \uCC38\uC77C \uB54C\uB9CC \uBCA0\uB3C4\uB85D
         \uB9CC\uB4E0 \uB355\uBD84\uC5D0 \uBAB0\uB824\uC628 \uC801\uC744 \uB9C9\uC544\uB0C8\uC5B4."
       focusKeys: []
@@ -245,7 +245,7 @@ MonoBehaviour:
     dialoguePosition: 0
     texts:
     - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
+      speaker: "\uB514\uBC84"
       text: "\uAC19\uC740 `if`\uB77C\uB3C4 \uBE44\uAD50\uD558\uB294 \uAC70\uB9AC\uB97C
         \uBC14\uAFB8\uBA74 \uBCA0\uB294 \uC2DC\uC810\uC774 \uB2EC\uB77C\uC838. \uC774\uBC88\uC5D0\uB294
         \uB124\uAC00 \uC9C1\uC811 \uADF8 \uC2DC\uC810\uC744 \uC815\uD588\uC5B4."
@@ -289,7 +289,7 @@ MonoBehaviour:
     dialoguePosition: 0
     texts:
     - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
+      speaker: "\uB514\uBC84"
       text: "\uB2E4\uC74C\uC740 \uBCC0\uC218\uB97C \uC368\uC11C \uAC15\uD55C \uC801\uACFC
         \uC8FC\uBCC0 \uC801\uC744 \uD568\uAED8 \uC0C1\uB300\uD558\uB294 \uB9C8\uC9C0\uB9C9
         \uC2E4\uC2B5\uC774\uC57C."
@@ -333,7 +333,7 @@ MonoBehaviour:
     dialoguePosition: 1
     texts:
     - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
+      speaker: "\uB514\uBC84"
       text: "\uBCF4\uC0C1\uC744 \uBC1B\uACE0 1-5\uB85C \uAC00\uC790."
       focusKeys: []
       highlightKeys: []

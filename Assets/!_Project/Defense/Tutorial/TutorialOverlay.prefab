@@ -1579,6 +1579,13 @@ MonoBehaviour:
   previousText: {fileID: 7129968802437069129}
   nextText: {fileID: 246403889583254846}
   topInset: 96
+  guideFaces:
+  - {fileID: 21300000, guid: d410cd835fee48559da614b1c88d5859, type: 3}
+  - {fileID: 21300000, guid: 2ca8aa4b51a24dd2a711615e2dfe0a84, type: 3}
+  - {fileID: 21300000, guid: 3af3085e357a4007b6cfa5bd3f28365d, type: 3}
+  - {fileID: 21300000, guid: d6a9a85f29e2439caaa8bea2ceee969b, type: 3}
+  - {fileID: 21300000, guid: cb5d4678bac14e0f87ecbb75faba8189, type: 3}
+  - {fileID: 21300000, guid: 5636ad1ff4704f22a158442ede862506, type: 3}
 --- !u!1 &8313188942360428327
 GameObject:
   m_ObjectHideFlags: 0

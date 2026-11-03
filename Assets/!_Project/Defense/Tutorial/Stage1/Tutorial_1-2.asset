@@ -25,7 +25,7 @@ MonoBehaviour:
     dialoguePosition: 0
     texts:
     - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
+      speaker: "\uB514\uBC84"
       text: "\uC774\uBC88\uC5D0\uB294 \uB124\uAC00 \uC9C1\uC811 \uD574 \uBCFC \uCC28\uB840\uC57C!\n<b>\uC0C8
         \uC804\uC0AC\uB97C \uB193\uACE0, \uBCC0\uC218\uB85C \uC801\uC744 \uCC3E\uC544
         \uACF5\uACA9\uD558\uAC8C \uB9CC\uB4E4\uC5B4 \uBCF4\uC790!</b>"
@@ -69,7 +69,7 @@ MonoBehaviour:
     dialoguePosition: 0
     texts:
     - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
+      speaker: "\uB514\uBC84"
       text: "\uC804\uC0AC\uD615 \uB85C\uBD07\uACFC \uAE30\uBCF8 \uBE14\uB85D\uC744
         \uD558\uB098\uC529 \uB354 \uBC1B\uC558\uC5B4.\n\uC0C8 \uB85C\uBD07\uC744
         \uB193\uACE0 \u2018\uAC1C\uBC1C\u2019\uC744 \uB20C\uB7EC \uBD10. \uAE30\uC874
@@ -114,7 +114,7 @@ MonoBehaviour:
     dialoguePosition: 0
     texts:
     - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
+      speaker: "\uB514\uBC84"
       text: "\uBCC0\uC218 \uC774\uB984\uC740 \uB9C8\uC74C\uB300\uB85C \uC815\uD574\uB3C4
         \uB3FC. <b>\uC800\uC7A5\uD55C \uC774\uB984\uACFC \uACF5\uACA9\uD560 \uB54C
         \uC4F0\uB294 \uC774\uB984</b>\uC744 \uB9DE\uCDB0 \uC918!\n\uB9C9\uD788\uBA74
@@ -160,7 +160,7 @@ MonoBehaviour:
     dialoguePosition: 0
     texts:
     - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
+      speaker: "\uB514\uBC84"
       text: "\uC774\uBC88 \uC6E8\uC774\uBE0C\uB97C \uB9C8\uCCE4\uC5B4!\n\uAC19\uC740
         \uC801\uC744 <b>\uBCC0\uC218\uC5D0 \uC800\uC7A5\uD558\uACE0, \uADF8 \uC774\uB984\uC73C\uB85C
         \uB2E4\uC2DC \uC0AC\uC6A9</b>\uD558\uB294 \uC5F0\uC2B5\uC774\uC5C8\uC5B4."
@@ -206,7 +206,7 @@ MonoBehaviour:
     dialoguePosition: 0
     texts:
     - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
+      speaker: "\uB514\uBC84"
       text: "\uB2E4\uC74C\uC5D0\uB294 <b>\u2018\uC774\uB7F4 \uB54C\uB9CC \uACF5\uACA9\uD574!\u2019</b>\uB77C\uACE0
         \uC54C\uB824\uC8FC\uB294 \uC870\uAC74\uBB38\uC744 \uBC30\uC6CC \uBCF4\uC790."
       focusKeys: []
@@ -249,7 +249,7 @@ MonoBehaviour:
     dialoguePosition: 1
     texts:
     - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
+      speaker: "\uB514\uBC84"
       text: "<b>\u2018\uBCF4\uC0C1 \uC218\uB839\u2019</b>\uC744 \uB20C\uB7EC \uB2E4\uC74C
         \uC6E8\uC774\uBE0C\uB85C \uAC00\uC790!"
       focusKeys: []

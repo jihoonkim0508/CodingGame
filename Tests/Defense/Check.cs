@@ -194,5 +194,6 @@ static class Check
         CampaignCheck.Run();
         DebriefCheck.Run();
         RetryCheck.Run();
+        GuideMoodCheck.Run();
     }
 }
