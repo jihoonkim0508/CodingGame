@@ -73,6 +73,7 @@ namespace CodingGame.Defense
 
         readonly Dictionary<int, DefenseActorView> robotViews = new Dictionary<int, DefenseActorView>();
         DefenseSounds sounds;
+        public void PlaySound(string kind) => sounds.Play(kind);
         readonly Dictionary<int, DefenseActorView> enemyViews = new Dictionary<int, DefenseActorView>();
         readonly List<Transform> dropViews = new List<Transform>();
         readonly DefenseProjectileVisuals projectileViews = new DefenseProjectileVisuals();

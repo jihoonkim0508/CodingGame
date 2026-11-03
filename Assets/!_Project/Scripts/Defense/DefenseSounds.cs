@@ -43,6 +43,11 @@ namespace CodingGame.Defense
             clips["timeup"] = Notes("timeup", .12f, .25f, 523.25f, 392f);
             clips["victory"] = Notes("victory", .12f, .3f, 523.25f, 659.25f, 783.99f, 1046.5f);
             clips["defeat"] = Notes("defeat", .16f, .3f, 392f, 329.63f, 261.63f);
+            // Each stage-clear star rings a step higher than the one before.
+            clips["star1"] = Notes("star1", .16f, .3f, 1318.5f, 1975.5f);
+            clips["star2"] = Notes("star2", .16f, .3f, 1568f, 2349.3f);
+            clips["star3"] = Notes("star3", .16f, .34f, 2093f, 3136f);
+            clips["wave-start"] = Sweep("wave-start", .35f, 220, 440, square: .6f, volume: .3f);
         }
 
         // Hits and kills can pile up in one frame; one of each kind per short gap is enough to hear.

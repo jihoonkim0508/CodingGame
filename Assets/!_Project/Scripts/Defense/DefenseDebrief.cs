@@ -85,7 +85,7 @@ namespace CodingGame.Defense
             var worst = issues.OrderBy(x => x.issue).First();
             var mvp = sim.Robots.OrderByDescending(bot => bot.DamageThisWave).First();
             int missed = Missed(sim);
-            string tip = sim.Phase == BattlePhase.Defeat ? "다시 도전 팁" : "다음 웨이브 팁";
+            string tip = sim.Phase == BattlePhase.Defeat ? "다시 도전 팁" : sim.Phase == BattlePhase.Victory ? "다음 스테이지 팁" : "다음 웨이브 팁";
             // The headline carries the most serious robot's advice, so that robot's line below shows only its numbers.
             string headline = worst.issue != Issue.None ? $"<color=#FFD36B><b>{tip}</b> · {name(worst.bot)}: {Advice(sim, worst.bot, worst.issue)}</color>"
                 : missed == 0 ? $"<color=#7FF0B0><b>완벽 방어!</b> MVP {name(mvp)} · 피해 {mvp.DamageThisWave:0}</color>"

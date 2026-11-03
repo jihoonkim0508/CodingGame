@@ -419,6 +419,14 @@ namespace CodingGame.Defense
                 bannerGroup.alpha = t < .25f ? k : t > BannerSeconds - .4f ? Mathf.Clamp01((BannerSeconds - t) / .4f) : 1;
             }
             if (resultGroup) resultGroup.alpha = Mathf.Clamp01((t - PanelFadeFrom) / .4f);
+            // Stage clear: the stars land one by one, each earned one with a chime a step higher than the last.
+            for (int i = 0; starRow && starRow.gameObject.activeInHierarchy && i < stars.Count; i++)
+            {
+                float p = Mathf.Clamp01((t - StarsFrom - i * StarStagger) / StarPop);
+                stars[i].rectTransform.localScale = Vector3.one * (p < .55f ? Mathf.Lerp(0, 1.4f, p / .55f) : Mathf.Lerp(1.4f, 1, (p - .55f) / .45f));
+                stars[i].rectTransform.localEulerAngles = new Vector3(0, 0, (1 - p) * 40);
+                if (p > 0 && i >= starsRung && i < starsEarned) { starsRung = i + 1; battle.PlaySound("star" + (i + 1)); }
+            }
             // Blocks come in pairs with their counts.
             for (int i = 0; i < popping.Count; i++)
             {
@@ -465,15 +473,49 @@ namespace CodingGame.Defense
             rewardItems.margin = new Vector4(0, y + rowHeight + 16, 0, 0);
         }
         // The stage's stars, the core left and what the next star needs, so a clear invites a better run.
+        // Under the big stars: a new record or the best one, and what the next star asks for.
         string StarLine(DefenseSimulation sim)
         {
-            int stars = sim.StageStars, max = sim.Setup.BaseHealth;
+            int earned = sim.StageStars, max = sim.Setup.BaseHealth;
             int best = battle.FromStageMap ? StageMap.StageProgress.BestStars(battle.Stage) : 0;
-            string line = $"<size=160%><color=#FFD36B>{new string('★', stars)}</color><color=#5A6B78>{new string('☆', 3 - stars)}</color></size>";
-            if (stars > best && best > 0) line += "   <color=#7FF0B0>새 기록!</color>";
-            else if (best > stars) line += $"   <color=#B9C7D2>최고 기록 {new string('★', best)}</color>";
-            line += $"\n코어 {sim.BaseHealth} / {max} · " + (stars < 3 ? $"코어를 {DefenseSimulation.CoreForStars(stars + 1, max)} 이상 남기면 ★{stars + 1}" : "최고 등급!");
+            string line = earned > best && best > 0 ? "<color=#7FF0B0><b>새 기록!</b></color>   " : best > earned ? $"<color=#B9C7D2>최고 기록 {new string('★', best)}</color>   " : "";
+            line += $"코어 {sim.BaseHealth} / {max} · " + (earned < 3 ? $"코어를 {DefenseSimulation.CoreForStars(earned + 1, max)} 이상 남기면 ★{earned + 1}" : "최고 등급!");
             return line;
+        }
+        // Three large stars in the reward text's top margin (stage clear has no reward blocks there), gold when earned.
+        readonly System.Collections.Generic.List<TextMeshProUGUI> stars = new System.Collections.Generic.List<TextMeshProUGUI>();
+        RectTransform starRow;
+        int starsEarned, starsRung;
+        const float StarsFrom = 1.7f, StarStagger = .4f, StarPop = .35f, StarRowHeight = 110;
+        void ShowStars(DefenseSimulation sim)
+        {
+            bool show = sim.Phase == BattlePhase.Victory;
+            if (!starRow && show)
+            {
+                starRow = new GameObject("Stars", typeof(RectTransform)).GetComponent<RectTransform>();
+                starRow.SetParent(rewardItems.transform, false);
+                starRow.anchorMin = new Vector2(0, 1); starRow.anchorMax = Vector2.one; starRow.pivot = new Vector2(.5f, 1);
+                starRow.sizeDelta = new Vector2(0, StarRowHeight); starRow.anchoredPosition = Vector2.zero;
+                for (int i = 0; i < 3; i++)
+                {
+                    var star = new GameObject("Star", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                    star.rectTransform.SetParent(starRow, false);
+                    star.rectTransform.anchorMin = star.rectTransform.anchorMax = new Vector2(.5f, .5f);
+                    star.rectTransform.sizeDelta = new Vector2(120, 120); star.rectTransform.anchoredPosition = new Vector2((i - 1) * 124, 0);
+                    star.font = rewardItems.font; star.fontSize = 104; star.alignment = TextAlignmentOptions.Center; star.raycastTarget = false;
+                    star.text = "★"; star.outlineWidth = .2f; star.outlineColor = new Color32(10, 18, 28, 255);
+                    stars.Add(star);
+                }
+            }
+            if (starRow) starRow.gameObject.SetActive(show);
+            if (!show) return;
+            starsEarned = sim.StageStars; starsRung = 0;
+            for (int i = 0; i < stars.Count; i++)
+            {
+                stars[i].color = i < starsEarned ? new Color32(0xFF, 0xD3, 0x6B, 0xFF) : new Color32(0x3A, 0x47, 0x52, 0xFF);
+                stars[i].rectTransform.localScale = Vector3.zero;
+            }
+            var margin = rewardItems.margin; margin.y = StarRowHeight + 8; rewardItems.margin = margin;
         }
         // Esc: a menu over the battle to resume, switch sound, restart the stage or leave for the stage map. A running wave
         // pauses while it is open and resumes when it closes.
@@ -657,6 +699,7 @@ namespace CodingGame.Defense
                 else if (reward) rewardItems.text += $"\n\n잔여 적 {sim.LastSurvivors}" + (sim.WaveIndex + 1 < sim.Setup.Waves.Length ? " · 다음 웨이브에 추가" : " · 최종 기록");
                 if (sim.Phase == BattlePhase.Victory) rewardItems.text = StarLine(sim) + "\n\n" + rewardItems.text;
                 ShowRewardBlocks(reward ? sim.PendingDrops : null);
+                ShowStars(sim);
                 ShowDebrief(sim);
                 Canvas.ForceUpdateCanvases(); rewardScroll.verticalNormalizedPosition = 1;
                 FitRewardFocus();
