@@ -91,5 +91,33 @@ static class DebriefCheck
         Assert(broken.Program.Fault != null && Tag(live, broken).Contains("코드 오류"), "stopped code is tagged");
         var campaign = Sim(10, 1, playerFlow: true);
         Assert(Tag(campaign, Bot(campaign, RobotRole.Shooter, -6, -2)).Contains("코드 없음"), "a campaign robot without code is tagged while preparing");
+        CheckLoops(Tag);
+    }
+
+    // One run a wave (as once loops unlock): enemies 4 s apart, each dies to one slash, a robot mid-road.
+    static DefenseSimulation OneRun()
+    {
+        var sim = Sim(5, 3); sim.Setup.FunctionRepeatLimit = 1; sim.Setup.Waves[0][0].Interval = 4;
+        return sim;
+    }
+    static void CheckLoops(Func<DefenseSimulation, RobotState, string> tag)
+    {
+        var sim = OneRun();
+        var loop = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "3")); loop.Body.Add(Slash());
+        var waiter = Bot(sim, RobotRole.Warrior, 0, 2, loop);
+        sim.Start();
+        for (int i = 0; i < 60 * 7; i++) sim.Advance(1.0 / 60);
+        Assert(waiter.KillsThisWave == 1 && waiter.Program.WaitingForTarget && tag(sim, waiter).Contains("기다리는 중"), "after the first kill the next turn waits for the far enemy");
+        for (int i = 0; i < 60 * 30 && sim.Phase == BattlePhase.Running; i++) sim.Advance(1.0 / 60);
+        Assert(waiter.KillsThisWave == 3 && waiter.ActionsThisWave == 3 && waiter.LoopTurnsThisWave == 3 && sim.WaveLeaks == 0, "range(3) means three attacks");
+
+        var stale = OneRun();
+        var spin = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "30"));
+        spin.Body.Add(new CodeBlock(BlockKind.Slash, "0", new CodeBlock(BlockKind.Variable, "enemy")));
+        var spinner = Bot(stale, RobotRole.Warrior, 0, 2, new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)), spin);
+        RunToEnd(stale);
+        Assert(spinner.ActionsThisWave == 1 && spinner.LoopTurnsThisWave == 30 && stale.WaveLeaks == 2, "turns on a gone enemy spend the count");
+        Assert(DefenseDebrief.Diagnose(stale, spinner) == DefenseDebrief.Issue.LoopSpun &&
+            DefenseDebrief.Advice(stale, spinner, DefenseDebrief.Issue.LoopSpun).Contains("30번 도는 동안 공격은 1번"), "spun loop is the advice");
     }
 }

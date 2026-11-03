@@ -10,7 +10,7 @@ namespace CodingGame.Defense
     public static class DefenseDebrief
     {
         // Most serious first; the headline picks the first robot with the smallest issue.
-        public enum Issue { NoCode, Fault, NoEnemyInRange, NeverActed, OutOfRuns, Reduced, None }
+        public enum Issue { NoCode, Fault, NoEnemyInRange, NeverActed, LoopSpun, OutOfRuns, Reduced, None }
         // Enemies this wave let through or left alive (survivors are only counted once the wave has ended, not on a defeat).
         public static int Missed(DefenseSimulation sim) => sim.WaveLeaks + (sim.Phase == BattlePhase.Defeat ? 0 : sim.LastSurvivors);
 
@@ -19,7 +19,9 @@ namespace CodingGame.Defense
             if (bot.Program == null || bot.Program.IsEmpty) return Issue.NoCode;
             if (bot.Program.Fault != null) return Issue.Fault;
             if (bot.ActionsThisWave == 0) return bot.Spec.role == RobotRole.Buffer || bot.SawEnemyThisWave ? Issue.NeverActed : Issue.NoEnemyInRange;
-            if (bot.Program.Completed(sim) && Missed(sim) > 0) return Issue.OutOfRuns;
+            // A for loop counts turns, not attacks: half its turns or more without one spent the count on false conditions.
+            if (bot.Program.Completed(sim) && Missed(sim) > 0)
+                return bot.LoopTurnsThisWave >= 2 * Math.Max(1, bot.ActionsThisWave) ? Issue.LoopSpun : Issue.OutOfRuns;
             if (sim.Compatibility(bot, bot.Action) == ActionCompatibility.Reduced) return Issue.Reduced;
             return Issue.None;
         }
@@ -37,6 +39,9 @@ namespace CodingGame.Defense
                     return bot.Program.BlockCount(BlockKind.If) > 0
                         ? "적이 사거리에 들어왔지만 공격하지 않았어요. if 조건이 참이 되는 값인지 확인해 보세요."
                         : "적이 사거리에 들어왔지만 공격 명령이 실행되지 않았어요. 공격 블록과 대상 칸을 확인해 보세요.";
+                case Issue.LoopSpun:
+                    return $"for 반복이 {bot.LoopTurnsThisWave}번 도는 동안 공격은 {bot.ActionsThisWave}번뿐이었어요. if 조건이 거짓이거나 노린 적이 이미 사라져도 반복 횟수는 줄어요. " +
+                        (sim.Owned(BlockKind.While) > 0 ? "끝까지 공격하려면 while True를 써 보세요." : "반복 안에서는 조건 없이 공격하거나(공격 블록은 적이 사거리에 올 때까지 기다려요) range() 횟수를 늘려 보세요.");
                 case Issue.OutOfRuns:
                     return $"함수 {bot.Program.CompletedRuns}/{sim.FunctionRepeatLimit}회를 다 써서 일찍 멈췄어요. " +
                         (sim.LoopsUnlocked ? "반복문으로 계속 공격하게 해 보세요." : "함수 안에 공격 블록을 더 넣으면 한 번에 여러 번 공격해요.");
@@ -55,6 +60,8 @@ namespace CodingGame.Defense
             if (sim.Phase != BattlePhase.Running && sim.Phase != BattlePhase.Paused) return null;
             int limit = sim.FunctionRepeatLimit;
             if (bot.Program.Completed(sim)) return Tag("FFD36B", limit > 1 ? $"함수 {limit}/{limit} 끝" : "함수 끝");
+            // The attack line is held by a target that is alive but out of range (it may never come; others can pass by).
+            if (bot.Program.WaitingForTarget) return Tag("CFE8FF", "사거리 밖 적 기다리는 중");
             return limit > 1 && limit < 1000 ? Tag("CFE8FF", $"함수 {bot.Program.CompletedRuns}/{limit}") : null;
         }
         static string Tag(string color, string text) => $"<mark=#0B1620D0 padding=\"60,60,25,25\"><color=#{color}>{text}</color></mark>";

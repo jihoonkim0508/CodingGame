@@ -29,6 +29,7 @@ namespace CodingGame.Defense
         public int StepsLastTick { get; private set; }
         public bool IsEmpty => blocks.Count == 0;
         public int CompletedRuns { get; private set; }
+        public bool WaitingForTarget { get; private set; }
         public bool Completed(DefenseSimulation sim) => CompletedRuns >= sim.FunctionRepeatLimit;
         public int BlockCount(BlockKind kind) => blockCounts.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0;
         public double WaitRemaining(double time) => Math.Max(0, wakeTime - time);
@@ -93,7 +94,7 @@ namespace CodingGame.Defense
         }
         public void Tick(DefenseSimulation sim, RobotState robot)
         {
-            StepsLastTick = 0;
+            StepsLastTick = 0; WaitingForTarget = false;
             if (Fault != null || Completed(sim) || sim.Phase != BattlePhase.Running || sim.Time + 1e-9 < wakeTime) return;
             // A program that targets enemies starts a run only once one is in range, so idle runs don't use up the repeat limit.
             if (!invocationStarted)
@@ -129,7 +130,7 @@ namespace CodingGame.Defense
                             if (state.Index >= state.Count) pc = instruction.Jump;
                             else { variables["i"] = state.Index; pc++; }
                             break;
-                        case Op.ForNext: loops[instruction.Loop].Index++; pc++; break;
+                        case Op.ForNext: loops[instruction.Loop].Index++; robot.LoopTurnsThisWave++; pc++; break;
                         default:
                             var block = instruction.Block;
                             if (block.Kind == BlockKind.DeclareVariable)
@@ -159,7 +160,10 @@ namespace CodingGame.Defense
                             var result = sim.RequestAction(robot.Id, action, target);
                             if (result == ActionResult.Executed) actedThisInvocation = true;
                             // 재사용 대기 중에는 같은 명령에서 기다리고, 실행 결과가 나오면 다음으로 이동합니다.
-                            if (result != ActionResult.CoolingDown) pc++;
+                            // A living target out of range is waited for the same way, so `for i in range(5)` means five attacks
+                            // instead of turns spent on an enemy that is not there yet.
+                            WaitingForTarget = result == ActionResult.NoTarget && target != 0;
+                            if (result != ActionResult.CoolingDown && !WaitingForTarget) pc++;
                             return;
                     }
                 }

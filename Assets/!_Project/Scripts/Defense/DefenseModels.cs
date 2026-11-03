@@ -247,7 +247,7 @@ namespace CodingGame.Defense
         public ActionResult LastResult;
         public int Executions, AttacksThisWave;
         // This wave's record for the result debrief (reset when a wave is prepared).
-        public int ActionsThisWave, KillsThisWave;
+        public int ActionsThisWave, KillsThisWave, LoopTurnsThisWave;
         public float DamageThisWave;
         public bool SawEnemyThisWave;
         public readonly List<BuffState> Buffs = new List<BuffState>();
