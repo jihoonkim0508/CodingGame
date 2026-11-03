@@ -147,6 +147,7 @@ namespace CodingGame.Defense
             speedLabel.text = fighting && battle.Tutorial && Mathf.Approximately(battle.Tutorial.BattlePace, .2f)
                 ? "0.2x" : battle.BattleSpeed + "x";
             RefreshRobotButtons(battle, robotButtons, robotLabels, "\nx");
+            RefreshRobotIcons(sim);
             RefreshRobotActions(sim);
             RefreshRobotStatus(sim);
             rewardPanel.SetActive(reward || ended);
@@ -167,6 +168,29 @@ namespace CodingGame.Defense
                 goalColor.g + .025f * glow, goalColor.b + .03f * glow, goalColor.a);
         }
         // Shared with the inventory window: unlocked robots show, and only stocked ones can be picked while preparing.
+        // Each robot card shows the robot itself (RobotDefinition.icon, photographed from its prefab) left of its name,
+        // faded while none are left to place.
+        Image[] robotIcons;
+        void RefreshRobotIcons(DefenseSimulation sim)
+        {
+            if (robotIcons == null)
+            {
+                robotIcons = new Image[robotButtons.Length];
+                for (int i = 0; i < robotButtons.Length; i++)
+                {
+                    var sprite = battle.RobotDefinition(i).icon;
+                    if (!sprite) continue;
+                    var icon = robotIcons[i] = new GameObject("Icon", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+                    icon.rectTransform.SetParent(robotButtons[i].transform, false);
+                    icon.rectTransform.anchorMin = Vector2.zero; icon.rectTransform.anchorMax = new Vector2(0, 1); icon.rectTransform.pivot = new Vector2(0, .5f);
+                    icon.rectTransform.sizeDelta = new Vector2(66, -6); icon.rectTransform.anchoredPosition = new Vector2(6, 0);
+                    icon.sprite = sprite; icon.preserveAspect = true; icon.raycastTarget = false;
+                    var label = robotLabels[i].rectTransform; label.offsetMin = new Vector2(label.offsetMin.x + 62, label.offsetMin.y);
+                }
+            }
+            for (int i = 0; i < robotIcons.Length; i++)
+                if (robotIcons[i]) robotIcons[i].color = new Color(1, 1, 1, sim.RobotAvailable(battle.DefinitionRole(i)) > 0 ? 1 : .4f);
+        }
         internal static void RefreshRobotButtons(DefenseBattle battle, Button[] buttons, TMP_Text[] labels, string separator)
         {
             var sim = battle.Simulation;

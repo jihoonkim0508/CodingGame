@@ -33,3 +33,4 @@ MonoBehaviour:
     buffRange: 1.15
     buffInterval: 0.8
   prefab: {fileID: 3400027157710270019, guid: 6b48159cdb3bf62479a6616d2dd541fb, type: 3}
+  icon: {fileID: 21300000, guid: 6d5b6696b1ef1144d98a91de91f7c6fe, type: 3}
