@@ -68,11 +68,15 @@ namespace CodingGame.Defense
         }
 
         bool HasGuideFaces => guideFaces.Length == Enum.GetValues(typeof(GuideMood)).Length && guideFaces.All(face => face);
-        // A calm face blinks now and then; every face bobs while its line types out.
+        // A calm face blinks now and then; every face bobs while its line types out. Once a line is fully shown and a
+        // click moves on, the next button breathes so the player knows the game waits for them.
         void Update()
         {
-            if (!IsVisible || !HasGuideFaces) return;
+            if (!IsVisible) return;
             float now = Time.unscaledTime;
+            bool waiting = typing == null && nextText.interactable;
+            nextText.transform.localScale = Vector3.one * (waiting ? 1 + .07f * (.5f + .5f * Mathf.Sin(now * 5)) : 1);
+            if (!HasGuideFaces) return;
             if (now > nextBlink + BlinkSeconds) nextBlink = now + UnityEngine.Random.Range(2.5f, 4.5f);
             bool blink = mood == GuideMood.Normal && now >= nextBlink;
             portrait.sprite = guideFaces[(int)(blink ? GuideMood.Blink : mood)];
