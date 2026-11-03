@@ -12,6 +12,8 @@ namespace CodingGame.Defense
     {
         public int stage, wave;
         public string topic;
+        // One line telling the player what this wave asks of their code; shown as the wave goal outside the Stage 1 tutorial.
+        public string goal = "";
         public RobotStock[] robots = Array.Empty<RobotStock>();
         public BlockStock[] blocks = Array.Empty<BlockStock>();
         public BlockStock[] rewards = Array.Empty<BlockStock>();
@@ -36,7 +38,7 @@ namespace CodingGame.Defense
             robots = robots.Select(r => new RobotStock {role=r.role,count=r.count}).ToArray(),
             initial = initial.Select(b => new BlockStock {kind=b.kind,count=b.count}).ToArray(),
             drops = drops.Select(d => new BlockDrop {kind=d.kind,firstWave=d.firstWave,weight=d.weight}).ToArray(),
-            lessons = lessons.Select(l => new WaveLesson {stage=l.stage,wave=l.wave,topic=l.topic,
+            lessons = lessons.Select(l => new WaveLesson {stage=l.stage,wave=l.wave,topic=l.topic,goal=l.goal,
                 robots=l.robots.Select(r=>new RobotStock {role=r.role,count=r.count}).ToArray(),
                 blocks=l.blocks.Select(b=>new BlockStock {kind=b.kind,count=b.count}).ToArray(),
                 rewards=l.rewards.Select(b=>new BlockStock {kind=b.kind,count=b.count}).ToArray()}).ToArray()

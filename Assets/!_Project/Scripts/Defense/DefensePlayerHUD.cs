@@ -63,6 +63,8 @@ namespace CodingGame.Defense
             goalPosition = goalRect.anchoredPosition;
             goalScale = goalRect.localScale;
             guide.alignment = TextAlignmentOptions.Center;
+            // Later stages' goal lines are longer than Stage 1's; shrink rather than spill out of the 56 px banner.
+            guide.fontSizeMax = guide.fontSize; guide.fontSizeMin = 17; guide.enableAutoSizing = true;
             goalBackground = goalRect.GetComponent<Image>();
             if (goalBackground) { goalBackground.raycastTarget = false; goalColor = goalBackground.color; }
 
@@ -104,12 +106,15 @@ namespace CodingGame.Defense
             counters.text = $"{battle.Stage}-{sim.WaveIndex + 1:00}     {state}     WAVE {sim.WaveIndex + 1}/{sim.Setup.Waves.Length}     적 {(reward ? sim.LastSurvivors : sim.RemainingEnemies)}     {Math.Ceiling(sim.WaveRemaining):00}s     코인 {sim.Coins:N0}";
             combatControls.SetActive(fighting);
             RefreshEnemyCards(sim, fighting);
-            bool freePlayGoal = battle.Tutorial && battle.Tutorial.ShowFreePlayGoal && !reward && !ended;
+            // Stage 1 goals come with its tutorial; later stages show the lesson's own goal line.
+            string lessonGoal = battle.Stage > 1 ? sim.Lesson?.goal : null;
+            bool freePlayGoal = (battle.Tutorial && battle.Tutorial.ShowFreePlayGoal || !string.IsNullOrEmpty(lessonGoal)) && !reward && !ended;
             if (freePlayGoal && !goalRect.gameObject.activeSelf) goalAnimationStart = Time.unscaledTime;
             guide.transform.parent.gameObject.SetActive(freePlayGoal);
             if (freePlayGoal)
             {
-                guide.text = sim.WaveIndex == 1 ? "목표 · 새 전사를 배치하고 변수로 적을 찾아 공격하기" :
+                guide.text = !string.IsNullOrEmpty(lessonGoal) ? "목표 · " + lessonGoal :
+                    sim.WaveIndex == 1 ? "목표 · 새 전사를 배치하고 변수로 적을 찾아 공격하기" :
                     sim.WaveIndex == 3 ? "목표 · 두 전사의 조건문으로 몰려오는 적 막기" :
                     "목표 · my_attack_range()와 조건문으로 잡몹과 보스 막기";
                 AnimateGoal();
