@@ -99,6 +99,23 @@ namespace CodingGame.Defense
             return (headline, lines);
         }
 
+        // 디버's word beside the result panel: cheer a clean wave, own up to a leak, and after a loss point at the fix.
+        public static (GuideMood mood, string line) GuideSays(DefenseSimulation sim)
+        {
+            switch (sim.Phase)
+            {
+                case BattlePhase.Defeat: return (GuideMood.Determined, "괜찮아, 코드만 고치면 돼!\n아래 팁부터 같이 보자.");
+                case BattlePhase.Victory:
+                    int stars = sim.StageStars;
+                    return stars >= 3 ? (GuideMood.Happy, "별 세 개!\n코어를 완벽하게 지켰어!")
+                        : (GuideMood.Happy, $"스테이지 통과!\n코어를 {DefenseSimulation.CoreForStars(stars + 1, sim.Setup.BaseHealth)} 이상 남기면 별이 하나 더야.");
+                default:
+                    if (sim.LastWaveTimedOut && sim.LastSurvivors > 0) return (GuideMood.Worried, $"시간이 다 됐어.\n남은 {sim.LastSurvivors}마리는 다음 웨이브로 넘어가!");
+                    if (sim.WaveLeaks > 0) return (GuideMood.Worried, $"{sim.WaveLeaks}마리가 코어에 닿았어.\n팁을 보고 고쳐 보자!");
+                    return (GuideMood.Happy, "완벽해!\n한 마리도 안 놓쳤어!");
+            }
+        }
+
         // The same as one rich-text block: headline, then each robot's numbers with its advice under them.
         public static string Report(DefenseSimulation sim, Func<RobotState, string> name)
         {

@@ -77,6 +77,8 @@ static class DebriefCheck
         }
         Assert(thresholds, "the core the next star asks for is exactly where the star starts");
         Assert(tough.StageStars == 3 && tough.BaseHealth == 11, "one leak still earns three stars");
+        Assert(DefenseDebrief.GuideSays(tough).mood == GuideMood.Happy && DefenseDebrief.GuideSays(tough).line.Contains("별 세 개"),
+            "디버 cheers three stars at the stage clear");
         Assert(new DefenseSimulation(tough.Setup).StageStars == 0, "no stars before the stage is won");
         Console.WriteLine($"Debrief checks passed: {checks}");
     }

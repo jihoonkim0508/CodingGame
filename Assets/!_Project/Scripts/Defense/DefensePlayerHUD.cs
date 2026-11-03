@@ -104,6 +104,8 @@ namespace CodingGame.Defense
             FlashLeak(sim);
             AnimateFloaters();
             CallWave(sim);
+            // While the tutorial's own 디버 is talking (1-1 reward lines), the result panel's 디버 steps aside.
+            if (guideCorner) guideCorner.gameObject.SetActive(!(battle.Tutorial && battle.Tutorial.IsActive));
             bool ready = sim.CanPrepare, reward = sim.Phase == BattlePhase.Reward;
             bool ended = sim.Phase == BattlePhase.Victory || sim.Phase == BattlePhase.Defeat;
             bool fighting = sim.Phase == BattlePhase.Running || sim.Phase == BattlePhase.Paused;
@@ -510,6 +512,38 @@ namespace CodingGame.Defense
             rewardItems.margin = new Vector4(0, y + rowHeight + 16, 0, 0);
         }
         // The stage's stars, the core left and what the next star needs, so a clear invites a better run.
+        // 디버 to the left of the result card (the title's parent; the reward panel itself is the full-screen shade), so it
+        // fades in with the panel: face and one line for this result.
+        RectTransform guideCorner;
+        Image guidePortrait;
+        TextMeshProUGUI guideLine;
+        Sprite[] guideFaces;
+        void ShowGuide(DefenseSimulation sim)
+        {
+            if (!guideCorner)
+            {
+                guideFaces = Enum.GetNames(typeof(GuideMood)).Select(m => Resources.Load<Sprite>("Guide/Guide_" + m.ToLowerInvariant())).ToArray();
+                guideCorner = new GameObject("Guide", typeof(RectTransform)).GetComponent<RectTransform>();
+                guideCorner.SetParent(rewardTitle.transform.parent, false);
+                guideCorner.anchorMin = guideCorner.anchorMax = new Vector2(0, 1); guideCorner.pivot = new Vector2(1, 1);
+                guideCorner.sizeDelta = new Vector2(300, 330); guideCorner.anchoredPosition = new Vector2(-28, -30);
+                guidePortrait = new GameObject("Face", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+                guidePortrait.rectTransform.SetParent(guideCorner, false); guidePortrait.preserveAspect = true; guidePortrait.raycastTarget = false;
+                guidePortrait.rectTransform.anchorMin = guidePortrait.rectTransform.anchorMax = new Vector2(.5f, 1); guidePortrait.rectTransform.pivot = new Vector2(.5f, 1);
+                guidePortrait.rectTransform.sizeDelta = new Vector2(150, 150); guidePortrait.rectTransform.anchoredPosition = Vector2.zero;
+                var bubble = new GameObject("Line", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+                bubble.rectTransform.SetParent(guideCorner, false); bubble.color = CardBack; bubble.raycastTarget = false;
+                bubble.rectTransform.anchorMin = new Vector2(0, 1); bubble.rectTransform.anchorMax = new Vector2(1, 1); bubble.rectTransform.pivot = new Vector2(.5f, 1);
+                bubble.rectTransform.sizeDelta = new Vector2(0, 150); bubble.rectTransform.anchoredPosition = new Vector2(0, -162);
+                guideLine = Text(bubble.transform, 24); guideLine.alignment = TextAlignmentOptions.Center; guideLine.color = Color.white;
+                guideLine.rectTransform.anchorMin = Vector2.zero; guideLine.rectTransform.anchorMax = Vector2.one;
+                guideLine.rectTransform.sizeDelta = new Vector2(-28, -20); guideLine.enableAutoSizing = true; guideLine.fontSizeMin = 17; guideLine.fontSizeMax = 24;
+            }
+            var (mood, line) = DefenseDebrief.GuideSays(sim);
+            guidePortrait.sprite = guideFaces[(int)mood]; guidePortrait.enabled = guidePortrait.sprite;
+            guideLine.text = $"<color=#5FE0C8><b>디버</b></color>\n{line}";
+        }
+
         // Under the big stars: a new record or the best one, and what the next star asks for.
         string StarLine(DefenseSimulation sim)
         {
@@ -738,6 +772,7 @@ namespace CodingGame.Defense
                 ShowRewardBlocks(reward ? sim.PendingDrops : null);
                 ShowStars(sim);
                 ShowDebrief(sim);
+                ShowGuide(sim);
                 Canvas.ForceUpdateCanvases(); rewardScroll.verticalNormalizedPosition = 1;
                 FitRewardFocus();
             }
