@@ -71,6 +71,7 @@ namespace CodingGame.Defense
         [SerializeField] TMP_Text[] developerRobotLabels = Array.Empty<TMP_Text>();
 
         readonly Dictionary<int, DefenseActorView> robotViews = new Dictionary<int, DefenseActorView>();
+        DefenseSounds sounds;
         readonly Dictionary<int, DefenseActorView> enemyViews = new Dictionary<int, DefenseActorView>();
         readonly List<Transform> dropViews = new List<Transform>();
         readonly DefenseProjectileVisuals projectileViews = new DefenseProjectileVisuals();
@@ -118,6 +119,7 @@ namespace CodingGame.Defense
             if (!campaign) throw new InvalidOperationException("DefenseBattle에 캠페인 asset을 연결하세요.");
             campaign.ValidateContent(); robots = campaign.robots; enemies = campaign.enemies;
             ValidateReferences();
+            sounds = gameObject.AddComponent<DefenseSounds>();
             developerRoot.SetActive(false);
             startButton.onClick.AddListener(StartBattle);
             pauseButton.onClick.AddListener(TogglePause);
@@ -389,6 +391,7 @@ namespace CodingGame.Defense
             var bot = Simulation.Place(robots[index].stats, index, new Point(position.x, position.z), out var error);
             if (bot == null) { RejectPlacement(index, error); return false; }
             var view = SpawnRobotView(bot);
+            sounds.Play("place");
             // The tutorial asks the player to click the new robot next, so its range and menu stay hidden until then.
             selected = TutorialBlocksInput ? 0 : bot.Id; HidePlacement();
             RegisterSelectedRobot(bot, view);
@@ -512,9 +515,11 @@ namespace CodingGame.Defense
                 EditorObserve("Battle",Simulation,evt);
 #endif
                 hitEffects.Show(evt, actorsRoot, Vector3.zero, battleCamera.transform.rotation, source, effectRing);
+                sounds.Play(evt.Kind);
                 if (evt.Kind == "drop") dropViews.Add(Instantiate(blockDropPrefab, DefenseViews.World(evt.Position, .35f), Quaternion.Euler(0, 45, 0), actorsRoot));
             }
             Simulation.Events.Clear();
+            sounds.Follow(Simulation);
             if (Simulation.Phase != BattlePhase.Running && Simulation.Phase != BattlePhase.Paused) ClearCombatVisuals();
             var current = Simulation.FindRobot(selected);
             // A tutorial highlight (Robot.Range.N) shows that robot's range glowing, selected or not.
@@ -744,6 +749,7 @@ namespace CodingGame.Defense
         {
             Tell($"{robots[index].displayName} · {error}");
             playerHUD.ShowPlacementError(error);
+            sounds.Play("deny");
         }
         [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
         void Trace(string text) => Debug.Log($"[Defense] S{stage} W{Simulation.WaveIndex + 1} {Simulation.Phase} robots={Simulation.Robots.Count}/{Simulation.Setup.RobotLimit} core={Simulation.BaseHealth} | {text}", this);
