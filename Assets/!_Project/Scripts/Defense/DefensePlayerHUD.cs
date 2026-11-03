@@ -439,7 +439,8 @@ namespace CodingGame.Defense
                 banner = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
                 banner.rectTransform.SetParent(strip, false);
                 banner.rectTransform.anchorMin = banner.rectTransform.anchorMax = new Vector2(.5f, .5f); banner.rectTransform.sizeDelta = new Vector2(1600, 220);
-                banner.font = rewardTitle.font; banner.fontSize = 120; banner.fontStyle = FontStyles.Bold; banner.alignment = TextAlignmentOptions.Center; banner.raycastTarget = false;
+                // The body font in regular weight: bold spreads Korean letters apart at this size (see the wave call).
+                banner.font = rewardItems.font; banner.fontSize = 112; banner.characterSpacing = -2; banner.alignment = TextAlignmentOptions.Center; banner.raycastTarget = false;
             }
             banner.transform.parent.SetAsLastSibling();
             banner.color = lost ? new Color(1, .35f, .35f) : rewardTitle.color; banner.text = text.Replace("  /  ", "  ");
@@ -761,9 +762,13 @@ namespace CodingGame.Defense
                 retry ? $"WAVE {sim.Checkpoint.Wave + 1} 다시 도전\n<size=70%>배치·코드 그대로</size>" : sim.Phase != BattlePhase.Victory ? "이 스테이지 재도전" : battle.FromStageMap ? "스테이지 맵으로" : sim.CanAdvanceStage ? $"스테이지 {battle.Stage + 1}로 진행" : "3스테이지 완료";
             if (shownRewardPhase != sim.Phase || shownRewardWave != sim.WaveIndex || shownRewardStage != battle.Stage)
             {
-                rewardTitle.text = reward ? $"WAVE {sim.WaveIndex + 1}  /  " + (sim.LastWaveTimedOut ? "TIME UP" : "CLEAR") :
-                    sim.Phase == BattlePhase.Victory ? $"STAGE {battle.Stage} COMPLETE" : sim.ObjectiveFailed ? "MINIONS ESCAPED" : "CORE LOST";
-                if (shownRewardPhase != sim.Phase) ShowEndBanner(rewardTitle.text, sim.Phase == BattlePhase.Defeat);
+                // Korean first; the banner keeps the English call as a small line above it.
+                bool victory = sim.Phase == BattlePhase.Victory;
+                string english = reward ? $"WAVE {sim.WaveIndex + 1} " + (sim.LastWaveTimedOut ? "TIME UP" : "CLEAR") :
+                    victory ? $"STAGE {battle.Stage} COMPLETE" : sim.ObjectiveFailed ? "MINIONS ESCAPED" : "CORE LOST";
+                rewardTitle.text = reward ? (sim.LastWaveTimedOut ? $"웨이브 {sim.WaveIndex + 1} 시간 종료" : $"웨이브 {sim.WaveIndex + 1} 방어 성공!") :
+                    victory ? $"스테이지 {battle.Stage} 클리어!" : sim.ObjectiveFailed ? "보스 전에 잡몹을 놓쳤어요" : "코어가 무너졌어요";
+                if (shownRewardPhase != sim.Phase) ShowEndBanner($"<size=40%>{english}</size>\n{rewardTitle.text}", sim.Phase == BattlePhase.Defeat);
                 rewardItems.text = reward ? (sim.PendingDrops.Count == 0 ? "지급할 블록이 없습니다." : "") :
                     (sim.Phase == BattlePhase.Victory ? battle.FromStageMap ? "5개 웨이브 방어 성공 · 스테이지 맵에서 다음 스테이지를 선택하세요." : sim.CanAdvanceStage ? "5개 웨이브 방어 성공 · 보유 블록과 로봇을 다음 스테이지로 가져갑니다." : "1~3스테이지, 총 15개 웨이브를 완료했습니다." : "방어 실패 · 배치와 코드를 바꿔 도전하세요") + $"\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
                 if (sim.LastRush > 0) rewardItems.text += $"\n\n시간 종료 · 남은 적 {sim.LastRush}마리가 코어로 돌진 (코어 -{sim.LastRushDamage})";
