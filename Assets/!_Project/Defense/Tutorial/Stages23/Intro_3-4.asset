@@ -1,0 +1,106 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2dc0f812db1cf4f4e9be40ce42a77156, type: 3}
+  m_Name: Intro_3-4
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.TutorialSequence
+  sequenceId: 3-4
+  enabled: 1
+  stage: 3
+  wave: 4
+  entryPhase: 0
+  speakerPortrait: {fileID: 0}
+  typeSpeed: 30
+  steps:
+  - stepId: A01
+    kind: 0
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "\uC774\uBC88\uC5D4 \uC801\uC774 <b>\uB04A\uC784\uC5C6\uC774</b> \uC640.\n\uBA87 \uBC88 \uBC18\uBCF5\uD560\uC9C0 \uBAA8\uB97C \uB550 <b>while True</b>!"
+      focusKeys: []
+      highlightKeys: []
+    targetKeys: []
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    completionMode: 0
+    completionSignal:
+    sourceKey:
+    destinationKey:
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    highlightPadding: 10
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo:
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+  - stepId: A02
+    kind: 0
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "<b>while True:</b> \uC548\uC758 \uBA85\uB839\uC740 \uC6E8\uC774\uBE0C\uAC00 \uB05D\uB0A0 \uB54C\uAE4C\uC9C0 \uACC4\uC18D \uB418\uD480\uC774\uB3FC."
+      focusKeys: []
+      highlightKeys: []
+    targetKeys: []
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    completionMode: 0
+    completionSignal:
+    sourceKey:
+    destinationKey:
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    highlightPadding: 10
+    trigger:
+    skipIf:
+    expectedCode:
+    pointerKey:
+    autoSelectSlot:
+    hintCode:
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo:
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0

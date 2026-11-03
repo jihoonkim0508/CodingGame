@@ -380,8 +380,10 @@ namespace CodingGame.Defense.Editor
             var director = UnityEngine.Object.FindObjectsByType<TutorialDirector>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single();
             var so = new SerializedObject(director);
             var list = so.FindProperty("sequences");
-            list.arraySize = sequences.Length;
-            for (int i = 0; i < sequences.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = sequences[i];
+            // Later stages' intro sequences (Defense/Tutorial/Stage2·3) are not built from this script: keep them after Stage 1's.
+            var wired = sequences.Concat(director.Sequences.Where(s => s && s.stage != 1)).ToArray();
+            list.arraySize = wired.Length;
+            for (int i = 0; i < wired.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = wired[i];
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorSceneManager.MarkSceneDirty(director.gameObject.scene);
             log.AppendLine("scene saved " + EditorSceneManager.SaveScene(director.gameObject.scene));
