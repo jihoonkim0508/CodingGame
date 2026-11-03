@@ -29,9 +29,9 @@ namespace CodingGame.Defense
         public int Leaks { get; private set; }
         public int Spawned { get; private set; }
         public int WaveLeaks => Leaks - waveLeaksAtStart;
-        // A stage's last wave after Stage 1 (the tutorial keeps its own rules): when time runs out the enemies left all
-        // rush the core instead of being carried, so slow code still costs at the end. LastRush: how many did, and the damage.
-        public bool FinalRush => Setup.PlayerFlow && Setup.Stage > 1 && WaveIndex + 1 == Setup.Waves.Length;
+        // A stage's last wave: when time runs out the enemies left all rush the core instead of being carried, so slow code
+        // still costs at the end (1-5: a boss not beaten in time reaches the core). LastRush: how many did, and the damage.
+        public bool FinalRush => Setup.PlayerFlow && Setup.Stage > 0 && WaveIndex + 1 == Setup.Waves.Length;
         public int LastRush { get; private set; }
         public int LastRushDamage { get; private set; }
         // Stage result: 3 stars with 80%+ of the core left, 2 with 40%+, 1 for a clear (12 HP: 10 and 5). Forgiving on

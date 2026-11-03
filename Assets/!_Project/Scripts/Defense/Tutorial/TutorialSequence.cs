@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using UnityEngine;
 
 namespace CodingGame.Defense
@@ -88,5 +89,8 @@ namespace CodingGame.Defense
         [Range(1f, 40f), Tooltip("초당 글자 수")]
         public float typeSpeed = 3f;
         public TutorialStep[] steps = Array.Empty<TutorialStep>();
+        // Only lines until its first waiting step (no placing or coding asked): safe to replay over a wave that was retried
+        // with its robots and code put back (the free-play waves 1-2, 1-4, 1-5; 1-1 and 1-3 guide placing and coding).
+        public bool OnlyTalksBeforeBattle => steps.TakeWhile(s => string.IsNullOrEmpty(s.trigger)).All(s => s.kind == TutorialStepKind.Dialogue);
     }
 }

@@ -70,6 +70,10 @@ static class RetryCheck
         var lost = LastWave(3, 3);
         Assert(lost.Phase == BattlePhase.Defeat && lost.BaseHealth == 0 && lost.Checkpoint != null, "a rush that empties the core loses, and the wave can be retried");
         var tutorial = LastWave(1, 7);
-        Assert(tutorial.Phase == BattlePhase.Reward && tutorial.LastRush == 0 && tutorial.LastSurvivors == 4 && tutorial.BaseHealth == 7, "Stage 1 keeps its time-up rule");
+        Assert(tutorial.Phase == BattlePhase.Reward && tutorial.LastRush == 4 && tutorial.BaseHealth == 3, "Stage 1's last wave (1-5) rushes too");
+        var middle = new DefenseSimulation(Setup(1));
+        middle.Place(Spec(RobotRole.Shooter), (int)RobotRole.Shooter, new Vector2(8, 9.5f), out _);
+        middle.Start(); RunWave(middle);
+        Assert(!middle.FinalRush && middle.LastRush == 0 && middle.LastSurvivors == 3, "earlier waves still carry their survivors");
     }
 }

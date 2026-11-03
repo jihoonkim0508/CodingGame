@@ -211,9 +211,10 @@ namespace CodingGame.Defense
             ResetSession(setup);
         }
         // A lost wave starts over as it began (robots, code, levels, coins, core health), so a defeat costs one wave, not the
-        // stage. Not on a wave with a tutorial sequence: the new session would replay that lesson over the restored robots.
+        // stage. The new session replays the wave's tutorial sequence, so only one that just talks before the battle allows
+        // it (1-2, 1-4, 1-5); 1-1 and 1-3 would ask for placing and coding again.
         public bool CanRetryWave => Simulation != null && Simulation.Phase == BattlePhase.Defeat && Simulation.Checkpoint != null &&
-            !(tutorial && tutorial.Sequences.Any(s => s && s.enabled && s.stage == stage && s.wave == Simulation.Checkpoint.Wave + 1));
+            !(tutorial && tutorial.Sequences.Any(s => s && s.enabled && s.stage == stage && s.wave == Simulation.Checkpoint.Wave + 1 && !s.OnlyTalksBeforeBattle));
         public void RetryWave()
         {
             if (!CanRetryWave || !TutorialAllows("Battle.ContinueCampaign")) return;
