@@ -12,6 +12,8 @@ namespace CodingGame.StageMap
         StageCameraController cameraController;
         GUIStyle bodyStyle, toastStyle, guideTitleStyle, guideBodyStyle;
         GUIStyle islandTitleStyle,islandNumberStyle,islandStateStyle;
+        GUIStyle generatedTipStyle;
+        Texture2D guidePortrait;
         string toast;
         bool entering; // a stage was chosen: the camera flies there and the scene fades, no more "click here"
         float toastUntil;
@@ -107,6 +109,8 @@ namespace CodingGame.StageMap
             toastStyle = new GUIStyle(GUI.skin.button) { font = font, fontSize = 18, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.12f, 0.14f, 0.18f) } };
             guideTitleStyle = new GUIStyle(bodyStyle) { fontSize = 20, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.35f, 0.9f, 1f) } };
             guideBodyStyle = new GUIStyle(bodyStyle) { normal = { textColor = Color.white } };
+            generatedTipStyle = new GUIStyle(GUI.skin.box) { border = new RectOffset(96,96,96,96), normal = { background = Resources.Load<Texture2D>("LearningSkins/ToolPanel") } };
+            guidePortrait = Resources.Load<Texture2D>("LearningSkins/StageGuide");
         }
 
         void OnGUI()
@@ -114,9 +118,13 @@ namespace CodingGame.StageMap
             // Absolute-position labels have no input/layout work; draw once per repaint.
             if (Event.current.type != EventType.Repaint) return;
             EnsureStyles();
-            DrawRect(new Rect(18f, 18f, 510f, 76f), new Color(0.04f, 0.09f, 0.16f, 0.92f));
-            GUI.Label(new Rect(34f, 25f, 480f, 30f), "도우미 로봇", guideTitleStyle);
-            GUI.Label(new Rect(34f, 53f, 480f, 28f), GuideMessage, guideBodyStyle);
+            var previousMatrix=GUI.matrix;
+            GUI.matrix=previousMatrix*Matrix4x4.Scale(new Vector3(1/6f,1/6f,1));
+            GUI.Box(new Rect(18f*6, 18f*6, 550f*6, 110f*6), GUIContent.none, generatedTipStyle);
+            GUI.matrix=previousMatrix;
+            if(guidePortrait) GUI.DrawTexture(new Rect(28f,28f,86f,90f),guidePortrait,ScaleMode.ScaleToFit,true);
+            GUI.Label(new Rect(126f, 32f, 420f, 30f), "도우미 로봇 · 스테이지 안내", guideTitleStyle);
+            GUI.Label(new Rect(126f, 65f, 420f, 45f), GuideMessage, guideBodyStyle);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             GUI.Label(new Rect(18f, Screen.height - 38f, 420f, 28f), "DEV  Z: 임시 클리어    Q: 초기화", bodyStyle);
 #endif

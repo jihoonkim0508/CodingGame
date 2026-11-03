@@ -18,6 +18,7 @@ namespace CodingGame.Defense
         [SerializeField] GameObject previewPanel;
         [SerializeField] TMP_Text stats, status;
         [SerializeField] TMP_Text coinLabel;
+        [SerializeField] DefenseRobotStatsCard statsCard;
         [SerializeField] DefensePreviewCameraControl cameraControl;
         [SerializeField] DefenseRangeRing effectRing;
         DefenseRangeRing rangeRing; // the robot's attack range, a runtime copy of effectRing so hit effects can't hide it
@@ -268,6 +269,7 @@ namespace CodingGame.Defense
         }
         void RefreshStats()
         {
+            if(statsCard){statsCard.Show(battle,selected);return;}
             var s = selected.Spec;
             float nextMultiplier = (float)Math.Pow(selected.UpgradeFactor, selected.Level);
             stats.text = $"{battle.RobotName(selected.Id)}  Lv.{selected.Level}" + (selected.IsMaxLevel ? "" : " → Lv.2") +

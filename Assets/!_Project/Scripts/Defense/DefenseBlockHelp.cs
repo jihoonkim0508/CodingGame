@@ -64,7 +64,12 @@ namespace CodingGame.Defense
             example.text = entry?.example ?? "";
             stock.text = entry == null ? "" : "보유 " + Owned(entry) + "개 · 로봇에 배치한 블록 포함";
             foreach (var item in entries)
-                item.button.targetGraphic.color = item == entry ? new Color(.16f, .39f, .46f) : new Color(.10f, .15f, .20f);
+            {
+                var slot=PythonTreeCompiler.OutputSlot(item.kind);
+                Color category=PythonTreeCompiler.HasBody(item.kind)||item.kind==BlockKind.Break||item.kind==BlockKind.Continue?new Color(.3f,.74f,.9f):
+                    slot==BlockSlotKind.Condition?new Color(.73f,.55f,.92f):slot==BlockSlotKind.Value?new Color(.95f,.75f,.36f):new Color(.94f,.48f,.62f);
+                item.button.targetGraphic.color=item==entry?category:Color.Lerp(category,new Color(.1f,.14f,.2f),.6f);
+            }
         }
         public void Close() { window.SetActive(false); battle.HelpOpen = false; }
         void Update() { if (IsOpen && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) Close(); }

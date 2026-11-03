@@ -32,6 +32,8 @@ namespace CodingGame.BlockCoding
         readonly Vector3[] dragCorners = new Vector3[4];
         CommandDropZone selected;
         CommandDropZone snapTarget;
+        CommandBlockView openingBody;
+        PointerEventData dragEvent;
         Vector2 programGrabOffset, dragGrabOffset;
         bool updating;
         bool initialized;
@@ -319,13 +321,38 @@ namespace CodingGame.BlockCoding
         public void MoveDrag(PointerEventData e)
         {
             if (ghosts.Count == 0) return;
+            dragEvent=e;
             if (RectTransformUtility.ScreenPointToLocalPointInRectangle(dragLayer, e.position, e.pressEventCamera, out var point))
                 for (int i = 0; i < ghosts.Count; i++) ghosts[i].Rect.localPosition = point - dragGrabOffset + ghostOffsets[i];
             UpdateSnapPreview(e);
         }
+        void LateUpdate(){if(Dragged && dragEvent!=null)UpdateSnapPreview(dragEvent);}
+        void UpdateBodyPreview(PointerEventData e)
+        {
+            CommandBlockView candidate=null;
+            if(Dragged && PythonTreeCompiler.OutputSlot(Dragged.Kind)==BlockSlotKind.Statement)
+            foreach(var zone in zones){
+                var block=zone?zone.ParentBlock:null;
+                if(!block || block.Body!=zone || block.IsPalette || !block.gameObject.activeInHierarchy ||
+                    ghosts.Any(g=>block.transform.IsChildOf(g.transform)) || dragging.Any(b=>block.transform.IsChildOf(b.transform)))continue;
+                if(!zone.Preview(Dragged,e,out _))continue;
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(block.Rect,e.position,e.pressEventCamera,out var point);
+                float down=block.Rect.rect.yMax-point.y,left=point.x-block.Rect.rect.xMin;
+                var draggedBounds=DraggedBounds(block.Rect);
+                float draggedLeft=draggedBounds.xMin-block.Rect.rect.xMin;
+                // Enter through the lower half of the header; retain the opening while inside its cavity.
+                float bottom=block==openingBody?Mathf.Max(block.Rect.rect.height,block.HeaderHeight+zone.preferredHeight+18):block.HeaderHeight+Dragged.HeaderHeight*.5f+18;
+                if(left<24 || left>block.Rect.rect.width+18 || down<block.HeaderHeight*.5f || down>bottom ||
+                    block!=openingBody && down>block.HeaderHeight && draggedLeft<12)continue;
+                if(!candidate || block.transform.IsChildOf(candidate.transform))candidate=block;
+            }
+            if(openingBody!=candidate){if(openingBody)openingBody.PreviewBody(false);openingBody=candidate;if(openingBody)openingBody.PreviewBody(true);}
+            LayoutRebuilder.ForceRebuildLayoutImmediate(program.Rect);
+        }
         void UpdateSnapPreview(PointerEventData e)
         {
             if (!snapMarker) return;
+            UpdateBodyPreview(e);
             snapMarker.gameObject.SetActive(false);
             snapTarget = null;
             zones.RemoveWhere(zone => !zone);
@@ -338,10 +365,11 @@ namespace CodingGame.BlockCoding
             {
                 if (!zone.gameObject.activeInHierarchy || ghosts.Any(ghost => zone.Rect.IsChildOf(ghost.transform)) ||
                     (zone.ParentBlock && zone.ParentBlock.IsPalette) || dragging.Any(b => zone.Rect.IsChildOf(b.transform))) continue;
+                if(zone.ParentBlock && zone.ParentBlock.Body==zone && !zone.ParentBlock.BodyExpanded)continue;
                 bool socket = !zone.FreePlacement && zone.Slot != BlockSlotKind.Statement;
                 var bounds = DraggedBounds(zone.Rect);
                 var area = zone.Rect.rect;
-                bool pointerOver = RectTransformUtility.RectangleContainsScreenPoint(zone.Rect, e.position, e.pressEventCamera);
+                bool pointerOver = (openingBody && zone==openingBody.Body) || RectTransformUtility.RectangleContainsScreenPoint(zone.Rect, e.position, e.pressEventCamera);
                 // Keep the original pointer hit area and also accept overlap anywhere on the block.
                 if ((!pointerOver && !bounds.Overlaps(area)) || !zone.Preview(Dragged, e, out var preview)) continue;
                 float overlap = Mathf.Max(0, Mathf.Min(bounds.xMax, area.xMax) - Mathf.Max(bounds.xMin, area.xMin)) *
@@ -406,6 +434,8 @@ namespace CodingGame.BlockCoding
 
         public void EndDrag()
         {
+            if(openingBody)openingBody.PreviewBody(false);
+            openingBody=null;dragEvent=null;
             if (snapMarker) snapMarker.gameObject.SetActive(false);
             foreach (var block in dragging) if (block) block.SetDragAppearance(false);
             dragging.Clear();

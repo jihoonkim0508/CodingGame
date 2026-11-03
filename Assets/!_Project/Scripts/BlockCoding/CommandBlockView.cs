@@ -43,13 +43,21 @@ namespace CodingGame.BlockCoding
         public string RetainedName { get; private set; }
         public bool TextInputFocused => input && input.isFocused;
         bool initialized;
+        bool readOnlyPreview;
+        bool previewBody;
+        float bodyReveal;
+        CanvasGroup bodyVisibility;
+        public bool BodyExpanded => body && !IsPalette && (previewBody || body.Blocks.Count > 0);
+        public float HeaderHeight => headHeight;
+        internal float FooterOverlap => 24 * BodyReveal;
+        float BodyReveal => !body || IsPalette ? 0 : body.Blocks.Count > 0 ? 1 : bodyReveal;
         // Expressions share a fixed height even when nested; only their width grows.
-        float headHeight => PythonTreeCompiler.OutputSlot(Kind) == BlockSlotKind.Statement ? 46 : 32;
+        float headHeight => PythonTreeCompiler.OutputSlot(Kind) == BlockSlotKind.Statement ? 52 : 38;
         public float minWidth => preferredWidth;
-        public float preferredWidth => Mathf.Max(100, Mathf.Max(LayoutUtility.GetPreferredWidth(header) + 28, body ? body.preferredWidth + 32 : 0));
+        public float preferredWidth => Mathf.Max(100, Mathf.Max(LayoutUtility.GetPreferredWidth(header) + 28, BodyReveal > 0 ? body.preferredWidth + 36 : 0));
         public float flexibleWidth => 0;
         public float minHeight => preferredHeight;
-        public float preferredHeight => headHeight + (body ? body.preferredHeight + 18 : 0);
+        public float preferredHeight => headHeight + (body ? (body.preferredHeight + 24) * BodyReveal : 0);
         public float flexibleHeight => 0;
         public int layoutPriority => 1;
         public void CalculateLayoutInputHorizontal() { }
@@ -65,6 +73,8 @@ namespace CodingGame.BlockCoding
             Panel = panel;
             Owner = owner;
             IsPalette = palette;
+            previewBody = false; bodyReveal = 0;
+            EnsureBodyVisibility();
             if (stockLabel) stockLabel.gameObject.SetActive(palette && panel.Remaining != null);
             // Disable the handlers too so palette inputs forward drag/click events to the block.
             if (input) { input.interactable = !palette; input.enabled = !palette; }
@@ -136,8 +146,37 @@ namespace CodingGame.BlockCoding
         {
             if (methodArguments) methodArguments.SetActive(Kind == BlockKind.Distance);
             shape.Configure(PythonTreeCompiler.OutputSlot(Kind), body);
+            var slot=PythonTreeCompiler.OutputSlot(Kind);
+            shape.color=body?new Color(.27f,.72f,.9f):slot==BlockSlotKind.Condition?new Color(.73f,.53f,.94f):
+                slot==BlockSlotKind.Value?new Color(1f,.76f,.3f):new Color(.97f,.43f,.57f);
         }
         public void SetText(string value) { input.text = value; }
+        // Reward/tutorial previews share the editor's geometry and layout, without editing callbacks.
+        public void PreparePreview()
+        {
+            readOnlyPreview=true; IsPalette=false; Panel=null; Owner=null;
+            if(stockLabel)stockLabel.gameObject.SetActive(false);
+            if(input){input.interactable=false;input.enabled=false;}
+            if(dropdown){dropdown.interactable=false;dropdown.enabled=false;}
+            canvasGroup.alpha=1;canvasGroup.interactable=false;canvasGroup.blocksRaycasts=false;
+            previewBody=false;bodyReveal=0;
+            EnsureBodyVisibility();
+            RefreshShape();shape.HeaderHeight=headHeight;
+        }
+        internal void PreviewBody(bool value)
+        {
+            if (!body || IsPalette || readOnlyPreview || previewBody == value) return;
+            previewBody = value;
+            // Make the target available on the first drag event, before its opening animation finishes.
+            if(value)bodyReveal=Mathf.Max(.01f,bodyReveal);
+            LayoutRebuilder.MarkLayoutForRebuild(rect);
+        }
+        void EnsureBodyVisibility()
+        {
+            if(!body || bodyVisibility)return;
+            bodyVisibility=body.GetComponent<CanvasGroup>();
+            if(!bodyVisibility)bodyVisibility=body.gameObject.AddComponent<CanvasGroup>();
+        }
         public void SetStock(int count)
         {
             if (!stockLabel) return;
@@ -149,6 +188,11 @@ namespace CodingGame.BlockCoding
         }
         void LateUpdate()
         {
+            if(body){
+                float target=BodyExpanded?1:0;
+                float reveal=Mathf.MoveTowards(bodyReveal,target,Time.unscaledDeltaTime/ .13f);
+                if(!Mathf.Approximately(reveal,bodyReveal)){bodyReveal=reveal;LayoutRebuilder.MarkLayoutForRebuild(rect);}
+            }
             if (!IsPalette || !stockLabel || !stockLabel.gameObject.activeSelf) return;
             // Keep differently sized block silhouettes while sharing one right-aligned count column.
             var edge = rect.InverseTransformPoint(stockColumn.TransformPoint(new Vector3(stockColumn.rect.xMax - 8, 0, 0)));
@@ -220,7 +264,13 @@ namespace CodingGame.BlockCoding
         public void SetLayoutHorizontal()
         {
             Place(header, 14, 6, rect.rect.width - 28, headHeight - 12);
-            if (body) Place(body.Rect, 24, headHeight, rect.rect.width - 32, body.preferredHeight);
+            if (body) {
+                float reveal=BodyReveal;
+                // The collapsed strip remains a tutorial/click target at the bottom of the header.
+                Place(body.Rect,reveal>0?28:24,reveal>0?headHeight:headHeight-8,rect.rect.width-(reveal>0?36:32),reveal>0?body.preferredHeight*reveal:8);
+                if(bodyVisibility){bodyVisibility.alpha=reveal;bodyVisibility.blocksRaycasts=!IsPalette&&!readOnlyPreview;}
+                shape.Configure(PythonTreeCompiler.OutputSlot(Kind),reveal>0,true);
+            }
         }
         public void SetLayoutVertical()
         {
@@ -242,14 +292,15 @@ namespace CodingGame.BlockCoding
             outer.Owner?.BringToFront(outer);
         }
         public void OnPointerDown(PointerEventData e) => BringToFront();
-        public void OnBeginDrag(PointerEventData e) { if (e.button == PointerEventData.InputButton.Left) { BringToFront(); Panel.BeginDrag(this, e); } }
-        public void OnDrag(PointerEventData e) => Panel.MoveDrag(e);
+        public void OnBeginDrag(PointerEventData e) { if (!readOnlyPreview && e.button == PointerEventData.InputButton.Left) { BringToFront(); Panel.BeginDrag(this, e); } }
+        public void OnDrag(PointerEventData e) { if(!readOnlyPreview)Panel.MoveDrag(e); }
         public void OnEndDrag(PointerEventData e)
         {
-            if (Panel.Dragged == this) Panel.FinishDrag(e);
+            if (!readOnlyPreview && Panel.Dragged == this) Panel.FinishDrag(e);
         }
         public void OnPointerClick(PointerEventData e)
         {
+            if(readOnlyPreview)return;
             if (e.button == PointerEventData.InputButton.Left && IsPalette) Panel.AddFromPalette(this);
             else if (e.button == PointerEventData.InputButton.Right && !IsPalette) Panel.DeleteOne(this);
             e.Use();

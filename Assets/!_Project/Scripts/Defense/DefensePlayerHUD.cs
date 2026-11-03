@@ -20,6 +20,8 @@ namespace CodingGame.Defense
         [SerializeField] Button[] robotButtons = Array.Empty<Button>();
         [SerializeField] TMP_Text[] robotLabels = Array.Empty<TMP_Text>();
         [SerializeField] TMP_Text upcoming;
+        [SerializeField] GameObject upcomingTab;
+        [SerializeField] TMP_Text waveCounter, enemyCounter, timeCounter, coinCounter;
         [SerializeField] ScrollRect rewardScroll;
         [SerializeField] CanvasGroup placementToast;
         [SerializeField] TMP_Text placementToastText;
@@ -58,7 +60,7 @@ namespace CodingGame.Defense
             upcoming.text = "다음 웨이브";
             goalRect = (RectTransform)guide.transform.parent;
             goalRect.anchorMin = goalRect.anchorMax = new Vector2(.5f, 1);
-            goalRect.sizeDelta = new Vector2(Mathf.Min(800, ((RectTransform)canvasRoot.transform).rect.width - 48), 56);
+            goalRect.sizeDelta = new Vector2(Mathf.Min(880, ((RectTransform)canvasRoot.transform).rect.width - 48), 64);
             goalRect.anchoredPosition = new Vector2(0, -128);
             goalPosition = goalRect.anchoredPosition;
             goalScale = goalRect.localScale;
@@ -101,7 +103,11 @@ namespace CodingGame.Defense
             bool ended = sim.Phase == BattlePhase.Victory || sim.Phase == BattlePhase.Defeat;
             bool fighting = sim.Phase == BattlePhase.Running || sim.Phase == BattlePhase.Paused;
             string state = ended ? "작전 종료" : fighting ? "전투 중" : "정비 중";
-            counters.text = $"{battle.Stage}-{sim.WaveIndex + 1:00}     {state}     WAVE {sim.WaveIndex + 1}/{sim.Setup.Waves.Length}     적 {sim.RemainingEnemies}     {Math.Ceiling(sim.WaveRemaining):00}s     코인 {sim.Coins:N0}";
+            counters.text = $"{battle.Stage} 스테이지  ·  {state}";
+            if(waveCounter) waveCounter.text=$"{sim.WaveIndex+1} / {sim.Setup.Waves.Length}";
+            if(enemyCounter) enemyCounter.text=sim.RemainingEnemies.ToString();
+            if(timeCounter) timeCounter.text=$"{Math.Ceiling(sim.WaveRemaining):00}초";
+            if(coinCounter) coinCounter.text=sim.Coins.ToString("N0");
             combatControls.SetActive(fighting);
             RefreshEnemyCards(sim, fighting);
             bool freePlayGoal = battle.Tutorial && battle.Tutorial.ShowFreePlayGoal && !reward && !ended;
@@ -109,9 +115,9 @@ namespace CodingGame.Defense
             guide.transform.parent.gameObject.SetActive(freePlayGoal);
             if (freePlayGoal)
             {
-                guide.text = sim.WaveIndex == 1 ? "목표 · 새 전사를 배치하고 변수로 적을 찾아 공격하기" :
-                    sim.WaveIndex == 3 ? "목표 · 두 전사의 조건문으로 몰려오는 적 막기" :
-                    "목표 · my_attack_range()와 조건문으로 잡몹과 보스 막기";
+                guide.text = sim.WaveIndex == 1 ? "새 전사를 배치하고 변수로 적을 찾아 공격하기" :
+                    sim.WaveIndex == 3 ? "두 전사의 조건문으로 몰려오는 적 막기" :
+                    "my_attack_range()와 조건문으로 잡몹과 보스 막기";
                 AnimateGoal();
             }
             else
@@ -122,7 +128,7 @@ namespace CodingGame.Defense
             }
             notice.text = battle.StatusMessage;
             inventory.text = $"설치 {sim.Robots.Count} / {sim.Setup.RobotLimit}대  ·  버프형 최대 1대";
-            inventory.color = sim.Robots.Count >= sim.Setup.RobotLimit ? new Color(1, .45f, .4f) : new Color(.75f, .9f, .95f);
+            inventory.color = sim.Robots.Count >= sim.Setup.RobotLimit ? new Color(.64f,.2f,.14f) : new Color(.1f,.28f,.36f);
             startButton.interactable = ready;
             pauseButton.interactable = fighting;
             speedButton.interactable = fighting && battle.SpeedUnlocked;
@@ -158,7 +164,9 @@ namespace CodingGame.Defense
                 int count = sim.RobotAvailable(role);
                 buttons[i].gameObject.SetActive(sim.RobotUnlocked(role));
                 buttons[i].interactable = sim.CanPrepare && count > 0;
-                labels[i].text = battle.DefinitionName(i) + separator + count;
+                if(buttons[i].TryGetComponent<LearningRobotBadge>(out var badge)) {
+                    labels[i].text = count.ToString(); badge.Refresh(count,battle.IsPlacing&&battle.PlacingDefinition==i);
+                } else labels[i].text = battle.DefinitionName(i) + separator + count;
             }
         }
         void RefreshEnemyCards(DefenseSimulation sim, bool fighting)
@@ -181,13 +189,24 @@ namespace CodingGame.Defense
                 cardCounts[index] += group.Count;
             }
             upcoming.gameObject.SetActive(typeCount > 0);
+            if (upcomingTab) upcomingTab.SetActive(typeCount > 0);
             upcoming.text = fighting ? "이번 웨이브" : "다음 웨이브";
             for (int i = 0; i < enemyCards.Length; i++)
             {
                 enemyCards[i].SetActive(i < typeCount);
                 if (i >= typeCount) continue;
                 var definition = battle.EnemyAt(cardDefinitions[i]);
-                if (definition.icon && enemyImages[i]) enemyImages[i].texture = definition.icon;
+                if (definition.icon && enemyImages[i] && enemyImages[i].texture != definition.icon)
+                {
+                    var image=enemyImages[i];image.texture=definition.icon;
+                    // Existing portraits contain camera padding. Crop only their UVs,
+                    // then preserve the cropped image's aspect ratio inside the card.
+                    image.uvRect=definition.icon.name=="EnemyTemp"?new Rect(.32f,.25f,.36f,.52f):
+                        definition.icon.name=="EnemyPortrait"?new Rect(.18f,.12f,.64f,.76f):new Rect(0,0,1,1);
+                    float aspect=definition.icon.width*image.uvRect.width/(definition.icon.height*image.uvRect.height);
+                    float height=Mathf.Min(78,72/aspect);
+                    image.rectTransform.sizeDelta=new Vector2(height*aspect,height);
+                }
                 if (enemyHovers[i]) enemyHovers[i].SetEnemy(definition);
                 int count = fighting ? sim.RemainingOf(cardDefinitions[i]) : cardCounts[i];
                 if (shownCardCounts[i] != count)
@@ -248,7 +267,7 @@ namespace CodingGame.Defense
                 banner.font = rewardTitle.font; banner.fontSize = 120; banner.fontStyle = FontStyles.Bold; banner.alignment = TextAlignmentOptions.Center; banner.raycastTarget = false;
             }
             banner.transform.parent.SetAsLastSibling();
-            banner.color = lost ? new Color(1, .35f, .35f) : rewardTitle.color; banner.text = text.Replace("  /  ", "  ");
+            banner.color = lost ? new Color(1, .35f, .35f) : new Color(.88f, .96f, 1); banner.text = text.Replace("  /  ", "  ");
             resultGroup = rewardPanel.GetComponent<CanvasGroup>();
             if (!resultGroup) resultGroup = rewardPanel.AddComponent<CanvasGroup>();
             resultShown = Time.unscaledTime;
@@ -278,13 +297,13 @@ namespace CodingGame.Defense
         void ShowRewardBlocks(System.Collections.Generic.IReadOnlyList<CodingGame.BlockCoding.BlockKind> drops)
         {
             if (rewardBlocks) Destroy(rewardBlocks.gameObject);
-            rewardBlocks = null; rewardItems.margin = Vector4.zero;
+            rewardBlocks = null; rewardItems.margin = new Vector4(8,8,8,12);
             var panel = battle.CodeEditor ? battle.CodeEditor.Panel : null;
             if (drops == null || drops.Count == 0) return;
             rewardBlocks = new GameObject("Reward blocks", typeof(RectTransform)).GetComponent<RectTransform>();
             rewardBlocks.SetParent(rewardItems.transform, false);
-            rewardBlocks.anchorMin = rewardBlocks.anchorMax = rewardBlocks.pivot = new Vector2(0, 1); rewardBlocks.anchoredPosition = Vector2.zero;
-            float x = 0, y = 0, rowHeight = 0, width = ((RectTransform)rewardItems.transform).rect.width;
+            rewardBlocks.anchorMin = rewardBlocks.anchorMax = rewardBlocks.pivot = new Vector2(0, 1); rewardBlocks.anchoredPosition = new Vector2(8,-8);
+            float x = 0, y = 0, rowHeight = 0, width = ((RectTransform)rewardItems.transform).rect.width-16;
             popping.Clear();
             foreach (var group in drops.GroupBy(k => k).OrderBy(g => g.Key))
             {
@@ -293,21 +312,21 @@ namespace CodingGame.Defense
                 if (!view) { rewardItems.text = DefenseProgression.Label(group.Key) + "   x" + group.Count() + "\n" + rewardItems.text; continue; }
                 var copy = DefenseViews.GraphicCopy(view.Rect, rewardBlocks);
                 copy.gameObject.SetActive(true);
-                // Same width rule as CommandBlockView.preferredWidth; the palette original is not laid out while its tab is closed.
-                var header = copy.GetChild(0).Find("Header") as RectTransform;
-                if (header) LayoutRebuilder.ForceRebuildLayoutImmediate(header);
-                float w = header ? Mathf.Max(100, LayoutUtility.GetPreferredWidth(header) + 28) : 100, h = view.preferredHeight;
-                if (x > 0 && x + w > width) { x = 0; y += rowHeight + 10; rowHeight = 0; }
+                var preview=copy.GetComponentInChildren<CodingGame.BlockCoding.CommandBlockView>();
+                LayoutRebuilder.ForceRebuildLayoutImmediate(preview.Rect);
+                float w=preview.preferredWidth,h=preview.preferredHeight;
+                if (x > 0 && x + w+60 > width) { x = 0; y += rowHeight + 12; rowHeight = 0; }
                 // Centred pivots, so the pop grows from the middle.
                 copy.anchorMin = copy.anchorMax = new Vector2(0, 1); copy.pivot = new Vector2(.5f, .5f); copy.sizeDelta = new Vector2(w, h); copy.anchoredPosition = new Vector2(x + w * .5f, -y - h * .5f);
+                LayoutRebuilder.ForceRebuildLayoutImmediate(preview.Rect);
                 var count = new GameObject("Count", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
                 count.rectTransform.SetParent(rewardBlocks, false); count.rectTransform.anchorMin = count.rectTransform.anchorMax = new Vector2(0, 1); count.rectTransform.pivot = new Vector2(.5f, .5f);
                 count.rectTransform.anchoredPosition = new Vector2(x + w + 30, -y - h * .5f); count.rectTransform.sizeDelta = new Vector2(48, h);
-                count.font = rewardItems.font; count.fontSize = 26; count.alignment = TextAlignmentOptions.MidlineLeft; count.text = "x" + group.Count(); count.raycastTarget = false;
+                count.font = rewardItems.font; count.fontSize = 26; count.color = new Color(.81f, .87f, .91f); count.alignment = TextAlignmentOptions.MidlineLeft; count.text = "x" + group.Count(); count.raycastTarget = false;
                 x += w + 60; rowHeight = Mathf.Max(rowHeight, h);
                 popping.Add(copy); popping.Add(count.rectTransform);
             }
-            rewardItems.margin = new Vector4(0, y + rowHeight + 16, 0, 0);
+            rewardItems.margin = new Vector4(8, y + rowHeight + 24, 8, 12);
         }
         // The tutorial's reward focus (1-1 E06a) ends just under the reward text, so the dialogue box below does not cover it.
         const float FocusMargin = 24;
@@ -333,7 +352,7 @@ namespace CodingGame.Defense
                 if (shownRewardPhase != sim.Phase) ShowEndBanner(rewardTitle.text, sim.Phase == BattlePhase.Defeat);
                 rewardItems.text = reward ? (sim.PendingDrops.Count == 0 ? "지급할 블록이 없습니다." : "") :
                     (sim.Phase == BattlePhase.Victory ? battle.FromStageMap ? "5개 웨이브 방어 성공 · 스테이지 맵에서 다음 스테이지를 선택하세요." : sim.CanAdvanceStage ? "5개 웨이브 방어 성공 · 보유 블록과 로봇을 다음 스테이지로 가져갑니다." : "1~3스테이지, 총 15개 웨이브를 완료했습니다." : "방어 실패 · 배치와 코드를 바꿔 도전하세요") + $"\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
-                if (reward) rewardItems.text += $"\n\n잔여 적 {sim.LastSurvivors}" + (sim.WaveIndex + 1 < sim.Setup.Waves.Length ? " · 다음 웨이브에 추가" : " · 최종 기록");
+                if (reward) rewardItems.text += (rewardItems.text.Length>0?"\n\n":"")+$"잔여 적 {sim.LastSurvivors}" + (sim.WaveIndex + 1 < sim.Setup.Waves.Length ? " · 다음 웨이브에 추가" : " · 최종 기록");
                 ShowRewardBlocks(reward ? sim.PendingDrops : null);
                 Canvas.ForceUpdateCanvases(); rewardScroll.verticalNormalizedPosition = 1;
                 FitRewardFocus();
