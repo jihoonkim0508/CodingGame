@@ -245,9 +245,11 @@ namespace CodingGame.Defense
                 statusLayer.anchorMin = Vector2.zero; statusLayer.anchorMax = Vector2.one; statusLayer.sizeDelta = Vector2.zero; statusLayer.pivot = canvas.pivot;
             }
             int shown = 0;
+            bool results = sim.Phase == BattlePhase.Reward || sim.Phase == BattlePhase.Victory || sim.Phase == BattlePhase.Defeat;
             foreach (var bot in sim.Robots)
             {
-                string text = DefenseDebrief.LiveStatus(sim, bot);
+                // With the result up, every robot wears its debrief name so the advice points at a robot on the map.
+                string text = results ? DefenseDebrief.ResultTag(sim, bot, RobotLabel(sim, bot)) : DefenseDebrief.LiveStatus(sim, bot);
                 if (text == null || robotActions.gameObject.activeSelf && bot.Id == battle.SelectedId) continue;
                 if (shown == statusLabels.Count)
                 {
@@ -434,15 +436,15 @@ namespace CodingGame.Defense
         // The robot debrief goes under the reward text as a child with a bottom margin (like the reward blocks' top margin),
         // so the tutorial's reward focus still ends at the reward text.
         TextMeshProUGUI debrief;
+        // Robots of one kind are numbered in placement order; the same name heads the debrief line and the robot's tag.
+        string RobotLabel(DefenseSimulation sim, RobotState bot)
+        {
+            var same = sim.Robots.Where(r => r.DefinitionIndex == bot.DefinitionIndex).ToList();
+            return battle.DefinitionName(bot.DefinitionIndex) + (same.Count > 1 ? " " + (same.IndexOf(bot) + 1) : "");
+        }
         void ShowDebrief(DefenseSimulation sim)
         {
-            // Robots of one kind are numbered in placement order.
-            string Name(RobotState bot)
-            {
-                var same = sim.Robots.Where(r => r.DefinitionIndex == bot.DefinitionIndex).ToList();
-                return battle.DefinitionName(bot.DefinitionIndex) + (same.Count > 1 ? " " + (same.IndexOf(bot) + 1) : "");
-            }
-            string report = DefenseDebrief.Report(sim, Name);
+            string report = DefenseDebrief.Report(sim, bot => RobotLabel(sim, bot));
             if (!debrief)
             {
                 debrief = new GameObject("Debrief", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();

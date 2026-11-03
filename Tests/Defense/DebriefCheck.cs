@@ -43,6 +43,8 @@ static class DebriefCheck
         int Count(string text, string part) { int n = 0; for (int i = report.IndexOf(part); i >= 0; i = report.IndexOf(part, i + 1)) n++; return n; }
         Assert(report.StartsWith("<color") && report.Contains("R" + empty.Id + ": 코드가 없어"), "headline names the most serious robot");
         Assert(Count(report, "코드가 없어") == 1 && report.Contains("if 조건") && report.Contains("길 가까이"), "every other issue listed once under its robot");
+        Assert(DefenseDebrief.ResultTag(sim, empty, "슈터").Contains("FFD36B") && DefenseDebrief.ResultTag(sim, empty, "슈터").Contains("슈터") &&
+            DefenseDebrief.ResultTag(sim, worker, "전사형 1").Contains("CFE8FF"), "result tags name the robot, yellow when it has advice");
 
         var tough = Sim(1000, 1);
         var tired = Bot(tough, RobotRole.Warrior, -8, 2, Slash());
