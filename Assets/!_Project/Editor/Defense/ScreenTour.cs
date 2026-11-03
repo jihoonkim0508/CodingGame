@@ -111,6 +111,7 @@ namespace CodingGame.Defense.Editor
             yield return Seconds(1); yield return Shot("2-1_code");
             battle.CodeEditor.Close();
             battle.StartBattle();
+            yield return Seconds(.4); yield return Shot("2-1_start"); // the moment the wave begins
             // Just after the first hit, with its damage number up.
             yield return Until(() => battle.Simulation.Robots.Any(bot => bot.DamageThisWave > 0), 30);
             yield return Seconds(.15); yield return Shot("2-1_battle");
@@ -131,6 +132,17 @@ namespace CodingGame.Defense.Editor
             yield return Until(() => sim.BaseHealth < full, 60);
             yield return Seconds(.12); yield return Shot("3-5_leak");
             DevTest.Speed(1);
+            DevTest.RunWave();
+            yield return Seconds(4); yield return Shot("3-5_defeat");
+
+            // 2-5 won: the last wave's reward, then the stage clear.
+            DevTest.PlayDefense(2, 5, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            DevTest.AutoDeploy(); DevTest.Battle.StartBattle(); DevTest.RunWave();
+            yield return Seconds(4); yield return Shot("2-5_reward");
+            DevTest.Battle.ContinueCampaign();
+            yield return Seconds(4); yield return Shot("2-5_victory");
         }
     }
 }
