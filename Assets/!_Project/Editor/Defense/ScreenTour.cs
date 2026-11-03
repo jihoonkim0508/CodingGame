@@ -73,22 +73,26 @@ namespace CodingGame.Defense.Editor
 
         static IEnumerator Steps()
         {
-            DevTest.PlayTitle();
-            yield return Until(() => EditorApplication.isPlaying);
-            yield return Seconds(9); yield return Shot("title"); // after the intro, with the menu
-            DevTest.PlayStageMap();
-            yield return Seconds(2.5); yield return Shot("map");
-
-            DevTest.PlayDefense(1, 1, true);
-            yield return Until(() => DevTest.Ready);
-            yield return Seconds(1.5);
-            var steps = DevTest.TutorialSections(1);
-            for (int i = 0; i < steps.Length; i++)
+            // -tourBattleOnly skips the title, the map and the 1-1 steps.
+            if (!System.Environment.GetCommandLineArgs().Contains("-tourBattleOnly"))
             {
-                try { DevTest.JumpTutorial(1, i); }
-                catch (System.InvalidOperationException error) { Debug.LogWarning($"[ScreenTour] 1-1 {steps[i]}: {error.Message}"); continue; }
-                yield return Seconds(1);
-                yield return Shot("1-1_" + steps[i].Split(' ')[0]);
+                DevTest.PlayTitle();
+                yield return Until(() => EditorApplication.isPlaying);
+                yield return Seconds(9); yield return Shot("title"); // after the intro, with the menu
+                DevTest.PlayStageMap();
+                yield return Seconds(2.5); yield return Shot("map");
+
+                DevTest.PlayDefense(1, 1, true);
+                yield return Until(() => DevTest.Ready);
+                yield return Seconds(1.5);
+                var steps = DevTest.TutorialSections(1);
+                for (int i = 0; i < steps.Length; i++)
+                {
+                    try { DevTest.JumpTutorial(1, i); }
+                    catch (System.InvalidOperationException error) { Debug.LogWarning($"[ScreenTour] 1-1 {steps[i]}: {error.Message}"); continue; }
+                    yield return Seconds(1);
+                    yield return Shot("1-1_" + steps[i].Split(' ')[0]);
+                }
             }
 
             DevTest.PlayDefense(2, 1, true, Sandbox);
@@ -101,7 +105,9 @@ namespace CodingGame.Defense.Editor
             yield return Seconds(1); yield return Shot("2-1_code");
             battle.CodeEditor.Close();
             battle.StartBattle();
-            yield return Seconds(5); yield return Shot("2-1_battle");
+            // Just after the first hit, with its damage number up.
+            yield return Until(() => battle.Simulation.Robots.Any(bot => bot.DamageThisWave > 0), 30);
+            yield return Seconds(.15); yield return Shot("2-1_battle");
             DevTest.RunWave();
             yield return Seconds(4); yield return Shot("2-1_result"); // past the clear banner, on the reward panel
 

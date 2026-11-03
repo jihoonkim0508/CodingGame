@@ -521,6 +521,7 @@ namespace CodingGame.Defense
 #endif
                 hitEffects.Show(evt, actorsRoot, Vector3.zero, battleCamera.transform.rotation, source, effectRing);
                 sounds.Play(evt.Kind);
+                playerHUD.ShowCombatText(evt);
                 if (evt.Kind == "drop") dropViews.Add(Instantiate(blockDropPrefab, DefenseViews.World(evt.Position, .35f), Quaternion.Euler(0, 45, 0), actorsRoot));
             }
             Simulation.Events.Clear();

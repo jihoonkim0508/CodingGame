@@ -102,6 +102,7 @@ namespace CodingGame.Defense
             if (sim == null) return;
             AnimateResult();
             FlashLeak(sim);
+            AnimateFloaters();
             bool ready = sim.CanPrepare, reward = sim.Phase == BattlePhase.Reward;
             bool ended = sim.Phase == BattlePhase.Victory || sim.Phase == BattlePhase.Defeat;
             bool fighting = sim.Phase == BattlePhase.Running || sim.Phase == BattlePhase.Paused;
@@ -239,6 +240,62 @@ namespace CodingGame.Defense
         }
         // A tag over each robot's head (DefenseDebrief.LiveStatus). Labels sit in a layer behind the other HUD parts; the
         // selected robot's tag hides while its action menu is open over its head.
+        // The damage a hit did, over the enemy, and "+n 코인" over a kill: rising and fading, so every attack the code makes
+        // shows its result. A small pool is reused oldest first, so a burst of hits never piles up labels.
+        sealed class Floater { public TextMeshProUGUI label; public Vector3 world; public float born, life, rise; }
+        readonly System.Collections.Generic.List<Floater> floaters = new System.Collections.Generic.List<Floater>();
+        RectTransform floaterLayer;
+        const int MaxFloaters = 24;
+        const float EnemyHeadHeight = 1.8f;
+        public void ShowCombatText(CombatEvent evt)
+        {
+            var sim = battle.Simulation;
+            if (sim == null || !sim.Options.hitEffects) return;
+            if ((evt.Kind == "hit" || evt.Kind == "projectile-hit") && evt.AppliedAmount > 0)
+                Float(evt.Position, Mathf.Max(1, Mathf.RoundToInt(evt.AppliedAmount)).ToString(), Color.white, 30, .6f, 46);
+            else if (evt.Kind == "killed" && sim.Setup.PlayerFlow && sim.Setup.Progression.coinsPerKill > 0)
+                Float(evt.Position, $"+{sim.Setup.Progression.coinsPerKill} 코인", new Color(1, .83f, .42f), 32, 1f, 74);
+        }
+        void Float(System.Numerics.Vector2 position, string text, Color color, float size, float life, float rise)
+        {
+            if (!floaterLayer)
+            {
+                floaterLayer = new GameObject("Combat text", typeof(RectTransform)).GetComponent<RectTransform>();
+                floaterLayer.SetParent(canvasRoot.transform, false); floaterLayer.SetSiblingIndex(0);
+                floaterLayer.anchorMin = Vector2.zero; floaterLayer.anchorMax = Vector2.one; floaterLayer.sizeDelta = Vector2.zero;
+            }
+            var floater = floaters.FirstOrDefault(f => !f.label.gameObject.activeSelf);
+            if (floater == null && floaters.Count < MaxFloaters)
+            {
+                var label = new GameObject("Floater", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                label.rectTransform.SetParent(floaterLayer, false); label.rectTransform.sizeDelta = new Vector2(200, 40);
+                label.font = rewardItems.font; label.fontStyle = FontStyles.Bold; label.alignment = TextAlignmentOptions.Center;
+                label.textWrappingMode = TextWrappingModes.NoWrap; label.raycastTarget = false;
+                label.outlineWidth = .32f; label.outlineColor = new Color32(10, 18, 28, 255);
+                floaters.Add(floater = new Floater { label = label });
+            }
+            floater ??= floaters.OrderBy(f => f.born).First();
+            floater.world = DefenseViews.World(position, EnemyHeadHeight);
+            floater.born = Time.unscaledTime; floater.life = life; floater.rise = rise;
+            floater.label.text = text; floater.label.fontSize = size; floater.label.color = color;
+            floater.label.gameObject.SetActive(true);
+        }
+        void AnimateFloaters()
+        {
+            var canvas = (RectTransform)canvasRoot.transform;
+            foreach (var f in floaters)
+            {
+                if (!f.label.gameObject.activeSelf) continue;
+                float k = (Time.unscaledTime - f.born) / f.life;
+                if (k >= 1) { f.label.gameObject.SetActive(false); continue; }
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, battleCamera.WorldToScreenPoint(f.world), null, out var at);
+                // Pops up fast, then drifts; fades over the last half.
+                f.label.rectTransform.anchoredPosition = at + Vector2.up * (f.rise * (1 - (1 - k) * (1 - k)));
+                f.label.alpha = k < .5f ? 1 : 1 - (k - .5f) * 2;
+                f.label.transform.localScale = Vector3.one * (k < .12f ? 1 + .35f * (1 - k / .12f) : 1);
+            }
+        }
+
         // When an enemy reaches the core the screen's edges glow red for a moment (the core bar shakes with it), so a leak
         // is felt even while the player is looking at the other end of the road.
         Image leakFlash;
