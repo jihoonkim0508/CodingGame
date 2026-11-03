@@ -103,6 +103,7 @@ namespace CodingGame.Defense
             AnimateResult();
             FlashLeak(sim);
             AnimateFloaters();
+            CallWave(sim);
             bool ready = sim.CanPrepare, reward = sim.Phase == BattlePhase.Reward;
             bool ended = sim.Phase == BattlePhase.Victory || sim.Phase == BattlePhase.Defeat;
             bool fighting = sim.Phase == BattlePhase.Running || sim.Phase == BattlePhase.Paused;
@@ -240,6 +241,42 @@ namespace CodingGame.Defense
         }
         // A tag over each robot's head (DefenseDebrief.LiveStatus). Labels sit in a layer behind the other HUD parts; the
         // selected robot's tag hides while its action menu is open over its head.
+        // The wave's start: its number large over the map for a moment, with a horn, so each fight has a beginning.
+        // Only Ready → Running counts; resuming from a pause does not call the wave again.
+        TextMeshProUGUI waveCall;
+        float waveCallAt = -100;
+        BattlePhase lastPhase;
+        const float WaveCallSeconds = 1.4f;
+        void CallWave(DefenseSimulation sim)
+        {
+            if (sim.Phase == BattlePhase.Running && lastPhase == BattlePhase.Ready)
+            {
+                if (!waveCall)
+                {
+                    waveCall = new GameObject("Wave call", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                    waveCall.rectTransform.SetParent(canvasRoot.transform, false);
+                    waveCall.rectTransform.anchorMin = waveCall.rectTransform.anchorMax = new Vector2(.5f, .5f);
+                    waveCall.rectTransform.sizeDelta = new Vector2(1400, 260); waveCall.rectTransform.anchoredPosition = new Vector2(0, 110);
+                    // Regular weight: TMP's bold adds spacing per letter, which at this size pulls the Korean line apart.
+                    waveCall.font = rewardItems.font; waveCall.fontSize = 110; waveCall.characterSpacing = -2;
+                    waveCall.alignment = TextAlignmentOptions.Center; waveCall.raycastTarget = false;
+                    waveCall.outlineWidth = .22f; waveCall.outlineColor = new Color32(8, 14, 22, 255);
+                }
+                bool last = sim.WaveIndex + 1 == sim.Setup.Waves.Length;
+                waveCall.text = (last ? "마지막 웨이브" : $"WAVE {sim.WaveIndex + 1}") + $"\n<size=36%>오류 코드 {sim.RemainingEnemies}마리 접근!</size>";
+                waveCall.color = last ? new Color(1, .56f, .45f) : new Color(.37f, .9f, .8f);
+                waveCall.transform.SetAsLastSibling();
+                waveCallAt = Time.unscaledTime; battle.PlaySound("wave-start");
+            }
+            lastPhase = sim.Phase;
+            if (!waveCall) return;
+            float t = Time.unscaledTime - waveCallAt;
+            waveCall.gameObject.SetActive(t < WaveCallSeconds);
+            if (t >= WaveCallSeconds) return;
+            waveCall.rectTransform.localScale = Vector3.one * (t < .2f ? Mathf.Lerp(1.6f, 1, Mathf.SmoothStep(0, 1, t / .2f)) : 1 + .02f * (t - .2f));
+            waveCall.alpha = t < .2f ? t / .2f : t > WaveCallSeconds - .45f ? (WaveCallSeconds - t) / .45f : 1;
+        }
+
         // The damage a hit did, over the enemy, and "+n 코인" over a kill: rising and fading, so every attack the code makes
         // shows its result. A small pool is reused oldest first, so a burst of hits never piles up labels.
         sealed class Floater { public TextMeshProUGUI label; public Vector3 world; public float born, life, rise; }
