@@ -11,7 +11,8 @@ namespace CodingGame.StageMap
         Camera mapCamera;
         StageCameraController cameraController;
         GUIStyle bodyStyle, toastStyle, guideTitleStyle, guideBodyStyle;
-        GUIStyle islandTitleStyle,islandNumberStyle,islandStateStyle;
+        GUIStyle islandTitleStyle,islandNumberStyle,islandStateStyle,islandLessonStyle;
+        Texture2D guideFace; // 디버, the tutorial's guide robot, so the map talks in the same voice
         string toast;
         bool entering; // a stage was chosen: the camera flies there and the scene fades, no more "click here"
         float toastUntil;
@@ -33,6 +34,7 @@ namespace CodingGame.StageMap
                 stageLabels[i] = $"STAGE {nodes[i].Number:00}";
             }
             mapCamera = camera;
+            guideFace = Resources.Load<Texture2D>("Guide/Guide_normal");
             cameraController = gameObject.AddComponent<StageCameraController>();
             cameraController.Configure(camera, stageNodes);
             RefreshNodes();
@@ -89,8 +91,8 @@ namespace CodingGame.StageMap
                 StageNode node = nodes[i]; node.Refresh();
                 if (node.State == StageState.Available && (!recommendedStage || node.Number < recommendedStage.Number)) recommendedStage = node;
                 int stars = StageProgress.BestStars(node.Number);
-                stateLabels[i] = node.State == StageState.Locked ? "이전 스테이지 클리어 후 해금" : node.State != StageState.Cleared ? "READY · 클릭하여 시작" :
-                    stars > 0 ? new string('★', stars) + new string('☆', 3 - stars) + " · 다시 플레이" : "CLEARED · 다시 플레이";
+                stateLabels[i] = node.State == StageState.Locked ? "이전 스테이지 클리어 후 해금" : node.State != StageState.Cleared ? "도전 가능 · 클릭해서 시작" :
+                    stars > 0 ? new string('★', stars) + new string('☆', 3 - stars) + " · 다시 플레이" : "클리어 · 다시 플레이";
             }
             guideMessage = recommendedStage ? $"빛나는 {recommendedStage.Number}스테이지 섬을 클릭해 줘!" :
                 nodes.Any(node => StageProgress.BestStars(node.Number) < 3) ? "클리어한 섬에 다시 도전해 봐. 코어를 더 지키면 별이 늘어나!" : "모든 섬 ★3! 다른 코드로도 막아 볼래?";
@@ -109,7 +111,8 @@ namespace CodingGame.StageMap
             bodyStyle = new GUIStyle(GUI.skin.label) { font = font, fontSize = 18, wordWrap = true, normal = { textColor = new Color(.68f,.76f,.84f) } };
             toastStyle = new GUIStyle(GUI.skin.button) { font = font, fontSize = 18, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.12f, 0.14f, 0.18f) } };
             guideTitleStyle = new GUIStyle(bodyStyle) { fontSize = 20, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.35f, 0.9f, 1f) } };
-            guideBodyStyle = new GUIStyle(bodyStyle) { normal = { textColor = Color.white } };
+            guideTitleStyle.fontSize = 22;
+            guideBodyStyle = new GUIStyle(bodyStyle) { fontSize = 20, normal = { textColor = Color.white } };
         }
 
         void OnGUI()
@@ -117,9 +120,11 @@ namespace CodingGame.StageMap
             // Absolute-position labels have no input/layout work; draw once per repaint.
             if (Event.current.type != EventType.Repaint) return;
             EnsureStyles();
-            DrawRect(new Rect(18f, 18f, 510f, 76f), new Color(0.04f, 0.09f, 0.16f, 0.92f));
-            GUI.Label(new Rect(34f, 25f, 480f, 30f), "디버", guideTitleStyle);
-            GUI.Label(new Rect(34f, 53f, 480f, 28f), GuideMessage, guideBodyStyle);
+            DrawRect(new Rect(18f, 18f, 640f, 100f), new Color(0.04f, 0.09f, 0.16f, 0.92f));
+            float textX = 34f;
+            if (guideFace) { GUI.DrawTexture(new Rect(26f, 26f, 84f, 84f), guideFace, ScaleMode.ScaleToFit); textX = 120f; }
+            GUI.Label(new Rect(textX, 28f, 520f, 32f), "디버", guideTitleStyle);
+            GUI.Label(new Rect(textX, 62f, 640f - textX, 48f), GuideMessage, guideBodyStyle);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             GUI.Label(new Rect(18f, Screen.height - 38f, 420f, 28f), "DEV  Z: 임시 클리어    Q: 초기화", bodyStyle);
 #endif
@@ -173,18 +178,25 @@ namespace CodingGame.StageMap
             islandTitleStyle??=new GUIStyle(guideBodyStyle){fontSize=20,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleCenter};
             islandNumberStyle??=new GUIStyle(islandTitleStyle){fontSize=12};
             islandStateStyle??=new GUIStyle(islandTitleStyle){fontSize=12,fontStyle=FontStyle.Normal};
-            islandTitleStyle.fontSize=Mathf.Clamp(Mathf.RoundToInt(Screen.height*.021f),14,22);
-            islandNumberStyle.fontSize=Mathf.Clamp(Mathf.RoundToInt(Screen.height*.014f),10,14);
-            islandStateStyle.fontSize=Mathf.Clamp(Mathf.RoundToInt(Screen.height*.012f),9,12);
+            islandLessonStyle??=new GUIStyle(islandTitleStyle){fontStyle=FontStyle.Normal};
+            // Sized for reading across the room on a 1080p screen: name, what it teaches, then its state, on a dark plate.
+            float scale=Screen.height/1080f;
+            islandTitleStyle.fontSize=Mathf.Clamp(Mathf.RoundToInt(29*scale),16,30);
+            islandNumberStyle.fontSize=Mathf.Clamp(Mathf.RoundToInt(17*scale),11,18);
+            islandLessonStyle.fontSize=Mathf.Clamp(Mathf.RoundToInt(18*scale),11,19);
+            islandStateStyle.fontSize=Mathf.Clamp(Mathf.RoundToInt(17*scale),10,18);
             for (int i = 0; i < nodes.Length; i++)
             {
                 var node = nodes[i]; var island=islands[i];if(!island)continue;
                 var p=mapCamera.WorldToScreenPoint(node.transform.position+new Vector3(0,-.8f,-3.1f));if(p.z<=0)continue;
-                float y=Screen.height-p.y;var old=GUI.color;float width=Mathf.Min(340,Screen.width*.30f);
-                GUI.color=island.accent;GUI.Label(new Rect(p.x-width*.5f,y-9,width,22),stageLabels[i],islandNumberStyle);
-                GUI.color=Color.white;GUI.Label(new Rect(p.x-width*.5f,y+13,width,30),island.stageTitle,islandTitleStyle);
-                GUI.color=node.State==StageState.Locked?new Color(.6f,.72f,.83f):island.accent;
-                GUI.Label(new Rect(p.x-width*.5f,y+43,width,22),stateLabels[i],islandStateStyle);
+                float y=Screen.height-p.y;var old=GUI.color;float width=Mathf.Min(360,Screen.width*.30f),left=p.x-width*.5f;
+                bool locked=node.State==StageState.Locked;
+                DrawRect(new Rect(left,y-18*scale,width,124*scale),new Color(.03f,.07f,.12f,.72f));
+                GUI.color=island.accent;GUI.Label(new Rect(left,y-14*scale,width,26*scale),stageLabels[i],islandNumberStyle);
+                GUI.color=locked?new Color(.75f,.82f,.9f):Color.white;GUI.Label(new Rect(left,y+10*scale,width,38*scale),island.stageTitle,islandTitleStyle);
+                GUI.color=new Color(.81f,.91f,1f,locked?.7f:1);GUI.Label(new Rect(left,y+48*scale,width,26*scale),StageProgress.Lesson(node.Number),islandLessonStyle);
+                GUI.color=locked?new Color(.6f,.72f,.83f):island.accent;
+                GUI.Label(new Rect(left,y+76*scale,width,26*scale),stateLabels[i],islandStateStyle);
                 GUI.color=old;
             }
         }
