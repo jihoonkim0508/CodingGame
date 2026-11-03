@@ -101,6 +101,7 @@ namespace CodingGame.Defense
             var sim = battle.Simulation;
             if (sim == null) return;
             AnimateResult();
+            FlashLeak(sim);
             bool ready = sim.CanPrepare, reward = sim.Phase == BattlePhase.Reward;
             bool ended = sim.Phase == BattlePhase.Victory || sim.Phase == BattlePhase.Defeat;
             bool fighting = sim.Phase == BattlePhase.Running || sim.Phase == BattlePhase.Paused;
@@ -238,6 +239,44 @@ namespace CodingGame.Defense
         }
         // A tag over each robot's head (DefenseDebrief.LiveStatus). Labels sit in a layer behind the other HUD parts; the
         // selected robot's tag hides while its action menu is open over its head.
+        // When an enemy reaches the core the screen's edges glow red for a moment (the core bar shakes with it), so a leak
+        // is felt even while the player is looking at the other end of the road.
+        Image leakFlash;
+        int shownCoreHealth = -1;
+        float leakFlashAt = -100;
+        const float LeakFlashSeconds = .7f;
+        void FlashLeak(DefenseSimulation sim)
+        {
+            if (!leakFlash)
+            {
+                leakFlash = new GameObject("Leak flash", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+                var rect = leakFlash.rectTransform; rect.SetParent(canvasRoot.transform, false); rect.SetSiblingIndex(1);
+                rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.sizeDelta = Vector2.zero;
+                leakFlash.sprite = EdgeGlow(); leakFlash.raycastTarget = false;
+            }
+            if (shownCoreHealth >= 0 && sim.BaseHealth < shownCoreHealth) leakFlashAt = Time.unscaledTime;
+            shownCoreHealth = sim.BaseHealth;
+            float k = 1 - Mathf.Clamp01((Time.unscaledTime - leakFlashAt) / LeakFlashSeconds);
+            leakFlash.color = new Color(1, .16f, .12f, .6f * k * k);
+            leakFlash.enabled = k > 0;
+        }
+        // Clear in the middle, opaque toward the edges.
+        static Sprite EdgeGlow()
+        {
+            const int size = 128;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+            var pixels = new Color32[size * size];
+            for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = (x + .5f) / size * 2 - 1, dy = (y + .5f) / size * 2 - 1;
+                    float edge = Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy)) * .6f + Mathf.Sqrt(dx * dx + dy * dy) / 1.414f * .4f;
+                    pixels[y * size + x] = new Color32(255, 255, 255, (byte)(255 * Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.55f, 1, edge))));
+                }
+            texture.SetPixels32(pixels); texture.Apply();
+            return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(.5f, .5f));
+        }
+
         RectTransform statusLayer;
         readonly System.Collections.Generic.List<TextMeshProUGUI> statusLabels = new System.Collections.Generic.List<TextMeshProUGUI>();
         void RefreshRobotStatus(DefenseSimulation sim)

@@ -104,6 +104,19 @@ namespace CodingGame.Defense.Editor
             yield return Seconds(5); yield return Shot("2-1_battle");
             DevTest.RunWave();
             yield return Seconds(4); yield return Shot("2-1_result"); // past the clear banner, on the reward panel
+
+            // 3-5 with one robot, sped up: the moment an enemy reaches the core.
+            DevTest.PlayDefense(3, 5, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            DevTest.AutoDeploy();
+            var sim = DevTest.Sim;
+            foreach (var extra in sim.Robots.Skip(1).ToArray()) sim.RemoveRobot(extra.Id);
+            DevTest.Battle.StartBattle(); DevTest.Speed(4);
+            int full = sim.BaseHealth;
+            yield return Until(() => sim.BaseHealth < full, 60);
+            yield return Seconds(.12); yield return Shot("3-5_leak");
+            DevTest.Speed(1);
         }
     }
 }
