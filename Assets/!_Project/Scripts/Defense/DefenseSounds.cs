@@ -14,8 +14,17 @@ namespace CodingGame.Defense
         readonly Dictionary<string, float> lastPlayed = new Dictionary<string, float>();
         BattlePhase shownPhase = BattlePhase.Ready;
 
+        // The player's sound switch (Esc menu), kept across sessions; it silences every sound through the listener.
+        const string MutedKey = "CodingGame.Sound.Muted";
+        public static bool Muted
+        {
+            get => PlayerPrefs.GetInt(MutedKey, 0) == 1;
+            set { PlayerPrefs.SetInt(MutedKey, value ? 1 : 0); PlayerPrefs.Save(); AudioListener.volume = value ? 0 : 1; }
+        }
+
         void Awake()
         {
+            AudioListener.volume = Muted ? 0 : 1;
             source = gameObject.AddComponent<AudioSource>();
             source.playOnAwake = false; source.spatialBlend = 0;
             clips["hit"] = clips["projectile-hit"] = Sweep("hit", .03f, 1400, 900, volume: .1f);

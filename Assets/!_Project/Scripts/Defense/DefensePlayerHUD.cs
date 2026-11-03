@@ -128,7 +128,7 @@ namespace CodingGame.Defense
                 if (goalBackground) goalBackground.color = goalColor;
             }
             notice.text = battle.StatusMessage;
-            inventory.text = $"설치 {sim.Robots.Count} / {sim.Setup.RobotLimit}대  ·  버프형 최대 1대";
+            inventory.text = $"설치 {sim.Robots.Count} / {sim.Setup.RobotLimit}대  ·  버프형 최대 1대  ·  Esc 메뉴";
             inventory.color = sim.Robots.Count >= sim.Setup.RobotLimit ? new Color(1, .45f, .4f) : new Color(.75f, .9f, .95f);
             startButton.interactable = ready;
             pauseButton.interactable = fighting;
@@ -363,6 +363,51 @@ namespace CodingGame.Defense
             else if (best > stars) line += $"   <color=#B9C7D2>최고 기록 {new string('★', best)}</color>";
             line += $"\n코어 {sim.BaseHealth} / {max} · " + (stars < 3 ? $"코어를 {DefenseSimulation.CoreForStars(stars + 1, max)} 이상 남기면 ★{stars + 1}" : "최고 등급!");
             return line;
+        }
+        // Esc: a menu over the battle to resume, switch sound, restart the stage or leave for the stage map. A running wave
+        // pauses while it is open and resumes when it closes.
+        GameObject menu;
+        TMP_Text soundLabel;
+        bool pausedByMenu;
+        public bool MenuOpen => menu && menu.activeSelf;
+        public void ToggleMenu()
+        {
+            if (!menu) BuildMenu();
+            bool open = !menu.activeSelf;
+            menu.SetActive(open); menu.transform.SetAsLastSibling();
+            var sim = battle.Simulation;
+            if (open && sim.Phase == BattlePhase.Running) { battle.TogglePause(); pausedByMenu = sim.Phase == BattlePhase.Paused; }
+            else if (!open && pausedByMenu) { if (sim.Phase == BattlePhase.Paused) battle.TogglePause(); pausedByMenu = false; }
+            soundLabel.text = DefenseSounds.Muted ? "소리 켜기" : "소리 끄기";
+        }
+        void BuildMenu()
+        {
+            var shade = new GameObject("Menu", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
+            shade.SetParent(canvasRoot.transform, false); shade.anchorMin = Vector2.zero; shade.anchorMax = Vector2.one; shade.sizeDelta = Vector2.zero;
+            shade.GetComponent<Image>().color = new Color(0, 0, 0, .6f);
+            menu = shade.gameObject;
+            TMP_Text Text(string text, float y, float size)
+            {
+                var label = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                label.rectTransform.SetParent(shade, false); label.rectTransform.sizeDelta = new Vector2(700, 60); label.rectTransform.anchoredPosition = new Vector2(0, y);
+                label.font = rewardTitle.font; label.fontSize = size; label.alignment = TextAlignmentOptions.Center; label.raycastTarget = false; label.text = text;
+                return label;
+            }
+            TMP_Text Add(string text, float y, Action click)
+            {
+                var button = Instantiate(claimButton, shade);
+                var r = (RectTransform)button.transform;
+                r.anchorMin = r.anchorMax = new Vector2(.5f, .5f); r.sizeDelta = new Vector2(380, 64); r.anchoredPosition = new Vector2(0, y);
+                button.interactable = true; button.onClick.AddListener(() => click());
+                var label = button.GetComponentInChildren<TMP_Text>(); label.text = text;
+                return label;
+            }
+            Text("일시정지", 210, 44).fontStyle = FontStyles.Bold;
+            Add("계속하기", 120, ToggleMenu);
+            soundLabel = Add("소리 끄기", 40, () => { DefenseSounds.Muted = !DefenseSounds.Muted; soundLabel.text = DefenseSounds.Muted ? "소리 켜기" : "소리 끄기"; });
+            Add("이 스테이지 처음부터", -40, () => { ToggleMenu(); battle.Restart(); });
+            Add(battle.FromStageMap ? "스테이지 맵으로" : "타이틀로", -120, () => GameFlow.LoadScene(battle.FromStageMap ? GameFlow.StageScene : GameFlow.TitleScene));
+            Text("스테이지 도중에 나가면 이 스테이지 진행은 저장되지 않아요.", -200, 20).color = new Color(.72f, .8f, .86f);
         }
         // On a defeat that can go back one wave, the result button retries the wave and a copy beside it restarts the stage
         // (a wave that began with little core health may be better started over).

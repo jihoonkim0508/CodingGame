@@ -467,8 +467,9 @@ namespace CodingGame.Defense
             }
             if (!tutorialActive && keyboard != null && !DeveloperMode && !codeEditor.IsOpen && !inventoryUI.IsOpen)
             {
-                if (keyboard.spaceKey.wasPressedThisFrame) { if (Simulation.Phase == BattlePhase.Ready) StartBattle(); else TogglePause(); }
-                if (keyboard.escapeKey.wasPressedThisFrame) CancelPlacement();
+                if (keyboard.spaceKey.wasPressedThisFrame && !playerHUD.MenuOpen) { if (Simulation.Phase == BattlePhase.Ready) StartBattle(); else TogglePause(); }
+                // Esc first drops a robot being placed; otherwise it opens or closes the menu.
+                if (keyboard.escapeKey.wasPressedThisFrame) { if (palette >= 0 || draggingRobot) CancelPlacement(); else playerHUD.ToggleMenu(); }
             }
             if (keyboard != null && keyboard.fKey.wasPressedThisFrame && SpeedUnlocked && !DeveloperMode &&
                 !codeEditor.IsOpen && !inventoryUI.IsOpen) ToggleSpeed();
