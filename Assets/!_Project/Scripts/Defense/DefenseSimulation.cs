@@ -483,9 +483,9 @@ namespace CodingGame.Defense
             double strike = ActionInterval(bot, RobotAction.Slash) * StrikeShare;
             Events.Add(new CombatEvent { Kind = "slash", Source = bot.Id, Target = target.Id,
                 Origin = bot.Position, Position = bot.Position + direction, Radius = bot.Range, Seconds = (float)strike });
-            // The swing hits the enemies in front when it starts, even if they move on before the sword gets there.
-            strikes.Add((Time + strike, bot, targets.Where(e => Vector2.Dot(e.Position - bot.Position, direction) >= -.00001f).ToArray(),
-                ActionDamage(bot, RobotAction.Slash)));
+            // A spin all the way round: every enemy in range when the swing starts is hit, even if it moves on before the
+            // sword gets there. The event still faces the nearest one, where the spin starts.
+            strikes.Add((Time + strike, bot, targets.ToArray(), ActionDamage(bot, RobotAction.Slash)));
         }
         // A robot recalled before its sword gets there does not hit.
         void ResolveStrikes()

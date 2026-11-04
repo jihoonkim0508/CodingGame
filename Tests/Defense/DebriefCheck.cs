@@ -21,7 +21,7 @@ static class DebriefCheck
         if (code.Length > 0) sim.ApplyProgram(bot.Id, "robot_" + bot.Id, code);
         return bot;
     }
-    static CodeBlock Slash() => new CodeBlock(BlockKind.Slash, "0", new CodeBlock(BlockKind.NearestEnemy));
+    static CodeBlock Slash() => new CodeBlock(BlockKind.Slash);
     static void RunToEnd(DefenseSimulation sim) { sim.Start(); for (int i = 0; i < 60 * 60 && sim.Phase == BattlePhase.Running; i++) sim.Advance(1.0 / 60); }
 
     public static void Run()
@@ -121,11 +121,12 @@ static class DebriefCheck
 
         var stale = OneRun();
         var spin = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "30"));
-        spin.Body.Add(new CodeBlock(BlockKind.Slash, "0", new CodeBlock(BlockKind.Variable, "enemy")));
-        var spinner = Bot(stale, RobotRole.Warrior, 0, 2, new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)), spin);
+        // slash() has no target; the shooter's attack(enemy) is what can hold an enemy that is gone.
+        spin.Body.Add(new CodeBlock(BlockKind.Shot, "0", new CodeBlock(BlockKind.Variable, "enemy")));
+        var spinner = Bot(stale, RobotRole.Shooter, 0, 2, new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)), spin);
         RunToEnd(stale);
-        Assert(spinner.ActionsThisWave == 1 && spinner.LoopTurnsThisWave == 30 && stale.WaveLeaks == 2, "turns on a gone enemy spend the count");
+        Assert(spinner.KillsThisWave == 1 && spinner.LoopTurnsThisWave == 30 && stale.WaveLeaks == 2, "turns on a gone enemy spend the count"); // shots still in flight let it fire at the same enemy a few times
         Assert(DefenseDebrief.Diagnose(stale, spinner) == DefenseDebrief.Issue.LoopSpun &&
-            DefenseDebrief.Advice(stale, spinner, DefenseDebrief.Issue.LoopSpun).Contains("30번 도는 동안 공격은 1번"), "spun loop is the advice");
+            DefenseDebrief.Advice(stale, spinner, DefenseDebrief.Issue.LoopSpun).Contains("30번 도는 동안 공격은"), "spun loop is the advice");
     }
 }

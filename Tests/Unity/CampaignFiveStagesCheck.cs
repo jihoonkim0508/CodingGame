@@ -67,8 +67,8 @@ public static class CampaignFiveStagesCheck
     static CodeBlock[][] Stage1Warrior()=>new[]{
         new[]{new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)),
             new CodeBlock(BlockKind.DeclareVariable,"enemy_distance",new CodeBlock(BlockKind.Distance,"0",Enemy(),new CodeBlock(BlockKind.MyPos))),
-            new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,"<=",new CodeBlock(BlockKind.Variable,"enemy_distance"),new CodeBlock(BlockKind.MyAttackRange))){Body={new CodeBlock(BlockKind.Slash,"0",Enemy())}}},
-        new[]{new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)),new CodeBlock(BlockKind.Slash,"0",Enemy())}};
+            new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,"<=",new CodeBlock(BlockKind.Variable,"enemy_distance"),new CodeBlock(BlockKind.MyAttackRange))){Body={new CodeBlock(BlockKind.Slash)}}},
+        new[]{new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)),new CodeBlock(BlockKind.Slash)}};
     public static string Main()
     {
         var lines = new System.Collections.Generic.List<string>();

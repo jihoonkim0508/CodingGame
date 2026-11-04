@@ -19485,10 +19485,10 @@ RectTransform:
   - {fileID: 119610085}
   m_Father: {fileID: 1217138645}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 694, y: -38.85}
+  m_SizeDelta: {x: 188, y: 77.7}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &818853099
 MonoBehaviour:
@@ -23086,7 +23086,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0.09411765, g: 0.18431373, b: 0.25882354, a: 1}
+  m_BackGroundColor: {r: 0.29411766, g: 0.54509807, b: 0.74509805, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -27385,10 +27385,10 @@ RectTransform:
   - {fileID: 92914882}
   m_Father: {fileID: 1217138645}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 94, y: -38.85}
+  m_SizeDelta: {x: 188, y: 77.7}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1114536209
 MonoBehaviour:
@@ -31103,24 +31103,22 @@ MonoBehaviour:
       \uC8FC\uBA70 1m \uC774\uB0B4\uC5D0\uC11C\uB294 \uCD5C\uB300 \uD53C\uD574\uB85C
       \uC81C\uD55C\uB429\uB2C8\uB2E4.\n\uBE48 \uB300\uC0C1 \uC2AC\uB86F\uC740 \uD568\uC218\uC758
       enemy\uB97C \uC0AC\uC6A9\uD569\uB2C8\uB2E4. \uB2E4\uB978 \uC801 \uBCC0\uC218\uB85C
-      \uAD50\uCCB4\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.\n\uBC18\uBCF5\uBB38 \uD574\uAE08
-      \uC804 \uD568\uC218\uB294 \uC6E8\uC774\uBE0C\uB9C8\uB2E4 5\uD68C, \uD574\uAE08
-      \uD6C4\uC5D0\uB294 1\uD68C \uC2E4\uD589\uB429\uB2C8\uB2E4. \uBC18\uBCF5\uC740
-      for\xB7while\uB85C \uC791\uC131\uD558\uC138\uC694."
+      \uAD50\uCCB4\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.\n\uD568\uC218\uB294 \uC6E8\uC774\uBE0C\uB9C8\uB2E4
+      1\uBC88 \uC2E4\uD589\uB429\uB2C8\uB2E4. \uC5EC\uB7EC \uBC88 \uD558\uB824\uBA74
+      for\xB7while\uB85C \uBC18\uBCF5\uD558\uC138\uC694."
     example: "def robot():\n    enemy = get_nearest_enemy()\n    attack(enemy)"
   - kind: 19
     button: {fileID: 2090866724}
     label: {fileID: 1362873834}
-    title: slash(enemy)
-    description: "\uB85C\uBD07\uC744 \uC911\uC2EC\uC73C\uB85C enemy \uBC29\uD5A5\uC758
-      \uC0AC\uAC70\uB9AC \uB0B4 180\uB3C4 \uBC18\uC6D0\uC5D0 \uC788\uB294 \uBAA8\uB4E0
-      \uC801\uC5D0\uAC8C \uB3D9\uC77C\uD55C \uD53C\uD574\uB97C \uC90D\uB2C8\uB2E4.\n\uBE48
-      \uB300\uC0C1 \uC2AC\uB86F\uC740 \uD568\uC218\uC758 enemy\uB97C \uC0AC\uC6A9\uD569\uB2C8\uB2E4.
-      \uB2E4\uB978 \uC801 \uBCC0\uC218\uB85C \uAD50\uCCB4\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.\n\uBC18\uBCF5\uBB38
-      \uD574\uAE08 \uC804 \uD568\uC218\uB294 \uC6E8\uC774\uBE0C\uB9C8\uB2E4 5\uD68C,
-      \uD574\uAE08 \uD6C4\uC5D0\uB294 1\uD68C \uC2E4\uD589\uB429\uB2C8\uB2E4. \uBC18\uBCF5\uC740
-      for\xB7while\uB85C \uC791\uC131\uD558\uC138\uC694."
-    example: "def robot():\n    enemy = get_nearest_enemy()\n    slash(enemy)"
+    title: slash()
+    description: "\uB85C\uBD07\uC774 \uD55C \uBC14\uD034 \uB3CC\uBA70 \uC0AC\uAC70\uB9AC
+      \uC548\uC758 \uBAA8\uB4E0 \uC801\uC5D0\uAC8C \uAC19\uC740 \uD53C\uD574\uB97C
+      \uC90D\uB2C8\uB2E4(360\uB3C4).\n\uB300\uC0C1\uC744 \uB123\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.
+      \uC0AC\uAC70\uB9AC \uC548\uC5D0 \uC801\uC774 \uC5C6\uC73C\uBA74 \uB4E4\uC5B4\uC62C
+      \uB54C\uAE4C\uC9C0 \uAE30\uB2E4\uB9BD\uB2C8\uB2E4.\n\uD568\uC218\uB294 \uC6E8\uC774\uBE0C\uB9C8\uB2E4
+      1\uBC88 \uC2E4\uD589\uB429\uB2C8\uB2E4. \uC5EC\uB7EC \uBC88 \uD558\uB824\uBA74
+      for\xB7while\uB85C \uBC18\uBCF5\uD558\uC138\uC694."
+    example: "def robot():\n    for i in range(5):\n        slash()"
   - kind: 20
     button: {fileID: 2075488011}
     label: {fileID: 1564670811}
@@ -31128,10 +31126,9 @@ MonoBehaviour:
     description: "enemy\uC5D0\uAC8C \uD53C\uD574\uB97C \uC8FC\uACE0 \uC8FC\uBCC0
       \uC801\uC744 \uC7A0\uC2DC \uAE30\uC808\uC2DC\uD0B5\uB2C8\uB2E4.\n\uBE48 \uB300\uC0C1
       \uC2AC\uB86F\uC740 \uD568\uC218\uC758 enemy\uB97C \uC0AC\uC6A9\uD569\uB2C8\uB2E4.
-      \uB2E4\uB978 \uC801 \uBCC0\uC218\uB85C \uAD50\uCCB4\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.\n\uBC18\uBCF5\uBB38
-      \uD574\uAE08 \uC804 \uD568\uC218\uB294 \uC6E8\uC774\uBE0C\uB9C8\uB2E4 5\uD68C,
-      \uD574\uAE08 \uD6C4\uC5D0\uB294 1\uD68C \uC2E4\uD589\uB429\uB2C8\uB2E4. \uBC18\uBCF5\uC740
-      for\xB7while\uB85C \uC791\uC131\uD558\uC138\uC694."
+      \uB2E4\uB978 \uC801 \uBCC0\uC218\uB85C \uAD50\uCCB4\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.\n\uD568\uC218\uB294
+      \uC6E8\uC774\uBE0C\uB9C8\uB2E4 1\uBC88 \uC2E4\uD589\uB429\uB2C8\uB2E4. \uC5EC\uB7EC
+      \uBC88 \uD558\uB824\uBA74 for\xB7while\uB85C \uBC18\uBCF5\uD558\uC138\uC694."
     example: "def robot():\n    enemy = get_nearest_enemy()\n    block(enemy)"
   - kind: 21
     button: {fileID: 1476352315}
@@ -31141,10 +31138,9 @@ MonoBehaviour:
       \uBC1C\uC0AC\uD574 \uC8FC\uBCC0 \uC801\uC5D0\uAC8C \uD3ED\uBC1C \uD53C\uD574\uB97C
       \uC90D\uB2C8\uB2E4.\n\uBE48 \uB300\uC0C1 \uC2AC\uB86F\uC740 \uD568\uC218\uC758
       enemy\uB97C \uC0AC\uC6A9\uD569\uB2C8\uB2E4. \uB2E4\uB978 \uC801 \uBCC0\uC218\uB85C
-      \uAD50\uCCB4\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.\n\uBC18\uBCF5\uBB38 \uD574\uAE08
-      \uC804 \uD568\uC218\uB294 \uC6E8\uC774\uBE0C\uB9C8\uB2E4 5\uD68C, \uD574\uAE08
-      \uD6C4\uC5D0\uB294 1\uD68C \uC2E4\uD589\uB429\uB2C8\uB2E4. \uBC18\uBCF5\uC740
-      for\xB7while\uB85C \uC791\uC131\uD558\uC138\uC694."
+      \uAD50\uCCB4\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.\n\uD568\uC218\uB294 \uC6E8\uC774\uBE0C\uB9C8\uB2E4
+      1\uBC88 \uC2E4\uD589\uB429\uB2C8\uB2E4. \uC5EC\uB7EC \uBC88 \uD558\uB824\uBA74
+      for\xB7while\uB85C \uBC18\uBCF5\uD558\uC138\uC694."
     example: "def robot():\n    enemy = get_nearest_enemy()\n    boom(enemy)"
   - kind: 23
     button: {fileID: 44338877}
@@ -31152,10 +31148,9 @@ MonoBehaviour:
     title: slow(enemy)
     description: "enemy\uC5D0\uAC8C \uD53C\uD574\uC640 \uAC10\uC18D\uC744 \uC801\uC6A9\uD569\uB2C8\uB2E4.\n\uBE48
       \uB300\uC0C1 \uC2AC\uB86F\uC740 \uD568\uC218\uC758 enemy\uB97C \uC0AC\uC6A9\uD569\uB2C8\uB2E4.
-      \uB2E4\uB978 \uC801 \uBCC0\uC218\uB85C \uAD50\uCCB4\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.\n\uBC18\uBCF5\uBB38
-      \uD574\uAE08 \uC804 \uD568\uC218\uB294 \uC6E8\uC774\uBE0C\uB9C8\uB2E4 5\uD68C,
-      \uD574\uAE08 \uD6C4\uC5D0\uB294 1\uD68C \uC2E4\uD589\uB429\uB2C8\uB2E4. \uBC18\uBCF5\uC740
-      for\xB7while\uB85C \uC791\uC131\uD558\uC138\uC694."
+      \uB2E4\uB978 \uC801 \uBCC0\uC218\uB85C \uAD50\uCCB4\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.\n\uD568\uC218\uB294
+      \uC6E8\uC774\uBE0C\uB9C8\uB2E4 1\uBC88 \uC2E4\uD589\uB429\uB2C8\uB2E4. \uC5EC\uB7EC
+      \uBC88 \uD558\uB824\uBA74 for\xB7while\uB85C \uBC18\uBCF5\uD558\uC138\uC694."
     example: "def robot():\n    enemy = get_nearest_enemy()\n    slow(enemy)"
   - kind: 24
     button: {fileID: 1408051210}
@@ -34727,10 +34722,10 @@ RectTransform:
   - {fileID: 404127873}
   m_Father: {fileID: 1217138645}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 294, y: -38.85}
+  m_SizeDelta: {x: 188, y: 77.7}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1492510112
 MonoBehaviour:
@@ -37757,10 +37752,10 @@ RectTransform:
   - {fileID: 500939638}
   m_Father: {fileID: 1217138645}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 894, y: -38.85}
+  m_SizeDelta: {x: 188, y: 77.7}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1572529777
 MonoBehaviour:
@@ -45938,10 +45933,10 @@ RectTransform:
   - {fileID: 1517576935}
   m_Father: {fileID: 1217138645}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 494, y: -38.85}
+  m_SizeDelta: {x: 188, y: 77.7}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1870418211
 MonoBehaviour:
@@ -46763,10 +46758,10 @@ RectTransform:
   - {fileID: 1183273983}
   m_Father: {fileID: 1217138645}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 1094, y: -38.85}
+  m_SizeDelta: {x: 188, y: 77.7}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1882000897
 MonoBehaviour:

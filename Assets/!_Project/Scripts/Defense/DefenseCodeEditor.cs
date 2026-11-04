@@ -125,7 +125,7 @@ namespace CodingGame.Defense
             if (!IsOpen || !HasCurrentSession) return;
             panel.LoadProgram(panel.FunctionName, new[] {
                 new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)),
-                new CodeBlock(BlockKind.Slash, "0", new CodeBlock(BlockKind.Variable, "enemy"))
+                new CodeBlock(BlockKind.Slash)
             });
             if (!panel.IsApplied) throw new InvalidOperationException("비교용 기본 베기 코드의 블록 지급량을 확인하세요.");
             RestartPreview();

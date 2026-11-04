@@ -196,5 +196,6 @@ static class Check
         RetryCheck.Run();
         GuideMoodCheck.Run();
         GuideSpeechCheck.Run();
+        MeleeCheck.Run();
     }
 }

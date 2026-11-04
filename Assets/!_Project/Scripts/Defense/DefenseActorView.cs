@@ -126,6 +126,15 @@ namespace CodingGame.Defense
             Vector3 direction = target - head.position; direction.y = 0;
             if (direction.sqrMagnitude > .001f) head.rotation = Quaternion.LookRotation(direction);
         }
+        // slash() cuts all the way round: the robot plays its attack and turns one full circle, ending where it started
+        // (facing the nearest enemy), the turn's middle when the strike lands.
+        float spinTime, spinSeconds;
+        Quaternion spinFrom;
+        public void Spin(Vector3 target, float strikeSeconds)
+        {
+            AimAt(target, strikeSeconds);
+            spinFrom = head.rotation; spinSeconds = Mathf.Max(.2f, strikeSeconds * 2); spinTime = 0;
+        }
         public Vector3 Muzzle => muzzle ? muzzle.position : head.position;
         public bool HasMuzzle => muzzle;
         float AttackSpeed => strikeSpeed > 0 ? strikeSpeed : attackInterval > 0 ? Mathf.Max(1, attackClip / (attackInterval * .9f)) : 1;
@@ -142,6 +151,13 @@ namespace CodingGame.Defense
             {
                 bool attacking = animator.GetCurrentAnimatorStateInfo(0).shortNameHash == AttackState || animator.GetNextAnimatorStateInfo(0).shortNameHash == AttackState;
                 animator.speed = pace * (attacking ? AttackSpeed : 1);
+            }
+            if (spinSeconds > 0)
+            {
+                spinTime += delta * pace;
+                float k = Mathf.Clamp01(spinTime / spinSeconds);
+                head.rotation = spinFrom * Quaternion.Euler(0, 360 * Mathf.SmoothStep(0, 1, k), 0);
+                if (k >= 1) spinSeconds = 0;
             }
             beamTime -= delta;
             if (beamTime <= 0) beam.enabled = false;

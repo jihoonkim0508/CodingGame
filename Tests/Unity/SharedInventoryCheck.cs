@@ -32,8 +32,9 @@ public static class SharedInventoryCheck
         int slashFree = sim.Available(BlockKind.Slash), declareFree = sim.Available(BlockKind.DeclareVariable);
         var editor = battle.CodeEditor; var panel = editor.Panel;
         editor.Open(a);
-        // slash with an empty target: a syntax error, so robot a acts on nothing.
-        panel.LoadProgram("robot_" + a, new[] { new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)), new CodeBlock(BlockKind.Slash, "0") });
+        // slash under an if with no condition: a syntax error, so robot a acts on nothing.
+        var unfinished = new CodeBlock(BlockKind.If); unfinished.Body.Add(new CodeBlock(BlockKind.Slash));
+        panel.LoadProgram("robot_" + a, new[] { new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)), unfinished });
         Require((sim.FindRobot(a).Program?.BlockCount(BlockKind.Slash) ?? 0) == 0, "Syntax error empties the applied code");
         Require(sim.Available(BlockKind.Slash) == slashFree - 1 && sim.Available(BlockKind.DeclareVariable) == declareFree - 1, "Unfinished editor blocks stay reserved");
         editor.Open(b);

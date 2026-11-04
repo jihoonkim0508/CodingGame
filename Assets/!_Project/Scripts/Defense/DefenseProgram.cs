@@ -12,7 +12,7 @@ namespace CodingGame.Defense
     {
         enum Op { Statement, Condition, Jump, ForInit, ForTest, ForNext }
         sealed class Instruction { public Op Op; public CodeBlock Block; public int Jump, Loop; }
-        sealed class LoopState { public double Count, Index; }
+        sealed class LoopState { public double Count, Index; public int TurnActions, TurnFalse; }
         sealed class EnemyValue { public int Id; }
         readonly List<CodeBlock> blocks;
         readonly Dictionary<BlockKind, int> blockCounts;
@@ -20,6 +20,9 @@ namespace CodingGame.Defense
         readonly Dictionary<string, object> variables = new Dictionary<string, object>();
         readonly Dictionary<int, LoopState> loops = new Dictionary<int, LoopState>();
         int pc, nextLoop;
+        // Commands that ran or were skipped, and conditions that came out false: a loop turn with no command and a false
+        // condition is waited out instead of used up (see ForNext).
+        int resolvedActions, falseConditions;
         bool invocationStarted;
         bool actedThisInvocation;
         double wakeTime;
@@ -80,7 +83,7 @@ namespace CodingGame.Defense
                         var innerBreaks = new List<int>(); var innerContinues = new List<int>();
                         EmitSuite(b.Body, innerBreaks, innerContinues);
                         int step = code.Count;
-                        if (counted) Emit(Op.ForNext, loop: loop);
+                        if (counted) Emit(Op.ForNext, jump: test, loop: loop);
                         Emit(Op.Jump, jump: start);
                         if (test >= 0) code[test].Jump = code.Count;
                         foreach (var exit in innerBreaks) code[exit].Jump = code.Count;
@@ -120,7 +123,10 @@ namespace CodingGame.Defense
                     switch (instruction.Op)
                     {
                         case Op.Jump: pc = instruction.Jump; break;
-                        case Op.Condition: pc = Truth(Value(instruction.Block, sim, robot)) ? pc + 1 : instruction.Jump; break;
+                        case Op.Condition:
+                            if (Truth(Value(instruction.Block, sim, robot))) pc++;
+                            else { falseConditions++; pc = instruction.Jump; }
+                            break;
                         case Op.ForInit:
                             double count = Number(Value(instruction.Block, sim, robot));
                             if (count != Math.Truncate(count) || Math.Abs(count) > 1000000000) throw new FormatException("range 횟수는 절댓값 10억 이하 정수여야 합니다.");
@@ -128,9 +134,15 @@ namespace CodingGame.Defense
                         case Op.ForTest:
                             var state = loops[instruction.Loop];
                             if (state.Index >= state.Count) pc = instruction.Jump;
-                            else { variables["i"] = state.Index; pc++; }
+                            else { variables["i"] = state.Index; state.TurnActions = resolvedActions; state.TurnFalse = falseConditions; pc++; }
                             break;
-                        case Op.ForNext: loops[instruction.Loop].Index++; robot.LoopTurnsThisWave++; pc++; break;
+                        case Op.ForNext:
+                            var turn = loops[instruction.Loop];
+                            // `for i in range(5): if 적이 사거리 안: slash()` means five swings: a turn whose if was false and that ran
+                            // no command is tried again once enemies have moved, instead of spending one of the five.
+                            if (resolvedActions == turn.TurnActions && falseConditions > turn.TurnFalse)
+                            { pc = instruction.Jump; wakeTime = Math.Max(wakeTime, sim.Time + .25); return; }
+                            turn.Index++; robot.LoopTurnsThisWave++; pc++; break;
                         default:
                             var block = instruction.Block;
                             if (block.Kind == BlockKind.DeclareVariable)
@@ -155,14 +167,15 @@ namespace CodingGame.Defense
                                 target = enemy.Id;
                                 // 지정한 적이 사라져도 다른 적으로 자동 교체하지 않습니다.
                                 if (target == 0 || !sim.Enemies.Any(e => e.Id == target && e.Active))
-                                { robot.LastResult = ActionResult.NoTarget; pc++; return; }
+                                { robot.LastResult = ActionResult.NoTarget; resolvedActions++; pc++; return; }
                             }
                             var result = sim.RequestAction(robot.Id, action, target);
-                            if (result == ActionResult.Executed) actedThisInvocation = true;
+                            if (result == ActionResult.Executed) { actedThisInvocation = true; resolvedActions++; }
                             // 재사용 대기 중에는 같은 명령에서 기다리고, 실행 결과가 나오면 다음으로 이동합니다.
                             // A living target out of range is waited for the same way, so `for i in range(5)` means five attacks
                             // instead of turns spent on an enemy that is not there yet.
-                            WaitingForTarget = result == ActionResult.NoTarget && target != 0;
+                            // slash() has no target: it waits for any enemy to come into range.
+                            WaitingForTarget = result == ActionResult.NoTarget && (target != 0 || block.Kind == BlockKind.Slash);
                             if (result != ActionResult.CoolingDown && !WaitingForTarget) pc++;
                             return;
                     }
@@ -171,7 +184,7 @@ namespace CodingGame.Defense
             }
             catch (FormatException error) { Fault = error.Message; }
         }
-        static bool TargetsEnemies(CodeBlock block) => block != null && (PythonTreeCompiler.HasEnemyArgument(block.Kind) ||
+        static bool TargetsEnemies(CodeBlock block) => block != null && (PythonTreeCompiler.HasEnemyArgument(block.Kind) || block.Kind == BlockKind.Slash ||
             block.Kind == BlockKind.NearestEnemy || block.Arguments.Any(TargetsEnemies) || block.Body.Any(TargetsEnemies));
         static RobotAction Action(BlockKind kind)
         {

@@ -42,7 +42,8 @@ namespace CodingGame.BlockCoding
         public static bool HasBody(BlockKind kind) => kind == BlockKind.For || kind == BlockKind.While ||
             kind == BlockKind.If || kind == BlockKind.Elif || kind == BlockKind.Else;
 
-        public static bool HasEnemyArgument(BlockKind kind) => kind == BlockKind.Slash || kind == BlockKind.Block ||
+        // slash() takes no target: it cuts every enemy around the melee robot.
+        public static bool HasEnemyArgument(BlockKind kind) => kind == BlockKind.Block ||
             kind == BlockKind.Boom || kind == BlockKind.Shot || kind == BlockKind.Attack || kind == BlockKind.Slow;
 
         public static int ArgumentCount(BlockKind kind)
@@ -241,6 +242,7 @@ namespace CodingGame.BlockCoding
                 case BlockKind.True: return "True";
                 case BlockKind.False: return "False";
                 case BlockKind.Buff: return "buff()";
+                case BlockKind.Slash: return "slash()";
                 default: return null;
             }
         }
@@ -277,7 +279,7 @@ namespace CodingGame.BlockCoding
                     TypeOf(block, variables);
                     return NormalizeIdentifier(block.Value);
                 case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.MyAttackRange: case BlockKind.MyPos: case BlockKind.NearestEnemy:
-                case BlockKind.True: case BlockKind.False: case BlockKind.Buff:
+                case BlockKind.True: case BlockKind.False: case BlockKind.Buff: case BlockKind.Slash:
                     return Call(block.Kind);
                 case BlockKind.Wait:
                     Require(block.Arguments[0], variables, Numeric, "wait에는 초 단위의 숫자가 필요합니다.");

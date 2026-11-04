@@ -79,7 +79,7 @@ internal class CommandScript : IRunCommand
             var hits = new System.Collections.Generic.List<RaycastResult>();
             canvas.GetComponent<GraphicRaycaster>().Raycast(new PointerEventData(EventSystem.current) { position = hole }, hits);
             Check(!hits.Any(hit => hit.gameObject.transform.IsChildOf(conditional.transform)), "empty hole falls through in real UI raycast");
-            foreach (var kind in new[] { BlockKind.Slash, BlockKind.Block, BlockKind.Boom, BlockKind.Shot, BlockKind.Slow })
+            foreach (var kind in new[] { BlockKind.Block, BlockKind.Boom, BlockKind.Shot, BlockKind.Slow }) // slash() has no target
             {
                 bool rejected = false;
                 try { PythonTreeCompiler.Compile("robot", new[] { new CodeBlock(kind) }); } catch (FormatException) { rejected = true; }

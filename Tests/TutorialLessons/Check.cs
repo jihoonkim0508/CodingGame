@@ -11,7 +11,7 @@ static class Check
     {
         var condition = new CodeBlock(BlockKind.If, "0", new CodeBlock(BlockKind.Comparison, op,
             new CodeBlock(BlockKind.Variable, distance), new CodeBlock(BlockKind.MyAttackRange)));
-        condition.Body.Add(new CodeBlock(BlockKind.Slash, "0", new CodeBlock(BlockKind.Variable, target)));
+        condition.Body.Add(new CodeBlock(BlockKind.Slash));
         return new[] {
             new CodeBlock(BlockKind.DeclareVariable, target, new CodeBlock(BlockKind.NearestEnemy)),
             new CodeBlock(BlockKind.DeclareVariable, distance, new CodeBlock(BlockKind.Distance, "0",
@@ -41,11 +41,11 @@ static class Check
     }
     static int FirstSlashHits(bool guarded, float start = 8, float speed = 1.65f, float interval = .5f, float y = 2.2f, int count = 2)
     {
-        var spec = new RobotSpec { role = RobotRole.Warrior, range = 3.2f, interval = .8f, damage = 14 };
+        var spec = new RobotSpec { role = RobotRole.Warrior, range = 3.6f, interval = .8f, damage = 14 };
         var sim = new DefenseSimulation(new BattleSetup {
             Min = new Vector2(-12, -4), Max = new Vector2(12, 4), FunctionRepeatLimit = 5,
             ActionProfiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>()
-                .Select(role => new RobotSpec { role = role, range = 3.2f, interval = .8f, damage = 14 }).ToArray(),
+                .Select(role => new RobotSpec { role = role, range = 3.6f, interval = .8f, damage = 14 }).ToArray(),
             Routes = new[] { new Route(new[] { new Vector2(start, 0), new Vector2(-10, 0) }, speed) },
             Waves = new[] { new[] { new SpawnGroup { Enemy = new EnemySpec { health = 55, speed = speed }, Count = count, Interval = interval } } }
         });
@@ -53,7 +53,7 @@ static class Check
         Require(robot != null, error);
         var guided = Program("<=");
         var blocks = guarded ? guided : new[] { guided[0], guided[1],
-            new CodeBlock(BlockKind.Slash, "0", new CodeBlock(BlockKind.Variable, "enemy")) };
+            new CodeBlock(BlockKind.Slash) };
         sim.ApplyProgram(robot.Id, "timing", blocks); sim.Start();
         bool started = false;
         for (int i = 0; i < 900; i++)
@@ -68,11 +68,11 @@ static class Check
     }
     static void IntroLeak()
     {
-        var spec = new RobotSpec { role = RobotRole.Warrior, range = 3.2f, interval = .8f, damage = 14 };
+        var spec = new RobotSpec { role = RobotRole.Warrior, range = 3.6f, interval = .8f, damage = 14 };
         var setup = new BattleSetup {
-            Min = new Vector2(-12, -4), Max = new Vector2(12, 4), BaseHealth = 12, FunctionRepeatLimit = 5,
+            Min = new Vector2(-12, -4), Max = new Vector2(12, 4), BaseHealth = 12, FunctionRepeatLimit = 1,
             ActionProfiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(role =>
-                new RobotSpec { role = role, range = 3.2f, interval = .8f, damage = 14 }).ToArray(),
+                new RobotSpec { role = role, range = 3.6f, interval = .8f, damage = 14 }).ToArray(),
             Routes = new[] { new Route(new[] { new Vector2(8, 0), new Vector2(-10, 0) }, 1.65f) },
             Waves = new[] { new[] {
                 new SpawnGroup { Enemy = new EnemySpec { health = 20, speed = 1.4f, leakDamage = 1 }, Count = 2, Interval = 2 },
@@ -82,10 +82,10 @@ static class Check
         var sim = new DefenseSimulation(setup);
         var robot = sim.Place(spec, 1, new Vector2(0, 2.2f), out var error);
         Require(robot != null, error);
-        sim.ApplyProgram(robot.Id, "intro", new[] {
-            new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)),
-            new CodeBlock(BlockKind.Slash, "0", new CodeBlock(BlockKind.Variable, "enemy"))
-        });
+        // 1-1's answer: the function runs once a wave, the loop swings five times.
+        var loop = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "5"));
+        loop.Body.Add(new CodeBlock(BlockKind.Slash));
+        sim.ApplyProgram(robot.Id, "intro", new[] { loop });
         sim.Start();
         bool paused = false;
         for (int i = 0; i < 10000 && sim.Phase == BattlePhase.Running; i++)
@@ -105,7 +105,7 @@ static class Check
     }
     static void NearestTeachingRobot()
     {
-        var warrior = new RobotSpec { role = RobotRole.Warrior, range = 3.2f, interval = .8f, damage = 14 };
+        var warrior = new RobotSpec { role = RobotRole.Warrior, range = 3.6f, interval = .8f, damage = 14 };
         var group = new SpawnGroup { Enemy = new EnemySpec { health = 20, speed = 1 }, RouteIndex = 0, Count = 1, Interval = 1 };
         var sim = new DefenseSimulation(new BattleSetup {
             Stage = 1, PlayerFlow = true, InitialWave = 2,
@@ -116,7 +116,7 @@ static class Check
             },
             Min = new Vector2(-12, -5), Max = new Vector2(12, 5),
             ActionProfiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>()
-                .Select(role => new RobotSpec { role = role, range = 3.2f, interval = .8f, damage = 14 }).ToArray(),
+                .Select(role => new RobotSpec { role = role, range = 3.6f, interval = .8f, damage = 14 }).ToArray(),
             Routes = new[] { new Route(new[] { new Vector2(-10, 0), new Vector2(10, 0) }, 1) },
             Waves = new[] { new[] { group }, new[] { group }, new[] { group } }
         });
@@ -130,12 +130,12 @@ static class Check
     }
     static void Main()
     {
-        const string answer = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= my_attack_range():\n    slash(enemy)";
+        const string answer = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= my_attack_range():\n    slash()";
         Require(Attacks("<=") > 0, "True distance condition must execute the attack inside if");
         Require(Attacks(">") == 0, "False condition must skip the attack even when the enemy is in attack range");
         Require(TutorialWatcher.Matches(new DefenseProgram("renamed", Program("<=", "target", "distance")), answer), "Consistent custom variable names should be accepted");
         Require(!TutorialWatcher.Matches(new DefenseProgram("wrong", Program(">")), answer), "Wrong comparison must not finish the guided lesson");
-        Require(FirstSlashHits(false) == 1 && FirstSlashHits(true) == 1,
+        Require(FirstSlashHits(false) == FirstSlashHits(true),
             "Comparing against the robot's actual range should preserve the first attack timing");
         Require(FirstSlashHits(true, 7, 1.2f, .5f, 1.8f, 2) > 0,
             "The preview must still show an attack with my_attack_range()");

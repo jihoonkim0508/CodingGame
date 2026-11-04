@@ -31,7 +31,13 @@ namespace CodingGame.Defense.Editor
                     block.Body.AddRange(Suite(lines, ref index, depth + 4));
                     result.Add(block);
                 }
-                else if (line.StartsWith("slash(")) result.Add(new CodeBlock(BlockKind.Slash, "0", Value(line.Substring(6, line.Length - 7))));
+                else if (line.StartsWith("for i in range(") && line.EndsWith("):"))
+                {
+                    var block = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, line.Substring(15, line.Length - 17)));
+                    block.Body.AddRange(Suite(lines, ref index, depth + 4));
+                    result.Add(block);
+                }
+                else if (line == "slash()") result.Add(new CodeBlock(BlockKind.Slash));
                 else
                 {
                     var parts = line.Split(new[] { " = " }, 2, StringSplitOptions.None);
