@@ -29,11 +29,9 @@ foreach (var owner in new UnityEngine.Object[] { battle, preview })
     for (int i = 0; i < line.positionCount - 1; i++)
     {
         var delta = line.GetPosition(i) - center;
-        if (UnityEngine.Mathf.Abs(delta.magnitude - 3) > .001f || delta.x > .001f)
-            throw new System.Exception("Displayed range differs from left-facing radius-three splash.");
+        if (UnityEngine.Mathf.Abs(delta.magnitude - 3) > .001f)
+            throw new System.Exception("Displayed range differs from the radius-three ring around the robot (slash() hits all around).");
     }
-    if (UnityEngine.Vector3.Distance((line.GetPosition(0) + line.GetPosition(line.positionCount - 2)) * .5f, center) > .001f)
-        throw new System.Exception("Robot is not centered on the diameter.");
     type.GetMethod("Tick").Invoke(effects, new object[] { 0f });
     if (((System.ValueTuple<CodingGame.Defense.DefenseRangeRing, float>)ranges[0]).Item2 != pair.Item2)
         throw new System.Exception("Paused range expired.");

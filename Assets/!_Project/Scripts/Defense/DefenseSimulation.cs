@@ -15,7 +15,7 @@ namespace CodingGame.Defense
         public readonly List<RobotState> Robots = new List<RobotState>();
         public readonly List<EnemyState> Enemies = new List<EnemyState>();
         public readonly List<ProjectileState> Projectiles = new List<ProjectileState>();
-        // 근접 베기: 휘두른 검이 정면을 지날 때(공격 간격의 40% 뒤) 피해를 줍니다(기획: 이펙트·애니메이션과 같은 순간).
+        // 근접 베기: 한 바퀴 휘두른 검이 지날 때(공격 간격의 40% 뒤) 사거리 안 모든 적에게 피해를 줍니다(기획: 이펙트·애니메이션과 같은 순간).
         const double StrikeShare = .4;
         readonly List<(double at, RobotState bot, EnemyState[] targets, float damage)> strikes = new List<(double, RobotState, EnemyState[], float)>();
         public readonly List<CombatEvent> Events = new List<CombatEvent>();
@@ -56,10 +56,8 @@ namespace CodingGame.Defense
         public readonly Dictionary<RobotRole, int> RobotInventory = new Dictionary<RobotRole, int>();
         public int RobotAvailable(RobotRole role) => !Setup.PlayerFlow || (!Options.inventoryLimit && RobotUnlocked(role)) ? int.MaxValue : RobotInventory.TryGetValue(role, out int count) ? count : 0;
         public bool RobotUnlocked(RobotRole role) => !Setup.PlayerFlow || Options.unlockAll || RobotInventory.ContainsKey(role);
-        public bool LoopsUnlocked => Setup.PlayerFlow && (Inventory.ContainsKey(BlockKind.For) || Inventory.ContainsKey(BlockKind.While));
-        // The robot's function runs as `for i in range(5): f()` per wave; once loops unlock it runs once, so the player writes the loop.
-        public int FunctionRepeatLimit => Setup.PlayerFlow && LoopsUnlocked ? 1 :
-            Setup.PlayerFlow && Setup.Stage == 1 && WaveIndex == 4 ? 8 : Setup.FunctionRepeatLimit;
+        // The robot's function runs once per wave (loops come first, 1-1), so repeating is the player's for loop.
+        public int FunctionRepeatLimit => Setup.FunctionRepeatLimit;
         public void GrantRobot(RobotRole role, int count)
         {
             if (!Enum.IsDefined(typeof(RobotRole), role) || count < 1) throw new ArgumentException("아이템 종류와 양수 수량을 확인하세요.");
@@ -192,33 +190,40 @@ namespace CodingGame.Defense
         {
             if (Phase != BattlePhase.Ready) return "준비 단계에서 시작할 수 있습니다.";
             if (Setup.PlayerFlow && Robots.Count == 0) return "로봇을 먼저 배치하세요.";
+            // Free-play waves: the newly granted robot must use what the previous lesson taught.
             if (Setup.PlayerFlow && Setup.Stage == 1 && WaveIndex == 1)
             {
-                if (Robots.Count < 2) return "1-2 목표: 새 전사를 한 대 더 배치하세요.";
-                if (!Robots.Skip(1).Any(bot => bot.Program != null &&
-                    bot.Program.BlockCount(BlockKind.DeclareVariable) > 0 &&
-                    bot.Program.BlockCount(BlockKind.NearestEnemy) > 0 &&
-                    bot.Program.BlockCount(BlockKind.Variable) > 0 &&
-                    bot.Program.BlockCount(BlockKind.Slash) > 0))
-                    return "1-2 목표: 새 전사에게 적 찾기·변수·베기 코드를 적용하세요.";
+                if (Robots.Count(bot => bot.Spec.role == RobotRole.Warrior) < 2) return "1-2 목표: 새 전사를 한 대 더 배치하세요.";
+                if (!Robots.Where(bot => bot.Spec.role == RobotRole.Warrior).Skip(1).Any(bot => bot.Program != null &&
+                    bot.Program.BlockCount(BlockKind.For) > 0 && bot.Program.BlockCount(BlockKind.Slash) > 0))
+                    return "1-2 목표: 새 전사에게 for 반복 안에서 베는 코드를 적용하세요.";
             }
-            if (Setup.PlayerFlow && Setup.Stage == 1 && WaveIndex == 3 &&
-                Robots.Count(bot => bot.Spec.role == RobotRole.Warrior && HasDistanceConditionAttack(bot.Program)) < 2)
-                return "1-4 목표: 두 전사 모두 적과의 거리를 비교하는 if 안에 베기를 넣으세요.";
+            if (Setup.PlayerFlow && Setup.Stage == 1 && WaveIndex == 3)
+            {
+                if (Robots.Count(bot => bot.Spec.role == RobotRole.Shooter) < 2) return "1-4 목표: 새 원거리 로봇을 한 대 더 배치하세요.";
+                if (!Robots.Where(bot => bot.Spec.role == RobotRole.Shooter).Skip(1).Any(bot => bot.Program != null &&
+                    bot.Program.BlockCount(BlockKind.DeclareVariable) > 0 && bot.Program.BlockCount(BlockKind.NearestEnemy) > 0 &&
+                    bot.Program.BlockCount(BlockKind.Variable) > 0 && bot.Program.BlockCount(BlockKind.Shot) > 0))
+                    return "1-4 목표: 새 원거리 로봇에게 적을 변수에 저장해 공격하는 코드를 적용하세요.";
+            }
+            if (Setup.PlayerFlow && Setup.Stage == 2 && WaveIndex == 1 &&
+                Robots.Count(bot => bot.Spec.role == RobotRole.Shooter && HasDistanceConditionAttack(bot.Program)) < 2)
+                return "2-2 목표: 원거리 로봇 두 대 모두 적과의 거리를 비교하는 if 안에 공격을 넣으세요.";
             return null;
         }
         static bool HasDistanceConditionAttack(DefenseProgram program)
         {
             if (program == null) return false;
-            var blocks = program.CopyBlocks();
+            var blocks = All(program.CopyBlocks()).ToArray(); // the if sits inside the player's loop
             var distanceNames = blocks.Where(block => block.Kind == BlockKind.DeclareVariable &&
                 block.Arguments.Any(value => ContainsKind(value, BlockKind.Distance)))
                 .Select(block => block.Value).ToArray();
             return distanceNames.Length > 0 && blocks.Any(block => block.Kind == BlockKind.If &&
                 block.Arguments.Any(condition => condition.Kind == BlockKind.Comparison &&
                     distanceNames.Any(name => ContainsVariable(condition, name))) &&
-                block.Body.Any(action => action.Kind == BlockKind.Slash));
+                block.Body.Any(action => action.Kind == BlockKind.Shot || action.Kind == BlockKind.Attack));
         }
+        static IEnumerable<CodeBlock> All(IEnumerable<CodeBlock> blocks) => blocks.SelectMany(block => new[] { block }.Concat(All(block.Body)));
         static bool ContainsKind(CodeBlock block, BlockKind kind) => block.Kind == kind ||
             block.Arguments.Any(child => ContainsKind(child, kind)) || block.Body.Any(child => ContainsKind(child, kind));
         static bool ContainsVariable(CodeBlock block, string name) => block.Kind == BlockKind.Variable && block.Value == name ||
@@ -445,9 +450,8 @@ namespace CodingGame.Defense
             double strike = ActionInterval(bot, RobotAction.Slash) * StrikeShare;
             Events.Add(new CombatEvent { Kind = "slash", Source = bot.Id, Target = target.Id,
                 Origin = bot.Position, Position = bot.Position + direction, Radius = bot.Range, Seconds = (float)strike });
-            // The swing hits the enemies in front when it starts, even if they move on before the sword gets there.
-            strikes.Add((Time + strike, bot, targets.Where(e => Vector2.Dot(e.Position - bot.Position, direction) >= -.00001f).ToArray(),
-                ActionDamage(bot, RobotAction.Slash)));
+            // The 360° swing hits every enemy in range when it starts, even if they move on before the sword gets there.
+            strikes.Add((Time + strike, bot, targets.ToArray(), ActionDamage(bot, RobotAction.Slash)));
         }
         // A robot recalled before its sword gets there does not hit.
         void ResolveStrikes()

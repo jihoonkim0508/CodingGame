@@ -33,8 +33,8 @@ namespace CodingGame.Defense
         const string UnitPrefix = "Robot.Unit.", RangePrefix = "Robot.Range.";
         public const string RobotButtonPrefix = "Battle.Robot.";
         public static string RobotButton(int index) => RobotButtonPrefix + index;
-        // The index-th placed robot (by id, from 0, any role) and its attack range circle; DefenseBattle registers them.
-        // TutorialStep.robotIndex counts warriors only; the two agree while Stage 1 has only warriors.
+        // The index-th robot of TutorialWatcher.OrderedRobots (any role) and its attack range circle; DefenseBattle registers them.
+        // TutorialStep.robotIndex uses the same order.
         public static string Unit(int index) => UnitPrefix + index;
         public static string Range(int index) => RangePrefix + index;
         public static bool IsRange(string key) => key != null && key.StartsWith(RangePrefix, System.StringComparison.Ordinal);

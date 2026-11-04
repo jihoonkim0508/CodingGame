@@ -54,81 +54,68 @@ MonoBehaviour:
     lessons:
     - stage: 1
       wave: 1
-      topic: "\uBCC0\uC218\uC640 \uAC8C\uC784 \uD50C\uB808\uC774 \uBC29\uBC95 \uC18C\uAC1C"
+      topic: "\uBC18\uBCF5: for\uB85C \uC5EC\uB7EC \uBC88 \uBCA0\uAE30"
       robots:
       - role: 1
         count: 1
       blocks:
-      - kind: 14
-        count: 1
-      - kind: 6
-        count: 1
-      - kind: 15
-        count: 1
       - kind: 19
+        count: 1
+      - kind: 16
+        count: 1
+      - kind: 10
         count: 1
       rewards:
       - kind: 19
         count: 1
     - stage: 1
       wave: 2
-      topic: "\uBCC0\uC218 \uC790\uC720 \uD50C\uB808\uC774"
+      topic: "\uBC18\uBCF5 \uC790\uC720 \uD50C\uB808\uC774"
       robots:
       - role: 1
         count: 1
       blocks:
-      - kind: 14
+      - kind: 16
         count: 1
-      - kind: 6
-        count: 1
-      - kind: 15
+      - kind: 10
         count: 1
       rewards:
-      - kind: 19
+      - kind: 16
         count: 1
     - stage: 1
       wave: 3
-      topic: "\uC870\uAC74: \uB0B4 \uACF5\uACA9 \uC0AC\uAC70\uB9AC \uC548\uC774\uBA74
-        \uBCA0\uAE30"
-      robots: []
-      blocks:
-      - kind: 14
-        count: 1
-      - kind: 15
-        count: 2
-      - kind: 27
-        count: 1
-      - kind: 3
-        count: 1
-      - kind: 11
-        count: 1
-      - kind: 26
-        count: 1
-      rewards:
-      - kind: 11
-        count: 1
-    - stage: 1
-      wave: 4
-      topic: "\uC870\uAC74\uBB38 \uD65C\uC6A9 \uC790\uC720 \uD50C\uB808\uC774"
+      topic: "\uBCC0\uC218: \uC801\uC744 \uC800\uC7A5\uD574 \uC6D0\uAC70\uB9AC \uACF5\uACA9"
       robots:
-      - role: 1
+      - role: 4
         count: 1
       blocks:
       - kind: 14
-        count: 2
+        count: 1
       - kind: 6
         count: 1
       - kind: 15
-        count: 3
-      - kind: 19
         count: 1
-      - kind: 27
+      - kind: 22
         count: 1
-      - kind: 3
+      - kind: 10
         count: 1
-      - kind: 11
+      rewards:
+      - kind: 22
         count: 1
-      - kind: 26
+    - stage: 1
+      wave: 4
+      topic: "\uBCC0\uC218 \uC790\uC720 \uD50C\uB808\uC774"
+      robots:
+      - role: 4
+        count: 1
+      blocks:
+      - kind: 14
+        count: 1
+      - kind: 6
+        count: 1
+      - kind: 15
+        count: 1
+      - kind: 16
         count: 1
       - kind: 10
         count: 1
@@ -137,77 +124,82 @@ MonoBehaviour:
         count: 1
     - stage: 1
       wave: 5
-      topic: "\uBCC0\uC218\uC640 \uC870\uAC74\uBB38: \uBCF4\uC2A4 \uC885\uD569 \uC2E4\uC2B5"
+      topic: "\uBC18\uBCF5\uACFC \uBCC0\uC218: \uBCF4\uC2A4 \uC885\uD569 \uC2E4\uC2B5"
       robots: []
       blocks:
       - kind: 14
-        count: 3
-      - kind: 15
-        count: 5
-      - kind: 10
-        count: 2
-      - kind: 3
-        count: 2
-      - kind: 11
-        count: 2
-      - kind: 26
-        count: 2
-      - kind: 27
         count: 1
       - kind: 6
         count: 1
-      - kind: 19
+      - kind: 15
+        count: 1
+      - kind: 16
+        count: 1
+      - kind: 10
         count: 1
       rewards:
-      - kind: 19
+      - kind: 22
         count: 1
     - stage: 2
       wave: 1
-      topic: "\uBC18\uBCF5 \uD574\uAE08: for\uC640 \uBC18\uBCF5 \uD69F\uC218"
+      topic: "\uC870\uAC74: \uAC00\uAE4C\uC6B4 \uC801\uB9CC \uC3D8\uAE30"
       robots:
-      - role: 5
-        count: 1
       - role: 4
-        count: 2
+        count: 1
       blocks:
-      - kind: 16
-        count: 2
       - kind: 3
-        count: 2
+        count: 1
       - kind: 11
-        count: 2
+        count: 1
       - kind: 14
         count: 1
       - kind: 15
-        count: 3
-      - kind: 6
-        count: 3
-      - kind: 8
-        count: 1
-      - kind: 9
+        count: 2
+      - kind: 27
         count: 1
       - kind: 10
-        count: 4
-      - kind: 23
         count: 1
-      - kind: 22
-        count: 2
       rewards:
-      - kind: 16
+      - kind: 11
         count: 1
     - stage: 2
       wave: 2
-      topic: "\uAC70\uB9AC \uAE30\uC900\uAC12 \uC870\uC815"
+      topic: "\uC870\uAC74 \uC790\uC720 \uD50C\uB808\uC774: \uAC70\uB9AC \uAE30\uC900\uAC12
+        \uC870\uC815"
       robots: []
-      blocks: []
+      blocks:
+      - kind: 3
+        count: 1
+      - kind: 27
+        count: 1
+      - kind: 15
+        count: 1
       rewards:
       - kind: 11
         count: 1
     - stage: 2
       wave: 3
       topic: "\uAC70\uB9AC \uC870\uAC74\uACFC \uAC10\uC18D"
-      robots: []
-      blocks: []
+      robots:
+      - role: 5
+        count: 1
+      blocks:
+      - kind: 23
+        count: 1
+      - kind: 3
+        count: 1
+      - kind: 14
+        count: 2
+      - kind: 15
+        count: 3
+      - kind: 6
+        count: 1
+      - kind: 27
+        count: 1
+      - kind: 16
+        count: 1
+      - kind: 10
+        count: 2
       rewards:
       - kind: 23
         count: 1
@@ -380,7 +372,7 @@ MonoBehaviour:
         route: 0
         count: 2
         delay: 0
-        interval: 0.5
+        interval: 2
         healthOverride: 0
         speedOverride: 0
         leakDamageOverride: 0

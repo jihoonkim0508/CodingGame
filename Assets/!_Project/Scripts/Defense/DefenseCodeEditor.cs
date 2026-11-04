@@ -108,33 +108,40 @@ namespace CodingGame.Defense
             if (robot != null && sim.CanEdit) { sim.ApplyProgram(id, robot.Program?.Name ?? "robot_" + id, Array.Empty<CodeBlock>()); sim.SetDraft(id, Array.Empty<BlockKind>()); }
         }
 
+        // 2-1 (condition): the shooter's loop with the enemy and its distance stored; the player adds the if under them.
         public void PrepareDistanceExample()
         {
             if (!IsOpen || !HasCurrentSession) return;
-            panel.LoadProgram(panel.FunctionName, new[] {
+            panel.LoadProgram(panel.FunctionName, new[] { Loop(
                 new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)),
                 new CodeBlock(BlockKind.DeclareVariable, "enemy_distance", new CodeBlock(BlockKind.Distance, "0",
-                    new CodeBlock(BlockKind.Variable, "enemy"), new CodeBlock(BlockKind.MyPos)))
-            });
+                    new CodeBlock(BlockKind.Variable, "enemy"), new CodeBlock(BlockKind.MyPos)))) });
             if (!panel.IsApplied) throw new InvalidOperationException("조건문 기초 코드의 블록 지급량을 확인하세요.");
         }
+        // 2-1: the same loop shooting without a condition, to compare its far, weak shots with the conditional ones.
         public void PrepareBaselineExample()
         {
             if (!IsOpen || !HasCurrentSession) return;
-            panel.LoadProgram(panel.FunctionName, new[] {
+            panel.LoadProgram(panel.FunctionName, new[] { Loop(
                 new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)),
-                new CodeBlock(BlockKind.Slash, "0", new CodeBlock(BlockKind.Variable, "enemy"))
-            });
-            if (!panel.IsApplied) throw new InvalidOperationException("비교용 기본 베기 코드의 블록 지급량을 확인하세요.");
+                new CodeBlock(BlockKind.Shot, "0", new CodeBlock(BlockKind.Variable, "enemy"))) });
+            if (!panel.IsApplied) throw new InvalidOperationException("비교용 기본 공격 코드의 블록 지급량을 확인하세요.");
             RestartPreview();
+        }
+        static CodeBlock Loop(params CodeBlock[] body)
+        {
+            var loop = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "10"));
+            loop.Body.AddRange(body);
+            return loop;
         }
         public void RestartPreview() => battle.RestartCodePreview();
         // Python text of condition/value blocks lying in the workspace away from the start anchor (not part of the program).
         public IEnumerable<string> LooseExpressions() => !IsOpen ? Enumerable.Empty<string>() : panel.Program.LooseRoots()
             .Where(root => PythonTreeCompiler.OutputSlot(root.Kind) != BlockSlotKind.Statement)
             .Select(root => PythonTreeCompiler.ExpressionText(root.Read()));
-        // Tutorial targets inside the editor (TutorialKeys.IsEditorArea): Editor.Code.Start | Loose | Line.N | After.N | Body.N | Arg.N.i[.j…],
-        // with N counted from 1 along the start chain, and Editor.Palette.<BlockKind>. False when not on screen.
+        // Tutorial targets inside the editor (TutorialKeys.IsEditorArea): Editor.Code.Start | Loose | Line.N | After.N | Body.N | Arg.N.i[.j…]
+        // | Name.N[.i…] | Option.N[.i…], with N counted from 1 along the start chain ("1>2": the second line inside line 1's body),
+        // and Editor.Palette.<BlockKind>. False when not on screen.
         public bool TryGetTutorialCorners(string key, Vector3[] corners)
         {
             if (!IsOpen || key == null) return false;
@@ -147,15 +154,14 @@ namespace CodingGame.Defense
             {
                 var first = program.StartChain().FirstOrDefault();
                 if (first) return Corners(first.Rect, null, corners);
-                // ponytail: an empty start is boxed at the size of 1-1's finished first line (enemy = get_nearest_enemy(), 352x46),
-                // the only step that points here; measure the expected block instead if another step needs it.
+                // ponytail: an empty start is boxed at about one first line's size (352x46), for the lesson steps that place
+                // their first block there; measure the expected block instead if a step needs a tighter box.
                 var slot = program.StartArea;
                 return Corners(program.Rect, new Rect(slot.xMin, slot.yMax - 46, Mathf.Max(slot.width, 352), 46), corners);
             }
             if (parts[0] == "Loose") { var loose = program.LooseRoots().FirstOrDefault(); return Corners(loose ? loose.Rect : null, null, corners); }
-            var chain = program.StartChain();
-            if (parts.Length < 2 || !int.TryParse(parts[1], out int line) || line < 1 || line > chain.Count) return false;
-            var block = chain[line - 1];
+            var block = parts.Length < 2 ? null : Line(parts[1]);
+            if (!block) return false;
             switch (parts[0])
             {
                 case "Name":
@@ -166,10 +172,6 @@ namespace CodingGame.Defense
                         block = block.Arguments[arg].Blocks[0];
                     }
                     return Corners(parts[0] == "Name" ? block.InputRect : block.OptionRect, null, corners);
-                case "BodyArg":
-                case "BodyName":
-                    var bodySlot = BodyArgument(parts);
-                    return Corners(parts[0] == "BodyArg" ? bodySlot?.Rect : bodySlot?.Blocks.FirstOrDefault()?.InputRect, null, corners);
                 case "Line": return Corners(block.Rect, null, corners);
                 // The slot where the next block snaps: one line high, right under line N.
                 case "After": var r = block.Rect.rect; return Corners(block.Rect, new Rect(r.xMin, r.yMin - r.height, r.width, r.height), corners);
@@ -211,23 +213,22 @@ namespace CodingGame.Defense
             var slot = TutorialSlot(key);
             if (slot == null) return false;
             // A player may have filled the slot before this guide started. Keep their work;
-            // the tutorial's normal completion checks decide whether it is correct.
-            if (slot.Blocks.Count > 0) return true;
+            // the tutorial's normal completion checks decide whether it is correct. A body is still selected: the next line appends.
+            if (slot.Blocks.Count > 0 && slot.Slot != BlockSlotKind.Statement) return true;
             panel.Select(slot);
             return true;
         }
 
         // A draft block's input/option can be checked before its surrounding if is complete.
-        // Expected: "3.0|<=" or "3.0.0|enemy_distance" (line, then argument indexes).
+        // Expected: "1.0|4", "1>3.0|<=" or "1>3.0.0|enemy_distance" (line, then argument indexes).
         public bool DraftValueMatches(string expected)
         {
             if (!IsOpen || string.IsNullOrEmpty(expected)) return false;
             var pair = expected.Split('|');
             if (pair.Length != 2) return false;
             var path = pair[0].Split('.');
-            var chain = panel.Program.StartChain();
-            if (!int.TryParse(path[0], out int line) || line < 1 || line > chain.Count) return false;
-            var block = chain[line - 1];
+            var block = Line(path[0]);
+            if (!block) return false;
             for (int i = 1; i < path.Length; i++)
             {
                 if (!int.TryParse(path[i], out int arg) || arg < 0 || arg >= block.Arguments.Count) return false;
@@ -248,14 +249,26 @@ namespace CodingGame.Defense
             return false;
         }
 
-        // Expected form: "1:DeclareVariable". Checks the connected draft, not the last compiled program.
+        // Expected form: "1:For" or "1>2:Shot". Checks the connected draft, not the last compiled program.
         public bool CodeLinePlaced(string expected)
         {
             if (!IsOpen || string.IsNullOrEmpty(expected)) return false;
             var parts = expected.Split(':');
-            var chain = panel.Program.StartChain();
-            return parts.Length == 2 && int.TryParse(parts[0], out int line) && line > 0 && line <= chain.Count &&
-                Enum.TryParse(parts[1], out BlockKind kind) && chain[line - 1].BaseKind == kind;
+            var block = Line(parts[0]);
+            return parts.Length == 2 && block && Enum.TryParse(parts[1], out BlockKind kind) && block.BaseKind == kind;
+        }
+        // "3" is line 3 of the start chain; "1>2" the second line inside line 1's body (a for or if), and so on.
+        CommandBlockView Line(string path)
+        {
+            IReadOnlyList<CommandBlockView> lines = panel.Program.StartChain();
+            CommandBlockView block = null;
+            foreach (var step in path.Split('>'))
+            {
+                if (block) { if (!block.Body) return null; lines = block.Body.Blocks; }
+                if (!int.TryParse(step, out int line) || line < 1 || line > lines.Count) return null;
+                block = lines[line - 1];
+            }
+            return block;
         }
 
         // Finish editing before the next dialogue can receive stray keystrokes from the completed name field.
@@ -271,10 +284,8 @@ namespace CodingGame.Defense
         {
             if (!IsOpen || key == null || !key.StartsWith(TutorialKeys.CodePrefix)) return null;
             var parts = key.Substring(TutorialKeys.CodePrefix.Length).Split('.');
-            if (parts[0] == "BodyArg") return BodyArgument(parts);
-            var chain = panel.Program.StartChain();
-            if (parts.Length < 2 || !int.TryParse(parts[1], out int line) || line < 1 || line > chain.Count) return null;
-            var block = chain[line - 1];
+            var block = parts.Length < 2 ? null : Line(parts[1]);
+            if (!block) return null;
             if (parts[0] == "Body") return block.Body;
             if (parts[0] != "Arg" || parts.Length < 3) return null;
             CommandDropZone slot = null;
@@ -287,22 +298,6 @@ namespace CodingGame.Defense
             return slot;
         }
 
-        CommandDropZone BodyArgument(string[] parts)
-        {
-            var chain = panel.Program.StartChain();
-            if (parts.Length < 4 || !int.TryParse(parts[1], out int line) || line < 1 || line > chain.Count) return null;
-            var body = chain[line - 1].Body;
-            if (!body || !int.TryParse(parts[2], out int index) || index < 0 || index >= body.Blocks.Count) return null;
-            var block = body.Blocks[index];
-            CommandDropZone slot = null;
-            for (int i = 3; i < parts.Length; i++)
-            {
-                if (slot) { block = slot.Blocks.FirstOrDefault(); if (!block) return null; }
-                if (!int.TryParse(parts[i], out int arg) || arg < 0 || arg >= block.Arguments.Count) return null;
-                slot = block.Arguments[arg];
-            }
-            return slot;
-        }
         static bool Corners(RectTransform target, Rect? local, Vector3[] corners)
         {
             if (!target || !target.gameObject.activeInHierarchy) return false;

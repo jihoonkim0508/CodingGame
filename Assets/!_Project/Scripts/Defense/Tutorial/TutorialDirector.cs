@@ -47,7 +47,7 @@ namespace CodingGame.Defense
         // Waiting for a trigger hides the dialogue and leaves the game free; a system banner still holds input.
         public bool IsActive => active && view && (view.IsVisible || bannerUp || guideDismissed);
         public bool ShowFreePlayGoal => active &&
-            (active.sequenceId == "1-2" || active.sequenceId == "1-4" || active.sequenceId == "1-5") &&
+            (active.sequenceId == "1-2" || active.sequenceId == "1-4" || active.sequenceId == "1-5" || active.sequenceId == "2-2") &&
             Current?.stepId == "B01" && !view.IsVisible;
         public bool BlocksGameplayInput => IsActive && InputLimited;
         public bool BlocksPreview => BlocksGameplayInput && !AllowPreview;
@@ -238,7 +238,8 @@ namespace CodingGame.Defense
             if (viewedStep == progressStep && !completedStep.Contains(step.stepId) && !string.IsNullOrWhiteSpace(step.dragDemo) && Editor)
                 foreach (var pair in step.dragDemo.Split('|'))
                 {
-                    var ends = pair.Split('>');
+                    // Split at the first '>' only: a slot key may name a line inside a body ("Editor.Code.Arg.1>1.0").
+                    var ends = pair.Split(new[] { '>' }, 2);
                     if (ends.Length == 2 && Editor.TutorialPaletteItem(ends[0].Trim()) is RectTransform item &&
                         bridge.TryGetArea(ends[0].Trim(), out var from) && bridge.TryGetArea(ends[1].Trim(), out var to))
                     { pointer.ShowDrag(item, from, to); return; }

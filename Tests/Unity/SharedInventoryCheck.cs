@@ -27,13 +27,14 @@ public static class SharedInventoryCheck
         var sim = battle.Simulation;
         int warrior = Enumerable.Range(0, 6).Single(i => battle.DefinitionRole(i) == RobotRole.Warrior);
         sim.GrantRobot(RobotRole.Warrior, 2);
-        foreach (var kind in new[] { BlockKind.DeclareVariable, BlockKind.NearestEnemy, BlockKind.Slash }) sim.GrantBlock(kind, 1);
+        foreach (var kind in new[] { BlockKind.DeclareVariable, BlockKind.NearestEnemy, BlockKind.Slash, BlockKind.For }) sim.GrantBlock(kind, 1);
         int a = Place(battle, warrior), b = Place(battle, warrior);
         int slashFree = sim.Available(BlockKind.Slash), declareFree = sim.Available(BlockKind.DeclareVariable);
         var editor = battle.CodeEditor; var panel = editor.Panel;
         editor.Open(a);
-        // slash with an empty target: a syntax error, so robot a acts on nothing.
-        panel.LoadProgram("robot_" + a, new[] { new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)), new CodeBlock(BlockKind.Slash, "0") });
+        // A for without its count: a syntax error, so robot a acts on nothing.
+        var unfinished = new CodeBlock(BlockKind.For); unfinished.Body.Add(new CodeBlock(BlockKind.Slash));
+        panel.LoadProgram("robot_" + a, new[] { new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)), unfinished });
         Require((sim.FindRobot(a).Program?.BlockCount(BlockKind.Slash) ?? 0) == 0, "Syntax error empties the applied code");
         Require(sim.Available(BlockKind.Slash) == slashFree - 1 && sim.Available(BlockKind.DeclareVariable) == declareFree - 1, "Unfinished editor blocks stay reserved");
         editor.Open(b);

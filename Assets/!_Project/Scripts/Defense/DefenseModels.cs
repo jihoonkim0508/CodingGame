@@ -144,7 +144,7 @@ namespace CodingGame.Defense
         public float[] CampaignSeconds;
         public int InitialWave;
         public bool PreviousStageRewards = true;
-        public int FunctionRepeatLimit = 5;
+        public int FunctionRepeatLimit = 1; // runs of the robot function per wave
         public Vector2 Min, Max;
         public Route[] Routes;
         public SpawnGroup[][] Waves;

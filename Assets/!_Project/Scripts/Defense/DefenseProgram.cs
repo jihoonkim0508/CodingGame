@@ -10,9 +10,9 @@ namespace CodingGame.Defense
     /// <summary>검증된 블록 코드를 전투 시간에 맞춰 실행하며, 틱당 명령 수를 제한합니다.</summary>
     public sealed class DefenseProgram
     {
-        enum Op { Statement, Condition, Jump, ForInit, ForTest, ForNext }
+        enum Op { Statement, Condition, Jump, Continue, ForInit, ForTest, ForNext }
         sealed class Instruction { public Op Op; public CodeBlock Block; public int Jump, Loop; }
-        sealed class LoopState { public double Count, Index; }
+        sealed class LoopState { public double Count, Index; public bool Acted; }
         sealed class EnemyValue { public int Id; }
         readonly List<CodeBlock> blocks;
         readonly Dictionary<BlockKind, int> blockCounts;
@@ -79,14 +79,14 @@ namespace CodingGame.Defense
                         var innerBreaks = new List<int>(); var innerContinues = new List<int>();
                         EmitSuite(b.Body, innerBreaks, innerContinues);
                         int step = code.Count;
-                        if (counted) Emit(Op.ForNext, loop: loop);
+                        if (counted) Emit(Op.ForNext, b, loop: loop);
                         Emit(Op.Jump, jump: start);
                         if (test >= 0) code[test].Jump = code.Count;
                         foreach (var exit in innerBreaks) code[exit].Jump = code.Count;
-                        foreach (var repeat in innerContinues) code[repeat].Jump = step;
+                        foreach (var repeat in innerContinues) { code[repeat].Jump = step; code[repeat].Loop = loop; }
                         break;
                     case BlockKind.Break: breaks.Add(Emit(Op.Jump)); break;
-                    case BlockKind.Continue: continues.Add(Emit(Op.Jump)); break;
+                    case BlockKind.Continue: continues.Add(Emit(Op.Continue)); break;
                     default: Emit(Op.Statement, b); break;
                 }
             }
@@ -119,6 +119,8 @@ namespace CodingGame.Defense
                     switch (instruction.Op)
                     {
                         case Op.Jump: pc = instruction.Jump; break;
+                        // A turn skipped on purpose still counts (see ForNext).
+                        case Op.Continue: if (loops.TryGetValue(instruction.Loop, out var skipped)) skipped.Acted = true; pc = instruction.Jump; break;
                         case Op.Condition: pc = Truth(Value(instruction.Block, sim, robot)) ? pc + 1 : instruction.Jump; break;
                         case Op.ForInit:
                             double count = Number(Value(instruction.Block, sim, robot));
@@ -129,7 +131,12 @@ namespace CodingGame.Defense
                             if (state.Index >= state.Count) pc = instruction.Jump;
                             else { variables["i"] = state.Index; pc++; }
                             break;
-                        case Op.ForNext: loops[instruction.Loop].Index++; pc++; break;
+                        case Op.ForNext:
+                            var iteration = loops[instruction.Loop];
+                            // A turn that did not act (no target in range, or a false condition) is retried after enemies move,
+                            // so range(n) means n actions; a turn ended by continue counts.
+                            if (!iteration.Acted && instruction.Block.Body.Any(Acts)) { wakeTime = sim.Time + .25; pc++; return; }
+                            iteration.Index++; iteration.Acted = false; pc++; break;
                         default:
                             var block = instruction.Block;
                             if (block.Kind == BlockKind.DeclareVariable)
@@ -157,7 +164,7 @@ namespace CodingGame.Defense
                                 { robot.LastResult = ActionResult.NoTarget; pc++; return; }
                             }
                             var result = sim.RequestAction(robot.Id, action, target);
-                            if (result == ActionResult.Executed) actedThisInvocation = true;
+                            if (result == ActionResult.Executed) { actedThisInvocation = true; foreach (var open in loops.Values) open.Acted = true; }
                             // 재사용 대기 중에는 같은 명령에서 기다리고, 실행 결과가 나오면 다음으로 이동합니다.
                             if (result != ActionResult.CoolingDown) pc++;
                             return;
@@ -168,7 +175,9 @@ namespace CodingGame.Defense
             catch (FormatException error) { Fault = error.Message; }
         }
         static bool TargetsEnemies(CodeBlock block) => block != null && (PythonTreeCompiler.HasEnemyArgument(block.Kind) ||
-            block.Kind == BlockKind.NearestEnemy || block.Arguments.Any(TargetsEnemies) || block.Body.Any(TargetsEnemies));
+            block.Kind == BlockKind.Slash || block.Kind == BlockKind.NearestEnemy || block.Arguments.Any(TargetsEnemies) || block.Body.Any(TargetsEnemies));
+        static bool Acts(CodeBlock block) => PythonTreeCompiler.HasEnemyArgument(block.Kind) || block.Kind == BlockKind.Slash ||
+            block.Kind == BlockKind.Buff || block.Body.Any(Acts);
         static RobotAction Action(BlockKind kind)
         {
             switch (kind)

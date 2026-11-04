@@ -9,12 +9,13 @@ static class CampaignCheck
     static int checks;
     static void Assert(bool value, string label) { if (!value) throw new Exception(label); checks++; }
     static BattleSetup Setup() => new BattleSetup { Progression = FixtureProgression.Create(), TestOptions = new DefenseTestOptions(),
-        PlayerFlow = true, Min = new Vector2(-20,-10), Max = new Vector2(20,10), BaseHealth = 20,
+        PlayerFlow = true, FunctionRepeatLimit = 5, Min = new Vector2(-20,-10), Max = new Vector2(20,10), BaseHealth = 20,
         Routes = new[]{new Route(new[]{new Vector2(-10,0),new Vector2(10,0)},1.1f)},
         ActionProfiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(Spec).ToArray(),
         Waves = Enumerable.Range(0,5).Select(i => new[]{new SpawnGroup{Count=2+i,Interval=.2f,Enemy=new EnemySpec{health=10,speed=1}}}).ToArray()
     };
     // Shots land within one .1 s interval, so five program runs kill five enemies (real shooters fire every 1.2 s).
+    // The fixture keeps five runs a wave so these reward and inventory checks need no loop; the game runs the function once.
     static RobotSpec Spec(RobotRole role) => new RobotSpec{role=role,damage=100,range=8,interval=.1f,projectileSpeed=200};
     static RobotState Place(DefenseSimulation sim, RobotRole role, float x=-8) => sim.Place(Spec(role),(int)role,new Vector2(x,role==RobotRole.Tank?0:2),out _);
     static void RunWave(DefenseSimulation sim) { for(int i=0;i<6000&&sim.Phase==BattlePhase.Running;i++)sim.Advance(1.0/60); }
@@ -31,31 +32,31 @@ static class CampaignCheck
     }
     static void CheckTutorialWatcher()
     {
-        const string answer="enemy = get_nearest_enemy()\nslash(enemy)";
+        const string answer="enemy = get_nearest_enemy()\nattack(enemy)";
         var code=new[]{new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)),
-            new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"enemy"))};
+            new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.Variable,"enemy"))};
         var program=new DefenseProgram("robot",code);
-        Assert(TutorialWatcher.Matches(program,answer)&&TutorialWatcher.Matches(program,string.Join("", "  enemy = get_nearest_enemy()", Environment.NewLine, Environment.NewLine, "    slash(enemy)  ")),"program match ignores header, indent and blank lines");
+        Assert(TutorialWatcher.Matches(program,answer)&&TutorialWatcher.Matches(program,string.Join("", "  enemy = get_nearest_enemy()", Environment.NewLine, Environment.NewLine, "    attack(enemy)  ")),"program match ignores header, indent and blank lines");
         Assert(!TutorialWatcher.Matches(program,"enemy = get_nearest_enemy()")&&!TutorialWatcher.Matches(null,answer),"partial or missing program does not match");
         var renamed=new DefenseProgram("robot",new[]{new CodeBlock(BlockKind.DeclareVariable,"target",new CodeBlock(BlockKind.NearestEnemy)),
-            new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"target"))});
+            new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.Variable,"target"))});
         Assert(TutorialWatcher.Matches(renamed,answer),"any variable name holding the enemy matches");
         var korean=new DefenseProgram("robot",new[]{new CodeBlock(BlockKind.DeclareVariable,"적",new CodeBlock(BlockKind.NearestEnemy)),
-            new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"적"))});
+            new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.Variable,"적"))});
         Assert(TutorialWatcher.Matches(korean,answer),"a Korean variable name matches too");
         var later=new DefenseProgram("robot",new[]{new CodeBlock(BlockKind.DeclareVariable,"e",new CodeBlock(BlockKind.NearestEnemy)),
-            new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"e")),
+            new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.Variable,"e")),
             new CodeBlock(BlockKind.DeclareVariable,"d",new CodeBlock(BlockKind.Distance,"0",new CodeBlock(BlockKind.Variable,"e"),new CodeBlock(BlockKind.MyPos)))});
-        Assert(TutorialWatcher.Matches(later,"enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nslash(enemy)"),"distance line set below the attack still matches");
-        const string taught="enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nslash(enemy)";
+        Assert(TutorialWatcher.Matches(later,"enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nattack(enemy)"),"distance line set below the attack still matches");
+        const string taught="enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nattack(enemy)";
         Assert(TutorialWatcher.ConditionMatches("d <= my_attack_range()",later,"enemy_distance <= my_attack_range()",taught)&&
             !TutorialWatcher.ConditionMatches("e <= my_attack_range()",later,"enemy_distance <= my_attack_range()",taught)&&
             !TutorialWatcher.ConditionMatches("d < my_attack_range()",later,"enemy_distance <= my_attack_range()",taught),
             "loose condition matches with the player's own distance variable, not another variable or operator");
         var wrong=new DefenseProgram("robot",new[]{new CodeBlock(BlockKind.DeclareVariable,"e",new CodeBlock(BlockKind.NearestEnemy)),
-            new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"e")),
+            new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.Variable,"e")),
             new CodeBlock(BlockKind.DeclareVariable,"d",new CodeBlock(BlockKind.Hp,"0",new CodeBlock(BlockKind.Variable,"e")))});
-        Assert(!TutorialWatcher.Matches(wrong,"enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nslash(enemy)"),"a different value still does not match");
+        Assert(!TutorialWatcher.Matches(wrong,"enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nattack(enemy)"),"a different value still does not match");
 
         var sim=new DefenseSimulation(Setup());var teacher=Place(sim,RobotRole.Warrior);var second=Place(sim,RobotRole.Warrior,-5);
         Assert(TutorialWatcher.TeachingRobot(sim)==teacher&&TutorialWatcher.Robot(sim,1)==second&&TutorialWatcher.Robot(sim,2)==null,"robot index counts warriors in placement order");
@@ -183,8 +184,8 @@ static class CampaignCheck
         Assert(needed.PendingDrops.Take(4).SequenceEqual(new[]{BlockKind.Boom,BlockKind.Buff,BlockKind.Block,BlockKind.Boom}),
             "drops fill missing native actions before surplus blocks");
         var runs=new DefenseSimulation(Setup());
-        Assert(runs.FunctionRepeatLimit==5,"function runs 5 times per wave before loops");
-        runs.GrantBlock(BlockKind.For,1);Assert(runs.FunctionRepeatLimit==1,"function runs once after loops unlock");
+        Assert(new BattleSetup().FunctionRepeatLimit==1&&runs.FunctionRepeatLimit==5,"the robot function runs once a wave unless the setup says otherwise");
+        runs.GrantBlock(BlockKind.For,1);Assert(runs.FunctionRepeatLimit==5,"owning loop blocks no longer changes the run limit");
         // The reward flow below needs every wave cleared, not the per-wave run limit.
         var flow=Setup();flow.FunctionRepeatLimit=int.MaxValue;
         var sim=new DefenseSimulation(flow); sim.Start();Assert(sim.Phase==BattlePhase.Ready,"no robots start rejected");

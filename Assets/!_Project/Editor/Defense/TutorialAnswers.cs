@@ -6,9 +6,9 @@ using CodingGame.BlockCoding;
 
 namespace CodingGame.Defense.Editor
 {
-    // Reads the Stage 1 tutorial answers (TutorialStep.expectedCode) into blocks: "name = get_nearest_enemy()",
-    // "x = enemy.distance(get_my_pos())", "name = my_attack_range()", "slash(name)", "if a <= b:" with an indented body.
-    // ponytail: only what the Stage 1 answers use; a new answer shape needs a case here.
+    // Reads the tutorial answers (TutorialStep.expectedCode) into blocks: "for i in range(n):" and "if a <= b:" with an indented
+    // body, "name = get_nearest_enemy()", "x = enemy.distance(get_my_pos())", "name = my_attack_range()", "slash()", "attack(name)".
+    // ponytail: only what the lesson answers use; a new answer shape needs a case here.
     public static class TutorialAnswers
     {
         public static CodeBlock[] Parse(string code)
@@ -25,13 +25,15 @@ namespace CodingGame.Defense.Editor
                 string raw = lines[index]; int depth = raw.Length - raw.TrimStart().Length;
                 if (depth < indent) break;
                 string line = raw.Trim(); index++;
-                if (line.StartsWith("if ") && line.EndsWith(":"))
+                if (line.StartsWith("if ") && line.EndsWith(":") || line.StartsWith("for i in range(") && line.EndsWith("):"))
                 {
-                    var block = new CodeBlock(BlockKind.If, "0", Condition(line.Substring(3, line.Length - 4)));
+                    var block = line.StartsWith("if ") ? new CodeBlock(BlockKind.If, "0", Condition(line.Substring(3, line.Length - 4)))
+                        : new CodeBlock(BlockKind.For, "0", Value(line.Substring(15, line.Length - 17)));
                     block.Body.AddRange(Suite(lines, ref index, depth + 4));
                     result.Add(block);
                 }
-                else if (line.StartsWith("slash(")) result.Add(new CodeBlock(BlockKind.Slash, "0", Value(line.Substring(6, line.Length - 7))));
+                else if (line == "slash()") result.Add(new CodeBlock(BlockKind.Slash));
+                else if (line.StartsWith("attack(")) result.Add(new CodeBlock(BlockKind.Shot, "0", Value(line.Substring(7, line.Length - 8))));
                 else
                 {
                     var parts = line.Split(new[] { " = " }, 2, StringSplitOptions.None);

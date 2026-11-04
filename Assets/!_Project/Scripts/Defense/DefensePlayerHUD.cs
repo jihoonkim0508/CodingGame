@@ -109,9 +109,10 @@ namespace CodingGame.Defense
             guide.transform.parent.gameObject.SetActive(freePlayGoal);
             if (freePlayGoal)
             {
-                guide.text = sim.WaveIndex == 1 ? "목표 · 새 전사를 배치하고 변수로 적을 찾아 공격하기" :
-                    sim.WaveIndex == 3 ? "목표 · 두 전사의 조건문으로 몰려오는 적 막기" :
-                    "목표 · my_attack_range()와 조건문으로 잡몹과 보스 막기";
+                guide.text = battle.Stage == 2 ? "목표 · 두 원거리 로봇이 가까운 적만 쏘도록 조건문 만들기" :
+                    sim.WaveIndex == 1 ? "목표 · 새 전사를 배치하고 for 반복으로 여러 번 베기" :
+                    sim.WaveIndex == 3 ? "목표 · 새 원거리 로봇이 변수에 저장한 적을 공격하기" :
+                    "목표 · 반복과 변수로 잡몹을 모두 막고 보스 처치하기";
                 AnimateGoal();
             }
             else

@@ -18,22 +18,25 @@ static class LearningCheck
             Routes=new[]{new Route(new[]{new Vector2(-10,0),new Vector2(10,0)},1)},
             Waves=Enumerable.Range(0,5).Select(_=>new[]{new SpawnGroup { Enemy=new EnemySpec(), Count=1, Interval=1 }}).ToArray() };
         var sim = new DefenseSimulation(setup);
-        Require(sim.RobotAvailable(RobotRole.Shooter)==2 && sim.Inventory[BlockKind.Shot]==2 && !sim.Inventory.ContainsKey(BlockKind.For), "Only lesson 1-1 supplies");
-        var bot=sim.Place(profiles[(int)RobotRole.Shooter],4,new Vector2(0,3),out _);
+        Require(sim.RobotAvailable(RobotRole.Warrior)==1 && sim.Inventory[BlockKind.Slash]==1 && sim.Inventory[BlockKind.For]==1 &&
+            !sim.Inventory.ContainsKey(BlockKind.Shot), "Only lesson 1-1 supplies: a warrior, slash() and for");
+        var bot=sim.Place(profiles[(int)RobotRole.Warrior],1,new Vector2(0,3),out _);
         Require(bot!=null,"Starting supplies playable");
-        Require(Math.Abs(sim.ActionDamage(bot,RobotAction.Attack,2)-2*sim.ActionDamage(bot,RobotAction.Attack,4))<.001f,"Distance double, damage half");
-        Require(sim.ActionDamage(bot,RobotAction.Attack,0)==sim.ActionDamage(bot,RobotAction.Attack,1),"Near-distance damage capped");
-        sim.ApplyProgram(bot.Id,"fire",new[]{new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy))});
-        // Stage 1 starts 1-2 and 1-4 only with two warriors whose code finds an enemy and slashes it when the distance check passes.
+        CodeBlock Loop(params CodeBlock[] body) { var loop=new CodeBlock(BlockKind.For,"0",new CodeBlock(BlockKind.Number,"4")); loop.Body.AddRange(body); return loop; }
+        sim.ApplyProgram(bot.Id,"spin",new[]{Loop(new CodeBlock(BlockKind.Slash))});
+        // Free play starts only once the new robot uses the last lesson: 1-2 a second warrior slashing in a loop,
+        // 1-4 a second shooter attacking a stored enemy, 2-2 two shooters whose attack waits for a distance check.
         sim.Options.unlockAll=true; sim.Options.inventoryLimit=false;
-        foreach(var x in new[]{-6f,6f})
+        var second=sim.Place(profiles[(int)RobotRole.Warrior],1,new Vector2(-6,3),out _);
+        sim.ApplyProgram(second.Id,"spin",new[]{Loop(new CodeBlock(BlockKind.Slash))});
+        foreach(var x in new[]{6f,12f})
         {
-            var warrior=sim.Place(profiles[(int)RobotRole.Warrior],1,new Vector2(x,3),out _);
-            Require(warrior!=null,"Warrior placed for the 1-2 and 1-4 start goals");
-            sim.ApplyProgram(warrior.Id,"guard",new[]{
+            var shooter=sim.Place(profiles[(int)RobotRole.Shooter],4,new Vector2(x,3),out _);
+            Require(shooter!=null,"Shooter placed for the 1-4 and 2-2 start goals");
+            sim.ApplyProgram(shooter.Id,"guard",new[]{Loop(
                 new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)),
                 new CodeBlock(BlockKind.DeclareVariable,"enemy_distance",new CodeBlock(BlockKind.Distance,"0",new CodeBlock(BlockKind.Variable,"enemy"),new CodeBlock(BlockKind.MyPos))),
-                new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,"<=",new CodeBlock(BlockKind.Variable,"enemy_distance"),new CodeBlock(BlockKind.MyAttackRange))) { Body={ new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"enemy")) } } });
+                new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,"<=",new CodeBlock(BlockKind.Variable,"enemy_distance"),new CodeBlock(BlockKind.Number,"3"))) { Body={ new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.Variable,"enemy")) } })});
         }
         sim.Options.unlockAll=false; sim.Options.inventoryLimit=true;
         RobotState tank=null;
@@ -59,6 +62,8 @@ static class LearningCheck
         var combat=new DefenseSimulation(setup);
         var ranged=combat.Place(profiles[(int)RobotRole.Shooter],4,new Vector2(0,2),out _);
         combat.Start();ranged.NextAction=0;
+        Require(Math.Abs(combat.ActionDamage(ranged,RobotAction.Attack,2)-2*combat.ActionDamage(ranged,RobotAction.Attack,4))<.001f,"Distance double, damage half");
+        Require(combat.ActionDamage(ranged,RobotAction.Attack,0)==combat.ActionDamage(ranged,RobotAction.Attack,1),"Near-distance damage capped");
         var target=new EnemyState { Id=999, Spec=new EnemySpec { health=1000 }, Health=1000, Position=new Vector2(0,0) };
         combat.Enemies.Add(target);
         Require(combat.RequestAction(ranged.Id,RobotAction.Attack)==ActionResult.Executed,"Near hit executes");

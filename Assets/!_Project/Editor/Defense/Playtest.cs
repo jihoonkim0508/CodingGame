@@ -28,13 +28,13 @@ namespace CodingGame.Defense.Editor
             ("1-1 A01 경고 카드 박자", AlertBeat),
             ("1-1 E01 뒤로가기에 경고 재생 안 됨", BackSkipsAlert),
             ("1-1 설명 중 블록 미리 꺼내기 막힘", ExplanationBlocksDrag),
-            ("1-1 C08 꺼내 둔 블록 연결로 진행", PreplacedBlocksProgress),
-            ("1-3 B01 기초 코드 두 줄 지급", DistanceLines),
-            ("1-1 D03 변수 배치와 D04 enemy 입력 두 단계", VariableThenName),
-            ("1-1 D08 바로 적중해도 1.5초 보여 줌", PreviewHitHold),
+            ("1-3 C04 꺼내 둔 블록 연결로 진행", PreplacedBlocksProgress),
+            ("2-1 C01 반복 안 기초 코드 두 줄 지급", DistanceLines),
+            ("1-3 D02 변수 배치와 D03 enemy 입력 두 단계", VariableThenName),
+            ("1-1 C06 바로 적중해도 1.5초 보여 줌", PreviewHitHold),
             ("1-1 E08 보상 집중이 대화창에 안 가림", RewardFocusClear),
             ("1-2 B01 자유 플레이: 대사 숨고 조작 풀림, 힌트", OneTwoIntro),
-            ("베기 이펙트 SwordSlash_3", Slash),
+            ("360도 베기 이펙트 SwordSlash_3", Slash),
             ("코어 피격·사망 글리치", CoreGlitch),
             ("맵 소품 위 설치 막힘 · 기지 체력바 위치 · 사거리 색", PropsAndBase),
             ("스테이지 맵 클릭 후 전환 대기", StageClickDelay),
@@ -171,13 +171,14 @@ namespace CodingGame.Defense.Editor
         static TutorialDirector Director => Battle.Tutorial;
         static string StepId => Director.EditorStep != null ? Director.EditorStep.stepId : "-";
         static T Field<T>(object target, string name) => (T)target.GetType().GetField(name, Private).GetValue(target);
-        static int StepIndex(int wave, string id) => Array.FindIndex(DevTest.TutorialSections(wave), s => s.StartsWith(id + " "));
-        // Jumps inside the running Stage 1 session; the editor-side jump applies on its next update.
-        static IEnumerator Jump(int wave, string id)
+        static int StepIndex(int stage, int wave, string id) => Array.FindIndex(DevTest.TutorialSections(wave, stage), s => s.StartsWith(id + " "));
+        // Jumps inside the running session (or starts that wave); the editor-side jump applies on its next update.
+        static IEnumerator Jump(int wave, string id, int stage = 1)
         {
             yield return Wait(() => Director.EditorSynced, "튜토리얼이 새 세션을 받음", 10);
-            DevTest.JumpTutorial(wave, StepIndex(wave, id));
-            yield return Wait(() => StepId == id, "점프 " + wave + " " + id, 10);
+            DevTest.JumpTutorial(stage, wave, StepIndex(stage, wave, id));
+            yield return Wait(() => Battle.Stage == stage && Battle.Simulation.WaveIndex + 1 == wave && Director.EditorSynced && StepId == id,
+                "점프 " + stage + "-" + wave + " " + id, 15);
             yield return .2f;
         }
         // A new 1-1 tutorial session in the running scene, so a scenario does not inherit the previous one's state.
@@ -188,7 +189,7 @@ namespace CodingGame.Defense.Editor
         }
         static IEnumerator OpenEditor()
         {
-            if (!Battle.CodeEditor.IsOpen) Battle.CodeEditor.Open(Battle.Simulation.Robots.OrderBy(r => r.Id).First().Id);
+            if (!Battle.CodeEditor.IsOpen) Battle.CodeEditor.Open(TutorialWatcher.TeachingRobot(Battle.Simulation).Id);
             yield return .3f;
         }
         static CommandDropZone Program => Battle.CodeEditor.Panel.Program;
@@ -289,7 +290,7 @@ namespace CodingGame.Defense.Editor
             checks.Add($"ℹ 점프 후: {StepId}, 로봇 {Battle.Simulation.Robots.Count}");
             Director.EditorFinishTyping(); Director.EditorPrevious();
             yield return .3f;
-            Check(StepId == "D09", "E01에서 뒤로가기 → " + StepId + " (D09 기대, D10 경고 건너뜀)");
+            Check(StepId == "D08", "E01에서 뒤로가기 → " + StepId + " (D08 기대, D09 경고 건너뜀)");
             Check(!alert.IsShowing, "뒤로가기 후 경고 배너 안 나옴");
             Shot(); yield return .1f;
             Director.EditorFinishTyping(); Director.EditorNext();
@@ -300,61 +301,63 @@ namespace CodingGame.Defense.Editor
         static IEnumerator ExplanationBlocksDrag()
         {
             yield return Fresh();
-            yield return Jump(1, "C09");
+            yield return Jump(1, "C07");
             yield return OpenEditor();
             ClearProgram();
             yield return .2f;
-            foreach (var id in new[] { "C09", "C10" })
+            foreach (var id in new[] { "C07", "C08" })
             {
                 for (int tries = 0; StepId != id && tries < 8; tries++) { Director.EditorFinishTyping(); Director.EditorNext(); yield return .2f; }
                 if (StepId != id) { Fail($"{id}까지 넘기지 못함 (현재 {StepId}, 로봇 {Battle.Simulation.Robots.Count})"); yield break; }
                 int before = Program.AllBlocks().Count();
-                var pressed = Drag(ScreenPoint(Palette(BlockKind.NearestEnemy).Rect), ScreenPoint(Program.Rect, .7f));
+                var pressed = Drag(ScreenPoint(Palette(BlockKind.Slash).Rect), ScreenPoint(Program.Rect, .7f));
                 yield return .2f;
                 Check(Program.AllBlocks().Count() == before, $"{id}: 팔레트 드래그 막힘 (누른 곳: {pressed})");
             }
             Shot();
         }
 
-        // The planner's screenshot: enemy = value in the start box, get_nearest_enemy() left loose, then connected by drag.
+        // The planner's screenshot, now inside the 1-3 loop: enemy = value in the for, get_nearest_enemy() left loose, then connected by drag.
         static IEnumerator PreplacedBlocksProgress()
         {
+            yield return Jump(3, "B04");
             yield return OpenEditor();
-            yield return Jump(1, "C08");
-            ClearProgram();
-            Program.PlaceFree(Palette(BlockKind.DeclareVariable), Vector2.zero);
+            yield return Jump(3, "C04");
+            var loop = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "10"));
+            loop.Body.Add(new CodeBlock(BlockKind.DeclareVariable, "enemy"));
+            Battle.CodeEditor.Panel.LoadProgram(Battle.CodeEditor.Panel.FunctionName, new[] { loop });
             Program.PlaceFree(Palette(BlockKind.NearestEnemy), new Vector2(300, -260));
             yield return .3f;
-            Check(Program.StartChain().Count == 1 && Program.LooseRoots().Count() == 1, "사진과 같은 상태: 시작 위치에 enemy = value, get_nearest_enemy() 따로");
-            Check(StepId == "C08", "연결 전에는 C08에 머묾 (" + StepId + ")");
-            var declare = Program.StartChain()[0];
+            Check(Program.StartChain().Count == 1 && Program.LooseRoots().Count() == 1, "사진과 같은 상태: for 안에 enemy = value, get_nearest_enemy() 따로");
+            Check(StepId == "C04", "연결 전에는 C04에 머묾 (" + StepId + ")");
+            var declare = Program.StartChain()[0].Body.Blocks[0];
             var pressed = Drag(ScreenPoint(Program.LooseRoots().First().Rect), ScreenPoint(declare.Arguments[0].Rect, .2f));
-            yield return Wait(() => StepId != "C08", "C08 완료", 3);
-            Check(StepId == "C09", $"드래그로 연결하면 다음 대사로 ({pressed} → {StepId})");
+            yield return Wait(() => StepId != "C04", "C04 완료", 3);
+            Check(StepId == "C05", $"드래그로 연결하면 다음 대사로 ({pressed} → {StepId})");
             Shot();
         }
 
-        // 1-3 B01 hands the first robot the two given lines; B02 explains the second; C01 asks for the if under them.
+        // 2-1 C01 hands the new shooter the loop with two given lines; C02 explains the second; D01 asks for the if under them.
         static IEnumerator DistanceLines()
         {
-            DevTest.JumpTutorial(3, 0);
-            yield return Wait(() => Battle.Simulation.WaveIndex == 2 && Director.EditorSynced && StepId == "A01", "1-3 시작", 15);
+            yield return Jump(1, "B04", 2);
             yield return OpenEditor();
-            yield return Jump(3, "B01");
+            yield return Jump(1, "C01", 2);
             yield return .3f;
-            string code = string.Join(" / ", Program.StartChain().Select(v => v.Kind + (v.DraftValue != null ? " " + v.DraftValue : "")));
-            Check(Program.StartChain().Count == 2 && Program.StartChain()[1].DraftValue == "enemy_distance", "B01: 기초 코드 두 줄 (" + code + ")");
-            foreach (var id in new[] { "B01", "B02" })
+            var body = Program.StartChain().FirstOrDefault()?.Body?.Blocks ?? (IReadOnlyList<CommandBlockView>)Array.Empty<CommandBlockView>();
+            string code = string.Join(" / ", body.Select(v => v.Kind + (v.DraftValue != null ? " " + v.DraftValue : "")));
+            Check(Program.StartChain().Count == 1 && body.Count == 2 && body[1].DraftValue == "enemy_distance", "C01: for 안 기초 코드 두 줄 (" + code + ")");
+            foreach (var id in new[] { "C01", "C02" })
             {
                 var step = Director.EditorStep;
                 Check(step.stepId == id, id + ": \"" + step.texts[0].text + "\"");
                 foreach (var key in step.texts[0].focusKeys ?? Array.Empty<string>())
                     Check(Director.EditorBridge.TryGetArea(key, out _), $"{id}: 강조 대상 {key} 화면에 있음");
-                if (id == "B02") { Shot(); yield return .1f; }
+                if (id == "C02") { Shot(); yield return .1f; }
                 Director.EditorFinishTyping(); Director.EditorNext(); yield return .3f;
             }
-            yield return NextUntil("C01");
-            Check(Director.EditorStep.completionSignal == TutorialSignals.CodeLinePlaced && Director.EditorStep.expectedCode == "3:If", "C01: 셋째 줄에 if 놓기 단계");
+            yield return NextUntil("D01");
+            Check(Director.EditorStep.completionSignal == TutorialSignals.CodeLinePlaced && Director.EditorStep.expectedCode == "1>3:If", "D01: for 안 셋째 줄에 if 놓기 단계");
         }
 
         static void Load(string code) => Battle.CodeEditor.Panel.LoadProgram(Battle.CodeEditor.Panel.FunctionName, TutorialAnswers.Parse(code));
@@ -366,38 +369,38 @@ namespace CodingGame.Defense.Editor
 
         static IEnumerator VariableThenName()
         {
-            yield return Fresh();
-            yield return Jump(1, "C04");
+            yield return Jump(3, "B04");
             yield return OpenEditor();
-            yield return Jump(1, "D03");
-            Check(Director.EditorStep.completionSignal == TutorialSignals.SlotFilled, "D03: 변수 블록을 놓는 단계 — \"" + Director.EditorStep.texts[0].text + "\"");
-            Load("enemy = get_nearest_enemy()\nslash(get_nearest_enemy())");
+            yield return Jump(3, "D02");
+            Check(Director.EditorStep.completionSignal == TutorialSignals.SlotFilled, "D02: 변수 블록을 놓는 단계 — \"" + Director.EditorStep.texts[0].text + "\"");
+            const string loop = "for i in range(10):\n    enemy = get_nearest_enemy()\n";
+            Load(loop + "    attack(get_nearest_enemy())");
             yield return .3f;
-            Check(StepId == "D03", "적 찾기 함수를 직접 넣으면 D03을 통과하지 않음");
-            Load("enemy = get_nearest_enemy()\nslash(variable)"); // slash() with a variable block not named yet
-            yield return Wait(() => StepId == "D04", "D03 → D04", 3);
-            Check(StepId == "D04", "변수 블록을 놓으면 다음 단계: " + StepId + " — \"" + Director.EditorStep.texts[0].text + "\"");
+            Check(StepId == "D02", "적 찾기 함수를 직접 넣으면 D02를 통과하지 않음");
+            Load(loop + "    attack(variable)"); // attack() with a variable block not named yet
+            yield return Wait(() => StepId == "D03", "D02 → D03", 3);
+            Check(StepId == "D03", "변수 블록을 놓으면 다음 단계: " + StepId + " — \"" + Director.EditorStep.texts[0].text + "\"");
             Shot(); yield return .1f;
-            Load("enemy = get_nearest_enemy()\nslash(get_nearest_enemy())");
+            Load(loop + "    attack(get_nearest_enemy())");
             yield return .3f;
-            Check(StepId == "D04", "D04에서도 변수 블록을 함수로 바꾸면 통과하지 않음");
-            Load("enemy = get_nearest_enemy()\nslash(enemy)");
-            yield return Wait(() => StepId == "D05", "D04 → D05", 3);
-            Check(StepId == "D05", "enemy를 입력하면 다음 대사: " + StepId);
+            Check(StepId == "D03", "D03에서도 변수 블록을 함수로 바꾸면 통과하지 않음");
+            Load(loop + "    attack(enemy)");
+            yield return Wait(() => StepId == "D04", "D03 → D04", 3);
+            Check(StepId == "D04", "enemy를 입력하면 다음 대사: " + StepId);
         }
 
         static IEnumerator PreviewHitHold()
         {
             yield return Jump(1, "C04");
             yield return OpenEditor();
-            yield return Jump(1, "D08");
+            yield return Jump(1, "C06");
             double shown = EditorApplication.timeSinceStartup;
             Director.ReportSuccess(TutorialKeys.Preview, TutorialSignals.PreviewHit); // the preview hits at once
             yield return .8f;
-            Check(StepId == "D08", "바로 적중해도 0.8초 뒤 아직 D08 (" + StepId + ")");
-            yield return Wait(() => StepId != "D08", "D08 넘어감", 10);
+            Check(StepId == "C06", "바로 적중해도 0.8초 뒤 아직 C06 (" + StepId + ")");
+            yield return Wait(() => StepId != "C06", "C06 넘어감", 10);
             double held = EditorApplication.timeSinceStartup - shown;
-            Check(StepId == "D09" && held >= 1.5, $"D09로 넘어감, D08이 {held:0.0}초 보임 (타이핑 + 1.5초)");
+            Check(StepId == "C07" && held >= 1.5, $"C07로 넘어감, C06이 {held:0.0}초 보임 (타이핑 + 1.5초)");
         }
 
         static IEnumerator RewardFocusClear()
@@ -549,7 +552,7 @@ namespace CodingGame.Defense.Editor
             DevTest.PlaceTeachingRobot(Battle, RobotRole.Shooter);
             foreach (var bot in sim.Robots)
                 sim.ApplyProgram(bot.Id, "robot_" + bot.Id, bot.Spec.role == RobotRole.Warrior
-                    ? TutorialAnswers.Parse("enemy = get_nearest_enemy()\nslash(enemy)")
+                    ? TutorialAnswers.Parse("for i in range(10):\n    slash()")
                     : new[] { new CodeBlock(BlockKind.Shot, "0", new CodeBlock(BlockKind.NearestEnemy)) });
             yield return .5f;
             var robots = Field<IDictionary>(Battle, "robotViews");
@@ -611,13 +614,17 @@ namespace CodingGame.Defense.Editor
             yield return Wait(() => DevTest.Ready && !Battle.Tutorial.IsActive && Battle.Simulation.Robots.Count == 0, "튜토리얼 없는 1-1", 10);
             DevTest.PlaceTeachingRobot(Battle, RobotRole.Warrior);
             var bot = Battle.Simulation.Robots[0];
-            Battle.Simulation.ApplyProgram(bot.Id, "robot_" + bot.Id, TutorialAnswers.Parse("enemy = get_nearest_enemy()\nslash(enemy)"));
+            Battle.Simulation.ApplyProgram(bot.Id, "robot_" + bot.Id, TutorialAnswers.Parse("slash()"));
             DevTest.StartWave(); Time.timeScale = 3;
             // Real time from just before the first enemy comes in range, so the frames between effect and strike are seen.
             yield return Wait(() => Battle.Simulation.Enemies.Any(e => System.Numerics.Vector2.Distance(e.Position, bot.Position) < bot.Range + 1), "적 접근", 60);
             Time.timeScale = 1;
             yield return Wait(() => Slashes().Count > 0, "첫 베기", 10);
             var effect = (ParticleSystem)Slashes()[0].GetType().GetField("Item1").GetValue(Slashes()[0]);
+            // slash() hits all around: three arcs a third of a turn apart.
+            var arcs = Slashes().Cast<object>().Select(x => (ParticleSystem)x.GetType().GetField("Item1").GetValue(x)).ToArray();
+            Check(arcs.Length == 3 && Mathf.Abs(Mathf.DeltaAngle(arcs[0].transform.eulerAngles.y, arcs[1].transform.eulerAngles.y)) > 110,
+                $"360도 베기: 궤적 {arcs.Length}개, 120도 간격 ({string.Join(", ", arcs.Select(a => a.transform.eulerAngles.y.ToString("0")))})");
             var enemy = Battle.Simulation.Enemies.Where(e => e.Active).OrderBy(e => System.Numerics.Vector2.Distance(e.Position, bot.Position)).FirstOrDefault();
             Check(enemy != null && enemy.Health >= enemy.Spec.health, $"베기 이펙트가 나올 때는 아직 피해 없음 (체력 {enemy?.Health:0}/{enemy?.Spec.health:0})");
             Check(effect.name.StartsWith("SwordSlashFlat"), "이펙트: " + effect.name + " (SwordSlash_3을 가로로 눕힌 변형)");
@@ -666,8 +673,8 @@ namespace CodingGame.Defense.Editor
             Check(core.GetComponent<DefenseCoreGlitch>(), "코어에 DefenseCoreGlitch 연결");
             var model = Field<Transform>(core.GetComponent<DefenseCoreGlitch>(), "model");
             checks.Add("ℹ 글리치 대상: " + (model ? model.name + " (맵 기지 모델)" : "코어 기본 도형"));
-            // Stage 1 waves 2 and 4 only start with the warrior goals; a Stage 2 session lets enemies reach the core freely.
-            Battle.EditorStartSession(2, 1, true, DevTest.Options);
+            // Free-play waves (1-2, 1-4, 2-2) only start with their goals met; a Stage 3 session lets enemies reach the core freely.
+            Battle.EditorStartSession(3, 1, true, DevTest.Options);
             DevTest.PlaceTeachingRobot(Battle, RobotRole.Warrior);
             foreach (var bot in Battle.Simulation.Robots) Battle.Simulation.ApplyProgram(bot.Id, "robot_" + bot.Id, new List<CodeBlock>());
             int health = Battle.Simulation.BaseHealth;

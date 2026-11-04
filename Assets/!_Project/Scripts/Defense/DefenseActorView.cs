@@ -65,7 +65,7 @@ namespace CodingGame.Defense
         const float StrikeAt = .46f;
         Color baseColor;
         Vector3 fullHealthScale;
-        float beamTime;
+        float beamTime, spinLeft, spinTime;
         // Pale copy behind the fill that lags after hits (DefenseHealthTrail).
         static readonly Color TrailColor = new Color(1, .93f, .8f);
         const float TrailDepth = .015f; // behind the fill, still in front of the backdrop
@@ -120,6 +120,12 @@ namespace CodingGame.Defense
             if (animator) animator.SetTrigger(AttackTrigger);
             Face(target);
         }
+        // slash() hits all around: the swing plays while the model turns one full circle, half way round when the strike lands.
+        public void Spin(float strikeSeconds)
+        {
+            AimAt(head.position + head.forward, strikeSeconds);
+            spinTime = spinLeft = 2 * strikeSeconds;
+        }
         // Turns the head (and the model under it) toward a point, level; robots face the camera when placed.
         public void Face(Vector3 target)
         {
@@ -143,9 +149,14 @@ namespace CodingGame.Defense
                 bool attacking = animator.GetCurrentAnimatorStateInfo(0).shortNameHash == AttackState || animator.GetNextAnimatorStateInfo(0).shortNameHash == AttackState;
                 animator.speed = pace * (attacking ? AttackSpeed : 1);
             }
+            if (spinLeft > 0 && delta > 0)
+            {
+                float step = Mathf.Min(delta, spinLeft); spinLeft -= step;
+                head.Rotate(0, 360 * step / spinTime, 0, Space.World);
+            }
             beamTime -= delta;
             if (beamTime <= 0) beam.enabled = false;
         }
-        public void ClearVisuals() { beamTime = 0; beam.enabled = false; }
+        public void ClearVisuals() { beamTime = spinLeft = 0; beam.enabled = false; }
     }
 }

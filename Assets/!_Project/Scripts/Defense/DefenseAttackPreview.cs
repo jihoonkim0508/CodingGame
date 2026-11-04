@@ -59,8 +59,7 @@ namespace CodingGame.Defense
             var live = battle.Simulation;
             setup.ActionProfiles = live.Setup.ActionProfiles.Select(p => p.Copy()).ToArray();
             setup.RulesConfig = live.Setup.RulesConfig; setup.Permissions = live.Setup.Permissions;
-            // The demo loops forever; the per-wave function limit applies only to real waves.
-            setup.FunctionRepeatLimit = int.MaxValue;
+            // The demo keeps the one-run rule, so code without a loop visibly acts once (1-1); it restarts when nothing is left to hit.
         }
         public DefenseSimulation PreviewSimulation => simulation;
         public bool IsShowing => selected != null && previewPanel.activeSelf;
@@ -103,15 +102,14 @@ namespace CodingGame.Defense
         {
             ClearActors(); source = selected.Program; emptyElapsed = 0; firstHitReported = false; firstHitCount = 0;
             sourceLevel = selected.Level;
+            // 2-1's distance lesson: enemies walk in from beyond the shooter's range, so far and near shots differ in damage.
+            bool approach = battle.Simulation.Setup.Stage == 2 && battle.Simulation.WaveIndex == 0;
             var setup = new BattleSetup {
                 TestOptions = battle.Simulation.Options,
                 Min = new Point(-50,-50), Max = new Point(50,50), BaseHealth = 100,
-                Routes = new[] { new Route(new[] {
-                    battle.Simulation.Setup.Stage == 1 && battle.Simulation.WaveIndex == 2 ? new Point(7,0) : new Point(2,0),
-                    new Point(-20,0) }, 1.2f) },
+                Routes = new[] { new Route(new[] { approach ? new Point(7,0) : new Point(2,0), new Point(-20,0) }, 1.2f) },
                 Waves = new[] { new[] { new SpawnGroup { Enemy = HarmlessEnemy(),
-                    Count = battle.Simulation.Setup.Stage == 1 && battle.Simulation.WaveIndex == 2 ? 2 : 3,
-                    Interval = battle.Simulation.Setup.Stage == 1 && battle.Simulation.WaveIndex == 2 ? .5f : 1.4f } } }
+                    Count = approach ? 2 : 3, Interval = 1.4f } } }
             };
             CopyRules(setup);
             simulation = new DefenseSimulation(setup);

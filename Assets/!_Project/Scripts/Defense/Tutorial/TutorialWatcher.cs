@@ -14,18 +14,13 @@ namespace CodingGame.Defense
         bool firstKill, firstAttack, cleared;
         readonly List<string> signals = new List<string>();
 
-        // In 1-3, Robot.Unit.0 is whichever deployed robot is closest to the current wave's entrance.
-        // Elsewhere the stable installation order keeps the existing tutorial targets unchanged.
+        // In the lessons that place a new robot on a field that may already hold robots (1-3 variable, 2-1 condition),
+        // Robot.Unit.0 is the newest robot: the one the player just placed. Elsewhere the installation order.
         public static IReadOnlyList<RobotState> OrderedRobots(DefenseSimulation sim)
         {
             if (sim == null) return Array.Empty<RobotState>();
-            var robots = sim.Robots.OrderBy(robot => robot.Id);
-            if (!sim.Setup.PlayerFlow || sim.Setup.Stage != 1 || sim.WaveIndex != 2 ||
-                sim.Setup.Waves.Length <= 2 || sim.Setup.Waves[2].Length == 0) return robots.ToArray();
-            int route = sim.Setup.Waves[2].OrderBy(group => group.Delay).First().RouteIndex;
-            var entrance = sim.Setup.Routes[route].Points[0];
-            return robots.OrderBy(robot => System.Numerics.Vector2.DistanceSquared(robot.Position, entrance))
-                .ThenBy(robot => robot.Id).ToArray();
+            bool newestFirst = sim.Setup.PlayerFlow && (sim.Setup.Stage == 1 && sim.WaveIndex == 2 || sim.Setup.Stage == 2 && sim.WaveIndex == 0);
+            return (newestFirst ? sim.Robots.OrderByDescending(robot => robot.Id) : sim.Robots.OrderBy(robot => robot.Id)).ToArray();
         }
         public static RobotState Robot(DefenseSimulation sim, int index) => OrderedRobots(sim).ElementAtOrDefault(index);
         public static int RobotIndex(DefenseSimulation sim, int id) =>

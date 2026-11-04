@@ -35,19 +35,20 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal:
-    sourceKey:
-    destinationKey:
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger:
-    skipIf:
-    expectedCode:
-    pointerKey:
-    autoSelectSlot:
-    hintCode:
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    autoSelectSlot: 
+    hintCode: 
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
@@ -58,7 +59,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 1
-    dragDemo:
+    dragDemo: 
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -79,19 +80,20 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal:
-    sourceKey:
-    destinationKey:
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger:
-    skipIf:
-    expectedCode:
-    pointerKey:
-    autoSelectSlot:
-    hintCode:
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    autoSelectSlot: 
+    hintCode: 
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
@@ -102,7 +104,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo:
+    dragDemo: 
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -113,8 +115,8 @@ MonoBehaviour:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
       text: "\uC791\uC740 \uC801\uC744 \uBAA8\uB450 \uCC98\uCE58\uD558\uBA74 \uBCF4\uC2A4\uAC00
-        \uB098\uD0C0\uB098. `my_attack_range()`\uB294 <b>\uC774 \uB85C\uBD07\uC758
-        \uACF5\uACA9 \uC0AC\uAC70\uB9AC</b>\uB97C \uB3CC\uB824\uC8FC\uB294 \uBE14\uB85D\uC774\uC57C."
+        \uB098\uD0C0\uB098. \uBCF4\uC2A4\uB294 \uCCB4\uB825\uC774 \uB9CE\uC544\uC11C
+        <b>\uBC18\uBCF5 \uD69F\uC218</b>\uAC00 \uB109\uB109\uD574\uC57C \uD574."
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -123,19 +125,20 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal:
-    sourceKey:
-    destinationKey:
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger:
-    skipIf:
-    expectedCode:
-    pointerKey:
-    autoSelectSlot:
-    hintCode:
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    autoSelectSlot: 
+    hintCode: 
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
@@ -146,7 +149,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo:
+    dragDemo: 
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -156,11 +159,9 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uC0C8\uB85C \uBC1B\uC740 \uBCC0\uC218\xB7\uC870\uAC74\uBB38 \uBE14\uB85D\uC73C\uB85C
-        \uACF5\uACA9\uD560 \uAC70\uB9AC\uB97C \uC815\uD574 \uBD10. \uC608\uB97C \uB4E4\uC5B4
-        `attack_range = my_attack_range()`\uB85C \uC0AC\uAC70\uB9AC\uB97C \uC800\uC7A5\uD560
-        \uC218 \uC788\uC5B4. \uBAA9\uD45C\uB294 \uD654\uBA74 \uC704\uC5D0 \uB0A8\uACA8
-        \uB458\uAC8C."
+      text: "\uC0C8\uB85C \uBC1B\uC740 \uBE14\uB85D\uC73C\uB85C \uBC18\uBCF5 \uD69F\uC218\uB97C
+        \uB298\uB9AC\uAC70\uB098 \uB85C\uBD07\uC758 \uCF54\uB4DC\uB97C \uACE0\uCCD0
+        \uBD10. \uBAA9\uD45C\uB294 \uD654\uBA74 \uC704\uC5D0 \uB0A8\uACA8 \uB458\uAC8C."
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -169,19 +170,20 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal:
-    sourceKey:
-    destinationKey:
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger:
-    skipIf:
-    expectedCode:
-    pointerKey:
-    autoSelectSlot:
-    hintCode:
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    autoSelectSlot: 
+    hintCode: 
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
@@ -192,7 +194,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo:
+    dragDemo: 
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -212,19 +214,20 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal:
-    sourceKey:
-    destinationKey:
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
     pauseBattle: 0
     slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
     trigger: WaveCleared
-    skipIf:
-    expectedCode:
-    pointerKey:
-    autoSelectSlot:
-    hintCode:
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    autoSelectSlot: 
+    hintCode: 
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
@@ -235,7 +238,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo:
+    dragDemo: 
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -245,9 +248,9 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uC801\uC744 \uBCC0\uC218\uB85C \uAE30\uC5B5\uD558\uACE0, `if`\uB85C
-        \uACF5\uACA9 \uC2DC\uC810\uC744 \uACE0\uB974\uB294 \uBC29\uBC95\uC744 \uD568\uAED8
-        \uC0AC\uC6A9\uD588\uC9C0."
+      text: "\uBC18\uBCF5\uC73C\uB85C \uC5EC\uB7EC \uBC88 \uACF5\uACA9\uD558\uACE0,
+        \uBCC0\uC218\uB85C \uACF5\uACA9\uD560 \uC801\uC744 \uC815\uD558\uB294 \uBC29\uBC95\uC744
+        \uD568\uAED8 \uC0AC\uC6A9\uD588\uC9C0."
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -256,19 +259,20 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal:
-    sourceKey:
-    destinationKey:
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
     pauseBattle: 0
     slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger:
-    skipIf:
-    expectedCode:
-    pointerKey:
-    autoSelectSlot:
-    hintCode:
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    autoSelectSlot: 
+    hintCode: 
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
@@ -279,7 +283,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo:
+    dragDemo: 
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -289,9 +293,10 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uC774\uC81C \uBCC0\uC218\uC640 \uC870\uAC74\uBB38\uC758 \uAE30\uCD08\uB97C
-        \uC775\uD614\uC5B4. \uB2E4\uC74C \uC2A4\uD14C\uC774\uC9C0\uBD80\uD130\uB294
-        \uBC18\uBCF5\uBB38\uB3C4 \uC0AC\uC6A9\uD574 \uBCF4\uC790."
+      text: "\uC774\uC81C \uBC18\uBCF5\uACFC \uBCC0\uC218\uC758 \uAE30\uCD08\uB97C
+        \uC775\uD614\uC5B4. \uB2E4\uC74C \uC2A4\uD14C\uC774\uC9C0\uC5D0\uC11C\uB294
+        <b>\uC870\uAC74\uBB38</b>\uC73C\uB85C \uC5B8\uC81C \uACF5\uACA9\uD560\uC9C0
+        \uC815\uD574 \uBCF4\uC790."
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -300,19 +305,20 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 0
-    completionSignal:
-    sourceKey:
-    destinationKey:
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
     pauseBattle: 0
     slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger:
-    skipIf:
-    expectedCode:
-    pointerKey:
-    autoSelectSlot:
-    hintCode:
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    autoSelectSlot: 
+    hintCode: 
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
@@ -323,7 +329,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo:
+    dragDemo: 
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -343,19 +349,20 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 1
-    completionSignal:
-    sourceKey:
-    destinationKey:
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
     pauseBattle: 0
     slowBattle: 0
     allowPreview: 0
     highlightPadding: 10
-    trigger:
-    skipIf:
-    expectedCode:
+    trigger: 
+    skipIf: 
+    expectedCode: 
     pointerKey: Battle.ClaimRewards
-    autoSelectSlot:
-    hintCode:
+    autoSelectSlot: 
+    hintCode: 
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
@@ -366,7 +373,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo:
+    dragDemo: 
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0

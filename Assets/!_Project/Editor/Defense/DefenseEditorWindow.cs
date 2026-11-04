@@ -17,7 +17,7 @@ namespace CodingGame.Defense.Editor
         [SerializeField] DefenseCampaignDefinition campaign;
         [SerializeField] int testStage = 1, testWave = 1, coins = 100, campaignStages = 5;
         [SerializeField] bool previousStageRewards = true, tutorial;
-        [SerializeField] int jumpWave = 1, jumpSection;
+        [SerializeField] int jumpLesson, jumpSection;
         [SerializeField] string scenePath;
         [SerializeField] DefenseTestOptions options = new DefenseTestOptions();
         DefenseCampaignDefinition playContent;
@@ -174,15 +174,19 @@ namespace CodingGame.Defense.Editor
                 DevTest.ResetSaveData(); feedback.text = "저장 데이터를 초기화했습니다.";
             }));
             var row = new VisualElement(); row.AddToClassList("row");
-            jumpWave = Mathf.Clamp(jumpWave, 1, 5);
-            var waves = new PopupField<int>("Stage 1 튜토리얼", Enumerable.Range(1, 5).ToList(), jumpWave - 1, w => "1-" + w, w => "1-" + w);
-            var titles = DevTest.TutorialSections(jumpWave).Select((t, i) => $"{i + 1}. {t}").ToList();
+            var lessons = DevTest.TutorialLessons();
+            if (lessons.Length == 0) { content.Add(row); return; }
+            jumpLesson = Mathf.Clamp(jumpLesson, 0, lessons.Length - 1);
+            var (stage, wave) = lessons[jumpLesson];
+            string Name(int i) => lessons[i].stage + "-" + lessons[i].wave;
+            var waves = new PopupField<int>("튜토리얼", Enumerable.Range(0, lessons.Length).ToList(), jumpLesson, Name, Name);
+            var titles = DevTest.TutorialSections(wave, stage).Select((t, i) => $"{i + 1}. {t}").ToList();
             if (titles.Count == 0) titles.Add("(구간 없음)");
             var sections = new PopupField<string>(titles, Mathf.Clamp(jumpSection, 0, titles.Count - 1));
-            waves.RegisterValueChangedCallback(e => { jumpWave = e.newValue; jumpSection = 0; Build(); });
+            waves.RegisterValueChangedCallback(e => { jumpLesson = e.newValue; jumpSection = 0; Build(); });
             sections.RegisterValueChangedCallback(e => jumpSection = titles.IndexOf(e.newValue));
             row.Add(waves); row.Add(sections);
-            row.Add(new Button(() => Act(() => DevTest.JumpTutorial(jumpWave, jumpSection))) { text = "이 구간으로" });
+            row.Add(new Button(() => Act(() => DevTest.JumpTutorial(stage, wave, jumpSection))) { text = "이 구간으로" });
             content.Add(row);
         }
 

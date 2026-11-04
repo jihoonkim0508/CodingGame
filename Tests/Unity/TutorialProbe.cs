@@ -72,6 +72,12 @@ public static class TutorialProbe
     public static string StartBattle() { Battle.StartBattle(); return State(); }
     public static string Claim() { Battle.ClaimRewards(); return State(); }
     public static string Speed(float scale) { Time.timeScale = scale; return State(); }
+    public static string AddFromPalette(string kind)
+    {
+        var panel = Battle.CodeEditor.Panel; var block = (BlockKind)Enum.Parse(typeof(BlockKind), kind);
+        panel.AddFromPalette(block == BlockKind.Variable ? panel.VariableTemplate : panel.Palette.First(p => p.view.BaseKind == block).view);
+        return State();
+    }
     public static string Load(string code)
     {
         var panel = Battle.CodeEditor.Panel;
@@ -221,8 +227,9 @@ public static class TutorialQA
         string signal = step.completionSignal, target = step.targetKeys.FirstOrDefault() ?? "";
         if (signal == TutorialSignals.ProgramMatches) { TutorialProbe.Load(step.expectedCode); lastCode = step.expectedCode; }
         else if (signal == TutorialSignals.ConditionBuilt) TutorialProbe.LoadWithLoose(lastCode, step.expectedCode);
-        else if (signal == TutorialSignals.SlotFilled) TutorialProbe.Load("enemy = get_nearest_enemy()
-slash(variable)"); // 1-1 D04: block placed, not named yet
+        // Block placements click the palette block the arrow points at; the step selected its slot on entry.
+        else if ((signal == TutorialSignals.SlotFilled || signal == TutorialSignals.CodeLinePlaced) && step.pointerKey != null &&
+            step.pointerKey.StartsWith(TutorialKeys.PalettePrefix)) TutorialProbe.AddFromPalette(step.pointerKey.Substring(TutorialKeys.PalettePrefix.Length));
         else if (signal == TutorialSignals.EditorOpened) b.DevelopSelected();
         else if (signal == TutorialSignals.EditorClosed) b.CodeEditor.Close();
         else if (signal == TutorialSignals.BattleStarted) b.StartBattle();

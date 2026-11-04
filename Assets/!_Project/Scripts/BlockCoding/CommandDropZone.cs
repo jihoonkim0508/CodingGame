@@ -74,7 +74,7 @@ namespace CodingGame.BlockCoding
             ParentBlock = parent;
             // An if's body takes clicks: placed, it is selected (1-3 D01); in the palette, OnPointerClick hands the click to the block.
             if (parent && parent.Body == this) background.raycastTarget = true;
-            // A placed block's empty value slot shows its hint as a warning, so "slash(enemy)" is not read as already connected.
+            // A placed block's empty value slot shows its hint as a warning, so "attack(enemy)" is not read as already connected.
             if (parent && !parent.IsPalette && slot != BlockSlotKind.Statement) { hint.fontStyle = FontStyles.Italic; hint.color = EmptyHint; if (!hint.text.StartsWith("+ ")) hint.text = "+ " + hint.text; }
             foreach (var block in blocks) block.Bind(panel, this);
             Refresh();

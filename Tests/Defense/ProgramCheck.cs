@@ -131,13 +131,13 @@ static class ProgramCheck
         Assert(rejected&&robot.Program==previous,"invalid replacement keeps previous applied code");
 
         sim=Make();robot=Bot(sim);
-        sim.ApplyProgram(robot.Id,"wait_then_fire",new[]{new CodeBlock(BlockKind.Wait,"0",N("0.5")),new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.NearestEnemy))});
+        sim.ApplyProgram(robot.Id,"wait_then_fire",new[]{new CodeBlock(BlockKind.Wait,"0",N("0.5")),new CodeBlock(BlockKind.Slash)});
         sim.Start();Tick(sim,20);Assert(robot.Executions==0,"wait blocks subsequent action");
         sim.TogglePause();var time=sim.Time;sim.Advance(10);Assert(sim.Time==time,"program wait freezes during pause");sim.TogglePause();Tick(sim,13);
         Assert(robot.Executions==1,"wait resumes on battle time");
 
         sim=Make();robot=Bot(sim);
-        var loop=new CodeBlock(BlockKind.For,"0",N("3"));loop.Body.Add(new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.NearestEnemy)));
+        var loop=new CodeBlock(BlockKind.For,"0",N("3"));loop.Body.Add(new CodeBlock(BlockKind.Slash));
         sim.ApplyProgram(robot.Id,"loop",new[]{loop,new CodeBlock(BlockKind.Wait,"0",N("100"))});sim.Start();Tick(sim,60);
         Assert(robot.Executions==3,"for executes exactly three attacks and respects cooldown");
 
@@ -148,13 +148,13 @@ static class ProgramCheck
 
         sim=Make();robot=Bot(sim);
         var condition=new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.False));condition.Body.Add(new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy)));
-        var otherwise=new CodeBlock(BlockKind.Else);otherwise.Body.Add(new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.NearestEnemy)));
+        var otherwise=new CodeBlock(BlockKind.Else);otherwise.Body.Add(new CodeBlock(BlockKind.Slash));
         sim.ApplyProgram(robot.Id,"branch",new[]{condition,otherwise,new CodeBlock(BlockKind.Wait,"0",N("100"))});sim.Start();Tick(sim,10);
         Assert(robot.Executions==1&&sim.Enemies.Single().Health==9980,"else branch selected");
 
         sim=Make();robot=Bot(sim);
         loop=new CodeBlock(BlockKind.For,"0",N("5"));var skip=new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,"<",new CodeBlock(BlockKind.Variable,"i"),N("2")));skip.Body.Add(new CodeBlock(BlockKind.Continue));
-        loop.Body.Add(skip);loop.Body.Add(new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.NearestEnemy)));loop.Body.Add(new CodeBlock(BlockKind.Break));
+        loop.Body.Add(skip);loop.Body.Add(new CodeBlock(BlockKind.Slash));loop.Body.Add(new CodeBlock(BlockKind.Break));
         sim.ApplyProgram(robot.Id,"loop_control",new[]{loop,new CodeBlock(BlockKind.Wait,"0",N("100"))});sim.Start();Tick(sim,10);
         Assert(robot.Executions==1,"continue and break preserve loop control");
 
@@ -174,13 +174,13 @@ static class ProgramCheck
 
         var hpSim=Make();var hpBot=Bot(hpSim);
         var healthy=new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,">",new CodeBlock(BlockKind.Hp,"0",new CodeBlock(BlockKind.Variable,"enemy")),N("9999")));
-        healthy.Body.Add(new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"enemy")));
+        healthy.Body.Add(new CodeBlock(BlockKind.Slash));
         hpSim.ApplyProgram(hpBot.Id,"hp",new[]{new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)),healthy,new CodeBlock(BlockKind.Wait,"0",N("100"))});hpSim.Start();Tick(hpSim,10);
         Assert(hpBot.Executions==1&&hpBot.Program.Fault==null&&hpBot.Program.Source.Contains("enemy.hp > 9999"),"enemy.hp reads the live target health");
         var rangeSim=Make();var rangeBot=Bot(rangeSim);
         // Equal to the robot's own range: true, so the attack runs. One above: false.
         CodeBlock InRange(string op)=>new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,op,new CodeBlock(BlockKind.MyAttackRange),N(rangeBot.Range.ToString(System.Globalization.CultureInfo.InvariantCulture))));
-        var inRange=InRange("==");inRange.Body.Add(new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.NearestEnemy)));
+        var inRange=InRange("==");inRange.Body.Add(new CodeBlock(BlockKind.Slash));
         rangeSim.ApplyProgram(rangeBot.Id,"range",new[]{inRange,new CodeBlock(BlockKind.Wait,"0",N("100"))});rangeSim.Start();Tick(rangeSim,10);
         Assert(rangeBot.Executions==1&&rangeBot.Program.Fault==null&&rangeBot.Program.Source.Contains("my_attack_range() == ")&&rangeSim.Enemies.Single().Health<10000,"my_attack_range() reads the robot's range");
         sim.ApplyProgram(robot.Id,"invalid_wait",new[]{new CodeBlock(BlockKind.Wait,"0",N("-1"))});Tick(sim,1);
@@ -188,6 +188,27 @@ static class ProgramCheck
         sim.RestoreAutomatic(robot.Id);Assert(robot.Program==null&&robot.AutoExecute&&robot.Action==RobotAction.Slash,"restore native automatic mode");
         var before=robot.Executions;Tick(sim,10);Assert(robot.Executions>before,"native automatic mode resumes");
         sim.RemoveRobot(robot.Id);Assert(sim.Robots.Count==0,"removing robot removes its program owner");
+
+        // slash() takes no target and hits every enemy in range, behind the robot too.
+        var ring=Make();var spinner=Bot(ring);spinner.AutoExecute=false;ring.Start();Tick(ring,6);
+        ring.Enemies.Add(new EnemyState{Id=900,Spec=new EnemySpec{health=10000,speed=0},Health=10000,Position=new Vector2(-9,6)});
+        ring.RequestAction(spinner.Id,RobotAction.Slash);Tick(ring,30);
+        Assert(ring.Enemies.Count==2&&ring.Enemies.All(e=>e.Health<10000),"slash hits enemies on every side within range");
+        rejected=false;try{new DefenseProgram("p",new[]{new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.NearestEnemy))});}catch(FormatException){rejected=true;}
+        Assert(rejected&&new DefenseProgram("p",new[]{new CodeBlock(BlockKind.Slash)}).Source.Contains("    slash()"),"slash() compiles without a target and rejects one");
+        var once=Make();var single=Bot(once);once.ApplyProgram(single.Id,"once",new[]{new CodeBlock(BlockKind.Slash)});once.Start();Tick(once,120);
+        Assert(single.Executions==1&&single.Program.Completed(once),"the function runs once a wave: a lone slash() swings once");
+        // A loop turn that could not act (target out of range, or a false condition) is retried, so range(2) fires twice:
+        // the second turn waits through enemy A leaving and fires at enemy B.
+        var passing=new DefenseSimulation(new BattleSetup { Progression = FixtureProgression.Create(), Min=new Vector2(-20,-10),Max=new Vector2(20,10),
+            ActionProfiles=Make().Setup.ActionProfiles, Routes=new[]{new Route(new[]{new Vector2(5,0),new Vector2(-20,0)},1)},
+            Waves=new[]{new[]{new SpawnGroup{Enemy=new EnemySpec{health=10000,speed=4},Count=2,Interval=3}}} });
+        var gunner=passing.Place(new RobotSpec{role=RobotRole.Shooter,range=6,damage=20,interval=2,projectileSpeed=200},(int)RobotRole.Shooter,new Vector2(-9,2),out _);
+        var near=new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,"<=",new CodeBlock(BlockKind.Distance,"0",new CodeBlock(BlockKind.Variable,"e"),new CodeBlock(BlockKind.MyPos)),N("2.5")));
+        near.Body.Add(new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.Variable,"e")));
+        loop=new CodeBlock(BlockKind.For,"0",N("2"));loop.Body.Add(new CodeBlock(BlockKind.DeclareVariable,"e",new CodeBlock(BlockKind.NearestEnemy)));loop.Body.Add(near);
+        passing.ApplyProgram(gunner.Id,"near",new[]{loop});passing.Start();Tick(passing,60*12);
+        Assert(gunner.Executions==2&&gunner.Program.Completed(passing),"loop turns that could not shoot are retried until range(2) has fired twice");
         Console.WriteLine($"Defense program checks passed: {checks}");
     }
 }

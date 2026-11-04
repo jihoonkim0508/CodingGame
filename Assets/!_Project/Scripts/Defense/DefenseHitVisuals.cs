@@ -47,7 +47,7 @@ namespace CodingGame.Defense
             if (source && Options.launchEffects)
             {
                 if (evt.Kind == "launch") source.AimAt(position);
-                else if (evt.Kind == "slash") source.AimAt(position, evt.Seconds);
+                else if (evt.Kind == "slash") source.Spin(evt.Seconds);
                 else if (evt.Kind == "shot") Fire(source, position + Vector3.up * .45f, evt.Seconds, rotation, parent);
                 else if (!evt.Melee && (evt.Kind == "hit" || evt.Kind == "buff" || evt.Kind == "stun")) source.FireAt(position);
             }
@@ -72,12 +72,14 @@ namespace CodingGame.Defense
         {
             var origin = offset + DefenseViews.World(evt.Origin, .1f);
             var direction = position + Vector3.up * .1f - origin;
-            // At scale 1 SwordSlash_3's arc is a ring of radius 2.3 centred 1.3 ahead of the prefab origin (top-down render);
-            // moved back so the ring is centred on the robot, and radius / 2.3 makes it reach the attack range (planner).
-            var facing = (direction.sqrMagnitude > .0001f ? Quaternion.LookRotation(direction) : Quaternion.identity) * Quaternion.Euler(0, -SlashCentre, 0);
-            var slash = Options.slashEffects ? UnityEngine.Object.Instantiate(slashPrefab, origin, facing, parent) : null;
-            if (slash)
+            var forward = direction.sqrMagnitude > .0001f ? Quaternion.LookRotation(direction) : Quaternion.identity;
+            // slash() hits all around the robot: three arcs (156° each) a third of a turn apart close the ring.
+            for (int arc = 0; arc < 3 && Options.slashEffects; arc++)
             {
+                // At scale 1 SwordSlash_3's arc is a ring of radius 2.3 centred 1.3 ahead of the prefab origin (top-down render);
+                // moved back so the ring is centred on the robot, and radius / 2.3 makes it reach the attack range (planner).
+                var facing = forward * Quaternion.Euler(0, 120 * arc - SlashCentre, 0);
+                var slash = UnityEngine.Object.Instantiate(slashPrefab, origin, facing, parent);
                 float scale = evt.Radius / 2.3f;
                 slash.transform.localScale *= scale;
                 // The prefab draws its arc 2 units above its origin (at a character's chest); lowered so the arc sweeps
@@ -89,7 +91,7 @@ namespace CodingGame.Defense
             if (showHitRanges)
             {
                 var ring = UnityEngine.Object.Instantiate(hitRangePrefab, parent);
-                ring.ShowSemicircle(origin + Vector3.up * .005f, direction, evt.Radius, Color.cyan);
+                ring.Show(origin + Vector3.up * .005f, evt.Radius, Color.cyan);
                 hitRanges.Add((ring, .6f));
             }
         }
