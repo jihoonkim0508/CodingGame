@@ -8,9 +8,11 @@ $ffmpeg = (Get-Command ffmpeg).Source
 $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer
 $synth.SelectVoice('Microsoft Heami Desktop')
 $format = New-Object System.Speech.AudioFormat.SpeechAudioFormatInfo(22050, [System.Speech.AudioFormat.AudioBitsPerSample]::Sixteen, [System.Speech.AudioFormat.AudioChannel]::Mono)
-# 디버: a little higher and brighter with a short metallic echo; the system alert: lower, band-limited like a speaker.
+# 디버: a boy's voice from the woman's voice: pitch and formants down 6% (her 197 Hz to about 185 Hz), a little faster,
+# more chest at 260 Hz and less breath at 7 kHz, with only a faint metallic echo left of the robot. The system alert: lower,
+# band-limited like a speaker.
 $filters = @{
-    guide  = 'asetrate=22050*1.16,aresample=22050,atempo=0.95,aecho=0.8:0.5:9:0.25,highpass=f=110,silenceremove=start_periods=1:start_threshold=-45dB,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse,loudnorm=I=-17:TP=-1.5,aresample=22050'
+    guide  = 'asetrate=22050*0.94,aresample=22050,atempo=1.12,equalizer=f=260:t=q:w=1:g=3,equalizer=f=7000:t=q:w=1:g=-4,aecho=0.8:0.3:7:0.12,highpass=f=90,silenceremove=start_periods=1:start_threshold=-45dB,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse,loudnorm=I=-17:TP=-1.5,aresample=22050'
     system = 'asetrate=22050*0.95,aresample=22050,highpass=f=280,lowpass=f=3400,aecho=0.8:0.4:28:0.25,silenceremove=start_periods=1:start_threshold=-45dB,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse,loudnorm=I=-17:TP=-1.5,aresample=22050'
 }
 $made = 0
