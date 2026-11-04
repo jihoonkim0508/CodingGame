@@ -67,7 +67,7 @@ namespace CodingGame.Art.Workshop
    var old=map.transform.Find("Stage01_Workshop_Art");if(old){if(undo)Undo.DestroyObjectImmediate(old.gameObject);else Object.DestroyImmediate(old.gameObject);}
    map.name="Stage01 Workshop";map.upperColor=ColorHex("D4A76E");map.lowerColor=ColorHex("9E704C");map.roadInnerColor=ColorHex("F5DFB5");map.roadBorderColor=ColorHex("C29A62");
    map.lightSoftness=.78f;map.shadowStrength=.55f;map.bodyGradient=.17f;map.bevelHighlight=.12f;
-   map.blueprintBlue=ColorHex("4B8BBE");map.blueprintMinorOpacity=.07f;map.blueprintMajorOpacity=.18f;map.blueprintSpacing=2;
+   map.blueprintBlue=ColorHex("4B8BBE");map.blueprintMinorOpacity=0;map.blueprintMajorOpacity=0;map.blueprintSpacing=2;
    foreach(var renderer in map.floorGroup.GetComponentsInChildren<MeshRenderer>(true))renderer.sharedMaterials=new[]{WorkshopModels.Material("DeskWood"),WorkshopModels.Material("DeskEdge")};
    foreach(var renderer in map.roadGroup.GetComponentsInChildren<MeshRenderer>(true))renderer.sharedMaterials=new[]{WorkshopModels.Material("RoadCream"),WorkshopModels.Material("RoadEdge")};
    map.ApplyFloorColors();var art=new GameObject("Stage01_Workshop_Art");art.transform.SetParent(map.transform,false);if(undo)Undo.RegisterCreatedObjectUndo(art,"Workshop decoration");
