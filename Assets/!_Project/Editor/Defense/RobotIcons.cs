@@ -29,7 +29,8 @@ namespace CodingGame.Defense.Editor
                 AssetDatabase.ImportAsset(path);
                 var importer = (TextureImporter)AssetImporter.GetAtPath(path);
                 importer.textureType = TextureImporterType.Sprite; importer.spriteImportMode = SpriteImportMode.Single;
-                importer.alphaIsTransparency = true; importer.mipmapEnabled = false;
+                // Mipmaps: the 256 px photo is shown at about 64 px on the cards, and without them it was sampled into jagged edges.
+                importer.alphaIsTransparency = true; importer.mipmapEnabled = true;
                 importer.SaveAndReimport();
                 definition.icon = AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>().FirstOrDefault();
                 if (!definition.icon) Debug.LogError("[RobotIcons] no sprite imported at " + path);
@@ -45,7 +46,7 @@ namespace CodingGame.Defense.Editor
                 File.WriteAllBytes(path, Photograph(enemy.prefab.gameObject));
                 AssetDatabase.ImportAsset(path);
                 var importer = (TextureImporter)AssetImporter.GetAtPath(path);
-                importer.alphaIsTransparency = true; importer.mipmapEnabled = false; importer.wrapMode = TextureWrapMode.Clamp;
+                importer.alphaIsTransparency = true; importer.mipmapEnabled = true; importer.wrapMode = TextureWrapMode.Clamp;
                 importer.SaveAndReimport();
                 enemy.icon = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
                 EditorUtility.SetDirty(enemy);

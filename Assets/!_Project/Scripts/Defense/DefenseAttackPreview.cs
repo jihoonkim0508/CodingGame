@@ -82,7 +82,7 @@ namespace CodingGame.Defense
             cameraControl.ResetView();
             if (!previewTexture)
             {
-                previewTexture = new RenderTexture(640, 720, 24) { name = "Robot code preview" };
+                previewTexture = new RenderTexture(640, 720, 24) { name = "Robot code preview", antiAliasing = 4 };
                 previewCamera.targetTexture = previewTexture; previewImage.texture = previewTexture;
             }
             ResetPreview(); previewPanel.SetActive(true); previewCamera.enabled = true;
