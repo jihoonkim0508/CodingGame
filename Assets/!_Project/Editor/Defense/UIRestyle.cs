@@ -23,7 +23,7 @@ namespace CodingGame.Defense.Editor
         static readonly Dictionary<string, Vector4> Borders = new Dictionary<string, Vector4> {
             ["ui_card"] = new Vector4(24, 30, 24, 24), ["ui_card_flat"] = new Vector4(20, 20, 20, 20), ["ui_button"] = new Vector4(22, 34, 22, 22),
             ["ui_pill"] = new Vector4(27, 31, 27, 27), ["ui_chip"] = new Vector4(23, 23, 23, 23),
-            ["ui_bar_bottom"] = new Vector4(2, 2, 2, 15), ["ui_bar_top"] = new Vector4(2, 15, 2, 2), ["ui_circle"] = Vector4.zero, ["ui_grid"] = Vector4.zero };
+            ["ui_bar_bottom"] = new Vector4(2, 2, 2, 15), ["ui_bar_top"] = new Vector4(2, 15, 2, 2), ["ui_circle"] = Vector4.zero, ["ui_grid"] = Vector4.zero, ["ui_arrow"] = Vector4.zero };
 
         sealed class Rule
         {

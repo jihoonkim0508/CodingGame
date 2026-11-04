@@ -31,6 +31,9 @@ namespace CodingGame
         static TMP_FontAsset display;
         // Jalnan 2 for headings, buttons and banners (Resources/UI/Jalnan2 SDF, made by UIRestyle); null before that runs.
         public static TMP_FontAsset Display => display ? display : display = Resources.Load<TMP_FontAsset>("UI/Jalnan2 SDF");
+        static TMP_FontAsset bold;
+        // Pretendard Bold for body text that has to read clearly (Resources/UI/Pretendard Bold SDF, made by UIRestyle).
+        public static TMP_FontAsset Bold => bold ? bold : bold = Resources.Load<TMP_FontAsset>("UI/Pretendard Bold SDF");
 
         // Sliced sticker art on an Image; the corners shrink to fit small rects.
         public static Image Style(Image image, Sprite sprite, Color fill)

@@ -1,0 +1,3 @@
+ui_arrow.png: Kenney (www.kenney.nl) "Game Icons" arrowDown, CC0 1.0, from https://opengameart.org/content/game-icons,
+redrawn as a sticker (white fill, ink outline, shadow) by Editor/UI~/arrow_sticker.py.
+The other ui_*.png sprites are drawn by Editor/UI~/ui_sprites.py.
