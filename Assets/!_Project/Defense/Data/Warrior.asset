@@ -13,13 +13,12 @@ MonoBehaviour:
   m_Name: Warrior
   m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.RobotDefinition
   displayName: "\uC804\uC0AC\uD615"
-  description: "\uAC00\uAE4C\uC6B4 \uC801\uC5D0\uAC8C \uD655\uC815 \uD53C\uD574\uB97C
-    \uC90D\uB2C8\uB2E4."
+  description: "\ubca0\uae30 \ud6a8\uacfc\ub294 \ub113\uac8c \ud45c\uc2dc\ub418\uc9c0\ub9cc, \ud53c\ud574\ub294 \uc120\ud0dd\ud55c \ubaac\uc2a4\ud130 \ud55c \ub9c8\ub9ac\uc5d0\uac8c\ub9cc \ub4e4\uc5b4\uac11\ub2c8\ub2e4."
   color: {r: 0.95, g: 0.73, b: 0.41, a: 1}
   stats:
     role: 1
     range: 3.2
-    damage: 14
+    damage: 6.86
     interval: 0.8
     radius: 0.45
     health: 100

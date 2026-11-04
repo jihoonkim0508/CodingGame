@@ -140,7 +140,7 @@ namespace CodingGame.BlockCoding
             if (block.Kind != BlockKind.For || block.Arguments[0].Blocks.Count != 0) return;
             var number = palette.FirstOrDefault(item => item.view.BaseKind == BlockKind.Number).view;
             if (number && (IsAvailable?.Invoke(BlockKind.Number) ?? true) && CanTake(number))
-                block.Arguments[0].Load(new[] { new CodeBlock(BlockKind.Number, "10") });
+                block.Arguments[0].Load(new[] { new CodeBlock(BlockKind.Number, "5") });
         }
         internal bool IsEnemyVariable(string name) => enemyVariables.Contains(name);
         internal void RenameVariable(string previous, string current)

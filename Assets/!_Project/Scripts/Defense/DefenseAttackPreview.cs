@@ -36,6 +36,17 @@ namespace CodingGame.Defense
         int sourceLevel;
         bool firstHitReported;
         int firstHitCount;
+        float? baselineShotDamage, conditionalShotDamage;
+        bool RangedConditionLesson => battle.Simulation.Setup.Stage == 2 && battle.Simulation.WaveIndex == 2;
+        string DamageComparison => !RangedConditionLesson ? "" : "\n조건 없음: " + (baselineShotDamage?.ToString("0.0") ?? "관찰 중") + " / 거리 3 이하: " + (conditionalShotDamage?.ToString("0.0") ?? "관찰 전");
+        int lessonMode;
+        bool endedReported, retargetReported;
+        readonly HashSet<int> lessonAttackTargets = new HashSet<int>();
+        public void ConfigureLesson(int mode)
+        {
+            lessonMode = mode;
+            if (IsShowing) ResetPreview();
+        }
         #if UNITY_EDITOR
         public void EditorApplyOptions(DefenseTestOptions options)
         {
@@ -59,8 +70,9 @@ namespace CodingGame.Defense
             var live = battle.Simulation;
             setup.ActionProfiles = live.Setup.ActionProfiles.Select(p => p.Copy()).ToArray();
             setup.RulesConfig = live.Setup.RulesConfig; setup.Permissions = live.Setup.Permissions;
-            // The demo loops forever; the per-wave function limit applies only to real waves.
-            setup.FunctionRepeatLimit = int.MaxValue;
+            // Replay uses the real wave execution budget.
+            setup.FunctionRepeatLimit = lessonMode > 0 ? 1 : live.FunctionRepeatLimit;
+            setup.RunProgramPerEnemy = live.Setup.RunProgramPerEnemy;
         }
         public DefenseSimulation PreviewSimulation => simulation;
         public bool IsShowing => selected != null && previewPanel.activeSelf;
@@ -77,7 +89,7 @@ namespace CodingGame.Defense
         public void Open(RobotState robot)
         {
             HidePreview();
-            selected = robot;
+            selected = robot; baselineShotDamage = conditionalShotDamage = null;
             RefreshStats();
             cameraControl.ResetView();
             if (!previewTexture)
@@ -102,20 +114,38 @@ namespace CodingGame.Defense
         void ResetPreview()
         {
             ClearActors(); source = selected.Program; emptyElapsed = 0; firstHitReported = false; firstHitCount = 0;
+            endedReported = retargetReported = false; lessonAttackTargets.Clear();
             sourceLevel = selected.Level;
             var setup = new BattleSetup {
                 TestOptions = battle.Simulation.Options,
                 Min = new Point(-50,-50), Max = new Point(50,50), BaseHealth = 100,
                 Routes = new[] { new Route(new[] {
-                    battle.Simulation.Setup.Stage == 1 && battle.Simulation.WaveIndex == 2 ? new Point(7,0) : new Point(2,0),
+                    RangedConditionLesson ? new Point(7,0) : new Point(2,0),
                     new Point(-20,0) }, 1.2f) },
                 Waves = new[] { new[] { new SpawnGroup { Enemy = HarmlessEnemy(),
-                    Count = battle.Simulation.Setup.Stage == 1 && battle.Simulation.WaveIndex == 2 ? 2 : 3,
-                    Interval = battle.Simulation.Setup.Stage == 1 && battle.Simulation.WaveIndex == 2 ? .5f : 1.4f } } }
+                    Count = RangedConditionLesson ? 1 : 3,
+                    Interval = RangedConditionLesson ? .5f : 1.4f } } }
             };
+            if (lessonMode > 0)
+            {
+                var enemy = HarmlessEnemy(); enemy.speed = .01f; enemy.health = Math.Max(1, selected.Damage * 100);
+                setup.Routes = new[] { new Route(new[] { new Point(0, 0), new Point(-20, 0) }, .01f),
+                    new Route(new[] { new Point(2.5f, 0), new Point(-20, 0) }, .01f) };
+                setup.Waves = new[] { lessonMode == 2 ? new[] {
+                    new SpawnGroup { Enemy = enemy.Copy(), Count = 1, Interval = 1 },
+                    new SpawnGroup { Enemy = enemy.Copy(), RouteIndex = 1, Count = 1, Interval = 1 }
+                } : new[] { new SpawnGroup { Enemy = enemy, Count = 1, Interval = 1 } } };
+                if (lessonMode == 2) setup.Waves[0][0].Enemy.health = Math.Max(1, selected.Damage * .5f);
+            }
+            if (RangedConditionLesson) { setup.Waves[0][0].Enemy.health = 1000; setup.Waves[0][0].Enemy.speed = 1.2f; }
             CopyRules(setup);
             simulation = new DefenseSimulation(setup);
             var point = new Point(0, selected.Spec.role == RobotRole.Tank ? 0 : 1.8f);
+            if (lessonMode == 3)
+            {
+                var warriorRange = battle.Simulation.Setup.ActionProfiles.Single(p => p.role == RobotRole.Warrior).range;
+                point.Y = (warriorRange + selected.Range) / 2;
+            }
             var bot = simulation.Place(selected.Spec.Copy(), selected.DefinitionIndex, point, out var error);
             if (bot == null) throw new InvalidOperationException(error);
             bot.Level = selected.Level;
@@ -160,6 +190,7 @@ namespace CodingGame.Defense
             if (sourceLevel != selected.Level) ResetPreview();
             else if (source != selected.Program)
             {
+                if (lessonMode > 0) { ResetPreview(); return; }
                 source = selected.Program;
                 var bot = simulation.Robots.FirstOrDefault();
                 if (bot != null)
@@ -167,6 +198,26 @@ namespace CodingGame.Defense
                     bot.Program = source == null ? null : new DefenseProgram(source.Name, source.CopyBlocks());
                     bot.AutoExecute = false;
                 }
+            }
+            if (lessonMode > 0)
+            {
+                simulation.Advance(dt);
+                var program = simulation.Robots.FirstOrDefault()?.Program;
+                bool finished = program != null && program.Completed(simulation) && !simulation.HasPendingActions(simulation.Robots[0].Id);
+                if (finished)
+                {
+                    // Each preview cycle executes the program once, then the preview replays it after the normal gap.
+                    // This restart belongs to the preview, not to the user's for loop or to real battle execution.
+                    if (!endedReported)
+                    {
+                        endedReported = true; emptyElapsed = 0;
+                        battle.ReportTutorialAction(TutorialKeys.Preview, TutorialSignals.PreviewProgramEnded);
+                    }
+                    else emptyElapsed += dt;
+                    if (emptyElapsed >= 1f) ResetPreview();
+                }
+                else emptyElapsed = 0;
+                return;
             }
             bool wasOver = DemoOver;
             simulation.Advance(dt);
@@ -184,6 +235,7 @@ namespace CodingGame.Defense
                 var bot = simulation.Robots.FirstOrDefault();
                 if (bot == null || simulation.RemainingEnemies == 0) return true;
                 if (simulation.RemainingEnemies > simulation.Enemies.Count(e => e.Active)) return false;
+                if (bot.Program != null && bot.Program.Completed(simulation) && !simulation.HasPendingActions(bot.Id)) return true;
                 return !simulation.Enemies.Any(e => e.Active &&
                     (e.Position.X >= bot.Position.X || Point.DistanceSquared(e.Position, bot.Position) <= bot.Range * bot.Range));
             }
@@ -191,7 +243,13 @@ namespace CodingGame.Defense
         void Update()
         {
             if (selected == null) return;
-            if (battle.TutorialBlocksPreview) return;
+            if (battle.TutorialBlocksPreview)
+            {
+                // Pause program playback without freezing a sword swing or damage popup in mid-air.
+                float settle = Time.unscaledDeltaTime;
+                hitEffects.Tick(settle); foreach (var actor in views.Values) actor.TickVisual(settle); TickDamage(settle);
+                return;
+            }
             RefreshStats();
             if (!IsShowing) return;
             var rect = previewImage.rectTransform.rect;
@@ -216,13 +274,27 @@ namespace CodingGame.Defense
                 #if UNITY_EDITOR
                 battle.EditorObserve("Preview",simulation,e);
 #endif
+                if (lessonMode == 2 && e.Kind == "slash") lessonAttackTargets.Add(e.Target);
                 hitEffects.Show(e, arena, arena.position, previewCamera.transform.rotation, view, effectRing);
                 if ((e.Kind == "hit" || e.Kind == "projectile-hit") && e.Amount > 0)
-                { PopDamage(e); battle.ReportTutorialAction(TutorialKeys.Preview, TutorialSignals.PreviewHit); }
+                {
+                    PopDamage(e);
+                    if (RangedConditionLesson)
+                    {
+                        if (simulation.Robots[0].Program?.LastCondition == true) conditionalShotDamage = e.Amount;
+                        else baselineShotDamage = e.Amount;
+                    }
+                    battle.ReportTutorialAction(TutorialKeys.Preview, TutorialSignals.PreviewHit);
+                    if (lessonMode == 2)
+                    {
+                        if (!retargetReported && lessonAttackTargets.Count > 1 && lessonAttackTargets.Contains(e.Target))
+                        { retargetReported = true; battle.ReportTutorialAction(TutorialKeys.Preview, TutorialSignals.PreviewRetargetHit); }
+                    }
+                }
             }
             if (!firstHitReported)
             {
-                var firstHits = simulation.Events.Where(e => e.Kind == "hit" && e.Amount > 0).Select(e => e.Target).Distinct().Count();
+                var firstHits = simulation.Events.Where(e => (e.Kind == "hit" || e.Kind == "projectile-hit") && e.Amount > 0).Select(e => e.Target).Distinct().Count();
                 if (firstHits > 0)
                 {
                     firstHitReported = true;
@@ -237,7 +309,7 @@ namespace CodingGame.Defense
         }
         void RefreshStatus()
         {
-            if (DemoOver) { status.text = $"시연 완료 · {Math.Max(0,1-emptyElapsed):0.0}s 후 다시 시작"; return; }
+            if (lessonMode == 0 && DemoOver) { status.text = $"시연 완료 · {Math.Max(0,1-emptyElapsed):0.0}s 후 다시 시작" + DamageComparison; return; }
             var bot = simulation.Robots.FirstOrDefault();
             if (bot == null) { status.text = "시연 종료"; return; }
             var program = bot.Program;
@@ -246,7 +318,7 @@ namespace CodingGame.Defense
             else if (program.Fault != null) state = program.Fault;
             // Explain a wasted command before "completed", or a one-run function hides why nothing happened.
             else if (bot.LastResult == ActionResult.Ineffective) state = "호환되지 않는 명령 · 이 로봇에서는 동작하지 않아요";
-            else if (program.Completed(simulation)) state = $"함수 {program.CompletedRuns}/{simulation.FunctionRepeatLimit}회 완료";
+            else if (program.Completed(simulation)) state = lessonMode > 0 && simulation.HasPendingActions(bot.Id) ? "마지막 공격 마무리" : (program.UsesEnemyCycles(simulation) ? "이번 대상 실행 완료 · 새 몬스터 대기" : "프로그램 종료");
             else if (program.WaitRemaining(simulation.Time) is double wait && wait > 0) state = $"wait · {wait:0.0}s";
             else if (program.StepsLastTick == 0) state = "코드 대기";
             else switch (bot.LastResult)
@@ -257,6 +329,8 @@ namespace CodingGame.Defense
                 case ActionResult.Undecided: state = "호환 미정 명령"; break;
                 default: state = $"코드 시연 · {bot.Executions}회"; break;
             }
+            if (lessonMode > 0 && program != null && program.Completed(simulation) && !simulation.HasPendingActions(bot.Id))
+                state += $" · {Math.Max(0, 1 - emptyElapsed):0.0}s 후 미리보기 다시 재생";
             if (bot.Spec.role == RobotRole.Tank)
             {
                 int blocked = simulation.Enemies.Count(e => e.Active && e.BlockedBy == bot.Id);
@@ -264,7 +338,10 @@ namespace CodingGame.Defense
                     $"저지 {blocked}/{bot.Spec.blockCapacity}" + (blocked >= bot.Spec.blockCapacity ? " · 한도 도달" : "");
                 state += "  |  " + blocking;
             }
-            status.text = state;
+            if (program != null && program.LoopCount > 0) state = $"반복 {program.LoopIteration}/{program.LoopCount} · " + state;
+            if (program?.LastCondition != null)
+                state = (program.LastCondition.Value ? "조건 참 → if 안의 공격 실행" : "조건 거짓 → 공격 건너뛰기 · 가까워지면 다시 확인") + "\n" + state;
+            status.text = state + DamageComparison;
         }
         void RefreshStats()
         {
@@ -284,7 +361,7 @@ namespace CodingGame.Defense
             ? $"{current:0.##}" : $"{current:0.##} <color=#6FFFD2>→ {upgraded:0.##}</color>";
         public void Close()
         {
-            selected = null; HidePreview();
+            selected = null; lessonMode = 0; HidePreview();
         }
         void OnDestroy()
         {

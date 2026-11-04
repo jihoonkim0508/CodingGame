@@ -9,6 +9,9 @@ namespace CodingGame
     public sealed class GameFlow : MonoBehaviour
     {
         public const string TitleScene = "Title", StageScene = "Stage", DefenseScene = "Defense";
+        public const string StageOneScene = "stage1", StageTwoScene = "stage2";
+        public static string BattleSceneForStage(int stage) => stage == 1 ? StageOneScene : stage == 2 ? StageTwoScene : DefenseScene;
+        public static int StageForScene(string scene) => scene == StageOneScene ? 1 : scene == StageTwoScene ? 2 : 0;
         const float FadeSeconds = 0.35f;
         static GameFlow instance;
         Image fade;

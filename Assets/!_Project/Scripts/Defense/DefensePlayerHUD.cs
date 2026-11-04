@@ -104,14 +104,17 @@ namespace CodingGame.Defense
             counters.text = $"{battle.Stage}-{sim.WaveIndex + 1:00}     {state}     WAVE {sim.WaveIndex + 1}/{sim.Setup.Waves.Length}     적 {(reward ? sim.LastSurvivors : sim.RemainingEnemies)}     {Math.Ceiling(sim.WaveRemaining):00}s     코인 {sim.Coins:N0}";
             combatControls.SetActive(fighting);
             RefreshEnemyCards(sim, fighting);
-            bool freePlayGoal = battle.Tutorial && battle.Tutorial.ShowFreePlayGoal && !reward && !ended;
-            if (freePlayGoal && !goalRect.gameObject.activeSelf) goalAnimationStart = Time.unscaledTime;
-            guide.transform.parent.gameObject.SetActive(freePlayGoal);
-            if (freePlayGoal)
+            // The wave objective belongs to the HUD, not to a temporary tutorial dialogue step.
+            bool showGoal = sim.Setup.PlayerFlow && !reward && !ended;
+            if (showGoal && !goalRect.gameObject.activeSelf) goalAnimationStart = Time.unscaledTime;
+            guide.transform.parent.gameObject.SetActive(showGoal);
+            if (showGoal)
             {
-                guide.text = sim.WaveIndex == 1 ? "목표 · 새 전사를 배치하고 변수로 적을 찾아 공격하기" :
-                    sim.WaveIndex == 3 ? "목표 · 두 전사의 조건문으로 몰려오는 적 막기" :
-                    "목표 · my_attack_range()와 조건문으로 잡몹과 보스 막기";
+                guide.gameObject.SetActive(true);
+                guide.enabled = true;
+                guide.text = sim.Setup.Stage == 2 ? StageTwoGoal(sim) : sim.Setup.Stage == 1 ? StageOneGoal(sim.WaveIndex) :
+                    "목표 · " + (sim.Lesson?.topic ?? "기지를 지키고 웨이브 완료하기");
+                goalRect.anchorMin = goalRect.anchorMax = new Vector2(.5f, 1);
                 AnimateGoal();
             }
             else
@@ -120,7 +123,10 @@ namespace CodingGame.Defense
                 goalRect.localScale = goalScale;
                 if (goalBackground) goalBackground.color = goalColor;
             }
-            notice.text = battle.StatusMessage;
+            var inspected = sim.FindRobot(battle.SelectedId);
+            notice.text = sim.Setup.PlayerFlow && fighting && inspected?.Program != null ?
+                battle.RobotName(inspected.Id) + " · " + inspected.Program.ExecutionStatus(sim, inspected) +
+                (inspected.Program.LoopCount > 0 ? $" · 반복 {inspected.Program.LoopIteration}/{inspected.Program.LoopCount}" : "") : battle.StatusMessage;
             inventory.text = $"설치 {sim.Robots.Count} / {sim.Setup.RobotLimit}대  ·  버프형 최대 1대";
             inventory.color = sim.Robots.Count >= sim.Setup.RobotLimit ? new Color(1, .45f, .4f) : new Color(.75f, .9f, .95f);
             startButton.interactable = ready;
@@ -136,6 +142,20 @@ namespace CodingGame.Defense
             else resultShown = -100; // a restart right after the result clears its banner too, not only after BannerSeconds
             shownRewardPhase = sim.Phase; shownRewardWave = sim.WaveIndex; shownRewardStage = battle.Stage;
         }
+        static string StageOneGoal(int wave) => wave switch {
+            0 => "목표 · 전사를 배치하고 변수로 적을 찾아 베기",
+            1 => "목표 · 새 전사를 배치하고 변수로 적을 찾아 공격하기",
+            2 => "목표 · for로 적 찾기와 베기를 여러 번 실행하기",
+            3 => "목표 · 두 전사의 반복 코드로 몰려오는 적 막기",
+            _ => "목표 · 변수와 반복문으로 잡몹과 보스 막기"
+        };
+        static string StageTwoGoal(DefenseSimulation sim) => sim.WaveIndex switch {
+            0 => "목표 · 원거리 로봇을 배치하고 반복 사격 만들기",
+            1 => "목표 · 원거리 로봇의 위치와 반복 횟수 조절하기",
+            2 => "목표 · 거리 3 이하일 때 사격하여 피해량 비교하기",
+            3 => "목표 · 새 원거리 로봇의 for 안에서 거리 확인 후 사격하기",
+            _ => "목표 · 변수·반복·조건을 함께 써서 보스 처치하기"
+        };
         void AnimateGoal()
         {
             // Unscaled time keeps the gentle motion consistent while the player pauses or changes battle speed.
@@ -330,7 +350,7 @@ namespace CodingGame.Defense
             if (shownRewardPhase != sim.Phase || shownRewardWave != sim.WaveIndex || shownRewardStage != battle.Stage)
             {
                 rewardTitle.text = reward ? $"WAVE {sim.WaveIndex + 1}  /  " + (sim.LastWaveTimedOut ? "TIME UP" : "CLEAR") :
-                    sim.Phase == BattlePhase.Victory ? $"STAGE {battle.Stage} COMPLETE" : sim.ObjectiveFailed ? "MINIONS ESCAPED" : "CORE LOST";
+                    sim.Phase == BattlePhase.Victory ? $"STAGE {battle.Stage} COMPLETE" : sim.ObjectiveFailed ? (sim.Setup.Stage == 2 ? "BOSS NOT DEFEATED" : "MINIONS ESCAPED") : "CORE LOST";
                 if (shownRewardPhase != sim.Phase) ShowEndBanner(rewardTitle.text, sim.Phase == BattlePhase.Defeat);
                 rewardItems.text = reward ? (sim.PendingDrops.Count == 0 ? "지급할 블록이 없습니다." : "") :
                     (sim.Phase == BattlePhase.Victory ? battle.FromStageMap ? "5개 웨이브 방어 성공 · 스테이지 맵에서 다음 스테이지를 선택하세요." : sim.CanAdvanceStage ? "5개 웨이브 방어 성공 · 보유 블록과 로봇을 다음 스테이지로 가져갑니다." : "1~3스테이지, 총 15개 웨이브를 완료했습니다." : "방어 실패 · 배치와 코드를 바꿔 도전하세요") + $"\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";

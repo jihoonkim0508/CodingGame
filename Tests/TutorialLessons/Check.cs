@@ -70,13 +70,17 @@ static class Check
     {
         var spec = new RobotSpec { role = RobotRole.Warrior, range = 3.2f, interval = .8f, damage = 14 };
         var setup = new BattleSetup {
-            Min = new Vector2(-12, -4), Max = new Vector2(12, 4), BaseHealth = 12, FunctionRepeatLimit = 5,
+            Min = new Vector2(-12, -4), Max = new Vector2(12, 4), BaseHealth = 12, FunctionRepeatLimit = 1, Stage = 1, PlayerFlow = true,
+            Progression = new DefenseProgression {
+                lessons = Array.Empty<WaveLesson>(), robots = new[] { new RobotStock { role = RobotRole.Warrior } },
+                initial = DefenseProgression.ItemKinds.Select(k => new BlockStock { kind = k, count = 20 }).ToArray()
+            },
             ActionProfiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(role =>
                 new RobotSpec { role = role, range = 3.2f, interval = .8f, damage = 14 }).ToArray(),
             Routes = new[] { new Route(new[] { new Vector2(8, 0), new Vector2(-10, 0) }, 1.65f) },
             Waves = new[] { new[] {
-                new SpawnGroup { Enemy = new EnemySpec { health = 20, speed = 1.4f, leakDamage = 1 }, Count = 2, Interval = 2 },
-                new SpawnGroup { Enemy = new EnemySpec { health = 500, speed = 1.6f, leakDamage = 1 }, Count = 1, Delay = 12, Interval = 2 }
+                new SpawnGroup { Enemy = new EnemySpec { health = 12, speed = 1.4f, leakDamage = 1 }, Count = 1, Interval = 2 },
+                new SpawnGroup { Enemy = new EnemySpec { health = 500, speed = 6f, leakDamage = 1 }, Count = 1, Delay = 4, Interval = 2 }
             } }
         };
         var sim = new DefenseSimulation(setup);
@@ -100,8 +104,39 @@ static class Check
                 sim.TogglePause();
             }
         }
-        Require(paused && sim.Kills == 2 && sim.Leaks == 1 && sim.BaseHealth == 11,
-            $"Intro must kill two basic enemies and leak one strong enemy: kills={sim.Kills}, leaks={sim.Leaks}, core={sim.BaseHealth}");
+        Require(paused && robot.AttacksThisWave == 2 && sim.Kills == 1 && sim.Leaks == 1 && sim.BaseHealth == 11,
+            $"Intro must kill one basic enemy and leak one strong enemy: kills={sim.Kills}, leaks={sim.Leaks}, core={sim.BaseHealth}");
+    }
+    static void PairAttacks(bool missSecond, bool upgrade)
+    {
+        var spec = new RobotSpec { role = RobotRole.Warrior, range = 3.2f, interval = .8f, damage = 14 };
+        var group = new SpawnGroup { Enemy = new EnemySpec { health = 24, speed = 1.4f, leakDamage = 1 }, Count = 1, Interval = 2 };
+        var sim = new DefenseSimulation(new BattleSetup {
+            Stage = 1, PlayerFlow = true, InitialWave = 1, WaveSeconds = 30,
+            Min = new Vector2(-12, -8), Max = new Vector2(12, 8),
+            Progression = new DefenseProgression {
+                lessons = Array.Empty<WaveLesson>(), robots = new[] { new RobotStock { role = RobotRole.Warrior, count = 2 } },
+                initial = DefenseProgression.ItemKinds.Select(k => new BlockStock { kind = k, count = 20 }).ToArray()
+            },
+            ActionProfiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(role =>
+                new RobotSpec { role = role, range = 3.2f, interval = .8f, damage = 14 }).ToArray(),
+            Routes = new[] { new Route(new[] { new Vector2(8, 0), new Vector2(-10, 0) }, 1.4f) },
+            Waves = new[] { new[] { group }, new[] { group } }
+        });
+        var a = sim.Place(spec, 1, new Vector2(2, 2), out var error);
+        var b = sim.Place(spec, 1, new Vector2(-3, missSecond ? 7 : 2), out error);
+        Require(a != null && b != null, error);
+        foreach (var bot in new[] { a, b }) sim.ApplyProgram(bot.Id, "attack", new[] {
+            new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)),
+            new CodeBlock(BlockKind.Slash, "0", new CodeBlock(BlockKind.Variable, "enemy"))
+        });
+        if (upgrade) Require(sim.UpgradeRobot(a.Id), "Upgrade available");
+        Require(sim.StartError() == null, sim.StartError()); sim.Start();
+        for (int i = 0; i < 2400 && sim.Phase == BattlePhase.Running; i++) sim.Advance(1.0 / 60);
+        Require(a.AttacksThisWave == 1, "First robot attacks once, including when upgraded");
+        Require(missSecond ? sim.Phase == BattlePhase.Defeat && sim.Kills == 0 :
+            sim.Phase == BattlePhase.Reward && sim.Kills == 1 && b.AttacksThisWave == 1,
+            "1-2 requires one hit from each robot; a missed second hit cannot clear");
     }
     static void NearestTeachingRobot()
     {
@@ -128,8 +163,31 @@ static class Check
             TutorialWatcher.RobotIndex(sim, nearEntrance.Id) == 0 && TutorialWatcher.Robot(sim, 1)?.Id == first.Id,
             "1-3 must teach the robot nearest the enemy entrance, even if it was placed second");
     }
+    static void DefaultSingleRun()
+    {
+        Require(new BattleSetup().FunctionRepeatLimit == 1, "Default program budget is one");
+        for (int stage = 1; stage <= 3; stage++)
+        for (int wave = 0; wave < 5; wave++)
+        {
+            var group = new SpawnGroup { Enemy = new EnemySpec(), Count = 1, Interval = 1 };
+            var sim = new DefenseSimulation(new BattleSetup {
+                Stage = stage, InitialWave = wave, PlayerFlow = true, FunctionRepeatLimit = 99,
+                Progression = new DefenseProgression { lessons = Array.Empty<WaveLesson>(),
+                    initial = Array.Empty<BlockStock>(), robots = Array.Empty<RobotStock>() },
+                Min = new Vector2(-12, -5), Max = new Vector2(12, 5),
+                ActionProfiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(role => new RobotSpec { role = role }).ToArray(),
+                Routes = new[] { new Route(new[] { new Vector2(-10, 0), new Vector2(10, 0) }, 1) },
+                Waves = Enumerable.Range(0, 5).Select(_ => new[] { group }).ToArray()
+            });
+            Require(!sim.LoopsUnlocked && sim.FunctionRepeatLimit == 1, "Single run without loop unlock: " + stage + "-" + (wave + 1));
+            sim.GrantBlock(BlockKind.For, 1);
+            Require(sim.FunctionRepeatLimit == 1, "Unlocking loops does not auto-repeat");
+        }
+    }
     static void Main()
     {
+        DefaultSingleRun();
+        StageTwoCheck.Run();
         const string answer = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= my_attack_range():\n    slash(enemy)";
         Require(Attacks("<=") > 0, "True distance condition must execute the attack inside if");
         Require(Attacks(">") == 0, "False condition must skip the attack even when the enemy is in attack range");
@@ -140,7 +198,10 @@ static class Check
         Require(FirstSlashHits(true, 7, 1.2f, .5f, 1.8f, 2) > 0,
             "The preview must still show an attack with my_attack_range()");
         IntroLeak();
+        PairAttacks(false, false);
+        PairAttacks(false, true);
+        PairAttacks(true, false);
         NearestTeachingRobot();
-        Console.WriteLine("PASS: 1-1 strong enemy leaks once after two kills; pause freezes battle; 1-3 dynamic attack range comparison checks pass.");
+        Console.WriteLine("PASS: 1-1 strong enemy leaks once after one attack per monster; pause freezes battle; 1-3 dynamic attack range comparison checks pass.");
     }
 }

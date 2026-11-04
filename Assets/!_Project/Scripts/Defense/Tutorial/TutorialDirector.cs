@@ -47,7 +47,7 @@ namespace CodingGame.Defense
         // Waiting for a trigger hides the dialogue and leaves the game free; a system banner still holds input.
         public bool IsActive => active && view && (view.IsVisible || bannerUp || guideDismissed);
         public bool ShowFreePlayGoal => active &&
-            (active.sequenceId == "1-2" || active.sequenceId == "1-4" || active.sequenceId == "1-5") &&
+            (active.sequenceId == "1-2" || active.sequenceId == "1-4" || active.sequenceId == "1-5" || active.sequenceId == "2-2" || active.sequenceId == "2-4" || active.sequenceId == "2-5") &&
             Current?.stepId == "B01" && !view.IsVisible;
         public bool BlocksGameplayInput => IsActive && InputLimited;
         public bool BlocksPreview => BlocksGameplayInput && !AllowPreview;
@@ -301,7 +301,9 @@ namespace CodingGame.Defense
             targetsSeen = false; targetsLostAt = -1;
             if (pointer) pointer.Hide();
             var step = active.steps[index];
-            if (step.completionSignal == TutorialSignals.PreviewSingleHit || step.completionSignal == TutorialSignals.PreviewMultiHit)
+            if (step.completionSignal == TutorialSignals.PreviewSingleHit || step.completionSignal == TutorialSignals.PreviewMultiHit ||
+                step.completionSignal == TutorialSignals.PreviewHit || step.completionSignal == TutorialSignals.PreviewProgramEnded ||
+                step.completionSignal == TutorialSignals.PreviewRetargetHit)
                 signals.Remove(step.completionSignal);
             held = null; heldUntil = step.holdSeconds > 0 ? float.MaxValue : 0;
             pendingAutoSlot = false;
@@ -317,7 +319,9 @@ namespace CodingGame.Defense
             if (step.closeEditor) Editor.Close(false);
             if (step.clearProgram && robot != null) Editor.ClearRobotProgram(robot.Id);
             if (step.openEditor && robot != null) { Editor.Close(false); Editor.Open(robot.Id); }
+            if (step.previewLesson > 0) Editor.ConfigurePreviewLesson(step.previewLesson);
             if (step.prepareBaselineExample) Editor.PrepareBaselineExample();
+            if (step.prepareRangedExample) Editor.PrepareRangedExample();
             if (step.prepareDistanceExample) Editor.PrepareDistanceExample();
             if (step.restartPreview) Editor.RestartPreview();
             if (!string.IsNullOrEmpty(step.autoSelectSlot) && !Editor.SelectTutorialSlot(step.autoSelectSlot))
@@ -356,6 +360,13 @@ namespace CodingGame.Defense
             bannerUp = false;
             view.Show(active, step.dialoguePosition, Code(text.text), animate, text.speaker);
             view.SetDebugId(active.sequenceId + " " + step.stepId);
+            view.ShowRepeatBlockGuide(active.sequenceId == "1-3" && Editor && Editor.IsOpen ? step.stepId : null,
+                (key, corners) => Editor && Editor.TryGetTutorialCorners(key, corners), () => battle.CodePreviewSimulation);
+            view.ShowLessonSupplement(step.compareRepeats, step.prediction && viewedStep == progressStep && !completedStep.Contains(step.stepId), correct =>
+            {
+                if (!correct) battle.TellTutorial("숫자 3은 명령 묶음을 실행할 횟수예요. 직접 확인해 보세요.");
+                CompleteAction(step);
+            });
             // Lines that only explain (no action, nothing to look at) sit in the middle while preparing; battle and
             // reward screens, the code editor and a selected robot's range circle (1-1 B05 "이 원") keep the bottom.
             bool explain = step.kind != TutorialStepKind.ActionGuide && focus.Length == 0 && highlight.Length == 0 &&

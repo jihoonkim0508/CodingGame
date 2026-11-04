@@ -20,7 +20,7 @@ MonoBehaviour:
   stats:
     role: 4
     range: 5.5
-    damage: 22
+    damage: 10.78
     interval: 1.2
     radius: 0.45
     health: 100

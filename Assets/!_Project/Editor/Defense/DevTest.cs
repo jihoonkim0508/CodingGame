@@ -12,7 +12,7 @@ using Point = System.Numerics.Vector2;
 
 namespace CodingGame.Defense.Editor
 {
-    // Play always starts from Title. The dev editor and AI test scripts start Defense directly through this class.
+    // Normal Play always starts from Title. Explicit dev tests select their own scene.
     // AI usage (Unity MCP Unity_RunCommand), one call per step because entering Play Mode is asynchronous:
     //   DevTest.PlayDefense(2, 1);        then poll DevTest.Ready
     //   DevTest.State();                  JSON snapshot of the battle
@@ -59,9 +59,15 @@ namespace CodingGame.Defense.Editor
         static DevTest()
         {
             // A domain reload also happens while entering Play Mode; resetting then would drop a PlayDefense request.
-            if (!EditorApplication.isPlayingOrWillChangePlaymode) StartFrom(GameFlow.TitleScene);
-            EditorApplication.playModeStateChanged += state => { if (state == PlayModeStateChange.EnteredPlayMode) StartFrom(GameFlow.TitleScene); };
+            if (!EditorApplication.isPlayingOrWillChangePlaymode) ConfigureDefaultStartScene();
+            EditorSceneManager.sceneOpened += (scene, mode) => { if (!EditorApplication.isPlayingOrWillChangePlaymode) ConfigureDefaultStartScene(); };
+            EditorApplication.playModeStateChanged += state => { if (state == PlayModeStateChange.EnteredPlayMode) ConfigureDefaultStartScene(); };
             EditorApplication.update += ApplyRequest;
+        }
+        static void ConfigureDefaultStartScene()
+        {
+            // Keep the regular Play button consistent regardless of the currently open scene.
+            StartFrom(GameFlow.TitleScene);
         }
         static void StartFrom(string scene) =>
             EditorSceneManager.playModeStartScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(ScenesRoot + scene + ".unity");

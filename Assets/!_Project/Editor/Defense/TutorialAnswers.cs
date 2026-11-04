@@ -6,7 +6,7 @@ using CodingGame.BlockCoding;
 
 namespace CodingGame.Defense.Editor
 {
-    // Reads the Stage 1 tutorial answers (TutorialStep.expectedCode) into blocks: "name = get_nearest_enemy()",
+    // Reads the Stage 1 and Stage 2 tutorial answers (TutorialStep.expectedCode) into blocks: "name = get_nearest_enemy()",
     // "x = enemy.distance(get_my_pos())", "name = my_attack_range()", "slash(name)", "if a <= b:" with an indented body.
     // ponytail: only what the Stage 1 answers use; a new answer shape needs a case here.
     public static class TutorialAnswers
@@ -31,6 +31,13 @@ namespace CodingGame.Defense.Editor
                     block.Body.AddRange(Suite(lines, ref index, depth + 4));
                     result.Add(block);
                 }
+                else if (line.StartsWith("for i in range(") && line.EndsWith("):"))
+                {
+                    var count = line.Substring("for i in range(".Length, line.Length - "for i in range(".Length - 2);
+                    var block = new CodeBlock(BlockKind.For, "0", Value(count));
+                    block.Body.AddRange(Suite(lines, ref index, depth + 4)); result.Add(block);
+                }
+                else if (line.StartsWith("attack(")) result.Add(new CodeBlock(BlockKind.Shot, "0", Value(line.Substring(7, line.Length - 8))));
                 else if (line.StartsWith("slash(")) result.Add(new CodeBlock(BlockKind.Slash, "0", Value(line.Substring(6, line.Length - 7))));
                 else
                 {

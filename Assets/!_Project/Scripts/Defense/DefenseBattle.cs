@@ -55,7 +55,8 @@ namespace CodingGame.Defense
         [SerializeField] DefenseAttackPreview attackPreview;
         [SerializeField, Min(1)] int stage = 1;
         public int Stage => stage;
-        public bool FromStageMap => StageMap.StageProgress.SelectedStage > 0;
+        public bool FromStageMap => StageMap.StageProgress.SelectedStage > 0 &&
+            (GameFlow.StageForScene(gameObject.scene.name) == 0 || StageMap.StageProgress.SelectedStage == GameFlow.StageForScene(gameObject.scene.name));
         public RobotDefinition RobotDefinition(int index) => robots[index];
         public EnemyDefinition PreviewEnemy => enemies[0];
         [Header("Authored HUD")]
@@ -90,6 +91,7 @@ namespace CodingGame.Defense
         public string StatusMessage { get; private set; }
         public TutorialDirector Tutorial => tutorial;
         public DefenseCodeEditor CodeEditor => codeEditor;
+        public DefenseSimulation CodePreviewSimulation => attackPreview.PreviewSimulation;
         int tutorialUnits;
         public bool TutorialBlocksInput => tutorial && tutorial.BlocksGameplayInput;
         public bool TutorialBlocksPreview => tutorial && tutorial.BlocksPreview;
@@ -101,8 +103,8 @@ namespace CodingGame.Defense
         public void BeginCodeView(RobotState robot)
         {
             inventoryUI.Close(); playerHUD.SetVisible(false); developerRoot.SetActive(false);
-            if (!TutorialBlocksPreview) attackPreview.Open(robot);
-            else attackPreview.Close();
+            // Keep the preview visible while the lesson pauses playback. Update controls execution separately.
+            attackPreview.Open(robot);
         }
         public void EndCodeView()
         {
@@ -110,6 +112,8 @@ namespace CodingGame.Defense
             attackPreview.Close();
         }
         public void RestartCodePreview() => attackPreview.Restart();
+        public void ConfigurePreviewLesson(int mode) => attackPreview.ConfigureLesson(mode);
+        public void TellTutorial(string message) => Tell(message);
         public string RobotName(int id)
         { var bot = Simulation.FindRobot(id); return bot == null ? "로봇 없음" : robots[bot.DefinitionIndex].displayName; }
 
@@ -127,7 +131,9 @@ namespace CodingGame.Defense
             hitRangeLabel.text = "근접 피격범위: OFF";
             removeButton.onClick.AddListener(RemoveSelected);
             for (int i = 0; i < robotButtons.Length; i++) { int index = i; robotButtons[i].onClick.AddListener(() => inventoryUI.SelectRobotItem(index)); }
-            if (FromStageMap) stage = StageMap.StageProgress.SelectedStage;
+            int sceneStage = GameFlow.StageForScene(gameObject.scene.name);
+            if (sceneStage > 0) stage = sceneStage;
+            else if (FromStageMap) stage = StageMap.StageProgress.SelectedStage;
             if (core) core.TryGetComponent(out coreGlitch);
             Restart();
         }
@@ -268,6 +274,13 @@ namespace CodingGame.Defense
             }
             if (Simulation.CanAdvanceStage)
             {
+                if (GameFlow.StageForScene(gameObject.scene.name) > 0)
+                {
+                    // A dedicated scene owns exactly one stage; continue by loading the next stage's scene.
+                    StageMap.StageProgress.SelectedStage = stage + 1;
+                    GameFlow.LoadScene(GameFlow.BattleSceneForStage(stage + 1));
+                    return;
+                }
                 codeEditor.Close(false); inventoryUI.Close();
                 Simulation.AdvanceStage(); stage = Simulation.Setup.Stage;
                 selected = 0; ClearDrops(); ClearCombatVisuals();
@@ -692,7 +705,7 @@ namespace CodingGame.Defense
             {
                 string health = bot.Health.HasValue ? $"HP {bot.Health:0}/{bot.MaxHealth:0} · 저지 {Simulation.Enemies.Count(e => e.BlockedBy == bot.Id)}/{bot.Spec.blockCapacity}" : "체력 없음 · 적 피해 대상 제외";
                 string control = bot.Program == null || bot.Program.IsEmpty ? "빈 로봇 · 코드 필요" : bot.Program.Fault == null ? "코드: " + bot.Program.Name : "코드 중지: " + bot.Program.Fault;
-                if (bot.Program != null && !bot.Program.IsEmpty) control += $" · 함수 {bot.Program.CompletedRuns}/{Simulation.FunctionRepeatLimit}회";
+                if (bot.Program != null && !bot.Program.IsEmpty) control += bot.Program.UsesEnemyCycles(Simulation) ? $" · 대상별 실행 완료 {bot.Program.CompletedRuns}회" : $" · 함수 {bot.Program.CompletedRuns}/{Simulation.FunctionRepeatLimit}회";
                 string attacks = $"공격 {bot.AttacksThisWave}회";
                 selectionText.text = $"{robots[bot.DefinitionIndex].displayName}  #{bot.Id}\n\n{health}\n사거리 {bot.Range:0.00}    피해 {Simulation.ActionDamage(bot, bot.Action):0.0}\n공격 간격 {Simulation.ActionInterval(bot, bot.Action):0.00}s\n\n{ActionName(bot.Action)}\n{CompatibilityText(bot)}\n{control}\n실행 {bot.Executions}회 · {attacks} · 버프 {bot.Buffs.Count}개";
             }

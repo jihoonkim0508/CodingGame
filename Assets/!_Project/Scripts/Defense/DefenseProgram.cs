@@ -19,9 +19,18 @@ namespace CodingGame.Defense
         readonly List<Instruction> code = new List<Instruction>();
         readonly Dictionary<string, object> variables = new Dictionary<string, object>();
         readonly Dictionary<int, LoopState> loops = new Dictionary<int, LoopState>();
-        int pc, nextLoop;
+        int pc, nextLoop, invocationTargetId;
         bool invocationStarted;
         bool actedThisInvocation;
+        readonly HashSet<int> completedTargets = new HashSet<int>();
+        readonly HashSet<int> invocationTargets = new HashSet<int>();
+        readonly bool targetsEnemies;
+        public bool UsesEnemyCycles(DefenseSimulation sim) => sim.Setup.RunProgramPerEnemy && targetsEnemies;
+        public bool CanTargetEnemy(DefenseSimulation sim, int id) => !UsesEnemyCycles(sim) ||
+            (!completedTargets.Contains(id) && (invocationTargetId == 0 || invocationTargetId == id));
+        // Reserve the targets of a swing at launch, so its delayed impact cannot cause a second automatic invocation.
+        public void RecordAttackTargets(IEnumerable<int> ids) { foreach (int id in ids) invocationTargets.Add(id); }
+        public bool? LastCondition { get; private set; }
         double wakeTime;
         public string Name { get; }
         public string Source { get; }
@@ -29,11 +38,33 @@ namespace CodingGame.Defense
         public int StepsLastTick { get; private set; }
         public bool IsEmpty => blocks.Count == 0;
         public int CompletedRuns { get; private set; }
-        public bool Completed(DefenseSimulation sim) => CompletedRuns >= sim.FunctionRepeatLimit;
+        // Body entries, never hits or kills. Retained after completion for inspection.
+        public int LoopIteration { get; private set; }
+        public int LoopCount { get; private set; }
+        public int LastTargetId { get; private set; }
+        public string ExecutionStatus(DefenseSimulation sim, RobotState robot)
+        {
+            if (IsEmpty) return "코드 없음";
+            if (Fault != null) return "코드 중지 · " + Fault;
+            if (Completed(sim)) return UsesEnemyCycles(sim) ? "이번 대상 실행 완료 · 새 몬스터 대기" : "프로그램 종료";
+            if (WaitRemaining(sim.Time) > 0) return "대기 명령 실행 중";
+            if (robot.LastResult == ActionResult.NoTarget)
+            {
+                var target = sim.Enemies.FirstOrDefault(enemy => enemy.Id == LastTargetId && enemy.Active);
+                if (target == null && invocationTargetId != 0 && invocationStarted) return "대상 소멸 · 남은 반복 진행";
+                return target != null && Vector2.DistanceSquared(target.Position, robot.Position) > robot.Range * robot.Range ? "사거리 밖" : "대상 없음";
+            }
+            if (robot.LastResult == ActionResult.CoolingDown) return "공격 재사용 대기";
+            if (robot.LastResult == ActionResult.Ineffective) return "호환되지 않는 명령";
+            return StepsLastTick == 0 ? "실행 대기" : "실행 중";
+        }
+        public bool Completed(DefenseSimulation sim) => UsesEnemyCycles(sim)
+            ? !invocationStarted && CompletedRuns > 0 && !sim.Enemies.Any(e => e.Active && CanTargetEnemy(sim, e.Id))
+            : CompletedRuns >= sim.FunctionRepeatLimit;
         public int BlockCount(BlockKind kind) => blockCounts.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0;
         public double WaitRemaining(double time) => Math.Max(0, wakeTime - time);
         public IReadOnlyList<CodeBlock> CopyBlocks() => blocks.Select(Clone).ToList();
-        void EndInvocation() { pc = 0; invocationStarted = actedThisInvocation = false; variables.Clear(); loops.Clear(); }
+        void EndInvocation() { pc = 0; invocationTargetId = 0; invocationStarted = actedThisInvocation = false; variables.Clear(); loops.Clear(); }
         public const int InstructionBudget = 64;
 
         public DefenseProgram(string name, IReadOnlyList<CodeBlock> program)
@@ -41,6 +72,7 @@ namespace CodingGame.Defense
             Source = PythonTreeCompiler.Compile(name, program);
             Name = PythonTreeCompiler.NormalizeIdentifier(name);
             blocks = program.Select(Clone).ToList();
+            targetsEnemies = blocks.Any(TargetsEnemies);
             // 적용된 코드는 수정되지 않으므로 아이템 수량도 한 번만 계산합니다.
             blockCounts = DefenseProgression.Used(blocks).GroupBy(kind => kind).ToDictionary(group => group.Key, group => group.Count());
             EmitSuite(blocks, null, null);
@@ -73,13 +105,13 @@ namespace CodingGame.Defense
                     case BlockKind.For: case BlockKind.While:
                         int loop = nextLoop++;
                         bool counted = b.Kind == BlockKind.For;
-                        if (counted) Emit(Op.ForInit, b.Arguments[0], loop: loop);
+                        Emit(Op.ForInit, counted ? b.Arguments[0] : new CodeBlock(BlockKind.Number, PythonTreeCompiler.MaxLoopIterations.ToString(CultureInfo.InvariantCulture)), loop: loop);
                         int start = code.Count;
-                        int test = counted ? Emit(Op.ForTest, loop: loop) : -1;
+                        int test = Emit(Op.ForTest, loop: loop);
                         var innerBreaks = new List<int>(); var innerContinues = new List<int>();
                         EmitSuite(b.Body, innerBreaks, innerContinues);
                         int step = code.Count;
-                        if (counted) Emit(Op.ForNext, loop: loop);
+                        Emit(Op.ForNext, loop: loop);
                         Emit(Op.Jump, jump: start);
                         if (test >= 0) code[test].Jump = code.Count;
                         foreach (var exit in innerBreaks) code[exit].Jump = code.Count;
@@ -98,8 +130,8 @@ namespace CodingGame.Defense
             // A program that targets enemies starts a run only once one is in range, so idle runs don't use up the repeat limit.
             if (!invocationStarted)
             {
-                if (blocks.Any(TargetsEnemies) && !sim.Enemies.Any(e => e.Active &&
-                    Vector2.DistanceSquared(e.Position, robot.Position) <= robot.Range * robot.Range)) return;
+                if (targetsEnemies && !sim.Enemies.Any(e => e.Active && CanTargetEnemy(sim, e.Id) &&
+                    (blocks.Any(b => b.Kind == BlockKind.If) || Vector2.DistanceSquared(e.Position, robot.Position) <= robot.Range * robot.Range))) return;
                 invocationStarted = true;
             }
             try
@@ -109,25 +141,32 @@ namespace CodingGame.Defense
                 {
                     if (pc == code.Count)
                     {
+                        // Finish the last swing/projectile before allowing another enemy's program to start.
+                        if (sim.HasPendingActions(robot.Id)) return;
                         // A false condition has not used an action. It must be retried after enemies move,
                         // without spending one of the wave's limited successful program runs.
-                        if (actedThisInvocation) CompletedRuns++;
+                        if (actedThisInvocation)
+                        {
+                            CompletedRuns++;
+                            if (UsesEnemyCycles(sim)) completedTargets.UnionWith(invocationTargets);
+                        }
                         else wakeTime = Math.Max(wakeTime, sim.Time + .25);
+                        invocationTargets.Clear();
                         EndInvocation(); return;
                     }
                     var instruction = code[pc];
                     switch (instruction.Op)
                     {
                         case Op.Jump: pc = instruction.Jump; break;
-                        case Op.Condition: pc = Truth(Value(instruction.Block, sim, robot)) ? pc + 1 : instruction.Jump; break;
+                        case Op.Condition: LastCondition = Truth(Value(instruction.Block, sim, robot)); pc = LastCondition.Value ? pc + 1 : instruction.Jump; break;
                         case Op.ForInit:
                             double count = Number(Value(instruction.Block, sim, robot));
-                            if (count != Math.Truncate(count) || Math.Abs(count) > 1000000000) throw new FormatException("range 횟수는 절댓값 10억 이하 정수여야 합니다.");
+                            if (count != Math.Truncate(count) || count < 0 || count > PythonTreeCompiler.MaxLoopIterations) throw new FormatException("반복 횟수는 0~5회 정수여야 합니다.");
                             loops[instruction.Loop] = new LoopState { Count = count }; pc++; break;
                         case Op.ForTest:
                             var state = loops[instruction.Loop];
                             if (state.Index >= state.Count) pc = instruction.Jump;
-                            else { variables["i"] = state.Index; pc++; }
+                            else { variables["i"] = state.Index; LoopIteration = (int)state.Index + 1; LoopCount = (int)state.Count; pc++; }
                             break;
                         case Op.ForNext: loops[instruction.Loop].Index++; pc++; break;
                         default:
@@ -151,13 +190,13 @@ namespace CodingGame.Defense
                             {
                                 var enemy = Value(block.Arguments[0], sim, robot) as EnemyValue;
                                 if (enemy == null) throw new FormatException("공격 대상에는 Enemy 객체가 필요합니다.");
-                                target = enemy.Id;
+                                target = enemy.Id; LastTargetId = target;
                                 // 지정한 적이 사라져도 다른 적으로 자동 교체하지 않습니다.
                                 if (target == 0 || !sim.Enemies.Any(e => e.Id == target && e.Active))
                                 { robot.LastResult = ActionResult.NoTarget; pc++; return; }
                             }
                             var result = sim.RequestAction(robot.Id, action, target);
-                            if (result == ActionResult.Executed) actedThisInvocation = true;
+                            if (result == ActionResult.Executed) { actedThisInvocation = true; if (target != 0) invocationTargets.Add(target); }
                             // 재사용 대기 중에는 같은 명령에서 기다리고, 실행 결과가 나오면 다음으로 이동합니다.
                             if (result != ActionResult.CoolingDown) pc++;
                             return;
@@ -201,7 +240,11 @@ namespace CodingGame.Defense
                     if (!variables.TryGetValue(PythonTreeCompiler.NormalizeIdentifier(block.Value), out var variable)) throw new FormatException("선언되지 않은 변수입니다.");
                     return variable;
                 case BlockKind.NearestEnemy:
-                    var nearest = Rules.Nearest(sim.Enemies.Where(e => e.Active), robot.Position);
+                    // A loop keeps its original target, including after that target dies.
+                    // Remaining iterations then skip the dead target; only the next invocation may choose another.
+                    if (UsesEnemyCycles(sim) && invocationTargetId != 0) return new EnemyValue { Id = invocationTargetId };
+                    var nearest = Rules.Nearest(sim.Enemies.Where(e => e.Active && CanTargetEnemy(sim, e.Id)), robot.Position);
+                    if (UsesEnemyCycles(sim) && nearest != null) invocationTargetId = nearest.Id;
                     return new EnemyValue { Id = nearest?.Id ?? 0 };
                 case BlockKind.Distance:
                     int id = ((EnemyValue)Arg(0)).Id; var enemy = sim.Enemies.Find(e => e.Id == id && e.Active);

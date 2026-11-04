@@ -1,4 +1,4 @@
-// Builds Stage 1 tutorial sequences from Docs/flow_stage1/tutorial_stage1_대본.md,
+// Builds Stage 1 tutorial sequences from Docs/flow_reordered/stage1.md,
 // applies wave settings, and wires the sequences into Defense.unity.
 // Run from Tools/Develop after editing the script document; Defense.unity must be the open scene.
 using System;
@@ -14,7 +14,7 @@ using UnityEngine;
 
 namespace CodingGame.Defense.Editor
 {
-    public static class TutorialSequenceBuilder
+    public static partial class TutorialSequenceBuilder
     {
         [MenuItem("Tools/Develop/Stage 1 튜토리얼 asset 다시 만들기")]
         public static void Menu() => Debug.Log(Run());
@@ -52,14 +52,14 @@ namespace CodingGame.Defense.Editor
             AssetDatabase.SaveAssets();
             Debug.Log("Beginner lessons applied: " + string.Join(", ", updated.Select(s => s.sequenceId + "=" + s.steps.Length)) + " (1-4 onward unchanged)");
         }
-        const string Script = "Docs/flow_stage1/tutorial_stage1_대본.md";
+        const string Script = "Docs/flow_reordered/stage1.md";
         const string Start = TutorialKeys.Start, Develop = TutorialKeys.Develop, Drop = TutorialKeys.DropZone, Palette = TutorialKeys.Palette,
             Hint = TutorialKeys.Hint, Close = TutorialKeys.Close, Route = TutorialKeys.Route, Core = TutorialKeys.CoreHealth, Preview = TutorialKeys.Preview;
         static readonly string Unit0 = TutorialKeys.Unit(0), Range0 = TutorialKeys.Range(0), Range1 = TutorialKeys.Range(1);
 
         const string Code11 = "enemy = get_nearest_enemy()\nslash(enemy)";
         const string Code13Distance = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nslash(enemy)";
-        const string Code13 = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= my_attack_range():\n    slash(enemy)";
+        const string Code13 = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= 3:\n    attack(enemy)";
 
         sealed class Line { public string Speaker, Text; }
 
@@ -82,7 +82,8 @@ namespace CodingGame.Defense.Editor
             public string Demo;
             public bool Top;
             public float Hold;
-            public bool DistanceExample, BaselineExample, RestartPreview;
+            public bool DistanceExample, BaselineExample, RestartPreview, RangedExample, Prediction, Compare;
+            public int PreviewLesson;
         }
 
         static Dictionary<string, Line> lines;
@@ -164,60 +165,45 @@ namespace CodingGame.Defense.Editor
             };
         }
 
-        static List<S> OneThree()
-        {
-            Action<S> EditSignal(string signal, string expected, string pointer, params string[] focus) =>
-                Signal(signal, new[] { Drop, Palette }, With(s => {
-                    s.Expected = expected; s.Pointer = pointer;
-                    // Every guided block placement previews its path from the palette to the actual slot.
-                    if (signal == TutorialSignals.CodeLinePlaced || signal == TutorialSignals.SlotFilled)
-                    {
-                        string slot = signal == TutorialSignals.SlotFilled ? expected :
-                            focus.LastOrDefault(key => key.StartsWith(TutorialKeys.CodePrefix, StringComparison.Ordinal));
-                        if (!string.IsNullOrEmpty(slot)) s.Demo = pointer + ">" + slot;
-                    }
-                }, Focus(focus)));
-            return new List<S> {
-                L("1-3.A01"), L("1-3.A02"),
-                L("1-3.A03", Click(Unit0, s => s.Pointer = Unit0)),
-                L("1-3.A04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
-                L("1-3.A05", Signal(TutorialSignals.PreviewSingleHit, new[] { Preview }, With(
-                    s => { s.BaselineExample = true; s.Preview = true; s.Hold = 1.5f; }, Focus(Preview)))),
-                L("1-3.B01", With(s => s.DistanceExample = true, Focus("Editor.Code.Line.1"))),
-                L("1-3.B02", Focus("Editor.Code.Line.2")),
-                L("1-3.B03", Focus("Editor.Palette.MyAttackRange")),
-                L("1-3.B04"), L("1-3.B05"),
-                L("1-3.C01", EditSignal(TutorialSignals.CodeLinePlaced, "3:If", "Editor.Palette.If", "Editor.Palette.If", "Editor.Code.After.2")),
-                L("1-3.C03", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.3.0", "Editor.Palette.Comparison", "Editor.Palette.Comparison", "Editor.Code.Arg.3.0"), s => s.AutoSlot = "Editor.Code.Arg.3.0")),
-                L("1-3.C04", EditSignal(TutorialSignals.DraftValueMatches, "3.0|<=", "Editor.Code.Option.3.0", "Editor.Code.Option.3.0")),
-                L("1-3.C06", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.3.0.0", "Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.Arg.3.0.0"), s => s.AutoSlot = "Editor.Code.Arg.3.0.0")),
-                L("1-3.C07", EditSignal(TutorialSignals.DraftValueMatches, "3.0.0|enemy_distance", "Editor.Code.Name.3.0.0", "Editor.Code.Name.3.0.0")),
-                L("1-3.C09", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.3.0.1", "Editor.Palette.MyAttackRange", "Editor.Palette.MyAttackRange", "Editor.Code.Arg.3.0.1"), s => s.AutoSlot = "Editor.Code.Arg.3.0.1")),
-                L("1-3.C09a", Focus("Editor.Code.Arg.3.0.1")),
-                L("1-3.C10", Focus("Editor.Code.Arg.3.0")),
-                L("1-3.D02", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Body.3", "Editor.Palette.Slash", "Editor.Palette.Slash", "Editor.Code.Body.3"), s => s.AutoSlot = "Editor.Code.Body.3")),
-                L("1-3.D04", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.BodyArg.3.0.0", "Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.BodyArg.3.0.0"), s => s.AutoSlot = "Editor.Code.BodyArg.3.0.0")),
-                L("1-3.D05", EditSignal(TutorialSignals.ProgramMatches, Code13, "Editor.Code.BodyName.3.0.0", "Editor.Code.BodyName.3.0.0")),
-                L("1-3.D06", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(s => { s.Preview = true; s.RestartPreview = true; s.Hold = 2; }, Focus(Preview)))),
-                L("1-3.D07", With(Ed, Focus("Editor.Code.Body.3"))),
-                L("1-3.E01", s => s.CloseEditor = true),
-                L("1-3.E02", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => s.Top = true)),
-                L("1-3.E03", With(Fight, s => s.Trigger = TutorialSignals.FirstAttack)),
-                L("1-3.E04", s => s.Trigger = TutorialSignals.WaveCleared), L("1-3.E05"),
-                L("1-3.E06", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
-            };
-        }
-
-        static List<S> OneFour() => new List<S> {
-            L("1-4.A01", s => s.Cards = true), L("1-4.A02"), L("1-4.A03"), L("1-4.A04"),
-            L("1-4.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.Battle = true; }),
-            L("1-4.B02"), L("1-4.B03"),
-            L("1-4.B04", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
+        static List<S> OneThree() => new List<S> {
+            L("1-3.A01"), L("1-3.A02"),
+            L("1-3.B02", Click(Unit0, s => s.Pointer = Unit0)),
+            L("1-3.B02", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Id = "B02a"; s.Pointer = Develop; })),
+            L("1-3.B03", s => { s.PreviewLesson = 1; s.BaselineExample = true; s.Focus = new[] { Drop }; }),
+            L("1-3.B04", Observe(TutorialSignals.PreviewProgramEnded, restart:true)),
+            L("1-3.B05", Focus(Preview)), L("1-3.B06"), L("1-3.B07", s => s.Compare = true),
+            L("1-3.C01", Signal(TutorialSignals.CodeLinePlaced, new[] { Drop, Palette }, s => {
+                s.Expected = "1:For"; s.Pointer = "Editor.Palette.For";
+                s.Demo = "Editor.Palette.For>Editor.Code.Start"; s.Focus = new[] { "Editor.Palette.For", "Editor.Code.Start" };
+            })),
+            L("1-3.C02", Signal(TutorialSignals.DraftValueMatches, new[] { Drop, Palette }, s => {
+                s.Expected = "1.0|3"; s.Pointer = "Editor.Code.Name.1.0"; s.Focus = new[] { "Editor.Code.Name.1.0" };
+            })),
+            L("1-3.C03", Signal(TutorialSignals.CodeLinePlaced, new[] { Drop, Palette }, s => {
+                s.Expected = "1.0:DeclareVariable"; s.Pointer = "Editor.Code.Body.1"; s.Focus = new[] { "Editor.Code.Line.2", "Editor.Code.Body.1" };
+                s.Demo = "Editor.Code.Line.2>Editor.Code.Body.1";
+            })),
+            L("1-3.C04", Code(Loop3, s => { s.Preview = false; s.Focus = new[] { "Editor.Code.Body.1" }; })),
+            L("1-3.C05", Focus("Editor.Code.Arg.1.0", "Editor.Code.Body.1")),
+            L("1-3.D00", Signal(TutorialSignals.PredictionAnswered, new[] { Preview }, s => { s.Prediction = true; s.Undimmed = true; s.Focus = new[] { "Editor.Code.Arg.1.0", "Editor.Code.Body.1" }; })),
+            L("1-3.D01", With(Observe(TutorialSignals.PreviewProgramEnded, restart:true), Focus(Preview, "Editor.Code.Arg.1.0", "Editor.Code.Body.1"))),
+            L("1-3.D02", Focus(Preview, "Editor.Code.Arg.1.0", "Editor.Code.Body.1")),
+            L("1-3.D03", Code(Loop5, s => { s.Preview = false; s.Pointer = "Editor.Code.Name.1.0"; s.Focus = new[] { "Editor.Code.Arg.1.0" }; })),
+            L("1-3.D04", With(Observe(TutorialSignals.PreviewRetargetHit, 2), Focus(Preview, "Editor.Code.Body.1"))),
+            L("1-3.D05", Focus(Preview, "Editor.Code.Body.1")), L("1-3.D06"),
+            L("1-3.E01", Click(Close, s => { s.Pointer = Close; s.Undimmed = true; })),
+            L("1-3.E01", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => { s.Id = "E01a"; s.Top = true; s.Pointer = Start; })),
+            L("1-3.E02", s => s.Trigger = TutorialSignals.WaveCleared),
+            L("1-3.E03", Click("Battle.ClaimRewards", s => { s.Top = true; s.Pointer = "Battle.ClaimRewards"; }))
         };
-
+        static List<S> OneFour() => new List<S> {
+            L("1-4.A01"), L("1-4.A02"), L("1-4.A03"),
+            L("1-4.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.Battle = true; s.HintCode = "for 안에 적 찾기 → 베기를 함께 넣으세요.\n공격이 끝나면 횟수와 사거리를 확인하세요.\n\n" + Loop5; }),
+            L("1-4.B02"), L("1-4.B03", Click("Battle.ClaimRewards", s => { s.Top = true; s.Pointer = "Battle.ClaimRewards"; }))
+        };
         static List<S> OneFive() => new List<S> {
             L("1-5.A01", s => s.Cards = true), L("1-5.A02"), L("1-5.A03"), L("1-5.A04"),
-            L("1-5.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.Battle = true; }),
+            L("1-5.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.Battle = true; s.HintCode = Loop5; }),
             L("1-5.B02"), L("1-5.B03"),
             L("1-5.B04", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
         };
@@ -241,12 +227,12 @@ namespace CodingGame.Defense.Editor
             return result;
         }
 
-        static TutorialSequence Write(string id, int wave, List<S> steps)
+        static TutorialSequence Write(string id, int wave, List<S> steps, int stage = 1)
         {
-            string path = $"{Folder}/Tutorial_{id}.asset";
+            string path = stage == 1 ? $"{Folder}/Tutorial_{id}.asset" : $"Assets/!_Project/Defense/Tutorial/Stage2/Tutorial_{id}.asset";
             var sequence = AssetDatabase.LoadAssetAtPath<TutorialSequence>(path);
             if (!sequence) { sequence = ScriptableObject.CreateInstance<TutorialSequence>(); AssetDatabase.CreateAsset(sequence, path); }
-            sequence.sequenceId = id; sequence.enabled = true; sequence.stage = 1; sequence.wave = wave;
+            sequence.sequenceId = id; sequence.enabled = true; sequence.stage = stage; sequence.wave = wave;
             sequence.entryPhase = TutorialEntryPhase.Preparation; sequence.typeSpeed = 30;
             bool battle = false;
             sequence.steps = steps.Select(s =>
@@ -259,12 +245,13 @@ namespace CodingGame.Defense.Editor
                     completionMode = s.Kind == TutorialStepKind.ActionGuide ? s.Mode : TutorialCompletionMode.Unconfigured, completionSignal = s.Signal,
                     requiredSlotBlock = s.RequiredSlotBlock,
                     skipIf = s.SkipIf, pauseBattle = s.HoldBattle || !battle, slowBattle = s.SlowBattle,
-                    allowPreview = s.Preview || id == "1-1" &&
+                    allowPreview = stage == 2 || id == "1-3" || s.Preview || id == "1-1" &&
                         ((s.Id.StartsWith("C", StringComparison.Ordinal) || s.Id.StartsWith("D", StringComparison.Ordinal)) && s.Id != "D10"),
                     highlightPadding = s.Padding, trigger = s.Trigger, expectedCode = s.Expected,
                     pointerKey = s.Pointer, autoSelectSlot = s.AutoSlot, hintCode = s.HintCode, pointerDelay = s.PointerDelay,
                     closeEditor = s.CloseEditor, clearProgram = s.ClearProgram, openEditor = s.OpenEditor, robotIndex = s.Robot,
                     prepareDistanceExample = s.DistanceExample, prepareBaselineExample = s.BaselineExample, restartPreview = s.RestartPreview,
+                    previewLesson = s.PreviewLesson, prepareRangedExample = s.RangedExample, prediction = s.Prediction, compareRepeats = s.Compare,
                     introEntrance = s.Intro, undimmed = s.Undimmed, alertCards = s.Cards, autoAdvance = s.Auto, dismissable = s.Dismissable, holdSeconds = s.Hold, dragDemo = s.Demo };
             }).ToArray();
             EditorUtility.SetDirty(sequence);
@@ -276,48 +263,22 @@ namespace CodingGame.Defense.Editor
         {
             var campaign = AssetDatabase.LoadAssetAtPath<DefenseCampaignDefinition>($"{Folder}/StageOneCampaign.asset");
             var so = new SerializedObject(campaign);
-            var lessons = so.FindProperty("progression.lessons");
-            void Lesson(int wave, string topic, int warriors, params (BlockKind kind, int count)[] blocks)
-            {
-                for (int i = 0; i < lessons.arraySize; i++)
-                {
-                    var lesson = lessons.GetArrayElementAtIndex(i);
-                    if (lesson.FindPropertyRelative("stage").intValue != 1 || lesson.FindPropertyRelative("wave").intValue != wave) continue;
-                    lesson.FindPropertyRelative("topic").stringValue = topic;
-                    var robots = lesson.FindPropertyRelative("robots");
-                    robots.arraySize = warriors > 0 ? 1 : 0;
-                    if (warriors > 0) { robots.GetArrayElementAtIndex(0).FindPropertyRelative("role").intValue = (int)RobotRole.Warrior; robots.GetArrayElementAtIndex(0).FindPropertyRelative("count").intValue = warriors; }
-                    var stock = lesson.FindPropertyRelative("blocks");
-                    stock.arraySize = blocks.Length;
-                    for (int b = 0; b < blocks.Length; b++)
-                    {
-                        stock.GetArrayElementAtIndex(b).FindPropertyRelative("kind").intValue = (int)blocks[b].kind;
-                        stock.GetArrayElementAtIndex(b).FindPropertyRelative("count").intValue = blocks[b].count;
-                    }
-                    return;
-                }
-                throw new InvalidOperationException("lesson 1-" + wave + " not found");
-            }
-            Lesson(1, "변수와 게임 플레이 방법 소개", 1, (BlockKind.DeclareVariable, 1), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 1), (BlockKind.Slash, 1));
-            Lesson(2, "변수 자유 플레이", 1, (BlockKind.DeclareVariable, 1), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 1));
-            Lesson(3, "조건: 내 공격 사거리 안이면 베기", 0, (BlockKind.DeclareVariable, 1), (BlockKind.Variable, 2), (BlockKind.MyPos, 1),
-                (BlockKind.If, 1), (BlockKind.Comparison, 1), (BlockKind.MyAttackRange, 1));
+            campaign.progression.lessons = campaign.progression.lessons
+                .Where(lesson => lesson.stage != 1 || (firstThreeOnly && lesson.wave > 3))
+                .Concat(DefenseCurriculum.Create().Where(lesson => lesson.stage == 1 && (!firstThreeOnly || lesson.wave <= 3)))
+                .OrderBy(lesson => lesson.stage).ThenBy(lesson => lesson.wave).ToArray();
+            EditorUtility.SetDirty(campaign);
+            so.Update();
             SetupIntroEncounter(so);
-            // Keep the two-enemy preview so the range comparison is visible during movement.
-            var practiceGroup = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves").GetArrayElementAtIndex(2)
-                .FindPropertyRelative("groups").GetArrayElementAtIndex(0);
-            practiceGroup.FindPropertyRelative("interval").floatValue = .5f;
-            if (firstThreeOnly)
-            {
-                so.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(campaign);
-                return "campaign: lessons 1-1 to 1-3 only";
-            }
-            Lesson(4, "조건문 활용 자유 플레이", 1, (BlockKind.DeclareVariable, 2), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 3), (BlockKind.Slash, 1),
-                (BlockKind.MyPos, 1), (BlockKind.If, 1), (BlockKind.Comparison, 1), (BlockKind.MyAttackRange, 1), (BlockKind.Number, 1));
-            Lesson(5, "변수와 조건문: 보스 종합 실습", 0,
-                (BlockKind.DeclareVariable, 3), (BlockKind.Variable, 5), (BlockKind.Number, 2),
-                (BlockKind.If, 2), (BlockKind.Comparison, 2), (BlockKind.MyAttackRange, 2),
-                (BlockKind.MyPos, 1), (BlockKind.NearestEnemy, 1), (BlockKind.Slash, 1));
+            var pair = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves").GetArrayElementAtIndex(1).FindPropertyRelative("groups");
+            pair.arraySize = 1;
+            pair.GetArrayElementAtIndex(0).FindPropertyRelative("count").intValue = 1;
+            pair.GetArrayElementAtIndex(0).FindPropertyRelative("healthOverride").floatValue = 12.6f;
+            var practice = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves").GetArrayElementAtIndex(2).FindPropertyRelative("groups").GetArrayElementAtIndex(0);
+            practice.FindPropertyRelative("count").intValue = 3;
+            practice.FindPropertyRelative("healthOverride").floatValue = 20;
+            practice.FindPropertyRelative("interval").floatValue = .5f;
+            if (firstThreeOnly) { so.ApplyModifiedPropertiesWithoutUndo(); return "variable-repeat lessons updated"; }
             var waves = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves");
             var fourth = waves.GetArrayElementAtIndex(3).FindPropertyRelative("groups").GetArrayElementAtIndex(0);
             fourth.FindPropertyRelative("count").intValue = 6;
@@ -354,17 +315,20 @@ namespace CodingGame.Defense.Editor
             var stage = so.FindProperty("stages").GetArrayElementAtIndex(0);
             var firstGroups = stage.FindPropertyRelative("waves").GetArrayElementAtIndex(0).FindPropertyRelative("groups");
             firstGroups.arraySize = 2;
+            firstGroups.GetArrayElementAtIndex(0).FindPropertyRelative("count").intValue = 1;
+            firstGroups.GetArrayElementAtIndex(0).FindPropertyRelative("healthOverride").floatValue = 7;
             var basicEnemy = AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"{Folder}/TutorialError.asset");
             if (!basicEnemy) throw new InvalidOperationException("1-1의 기본 적 asset이 없습니다.");
             var strongGroup = firstGroups.GetArrayElementAtIndex(1);
             strongGroup.FindPropertyRelative("enemy").objectReferenceValue = basicEnemy;
             strongGroup.FindPropertyRelative("route").intValue = 0;
             strongGroup.FindPropertyRelative("count").intValue = 1;
-            strongGroup.FindPropertyRelative("delay").floatValue = 12;
+            strongGroup.FindPropertyRelative("delay").floatValue = 4;
             strongGroup.FindPropertyRelative("interval").floatValue = 2;
             strongGroup.FindPropertyRelative("healthOverride").floatValue = 500;
-            strongGroup.FindPropertyRelative("speedOverride").floatValue = 1.6f;
-            // All three enemies use the same basic prefab; only this last spawn has stronger stats.
+            strongGroup.FindPropertyRelative("speedOverride").floatValue = 6f;
+            strongGroup.FindPropertyRelative("leakDamageOverride").intValue = 1;
+            // A single-hit target followed by a fast runner teaches one-point core damage.
             stage.FindPropertyRelative("waveSeconds").floatValue = 120;
         }
 
@@ -380,8 +344,10 @@ namespace CodingGame.Defense.Editor
             var director = UnityEngine.Object.FindObjectsByType<TutorialDirector>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single();
             var so = new SerializedObject(director);
             var list = so.FindProperty("sequences");
-            list.arraySize = sequences.Length;
-            for (int i = 0; i < sequences.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = sequences[i];
+            var retained = director.Sequences.Where(sequence => sequence && sequence.stage != 1).ToArray();
+            var all = sequences.Concat(retained).ToArray();
+            list.arraySize = all.Length;
+            for (int i = 0; i < all.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = all[i];
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorSceneManager.MarkSceneDirty(director.gameObject.scene);
             log.AppendLine("scene saved " + EditorSceneManager.SaveScene(director.gameObject.scene));

@@ -144,7 +144,8 @@ namespace CodingGame.Defense
         public float[] CampaignSeconds;
         public int InitialWave;
         public bool PreviousStageRewards = true;
-        public int FunctionRepeatLimit = 5;
+        public int FunctionRepeatLimit = 1;
+        public bool RunProgramPerEnemy = true;
         public Vector2 Min, Max;
         public Route[] Routes;
         public SpawnGroup[][] Waves;
@@ -269,7 +270,7 @@ namespace CodingGame.Defense
     public sealed class ProjectileState
     {
         public int Id, Source;
-        public int Target; // a shot at one enemy (Attack); 0 = an area blast at Destination (Boom)
+        public int Target; // The only damage target; Radius controls the explosion visual, not extra victims.
         public Vector2 Origin, Destination;
         public double LaunchedAt, ImpactAt;
         public float Damage, Radius;

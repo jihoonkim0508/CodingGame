@@ -40,12 +40,34 @@ static class LearningCheck
         for(int stage=1;stage<=3;stage++)
         {
             Require(sim.Setup.Stage==stage,"Stage advances sequentially");
+            // This fixture fabricated two extra Stage 1 warrior programs with inventory limits disabled.
+            if(stage==2)sim.GrantBlock(BlockKind.Slash,2);
             if(stage==3) { tank=sim.Place(profiles[(int)RobotRole.Tank],2,new Vector2(0,0),out _); tank.Health=37; }
             for(int wave=1;wave<=5;wave++)
             {
                 Require(sim.WaveIndex==wave-1 && sim.Lesson.stage==stage && sim.Lesson.wave==wave,"Correct lesson");
+                if(stage==2 && (wave==2 || wave==4))
+                {
+                    var role=wave==2 ? RobotRole.Warrior : RobotRole.Shooter;
+                    var learner=sim.Place(profiles[(int)role],(int)role,new Vector2(wave==2 ? -12 : 12,3),out var placementError);
+                    Require(learner!=null,placementError);
+                    var repeat=new CodeBlock(BlockKind.For,"0",new CodeBlock(BlockKind.Number,"10"));
+                    repeat.Body.Add(new CodeBlock(BlockKind.DeclareVariable,"target",new CodeBlock(BlockKind.NearestEnemy)));
+                    repeat.Body.Add(new CodeBlock(role==RobotRole.Warrior ? BlockKind.Slash : BlockKind.Shot,"0",new CodeBlock(BlockKind.Variable,"target")));
+                    sim.ApplyProgram(learner.Id,"practice",new[]{repeat});
+                }
                 var expected=sim.Lesson.rewards.SelectMany(s=>Enumerable.Repeat(s.kind,s.count)).ToArray();
-                sim.Start();for(int i=0;i<20 && sim.Phase==BattlePhase.Running;i++)sim.Advance(.05);
+                // This progression fixture skips combat. 1-2 now requires all enemies defeated;
+                // separate PairAttacks tests exercise the real two-robot combat requirement.
+                bool pairLesson = stage == 1 && wave == 2;
+                if (pairLesson) sim.Options.waveTimeout = false;
+                sim.Start();
+                for(int i=0;i<200 && sim.Phase==BattlePhase.Running;i++)
+                {
+                    sim.Advance(.05);
+                    if (pairLesson) foreach (var enemy in sim.Enemies) enemy.Active = false;
+                }
+                sim.Options.waveTimeout = true;
                 Require(sim.Phase==BattlePhase.Reward && sim.PendingDrops.SequenceEqual(expected),"Fixed rewards independent of kills");
                 Require(sim.ClaimRewards() && !sim.ClaimRewards(),"Claim exactly once");
                 if(tank!=null)Require(tank.Health==37,"Tank health survives transitions");

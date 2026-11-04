@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -49,6 +50,142 @@ namespace CodingGame.Defense
             int characterCount = dialogue.textInfo.characterCount;
             dialogue.maxVisibleCharacters = animate ? 0 : int.MaxValue;
             if (animate && characterCount > 0) typing = StartCoroutine(Type(sequence.typeSpeed, characterCount));
+        }
+
+        GameObject supplement;
+        public void ShowLessonSupplement(bool compare, bool prediction, Action<bool> answered)
+        {
+            if (supplement) { supplement.SetActive(false); Destroy(supplement); }
+            if (!compare && !prediction) return;
+            supplement = new GameObject("Repeat lesson", typeof(RectTransform), typeof(Image));
+            var rect = (RectTransform)supplement.transform; rect.SetParent(panelRect, false);
+            rect.anchorMin = rect.anchorMax = new Vector2(.5f, 1); rect.pivot = new Vector2(.5f, 0);
+            rect.anchoredPosition = new Vector2(0, 12); rect.sizeDelta = new Vector2(760, compare ? 190 : 70);
+            supplement.GetComponent<Image>().color = new Color(.02f, .08f, .1f, .98f);
+            if (compare)
+            {
+                void Label(string name, float left, float right, float bottom, float top, string content)
+                {
+                    var text = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                    text.rectTransform.SetParent(rect, false); text.rectTransform.anchorMin = new Vector2(left,bottom); text.rectTransform.anchorMax = new Vector2(right,top);
+                    text.rectTransform.offsetMin = new Vector2(12, 4); text.rectTransform.offsetMax = new Vector2(-12, -4);
+                    text.font = dialogue.font; text.fontSize = 25; text.alignment = TextAlignmentOptions.TopLeft; text.raycastTarget = false;
+                    text.text = content;
+                }
+                Label("Expanded", 0, .5f, .2f, 1, "<b>명령을 늘어놓기</b>\n적 찾기 → 베기\n적 찾기 → 베기\n적 찾기 → 베기");
+                Label("Loop", .5f, 1, .2f, 1, "<b>반복문 쓰기</b>\nfor 3회\n    적 찾기 → 베기");
+                Label("Same result", .1f, 1, 0, .2f, "<color=#6FFFD2>같은 명령 묶음을 세 번 실행</color>");
+                return;
+            }
+            string[] labels = { "1번", "3번", "적이 쓰러질 때까지" };
+            for (int i = 0; i < labels.Length; i++)
+            {
+                int choice = i;
+                var button = Instantiate(nextText, rect); button.name = "Prediction " + i;
+                var br = (RectTransform)button.transform; br.anchorMin = br.anchorMax = new Vector2(.5f, .5f);
+                br.pivot = new Vector2(.5f, .5f); br.sizeDelta = new Vector2(230, 52); br.anchoredPosition = new Vector2((i - 1) * 245, 0);
+                foreach (Transform child in button.transform) Destroy(child.gameObject);
+                var label = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                label.rectTransform.SetParent(br, false); label.rectTransform.anchorMin = Vector2.zero; label.rectTransform.anchorMax = Vector2.one;
+                label.rectTransform.offsetMin = label.rectTransform.offsetMax = Vector2.zero;
+                label.font = dialogue.font; label.fontSize = 23; label.alignment = TextAlignmentOptions.Center; label.text = labels[i]; label.raycastTarget = false;
+                button.interactable = true;
+                button.onClick = new Button.ButtonClickedEvent();
+                button.onClick.AddListener(() => { supplement.SetActive(false); answered?.Invoke(choice == 1); });
+            }
+        }
+
+        // Stage 2 only: annotations follow the actual editable blocks instead of a detached text example.
+        sealed class RepeatMarker
+        {
+            public string key, title;
+            public RectTransform frame, label;
+            public TMP_Text text;
+            public Image[] edges;
+            public Color color;
+            public bool below;
+        }
+        readonly List<RepeatMarker> repeatMarkers = new List<RepeatMarker>();
+        GameObject repeatOverlay;
+        Func<string, Vector3[], bool> repeatArea;
+        Func<DefenseSimulation> repeatSimulation;
+        bool repeatLive;
+        public void ShowRepeatBlockGuide(string stepId, Func<string, Vector3[], bool> area, Func<DefenseSimulation> simulation)
+        {
+            if (repeatOverlay) { repeatOverlay.SetActive(false); Destroy(repeatOverlay); }
+            repeatMarkers.Clear(); repeatArea = area; repeatSimulation = simulation;
+            if (string.IsNullOrEmpty(stepId)) return;
+            var canvas = panelRect.GetComponentInParent<Canvas>().rootCanvas;
+            repeatOverlay = new GameObject("Stage 2 repeat block labels", typeof(RectTransform));
+            var root = (RectTransform)repeatOverlay.transform; root.SetParent(canvas.transform, false);
+            root.anchorMin = Vector2.zero; root.anchorMax = Vector2.one; root.offsetMin = root.offsetMax = Vector2.zero;
+            var gold = new Color(1, .8f, .2f); var cyan = new Color(.35f, 1, .9f);
+            void Mark(string key, string title, Color color, bool below = false)
+            {
+                var marker = new RepeatMarker { key = key, title = title, color = color, below = below };
+                marker.frame = new GameObject(key, typeof(RectTransform)).GetComponent<RectTransform>();
+                marker.frame.SetParent(root, false); marker.frame.anchorMin = marker.frame.anchorMax = new Vector2(.5f,.5f);
+                marker.edges = new Image[4];
+                for (int i = 0; i < 4; i++)
+                {
+                    var edge = new GameObject("Outline " + i, typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+                    edge.rectTransform.SetParent(marker.frame, false); edge.raycastTarget = false; edge.color = color;
+                    var er = edge.rectTransform;
+                    if (i < 2) { er.anchorMin = new Vector2(0,i); er.anchorMax = new Vector2(1,i); er.sizeDelta = new Vector2(0,4); }
+                    else { er.anchorMin = new Vector2(i-2,0); er.anchorMax = new Vector2(i-2,1); er.sizeDelta = new Vector2(4,0); }
+                    er.anchoredPosition = Vector2.zero; marker.edges[i] = edge;
+                }
+                marker.label = new GameObject("Label", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
+                marker.label.SetParent(root,false); marker.label.anchorMin = marker.label.anchorMax = new Vector2(.5f,.5f); marker.label.pivot = new Vector2(0,.5f);
+                marker.label.sizeDelta = new Vector2(320,64); var image = marker.label.GetComponent<Image>(); image.raycastTarget = false; image.color = new Color(.025f,.06f,.085f,.98f);
+                marker.text = new GameObject("Text",typeof(RectTransform),typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                marker.text.rectTransform.SetParent(marker.label,false); marker.text.rectTransform.anchorMin = Vector2.zero; marker.text.rectTransform.anchorMax = Vector2.one;
+                marker.text.rectTransform.offsetMin = new Vector2(10,4); marker.text.rectTransform.offsetMax = new Vector2(-10,-4);
+                marker.text.font = dialogue.font; marker.text.fontSize = 21; marker.text.fontStyle = FontStyles.Bold;
+                marker.text.alignment = TextAlignmentOptions.MidlineLeft; marker.text.color = color; marker.text.raycastTarget = false;
+                repeatMarkers.Add(marker);
+            }
+            repeatLive = stepId == "D01" || stepId == "D02";
+            switch (stepId)
+            {
+                case "C01": Mark("Editor.Palette.For", "① 이 블록을 시작 위치로", gold, true); break;
+                case "C02": Mark("Editor.Code.Arg.1.0", "① 반복 횟수\n10을 3으로 바꿔요", gold); break;
+                case "C03": case "C04": Mark("Editor.Code.Body.1", "② 반복할 명령 묶음\n적 찾기와 베기를 안쪽에", cyan); break;
+                case "C05": case "D00": case "D01": case "D02":
+                    Mark("Editor.Code.Arg.1.0", "① 이 숫자만큼 반복", gold);
+                    Mark("Editor.Code.Body.1", "② 적 찾기 → 베기", cyan); break;
+                case "D03": Mark("Editor.Code.Arg.1.0", "① 숫자만 바꾸면 돼요\n3 → 10", gold); break;
+                case "D04": case "D05": case "D06": Mark("Editor.Code.Body.1", "② 적 찾기도 반복 안쪽\n매번 공격 대상을 다시 찾기", cyan); break;
+            }
+            if (repeatMarkers.Count == 0) repeatOverlay.SetActive(false);
+        }
+        void LateUpdate()
+        {
+            if (!repeatOverlay || !repeatOverlay.activeSelf || repeatArea == null) return;
+            var root = (RectTransform)repeatOverlay.transform; var canvas = root.GetComponentInParent<Canvas>();
+            var camera = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+            foreach (var marker in repeatMarkers)
+            {
+                var corners = new Vector3[4]; bool visible = repeatArea(marker.key,corners);
+                marker.frame.gameObject.SetActive(visible); marker.label.gameObject.SetActive(visible); if (!visible) continue;
+                var min = new Vector2(float.MaxValue,float.MaxValue); var max = new Vector2(float.MinValue,float.MinValue);
+                foreach(var corner in corners)
+                {
+                    RectTransformUtility.ScreenPointToLocalPointInRectangle(root,RectTransformUtility.WorldToScreenPoint(camera,corner),camera,out var local);
+                    min = Vector2.Min(min,local); max = Vector2.Max(max,local);
+                }
+                marker.frame.anchoredPosition = (min+max)/2; marker.frame.sizeDelta = max-min+Vector2.one*8;
+                var pos = marker.below ? new Vector2(min.x,min.y-42) : new Vector2(max.x+14,(min.y+max.y)/2);
+                if (!marker.below && pos.x+320 > root.rect.xMax-12) pos.x = min.x-334;
+                pos.x = Mathf.Clamp(pos.x,root.rect.xMin+12,root.rect.xMax-332);
+                pos.y = Mathf.Clamp(pos.y,root.rect.yMin+40,root.rect.yMax-40); marker.label.anchoredPosition = pos;
+                marker.text.text = marker.title;
+                var sim = repeatSimulation?.Invoke(); var program = sim?.Robots.Count > 0 ? sim.Robots[0].Program : null;
+                if(repeatLive && marker.key == "Editor.Code.Body.1" && program != null)
+                    marker.text.text += program.Completed(sim) ? "\n종료 · 잠시 후 다시 재생" : program.LoopCount > 0 ? $"\n지금 {program.LoopIteration} / {program.LoopCount}번째" : "\n반복 시작 대기";
+                float alpha = .75f+.25f*Mathf.Sin(Time.unscaledTime*4);
+                foreach(var edge in marker.edges) edge.color = new Color(marker.color.r,marker.color.g,marker.color.b,alpha);
+            }
         }
 
         public RectTransform Panel => panelRect;
@@ -106,6 +243,7 @@ namespace CodingGame.Defense
 
         public void Hide()
         {
+            if (repeatOverlay) repeatOverlay.SetActive(false);
             StopTyping(); StopEntrance();
             if (panel) panel.SetActive(false);
         }
@@ -205,6 +343,6 @@ namespace CodingGame.Defense
             if (weight > 0 && camera && !greyCamera) { greyCamera = camera; cameraHadPostProcessing = camera.renderPostProcessing; camera.renderPostProcessing = true; }
             if (weight <= 0 && greyCamera) { greyCamera.renderPostProcessing = cameraHadPostProcessing; greyCamera = null; }
         }
-        void OnDestroy() { if (grey) { Destroy(grey.profile); Destroy(grey.gameObject); } }
+        void OnDestroy() { if (repeatOverlay) Destroy(repeatOverlay); if (grey) { Destroy(grey.profile); Destroy(grey.gameObject); } }
     }
 }

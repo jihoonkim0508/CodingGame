@@ -123,11 +123,20 @@ namespace CodingGame.Defense
             if (!IsOpen || !HasCurrentSession) return;
             panel.LoadProgram(panel.FunctionName, new[] {
                 new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)),
-                new CodeBlock(BlockKind.Slash, "0", new CodeBlock(BlockKind.Variable, "enemy"))
+                new CodeBlock(editingSession.FindRobot(editingId).Spec.role == RobotRole.Shooter ? BlockKind.Shot : BlockKind.Slash, "0", new CodeBlock(BlockKind.Variable, "enemy"))
             });
             if (!panel.IsApplied) throw new InvalidOperationException("비교용 기본 베기 코드의 블록 지급량을 확인하세요.");
             RestartPreview();
         }
+        public void PrepareRangedExample()
+        {
+            if (!IsOpen || !HasCurrentSession) return;
+            var loop = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "5"));
+            loop.Body.Add(new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)));
+            panel.LoadProgram(panel.FunctionName, new[] { loop });
+            if (!panel.IsApplied) throw new InvalidOperationException("원거리 기초 코드 지급량을 확인하세요.");
+        }
+        public void ConfigurePreviewLesson(int mode) => battle.ConfigurePreviewLesson(mode);
         public void RestartPreview() => battle.RestartCodePreview();
         // Python text of condition/value blocks lying in the workspace away from the start anchor (not part of the program).
         public IEnumerable<string> LooseExpressions() => !IsOpen ? Enumerable.Empty<string>() : panel.Program.LooseRoots()
@@ -170,6 +179,10 @@ namespace CodingGame.Defense
                 case "BodyName":
                     var bodySlot = BodyArgument(parts);
                     return Corners(parts[0] == "BodyArg" ? bodySlot?.Rect : bodySlot?.Blocks.FirstOrDefault()?.InputRect, null, corners);
+                case "BodyAfter":
+                    if (!block.Body || parts.Length < 3 || !int.TryParse(parts[2], out int bodyIndex) || bodyIndex < 0 || bodyIndex >= block.Body.Blocks.Count) return false;
+                    var bodyBlock = block.Body.Blocks[bodyIndex]; var afterRect = bodyBlock.Rect.rect;
+                    return Corners(bodyBlock.Rect, new Rect(afterRect.xMin, afterRect.yMin - 46, afterRect.width, 46), corners);
                 case "Line": return Corners(block.Rect, null, corners);
                 // The slot where the next block snaps: one line high, right under line N.
                 case "After": var r = block.Rect.rect; return Corners(block.Rect, new Rect(r.xMin, r.yMin - r.height, r.width, r.height), corners);
@@ -254,8 +267,16 @@ namespace CodingGame.Defense
             if (!IsOpen || string.IsNullOrEmpty(expected)) return false;
             var parts = expected.Split(':');
             var chain = panel.Program.StartChain();
-            return parts.Length == 2 && int.TryParse(parts[0], out int line) && line > 0 && line <= chain.Count &&
-                Enum.TryParse(parts[1], out BlockKind kind) && chain[line - 1].BaseKind == kind;
+            if (parts.Length != 2 || !Enum.TryParse(parts[1], out BlockKind kind)) return false;
+            var path = parts[0].Split('.');
+            if (!int.TryParse(path[0], out int line) || line < 1 || line > chain.Count) return false;
+            var block = chain[line - 1];
+            for (int i = 1; i < path.Length; i++)
+            {
+                if (!block.Body || !int.TryParse(path[i], out int index) || index < 0 || index >= block.Body.Blocks.Count) return false;
+                block = block.Body.Blocks[index];
+            }
+            return block.BaseKind == kind;
         }
 
         // Finish editing before the next dialogue can receive stray keystrokes from the completed name field.

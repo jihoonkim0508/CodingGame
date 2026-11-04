@@ -1,0 +1,194 @@
+# Stage 2 verification
+
+- PASS Stage 1 sequences retained
+- PASS Five Stage 2 sequences connected
+- PASS 2-1 enabled and unique steps
+- PASS 2-1/A01 dialogue
+- PASS 2-1/A02 dialogue
+- PASS 2-1/B01 dialogue
+- PASS 2-1/B02 dialogue
+- PASS 2-1/B02a dialogue
+- PASS 2-1/B03 dialogue
+- PASS 2-1/B04 dialogue
+- PASS 2-1/B05 dialogue
+- PASS 2-1/B06 dialogue
+- PASS 2-1/B07 dialogue
+- PASS 2-1/C01 dialogue
+- PASS 2-1/C02 dialogue
+- PASS 2-1/C03 dialogue
+- PASS 2-1/C04 dialogue
+- PASS 2-1/C05 dialogue
+- PASS 2-1/D00 dialogue
+- PASS 2-1/D01 dialogue
+- PASS 2-1/D02 dialogue
+- PASS 2-1/D03 dialogue
+- PASS 2-1/D04 dialogue
+- PASS 2-1/D05 dialogue
+- PASS 2-1/D06 dialogue
+- PASS 2-1/E01 dialogue
+- PASS 2-1/E01a dialogue
+- PASS 2-1/E02 dialogue
+- PASS 2-1/E03 dialogue
+- PASS 2-2 enabled and unique steps
+- PASS 2-2/A01 dialogue
+- PASS 2-2/A02 dialogue
+- PASS 2-2/A03 dialogue
+- PASS 2-2/B01 dialogue
+- PASS 2-2/B02 dialogue
+- PASS 2-2/B03 dialogue
+- PASS 2-3 enabled and unique steps
+- PASS 2-3/A01 dialogue
+- PASS 2-3/A02 dialogue
+- PASS 2-3/A03 dialogue
+- PASS 2-3/A04 dialogue
+- PASS 2-3/A05 dialogue
+- PASS 2-3/B01 dialogue
+- PASS 2-3/B01a dialogue
+- PASS 2-3/B02 dialogue
+- PASS 2-3/B03 dialogue
+- PASS 2-3/B04 dialogue
+- PASS 2-3/B05 dialogue
+- PASS 2-3/C01 dialogue
+- PASS 2-3/C02 dialogue
+- PASS 2-3/C03 dialogue
+- PASS 2-3/D01 dialogue
+- PASS 2-3/D01a dialogue
+- PASS 2-3/D02 dialogue
+- PASS 2-3/D03 dialogue
+- PASS 2-4 enabled and unique steps
+- PASS 2-4/A01 dialogue
+- PASS 2-4/A02 dialogue
+- PASS 2-4/A03 dialogue
+- PASS 2-4/B01 dialogue
+- PASS 2-4/B02 dialogue
+- PASS 2-4/B03 dialogue
+- PASS 2-4/B04 dialogue
+- PASS 2-5 enabled and unique steps
+- PASS 2-5/A01 dialogue
+- PASS 2-5/A02 dialogue
+- PASS 2-5/A03 dialogue
+- PASS 2-5/A04 dialogue
+- PASS 2-5/A05 dialogue
+- PASS 2-5/B01 dialogue
+- PASS 2-5/B02 dialogue
+- PASS 2-5/B03 dialogue
+- PASS 2-5/B04 dialogue
+- PASS Renamed three-run loop matches
+- PASS Outside search rejected
+- PASS Guided scope mismatch rejected
+- PASS Zero iterations rejected
+- PASS Other positive count and variable accepted
+- PASS Legal placements 0/1
+- PASS Placed Warrior 
+- PASS Start gate 0/1: 
+- DETAIL bossHealth=-1 robots=Warrior@<6.000001, 0.4000002> attacks=4 runs=0
+- RESULT strategy=0 wave=1 phase=Reward hp=12 kills=3 survivors=0 timeout=False
+- PASS Continuous encounter cleared 0/1
+- PASS No program faults 0/1
+- PASS Claim 0/1
+- PASS Legal placements 0/2
+- PASS Placed Warrior 
+- PASS Start gate 0/2: 
+- DETAIL bossHealth=-1 robots=Warrior@<6.000001, 0.4000002> attacks=4 runs=0;Warrior@<5.200001, -0.3999998> attacks=5 runs=0
+- RESULT strategy=0 wave=2 phase=Reward hp=12 kills=8 survivors=0 timeout=False
+- PASS Continuous encounter cleared 0/2
+- PASS No program faults 0/2
+- PASS Claim 0/2
+- PASS Legal placements 0/3
+- PASS Placed Shooter 
+- PASS Start gate 0/3: 
+- DETAIL bossHealth=-1 robots=Warrior@<6.000001, 0.4000002> attacks=4 runs=0;Warrior@<5.200001, -0.3999998> attacks=6 runs=0;Shooter@<5.200001, -2> attacks=7 runs=0
+- RESULT strategy=0 wave=3 phase=Reward hp=12 kills=14 survivors=0 timeout=False
+- PASS Continuous encounter cleared 0/3
+- PASS No program faults 0/3
+- PASS Claim 0/3
+- PASS Legal placements 0/4
+- PASS Placed Shooter 
+- PASS Start gate 0/4: 
+- DETAIL bossHealth=-1 robots=Warrior@<6.000001, 0.4000002> attacks=5 runs=0;Warrior@<5.200001, -0.3999998> attacks=7 runs=1;Shooter@<5.200001, -2> attacks=6 runs=1;Shooter@<6.000001, -1.2> attacks=7 runs=1
+- RESULT strategy=0 wave=4 phase=Reward hp=12 kills=22 survivors=0 timeout=False
+- PASS Continuous encounter cleared 0/4
+- PASS No program faults 0/4
+- PASS Claim 0/4
+- PASS Start gate 0/5: 
+- DETAIL bossHealth=11.83645 robots=Warrior@<6.000001, 0.4000002> attacks=4 runs=0;Warrior@<5.200001, -0.3999998> attacks=5 runs=0;Shooter@<5.200001, -2> attacks=6 runs=0;Shooter@<6.000001, -1.2> attacks=5 runs=0
+- RESULT strategy=0 wave=5 phase=Reward hp=12 kills=27 survivors=0 timeout=False
+- PASS Continuous encounter cleared 0/5
+- PASS No program faults 0/5
+- PASS Claim 0/5
+- PASS Legal placements 1/1
+- PASS Placed Warrior 
+- PASS Start gate 1/1: 
+- DETAIL bossHealth=-1 robots=Warrior@<5.200001, -0.3999998> attacks=4 runs=0
+- RESULT strategy=1 wave=1 phase=Reward hp=12 kills=3 survivors=0 timeout=False
+- PASS Continuous encounter cleared 1/1
+- PASS No program faults 1/1
+- PASS Claim 1/1
+- PASS Legal placements 1/2
+- PASS Placed Warrior 
+- PASS Start gate 1/2: 
+- DETAIL bossHealth=-1 robots=Warrior@<5.200001, -0.3999998> attacks=2 runs=0;Warrior@<1.200001, -1.2> attacks=5 runs=1
+- RESULT strategy=1 wave=2 phase=Reward hp=12 kills=8 survivors=0 timeout=False
+- PASS Continuous encounter cleared 1/2
+- PASS No program faults 1/2
+- PASS Claim 1/2
+- PASS Legal placements 1/3
+- PASS Placed Shooter 
+- PASS Start gate 1/3: 
+- DETAIL bossHealth=-1 robots=Warrior@<5.200001, -0.3999998> attacks=3 runs=0;Warrior@<1.200001, -1.2> attacks=7 runs=1;Shooter@<5.200001, -2.8> attacks=5 runs=1
+- RESULT strategy=1 wave=3 phase=Reward hp=12 kills=14 survivors=0 timeout=False
+- PASS Continuous encounter cleared 1/3
+- PASS No program faults 1/3
+- PASS Claim 1/3
+- PASS Legal placements 1/4
+- PASS Placed Shooter 
+- PASS Start gate 1/4: 
+- DETAIL bossHealth=-1 robots=Warrior@<5.200001, -0.3999998> attacks=1 runs=0;Warrior@<1.200001, -1.2> attacks=6 runs=1;Shooter@<5.200001, -2.8> attacks=5 runs=0;Shooter@<0.4000012, 0.4000002> attacks=9 runs=1
+- RESULT strategy=1 wave=4 phase=Reward hp=12 kills=22 survivors=0 timeout=False
+- PASS Continuous encounter cleared 1/4
+- PASS No program faults 1/4
+- PASS Claim 1/4
+- PASS Start gate 1/5: 
+- DETAIL bossHealth=23.71158 robots=Warrior@<5.200001, -0.3999998> attacks=3 runs=0;Warrior@<1.200001, -1.2> attacks=4 runs=1;Shooter@<5.200001, -2.8> attacks=4 runs=0;Shooter@<0.4000012, 0.4000002> attacks=8 runs=1
+- RESULT strategy=1 wave=5 phase=Reward hp=12 kills=27 survivors=0 timeout=False
+- PASS Continuous encounter cleared 1/5
+- PASS No program faults 1/5
+- PASS Claim 1/5
+- PASS Legal placements 2/1
+- PASS Placed Warrior 
+- PASS Start gate 2/1: 
+- DETAIL bossHealth=-1 robots=Warrior@<1.200001, -1.2> attacks=4 runs=0
+- RESULT strategy=2 wave=1 phase=Reward hp=12 kills=3 survivors=0 timeout=False
+- PASS Continuous encounter cleared 2/1
+- PASS No program faults 2/1
+- PASS Claim 2/1
+- PASS Legal placements 2/2
+- PASS Placed Warrior 
+- PASS Start gate 2/2: 
+- DETAIL bossHealth=-1 robots=Warrior@<1.200001, -1.2> attacks=0 runs=0;Warrior@<-10, 2.8> attacks=6 runs=0
+- RESULT strategy=2 wave=2 phase=Reward hp=12 kills=8 survivors=0 timeout=False
+- PASS Continuous encounter cleared 2/2
+- PASS No program faults 2/2
+- PASS Claim 2/2
+- PASS Legal placements 2/3
+- PASS Placed Shooter 
+- PASS Start gate 2/3: 
+- DETAIL bossHealth=-1 robots=Warrior@<1.200001, -1.2> attacks=0 runs=0;Warrior@<-10, 2.8> attacks=8 runs=0;Shooter@<1.200001, 0.4000002> attacks=0 runs=0
+- RESULT strategy=2 wave=3 phase=Reward hp=12 kills=14 survivors=0 timeout=False
+- PASS Continuous encounter cleared 2/3
+- PASS No program faults 2/3
+- PASS Claim 2/3
+- PASS Legal placements 2/4
+- PASS Placed Shooter 
+- PASS Start gate 2/4: 
+- DETAIL bossHealth=-1 robots=Warrior@<1.200001, -1.2> attacks=0 runs=0;Warrior@<-10, 2.8> attacks=10 runs=1;Shooter@<1.200001, 0.4000002> attacks=0 runs=0;Shooter@<6.000001, -0.3999998> attacks=0 runs=0
+- RESULT strategy=2 wave=4 phase=Reward hp=12 kills=22 survivors=0 timeout=False
+- PASS Continuous encounter cleared 2/4
+- PASS No program faults 2/4
+- PASS Claim 2/4
+- PASS Start gate 2/5: 
+- DETAIL bossHealth=0.5371132 robots=Warrior@<1.200001, -1.2> attacks=3 runs=0;Warrior@<-10, 2.8> attacks=8 runs=1;Shooter@<1.200001, 0.4000002> attacks=5 runs=0;Shooter@<6.000001, -0.3999998> attacks=0 runs=0
+- RESULT strategy=2 wave=5 phase=Reward hp=12 kills=27 survivors=0 timeout=False
+- PASS Continuous encounter cleared 2/5
+- PASS No program faults 2/5
+- PASS Claim 2/5

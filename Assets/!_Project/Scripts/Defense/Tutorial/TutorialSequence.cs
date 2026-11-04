@@ -67,6 +67,9 @@ namespace CodingGame.Defense
         public bool prepareDistanceExample;
         public bool prepareBaselineExample;
         public bool restartPreview;
+        [Tooltip("0: keep preview; 1: finite comparison; 2: retarget demonstration; 3: ranged demonstration")]
+        public int previewLesson;
+        public bool prepareRangedExample, prediction, compareRepeats;
         [Tooltip("흑백 화면 가운데에 대화창을 크게 띄웁니다. 이어지는 단계도 켜 두면 가운데에 남고, 꺼진 단계로 넘어갈 때 원래 자리로 줄어들며 이동합니다.")] public bool introEntrance;
         [Tooltip("시스템 배너에 경고 카드 세 장을 함께 띄웁니다(1-1 A01).")] public bool alertCards;
         [Tooltip("끌어다 놓기 시연: '팔레트 키>놓을 키', 'a>b|c>d'면 앞에서부터 둘 다 화면에 있는 것. 반투명 블록이 반복해서 움직입니다.")]

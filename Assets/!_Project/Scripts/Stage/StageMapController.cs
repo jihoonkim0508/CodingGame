@@ -62,7 +62,7 @@ namespace CodingGame.StageMap
             entering = true;
             cameraController.Focus(node.transform);
             // The fade waits for the camera to land on the stage (planner: the click moved on too fast).
-            GameFlow.LoadScene(GameFlow.DefenseScene, StageCameraController.Duration);
+            GameFlow.LoadScene(GameFlow.BattleSceneForStage(node.Number), StageCameraController.Duration);
         }
 
         void DeveloperClear()

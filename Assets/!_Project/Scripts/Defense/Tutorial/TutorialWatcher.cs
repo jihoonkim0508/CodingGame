@@ -20,6 +20,10 @@ namespace CodingGame.Defense
         {
             if (sim == null) return Array.Empty<RobotState>();
             var robots = sim.Robots.OrderBy(robot => robot.Id);
+            if (sim.Setup.PlayerFlow && sim.Setup.Stage == 2 && (sim.WaveIndex == 0 || sim.WaveIndex == 2 || sim.WaveIndex == 3))
+                return robots.OrderBy(robot => sim.IsNewRobotThisWave(robot) && robot.Spec.role == RobotRole.Shooter ? 0 : 1).ThenByDescending(robot => robot.Id).ToArray();
+            if (sim.Setup.PlayerFlow && sim.Setup.Stage == 2 && sim.WaveIndex == 2)
+                return robots.OrderBy(robot => robot.Spec.role == RobotRole.Shooter ? (sim.IsNewRobotThisWave(robot) ? 0 : 1) : 2).ThenBy(robot => robot.Id).ToArray();
             if (!sim.Setup.PlayerFlow || sim.Setup.Stage != 1 || sim.WaveIndex != 2 ||
                 sim.Setup.Waves.Length <= 2 || sim.Setup.Waves[2].Length == 0) return robots.ToArray();
             int route = sim.Setup.Waves[2].OrderBy(group => group.Delay).First().RouteIndex;
@@ -36,9 +40,58 @@ namespace CodingGame.Defense
         // Generated Python body equals the expected lines, ignoring the def header, indentation, blank lines and the names the
         // player gave variables (any name holding the enemy object works, not only `enemy`). The same lines in another order
         // also count: the program only runs once it compiles, so a line that uses a variable before it is set never gets here.
+        public static bool HasRepeatAttack(DefenseProgram program, RobotRole role)
+        {
+            if (program == null) return false;
+            bool Suite(IReadOnlyList<CodingGame.BlockCoding.CodeBlock> blocks)
+            {
+                foreach (var loop in blocks.Where(b => b.Kind == CodingGame.BlockCoding.BlockKind.For))
+                {
+                    if (loop.Arguments.Count != 1 || loop.Arguments[0].Kind != CodingGame.BlockCoding.BlockKind.Number ||
+                        !double.TryParse(loop.Arguments[0].Value, System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture, out var count) || count <= 0 || count != Math.Truncate(count) || count > CodingGame.BlockCoding.PythonTreeCompiler.MaxLoopIterations) continue;
+                    var names = new HashSet<string>();
+                    bool Actions(IReadOnlyList<CodingGame.BlockCoding.CodeBlock> body)
+                    {
+                        foreach (var b in body)
+                        {
+                            if (b.Kind == CodingGame.BlockCoding.BlockKind.DeclareVariable)
+                            {
+                                names.Remove(b.Value);
+                                if (b.Arguments.Count == 1 && b.Arguments[0].Kind == CodingGame.BlockCoding.BlockKind.NearestEnemy) names.Add(b.Value);
+                            }
+                            bool attack = role == RobotRole.Warrior ? b.Kind == CodingGame.BlockCoding.BlockKind.Slash :
+                                b.Kind == CodingGame.BlockCoding.BlockKind.Shot || b.Kind == CodingGame.BlockCoding.BlockKind.Attack;
+                            if (attack && b.Arguments.Count == 1 && b.Arguments[0].Kind == CodingGame.BlockCoding.BlockKind.Variable && names.Contains(b.Arguments[0].Value)) return true;
+                            if (b.Body.Count > 0)
+                            {
+                                var saved = names.ToArray();
+                                if (Actions(b.Body)) return true;
+                                names.Clear(); foreach (var name in saved) names.Add(name);
+                            }
+                        }
+                        return false;
+                    }
+                    if (Actions(loop.Body)) return true;
+                }
+                return blocks.Any(b => b.Body.Count > 0 && Suite(b.Body));
+            }
+            return Suite(program.CopyBlocks());
+        }
         public static bool Matches(DefenseProgram program, string expected)
         {
             if (program == null) return false;
+            if ((expected ?? "").Contains("for "))
+            {
+                string[] Shape(string text)
+                {
+                    var raw = text.Replace("\r", "").Split('\n').Where(line => !string.IsNullOrWhiteSpace(line)).ToArray();
+                    int baseline = raw.Length == 0 ? 0 : raw[0].TakeWhile(char.IsWhiteSpace).Count();
+                    var canonical = Canonical(raw.Select(line => line.Trim()).ToList());
+                    return raw.Select((line, i) => (line.TakeWhile(char.IsWhiteSpace).Count() - baseline) + ":" + canonical[i]).ToArray();
+                }
+                return Shape(string.Join("\n", program.Source.Replace("\r", "").Split('\n').Skip(1))).SequenceEqual(Shape(expected));
+            }
             var actual = Canonical(Lines(string.Join("\n", program.Source.Replace("\r", "").Split('\n').Skip(1))));
             var wanted = Canonical(Lines(expected));
             return actual.SequenceEqual(wanted) || actual.OrderBy(l => l).SequenceEqual(wanted.OrderBy(l => l));
