@@ -208,9 +208,10 @@ namespace CodingGame.Defense.Editor
             if (key == "1/B05")
             {
                 var bridge = Field<TutorialInputBridge>(director, "bridge");
-                Require(Field<System.Collections.Generic.List<Rect>>(bridge, "roundAreas").Count > 0 &&
-                    Field<System.Collections.Generic.List<Rect>>(bridge, "outlinedAreas").Count == 0,
-                    "The tutorial draws a duplicate outline over the robot's range ring");
+                // The 3D range ring, tinted inside, is the highlight: no screen hole or outline that would not line up with it.
+                Require(Field<System.Collections.Generic.List<Rect>>(bridge, "roundAreas").Count == 0 &&
+                    Field<System.Collections.Generic.List<Rect>>(bridge, "outlinedAreas").Count == 0 && director.Highlighted(TutorialKeys.Range(0)),
+                    "1-1 B05 must highlight the range ring itself, without a spotlight hole or outline over it");
             }
             if (key == "3/A05" && now - since > 5 && !previewLogged)
             {
