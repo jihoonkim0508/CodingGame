@@ -6,13 +6,14 @@ using UnityEngine;
 
 namespace CodingGame.Defense.Editor
 {
-    // Photographs every robot prefab in a preview scene (front three-quarter, transparent background) and stores the
-    // picture as its RobotDefinition.icon, for the battle HUD's robot cards. Rerun after a robot model changes. Needs a GPU,
+    // Photographs every robot and enemy prefab in a preview scene (front three-quarter, transparent background) and stores
+    // the picture as its RobotDefinition.icon (the battle HUD's robot cards) or EnemyDefinition.icon (the next-wave cards).
+    // Rerun after a model changes. Needs a GPU,
     // so batchmode without -nographics:
     //   Unity.exe -batchmode -projectPath . -executeMethod CodingGame.Defense.Editor.RobotIcons.Build -quit
     public static class RobotIcons
     {
-        const string Folder = "Assets/!_Project/Defense/UI/RobotIcons";
+        const string Folder = "Assets/!_Project/Defense/UI/RobotIcons", EnemyFolder = "Assets/!_Project/Defense/UI/EnemyIcons";
         const int Size = 256;
 
         [MenuItem("Tools/Develop/로봇 아이콘 만들기")]
@@ -34,8 +35,23 @@ namespace CodingGame.Defense.Editor
                 if (!definition.icon) Debug.LogError("[RobotIcons] no sprite imported at " + path);
                 EditorUtility.SetDirty(definition);
             }
+            // Enemies the same way; the cards show them as a RawImage, so the icon stays a plain texture.
+            Directory.CreateDirectory(EnemyFolder);
+            var enemies = AssetDatabase.FindAssets("t:EnemyDefinition").Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadAssetAtPath<EnemyDefinition>).Where(d => d && d.prefab).ToArray();
+            foreach (var enemy in enemies)
+            {
+                string path = $"{EnemyFolder}/{enemy.name}.png";
+                File.WriteAllBytes(path, Photograph(enemy.prefab.gameObject));
+                AssetDatabase.ImportAsset(path);
+                var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+                importer.alphaIsTransparency = true; importer.mipmapEnabled = false; importer.wrapMode = TextureWrapMode.Clamp;
+                importer.SaveAndReimport();
+                enemy.icon = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                EditorUtility.SetDirty(enemy);
+            }
             AssetDatabase.SaveAssets();
-            Debug.Log($"[RobotIcons] {definitions.Length} icons → {Folder}");
+            Debug.Log($"[RobotIcons] {definitions.Length} robot icons → {Folder}, {enemies.Length} enemy icons → {EnemyFolder}");
         }
 
         static byte[] Photograph(GameObject prefab)
@@ -61,7 +77,7 @@ namespace CodingGame.Defense.Editor
                 camera = cameraObject.AddComponent<Camera>();
                 camera.scene = scene; camera.overrideSceneCullingMask = EditorSceneManager.GetSceneCullingMask(scene);
                 camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = Color.clear;
-                camera.orthographic = true; camera.aspect = 1; camera.orthographicSize = Mathf.Max(bounds.extents.y, bounds.extents.x) * 1.08f;
+                camera.orthographic = true; camera.aspect = 1; camera.orthographicSize = Mathf.Max(bounds.extents.y, bounds.extents.x) * 1.22f; // room for the tilted view: a tight fit cut off tall heads
                 // A little above and to the right of the robot's front, the way the battle camera sees it.
                 camera.transform.position = bounds.center + new Vector3(.45f, .4f, 1).normalized * (bounds.size.magnitude * 2);
                 camera.transform.LookAt(bounds.center);

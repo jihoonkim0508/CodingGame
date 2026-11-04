@@ -183,7 +183,7 @@ namespace CodingGame.Defense
                     var icon = robotIcons[i] = new GameObject("Icon", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
                     icon.rectTransform.SetParent(robotButtons[i].transform, false);
                     icon.rectTransform.anchorMin = Vector2.zero; icon.rectTransform.anchorMax = new Vector2(0, 1); icon.rectTransform.pivot = new Vector2(0, .5f);
-                    icon.rectTransform.sizeDelta = new Vector2(66, -6); icon.rectTransform.anchoredPosition = new Vector2(6, 0);
+                    icon.rectTransform.sizeDelta = new Vector2(58, -18); icon.rectTransform.anchoredPosition = new Vector2(14, 1); // inside the card's ink outline
                     icon.sprite = sprite; icon.preserveAspect = true; icon.raycastTarget = false;
                     var label = robotLabels[i].rectTransform; label.offsetMin = new Vector2(label.offsetMin.x + 62, label.offsetMin.y);
                 }
