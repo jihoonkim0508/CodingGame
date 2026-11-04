@@ -297,7 +297,7 @@ namespace CodingGame.Defense
             lastPhase = sim.Phase;
             if (!waveCall) return;
             float t = Time.unscaledTime - waveCallAt;
-            waveCall.gameObject.SetActive(t < WaveCallSeconds);
+            waveCall.gameObject.SetActive(t < WaveCallSeconds && !MenuOpen); // it would show through the Esc menu's shade
             if (t >= WaveCallSeconds) return;
             waveCall.rectTransform.localScale = Vector3.one * (t < .2f ? Mathf.Lerp(1.6f, 1, Mathf.SmoothStep(0, 1, t / .2f)) : 1 + .02f * (t - .2f));
             waveCall.alpha = t < .2f ? t / .2f : t > WaveCallSeconds - .45f ? (WaveCallSeconds - t) / .45f : 1;
