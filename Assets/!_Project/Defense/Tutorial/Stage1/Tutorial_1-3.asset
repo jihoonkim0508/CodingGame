@@ -65,6 +65,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: A02
     kind: 0
     dialoguePosition: 0
@@ -111,6 +112,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: B01
     kind: 1
     dialoguePosition: 0
@@ -156,20 +158,21 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: B02
     kind: 1
     dialoguePosition: 0
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uAE38 \uC606\uC5D0 \uC6D0\uAC70\uB9AC \uB85C\uBD07\uC744 \uB193\uC544
-        \uC918.\n\uC0AC\uAC70\uB9AC\uAC00 \uB113\uC5B4\uC11C \uAE38\uC5D0\uC11C \uC870\uAE08
-        \uB5A8\uC5B4\uC838\uB3C4 \uAD1C\uCC2E\uC544!"
+      text: "<b>\uD45C\uC2DC\uB41C \uC790\uB9AC</b>\uC5D0 \uC6D0\uAC70\uB9AC \uB85C\uBD07\uC744
+        \uC124\uCE58\uD574!\n\uAE38 \uBC14\uB85C \uC606\uC774\uB77C \uC9C0\uB098\uAC00\uB294
+        \uC801\uC744 \uB193\uCE58\uC9C0 \uC54A\uC544."
       focusKeys:
-      - Battle.Floor
+      - Battle.Spot
       highlightKeys: []
     targetKeys:
-    - Battle.DeploymentArea
+    - Battle.Spot
     dim: 1
     undimmed: 0
     blockInput: 1
@@ -186,7 +189,7 @@ MonoBehaviour:
     trigger: 
     skipIf: 
     expectedCode: 
-    pointerKey: 
+    pointerKey: Battle.Spot
     autoSelectSlot: 
     hintCode: 
     pointerDelay: 0
@@ -203,6 +206,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 1
   - stepId: B03
     kind: 1
     dialoguePosition: 0
@@ -248,6 +252,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: B04
     kind: 1
     dialoguePosition: 0
@@ -293,18 +298,18 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: C01
     kind: 1
     dialoguePosition: 0
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uBA3C\uC800 \uC9C0\uB09C\uBC88\uC5D0 \uBC30\uC6B4 <b>`for`</b> \uBE14\uB85D\uC744
-        \uC2DC\uC791 \uC790\uB9AC\uC5D0 \uB193\uC544 \uC918.\n\uC6D0\uAC70\uB9AC
-        \uB85C\uBD07\uB3C4 \uC5EC\uB7EC \uBC88 \uC3D8\uB824\uBA74 \uBC18\uBCF5\uC774
-        \uD544\uC694\uD574."
+      text: "\uBA3C\uC800 \uC9C0\uB09C\uBC88\uC5D0 \uBC30\uC6B4 <b>`while True`</b>
+        \uBE14\uB85D\uC744 \uC2DC\uC791 \uC790\uB9AC\uC5D0 \uB193\uC544 \uC918.\n\uC6D0\uAC70\uB9AC
+        \uB85C\uBD07\uB3C4 \uACC4\uC18D \uC3D8\uB824\uBA74 \uBC18\uBCF5\uC774 \uD544\uC694\uD574."
       focusKeys:
-      - Editor.Palette.For
+      - Editor.Palette.While
       - Editor.Code.Start
       highlightKeys: []
     targetKeys:
@@ -325,8 +330,8 @@ MonoBehaviour:
     highlightPadding: 10
     trigger: 
     skipIf: 
-    expectedCode: 1:For
-    pointerKey: Editor.Palette.For
+    expectedCode: 1:While
+    pointerKey: Editor.Palette.While
     autoSelectSlot: 
     hintCode: 
     pointerDelay: 0
@@ -339,10 +344,11 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: Editor.Palette.For>Editor.Code.Start
+    dragDemo: Editor.Palette.While>Editor.Code.Start
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: C02
     kind: 1
     dialoguePosition: 0
@@ -350,7 +356,8 @@ MonoBehaviour:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
       text: "<b>\u2460 \uC801 \uCC3E\uAE30</b>\n\uAC00\uC6B4\uB370 \u2018`enemy`
-        =\u2019 \uBE14\uB85D\uC744 `for` <b>\uC548\uCABD</b>\uC5D0 \uB123\uC5B4 \uC918."
+        =\u2019 \uBE14\uB85D\uC744 `while` <b>\uC548\uCABD</b>\uC5D0 \uB123\uC5B4
+        \uC918."
       focusKeys:
       - Editor.Palette.DeclareVariable
       - Editor.Code.Body.1
@@ -391,6 +398,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: C03
     kind: 0
     dialoguePosition: 0
@@ -437,6 +445,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: C04
     kind: 1
     dialoguePosition: 0
@@ -486,6 +495,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: C05
     kind: 0
     dialoguePosition: 0
@@ -532,6 +542,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: C06
     kind: 0
     dialoguePosition: 0
@@ -577,6 +588,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: D01
     kind: 1
     dialoguePosition: 0
@@ -584,7 +596,7 @@ MonoBehaviour:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
       text: "<b>\u2461 \uCC3E\uC740 \uC801 \uACF5\uACA9\uD558\uAE30</b>\n\u2018`attack`\u2019
-        \uBE14\uB85D\uC744 `enemy` \uC904 \uBC14\uB85C \uC544\uB798, `for` \uC548\uCABD\uC5D0
+        \uBE14\uB85D\uC744 `enemy` \uC904 \uBC14\uB85C \uC544\uB798, `while` \uC548\uCABD\uC5D0
         \uBD99\uC5EC \uC918."
       focusKeys:
       - Editor.Palette.Shot
@@ -626,6 +638,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: D02
     kind: 1
     dialoguePosition: 0
@@ -675,6 +688,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: D03
     kind: 1
     dialoguePosition: 0
@@ -705,7 +719,7 @@ MonoBehaviour:
     highlightPadding: 10
     trigger: 
     skipIf: 
-    expectedCode: "for i in range(10):\n    enemy = get_nearest_enemy()\n    attack(enemy)"
+    expectedCode: "while True:\n    enemy = get_nearest_enemy()\n    attack(enemy)"
     pointerKey: Editor.Code.Name.1>2.0
     autoSelectSlot: 
     hintCode: 
@@ -723,6 +737,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: D04
     kind: 0
     dialoguePosition: 0
@@ -770,6 +785,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: D05
     kind: 1
     dialoguePosition: 0
@@ -817,6 +833,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 1.5
+    placeSpot: 0
   - stepId: D06
     kind: 0
     dialoguePosition: 0
@@ -863,6 +880,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: D07
     kind: 0
     dialoguePosition: 0
@@ -907,6 +925,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: E01
     kind: 1
     dialoguePosition: 1
@@ -953,6 +972,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: E02
     kind: 0
     dialoguePosition: 0
@@ -998,6 +1018,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: E03
     kind: 0
     dialoguePosition: 0
@@ -1043,6 +1064,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: E04
     kind: 0
     dialoguePosition: 0
@@ -1088,6 +1110,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: E05
     kind: 0
     dialoguePosition: 0
@@ -1133,6 +1156,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: E06
     kind: 1
     dialoguePosition: 1
@@ -1178,3 +1202,4 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0

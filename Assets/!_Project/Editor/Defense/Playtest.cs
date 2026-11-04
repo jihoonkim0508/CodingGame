@@ -323,7 +323,7 @@ namespace CodingGame.Defense.Editor
             yield return Jump(3, "B04");
             yield return OpenEditor();
             yield return Jump(3, "C04");
-            var loop = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "10"));
+            var loop = new CodeBlock(BlockKind.While);
             loop.Body.Add(new CodeBlock(BlockKind.DeclareVariable, "enemy"));
             Battle.CodeEditor.Panel.LoadProgram(Battle.CodeEditor.Panel.FunctionName, new[] { loop });
             Program.PlaceFree(Palette(BlockKind.NearestEnemy), new Vector2(300, -260));
@@ -373,7 +373,7 @@ namespace CodingGame.Defense.Editor
             yield return OpenEditor();
             yield return Jump(3, "D02");
             Check(Director.EditorStep.completionSignal == TutorialSignals.SlotFilled, "D02: 변수 블록을 놓는 단계 — \"" + Director.EditorStep.texts[0].text + "\"");
-            const string loop = "for i in range(10):\n    enemy = get_nearest_enemy()\n";
+            const string loop = "while True:\n    enemy = get_nearest_enemy()\n";
             Load(loop + "    attack(get_nearest_enemy())");
             yield return .3f;
             Check(StepId == "D02", "적 찾기 함수를 직접 넣으면 D02를 통과하지 않음");
@@ -552,7 +552,7 @@ namespace CodingGame.Defense.Editor
             DevTest.PlaceTeachingRobot(Battle, RobotRole.Shooter);
             foreach (var bot in sim.Robots)
                 sim.ApplyProgram(bot.Id, "robot_" + bot.Id, bot.Spec.role == RobotRole.Warrior
-                    ? TutorialAnswers.Parse("for i in range(10):\n    slash()")
+                    ? TutorialAnswers.Parse("while True:\n    slash()")
                     : new[] { new CodeBlock(BlockKind.Shot, "0", new CodeBlock(BlockKind.NearestEnemy)) });
             yield return .5f;
             var robots = Field<IDictionary>(Battle, "robotViews");

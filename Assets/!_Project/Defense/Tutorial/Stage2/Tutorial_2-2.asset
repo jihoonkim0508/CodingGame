@@ -65,6 +65,102 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
+  - stepId: A01a
+    kind: 1
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uC548\uB0B4\uC790"
+      text: "\uC544\uB798\uC5D0\uC11C <b>\uC6D0\uAC70\uB9AC \uB85C\uBD07</b>\uC744
+        \uC120\uD0DD\uD574."
+      focusKeys: []
+      highlightKeys: []
+    targetKeys:
+    - Battle.Robot.4
+    dim: 1
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    completionMode: 1
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    placeSpot: 0
+  - stepId: A01b
+    kind: 1
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uC548\uB0B4\uC790"
+      text: "<b>\uD45C\uC2DC\uB41C \uC790\uB9AC</b>\uC5D0 \uC0C8 \uC6D0\uAC70\uB9AC
+        \uB85C\uBD07\uC744 \uC124\uCE58\uD574!\n\uC774 \uC790\uB9AC\uB3C4 \uAE38
+        \uBC14\uB85C \uC606\uC774\uB77C \uAC70\uB9AC \uC870\uAC74\uC774 \uCC38\uC774
+        \uB420 \uC218 \uC788\uC5B4."
+      focusKeys:
+      - Battle.Spot
+      highlightKeys: []
+    targetKeys:
+    - Battle.Spot
+    dim: 1
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    completionMode: 3
+    completionSignal: RobotPlaced
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: Battle.Spot
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    placeSpot: 1
   - stepId: A02
     kind: 0
     dialoguePosition: 0
@@ -110,6 +206,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: A03
     kind: 0
     dialoguePosition: 0
@@ -155,6 +252,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: B01
     kind: 0
     dialoguePosition: 0
@@ -184,8 +282,8 @@ MonoBehaviour:
     expectedCode: 
     pointerKey: 
     autoSelectSlot: 
-    hintCode: "for i in range(10):\n    enemy = get_nearest_enemy()\n    enemy_distance
-      = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:\n        attack(enemy)"
+    hintCode: "while True:\n    enemy = get_nearest_enemy()\n    enemy_distance =
+      enemy.distance(get_my_pos())\n    if enemy_distance <= 3:\n        attack(enemy)"
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
@@ -200,6 +298,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: B02
     kind: 0
     dialoguePosition: 0
@@ -244,6 +343,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: B03
     kind: 1
     dialoguePosition: 1
@@ -289,3 +389,4 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0

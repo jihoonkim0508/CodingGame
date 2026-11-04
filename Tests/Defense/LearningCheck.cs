@@ -18,11 +18,11 @@ static class LearningCheck
             Routes=new[]{new Route(new[]{new Vector2(-10,0),new Vector2(10,0)},1)},
             Waves=Enumerable.Range(0,5).Select(_=>new[]{new SpawnGroup { Enemy=new EnemySpec(), Count=1, Interval=1 }}).ToArray() };
         var sim = new DefenseSimulation(setup);
-        Require(sim.RobotAvailable(RobotRole.Warrior)==1 && sim.Inventory[BlockKind.Slash]==1 && sim.Inventory[BlockKind.For]==1 &&
-            !sim.Inventory.ContainsKey(BlockKind.Shot), "Only lesson 1-1 supplies: a warrior, slash() and for");
+        Require(sim.RobotAvailable(RobotRole.Warrior)==1 && sim.Inventory[BlockKind.Slash]==1 && sim.Inventory[BlockKind.While]==1 &&
+            !sim.Inventory.ContainsKey(BlockKind.Shot) && !sim.Inventory.ContainsKey(BlockKind.For), "Only lesson 1-1 supplies: a warrior, slash() and while True");
         var bot=sim.Place(profiles[(int)RobotRole.Warrior],1,new Vector2(0,3),out _);
         Require(bot!=null,"Starting supplies playable");
-        CodeBlock Loop(params CodeBlock[] body) { var loop=new CodeBlock(BlockKind.For,"0",new CodeBlock(BlockKind.Number,"4")); loop.Body.AddRange(body); return loop; }
+        CodeBlock Loop(params CodeBlock[] body) { var loop=new CodeBlock(BlockKind.While); loop.Body.AddRange(body); return loop; }
         sim.ApplyProgram(bot.Id,"spin",new[]{Loop(new CodeBlock(BlockKind.Slash))});
         // Free play starts only once the new robot uses the last lesson: 1-2 a second warrior slashing in a loop,
         // 1-4 a second shooter attacking a stored enemy, 2-2 two shooters whose attack waits for a distance check.

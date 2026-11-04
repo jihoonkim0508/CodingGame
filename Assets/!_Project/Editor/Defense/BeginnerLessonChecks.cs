@@ -128,7 +128,7 @@ namespace CodingGame.Defense.Editor
                 director.EditorStop();
                 if (DevTest.Sim.Robots.Count == 0) DevTest.PlaceTeachingRobot(battle, RobotRole.Shooter);
                 battle.SelectRobot(TutorialWatcher.TeachingRobot(DevTest.Sim).Id); battle.DevelopSelected();
-                battle.CodeEditor.Panel.LoadProgram("condition_example", TutorialAnswers.Parse("for i in range(10):\n    enemy = get_nearest_enemy()\n" +
+                battle.CodeEditor.Panel.LoadProgram("condition_example", TutorialAnswers.Parse("while True:\n    enemy = get_nearest_enemy()\n" +
                     "    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:"));
                 director.EditorRun(sequence, Array.FindIndex(sequence.steps, s => s.stepId == "E01"));
             }
@@ -289,10 +289,10 @@ namespace CodingGame.Defense.Editor
                 Require(battle.BattleSpeed == 2, "Speed did not change to 2x at " + key);
                 Require(director.CanPerformAction(TutorialKeys.Speed) && speed.interactable,
                     "Speed became locked again immediately after the lesson");
+                for (int x = 3; x <= DefenseBattle.MaxSpeed; x++)
+                { speed.onClick.Invoke(); Require(battle.BattleSpeed == x, $"Speed cannot reach {x}x after the tutorial introduction"); }
                 speed.onClick.Invoke();
-                Require(battle.BattleSpeed == 3, "Speed cannot reach 3x after the tutorial introduction");
-                speed.onClick.Invoke();
-                Require(battle.BattleSpeed == 1, "Speed cannot return to 1x after 3x");
+                Require(battle.BattleSpeed == 1, $"Speed cannot return to 1x after {DefenseBattle.MaxSpeed}x");
                 return;
             }
             var robotButton = step.targetKeys.FirstOrDefault(k => k.StartsWith(TutorialKeys.RobotButtonPrefix, StringComparison.Ordinal));
@@ -355,21 +355,20 @@ namespace CodingGame.Defense.Editor
         {
             var sim = battle.Simulation; var first = TutorialWatcher.TeachingRobot(sim);
             var goal = Field<TMP_Text>(Field<DefensePlayerHUD>(battle, "playerHUD"), "guide");
-            Require(goal.transform.parent.gameObject.activeSelf && goal.text.Contains("새 전사를 배치하고 for 반복"),
+            Require(goal.transform.parent.gameObject.activeSelf && goal.text.Contains("새 전사를 배치하고 while True 반복"),
                 "1-2 free-play goal is not visible at the top of the HUD");
-            Require(sim.StartError()?.Contains("새 전사") == true, "1-2 starts without placing the new robot");
+            Require(sim.Robots.Count(r => r.Spec.role == RobotRole.Warrior) == 2 && sim.StartError()?.Contains("코드") == true,
+                "1-2 free play must start with the new warrior placed on its marked cell and not yet coded");
             battle.StartBattle();
-            Require(sim.Phase == BattlePhase.Ready, "1-2 auto-started with only the original robot");
+            Require(sim.Phase == BattlePhase.Ready, "1-2 auto-started with an uncoded new warrior");
             string preserved = first.Program.Source;
             Require(battle.TutorialAllows(TutorialKeys.Start) && battle.TutorialAllows(TutorialKeys.Close), "Free play still restricts input");
-            battle.ChooseRobot(1); PlaceBest(battle, 1);
             var second = sim.Robots.OrderBy(r => r.Id).Last();
             Require(second.Id != first.Id, "Practice warrior was not granted");
-            Require(sim.StartError()?.Contains("코드") == true, "1-2 starts with an uncoded new robot");
             battle.SelectRobot(second.Id); battle.DevelopSelected();
             var panel = battle.CodeEditor.Panel;
-            panel.LoadProgram("practice", TutorialAnswers.Parse("for i in range(6):\n    slash()"));
-            Require(panel.IsApplied, "A loop with another count did not compile");
+            panel.LoadProgram("practice", TutorialAnswers.Parse("while True:\n    slash()"));
+            Require(panel.IsApplied, "The practice loop did not compile");
             var hint = Field<Button>(battle.CodeEditor, "hintButton");
             Require(hint.gameObject.activeSelf, "Optional hint unavailable"); hint.onClick.Invoke();
             Require(battle.CodeEditor.HintOpen, "Hint did not open"); hint.onClick.Invoke();
@@ -378,23 +377,22 @@ namespace CodingGame.Defense.Editor
             battle.CodeEditor.Close(); Require(!battle.CodeEditor.IsOpen, "Incomplete draft cannot close in free play");
             battle.DevelopSelected();
             Require(!panel.IsApplied, "Incomplete draft not preserved on reopen");
-            panel.LoadProgram("practice", TutorialAnswers.Parse("for i in range(6):\n    slash()"));
+            panel.LoadProgram("practice", TutorialAnswers.Parse("while True:\n    slash()"));
             Require(panel.IsApplied && first.Program.Source == preserved, "Free practice changed the original robot");
             battle.CodeEditor.Close(); battle.StartBattle();
             Require(sim.Phase == BattlePhase.Running, "Free play cannot start battle");
-            Log("PASS free play: own loop count, extra warrior, optional hint, close/reopen unfinished draft, original code retained, battle start");
+            Log("PASS free play: own loop, extra warrior, optional hint, close/reopen unfinished draft, original code retained, battle start");
         }
 
         static void FreePlayFour(DefenseBattle battle)
         {
             var sim = battle.Simulation;
-            Require(sim.StartError()?.Contains("원거리") == true, "1-4 allows battle without the new shooter");
-            battle.ChooseRobot((int)RobotRole.Shooter); PlaceBest(battle, (int)RobotRole.Shooter);
+            Require(sim.Robots.Count(r => r.Spec.role == RobotRole.Shooter) == 2, "1-4's new shooter was not placed on its marked cell");
             var learner = sim.Robots.Where(r => r.Spec.role == RobotRole.Shooter).OrderBy(r => r.Id).Last();
             Require(sim.StartError()?.Contains("변수") == true, "1-4 allows battle with an uncoded new shooter");
             battle.SelectRobot(learner.Id); battle.DevelopSelected();
             battle.CodeEditor.Panel.LoadProgram("variable_practice", TutorialAnswers.Parse(
-                "for i in range(8):\n    target = get_nearest_enemy()\n    attack(target)"));
+                "while True:\n    target = get_nearest_enemy()\n    attack(target)"));
             Require(battle.CodeEditor.Panel.IsApplied, "1-4 variable code was not applied: " +
                 Field<TMP_Text>(battle.CodeEditor.Panel, "status").text);
             battle.CodeEditor.Close();
@@ -412,12 +410,12 @@ namespace CodingGame.Defense.Editor
                 groups[0].DefinitionIndex == groups[1].DefinitionIndex &&
                 groups[1].Enemy.health >= 80 && groups[1].Enemy.health > groups[0].Enemy.health * 3,
                 "1-5 boss must strengthen the existing basic enemy only");
-            foreach (var kind in new[] { BlockKind.DeclareVariable, BlockKind.Variable, BlockKind.NearestEnemy, BlockKind.For, BlockKind.Number })
+            foreach (var kind in new[] { BlockKind.DeclareVariable, BlockKind.Variable, BlockKind.NearestEnemy, BlockKind.While })
                 Require(sim.Available(kind) > 0, "1-5 has no spare " + kind + " block");
             var shooter = sim.Robots.Where(r => r.Spec.role == RobotRole.Shooter).OrderBy(r => r.Id).First();
             var original = shooter.Program.CopyBlocks();
-            sim.ApplyProgram(shooter.Id, "more_shots", TutorialAnswers.Parse("for i in range(20):\n    enemy = get_nearest_enemy()\n    attack(enemy)"));
-            Require(shooter.Program.Source.Contains("range(20)"), "1-5 could not raise a loop count");
+            sim.ApplyProgram(shooter.Id, "boss_shots", TutorialAnswers.Parse("while True:\n    boss = get_nearest_enemy()\n    attack(boss)"));
+            Require(shooter.Program.Source.Contains("attack(boss)"), "1-5 could not rewrite a shooter's loop");
             sim.ApplyProgram(shooter.Id, "variable_practice", original);
             battle.StartBattle();
             Require(battle.Simulation.Phase == BattlePhase.Running, "1-5 battle did not start");
@@ -427,11 +425,11 @@ namespace CodingGame.Defense.Editor
         {
             var sim = battle.Simulation;
             Require(sim.StartError()?.Contains("2-2") == true, "2-2 allows battle with one conditional shooter");
-            battle.ChooseRobot((int)RobotRole.Shooter); PlaceBest(battle, (int)RobotRole.Shooter);
+            Require(sim.Robots.Count(r => r.Spec.role == RobotRole.Shooter) == 2, "2-2's new shooter was not placed on its marked cell");
             var learner = sim.Robots.Where(r => r.Spec.role == RobotRole.Shooter).OrderBy(r => r.Id).Last();
             battle.SelectRobot(learner.Id); battle.DevelopSelected();
-            battle.CodeEditor.Panel.LoadProgram("condition_practice", TutorialAnswers.Parse("for i in range(10):\n    e = get_nearest_enemy()\n" +
-                "    d = e.distance(get_my_pos())\n    if d <= 2.5:\n        attack(e)"));
+            battle.CodeEditor.Panel.LoadProgram("condition_practice", TutorialAnswers.Parse("while True:\n    e = get_nearest_enemy()\n" +
+                "    d = e.distance(get_my_pos())\n    if d <= 3:\n        attack(e)"));
             Require(battle.CodeEditor.Panel.IsApplied, "2-2 conditional code was not applied: " +
                 Field<TMP_Text>(battle.CodeEditor.Panel, "status").text);
             battle.CodeEditor.Close();
@@ -480,6 +478,12 @@ namespace CodingGame.Defense.Editor
                     if (sim.PlacementError(spec, p) == null) candidates.Add(p);
                 }
             var best = candidates.OrderByDescending(p => samples.Count(q => System.Numerics.Vector2.Distance(p, q) <= spec.range)).First();
+            if (battle.Tutorial && battle.Tutorial.EditorStep?.placeSpot == true)
+            {
+                var marked = battle.TutorialSpot;
+                Require(marked.HasValue, "No marked placement cell at " + battle.Tutorial.EditorStep.stepId);
+                best = new System.Numerics.Vector2(marked.Value.x, marked.Value.z);
+            }
             if (battle.Stage == 1 && sim.WaveIndex == 0 && battle.Tutorial && battle.Tutorial.EditorStep?.stepId == "B02")
             {
                 var point = new Vector3(best.X, 0, best.Y);

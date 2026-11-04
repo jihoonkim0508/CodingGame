@@ -54,16 +54,14 @@ MonoBehaviour:
     lessons:
     - stage: 1
       wave: 1
-      topic: "\uBC18\uBCF5: for\uB85C \uC5EC\uB7EC \uBC88 \uBCA0\uAE30"
+      topic: "\uBC18\uBCF5: while True\uB85C \uACC4\uC18D \uBCA0\uAE30"
       robots:
       - role: 1
         count: 1
       blocks:
       - kind: 19
         count: 1
-      - kind: 16
-        count: 1
-      - kind: 10
+      - kind: 2
         count: 1
       rewards:
       - kind: 19
@@ -75,12 +73,10 @@ MonoBehaviour:
       - role: 1
         count: 1
       blocks:
-      - kind: 16
-        count: 1
-      - kind: 10
+      - kind: 2
         count: 1
       rewards:
-      - kind: 16
+      - kind: 2
         count: 1
     - stage: 1
       wave: 3
@@ -96,8 +92,6 @@ MonoBehaviour:
       - kind: 15
         count: 1
       - kind: 22
-        count: 1
-      - kind: 10
         count: 1
       rewards:
       - kind: 22
@@ -115,12 +109,10 @@ MonoBehaviour:
         count: 1
       - kind: 15
         count: 1
-      - kind: 16
-        count: 1
-      - kind: 10
+      - kind: 2
         count: 1
       rewards:
-      - kind: 10
+      - kind: 19
         count: 1
     - stage: 1
       wave: 5
@@ -133,9 +125,7 @@ MonoBehaviour:
         count: 1
       - kind: 15
         count: 1
-      - kind: 16
-        count: 1
-      - kind: 10
+      - kind: 2
         count: 1
       rewards:
       - kind: 22
@@ -174,6 +164,8 @@ MonoBehaviour:
         count: 1
       - kind: 15
         count: 1
+      - kind: 10
+        count: 1
       rewards:
       - kind: 11
         count: 1
@@ -196,10 +188,10 @@ MonoBehaviour:
         count: 1
       - kind: 27
         count: 1
-      - kind: 16
+      - kind: 2
         count: 1
       - kind: 10
-        count: 2
+        count: 1
       rewards:
       - kind: 23
         count: 1
@@ -413,7 +405,7 @@ MonoBehaviour:
         route: 0
         count: 5
         delay: 0
-        interval: 2
+        interval: 3
         healthOverride: 0
         speedOverride: 0
         leakDamageOverride: 0
@@ -423,7 +415,7 @@ MonoBehaviour:
         route: 0
         count: 8
         delay: 0
-        interval: 1.7
+        interval: 2.2
         healthOverride: 0
         speedOverride: 0
         leakDamageOverride: 0

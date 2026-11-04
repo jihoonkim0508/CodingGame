@@ -56,7 +56,7 @@ namespace CodingGame.Defense
         public readonly Dictionary<RobotRole, int> RobotInventory = new Dictionary<RobotRole, int>();
         public int RobotAvailable(RobotRole role) => !Setup.PlayerFlow || (!Options.inventoryLimit && RobotUnlocked(role)) ? int.MaxValue : RobotInventory.TryGetValue(role, out int count) ? count : 0;
         public bool RobotUnlocked(RobotRole role) => !Setup.PlayerFlow || Options.unlockAll || RobotInventory.ContainsKey(role);
-        // The robot's function runs once per wave (loops come first, 1-1), so repeating is the player's for loop.
+        // The robot's function runs once per wave (loops come first, 1-1), so repeating is the player's while True loop.
         public int FunctionRepeatLimit => Setup.FunctionRepeatLimit;
         public void GrantRobot(RobotRole role, int count)
         {
@@ -195,8 +195,8 @@ namespace CodingGame.Defense
             {
                 if (Robots.Count(bot => bot.Spec.role == RobotRole.Warrior) < 2) return "1-2 목표: 새 전사를 한 대 더 배치하세요.";
                 if (!Robots.Where(bot => bot.Spec.role == RobotRole.Warrior).Skip(1).Any(bot => bot.Program != null &&
-                    bot.Program.BlockCount(BlockKind.For) > 0 && bot.Program.BlockCount(BlockKind.Slash) > 0))
-                    return "1-2 목표: 새 전사에게 for 반복 안에서 베는 코드를 적용하세요.";
+                    bot.Program.BlockCount(BlockKind.While) > 0 && bot.Program.BlockCount(BlockKind.Slash) > 0))
+                    return "1-2 목표: 새 전사에게 while True 반복 안에서 베는 코드를 적용하세요.";
             }
             if (Setup.PlayerFlow && Setup.Stage == 1 && WaveIndex == 3)
             {

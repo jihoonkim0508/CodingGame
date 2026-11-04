@@ -6,7 +6,7 @@ using CodingGame.BlockCoding;
 
 namespace CodingGame.Defense.Editor
 {
-    // Reads the tutorial answers (TutorialStep.expectedCode) into blocks: "for i in range(n):" and "if a <= b:" with an indented
+    // Reads the tutorial answers (TutorialStep.expectedCode) into blocks: "while True:", "for i in range(n):" and "if a <= b:" with an indented
     // body, "name = get_nearest_enemy()", "x = enemy.distance(get_my_pos())", "name = my_attack_range()", "slash()", "attack(name)".
     // ponytail: only what the lesson answers use; a new answer shape needs a case here.
     public static class TutorialAnswers
@@ -25,9 +25,10 @@ namespace CodingGame.Defense.Editor
                 string raw = lines[index]; int depth = raw.Length - raw.TrimStart().Length;
                 if (depth < indent) break;
                 string line = raw.Trim(); index++;
-                if (line.StartsWith("if ") && line.EndsWith(":") || line.StartsWith("for i in range(") && line.EndsWith("):"))
+                if (line.StartsWith("if ") && line.EndsWith(":") || line.StartsWith("for i in range(") && line.EndsWith("):") || line == "while True:")
                 {
                     var block = line.StartsWith("if ") ? new CodeBlock(BlockKind.If, "0", Condition(line.Substring(3, line.Length - 4)))
+                        : line == "while True:" ? new CodeBlock(BlockKind.While)
                         : new CodeBlock(BlockKind.For, "0", Value(line.Substring(15, line.Length - 17)));
                     block.Body.AddRange(Suite(lines, ref index, depth + 4));
                     result.Add(block);

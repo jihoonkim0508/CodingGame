@@ -14,15 +14,16 @@ static class Check
     static readonly RobotSpec Shooter = new RobotSpec { role = RobotRole.Shooter, range = 5.5f, interval = 1.2f, damage = 22, radius = .45f, projectileSpeed = 15 };
     static CodeBlock N(string n) => new CodeBlock(BlockKind.Number, n);
     static CodeBlock V(string name) => new CodeBlock(BlockKind.Variable, name);
-    static CodeBlock Loop(string count, params CodeBlock[] body) { var loop = new CodeBlock(BlockKind.For, "0", N(count)); loop.Body.AddRange(body); return loop; }
+    // Stages 1 and 2 loop with while True: the robot keeps acting until the wave ends.
+    static CodeBlock Loop(params CodeBlock[] body) { var loop = new CodeBlock(BlockKind.While); loop.Body.AddRange(body); return loop; }
     static CodeBlock FindEnemy(string name = "enemy") => new CodeBlock(BlockKind.DeclareVariable, name, new CodeBlock(BlockKind.NearestEnemy));
     static CodeBlock Shoot(string name = "enemy") => new CodeBlock(BlockKind.Shot, "0", V(name));
-    // 2-1's answer: for / enemy / enemy_distance / if enemy_distance <= threshold: attack(enemy)
+    // 2-1's answer: while True / enemy / enemy_distance / if enemy_distance <= threshold: attack(enemy)
     static CodeBlock[] Guarded(string threshold = "3", string target = "enemy", string distance = "enemy_distance")
     {
         var near = new CodeBlock(BlockKind.If, "0", new CodeBlock(BlockKind.Comparison, "<=", V(distance), N(threshold)));
         near.Body.Add(Shoot(target));
-        return new[] { Loop("10", FindEnemy(target), new CodeBlock(BlockKind.DeclareVariable, distance,
+        return new[] { Loop(FindEnemy(target), new CodeBlock(BlockKind.DeclareVariable, distance,
             new CodeBlock(BlockKind.Distance, "0", V(target), new CodeBlock(BlockKind.MyPos))), near) };
     }
     // One robot beside a straight road (half width 1), the closest a player can place it.
@@ -43,7 +44,7 @@ static class Check
         for (int i = 0; i < 60 * 120 && sim.Phase == BattlePhase.Running; i++) { sim.Advance(1.0 / 60); each?.Invoke(sim); }
     }
 
-    // 1-1: one slash() swings once a wave; for i in range(4) kills both basic enemies and the strong one leaks (core 12 to 11).
+    // 1-1: one slash() swings once a wave; while True keeps slashing, two slashes kill each basic enemy and the strong one leaks (core 12 to 11).
     static void Loops()
     {
         SpawnGroup[] Intro() => new[] {
@@ -55,34 +56,39 @@ static class Check
         Require(bot.Executions == 1 && once.Kills == 0, $"1-1 C07: a lone slash() swings once and stops: swings={bot.Executions} kills={once.Kills}");
         var looped = Battle(1, Warrior, 1.6f, Intro());
         bot = looped.Robots.Single();
-        looped.ApplyProgram(bot.Id, "loop", new[] { Loop("4", new CodeBlock(BlockKind.Slash)) }); looped.Start();
+        looped.ApplyProgram(bot.Id, "loop", new[] { Loop(new CodeBlock(BlockKind.Slash)) }); looped.Start();
+        var hitsToKill = new Dictionary<int, int>();
         bool paused = false;
         Run(looped, sim => {
+            foreach (var e in sim.Events.Where(e => e.Kind == "hit" && e.Amount > 0)) hitsToKill[e.Target] = hitsToKill.TryGetValue(e.Target, out int n) ? n + 1 : 1;
+            sim.Events.Clear();
             if (paused || sim.Kills == 0) return;
             paused = true; sim.TogglePause(); double frozenAt = sim.Time; sim.Advance(2);
             Require(sim.Time == frozenAt && sim.Phase == BattlePhase.Paused, "Pause must freeze battle time");
             sim.TogglePause();
         });
-        Require(paused && bot.Executions == 4 && looped.Kills == 2 && looped.Leaks == 1 && looped.BaseHealth == 11,
-            $"1-1 range(4) must kill both basic enemies and leak the strong one: swings={bot.Executions} kills={looped.Kills} leaks={looped.Leaks} core={looped.BaseHealth}");
-        Require(TutorialWatcher.Matches(looped.Robots.Single().Program, "for i in range(4):\n    slash()") &&
-            !TutorialWatcher.Matches(once.Robots.Single().Program, "for i in range(4):\n    slash()"), "1-1's answer is the loop, not a lone slash()");
+        Require(paused && bot.Executions > 4 && looped.Kills == 2 && looped.Leaks == 1 && looped.BaseHealth == 11,
+            $"1-1 while True must kill both basic enemies and leak the strong one: swings={bot.Executions} kills={looped.Kills} leaks={looped.Leaks} core={looped.BaseHealth}");
+        // The preview demo uses the same wave enemy, so C08's "two slashes each" holds there too.
+        Require(hitsToKill.Values.OrderBy(n => n).Take(2).All(n => n == 2), "1-1's basic enemies fall to exactly two slashes: " + string.Join(",", hitsToKill.Values));
+        Require(TutorialWatcher.Matches(looped.Robots.Single().Program, "while True:\n    slash()") &&
+            !TutorialWatcher.Matches(once.Robots.Single().Program, "while True:\n    slash()"), "1-1's answer is the loop, not a lone slash()");
     }
 
-    // 1-3: attack(enemy) needs a stored enemy; found anew each turn, so range(10) moves on to the next enemy.
+    // 1-3: attack(enemy) needs a stored enemy; found anew each turn, so the loop moves on to the next enemy.
     static void Variables()
     {
         var sim = Battle(1, Shooter, 2.5f, new SpawnGroup { Enemy = new EnemySpec { health = 20, speed = 1.4f, leakDamage = 1 }, Count = 2, Interval = 2 });
         var bot = sim.Robots.Single();
-        sim.ApplyProgram(bot.Id, "aim", new[] { Loop("10", FindEnemy(), Shoot()) }); sim.Start(); Run(sim);
+        sim.ApplyProgram(bot.Id, "aim", new[] { Loop(FindEnemy(), Shoot()) }); sim.Start(); Run(sim);
         Require(sim.Kills == 2 && sim.Leaks == 0, $"1-3's answer must shoot both enemies: kills={sim.Kills} leaks={sim.Leaks} shots={bot.Executions}");
-        const string answer = "for i in range(10):\n    enemy = get_nearest_enemy()\n    attack(enemy)";
-        Require(TutorialWatcher.Matches(new DefenseProgram("renamed", new[] { Loop("10", FindEnemy("target"), Shoot("target")) }), answer),
+        const string answer = "while True:\n    enemy = get_nearest_enemy()\n    attack(enemy)";
+        Require(TutorialWatcher.Matches(new DefenseProgram("renamed", new[] { Loop(FindEnemy("target"), Shoot("target")) }), answer),
             "1-3 accepts any variable name used consistently");
         // Matches ignores indentation, so the guided steps (attack placed as line 1>2) keep the enemy line inside the loop;
         // a player's own loop that keeps the first enemy is flagged by the editor.
-        Require(PythonTreeCompiler.HasStaleEnemyLoop(new[] { FindEnemy(), Loop("10", Shoot()) }) &&
-            !PythonTreeCompiler.HasStaleEnemyLoop(new[] { Loop("10", FindEnemy(), Shoot()) }), "an enemy found outside the loop is flagged");
+        Require(PythonTreeCompiler.HasStaleEnemyLoop(new[] { FindEnemy(), Loop(Shoot()) }) &&
+            !PythonTreeCompiler.HasStaleEnemyLoop(new[] { Loop(FindEnemy(), Shoot()) }), "an enemy found outside the loop is flagged");
     }
 
     // 2-1: the shotgun hits harder up close, so the guarded loop's shots land for more damage than shots fired on entering range.
@@ -96,14 +102,14 @@ static class Check
     }
     static void Conditions()
     {
-        var plain = ShotDamage(new[] { Loop("10", FindEnemy(), Shoot()) }, out var plainSim);
+        var plain = ShotDamage(new[] { Loop(FindEnemy(), Shoot()) }, out var plainSim);
         var guarded = ShotDamage(Guarded(), out var guardedSim);
         Require(plain.Length > 0 && guarded.Length > 0 && guarded[0] >= 1.5f * plain[0],
             $"2-1: the close shot must hit clearly harder: near={guarded.FirstOrDefault():0.#} far={plain.FirstOrDefault():0.#}");
-        Require(guarded.Length <= 10 && guardedSim.Kills > 0, $"2-1's guarded loop fires at most range(10) shots and kills: shots={guarded.Length} kills={guardedSim.Kills}");
+        Require(guardedSim.Kills > 0, $"2-1's guarded loop kills: shots={guarded.Length} kills={guardedSim.Kills}");
         Console.WriteLine($"2-1 wave (5 scaled enemies, one shooter): no condition kills {plainSim.Kills}, first hit {plain[0]:0.#}; " +
             $"distance <= 3 kills {guardedSim.Kills}, first hit {guarded[0]:0.#}");
-        const string answer = "for i in range(10):\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:\n        attack(enemy)";
+        const string answer = "while True:\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:\n        attack(enemy)";
         Require(TutorialWatcher.Matches(new DefenseProgram("renamed", Guarded("3", "target", "gap")), answer), "2-1 accepts consistent custom names");
         Require(!TutorialWatcher.Matches(new DefenseProgram("other", Guarded("5")), answer), "2-1's guided threshold is 3");
     }
@@ -141,7 +147,7 @@ static class Check
         Variables();
         Conditions();
         NewestTeachingRobot();
-        Console.WriteLine("PASS: 1-1 lone slash() swings once, range(4) kills two and the strong enemy leaks (core 11), pause freezes; " +
+        Console.WriteLine("PASS: 1-1 lone slash() swings once, while True kills two in two slashes each and the strong enemy leaks (core 11), pause freezes; " +
             "1-3 loop with a stored enemy; 2-1 close shots hit harder; the newest robot teaches in 1-3 and 2-1.");
     }
 }

@@ -64,6 +64,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: A02
     kind: 0
     dialoguePosition: 0
@@ -108,6 +109,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: A03
     kind: 0
     dialoguePosition: 0
@@ -152,6 +154,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: A04
     kind: 0
     dialoguePosition: 0
@@ -196,6 +199,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: A04a
     kind: 0
     dialoguePosition: 0
@@ -241,6 +245,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: A04b
     kind: 0
     dialoguePosition: 0
@@ -286,6 +291,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: A04c
     kind: 0
     dialoguePosition: 0
@@ -331,6 +337,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: A05
     kind: 0
     dialoguePosition: 0
@@ -375,6 +382,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: A06
     kind: 0
     dialoguePosition: 0
@@ -420,6 +428,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: B01
     kind: 1
     dialoguePosition: 0
@@ -464,20 +473,22 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: B02
     kind: 1
     dialoguePosition: 0
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uC774\uC81C \uB9F5\uC5D0\uC11C \uB85C\uBD07\uC744 \uB193\uC744 \uC704\uCE58\uB97C
-        \uC815\uD558\uC790, \uCC38\uACE0\uB85C \uC801\uC774 \uC774\uB3D9\uD558\uB294
-        \uAE38\uC704\uC5D0\uB294 \uB85C\uBD07\uC744 \uC124\uCE58\uD560\uC218\uC5C6\uC5B4!"
+      text: "<b>\uD45C\uC2DC\uB41C \uC790\uB9AC</b>\uC5D0 \uC804\uC0AC\uB97C \uC124\uCE58\uD574!\n\uAE38
+        \uBC14\uB85C \uC606\uC774\uB77C \uC9C0\uB098\uAC00\uB294 \uC801\uC774 \uACF5\uACA9
+        \uBC94\uC704\uC5D0 \uB4E4\uC5B4\uC640. \uCC38\uACE0\uB85C \uC801\uC774 \uB2E4\uB2C8\uB294
+        \uAE38 \uC704\uC5D0\uB294 \uB85C\uBD07\uC744 \uC124\uCE58\uD560 \uC218 \uC5C6\uC5B4!"
       focusKeys:
-      - Battle.Floor
+      - Battle.Spot
       highlightKeys: []
     targetKeys:
-    - Battle.DeploymentArea
+    - Battle.Spot
     dim: 1
     undimmed: 0
     blockInput: 1
@@ -494,7 +505,7 @@ MonoBehaviour:
     trigger: 
     skipIf: 
     expectedCode: 
-    pointerKey: 
+    pointerKey: Battle.Spot
     autoSelectSlot: 
     hintCode: 
     pointerDelay: 0
@@ -511,6 +522,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 1
   - stepId: B03
     kind: 1
     dialoguePosition: 0
@@ -556,6 +568,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: B04
     kind: 0
     dialoguePosition: 0
@@ -601,6 +614,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: B05
     kind: 0
     dialoguePosition: 0
@@ -647,6 +661,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: C01
     kind: 1
     dialoguePosition: 0
@@ -692,6 +707,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: C02
     kind: 0
     dialoguePosition: 0
@@ -737,6 +753,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: C03
     kind: 0
     dialoguePosition: 0
@@ -783,6 +800,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: C04
     kind: 0
     dialoguePosition: 0
@@ -829,6 +847,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: C05
     kind: 1
     dialoguePosition: 0
@@ -877,6 +896,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: C06
     kind: 1
     dialoguePosition: 0
@@ -923,6 +943,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 1.5
+    placeSpot: 0
   - stepId: C07
     kind: 0
     dialoguePosition: 0
@@ -969,6 +990,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: C08
     kind: 0
     dialoguePosition: 0
@@ -1015,15 +1037,16 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: D01
     kind: 0
     dialoguePosition: 0
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "<b>`for`</b> \uBC18\uBCF5\uBB38 \uC548\uC5D0 `slash()`\uB97C \uB123\uC5B4
-        \uBCF4\uC790.\n\uC0C8\uB85C \uB9CC\uB4E4 \uC218 \uC788\uAC8C \uCF54\uB4DC\uB97C
-        \uBE44\uC6CC \uB458\uAC8C!"
+      text: "<b>`while True`</b> \uBC18\uBCF5\uBB38 \uC548\uC5D0 `slash()`\uB97C
+        \uB123\uC5B4 \uBCF4\uC790.\n\uC0C8\uB85C \uB9CC\uB4E4 \uC218 \uC788\uAC8C
+        \uCF54\uB4DC\uB97C \uBE44\uC6CC \uB458\uAC8C!"
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -1060,16 +1083,17 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: D02
     kind: 1
     dialoguePosition: 0
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uAC00\uC6B4\uB370 \u2018`for`\u2019 \uBE14\uB85D\uC744 \uC624\uB978\uCABD
+      text: "\uAC00\uC6B4\uB370 \u2018`while True`\u2019 \uBE14\uB85D\uC744 \uC624\uB978\uCABD
         \uD45C\uC2DC\uB41C \uC790\uB9AC\uC5D0 \uB193\uC544 \uC918."
       focusKeys:
-      - Editor.Palette.For
+      - Editor.Palette.While
       - Editor.Code.Start
       highlightKeys: []
     targetKeys:
@@ -1090,8 +1114,8 @@ MonoBehaviour:
     highlightPadding: 10
     trigger: 
     skipIf: 
-    expectedCode: 1:For
-    pointerKey: Editor.Palette.For
+    expectedCode: 1:While
+    pointerKey: Editor.Palette.While
     autoSelectSlot: 
     hintCode: 
     pointerDelay: 0
@@ -1104,20 +1128,23 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: Editor.Palette.For>Editor.Code.Start
+    dragDemo: Editor.Palette.While>Editor.Code.Start
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: D03
     kind: 0
     dialoguePosition: 0
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "`for` \uC606\uC758 \uC22B\uC790\uB294 <b>\uBC18\uBCF5\uD560 \uD69F\uC218</b>\uC57C.
-        \uCC98\uC74C\uC5D4 10\uC774 \uB4E4\uC5B4 \uC788\uC5B4."
+      text: "True\uB294 <b>\u2018\uCC38\u2019</b>\uC774\uB77C\uB294 \uB73B\uC774\uC57C.
+        `while`\uC740 \uC870\uAC74\uC774 \uCC38\uC778 \uB3D9\uC548 \uBC18\uBCF5\uD558\uB294\uB370,\nTrue\uB294
+        \uC5B8\uC81C\uB098 \uCC38\uC774\uB2C8\uAE4C <b>\uBA48\uCD94\uC9C0 \uC54A\uACE0
+        \uACC4\uC18D</b> \uBC18\uBCF5\uD574!"
       focusKeys:
-      - Editor.Code.Arg.1.0
+      - Editor.Code.Line.1
       highlightKeys: []
     targetKeys: []
     dim: 0
@@ -1153,62 +1180,16 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
-  - stepId: D04
-    kind: 1
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uC548\uB0B4\uC790"
-      text: "\uC801 \uB450 \uB9C8\uB9AC\uB97C \uB450 \uBC88\uC529 \uBCA0\uBA74 \uB418\uB2C8\uAE4C
-        <b>4</b>\uBA74 \uCDA9\uBD84\uD574.\n\uC22B\uC790\uB97C \uB20C\uB7EC <b>4</b>\uB85C
-        \uBC14\uAFD4 \uC918."
-      focusKeys:
-      - Editor.Code.Name.1.0
-      highlightKeys: []
-    targetKeys:
-    - Editor.ProgramDropZone
-    - Editor.BlockPalette
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 3
-    completionSignal: DraftValueMatches
-    requiredSlotBlock: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    slowBattle: 0
-    allowPreview: 1
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 1.0|4
-    pointerKey: Editor.Code.Name.1.0
-    autoSelectSlot: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    prepareDistanceExample: 0
-    prepareBaselineExample: 0
-    restartPreview: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
+    placeSpot: 0
   - stepId: D05
     kind: 1
     dialoguePosition: 0
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uC774\uC81C `slash()`\uB97C `for` <b>\uC548\uCABD</b>\uC5D0 \uB123\uC5B4
-        \uC918.\n\uC548\uCABD\uC5D0 \uB123\uC740 \uBA85\uB839\uC774 4\uBC88 \uBC18\uBCF5\uB3FC."
+      text: "\uC774\uC81C `slash()`\uB97C `while True` <b>\uC548\uCABD</b>\uC5D0
+        \uB123\uC5B4 \uC918.\n\uC548\uCABD\uC5D0 \uB123\uC740 \uBA85\uB839\uC774
+        \uACC4\uC18D \uBC18\uBCF5\uB3FC."
       focusKeys:
       - Editor.Palette.Slash
       - Editor.Code.Body.1
@@ -1231,7 +1212,7 @@ MonoBehaviour:
     highlightPadding: 10
     trigger: 
     skipIf: 
-    expectedCode: "for i in range(4):\n    slash()"
+    expectedCode: "while True:\n    slash()"
     pointerKey: Editor.Palette.Slash
     autoSelectSlot: Editor.Code.Body.1
     hintCode: 
@@ -1249,16 +1230,19 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: D06
     kind: 0
     dialoguePosition: 0
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "`for` \uC904\uC740 <b>\u2018\uC548\uCABD \uBA85\uB839\uC744 4\uBC88
-        \uBC18\uBCF5\uD574\u2019</b>\uB77C\uB294 \uB73B\uC774\uC57C."
+      text: "`while True` \uC904\uC740 <b>\u2018\uC548\uCABD \uBA85\uB839\uC744 \uACC4\uC18D
+        \uBC18\uBCF5\uD574\u2019</b>\uB77C\uB294 \uB73B\uC774\uC57C.\n\uC801\uC774
+        \uC6D0 \uBC16\uC5D0 \uC788\uC73C\uBA74 \uB4E4\uC5B4\uC62C \uB54C\uAE4C\uC9C0
+        \uAE30\uB2E4\uB838\uB2E4\uAC00 \uB2E4\uC2DC \uBCA0\uC5B4."
       focusKeys:
-      - Editor.Code.Arg.1.0
+      - Editor.Code.Line.1
       - Editor.Code.Body.1
       highlightKeys: []
     targetKeys: []
@@ -1295,6 +1279,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: D07
     kind: 1
     dialoguePosition: 0
@@ -1302,7 +1287,8 @@ MonoBehaviour:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
       text: "\uC67C\uCABD\uC744 \uBD10! \uC774\uBC88\uC5D4 \uD55C \uBC88\uC5D0 \uBA48\uCD94\uC9C0
-        \uC54A\uACE0 <b>\uC5EC\uB7EC \uBC88</b> \uBCA0\uACE0 \uC788\uC5B4."
+        \uC54A\uACE0 <b>\uACC4\uC18D</b> \uBCA0\uACE0 \uC788\uC5B4.\n\uC801\uC774
+        <b>\uB450 \uBC88</b> \uBCA0\uC774\uBA74 \uC4F0\uB7EC\uC9C0\uC9C0?"
       focusKeys:
       - Editor.Preview
       highlightKeys: []
@@ -1341,6 +1327,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 2
+    placeSpot: 0
   - stepId: D08
     kind: 0
     dialoguePosition: 0
@@ -1387,6 +1374,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: D09
     kind: 0
     dialoguePosition: 0
@@ -1431,6 +1419,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: E01
     kind: 0
     dialoguePosition: 0
@@ -1476,6 +1465,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: E03
     kind: 1
     dialoguePosition: 1
@@ -1521,6 +1511,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: E04
     kind: 0
     dialoguePosition: 0
@@ -1566,6 +1557,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: E04a
     kind: 1
     dialoguePosition: 0
@@ -1612,6 +1604,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: E04b
     kind: 1
     dialoguePosition: 0
@@ -1658,6 +1651,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: E04c
     kind: 1
     dialoguePosition: 0
@@ -1666,8 +1660,9 @@ MonoBehaviour:
       speaker: "\uC548\uB0B4\uC790"
       text: "\uB2E4\uC2DC \uBCF4\uD1B5 \uC18D\uB3C4\uB85C \uC6C0\uC9C1\uC5EC. \uC774\uBC88\uC5D4
         <b>\u20181x\u2019</b> \uBC84\uD2BC\uC744 \uB20C\uB7EC <b>2\uBC30\uC18D</b>\uC73C\uB85C
-        \uBC14\uAFD4 \uBD10.\n\uC774 \uBC84\uD2BC\uC744 \uB2E4\uC2DC \uB204\uB974\uBA74
-        3\uBC30\uC18D, \uD55C \uBC88 \uB354 \uB204\uB974\uBA74 1\uBC30\uC18D\uC774\uC57C."
+        \uBC14\uAFD4 \uBD10.\n\uB204\uB97C \uB54C\uB9C8\uB2E4 \uD55C \uB2E8\uACC4\uC529
+        \uBE68\uB77C\uC838\uC11C <b>5\uBC30\uC18D</b>\uAE4C\uC9C0 \uAC00\uACE0, \uD55C
+        \uBC88 \uB354 \uB204\uB974\uBA74 1\uBC30\uC18D\uC774\uC57C."
       focusKeys: []
       highlightKeys: []
     targetKeys:
@@ -1705,6 +1700,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: E05
     kind: 0
     dialoguePosition: 0
@@ -1712,10 +1708,10 @@ MonoBehaviour:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
       text: "\uC800 \uB2E8\uB2E8\uD55C \uC624\uB958 \uCF54\uB4DC\uB294 \uCCB4\uB825\uC774
-        \uC544\uC8FC \uB9CE\uC544\uC11C <b>\uBCA0\uAE30 4\uBC88</b>\uC73C\uB85C\uB294
-        \uBD80\uC871\uD588\uC5B4.\n\uCF54\uC5B4\uC5D0 \uB2FF\uC544\uC11C \uCCB4\uB825\uC774
-        <b>12\uC5D0\uC11C 11\uB85C 1 \uC904\uC5C8\uC5B4.</b> \uCCB4\uB825\uC774 0\uC774
-        \uB418\uBA74 \uD328\uBC30\uD574."
+        \uC544\uC8FC \uB9CE\uC544\uC11C <b>\uC804\uC0AC \uD55C \uB300</b>\uB85C\uB294
+        \uB2E4 \uBCA0\uC9C0 \uBABB\uD588\uC5B4.\n\uCF54\uC5B4\uC5D0 \uB2FF\uC544\uC11C
+        \uCCB4\uB825\uC774 <b>12\uC5D0\uC11C 11\uB85C 1 \uC904\uC5C8\uC5B4.</b> \uCCB4\uB825\uC774
+        0\uC774 \uB418\uBA74 \uD328\uBC30\uD574."
       focusKeys:
       - Battle.CoreHealth
       highlightKeys: []
@@ -1753,6 +1749,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: E06
     kind: 0
     dialoguePosition: 0
@@ -1798,15 +1795,17 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: E07
     kind: 0
     dialoguePosition: 0
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uC774\uBC88\uC5D0\uB294 `for` \uBC18\uBCF5\uBB38\uC73C\uB85C `slash()`\uB97C
-        \uC5EC\uB7EC \uBC88 \uC2E4\uD589\uD588\uC5B4.\n<b>\uBC18\uBCF5 \uD69F\uC218\uB9CC\uD07C
-        \u2192 \uC548\uCABD \uBA85\uB839\uC744 \uC2E4\uD589</b>"
+      text: "\uC774\uBC88\uC5D0\uB294 `while True` \uBC18\uBCF5\uBB38\uC73C\uB85C
+        `slash()`\uB97C \uACC4\uC18D \uC2E4\uD589\uD588\uC5B4.\n<b>\uC870\uAC74\uC774
+        \uCC38\uC778 \uB3D9\uC548 \u2192 \uC548\uCABD \uBA85\uB839\uC744 \uACC4\uC18D
+        \uC2E4\uD589</b>"
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -1843,6 +1842,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: E08
     kind: 0
     dialoguePosition: 0
@@ -1887,6 +1887,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: E09
     kind: 1
     dialoguePosition: 1
@@ -1932,3 +1933,4 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0

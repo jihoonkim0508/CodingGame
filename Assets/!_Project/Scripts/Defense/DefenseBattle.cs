@@ -37,6 +37,9 @@ namespace CodingGame.Defense
         DefenseCoreGlitch coreGlitch;
         static readonly Color RangeColor = new Color(.35f, .9f, 1); // attack ranges: a MOBA-like cyan rim; the tutorial highlight pulses red (DefenseRangeRing)
         Bounds[] floorParts;
+        Point? tutorialSpot; // Battle.Spot while a guided placement step is on
+        bool spotChosen;
+        public Vector3? TutorialSpot => tutorialSpot is Point spot ? DefenseViews.World(spot) : (Vector3?)null;
         [SerializeField] RobotDefinition[] robots = Array.Empty<RobotDefinition>();
         [SerializeField] EnemyDefinition[] enemies = Array.Empty<EnemyDefinition>();
         [SerializeField] DefenseRangeRing rangeRing;
@@ -85,6 +88,7 @@ namespace CodingGame.Defense
         public int SelectedId => selected;
         public bool IsPlacing => palette >= 0;
         public float BattleSpeed { get; private set; } = 1;
+        public const int MaxSpeed = 5; // the speed button cycles 1x → 2x → … → 5x → 1x
         public bool SpeedUnlocked => Simulation != null && (!Simulation.Setup.PlayerFlow || !Simulation.Options.tutorial ||
             Stage != 1 || Simulation.WaveIndex > 0 || tutorial && tutorial.SpeedLessonReached);
         public string StatusMessage { get; private set; }
@@ -244,7 +248,9 @@ namespace CodingGame.Defense
         public void ClaimRewards()
         {
             if (!TutorialAllows("Battle.ClaimRewards") && !(Simulation.Phase == BattlePhase.Reward && TutorialAllows("Battle.ContinueCampaign"))) return;
-            if (Simulation.Phase == BattlePhase.Reward) Trace($"wave-end kills={Simulation.Kills} leaks={Simulation.Leaks} survivors={Simulation.LastSurvivors} rewards={Simulation.PendingDrops.Count}");
+            if (Simulation.Phase == BattlePhase.Reward) Trace($"wave-end kills={Simulation.Kills} leaks={Simulation.Leaks} survivors={Simulation.LastSurvivors} " +
+                $"timedOut={Simulation.LastWaveTimedOut} rewards={Simulation.PendingDrops.Count} robots=" +
+                string.Join(" ", Simulation.Robots.Select(r => $"{r.Spec.role}@({r.Position.X:0.#},{r.Position.Y:0.#})x{r.AttacksThisWave}")));
             if (!Simulation.ClaimRewards()) return;
             selected = 0; rangeRing.Hide(); ClearCombatVisuals();
             ClearDrops(); Tell(Simulation.Phase == BattlePhase.Victory ? Simulation.CanAdvanceStage ?
@@ -315,7 +321,7 @@ namespace CodingGame.Defense
         {
             if (!SpeedUnlocked || !TutorialAllows(TutorialKeys.Speed)) return;
             if (Simulation.Phase != BattlePhase.Running && Simulation.Phase != BattlePhase.Paused) return;
-            BattleSpeed = BattleSpeed >= 3 ? 1 : BattleSpeed + 1; RefreshHUD();
+            BattleSpeed = BattleSpeed >= MaxSpeed ? 1 : BattleSpeed + 1; RefreshHUD();
             ReportTutorialAction(TutorialKeys.Speed, TutorialSignals.TargetClicked);
         }
         public void ChooseRobot(int index)
@@ -351,6 +357,7 @@ namespace CodingGame.Defense
         {
             if (index < 0 || index >= robots.Length ||
                 tutorial && (!tutorial.AllowsWorldPoint(position) || !tutorial.AllowsRobotChoice(index))) return false;
+            if (TutorialSpot is Vector3 spot) position = spot; // lands in the middle of the marked cell
             var bot = Simulation.Place(robots[index].stats, index, new Point(position.x, position.z), out var error);
             if (bot == null) { RejectPlacement(index, error); return false; }
             var view = Instantiate(robots[index].prefab, DefenseViews.World(bot.Position), Quaternion.identity, actorsRoot);
@@ -444,8 +451,9 @@ namespace CodingGame.Defense
                 {
                     if (palette >= 0)
                     {
-                        var def = robots[palette]; string error = Simulation.PlacementError(def.stats, new Point(point.x, point.z));
                         bool tutorialAllowed = !tutorial || tutorial.AllowsWorldPoint(point);
+                        if (tutorialAllowed && TutorialSpot is Vector3 spot) point = spot;
+                        var def = robots[palette]; string error = Simulation.PlacementError(def.stats, new Point(point.x, point.z));
                         placementMarker.gameObject.SetActive(true); placementMarker.position = point + Vector3.up * .08f;
                         rangeRing.Show(point, def.stats.range, error == null ? RangeColor : new Color(.55f,.55f,.58f));
                         if (mouse.leftButton.wasPressedThisFrame && tutorialAllowed) PlaceRobot(palette, point);
@@ -616,6 +624,59 @@ namespace CodingGame.Defense
                 floorParts = map ? map.floorCells.Select(c => new Bounds(map.CellPosition(c), new Vector3(size, .1f, size))).ToArray() : new[] { deploymentArea.bounds };
             }
             tutorial.RegisterWorldTarget(TutorialKeys.Floor, gameObject, floorParts, box: true);
+            if (tutorial.WantsPlacementSpot && palette >= 0)
+            {
+                if (!spotChosen) { tutorialSpot = ChooseSpot(robots[palette].stats); spotChosen = true; }
+                // A 1.2 square to click; no free point by the road (an unexpected map) leaves the whole floor open rather than locking the lesson.
+                tutorial.RegisterWorldTarget(TutorialKeys.Spot, gameObject, tutorialSpot is Point spot
+                    ? new[] { new Bounds(DefenseViews.World(spot, .05f), new Vector3(1.2f, .1f, 1.2f)) } : floorParts, box: true);
+            }
+            else if (spotChosen) { spotChosen = false; tutorialSpot = null; tutorial.UnregisterRuntimeTarget(TutorialKeys.Spot, null); }
+        }
+        // The guided placement point: free, on screen and clear of the HUD, with the most road within 3 (2-1's distance condition;
+        // the warrior's slash reaches 3.2), so the lesson's code hits every enemy that walks by. Placement is free, not per tile: the
+        // road is drawn 1.5 tiles wide, so a tile centre beside it is too close and the next one 3.2 away; the closest legal point
+        // (about 1.7 from the lane) lies in the outer part of the neighbouring tile. Points are sampled every 0.4.
+        Point? ChooseSpot(RobotSpec spec)
+        {
+            const float Reach = 3;
+            var road = new List<Point>();
+            for (int i = 0; i < Simulation.Setup.Routes.Length; i++)
+            {
+                if (!Simulation.RouteInUse(i)) continue;
+                var points = Simulation.Setup.Routes[i].Points;
+                for (int p = 1; p < points.Length; p++)
+                    for (float t = 0, length = Point.Distance(points[p - 1], points[p]); t < length; t += .25f)
+                        road.Add(Point.Lerp(points[p - 1], points[p], t / length));
+            }
+            var hits = new List<RaycastResult>();
+            bool Clickable(Point cell)
+            {
+                var screen = battleCamera.WorldToScreenPoint(DefenseViews.World(cell));
+                if (screen.z <= 0 || !battleCamera.pixelRect.Contains(screen)) return false;
+                eventSystem.RaycastAll(new PointerEventData(eventSystem) { position = screen }, hits);
+                // The tutorial's dimming overlay opens a click hole over the spot once it is registered; only other UI hides a cell.
+                return hits.All(h => h.gameObject.GetComponent<TutorialSpotlight>());
+            }
+            // Road samples run entrance to core, so an index is how far enemies have walked. The new robot must meet them before the
+            // robots already placed (1-3's shooter ahead of 1-1/1-2's warriors), or those robots kill everything and it never acts.
+            int Contact(Point at, float range) { int i = road.FindIndex(r => Point.Distance(r, at) <= range); return i < 0 ? int.MaxValue : i; }
+            int taken = Simulation.Robots.Select(r => Contact(r.Position, r.Range)).DefaultIfEmpty(int.MaxValue).Min();
+            var spots = new List<Point>();
+            for (float x = Simulation.Setup.Min.X + .2f; x < Simulation.Setup.Max.X; x += .4f)
+                for (float y = Simulation.Setup.Min.Y + .2f; y < Simulation.Setup.Max.Y; y += .4f)
+                    if (road.Any(r => Point.DistanceSquared(r, new Point(x, y)) <= Reach * Reach)) spots.Add(new Point(x, y));
+            var cells = spots.Where(c => Simulation.PlacementError(spec, c) == null)
+                .Select(c => (cell: c, reach: road.Count(r => Point.Distance(r, c) <= Reach), first: Contact(c, Reach))).ToList();
+            var ahead = cells.Where(c => c.first < taken).ToList();
+            // No cell ahead (1-4: the first shooter's 5.5 range already covers the entrance): the earliest one, to share the work.
+            var order = ahead.Count > 0 ? ahead.OrderByDescending(c => c.reach) : cells.OrderBy(c => c.first).ThenByDescending(c => c.reach);
+            var pick = order.Where(c => Clickable(c.cell)).Cast<(Point cell, int reach, int first)?>().FirstOrDefault();
+            Trace(pick is (Point cell, int reach, int first)
+                ? $"tutorial spot ({cell.X:0.#},{cell.Y:0.#}) reach={reach} first={first}/{road.Count} robotsFirst={taken} ahead={ahead.Count} " +
+                  $"gap={road.Min(r => Point.Distance(r, cell)):0.00}"
+                : "tutorial spot none · whole floor open");
+            return pick?.cell;
         }
         void SyncViews(float elapsed)
         {
@@ -712,7 +773,7 @@ namespace CodingGame.Defense
             Tell($"{robots[index].displayName} · {error}");
             playerHUD.ShowPlacementError(error);
         }
-        [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        // Every build writes these event lines to Player.log, so a playtest's waves can be read back for balancing.
         void Trace(string text) => Debug.Log($"[Defense] S{stage} W{Simulation.WaveIndex + 1} {Simulation.Phase} robots={Simulation.Robots.Count}/{Simulation.Setup.RobotLimit} core={Simulation.BaseHealth} | {text}", this);
         void Tell(string text) { StatusMessage = text; message.text = text; Trace(text); }
         // One shared block inventory: "Slash 2 (free 1 · robot3 1)" = owned, left for a new robot, held by each robot.

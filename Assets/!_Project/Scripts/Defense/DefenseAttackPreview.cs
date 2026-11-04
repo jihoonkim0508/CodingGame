@@ -52,7 +52,10 @@ namespace CodingGame.Defense
             projectileViews.Clear();hitEffects.Clear();foreach(var view in views.Values)view.ClearVisuals();RefreshStats();
         }
 #endif
-        EnemySpec HarmlessEnemy() { var enemy = battle.PreviewEnemy.stats.Copy(); enemy.damage = 0; return enemy; }
+        // The wave's own basic enemy (its wave-scaled health), so the hits it takes in the demo match the battle (1-1: two slashes).
+        SpawnGroup WaveEnemy => battle.Simulation.UpcomingWave?.FirstOrDefault();
+        EnemySpec HarmlessEnemy() { var enemy = (WaveEnemy?.Enemy ?? battle.PreviewEnemy.stats).Copy(); enemy.damage = 0; return enemy; }
+        DefenseActorView EnemyPrefab => WaveEnemy is SpawnGroup g ? battle.EnemyAt(g.DefinitionIndex).prefab : battle.PreviewEnemy.prefab;
         // The preview runs the live battle's balance so the demo matches what the robot will do.
         void CopyRules(BattleSetup setup)
         {
@@ -204,7 +207,7 @@ namespace CodingGame.Defense
                 views[bot.Id].SyncRobot(bot, World(bot.Position), previewCamera.transform.rotation);
             foreach (var e in simulation.Enemies)
             {
-                if (!views.ContainsKey(e.Id)) AddView(e.Id, battle.PreviewEnemy.prefab);
+                if (!views.ContainsKey(e.Id)) AddView(e.Id, EnemyPrefab);
                 views[e.Id].SyncEnemy(e, simulation.Time, World(e.Position), previewCamera.transform.rotation);
             }
             foreach (var view in views.Values) view.TickVisual(dt);

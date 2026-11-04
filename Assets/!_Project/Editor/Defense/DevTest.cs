@@ -163,6 +163,8 @@ namespace CodingGame.Defense.Editor
                 if (button != null) role = b.DefinitionRole(int.Parse(button.Substring(TutorialKeys.RobotButtonPrefix.Length)));
                 if (s.completionSignal == TutorialSignals.RobotPlaced && ++placed > b.Simulation.Robots.Count) PlaceTeachingRobot(b, role);
                 if (s.completionSignal == TutorialSignals.ProgramMatches && placed > 0) answers[placed - 1] = s.expectedCode;
+                // A free-play robot (1-2, 1-4, 2-2) gets that wave's hint code.
+                if (!string.IsNullOrEmpty(s.hintCode) && placed > 0) answers[placed - 1] = s.hintCode;
             }
             var robots = b.Simulation.Robots.OrderBy(r => r.Id).ToList();
             foreach (var answer in answers)
@@ -261,8 +263,8 @@ namespace CodingGame.Defense.Editor
         {
             sim.ApplyProgram(bot.Id, "robot_" + bot.Id, Array.Empty<CodeBlock>());
             CodeBlock command = new CodeBlock(DefenseProgression.ActionBlock(bot.Spec.NativeAction));
-            if (sim.Available(BlockKind.While, bot.Id) > 0 && sim.Available(BlockKind.True, bot.Id) > 0)
-            { var loop = new CodeBlock(BlockKind.While, "0", new CodeBlock(BlockKind.True)); loop.Body.Add(command); command = loop; }
+            if (sim.Available(BlockKind.While, bot.Id) > 0)
+            { var loop = new CodeBlock(BlockKind.While); loop.Body.Add(command); command = loop; }
             else if (sim.Available(BlockKind.For, bot.Id) > 0 && sim.Available(BlockKind.Number, bot.Id) > 0)
             { var loop = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "100")); loop.Body.Add(command); command = loop; }
             sim.ApplyProgram(bot.Id, "robot_" + bot.Id, new[] { command });

@@ -130,7 +130,7 @@ namespace CodingGame.Defense
         }
         static CodeBlock Loop(params CodeBlock[] body)
         {
-            var loop = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "10"));
+            var loop = new CodeBlock(BlockKind.While);
             loop.Body.AddRange(body);
             return loop;
         }
@@ -257,7 +257,7 @@ namespace CodingGame.Defense
             var block = Line(parts[0]);
             return parts.Length == 2 && block && Enum.TryParse(parts[1], out BlockKind kind) && block.BaseKind == kind;
         }
-        // "3" is line 3 of the start chain; "1>2" the second line inside line 1's body (a for or if), and so on.
+        // "3" is line 3 of the start chain; "1>2" the second line inside line 1's body (a while or if), and so on.
         CommandBlockView Line(string path)
         {
             IReadOnlyList<CommandBlockView> lines = panel.Program.StartChain();

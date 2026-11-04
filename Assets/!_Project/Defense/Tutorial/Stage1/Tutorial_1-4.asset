@@ -64,6 +64,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: A02
     kind: 0
     dialoguePosition: 0
@@ -109,6 +110,100 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
+  - stepId: A02a
+    kind: 1
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uC548\uB0B4\uC790"
+      text: "\uC544\uB798\uC5D0\uC11C <b>\uC6D0\uAC70\uB9AC \uB85C\uBD07</b>\uC744
+        \uC120\uD0DD\uD574."
+      focusKeys: []
+      highlightKeys: []
+    targetKeys:
+    - Battle.Robot.4
+    dim: 1
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    completionMode: 1
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    placeSpot: 0
+  - stepId: A02b
+    kind: 1
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uC548\uB0B4\uC790"
+      text: "<b>\uD45C\uC2DC\uB41C \uC790\uB9AC</b>\uC5D0 \uC0C8 \uC6D0\uAC70\uB9AC
+        \uB85C\uBD07\uC744 \uC124\uCE58\uD574!"
+      focusKeys:
+      - Battle.Spot
+      highlightKeys: []
+    targetKeys:
+    - Battle.Spot
+    dim: 1
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    completionMode: 3
+    completionSignal: RobotPlaced
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: Battle.Spot
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    placeSpot: 1
   - stepId: A03
     kind: 0
     dialoguePosition: 0
@@ -117,7 +212,7 @@ MonoBehaviour:
       speaker: "\uC548\uB0B4\uC790"
       text: "\uBCC0\uC218 \uC774\uB984\uC740 \uB9C8\uC74C\uB300\uB85C \uC815\uD574\uB3C4
         \uB3FC. <b>\uC800\uC7A5\uD55C \uC774\uB984\uACFC \uACF5\uACA9\uD560 \uB54C
-        \uC4F0\uB294 \uC774\uB984</b>\uC744 \uB9DE\uCD94\uACE0, `for` \uC548\uCABD\uC5D0
+        \uC4F0\uB294 \uC774\uB984</b>\uC744 \uB9DE\uCD94\uACE0, `while True` \uC548\uCABD\uC5D0
         \uB123\uB294 \uAC83\uB3C4 \uC78A\uC9C0 \uB9C8!"
       focusKeys: []
       highlightKeys: []
@@ -155,6 +250,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: A04
     kind: 0
     dialoguePosition: 0
@@ -200,6 +296,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: B01
     kind: 0
     dialoguePosition: 0
@@ -229,7 +326,7 @@ MonoBehaviour:
     expectedCode: 
     pointerKey: 
     autoSelectSlot: 
-    hintCode: "for i in range(10):\n    enemy = get_nearest_enemy()\n    attack(enemy)"
+    hintCode: "while True:\n    enemy = get_nearest_enemy()\n    attack(enemy)"
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
@@ -244,6 +341,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: B02
     kind: 0
     dialoguePosition: 0
@@ -288,6 +386,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: B03
     kind: 0
     dialoguePosition: 0
@@ -333,6 +432,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0
   - stepId: B04
     kind: 1
     dialoguePosition: 1
@@ -377,3 +477,4 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    placeSpot: 0

@@ -71,6 +71,7 @@ namespace CodingGame.Defense
         // The dialogue on screen asks the game to make this target glow (e.g. Robot.Range.0).
         public bool Highlighted(string key) => initialized && IsActive && view.IsVisible && Array.IndexOf(highlight, key) >= 0;
         TutorialStep Current => active && progressStep < active.steps.Length ? active.steps[progressStep] : null;
+        public bool WantsPlacementSpot => initialized && IsActive && Current is TutorialStep step && step.placeSpot;
         DefenseCodeEditor Editor => battle.CodeEditor;
 
         void Start()

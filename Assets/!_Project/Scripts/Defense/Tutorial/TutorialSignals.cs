@@ -28,7 +28,7 @@ namespace CodingGame.Defense
         public const string Start = "Battle.Start", Pause = "Battle.Pause", Speed = "Battle.ToggleSpeed", Develop = "Battle.Develop", Deployment = "Battle.DeploymentArea", SelectedRobot = "Robot.Selected",
             DropZone = "Editor.ProgramDropZone", Palette = "Editor.BlockPalette", Close = "Editor.Close", RestoreAutomatic = "Editor.RestoreAutomatic",
             Hint = "Editor.Hint", Preview = "Editor.Preview", CoreHealth = "Battle.CoreHealth", Route = "Battle.Route", RewardPanel = "Battle.RewardPanel", NextWave = "Battle.NextWave",
-            Floor = "Battle.Floor";
+            Floor = "Battle.Floor", Spot = "Battle.Spot";
         public const string CodePrefix = "Editor.Code.", PalettePrefix = "Editor.Palette.";
         const string UnitPrefix = "Robot.Unit.", RangePrefix = "Robot.Range.";
         public const string RobotButtonPrefix = "Battle.Robot.";
@@ -39,7 +39,8 @@ namespace CodingGame.Defense
         public static string Range(int index) => RangePrefix + index;
         public static bool IsRange(string key) => key != null && key.StartsWith(RangePrefix, System.StringComparison.Ordinal);
         // World targets the game registers at run time; they need no scene binding.
-        public static bool IsRuntime(string key) => key != null && (key == Route || key == Floor || key.StartsWith(UnitPrefix) || key.StartsWith(RangePrefix));
+        // Battle.Spot: the one floor cell a guided placement step (TutorialStep.placeSpot) allows.
+        public static bool IsRuntime(string key) => key != null && (key == Route || key == Floor || key == Spot || key.StartsWith(UnitPrefix) || key.StartsWith(RangePrefix));
         // Positions inside the code editor (Editor.Code.*, Editor.Palette.*), resolved by DefenseCodeEditor each frame.
         public static bool IsEditorArea(string key) => key != null && (key.StartsWith(CodePrefix) || key.StartsWith(PalettePrefix));
     }

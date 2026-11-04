@@ -54,9 +54,9 @@ namespace CodingGame.Defense.Editor
         static readonly string Unit0 = TutorialKeys.Unit(0), Range0 = TutorialKeys.Range(0), Shooter = TutorialKeys.RobotButton((int)RobotRole.Shooter);
 
         // Lesson answers; the hint of the free-play wave after each lesson shows the same code.
-        const string Code11 = "for i in range(4):\n    slash()";
-        const string Code13 = "for i in range(10):\n    enemy = get_nearest_enemy()\n    attack(enemy)";
-        const string Code21 = "for i in range(10):\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:\n        attack(enemy)";
+        const string Code11 = "while True:\n    slash()";
+        const string Code13 = "while True:\n    enemy = get_nearest_enemy()\n    attack(enemy)";
+        const string Code21 = "while True:\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:\n        attack(enemy)";
 
         sealed class Line { public string Speaker, Text; }
 
@@ -79,7 +79,7 @@ namespace CodingGame.Defense.Editor
             public string Demo;
             public bool Top;
             public float Hold;
-            public bool DistanceExample, BaselineExample, RestartPreview;
+            public bool DistanceExample, BaselineExample, RestartPreview, Spot;
         }
 
         static Dictionary<string, Line> lines;
@@ -116,10 +116,12 @@ namespace CodingGame.Defense.Editor
         static Action<S> Watch(bool restart, float hold) => Signal(TutorialSignals.PreviewHit, new[] { Preview },
             With(s => { s.Preview = true; s.RestartPreview = restart; s.Hold = hold; }, Focus(Preview)));
         static Action<S> PlaceShooter => Click(Shooter, s => s.Dim = true);
-        static Action<S> Placed => Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => s.Dim = true, Focus(TutorialKeys.Floor)));
+        // The robot goes on the one marked cell by the road (Battle.Spot), so its range and 2-1's distance condition reach the enemies.
+        static Action<S> Placed => Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Spot },
+            With(s => { s.Dim = true; s.Spot = true; s.Pointer = TutorialKeys.Spot; }, Focus(TutorialKeys.Spot)));
         static Action<S> OpenEditor => Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; });
 
-        // 1-1 loops: one slash() runs once a wave, so it goes inside for i in range(4).
+        // 1-1 loops: one slash() runs once a wave, so it goes inside while True.
         static List<S> OneOne() => new List<S> {
             L("1-1.A01", s => s.Cards = true), L("1-1.A02", s => s.Intro = true), L("1-1.A03", s => s.Intro = true), L("1-1.A04", s => s.Intro = true), L("1-1.A04a", Focus(Route)), L("1-1.A04b", Focus(Core)), L("1-1.A04c", Focus(Core)), L("1-1.A05"), L("1-1.A06"),
             L("1-1.B01", Click(TutorialKeys.RobotButton((int)RobotRole.Warrior), s => s.Dim = true)),
@@ -133,14 +135,12 @@ namespace CodingGame.Defense.Editor
             L("1-1.C06", Watch(true, 1.5f)),
             L("1-1.C07", With(Ed, Focus(Preview))), L("1-1.C08"),
             L("1-1.D01", s => s.ClearProgram = true),
-            // Placing for fills in range(10) by itself (CommandCodingPanel.FillNewLoop).
-            L("1-1.D02", Edit(TutorialSignals.CodeLinePlaced, "1:For", "Editor.Palette.For", "Editor.Palette.For", "Editor.Code.Start")),
-            L("1-1.D03", Focus("Editor.Code.Arg.1.0")),
-            L("1-1.D04", Edit(TutorialSignals.DraftValueMatches, "1.0|4", "Editor.Code.Name.1.0", "Editor.Code.Name.1.0")),
+            L("1-1.D02", Edit(TutorialSignals.CodeLinePlaced, "1:While", "Editor.Palette.While", "Editor.Palette.While", "Editor.Code.Start")),
+            L("1-1.D03", Focus("Editor.Code.Line.1")),
             L("1-1.D05", Code(Code11, With(s => { s.AutoSlot = "Editor.Code.Body.1"; s.Pointer = "Editor.Palette.Slash";
                 s.RequiredSlotBlock = "Editor.Code.Body.1:Slash"; s.Demo = "Editor.Palette.Slash>Editor.Code.Body.1"; },
                 Focus("Editor.Palette.Slash", "Editor.Code.Body.1")))),
-            L("1-1.D06", Focus("Editor.Code.Arg.1.0", "Editor.Code.Body.1")),
+            L("1-1.D06", Focus("Editor.Code.Line.1", "Editor.Code.Body.1")),
             L("1-1.D07", Watch(true, 2)),
             L("1-1.D08", With(Ed, Focus(Preview))), L("1-1.D09", s => s.CloseEditor = true),
             L("1-1.E01", Focus(TutorialKeys.NextWave)),
@@ -157,8 +157,9 @@ namespace CodingGame.Defense.Editor
         };
 
         // Free play: the trigger hides the guide and releases input until the wave ends. Keep all player code;
-        // no exact answer, compulsory editor visit or forced clear.
-        static List<S> FreePlay(string id, string hint, bool cards = false)
+        // no exact answer, compulsory editor visit or forced clear. With `place`, the lines ending in "a" and "b" pick the new
+        // robot and put it on the marked cell first, so a far-off robot can't miss every enemy (2-2's distance condition).
+        static List<S> FreePlay(string id, string hint, bool cards = false, RobotRole? place = null)
         {
             var steps = lines.Keys.Where(key => key.StartsWith(id + ".", StringComparison.Ordinal)).OrderBy(key => key, StringComparer.Ordinal).ToList();
             var result = new List<S>();
@@ -166,13 +167,15 @@ namespace CodingGame.Defense.Editor
             {
                 string step = key.Substring(id.Length + 1);
                 if (step == "A01" && cards) result.Add(L(key, s => s.Cards = true));
+                else if (place != null && step.EndsWith("a", StringComparison.Ordinal)) result.Add(L(key, Click(TutorialKeys.RobotButton((int)place), s => s.Dim = true)));
+                else if (place != null && step.EndsWith("b", StringComparison.Ordinal)) result.Add(L(key, Placed));
                 else if (step == "B01") result.Add(L(key, s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = hint; s.Battle = true; }));
                 else if (key == steps.Last()) result.Add(L(key, Claim));
                 else result.Add(L(key));
             }
             return result;
         }
-        static List<S> OneTwo() => FreePlay("1-2", Code11);
+        static List<S> OneTwo() => FreePlay("1-2", Code11, place: RobotRole.Warrior);
 
         // 1-3 variables: the shooter's attack(enemy) needs a target, found and stored inside the loop.
         static List<S> OneThree() => new List<S> {
@@ -180,7 +183,7 @@ namespace CodingGame.Defense.Editor
             L("1-3.B01", PlaceShooter), L("1-3.B02", Placed),
             L("1-3.B03", Click(Unit0, s => s.Pointer = Unit0)),
             L("1-3.B04", OpenEditor),
-            L("1-3.C01", Edit(TutorialSignals.CodeLinePlaced, "1:For", "Editor.Palette.For", "Editor.Palette.For", "Editor.Code.Start")),
+            L("1-3.C01", Edit(TutorialSignals.CodeLinePlaced, "1:While", "Editor.Palette.While", "Editor.Palette.While", "Editor.Code.Start")),
             L("1-3.C02", Put(BlockKind.DeclareVariable, "Editor.Code.Body.1")),
             L("1-3.C03", Focus("Editor.Code.Name.1>1")),
             L("1-3.C04", Put(BlockKind.NearestEnemy, "Editor.Code.Arg.1>1.0")),
@@ -203,7 +206,7 @@ namespace CodingGame.Defense.Editor
             L("1-3.E06", Claim),
         };
 
-        static List<S> OneFour() => FreePlay("1-4", Code13, cards: true);
+        static List<S> OneFour() => FreePlay("1-4", Code13, cards: true, place: RobotRole.Shooter);
         static List<S> OneFive() => FreePlay("1-5", null, cards: true);
 
         // 2-1 conditions: the shooter hits harder up close, so it fires only when the enemy is within 3.
@@ -237,12 +240,12 @@ namespace CodingGame.Defense.Editor
             L("2-1.F04", s => s.Trigger = TutorialSignals.WaveCleared), L("2-1.F05"),
             L("2-1.F06", Claim),
         };
-        static List<S> TwoTwo() => FreePlay("2-2", Code21);
+        static List<S> TwoTwo() => FreePlay("2-2", Code21, place: RobotRole.Shooter);
 
         // Script code names in the code colour (lines that already have backticks are left as written).
         static readonly Regex CodeNames = new Regex(@"(?<![A-Za-z0-9_.`])(" + string.Join("|", new[] {
             "enemy.distance(get_my_pos())", ".distance(get_my_pos())", "enemy.distance()", "get_nearest_enemy()", "get_my_pos()", "my_attack_range()",
-            "enemy_distance", "attack(enemy)", "slash()", "attack", ".hp", "enemy", "for", "if", "<=" }.Select(Regex.Escape)) + @")(?![A-Za-z0-9_(`])");
+            "enemy_distance", "attack(enemy)", "slash()", "attack", ".hp", "enemy", "while True", "while", "for", "if", "<=" }.Select(Regex.Escape)) + @")(?![A-Za-z0-9_(`])");
 
         static Dictionary<string, Line> ParseScript(string path)
         {
@@ -288,7 +291,8 @@ namespace CodingGame.Defense.Editor
                     pointerKey = s.Pointer, autoSelectSlot = s.AutoSlot, hintCode = s.HintCode, pointerDelay = s.PointerDelay,
                     closeEditor = s.CloseEditor, clearProgram = s.ClearProgram, openEditor = s.OpenEditor, robotIndex = s.Robot,
                     prepareDistanceExample = s.DistanceExample, prepareBaselineExample = s.BaselineExample, restartPreview = s.RestartPreview,
-                    introEntrance = s.Intro, undimmed = s.Undimmed, alertCards = s.Cards, autoAdvance = s.Auto, dismissable = s.Dismissable, holdSeconds = s.Hold, dragDemo = s.Demo };
+                    introEntrance = s.Intro, undimmed = s.Undimmed, alertCards = s.Cards, autoAdvance = s.Auto, dismissable = s.Dismissable, holdSeconds = s.Hold, dragDemo = s.Demo,
+                    placeSpot = s.Spot };
             }).ToArray();
             EditorUtility.SetDirty(sequence);
             return sequence;
@@ -334,6 +338,11 @@ namespace CodingGame.Defense.Editor
             boss.FindPropertyRelative("speedOverride").floatValue = .65f;
             boss.FindPropertyRelative("leakDamageOverride").intValue = 12;
             boss.FindPropertyRelative("boss").boolValue = true;
+            // 2-1: one shooter needs two close shots (2.4s) per enemy, so the five enemies come 3s apart, not 2s.
+            // 2-2: eight enemies 2.2s apart (was 1.7s); at 1.7s the front shooter fell behind and one outlasted the 35s wave.
+            var stageTwo = so.FindProperty("stages").GetArrayElementAtIndex(1).FindPropertyRelative("waves");
+            stageTwo.GetArrayElementAtIndex(0).FindPropertyRelative("groups").GetArrayElementAtIndex(0).FindPropertyRelative("interval").floatValue = 3;
+            stageTwo.GetArrayElementAtIndex(1).FindPropertyRelative("groups").GetArrayElementAtIndex(0).FindPropertyRelative("interval").floatValue = 2.2f;
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(campaign);
             return "campaign: lesson table, 1-1 to 1-5 encounters, 1-4 swarm, 1-5 basic-enemy boss";
