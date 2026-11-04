@@ -40,7 +40,7 @@ namespace CodingGame.Defense
         [Tooltip("Moved onto the painted map's base cell when the routes come from a map.")]
         [SerializeField] Transform core;
         DefenseCoreGlitch coreGlitch;
-        static readonly Color RangeColor = new Color(.35f, .9f, 1); // attack ranges: a MOBA-like cyan rim; the tutorial highlight pulses red (DefenseRangeRing)
+        static readonly Color RangeColor = new Color(.35f, .9f, 1); // attack ranges: a MOBA-like cyan rim; the tutorial highlight pulses blue and fills (DefenseRangeRing)
         Bounds[] floorParts;
         [SerializeField] RobotDefinition[] robots = Array.Empty<RobotDefinition>();
         [SerializeField] EnemyDefinition[] enemies = Array.Empty<EnemyDefinition>();

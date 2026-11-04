@@ -109,7 +109,9 @@ namespace CodingGame.Defense.Editor
             L("1-1.B01", Click(TutorialKeys.RobotButton(1), s => s.Dim = true)),
             L("1-1.B02", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => s.Dim = true, Focus(TutorialKeys.Floor)))),
             L("1-1.B03", Click(Unit0, s => s.Pointer = Unit0)),
-            L("1-1.B04", Highlight(Range0)), L("1-1.B05", Focus(Range0)),
+            // The range itself is the highlight (tinted inside), not a dimmed screen with a round hole: seen in perspective
+            // the hole never lined up with the ring (play test).
+            L("1-1.B04", Highlight(Range0)), L("1-1.B05", Highlight(Range0)),
             L("1-1.C01", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
             L("1-1.C02", Focus(Drop)), L("1-1.C03", Focus(Preview)), L("1-1.C04"),
             // Inspect the draft at each small action: incomplete lines cannot match compiled Python yet.

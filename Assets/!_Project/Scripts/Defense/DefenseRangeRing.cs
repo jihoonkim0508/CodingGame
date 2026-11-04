@@ -26,11 +26,12 @@ namespace CodingGame.Defense
             fillRenderer = fill.GetComponent<MeshRenderer>(); fillRenderer.sharedMaterial = fillMaterial;
             fillRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; fillRenderer.receiveShadows = false; fillRenderer.enabled = false;
         }
-        // glow 0..1 (tutorial highlight): a thick bright-red ring and a stronger rim; the caller pulses glow.
+        // glow 0..1 (tutorial highlight): a thick blue ring and the whole inside tinted blue, so the circle reads against the warm
+        // desk and road (play test: the old red rim with a clear middle did not show where the range was); the caller pulses glow.
         public void Show(Vector3 center, float radius, Color color, float glow)
         {
             this.glow = glow;
-            if (glow > 0) color = Color.Lerp(new Color(1, .12f, .12f), new Color(1, .6f, .55f), glow);
+            if (glow > 0) color = Color.Lerp(new Color(.1f, .45f, 1), new Color(.4f, .72f, 1), glow);
             line.widthMultiplier = lineWidth * (1 + 3 * glow);
             Show(center, radius, color);
             this.glow = 0;
@@ -74,12 +75,12 @@ namespace CodingGame.Defense
             if (!fillRenderer) return;
             var vertices = new Vector3[1 + 2 * count]; var colors = new Color[vertices.Length]; var triangles = new int[(count - 1) * 9];
             Color Tint(float alpha) => new Color(color.r, color.g, color.b, alpha);
-            float rim = Mathf.Lerp(fillAlpha, .6f, glow);
-            vertices[0] = transform.InverseTransformPoint(center); colors[0] = Tint(rim * .12f);
+            float rim = Mathf.Lerp(fillAlpha, .78f, glow);
+            vertices[0] = transform.InverseTransformPoint(center); colors[0] = Tint(rim * Mathf.Lerp(.12f, .8f, glow));
             for (int i = 0; i < count; i++)
             {
                 var edge = new Vector3(points[i].x, center.y, points[i].z);
-                vertices[1 + i] = transform.InverseTransformPoint(Vector3.Lerp(center, edge, Band)); colors[1 + i] = Tint(rim * .25f);
+                vertices[1 + i] = transform.InverseTransformPoint(Vector3.Lerp(center, edge, Band)); colors[1 + i] = Tint(rim * Mathf.Lerp(.25f, .9f, glow));
                 vertices[1 + count + i] = transform.InverseTransformPoint(edge); colors[1 + count + i] = Tint(rim);
                 if (i == count - 1) break;
                 int t = i * 9, inner = 1 + i, outer = 1 + count + i;
