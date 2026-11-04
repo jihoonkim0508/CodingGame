@@ -12,7 +12,11 @@ namespace CodingGame.TitleScreen
         float hoverAmount;
         public TitleButtonHighlight highlight;
         public bool IsHovered => hovered;
-        public void OnPointerEnter(PointerEventData e) => hovered = true;
+        public void OnPointerEnter(PointerEventData e)
+        {
+            hovered = true;
+            if (button && button.IsInteractable()) UISound.Play("hover", .6f);
+        }
         public void OnPointerExit(PointerEventData e) { hovered = false; pressed = false; }
         public void OnPointerDown(PointerEventData e) { if(e.button==PointerEventData.InputButton.Left)pressed = true; }
         public void OnPointerUp(PointerEventData e) { if(e.button==PointerEventData.InputButton.Left)pressed = false; }
