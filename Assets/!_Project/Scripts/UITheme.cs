@@ -26,6 +26,7 @@ namespace CodingGame
         public static Sprite Pill => Load("ui_pill");
         public static Sprite Chip => Load("ui_chip");
         public static Sprite Circle => Load("ui_circle");
+        public static Sprite Fill => Load("ui_fill"); // no outline: the coloured part inside a sticker
         static Sprite Load(string name) => Resources.Load<Sprite>("UI/" + name);
 
         static TMP_FontAsset display;

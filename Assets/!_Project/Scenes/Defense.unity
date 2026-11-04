@@ -52158,8 +52158,9 @@ MonoBehaviour:
   battle: {fileID: 420160337}
   battleCamera: {fileID: 921346819}
   fill: {fileID: 1069270217}
+  background: {fileID: 1647150996}
   label: {fileID: 575582894}
-  trailColor: {r: 1, g: 0.93, b: 0.8, a: 0.9}
+  trailColor: {r: 1, g: 0.62, b: 0.58, a: 1}
   hitColor: {r: 1, g: 0.3, b: 0.3, a: 1}
 --- !u!1 &2144886941
 GameObject:

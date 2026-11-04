@@ -39,6 +39,11 @@ sticker("ui_button", 96, 96, 18, 4, 5, lip=7)
 sticker("ui_pill", 96, 48, 23, 3, 4)
 sticker("ui_chip", 64, 40, 19, 3, 0)               # small tags over the map
 
+# A plain rounded shape without outline or shadow: the fill inside a sticker (the core health bar).
+img = Image.new("RGBA", (48 * SS, 48 * SS), (0, 0, 0, 0))
+rounded(ImageDraw.Draw(img), (0, 0, 47, 47), 16, (255, 255, 255, 255))
+finish("ui_fill", img, (18, 18, 18, 18))
+
 # Header and deck bars: flat paper, a thick ink edge towards the map and a shadow beyond it.
 def bar(name, top):
     w, h, line, shadow = 16, 40, 5, 8
