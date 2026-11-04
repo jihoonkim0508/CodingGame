@@ -39,9 +39,15 @@ namespace CodingGame.Defense.Editor
             if (tour.Count > 0) return;
             EditorApplication.update -= Tick;
             Debug.Log($"[ScreenTour] {shot} shots → {Folder}");
-            // Quitting from inside Play Mode crashed the Editor on the way out: quit once it is back in Edit Mode.
+            // Quitting from inside Play Mode crashed the Editor on the way out: quit once it is back in Edit Mode. The play-mode
+            // scene backup goes first, or a crash on exit leaves it and the next Editor launch stops on "Recovering Scene Backups".
             if (System.Environment.GetCommandLineArgs().Contains("-executeMethod"))
-                EditorApplication.playModeStateChanged += state => { if (state == PlayModeStateChange.EnteredEditMode) EditorApplication.Exit(0); };
+                EditorApplication.playModeStateChanged += state =>
+                {
+                    if (state != PlayModeStateChange.EnteredEditMode) return;
+                    FileUtil.DeleteFileOrDirectory("Temp/__Backupscenes");
+                    EditorApplication.delayCall += () => EditorApplication.Exit(0);
+                };
             EditorApplication.isPlaying = false;
         }
 
@@ -90,7 +96,16 @@ namespace CodingGame.Defense.Editor
                 {
                     try { DevTest.JumpTutorial(1, i); }
                     catch (System.InvalidOperationException error) { Debug.LogWarning($"[ScreenTour] 1-1 {steps[i]}: {error.Message}"); continue; }
-                    yield return Seconds(1);
+                    yield return Seconds(.3); // the jump applies on the director's next update
+                    // The coding lessons (C02 to D09) happen in the code editor, which a jump does not open. Opened and closed
+                    // directly, the way Playtest does, since the tutorial locks the 개발 button while a line is showing.
+                    string id = steps[i].Split(' ')[0];
+                    var lesson = DevTest.Battle;
+                    bool coding = id.StartsWith("C") && id != "C01" || id.StartsWith("D") && id != "D10";
+                    if (coding && !lesson.CodeEditor.IsOpen && lesson.Simulation.Robots.Count > 0)
+                        lesson.CodeEditor.Open(lesson.Simulation.Robots.OrderBy(r => r.Id).First().Id);
+                    else if (!coding && lesson.CodeEditor.IsOpen) lesson.CodeEditor.Close(false);
+                    yield return Seconds(1.7); // long lines are still typing at one second
                     yield return Shot("1-1_" + steps[i].Split(' ')[0]);
                 }
             }
@@ -112,6 +127,8 @@ namespace CodingGame.Defense.Editor
             battle.CodeEditor.Close();
             battle.StartBattle();
             yield return Seconds(.4); yield return Shot("2-1_start"); // the moment the wave begins
+            var hud = Object.FindFirstObjectByType<DefensePlayerHUD>();
+            hud.ToggleMenu(); yield return Seconds(.4); yield return Shot("2-1_menu"); hud.ToggleMenu();
             // Just after the first hit, with its damage number up.
             yield return Until(() => battle.Simulation.Robots.Any(bot => bot.DamageThisWave > 0), 30);
             yield return Seconds(.15); yield return Shot("2-1_battle");
