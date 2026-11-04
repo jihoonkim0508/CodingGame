@@ -18,8 +18,9 @@ namespace CodingGame.Art.StageSelection
         Renderer[] boundsRenderers;
         MaterialPropertyBlock block;
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
-        Vector3 rest;
+        Vector3 rest, restScale = Vector3.one;
         bool hovering;
+        float hover;
         public Bounds VisualBounds
         {
             get
@@ -38,7 +39,7 @@ namespace CodingGame.Art.StageSelection
             if (block == null) block = new MaterialPropertyBlock();
             foreach(var renderer in boundsRenderers)
                 if(renderer.sharedMaterial&&renderer.sharedMaterial.HasProperty(BaseColor))originalColors[renderer]=renderer.sharedMaterial.GetColor(BaseColor);
-            if(visualRoot)rest=visualRoot.localPosition;
+            if(visualRoot){rest=visualRoot.localPosition;restScale=visualRoot.localScale;}
             RefreshState(Application.isPlaying?StageProgress.GetState(stageNumber):stageNumber==1?StageState.Available:StageState.Locked);
         }
         public void RefreshState(StageState state)
@@ -53,21 +54,24 @@ namespace CodingGame.Art.StageSelection
                 color.a=1;block.SetColor(BaseColor,color);pair.Key.SetPropertyBlock(block);
             }
         }
-        void OnMouseEnter(){hovering=true;}
-        void OnMouseExit(){hovering=false;}
+        // Set by StageMapController every frame: OnMouseEnter never fires, the project reads input only through the Input System.
+        public void SetHovered(bool on){hovering=on;}
         void LateUpdate()
         {
             if(!Application.isPlaying)return;
-            if(visualRoot)visualRoot.localPosition=rest+Vector3.up*(Mathf.Sin(Time.unscaledTime*1.05f+stageNumber*1.7f)*.035f);
+            // Under the mouse the island rises and swells a little (a locked one only stirs), easing in and out over .15 s.
+            hover=Mathf.MoveTowards(hover,hovering?(shown==StageState.Locked?.3f:1):0,Time.unscaledDeltaTime/.15f);
+            float lift=hover*hover*(3-2*hover);
+            if(visualRoot){visualRoot.localPosition=rest+Vector3.up*(Mathf.Sin(Time.unscaledTime*1.05f+stageNumber*1.7f)*.035f+lift*.35f);visualRoot.localScale=restScale*(1+.07f*lift);}
             if(rotors!=null)foreach(var rotor in rotors)if(rotor)rotor.Rotate(0,Time.unscaledDeltaTime*18,0,Space.Self);
             if(statusRing&&shown!=StageState.Locked)
             {
                 statusRing.GetPropertyBlock(block);
-                var color=(shown==StageState.Cleared?new Color(.33f,1,.69f):accent)*(1.35f+.15f*Mathf.Sin(Time.unscaledTime*2.5f)+(hovering?.3f:0));
+                var color=(shown==StageState.Cleared?new Color(.33f,1,.69f):accent)*(1.35f+.15f*Mathf.Sin(Time.unscaledTime*2.5f)+lift*.6f);
                 color.a=1;block.SetColor(BaseColor,color);statusRing.SetPropertyBlock(block);
             }
         }
-        void OnDisable(){if(visualRoot)visualRoot.localPosition=rest;}
+        void OnDisable(){if(visualRoot){visualRoot.localPosition=rest;visualRoot.localScale=restScale;}hover=0;}
         void OnTransformChildrenChanged(){boundsRenderers=null;}
     }
 }

@@ -16,7 +16,7 @@ namespace CodingGame.StageMap
         string toast;
         bool entering; // a stage was chosen: the camera flies there and the scene fades, no more "click here"
         float toastUntil;
-        StageNode recommendedStage;
+        StageNode recommendedStage, hovered;
         string guideMessage = "지켜 낸 구역에도 언제든 다시 갈 수 있어. 섬을 눌러 봐!";
         CodingGame.Art.StageSelection.StageIslandView[] islands;
         string[] stageLabels, stateLabels;
@@ -52,9 +52,17 @@ namespace CodingGame.StageMap
 #endif
 
             Mouse mouse = Mouse.current;
-            if (mouse == null || !mouse.leftButton.wasPressedThisFrame || cameraController.IsMoving) return;
-            if (Physics.Raycast(mapCamera.ScreenPointToRay(mouse.position.ReadValue()), out RaycastHit hit) &&
-                hit.collider.GetComponentInParent<StageNode>() is StageNode node) Enter(node);
+            if (mouse == null) return;
+            StageNode over = null;
+            if (!cameraController.IsMoving && !entering && Physics.Raycast(mapCamera.ScreenPointToRay(mouse.position.ReadValue()), out RaycastHit hit))
+                over = hit.collider.GetComponentInParent<StageNode>();
+            if (over != hovered)
+            {
+                hovered = over;
+                if (over) UISound.Play("hover", .6f);
+                for (int i = 0; i < nodes.Length; i++) if (islands[i]) islands[i].SetHovered(nodes[i] == over);
+            }
+            if (over && mouse.leftButton.wasPressedThisFrame) Enter(over);
         }
 
         void Enter(StageNode node)
