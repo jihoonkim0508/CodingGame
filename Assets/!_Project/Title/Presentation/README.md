@@ -61,8 +61,8 @@ of the existing layout. A live scene copy is saved before the splash update.
 The turret now fires three projectiles .16s apart per 6.4s cycle, with matching recoil/flash.
 TitleProjectileEffect draws the short cyan trails and small impact sparks inside the
 battlefield layer, behind the title/buttons, with raycastTarget disabled.
-Mouse hover keeps the button scale response and shows one filled cyan triangle beside
-the hovered button, using play-icon proportions in a single color without a border.
+Mouse hover keeps the button scale response only; the cyan triangle that used to sit beside
+the hovered button was removed (play feedback, 2026-11-04).
 The Start button contains only centered text. The outside button outline is disabled (`showOutline = false`). The extracted
 sprite contour remains available for later use. The marker graphic ignores raycasts.
 `TitlePlayVerification` runs only in a development Player with the explicit
