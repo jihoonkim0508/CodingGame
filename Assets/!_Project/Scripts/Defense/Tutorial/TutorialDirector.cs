@@ -429,6 +429,13 @@ namespace CodingGame.Defense
         }
 
         public bool CanPerformAction(string key) => Unrestricted || bridge.CanPerformAction(key, null);
+        // The player pressed something this step does not take yet (play test: 전투 시작 'did nothing' while a line waited).
+        public void NudgeBlocked()
+        {
+            if (!IsActive) return;
+            UISound.Play("deny");
+            if (view.IsVisible) view.Nudge();
+        }
         public bool AllowsWorldPoint(Vector3 point) => Unrestricted || bridge.AllowsWorldPoint(point);
         public bool AllowsRobotChoice(int index) => Unrestricted || bridge.AllowsRobotChoice(index);
         public void ReportSuccess(string key, string signal, GameObject target = null)

@@ -284,7 +284,7 @@ namespace CodingGame.Defense
         }
         public void StartBattle()
         {
-            if (!TutorialAllows("Battle.Start")) return;
+            if (!TutorialAllows("Battle.Start")) { if (tutorial) tutorial.NudgeBlocked(); return; }
             string error = Simulation.StartError();
             if (error != null) { Tell(error); return; }
             HidePlacement();

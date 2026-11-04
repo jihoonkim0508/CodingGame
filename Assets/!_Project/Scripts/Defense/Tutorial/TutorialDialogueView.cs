@@ -95,7 +95,8 @@ namespace CodingGame.Defense
             if (!IsVisible) return;
             float now = Time.unscaledTime;
             bool waiting = typing == null && nextText.interactable;
-            nextText.transform.localScale = Vector3.one * (waiting ? 1 + .07f * (.5f + .5f * Mathf.Sin(now * 5)) : 1);
+            float nudge = Mathf.Sin(Mathf.Clamp01(1 - (now - nudgedAt) / .45f) * Mathf.PI) * .35f;
+            nextText.transform.localScale = Vector3.one * ((waiting ? 1 + .07f * (.5f + .5f * Mathf.Sin(now * 5)) : 1) + nudge);
             if (!HasGuideFaces) return;
             if (now > nextBlink + BlinkSeconds) nextBlink = now + UnityEngine.Random.Range(2.5f, 4.5f);
             bool blink = mood == GuideMood.Normal && now >= nextBlink;
@@ -153,6 +154,10 @@ namespace CodingGame.Defense
             idLabel.text = id;
 #endif
         }
+
+        float nudgedAt = -10;
+        // A click the tutorial turned away (전투 시작 while a line still waits): the next button jumps to show what to press.
+        public void Nudge() => nudgedAt = Time.unscaledTime;
 
         public void SetNavigation(bool canPrevious, bool canNext)
         { previousText.interactable = canPrevious; nextText.interactable = canNext; }
