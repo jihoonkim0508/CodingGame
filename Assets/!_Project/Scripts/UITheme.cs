@@ -8,7 +8,7 @@ namespace CodingGame
     // (Resources/UI, drawn by Editor/UI~/ui_sprites.py) are white with the outline and shadow baked in, so Image.color
     // picks the fill. Tools/Develop/UI 스타일 적용 (UIRestyle) puts this on the scenes and prefabs; runtime-built UI uses
     // the same pieces from here.
-    // Colour roles: Primary (a beige gold) fills the one main action on a screen and marks what is chosen;
+    // Colour roles: Primary (a beige gold) fills the one main action on a screen (a chosen block tab takes its blocks' colour);
     // other buttons are paper; Coral is for recall, leaving and errors only; Mint stays 디버's own colour.
     public static class UITheme
     {
@@ -16,6 +16,8 @@ namespace CodingGame
             Muted = Hex(0x6B7085), Sunny = Hex(0xFFC531), Mint = Hex(0x3DD6A3), Sky = Hex(0x56B8FF), Coral = Hex(0xFF6B6B),
             Grape = Hex(0xB08CFF), Orange = Hex(0xFFA34D), Night = Hex(0x1B2133),
             Primary = Hex(0xEFCB84), World = Hex(0x4B8BBE); // Primary: a beige gold, softer than Sunny; World: the stage map's sky, behind full-screen panels
+        // Code block faces by palette tab (제어, 명령, 값, 논리), and the chosen tab's fill: white text reads on each (3.5:1 or more).
+        public static readonly Color[] BlockCategories = { Hex(0x2F7FD3), Hex(0x8A5CE6), Hex(0xD9650B), Hex(0x2F9A57) };
         // Rich-text colours that read on paper.
         public const string InkHex = "#262A3E", MutedHex = "#6B7085", CodeHex = "#1971C2", GoodHex = "#2B8A3E", WarnHex = "#E8590C",
             DangerHex = "#E03131", GoldHex = "#C77700", KeywordHex = "#D6336C", CalmHex = "#0C8A73";

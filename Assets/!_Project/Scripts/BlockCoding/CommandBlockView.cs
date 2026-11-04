@@ -147,6 +147,38 @@ namespace CodingGame.BlockCoding
             // Out-of-stock palette blocks stay visible (so players learn they exist) but read as unavailable.
             if (counted) canvasGroup.alpha = count > 0 ? 1 : .4f;
         }
+        // The look of the block's palette tab (UITheme.BlockCategories): the face in its colour with white Pretendard Bold labels, and
+        // value holes, inputs and the loop's mouth in paper with ink text, so they read as places to fill (play feedback: the dark
+        // holes looked disabled). Placed blocks are copies of palette blocks and keep it.
+        internal void Style(Color face)
+        {
+            shape.color = face;
+            foreach (var graphic in GetComponentsInChildren<Graphic>(true))
+            {
+                var list = graphic.GetComponentInParent<ScrollRect>(true);
+                if (graphic == shape || graphic == stockLabel || graphic.GetComponentInParent<CommandBlockView>(true) != this ||
+                    list && list.transform.IsChildOf(transform)) continue; // a dropdown's option list keeps its own look
+                if (graphic is TMP_Text text)
+                {
+                    if (UITheme.Bold) text.font = UITheme.Bold;
+                    if (text.name == "Hint") text.color = UITheme.Muted;
+                    else if (text.name == "Arrow") text.color = UITheme.Ink;
+                }
+                else if (graphic is CommandBlockShape) graphic.color = UITheme.Paper;
+                else if (graphic.name == "Body") graphic.color = new Color(1, 1, 1, .6f);
+            }
+            // The fields' colour tints multiply the paper; their dark tints made the inputs look like holes.
+            foreach (var field in new Selectable[] { input, dropdown })
+            {
+                if (!field) continue;
+                if (field.targetGraphic) field.targetGraphic.color = UITheme.Paper;
+                field.colors = new ColorBlock { normalColor = Color.white, highlightedColor = new Color(.96f, .96f, .96f), pressedColor = new Color(.86f, .86f, .86f),
+                    selectedColor = Color.white, disabledColor = new Color(.8f, .8f, .8f), colorMultiplier = 1, fadeDuration = .08f };
+            }
+            if (input && input.textComponent) input.textComponent.color = UITheme.Ink;
+            if (input && input.placeholder is Graphic placeholder) placeholder.color = UITheme.Muted;
+            if (dropdown && dropdown.captionText) dropdown.captionText.color = UITheme.Ink;
+        }
         void LateUpdate()
         {
             if (!IsPalette || !stockLabel || !stockLabel.gameObject.activeSelf) return;

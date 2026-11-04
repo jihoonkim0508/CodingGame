@@ -90,8 +90,8 @@ namespace CodingGame.BlockCoding
             pythonPreview.richText = false;
             functionName.onValueChanged.AddListener(_ => Changed());
             program.Bind(this, null);
-            foreach (var item in palette) item.view.Bind(this, null, true);
-            variablePrefab.Bind(this, null, true);
+            foreach (var item in palette) { item.view.Bind(this, null, true); item.view.Style(UITheme.BlockCategories[item.category]); }
+            variablePrefab.Bind(this, null, true); variablePrefab.Style(UITheme.BlockCategories[2]);
             for (int i = 0; i < categoryButtons.Length; i++)
             {
                 int category = i;
@@ -112,8 +112,16 @@ namespace CodingGame.BlockCoding
             variablePrefab.SetStock(Remaining?.Invoke(BlockKind.Variable) ?? 0);
             variablePrefab.gameObject.SetActive(IsAvailable?.Invoke(BlockKind.Variable) ?? true);
             variablePalette.gameObject.SetActive(category == 2);
+            // The chosen tab is filled with its blocks' colour, white text and a little larger; the others are paper with muted
+            // text (play feedback: a beige tab on the beige panel did not read as chosen).
             for (int i = 0; i < categoryButtons.Length; i++)
-                categoryButtons[i].targetGraphic.color = i == category ? new Color(0.94f, 0.8f, 0.52f) : new Color(0.95f, 0.91f, 0.83f); // the primary beige gold when chosen, paper otherwise
+            {
+                bool chosen = i == category;
+                categoryButtons[i].targetGraphic.color = chosen ? UITheme.BlockCategories[Mathf.Min(i, UITheme.BlockCategories.Length - 1)] : UITheme.Paper;
+                var label = categoryButtons[i].GetComponentInChildren<TMP_Text>(true);
+                if (label) label.color = chosen ? Color.white : UITheme.Muted;
+                categoryButtons[i].transform.localScale = Vector3.one * (chosen ? 1.06f : 1);
+            }
         }
         internal void Select(CommandDropZone zone)
         {

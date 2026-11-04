@@ -39,6 +39,12 @@ namespace CodingGame.BlockCoding
             SetVerticesDirty();
         }
 
+        // Sticker look (play feedback, Docs/References/비주얼_레퍼런스.md 4): every shape gets an ink outline, a block a soft drop shadow
+        // under it too, and rectangles round corners. Shadow, outline and face are the same polygons grown and shifted, drawn in that
+        // order, so a loop's header, arm and foot (overlapping rectangles) show one outline round the whole C and its mouth.
+        const float Corner = 8, Shadow = 3;
+        static readonly Color Ink = new Color(.149f, .165f, .243f);
+        bool? isBlock;
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear();
@@ -46,8 +52,10 @@ namespace CodingGame.BlockCoding
             Rect r = rectTransform.rect;
             float w = r.width, h = r.height;
             if (w <= 0 || h <= 0) return;
+            if (isBlock == null) isBlock = GetComponent<CommandBlockView>();
+            var parts = new List<Vector2[]>();
             if (slot == BlockSlotKind.Condition)
-                Polygon(vh, r, new[] { new Vector2(0, h / 2), new Vector2(12, 0), new Vector2(w - 12, 0),
+                parts.Add(new[] { new Vector2(0, h / 2), new Vector2(12, 0), new Vector2(w - 12, 0),
                     new Vector2(w, h / 2), new Vector2(w - 12, h), new Vector2(12, h) });
             else if (slot == BlockSlotKind.Value)
             {
@@ -60,31 +68,65 @@ namespace CodingGame.BlockCoding
                     angle = (90 + i * 15) * Mathf.Deg2Rad;
                     points[i + 13] = new Vector2(radius + Mathf.Cos(angle) * radius, h / 2 + Mathf.Sin(angle) * h / 2);
                 }
-                Polygon(vh, r, points);
+                parts.Add(points);
             }
             else
             {
                 float header = control ? Mathf.Min(HeaderHeight, h) : h;
-                Quad(vh, r, 0, 0, w, header);
+                parts.Add(Rounded(0, 0, w, header));
                 if (control)
                 {
-                    Quad(vh, r, 0, header, 18, h - header);
-                    if (!JoinNext) Quad(vh, r, 0, h - 18, w, 18);
+                    // The arm and foot reach into the part above, so the rounded corners leave no notch where they meet.
+                    parts.Add(Rounded(0, header - Corner, 18, h - header + Corner));
+                    if (!JoinNext) parts.Add(Rounded(0, h - 18 - Corner, w, 18 + Corner));
                 }
             }
+            float line = isBlock.Value ? 3 : 2;
+            var ink = new Color(Ink.r, Ink.g, Ink.b, color.a);
+            if (isBlock.Value) foreach (var part in parts) Polygon(vh, r, Grow(part, line), new Color(Ink.r, Ink.g, Ink.b, .25f * color.a), Shadow);
+            foreach (var part in parts) Polygon(vh, r, Grow(part, line), ink, 0);
+            foreach (var part in parts) Polygon(vh, r, part, color, 0);
             vh.GetUIVertexStream(hitTriangles);
         }
 
-        void Quad(VertexHelper vh, Rect r, float x, float y, float w, float h)
+        // A rectangle with round corners, clockwise from the top left (y downwards).
+        static Vector2[] Rounded(float x, float y, float w, float h)
         {
-            if (w <= 0 || h <= 0) return;
-            Polygon(vh, r, new[] { new Vector2(x, y), new Vector2(x + w, y), new Vector2(x + w, y + h), new Vector2(x, y + h) });
+            float c = Mathf.Min(Corner, w / 2, h / 2);
+            var points = new Vector2[20];
+            Vector2[] centres = { new Vector2(x + c, y + c), new Vector2(x + w - c, y + c), new Vector2(x + w - c, y + h - c), new Vector2(x + c, y + h - c) };
+            for (int corner = 0; corner < 4; corner++)
+                for (int i = 0; i < 5; i++)
+                {
+                    float angle = (180 + corner * 90 + i * 22.5f) * Mathf.Deg2Rad;
+                    points[corner * 5 + i] = centres[corner] + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * c;
+                }
+            return points;
+        }
+        // The convex polygon pushed out by d along each corner's mitre.
+        static Vector2[] Grow(Vector2[] points, float d)
+        {
+            var grown = new Vector2[points.Length];
+            var centre = Vector2.zero; foreach (var p in points) centre += p; centre /= points.Length;
+            for (int i = 0; i < points.Length; i++)
+            {
+                Vector2 a = points[(i + points.Length - 1) % points.Length], b = points[i], c = points[(i + 1) % points.Length];
+                Vector2 n1 = Normal(a, b, centre), n2 = Normal(b, c, centre), n = (n1 + n2).normalized;
+                grown[i] = b + n * (d / Mathf.Max(.35f, Vector2.Dot(n, n1)));
+            }
+            return grown;
+        }
+        static Vector2 Normal(Vector2 a, Vector2 b, Vector2 centre)
+        {
+            var edge = (b - a).normalized; var n = new Vector2(-edge.y, edge.x);
+            if (b == a) return (b - centre).normalized;
+            return Vector2.Dot(n, (a + b) * .5f - centre) < 0 ? -n : n; // outward
         }
 
-        void Polygon(VertexHelper vh, Rect r, Vector2[] points)
+        void Polygon(VertexHelper vh, Rect r, Vector2[] points, Color tint, float drop)
         {
             int start = vh.currentVertCount;
-            foreach (var p in points) vh.AddVert(new Vector3(r.xMin + p.x, r.yMax - p.y), color, Vector2.zero);
+            foreach (var p in points) vh.AddVert(new Vector3(r.xMin + p.x, r.yMax - p.y - drop), tint, Vector2.zero);
             for (int i = 1; i < points.Length - 1; i++) vh.AddTriangle(start, start + i, start + i + 1);
         }
     }

@@ -12,6 +12,7 @@
     <Compile Include="Check.cs" />
     <Compile Include="TreeCheck.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/BlockCoding/*.cs" />
+    <Compile Include="../../Assets/!_Project/Scripts/UITheme.cs" />
     <Reference Include="UnityEngine"><HintPath>$(UnityEditorPath)/Data/Managed/UnityEngine/UnityEngine.dll</HintPath></Reference>
     <Reference Include="UnityEngine.CoreModule"><HintPath>$(UnityEditorPath)/Data/Managed/UnityEngine/UnityEngine.CoreModule.dll</HintPath></Reference>
     <Reference Include="UnityEngine.UIModule"><HintPath>$(UnityEditorPath)/Data/Managed/UnityEngine/UnityEngine.UIModule.dll</HintPath></Reference>
