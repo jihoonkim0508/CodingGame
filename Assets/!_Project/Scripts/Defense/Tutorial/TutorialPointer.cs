@@ -37,20 +37,27 @@ namespace CodingGame.Defense
             ghost = null; ghostSource = null;
         }
 
-        // Path arrows: a pack of ten arrows running along a polyline (spotlight-local points) from its start to its end, then
-        // setting off again, fading in and out at the ends; the last ones in the pack are a little fainter.
+        // Path arrows: a pack of ten chevron stickers (ui_chevron: open ›, ink outline, shadow, tinted sky blue) running fast along
+        // a polyline (spotlight-local points) from its start to its end, then setting off again (play feedback: faster, and a
+        // look of its own rather than copies of the yellow pointer). They grow in at the start and shrink out before the core,
+        // and turn smoothly at corners (heading from a little behind to a little ahead).
         const int PathPack = 10;
-        const float PathSpacing = 58, PathSpeed = 300, PathScale = 1.15f, PathFade = 40, PathRest = .35f;
-        static readonly Color PathColor = new Color(.45f, .85f, 1); // sky blue (planner, 1-1 A04a)
+        const float PathSpacing = 70, PathSpeed = 800, PathSize = 56, PathIn = 70, PathOut = 90, PathRest = .2f, PathTurn = 20;
+        static readonly Color PathColor = new Color(.34f, .72f, 1); // sky #56B8FF; the outline carries the contrast on the cream road
         readonly List<RectTransform> chevrons = new List<RectTransform>();
+        Sprite chevronSprite;
         public void ShowPath(IReadOnlyList<Vector2> points)
         {
             float total = 0;
             for (int i = 1; i < points.Count; i++) total += Vector2.Distance(points[i - 1], points[i]);
+            if (!chevronSprite) chevronSprite = Resources.Load<Sprite>("UI/ui_chevron");
             while (chevrons.Count < PathPack)
             {
-                var copy = (RectTransform)Instantiate(arrow.gameObject, transform, false).transform;
-                copy.name = "Path arrow"; copy.localScale = Vector3.one * PathScale; chevrons.Add(copy);
+                var image = new GameObject("Path arrow", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+                image.rectTransform.SetParent(transform, false);
+                image.sprite = chevronSprite; image.preserveAspect = true; image.raycastTarget = false;
+                image.rectTransform.sizeDelta = new Vector2(PathSize, PathSize * 102 / 96f);
+                chevrons.Add(image.rectTransform);
             }
             // The lead arrow's distance along the path: it runs past the end until the whole pack is off, rests, and restarts.
             float lap = total + (PathPack - 1) * PathSpacing + PathRest * PathSpeed;
@@ -60,17 +67,27 @@ namespace CodingGame.Defense
                 var chevron = chevrons[k];
                 float s = lead - k * PathSpacing;
                 if (s < 0 || s > total) { chevron.gameObject.SetActive(false); continue; }
-                // Walk to distance s along the polyline.
-                int seg = 1; float left = s;
-                while (seg < points.Count - 1 && left > Vector2.Distance(points[seg - 1], points[seg])) { left -= Vector2.Distance(points[seg - 1], points[seg]); seg++; }
-                Vector2 a = points[seg - 1], b = points[seg], dir = (b - a).normalized;
+                var dir = (At(points, Mathf.Min(total, s + PathTurn)) - At(points, Mathf.Max(0, s - PathTurn))).normalized;
                 chevron.gameObject.SetActive(true);
-                chevron.anchoredPosition = a + dir * left;
-                // The arrow sprite points down (0°); turn it to the travel direction.
-                chevron.localEulerAngles = new Vector3(0, 0, Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg + 90);
-                var image = chevron.GetComponent<Graphic>();
-                if (image) image.color = new Color(PathColor.r, PathColor.g, PathColor.b, .95f * (1 - .45f * k / PathPack) * Mathf.Clamp01(Mathf.Min(s, total - s) / PathFade));
+                chevron.anchoredPosition = At(points, s);
+                // The chevron sprite points right (0°); turn it to the travel direction.
+                chevron.localEulerAngles = new Vector3(0, 0, Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg);
+                float grow = Mathf.SmoothStep(0, 1, s / PathIn), shrink = Mathf.SmoothStep(0, 1, (total - s) / PathOut);
+                chevron.localScale = Vector3.one * Mathf.Lerp(.6f, 1, grow) * Mathf.Lerp(.85f, 1, shrink);
+                var graphic = chevron.GetComponent<Graphic>();
+                if (graphic) graphic.color = new Color(PathColor.r, PathColor.g, PathColor.b, Mathf.Min(grow, shrink));
             }
+        }
+        // The point at distance s along the polyline.
+        static Vector2 At(IReadOnlyList<Vector2> points, float s)
+        {
+            for (int i = 1; i < points.Count; i++)
+            {
+                float length = Vector2.Distance(points[i - 1], points[i]);
+                if (s <= length || i == points.Count - 1) return Vector2.Lerp(points[i - 1], points[i], length > 0 ? Mathf.Clamp01(s / length) : 0);
+                s -= length;
+            }
+            return points[0];
         }
         public void HidePath() { foreach (var chevron in chevrons) if (chevron) chevron.gameObject.SetActive(false); }
 
