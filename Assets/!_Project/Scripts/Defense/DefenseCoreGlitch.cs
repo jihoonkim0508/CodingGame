@@ -19,6 +19,17 @@ namespace CodingGame.Defense
         void Awake()
         {
             if (!hit || !death) throw new InvalidOperationException(name + ": 코어 글리치 머티리얼을 연결하세요.");
+            Collect();
+        }
+        // Each map carries its own base model (Stage 1's straight map has a copy of the workshop's CodeBase).
+        public void SetModel(Transform value)
+        {
+            if (value == model) return;
+            if (parts != null) for (int i = 0; i < parts.Length; i++) if (parts[i]) parts[i].sharedMaterials = original[i];
+            model = value; health = -1; Collect();
+        }
+        void Collect()
+        {
             parts = GetComponentsInChildren<Renderer>(true).Concat(model ? model.GetComponentsInChildren<Renderer>(true) : Enumerable.Empty<Renderer>()).ToArray();
             original = parts.Select(r => r.sharedMaterials).ToArray();
             hitLook = Copies(hit); deathLook = Copies(death);

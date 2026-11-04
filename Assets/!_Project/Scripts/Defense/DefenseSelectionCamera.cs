@@ -22,6 +22,13 @@ namespace CodingGame.Defense
             destination = homePosition; rotation = homeRotation; viewport = homeRect; fov = homeFov; elapsed = transitionSeconds;
             activeSeconds = transitionSeconds;
         }
+        // The battle's own view changes with the map (Stage 1's short map is framed closer): the camera goes there at once.
+        public void SetHome(Vector3 position, Quaternion orientation)
+        {
+            Initialize();
+            homePosition = destination = position; homeRotation = rotation = orientation; elapsed = activeSeconds;
+            battleCamera.transform.SetPositionAndRotation(position, orientation);
+        }
         public void Restore()
         {
             if (!initialized) return;

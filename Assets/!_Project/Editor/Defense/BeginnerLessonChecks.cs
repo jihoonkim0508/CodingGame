@@ -443,7 +443,11 @@ namespace CodingGame.Defense.Editor
         static void PlaceBest(DefenseBattle battle, int robot)
         {
             var sim = battle.Simulation; var spec = battle.RobotDefinition(robot).stats;
-            var samples = sim.Setup.Routes.SelectMany(r => r.Points).ToArray();
+            // Points every half unit along the roads: the corners alone are just the two ends on Stage 1's straight road.
+            var samples = sim.Setup.Routes.SelectMany(r => r.Points.Zip(r.Points.Skip(1), (a, b) => (a, b)))
+                .SelectMany(s => Enumerable.Range(0, Mathf.CeilToInt(System.Numerics.Vector2.Distance(s.a, s.b) * 2) + 1)
+                    .Select(i => System.Numerics.Vector2.Lerp(s.a, s.b, Mathf.Clamp01(i / Mathf.Max(1, System.Numerics.Vector2.Distance(s.a, s.b) * 2)))))
+                .ToArray();
             var candidates = new System.Collections.Generic.List<System.Numerics.Vector2>();
             for (float x = sim.Setup.Min.X + .5f; x < sim.Setup.Max.X; x += 1)
                 for (float z = sim.Setup.Min.Y + .5f; z < sim.Setup.Max.Y; z += 1)

@@ -26,6 +26,11 @@ namespace CodingGame.Defense
         [SerializeField] DefenseCampaignDefinition campaign;
         [Header("Authored scene references")]
         [SerializeField] Camera battleCamera;
+        [SerializeField, Tooltip("Stage 1 전용 일자 맵과 그 카메라 자리(Tools/Develop/1스테이지 일자 맵 만들기). 비우면 모든 스테이지가 작업실 맵")]
+        CodingGame.Art.MapPainter.ModularMapRoot stageOneMap;
+        [SerializeField] CodingGame.Art.MapPainter.ModularMapRoot workshopMap;
+        [SerializeField] Transform stageOneView;
+        Pose workshopView; bool workshopViewKnown;
         [SerializeField] EventSystem eventSystem;
         [SerializeField] DefenseCodeEditor codeEditor;
         [SerializeField] BoxCollider deploymentArea;
@@ -159,6 +164,7 @@ namespace CodingGame.Defense
         {
             content.ValidateContent();
             if (selectedStage < 1 || selectedStage > content.stages.Length) throw new ArgumentException("스테이지 범위 오류");
+            UseStageMap(selectedStage);
             var bounds=deploymentArea.bounds;
             var map=routes[0].Map;
             if(map&&map.hasBase&&core)core.position=map.CellPosition(map.baseCell);
@@ -177,6 +183,20 @@ namespace CodingGame.Defense
                 CampaignWaves=Enumerable.Range(1,content.stages.Length).Select(content.ReadWaves).ToArray(),
                 CampaignSeconds=content.stages.Select(s=>s.waveSeconds).ToArray()
             };
+        }
+        // Stage 1 plays on a short straight road and Stages 2·3 on the workshop (play feedback: the workshop was too big for the
+        // first lessons). Only one map is active, so routes, tiles and props (DefenseRoute.Map) come from it; the camera and the
+        // core's glitch follow.
+        void UseStageMap(int selectedStage)
+        {
+            if (!stageOneMap || !workshopMap || !stageOneView) return;
+            if (!workshopViewKnown) { workshopView = new Pose(battleCamera.transform.position, battleCamera.transform.rotation); workshopViewKnown = true; }
+            bool first = selectedStage == 1;
+            stageOneMap.gameObject.SetActive(first); workshopMap.gameObject.SetActive(!first);
+            var view = first ? new Pose(stageOneView.position, stageOneView.rotation) : workshopView;
+            selectionCamera.SetHome(view.position, view.rotation);
+            floorParts = null;
+            if (coreGlitch) coreGlitch.SetModel((first ? stageOneMap : workshopMap).GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "CodeBase"));
         }
         // The ground of the map, one square per floor or road cell (cells are centred on CellPosition).
         static IEnumerable<PlacementObstacle> MapTiles(CodingGame.Art.MapPainter.ModularMapRoot map)
@@ -300,6 +320,15 @@ namespace CodingGame.Defense
                 StageMap.StageProgress.RecordStars(stage, Simulation.StageStars);
                 StageMap.StageProgress.MarkCleared(stage);
                 GameFlow.LoadScene(GameFlow.StageScene);
+                return;
+            }
+            if (Simulation.CanAdvanceStage && stageOneMap && stage == 1)
+            {
+                // Stage 2 is on another map, so it starts as a new session with Stage 1's rewards (as from the stage map).
+                codeEditor.Close(false); inventoryUI.Close();
+                stage = 2; var next = MakeSetup(campaign, stage); next.PreviousStageRewards = true;
+                ResetSession(next);
+                ReportTutorialAction("Battle.ContinueCampaign", "TargetClicked", "StageAdvanced");
                 return;
             }
             if (Simulation.CanAdvanceStage)
