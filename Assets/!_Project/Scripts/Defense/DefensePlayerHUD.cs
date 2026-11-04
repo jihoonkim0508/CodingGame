@@ -664,7 +664,7 @@ namespace CodingGame.Defense
             }
             var title = Text("일시정지", 250, 46);
             if (UITheme.Display) title.font = UITheme.Display;
-            Add("계속하기", 160, UITheme.Sunny, ToggleMenu);
+            Add("계속하기", 160, UITheme.Primary, ToggleMenu);
             soundLabel = Add("소리 끄기", 80, UITheme.PaperDeep, () => { DefenseSounds.Muted = !DefenseSounds.Muted; soundLabel.text = DefenseSounds.Muted ? "소리 켜기" : "소리 끄기"; });
             voiceLabel = Add(VoiceLabel, 0, UITheme.PaperDeep, () => { TutorialDialogueView.VoiceOn = !TutorialDialogueView.VoiceOn; voiceLabel.text = VoiceLabel; });
             Add("이 스테이지 처음부터", -80, UITheme.PaperDeep, () => { ToggleMenu(); battle.Restart(); });
@@ -685,6 +685,7 @@ namespace CodingGame.Defense
                 restartStageButton = Instantiate(claimButton, claim.parent);
                 restartStageButton.name = "RestartStage";
                 restartStageButton.onClick.AddListener(battle.Restart);
+                ((Image)restartStageButton.targetGraphic).color = UITheme.Paper; // the retry beside it stays the one yellow button
                 var label = restartStageButton.GetComponentInChildren<TMP_Text>();
                 label.text = "스테이지 처음부터"; label.fontSize = claimLabel.fontSize * .85f;
                 var r = (RectTransform)restartStageButton.transform;

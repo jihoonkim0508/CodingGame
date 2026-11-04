@@ -39,27 +39,23 @@ namespace CodingGame.Defense.Editor
             R("PlayerCanvas/Header", "ui_bar_top", UITheme.Paper, Ink),
             R("PlayerCanvas/Header/Info", "ui_button", UITheme.Paper, Ink),
             R("PlayerCanvas/Deck", "ui_bar_bottom", UITheme.Paper, Ink),
-            R("PlayerCanvas/Deck/Start", "ui_button", UITheme.Sunny, Ink, true),
-            R("PlayerCanvas/Deck/Robots/Warrior", "ui_button", UITheme.Hex(0xFF8A80), Ink, true),
-            R("PlayerCanvas/Deck/Robots/Shooter", "ui_button", UITheme.Sky, Ink, true),
-            R("PlayerCanvas/Deck/Robots/Tank", "ui_button", UITheme.Hex(0x8C9EFF), Ink, true),
-            R("PlayerCanvas/Deck/Robots/Utility", "ui_button", UITheme.Grape, Ink, true),
-            R("PlayerCanvas/Deck/Robots/Buffer", "ui_button", UITheme.Mint, Ink, true),
-            R("PlayerCanvas/Deck/Robots/Bomber", "ui_button", UITheme.Orange, Ink, true),
-            R("PlayerCanvas/RobotActions/Develop", "ui_button", UITheme.Mint, Ink, true),
+            R("PlayerCanvas/Deck/Start", "ui_button", UITheme.Primary, Ink, true),
+            // Robot cards are paper: the robot's picture tells the kinds apart, and 전투 시작 stays the one yellow button.
+            R("PlayerCanvas/Deck/Robots/[^/]+", "ui_button", UITheme.Paper, Ink, true),
+            R("PlayerCanvas/RobotActions/Develop", "ui_button", UITheme.Primary, Ink, true),
             R("PlayerCanvas/RobotActions/Recall", "ui_button", UITheme.Coral, White, true, White),
-            R("PlayerCanvas/RobotActions/Upgrade", "ui_button", UITheme.Sunny, Ink, true),
+            R("PlayerCanvas/RobotActions/Upgrade", "ui_button", UITheme.Paper, Ink, true),
             R("PlayerCanvas/CombatControls/(Pause|Speed)", "ui_button", UITheme.Paper, Ink),
             R("PlayerCanvas/Guide", "ui_pill", UITheme.Paper, Ink),
             R("PlayerCanvas/PlacementToast", "ui_card", UITheme.Coral, White),
             R("PlayerCanvas/Reward/Card", "ui_card", UITheme.Paper, Ink),
-            R("PlayerCanvas/Reward/Card/Claim", "ui_button", UITheme.Sunny, Ink, true),
+            R("PlayerCanvas/Reward/Card/Claim", "ui_button", UITheme.Primary, Ink, true),
             R("PlayerCanvas/Reward/Card/RewardScroll/Scrollbar", "ui_card_flat", UITheme.PaperDeep),
             R("PlayerCanvas/Reward/Card/RewardScroll/Scrollbar/.*Handle", "ui_card_flat", UITheme.Muted),
             R("PlayerCanvas/Tooltip", "ui_card", UITheme.Paper, Ink),
             R("PlayerCanvas/UpcomingCards/[^/]+", "ui_card_flat", UITheme.Paper, Ink),
             // Code editor (prefab, and its instance in the scene)
-            R("RobotCodeEditor/Background", null, UITheme.Night),
+            R("RobotCodeEditor/Background", null, UITheme.World),
             R("RobotCodeEditor/Editor", "ui_card", UITheme.Paper, Ink),
             R("RobotCodeEditor/Editor/Workspace/Viewport", "ui_grid", UITheme.GridPaper, Ink, tiled: true),
             Hidden("RobotCodeEditor/Editor/Workspace/Viewport/Program"),
@@ -70,8 +66,8 @@ namespace CodingGame.Defense.Editor
             R("RobotCodeEditor/RobotStats", "ui_card", UITheme.Paper, Ink),
             R("RobotCodeEditor/RobotStats/Recall", "ui_button", UITheme.Coral, White, true, White),
             R("RobotCodeEditor/Automatic", "ui_button", UITheme.Paper, Ink, icon: UITheme.Coral),
-            R("RobotCodeEditor/CloseEditor", "ui_button", UITheme.Mint, Ink, true),
-            R("RobotCodeEditor/(LeftToggle|RightToggle|PreviewButton)", "ui_button", UITheme.Paper, Ink),
+            R("RobotCodeEditor/CloseEditor", "ui_button", UITheme.Primary, Ink, true),
+            R("RobotCodeEditor/(LeftToggle|RightToggle|PreviewButton|Info)", "ui_button", UITheme.Paper, Ink),
             R("RobotCodeEditor/Python", "ui_card_flat", UITheme.Night),
             // Block help window (the editor's i button)
             R("BlockHelpCanvas/BlockHelpWindow", null, new Color(UITheme.Night.r, UITheme.Night.g, UITheme.Night.b, .8f)),
@@ -80,19 +76,19 @@ namespace CodingGame.Defense.Editor
             R("BlockHelpCanvas/BlockHelpWindow/Card/BlockList/Scrollbar", "ui_card_flat", UITheme.PaperDeep),
             R("BlockHelpCanvas/BlockHelpWindow/Card/BlockList/Scrollbar/.*Handle", "ui_card_flat", UITheme.Muted),
             R("BlockHelpCanvas/BlockHelpWindow/Card/BlockList/Viewport/Content/[^/]+", "ui_pill", UITheme.PaperDeep, Ink, still: true),
-            R("BlockHelpCanvas/BlockHelpWindow/Card/Close", "ui_button", UITheme.Coral, White, true, White),
+            R("BlockHelpCanvas/BlockHelpWindow/Card/Close", "ui_button", UITheme.Paper, Ink, true),
             R("BlockHelpCanvas/BlockHelpWindow/Card/Detail/ExampleBox", "ui_card_flat", UITheme.Night),
             // 디버's dialogue box
             R("TutorialOverlay/DialoguePanel", "ui_card", UITheme.Paper, Ink),
             Hidden("TutorialOverlay/DialoguePanel/Accent"),
-            R("TutorialOverlay/DialoguePanel/NextText", "ui_button", UITheme.Sunny, Ink, still: true),
+            R("TutorialOverlay/DialoguePanel/NextText", "ui_button", UITheme.Primary, Ink, still: true),
             R("TutorialOverlay/DialoguePanel/PreviousText", "ui_button", UITheme.Paper, Ink),
         };
         // Headings in Jalnan, whatever they sit on.
         static readonly Regex DisplayText = new Regex("(^|/)(PlayerCanvas/Header/Brand|PlayerCanvas/Reward/Card/Title|RobotCodeEditor/Title|RobotCodeEditor/Subtitle|RobotCodeEditor/Library/Title|TutorialOverlay/DialoguePanel/SpeakerName|BlockHelpWindow/Card/Title|BlockHelpWindow/Card/Detail/Name)$");
         static readonly Regex InkText = new Regex("(^|/)PlayerCanvas/Header/Brand$");
-        // Children of a card that sit outside it, on the dark background.
-        static readonly Regex OnNight = new Regex("(^|/)RobotCodeEditor/(Library/Title|Subtitle)$");
+        // Children of a card that sit outside it, on the editor's sky background.
+        static readonly Regex OnNight = new Regex("(^|/)RobotCodeEditor/(Library/Title|Subtitle|Status)$");
 
         [MenuItem("Tools/Develop/UI 스타일 적용")]
         public static void Apply()
@@ -156,7 +152,7 @@ namespace CodingGame.Defense.Editor
                     var owner = Nearest(text.transform, styled, out var ownerImage);
                     var rule = owner;
                     bool heading = DisplayText.IsMatch(path);
-                    if (rule?.Text == null && !heading) continue;
+                    if (rule?.Text == null && !heading && !OnNight.IsMatch(path)) continue;
                     Undo.RecordObject(text, "UI restyle");
                     if (OnNight.IsMatch(path)) text.color = new Color(1, 1, 1, text.color.a);
                     else if (rule?.Text != null)

@@ -609,7 +609,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4292592291
-  m_fontColor: {r: 0.64, g: 0.76, b: 0.86, a: 1}
+  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -1959,15 +1959,15 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\uCF54\uB4DC \uD3B8\uC9D1 \uC911 \xB7 \uC804\uD22C \uC77C\uC2DC\uC815\uC9C0"
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: c584473245b076b48ad67c345560e4ec, type: 2}
-  m_sharedMaterial: {fileID: 7445231671856815403, guid: c584473245b076b48ad67c345560e4ec, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: fc4b2dd9f508dd44b87f9c37fb4a065e, type: 2}
+  m_sharedMaterial: {fileID: -6237239869196892835, guid: fc4b2dd9f508dd44b87f9c37fb4a065e, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
     rgba: 4290944627
-  m_fontColor: {r: 0.45, g: 0.62, b: 0.76, a: 1}
+  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -6168,7 +6168,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.105882354, g: 0.12941177, b: 0.2, a: 1}
+  m_Color: {r: 0.29411766, g: 0.54509807, b: 0.74509805, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -9888,7 +9888,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.23921569, g: 0.8392157, b: 0.6392157, a: 1}
+  m_Color: {r: 1, g: 0.77254903, b: 0.19215687, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1

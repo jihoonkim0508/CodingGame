@@ -13849,7 +13849,7 @@ MonoBehaviour:
   bodyGradient: 0.17
   bevelHighlight: 0.12
   blueprintBackground: 1
-  blueprintBlue: {r: 0.09411765, g: 0.18431373, b: 0.25882354, a: 1}
+  blueprintBlue: {r: 0.29411766, g: 0.54509807, b: 0.74509805, a: 1}
   blueprintLines: {r: 1, g: 1, b: 1, a: 1}
   blueprintSpacing: 2
   blueprintLineWidth: 1

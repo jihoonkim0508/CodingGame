@@ -199,7 +199,7 @@ namespace CodingGame.StageMap
             float width = hintStyle.CalcSize(new GUIContent(hint)).x + 48;
             GUI.Label(new Rect(top.x - 40, Screen.height - top.y - 80 - bounce - hintLift, 80, 60), "▼", arrowStyle);
             var plate = new Rect(top.x - width / 2, Screen.height - top.y - 126 - bounce - hintLift, width, 50);
-            Sticker(plate, pill, UITheme.Sunny);
+            Sticker(plate, pill, UITheme.Primary);
             GUI.Label(new Rect(plate.x, plate.y, plate.width, plate.height - 5), hint, hintStyle);
         }
 

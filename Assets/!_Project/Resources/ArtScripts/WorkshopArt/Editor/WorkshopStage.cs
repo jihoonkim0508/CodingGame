@@ -67,7 +67,7 @@ namespace CodingGame.Art.Workshop
    var old=map.transform.Find("Stage01_Workshop_Art");if(old){if(undo)Undo.DestroyObjectImmediate(old.gameObject);else Object.DestroyImmediate(old.gameObject);}
    map.name="Stage01 Workshop";map.upperColor=ColorHex("D4A76E");map.lowerColor=ColorHex("9E704C");map.roadInnerColor=ColorHex("F5DFB5");map.roadBorderColor=ColorHex("C29A62");
    map.lightSoftness=.78f;map.shadowStrength=.55f;map.bodyGradient=.17f;map.bevelHighlight=.12f;
-   map.blueprintBlue=ColorHex("182F42");map.blueprintMinorOpacity=.07f;map.blueprintMajorOpacity=.18f;map.blueprintSpacing=2;
+   map.blueprintBlue=ColorHex("4B8BBE");map.blueprintMinorOpacity=.07f;map.blueprintMajorOpacity=.18f;map.blueprintSpacing=2;
    foreach(var renderer in map.floorGroup.GetComponentsInChildren<MeshRenderer>(true))renderer.sharedMaterials=new[]{WorkshopModels.Material("DeskWood"),WorkshopModels.Material("DeskEdge")};
    foreach(var renderer in map.roadGroup.GetComponentsInChildren<MeshRenderer>(true))renderer.sharedMaterials=new[]{WorkshopModels.Material("RoadCream"),WorkshopModels.Material("RoadEdge")};
    map.ApplyFloorColors();var art=new GameObject("Stage01_Workshop_Art");art.transform.SetParent(map.transform,false);if(undo)Undo.RegisterCreatedObjectUndo(art,"Workshop decoration");
@@ -120,10 +120,10 @@ namespace CodingGame.Art.Workshop
    if(!art||!camera)throw new Exception("Workshop art or camera missing.");
    foreach(var r in art.GetComponentsInChildren<MeshRenderer>())if(!r.sharedMaterial||!r.sharedMaterial.shader||ShaderUtil.ShaderHasError(r.sharedMaterial.shader))throw new Exception("Missing or invalid material on "+r.name);
    foreach(var bg in map.GetComponentsInChildren<BlueprintBackdrop>()){bg.targetCamera=camera;bg.Refresh();}
-   if(camera.clearFlags!=CameraClearFlags.SolidColor||camera.backgroundColor!=map.blueprintBlue||map.blueprintBlue!=ColorHex("182F42"))throw new Exception("Background and solid color mismatch.");
+   if(camera.clearFlags!=CameraClearFlags.SolidColor||camera.backgroundColor!=map.blueprintBlue||map.blueprintBlue!=ColorHex("4B8BBE"))throw new Exception("Background and solid color mismatch.");
    if(!AssetDatabase.LoadAssetAtPath<GameObject>(Output))throw new Exception("Saved map missing.");
    Render(camera,"Stage01_Workshop_LiveOverview.png",1920,1080);
-   Report("LiveValidation.txt","ArtTestScene live capture.\nCamera: "+camera.name+"; active="+camera.isActiveAndEnabled+"; viewport="+camera.rect+"\nProps: "+art.childCount+"; material references and shader compilation: PASS\nBlueprint and camera Solid Color: #182F42\nSaved map: "+Output+"\nScene dirty: "+scene.isDirty+"\nRESULT: PASS");
+   Report("LiveValidation.txt","ArtTestScene live capture.\nCamera: "+camera.name+"; active="+camera.isActiveAndEnabled+"; viewport="+camera.rect+"\nProps: "+art.childCount+"; material references and shader compilation: PASS\nBlueprint and camera Solid Color: #4B8BBE\nSaved map: "+Output+"\nScene dirty: "+scene.isDirty+"\nRESULT: PASS");
   }
   static GameObject Place(ModularMapRoot map,Transform parent,string name,float x,float z,float yaw,float scale=1,bool gateway=false)
   {

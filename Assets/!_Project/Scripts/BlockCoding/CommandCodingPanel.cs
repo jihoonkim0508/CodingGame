@@ -113,7 +113,7 @@ namespace CodingGame.BlockCoding
             variablePrefab.gameObject.SetActive(IsAvailable?.Invoke(BlockKind.Variable) ?? true);
             variablePalette.gameObject.SetActive(category == 2);
             for (int i = 0; i < categoryButtons.Length; i++)
-                categoryButtons[i].targetGraphic.color = i == category ? new Color(0.34f, 0.72f, 1f) : new Color(0.95f, 0.91f, 0.83f); // sky when chosen, paper otherwise
+                categoryButtons[i].targetGraphic.color = i == category ? new Color(1f, 0.77f, 0.19f) : new Color(0.95f, 0.91f, 0.83f); // the primary yellow when chosen, paper otherwise
         }
         internal void Select(CommandDropZone zone)
         {
