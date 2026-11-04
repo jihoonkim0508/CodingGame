@@ -208,12 +208,10 @@ namespace CodingGame.Defense
             if (Setup.PlayerFlow && Setup.Stage == 1 && WaveIndex == 1)
             {
                 if (Robots.Count < 2) return "1-2 목표: 새 전사를 한 대 더 배치하세요.";
-                if (!Robots.Skip(1).Any(bot => bot.Program != null &&
-                    bot.Program.BlockCount(BlockKind.DeclareVariable) > 0 &&
-                    bot.Program.BlockCount(BlockKind.NearestEnemy) > 0 &&
-                    bot.Program.BlockCount(BlockKind.Variable) > 0 &&
-                    bot.Program.BlockCount(BlockKind.Slash) > 0))
-                    return "1-2 목표: 새 전사에게 적 찾기·변수·베기 코드를 적용하세요.";
+                // 1-1 taught `for i in range(10): slash()`: the new warrior needs a loop with a slash in it.
+                if (!Robots.Skip(1).Any(bot => bot.Program != null && bot.Program.CopyBlocks().Any(block =>
+                    block.Kind == BlockKind.For && block.Body.Any(action => ContainsKind(action, BlockKind.Slash)))))
+                    return "1-2 목표: 새 전사에게 반복 안에서 베는 코드를 적용하세요.";
             }
             if (Setup.PlayerFlow && Setup.Stage == 1 && WaveIndex == 3 &&
                 Robots.Count(bot => bot.Spec.role == RobotRole.Warrior && HasDistanceConditionAttack(bot.Program)) < 2)
@@ -223,7 +221,8 @@ namespace CodingGame.Defense
         static bool HasDistanceConditionAttack(DefenseProgram program)
         {
             if (program == null) return false;
-            var blocks = program.CopyBlocks();
+            // Anywhere in the program: with one run a wave the if sits inside a loop.
+            var blocks = Flatten(program.CopyBlocks()).ToArray();
             var distanceNames = blocks.Where(block => block.Kind == BlockKind.DeclareVariable &&
                 block.Arguments.Any(value => ContainsKind(value, BlockKind.Distance)))
                 .Select(block => block.Value).ToArray();
@@ -232,6 +231,7 @@ namespace CodingGame.Defense
                     distanceNames.Any(name => ContainsVariable(condition, name))) &&
                 block.Body.Any(action => action.Kind == BlockKind.Slash));
         }
+        static IEnumerable<CodeBlock> Flatten(IEnumerable<CodeBlock> blocks) => blocks.SelectMany(block => new[] { block }.Concat(Flatten(block.Body)));
         static bool ContainsKind(CodeBlock block, BlockKind kind) => block.Kind == kind ||
             block.Arguments.Any(child => ContainsKind(child, kind)) || block.Body.Any(child => ContainsKind(child, kind));
         static bool ContainsVariable(CodeBlock block, string name) => block.Kind == BlockKind.Variable && block.Value == name ||

@@ -57,9 +57,9 @@ namespace CodingGame.Defense.Editor
             Hint = TutorialKeys.Hint, Close = TutorialKeys.Close, Route = TutorialKeys.Route, Core = TutorialKeys.CoreHealth, Preview = TutorialKeys.Preview;
         static readonly string Unit0 = TutorialKeys.Unit(0), Range0 = TutorialKeys.Range(0), Range1 = TutorialKeys.Range(1);
 
-        const string Code11 = "enemy = get_nearest_enemy()\nslash(enemy)";
-        const string Code13Distance = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nslash(enemy)";
-        const string Code13 = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= my_attack_range():\n    slash(enemy)";
+        // 1-1: the function runs once a wave, so the swing goes in a loop (a new loop comes with range(10)).
+        const string Code11 = "for i in range(10):\n    slash()";
+        const string Code13 = "for i in range(10):\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= my_attack_range():\n        slash()";
 
         sealed class Line { public string Speaker, Text; }
 
@@ -113,30 +113,19 @@ namespace CodingGame.Defense.Editor
             L("1-1.C01", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
             L("1-1.C02", Focus(Drop)), L("1-1.C03", Focus(Preview)), L("1-1.C04"),
             // Inspect the draft at each small action: incomplete lines cannot match compiled Python yet.
+            // The loop first (it comes with range(10)), then the swing inside it.
             L("1-1.C05", Signal(TutorialSignals.CodeLinePlaced, new[] { Drop, Palette }, With(
-                s => { s.Expected = "1:DeclareVariable"; s.Pointer = "Editor.Palette.DeclareVariable";
-                    s.Demo = "Editor.Palette.DeclareVariable>Editor.Code.Start"; },
-                Focus("Editor.Palette.DeclareVariable", "Editor.Code.Start")))),
-            L("1-1.C06", Focus("Editor.Code.Name.1")),
-            L("1-1.C08", Code("enemy = get_nearest_enemy()", With(
-                s => { s.Pointer = "Editor.Palette.NearestEnemy"; s.AutoSlot = "Editor.Code.Arg.1.0";
-                    s.Demo = "Editor.Palette.NearestEnemy>Editor.Code.Arg.1.0"; },
-                Focus("Editor.Palette.NearestEnemy", "Editor.Code.Arg.1.0")))),
-            L("1-1.C09", Focus("Editor.Code.Arg.1.0")), L("1-1.C10", Focus("Editor.Code.Name.1")),
+                s => { s.Expected = "1:For"; s.Pointer = "Editor.Palette.For";
+                    s.Demo = "Editor.Palette.For>Editor.Code.Start"; },
+                Focus("Editor.Palette.For", "Editor.Code.Start")))),
+            L("1-1.C06", Focus("Editor.Code.Arg.1.0")),
+            L("1-1.C08", Code(Code11, With(
+                s => { s.Pointer = "Editor.Palette.Slash"; s.AutoSlot = "Editor.Code.Body.1";
+                    s.Demo = "Editor.Palette.Slash>Editor.Code.Body.1"; },
+                Focus("Editor.Palette.Slash", "Editor.Code.Body.1")))),
+            L("1-1.C09", Focus("Editor.Code.Line.1/1")), L("1-1.C10", Focus("Editor.Code.Line.1")),
             L("1-1.C11", Focus("Editor.Code.Line.1")),
-            L("1-1.D01", Signal(TutorialSignals.CodeLinePlaced, new[] { Drop, Palette }, With(
-                s => { s.Expected = "2:Slash"; s.Pointer = "Editor.Palette.Slash";
-                    s.Demo = "Editor.Palette.Slash>Editor.Code.After.1"; },
-                Focus("Editor.Palette.Slash", "Editor.Code.After.1")))),
-            L("1-1.D03", Signal(TutorialSignals.SlotFilled, new[] { Drop, Palette }, With(
-                s => { s.Expected = "Editor.Code.Arg.2.0"; s.AutoSlot = s.Expected; s.Pointer = "Editor.Palette.Variable";
-                    s.RequiredSlotBlock = "Editor.Code.Arg.2.0:Variable";
-                    s.Demo = "Editor.Palette.Variable>Editor.Code.Arg.2.0"; },
-                Focus("Editor.Palette.Variable", "Editor.Code.Arg.2.0")))),
-            L("1-1.D04", Code(Code11, With(s => { s.Pointer = "Editor.Code.Name.2.0";
-                s.RequiredSlotBlock = "Editor.Code.Arg.2.0:Variable"; }, Focus("Editor.Code.Name.2.0")))),
-            L("1-1.D05", Focus("Editor.Code.Name.1", "Editor.Code.Name.2.0")),
-            L("1-1.D06", Focus("Editor.Code.Line.1")), L("1-1.D07", Focus("Editor.Code.Line.2")),
+            L("1-1.D06", Focus("Editor.Code.Line.1")),
             L("1-1.D08", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(
                 s => { s.Preview = true; s.Hold = 1.5f; }, Focus(Preview)))),
             L("1-1.D09", With(Ed, Focus(Preview))), L("1-1.D10", s => s.CloseEditor = true),
@@ -182,25 +171,27 @@ namespace CodingGame.Defense.Editor
                 L("1-3.A01"), L("1-3.A02"),
                 L("1-3.A03", Click(Unit0, s => s.Pointer = Unit0)),
                 L("1-3.A04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
-                L("1-3.A05", Signal(TutorialSignals.PreviewSingleHit, new[] { Preview }, With(
+                L("1-3.A05", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(
                     s => { s.BaselineExample = true; s.Preview = true; s.Hold = 1.5f; }, Focus(Preview)))),
-                L("1-3.B01", With(s => s.DistanceExample = true, Focus("Editor.Code.Line.1"))),
-                L("1-3.B02", Focus("Editor.Code.Line.2")),
+                L("1-3.B01", With(s => s.DistanceExample = true, Focus("Editor.Code.Line.1/1"))),
+                L("1-3.B02", Focus("Editor.Code.Line.1/2")),
                 L("1-3.B03", Focus("Editor.Palette.MyAttackRange")),
                 L("1-3.B04"), L("1-3.B05"),
-                L("1-3.C01", EditSignal(TutorialSignals.CodeLinePlaced, "3:If", "Editor.Palette.If", "Editor.Palette.If", "Editor.Code.After.2")),
-                L("1-3.C03", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.3.0", "Editor.Palette.Comparison", "Editor.Palette.Comparison", "Editor.Code.Arg.3.0"), s => s.AutoSlot = "Editor.Code.Arg.3.0")),
-                L("1-3.C04", EditSignal(TutorialSignals.DraftValueMatches, "3.0|<=", "Editor.Code.Option.3.0", "Editor.Code.Option.3.0")),
-                L("1-3.C06", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.3.0.0", "Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.Arg.3.0.0"), s => s.AutoSlot = "Editor.Code.Arg.3.0.0")),
-                L("1-3.C07", EditSignal(TutorialSignals.DraftValueMatches, "3.0.0|enemy_distance", "Editor.Code.Name.3.0.0", "Editor.Code.Name.3.0.0")),
-                L("1-3.C09", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.3.0.1", "Editor.Palette.MyAttackRange", "Editor.Palette.MyAttackRange", "Editor.Code.Arg.3.0.1"), s => s.AutoSlot = "Editor.Code.Arg.3.0.1")),
-                L("1-3.C09a", Focus("Editor.Code.Arg.3.0.1")),
-                L("1-3.C10", Focus("Editor.Code.Arg.3.0")),
-                L("1-3.D02", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Body.3", "Editor.Palette.Slash", "Editor.Palette.Slash", "Editor.Code.Body.3"), s => s.AutoSlot = "Editor.Code.Body.3")),
-                L("1-3.D04", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.BodyArg.3.0.0", "Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.BodyArg.3.0.0"), s => s.AutoSlot = "Editor.Code.BodyArg.3.0.0")),
-                L("1-3.D05", EditSignal(TutorialSignals.ProgramMatches, Code13, "Editor.Code.BodyName.3.0.0", "Editor.Code.BodyName.3.0.0")),
+                // Everything sits inside the for from 1-1 (line 1); the if becomes its third line ("1/3").
+                L("1-3.C01", With(EditSignal(TutorialSignals.CodeLinePlaced, "1/3:If", "Editor.Palette.If", "Editor.Palette.If", "Editor.Code.After.1/2"),
+                    s => { s.AutoSlot = "Editor.Code.Body.1"; s.Demo = "Editor.Palette.If>Editor.Code.After.1/2"; })),
+                L("1-3.C03", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/3.0", "Editor.Palette.Comparison", "Editor.Palette.Comparison", "Editor.Code.Arg.1/3.0"), s => s.AutoSlot = "Editor.Code.Arg.1/3.0")),
+                L("1-3.C04", EditSignal(TutorialSignals.DraftValueMatches, "1/3.0|<=", "Editor.Code.Option.1/3.0", "Editor.Code.Option.1/3.0")),
+                L("1-3.C06", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/3.0.0", "Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.Arg.1/3.0.0"), s => s.AutoSlot = "Editor.Code.Arg.1/3.0.0")),
+                L("1-3.C07", EditSignal(TutorialSignals.DraftValueMatches, "1/3.0.0|enemy_distance", "Editor.Code.Name.1/3.0.0", "Editor.Code.Name.1/3.0.0")),
+                L("1-3.C09", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/3.0.1", "Editor.Palette.MyAttackRange", "Editor.Palette.MyAttackRange", "Editor.Code.Arg.1/3.0.1"), s => s.AutoSlot = "Editor.Code.Arg.1/3.0.1")),
+                L("1-3.C09a", Focus("Editor.Code.Arg.1/3.0.1")),
+                L("1-3.C10", Focus("Editor.Code.Arg.1/3.0")),
+                // slash() needs nothing more, so putting it in the if finishes the lesson's code.
+                L("1-3.D02", With(EditSignal(TutorialSignals.ProgramMatches, Code13, "Editor.Palette.Slash", "Editor.Palette.Slash", "Editor.Code.Body.1/3"),
+                    s => { s.AutoSlot = "Editor.Code.Body.1/3"; s.Demo = "Editor.Palette.Slash>Editor.Code.Body.1/3"; })),
                 L("1-3.D06", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(s => { s.Preview = true; s.RestartPreview = true; s.Hold = 2; }, Focus(Preview)))),
-                L("1-3.D07", With(Ed, Focus("Editor.Code.Body.3"))),
+                L("1-3.D07", With(Ed, Focus("Editor.Code.Body.1/3"))),
                 L("1-3.E01", s => s.CloseEditor = true),
                 L("1-3.E02", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => s.Top = true)),
                 L("1-3.E03", With(Fight, s => s.Trigger = TutorialSignals.FirstAttack)),
@@ -225,7 +216,7 @@ namespace CodingGame.Defense.Editor
         // Script code names in the code colour (1-4 already has backticks).
         static readonly Regex CodeNames = new Regex(@"(?<![A-Za-z0-9_.`])(" + string.Join("|", new[] {
             "enemy.distance(get_my_pos())", ".distance(get_my_pos())", "enemy.distance()", "get_nearest_enemy()", "get_my_pos()", "my_attack_range()",
-            "enemy_distance", "slash(enemy)", "slash()", ".hp", "enemy", "if", "<=" }.Select(Regex.Escape)) + @")(?![A-Za-z0-9_(`])");
+            "enemy_distance", "for i in range(10)", "range(10)", "slash()", ".hp", "enemy", "for", "if", "<=" }.Select(Regex.Escape)) + @")(?![A-Za-z0-9_(`])");
 
         static Dictionary<string, List<Line>> ParseScript(string path)
         {
@@ -300,10 +291,11 @@ namespace CodingGame.Defense.Editor
                 }
                 throw new InvalidOperationException("lesson 1-" + wave + " not found");
             }
-            Lesson(1, "변수와 게임 플레이 방법 소개", 1, (BlockKind.DeclareVariable, 1), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 1), (BlockKind.Slash, 1));
-            Lesson(2, "변수 자유 플레이", 1, (BlockKind.DeclareVariable, 1), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 1));
-            Lesson(3, "조건: 내 공격 사거리 안이면 베기", 0, (BlockKind.DeclareVariable, 1), (BlockKind.Variable, 2), (BlockKind.MyPos, 1),
-                (BlockKind.If, 1), (BlockKind.Comparison, 1), (BlockKind.MyAttackRange, 1));
+            // Loops open at 1-1, so a robot's function runs once a wave from the start and the swing goes in a for.
+            Lesson(1, "반복문과 게임 플레이 방법 소개", 1, (BlockKind.For, 1), (BlockKind.Number, 1), (BlockKind.Slash, 1));
+            Lesson(2, "반복 자유 플레이", 1, (BlockKind.For, 1), (BlockKind.Number, 1));
+            Lesson(3, "변수와 조건: 내 공격 사거리 안이면 베기", 0, (BlockKind.DeclareVariable, 2), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 2),
+                (BlockKind.MyPos, 1), (BlockKind.If, 1), (BlockKind.Comparison, 1), (BlockKind.MyAttackRange, 1));
             SetupIntroEncounter(so);
             // Keep the two-enemy preview so the range comparison is visible during movement.
             var practiceGroup = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves").GetArrayElementAtIndex(2)
@@ -314,12 +306,12 @@ namespace CodingGame.Defense.Editor
                 so.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(campaign);
                 return "campaign: lessons 1-1 to 1-3 only";
             }
-            Lesson(4, "조건문 활용 자유 플레이", 1, (BlockKind.DeclareVariable, 2), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 3), (BlockKind.Slash, 1),
-                (BlockKind.MyPos, 1), (BlockKind.If, 1), (BlockKind.Comparison, 1), (BlockKind.MyAttackRange, 1), (BlockKind.Number, 1));
+            Lesson(4, "조건문 활용 자유 플레이", 1, (BlockKind.For, 1), (BlockKind.Number, 1), (BlockKind.DeclareVariable, 2), (BlockKind.NearestEnemy, 1),
+                (BlockKind.Variable, 2), (BlockKind.Slash, 1), (BlockKind.MyPos, 1), (BlockKind.If, 1), (BlockKind.Comparison, 1), (BlockKind.MyAttackRange, 1));
             Lesson(5, "변수와 조건문: 보스 종합 실습", 0,
                 (BlockKind.DeclareVariable, 3), (BlockKind.Variable, 5), (BlockKind.Number, 2),
                 (BlockKind.If, 2), (BlockKind.Comparison, 2), (BlockKind.MyAttackRange, 2),
-                (BlockKind.MyPos, 1), (BlockKind.NearestEnemy, 1), (BlockKind.Slash, 1));
+                (BlockKind.MyPos, 1), (BlockKind.NearestEnemy, 1), (BlockKind.Slash, 1), (BlockKind.For, 1));
             var waves = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves");
             var fourth = waves.GetArrayElementAtIndex(3).FindPropertyRelative("groups").GetArrayElementAtIndex(0);
             fourth.FindPropertyRelative("count").intValue = 6;

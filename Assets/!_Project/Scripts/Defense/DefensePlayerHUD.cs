@@ -126,7 +126,7 @@ namespace CodingGame.Defense
             if (freePlayGoal)
             {
                 guide.text = !string.IsNullOrEmpty(lessonGoal) ? "목표 · " + lessonGoal :
-                    sim.WaveIndex == 1 ? "목표 · 새 전사를 배치하고 변수로 적을 찾아 공격하기" :
+                    sim.WaveIndex == 1 ? "목표 · 새 전사를 배치하고 반복으로 여러 번 베기" :
                     sim.WaveIndex == 3 ? "목표 · 두 전사의 조건문으로 몰려오는 적 막기" :
                     "목표 · my_attack_range()와 조건문으로 잡몹과 보스 막기";
                 AnimateGoal();

@@ -54,17 +54,16 @@ MonoBehaviour:
     lessons:
     - stage: 1
       wave: 1
-      topic: "\uBCC0\uC218\uC640 \uAC8C\uC784 \uD50C\uB808\uC774 \uBC29\uBC95 \uC18C\uAC1C"
+      topic: "\uBC18\uBCF5\uBB38\uACFC \uAC8C\uC784 \uD50C\uB808\uC774 \uBC29\uBC95
+        \uC18C\uAC1C"
       goal: 
       robots:
       - role: 1
         count: 1
       blocks:
-      - kind: 14
+      - kind: 16
         count: 1
-      - kind: 6
-        count: 1
-      - kind: 15
+      - kind: 10
         count: 1
       - kind: 19
         count: 1
@@ -73,29 +72,29 @@ MonoBehaviour:
         count: 1
     - stage: 1
       wave: 2
-      topic: "\uBCC0\uC218 \uC790\uC720 \uD50C\uB808\uC774"
+      topic: "\uBC18\uBCF5 \uC790\uC720 \uD50C\uB808\uC774"
       goal: 
       robots:
       - role: 1
         count: 1
       blocks:
-      - kind: 14
+      - kind: 16
         count: 1
-      - kind: 6
-        count: 1
-      - kind: 15
+      - kind: 10
         count: 1
       rewards:
       - kind: 19
         count: 1
     - stage: 1
       wave: 3
-      topic: "\uC870\uAC74: \uB0B4 \uACF5\uACA9 \uC0AC\uAC70\uB9AC \uC548\uC774\uBA74
-        \uBCA0\uAE30"
+      topic: "\uBCC0\uC218\uC640 \uC870\uAC74: \uB0B4 \uACF5\uACA9 \uC0AC\uAC70\uB9AC
+        \uC548\uC774\uBA74 \uBCA0\uAE30"
       goal: 
       robots: []
       blocks:
       - kind: 14
+        count: 2
+      - kind: 6
         count: 1
       - kind: 15
         count: 2
@@ -118,12 +117,16 @@ MonoBehaviour:
       - role: 1
         count: 1
       blocks:
+      - kind: 16
+        count: 1
+      - kind: 10
+        count: 1
       - kind: 14
         count: 2
       - kind: 6
         count: 1
       - kind: 15
-        count: 3
+        count: 2
       - kind: 19
         count: 1
       - kind: 27
@@ -133,8 +136,6 @@ MonoBehaviour:
       - kind: 11
         count: 1
       - kind: 26
-        count: 1
-      - kind: 10
         count: 1
       rewards:
       - kind: 10
@@ -163,14 +164,17 @@ MonoBehaviour:
         count: 1
       - kind: 19
         count: 1
+      - kind: 16
+        count: 1
       rewards:
       - kind: 19
         count: 1
     - stage: 2
       wave: 1
-      topic: "\uBC18\uBCF5 \uD574\uAE08: for\uC640 \uBC18\uBCF5 \uD69F\uC218"
-      goal: "\uD568\uC218\uB294 \uC774\uC81C \uC6E8\uC774\uBE0C\uC5D0 \uD55C \uBC88\uB9CC
-        \xB7 for \uC548\uC5D0\uC11C \uC801 \uCC3E\uACE0 \uACF5\uACA9\uD558\uAE30"
+      topic: "\uC6D0\uAC70\uB9AC \uB85C\uBD07: \uBC18\uBCF5 \uC548\uC5D0\uC11C \uC801
+        \uCC3E\uC544 \uC3D8\uAE30"
+      goal: "for \uC548\uC5D0\uC11C \uAC00\uC7A5 \uAC00\uAE4C\uC6B4 \uC801\uC744
+        \uCC3E\uC544 \uACF5\uACA9\uD558\uAE30"
       robots:
       - role: 5
         count: 1

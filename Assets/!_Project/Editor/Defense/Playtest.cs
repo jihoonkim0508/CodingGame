@@ -30,7 +30,7 @@ namespace CodingGame.Defense.Editor
             ("1-1 설명 중 블록 미리 꺼내기 막힘", ExplanationBlocksDrag),
             ("1-1 C08 꺼내 둔 블록 연결로 진행", PreplacedBlocksProgress),
             ("1-3 B01 기초 코드 두 줄 지급", DistanceLines),
-            ("1-1 D03 변수 배치와 D04 enemy 입력 두 단계", VariableThenName),
+            ("1-1 C08 반복 밖 베기는 통과 안 함", SlashInsideLoop),
             ("1-1 D08 바로 적중해도 1.5초 보여 줌", PreviewHitHold),
             ("1-1 E08 보상 집중이 대화창에 안 가림", RewardFocusClear),
             ("1-2 B01 자유 플레이: 대사 숨고 조작 풀림, 힌트", OneTwoIntro),
@@ -309,26 +309,26 @@ namespace CodingGame.Defense.Editor
                 for (int tries = 0; StepId != id && tries < 8; tries++) { Director.EditorFinishTyping(); Director.EditorNext(); yield return .2f; }
                 if (StepId != id) { Fail($"{id}까지 넘기지 못함 (현재 {StepId}, 로봇 {Battle.Simulation.Robots.Count})"); yield break; }
                 int before = Program.AllBlocks().Count();
-                var pressed = Drag(ScreenPoint(Palette(BlockKind.NearestEnemy).Rect), ScreenPoint(Program.Rect, .7f));
+                var pressed = Drag(ScreenPoint(Palette(BlockKind.Slash).Rect), ScreenPoint(Program.Rect, .7f));
                 yield return .2f;
                 Check(Program.AllBlocks().Count() == before, $"{id}: 팔레트 드래그 막힘 (누른 곳: {pressed})");
             }
             Shot();
         }
 
-        // The planner's screenshot: enemy = value in the start box, get_nearest_enemy() left loose, then connected by drag.
+        // A for in the start box and slash() left loose, then dragged into the loop.
         static IEnumerator PreplacedBlocksProgress()
         {
             yield return OpenEditor();
             yield return Jump(1, "C08");
             ClearProgram();
-            Program.PlaceFree(Palette(BlockKind.DeclareVariable), Vector2.zero);
-            Program.PlaceFree(Palette(BlockKind.NearestEnemy), new Vector2(300, -260));
+            Program.PlaceFree(Palette(BlockKind.For), Vector2.zero);
+            Program.PlaceFree(Palette(BlockKind.Slash), new Vector2(300, -260));
             yield return .3f;
-            Check(Program.StartChain().Count == 1 && Program.LooseRoots().Count() == 1, "사진과 같은 상태: 시작 위치에 enemy = value, get_nearest_enemy() 따로");
+            Check(Program.StartChain().Count == 1 && Program.LooseRoots().Count() == 1, "시작 위치에 for, slash()는 따로");
             Check(StepId == "C08", "연결 전에는 C08에 머묾 (" + StepId + ")");
-            var declare = Program.StartChain()[0];
-            var pressed = Drag(ScreenPoint(Program.LooseRoots().First().Rect), ScreenPoint(declare.Arguments[0].Rect, .2f));
+            var loop = Program.StartChain()[0];
+            var pressed = Drag(ScreenPoint(Program.LooseRoots().First().Rect), ScreenPoint(loop.Body.Rect, .2f));
             yield return Wait(() => StepId != "C08", "C08 완료", 3);
             Check(StepId == "C09", $"드래그로 연결하면 다음 대사로 ({pressed} → {StepId})");
             Shot();
@@ -342,8 +342,9 @@ namespace CodingGame.Defense.Editor
             yield return OpenEditor();
             yield return Jump(3, "B01");
             yield return .3f;
-            string code = string.Join(" / ", Program.StartChain().Select(v => v.Kind + (v.DraftValue != null ? " " + v.DraftValue : "")));
-            Check(Program.StartChain().Count == 2 && Program.StartChain()[1].DraftValue == "enemy_distance", "B01: 기초 코드 두 줄 (" + code + ")");
+            var lines = Program.StartChain().Count == 1 && Program.StartChain()[0].Body ? Program.StartChain()[0].Body.Blocks : new List<CommandBlockView>();
+            string code = string.Join(" / ", lines.Select(v => v.Kind + (v.DraftValue != null ? " " + v.DraftValue : "")));
+            Check(lines.Count == 2 && lines[1].DraftValue == "enemy_distance", "B01: 반복 안 기초 코드 두 줄 (" + code + ")");
             foreach (var id in new[] { "B01", "B02" })
             {
                 var step = Director.EditorStep;
@@ -354,7 +355,7 @@ namespace CodingGame.Defense.Editor
                 Director.EditorFinishTyping(); Director.EditorNext(); yield return .3f;
             }
             yield return NextUntil("C01");
-            Check(Director.EditorStep.completionSignal == TutorialSignals.CodeLinePlaced && Director.EditorStep.expectedCode == "3:If", "C01: 셋째 줄에 if 놓기 단계");
+            Check(Director.EditorStep.completionSignal == TutorialSignals.CodeLinePlaced && Director.EditorStep.expectedCode == "1/3:If", "C01: 반복 안 셋째 줄에 if 놓기 단계");
         }
 
         static void Load(string code) => Battle.CodeEditor.Panel.LoadProgram(Battle.CodeEditor.Panel.FunctionName, TutorialAnswers.Parse(code));
@@ -364,26 +365,19 @@ namespace CodingGame.Defense.Editor
             if (StepId != id) throw new InvalidOperationException($"{id}까지 넘기지 못함 (현재 {StepId})");
         }
 
-        static IEnumerator VariableThenName()
+        // C08 wants the swing inside the loop: a slash() on its own line does not finish it.
+        static IEnumerator SlashInsideLoop()
         {
             yield return Fresh();
             yield return Jump(1, "C04");
             yield return OpenEditor();
-            yield return Jump(1, "D03");
-            Check(Director.EditorStep.completionSignal == TutorialSignals.SlotFilled, "D03: 변수 블록을 놓는 단계 — \"" + Director.EditorStep.texts[0].text + "\"");
-            Load("enemy = get_nearest_enemy()\nslash(get_nearest_enemy())");
+            yield return Jump(1, "C08");
+            Load("slash()");
             yield return .3f;
-            Check(StepId == "D03", "적 찾기 함수를 직접 넣으면 D03을 통과하지 않음");
-            Load("enemy = get_nearest_enemy()\nslash(variable)"); // slash() with a variable block not named yet
-            yield return Wait(() => StepId == "D04", "D03 → D04", 3);
-            Check(StepId == "D04", "변수 블록을 놓으면 다음 단계: " + StepId + " — \"" + Director.EditorStep.texts[0].text + "\"");
-            Shot(); yield return .1f;
-            Load("enemy = get_nearest_enemy()\nslash(get_nearest_enemy())");
-            yield return .3f;
-            Check(StepId == "D04", "D04에서도 변수 블록을 함수로 바꾸면 통과하지 않음");
-            Load("enemy = get_nearest_enemy()\nslash(enemy)");
-            yield return Wait(() => StepId == "D05", "D04 → D05", 3);
-            Check(StepId == "D05", "enemy를 입력하면 다음 대사: " + StepId);
+            Check(StepId == "C08", "반복 없이 베기만 놓으면 C08을 통과하지 않음");
+            Load("for i in range(10):\n    slash()");
+            yield return Wait(() => StepId == "C09", "C08 → C09", 3);
+            Check(StepId == "C09", "반복 안에 베기를 넣으면 다음 대사: " + StepId);
         }
 
         static IEnumerator PreviewHitHold()
@@ -549,7 +543,7 @@ namespace CodingGame.Defense.Editor
             DevTest.PlaceTeachingRobot(Battle, RobotRole.Shooter);
             foreach (var bot in sim.Robots)
                 sim.ApplyProgram(bot.Id, "robot_" + bot.Id, bot.Spec.role == RobotRole.Warrior
-                    ? TutorialAnswers.Parse("enemy = get_nearest_enemy()\nslash(enemy)")
+                    ? TutorialAnswers.Parse("for i in range(10):\n    slash()")
                     : new[] { new CodeBlock(BlockKind.Shot, "0", new CodeBlock(BlockKind.NearestEnemy)) });
             yield return .5f;
             var robots = Field<IDictionary>(Battle, "robotViews");
@@ -611,7 +605,7 @@ namespace CodingGame.Defense.Editor
             yield return Wait(() => DevTest.Ready && !Battle.Tutorial.IsActive && Battle.Simulation.Robots.Count == 0, "튜토리얼 없는 1-1", 10);
             DevTest.PlaceTeachingRobot(Battle, RobotRole.Warrior);
             var bot = Battle.Simulation.Robots[0];
-            Battle.Simulation.ApplyProgram(bot.Id, "robot_" + bot.Id, TutorialAnswers.Parse("enemy = get_nearest_enemy()\nslash(enemy)"));
+            Battle.Simulation.ApplyProgram(bot.Id, "robot_" + bot.Id, TutorialAnswers.Parse("for i in range(10):\n    slash()"));
             DevTest.StartWave(); Time.timeScale = 3;
             // Real time from just before the first enemy comes in range, so the frames between effect and strike are seen.
             yield return Wait(() => Battle.Simulation.Enemies.Any(e => System.Numerics.Vector2.Distance(e.Position, bot.Position) < bot.Range + 1), "적 접근", 60);

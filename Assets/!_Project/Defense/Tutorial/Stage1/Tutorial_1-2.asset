@@ -34,8 +34,7 @@ MonoBehaviour:
     - textId: t2
       speaker: "\uB514\uBC84"
       text: "\uAC71\uC815 \uB9C8, \uC544\uAE4C \uD55C \uADF8\uB300\uB85C \uD558\uBA74
-        \uB3FC.\n<b>\uC801\uC744 \uCC3E\uC544 \uC0C1\uC790\uC5D0 \uB2F4\uACE0, \uADF8
-        \uC774\uB984\uC73C\uB85C \uBCA0\uAE30!</b>"
+        \uB3FC.\n<b>\uBC18\uBCF5\uBB38 \uC548\uC5D0 \uBCA0\uAE30!</b>"
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -137,9 +136,9 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uCC38, \uC0C1\uC790 \uC774\uB984\uC740 `enemy`\uAC00 \uC544\uB2C8\uC5B4\uB3C4
-        \uB3FC.\n<b>\uB2F4\uC744 \uB54C \uC4F4 \uC774\uB984\uACFC \uAEBC\uB0BC \uB54C
-        \uC4F4 \uC774\uB984</b>\uB9CC \uB611\uAC19\uC73C\uBA74 \uB3FC!"
+      text: "\uCC38, \uBC18\uBCF5 \uD69F\uC218\uB294 10\uC774 \uC544\uB2C8\uC5B4\uB3C4
+        \uB3FC.\n\uC22B\uC790 \uCE78\uC744 \uB20C\uB7EC\uC11C <b>\uC6D0\uD558\uB294
+        \uB9CC\uD07C</b> \uBC14\uAFD4 \uBD10!"
       focusKeys: []
       highlightKeys: []
     - textId: t2
@@ -202,9 +201,9 @@ MonoBehaviour:
       highlightKeys: []
     - textId: t2
       speaker: "\uB514\uBC84"
-      text: "\uBD24\uC9C0? \uB2F4\uC744 \uB54C\uC640 \uAEBC\uB0BC \uB54C \uC774\uB984\uB9CC
-        \uB9DE\uC73C\uBA74\n\uB85C\uBD07\uC740 \uC0C1\uC790 \uC18D \uC801\uC744 \uC815\uD655\uD788
-        \uCC3E\uC544\uC11C \uBCA0\uC5B4."
+      text: "\uBD24\uC9C0? \uBC18\uBCF5 \uC548\uC5D0 \uBCA0\uAE30\uB97C \uB123\uC5B4
+        \uB450\uBA74\n\uB85C\uBD07\uC740 \uC801\uC774 \uC62C \uB54C\uB9C8\uB2E4 \uBA87
+        \uBC88\uC774\uACE0 \uBCA0\uC5B4."
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -226,9 +225,7 @@ MonoBehaviour:
     expectedCode: 
     pointerKey: 
     autoSelectSlot: 
-    hintCode: 'enemy = get_nearest_enemy()
-
-      slash(enemy)'
+    hintCode: "for i in range(10):\n    slash()"
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0

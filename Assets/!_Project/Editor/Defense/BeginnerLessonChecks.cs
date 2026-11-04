@@ -123,8 +123,8 @@ namespace CodingGame.Defense.Editor
                 director.EditorStop();
                 battle.SelectRobot(TutorialWatcher.TeachingRobot(DevTest.Sim).Id); battle.DevelopSelected();
                 battle.CodeEditor.Panel.LoadProgram("condition_example", TutorialAnswers.Parse(
-                    "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= my_attack_range():"));
-                director.EditorRun(sequence, Array.FindIndex(sequence.steps, s => s.stepId == "D01"));
+                    "for i in range(10):\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= my_attack_range():"));
+                director.EditorRun(sequence, Array.FindIndex(sequence.steps, s => s.stepId == "D02"));
             }
             if (!SessionState.GetBool(Running, false)) return;
             try { Advance(); }
@@ -230,7 +230,7 @@ namespace CodingGame.Defense.Editor
             if (!director.IsActive) { Time.timeScale = 3; return; }
             var view = Field<TutorialDialogueView>(director, "view");
             if (!view.IsVisible) return; // System banner.
-            if (key == "1/C05" || key == "1/C08" || key == "1/D01" || key == "1/D03" || key == "1/D04")
+            if (key == "1/C05" || key == "1/C08")
                 Require(!battle.TutorialBlocksPreview && Field<DefenseAttackPreview>(battle, "attackPreview").IsShowing,
                     "1-1 preview stopped while placing blocks at " + key);
             if (!string.IsNullOrWhiteSpace(step.dragDemo))
@@ -317,9 +317,9 @@ namespace CodingGame.Defense.Editor
             { Add(panel, (BlockKind)Enum.Parse(typeof(BlockKind), step.expectedCode.Split(':')[1])); return; }
             if (step.completionSignal == TutorialSignals.DraftValueMatches)
             {
-                var pair = step.expectedCode.Split('|'); var path = pair[0].Split('.').Select(int.Parse).ToArray();
-                var block = panel.Program.StartChain()[path[0] - 1];
-                foreach (int arg in path.Skip(1)) block = block.Arguments[arg].Blocks[0];
+                var pair = step.expectedCode.Split('|'); var path = pair[0].Split('.');
+                var block = editor.Line(path[0]); // "1/3" is the third line inside line 1
+                foreach (int arg in path.Skip(1).Select(int.Parse)) block = block.Arguments[arg].Blocks[0];
                 if (block.BaseKind == BlockKind.Comparison) block.SelectOption(Array.IndexOf(PythonTreeCompiler.Comparisons, pair[1]));
                 else block.SetText(pair[1]);
                 return;
@@ -328,7 +328,10 @@ namespace CodingGame.Defense.Editor
             { Add(panel, (BlockKind)Enum.Parse(typeof(BlockKind), step.pointerKey.Substring(TutorialKeys.PalettePrefix.Length))); return; }
             if (step.completionSignal == TutorialSignals.ProgramMatches)
             {
-                if (sim.WaveIndex == 0 && step.stepId == "C08") { Add(panel, BlockKind.NearestEnemy); return; }
+                // A step that points at a palette block finishes by adding it (1-1 C08 and 1-3 D02: slash()); otherwise
+                // the last variable still needs its name.
+                if (step.pointerKey != null && step.pointerKey.StartsWith(TutorialKeys.PalettePrefix))
+                { Add(panel, (BlockKind)Enum.Parse(typeof(BlockKind), step.pointerKey.Substring(TutorialKeys.PalettePrefix.Length))); return; }
                 var variable = panel.Program.AllBlocks().Last(b => b.BaseKind == BlockKind.Variable && b.Kind == BlockKind.Variable);
                 variable.SetText("enemy");
                 return;
@@ -340,7 +343,7 @@ namespace CodingGame.Defense.Editor
         {
             var sim = battle.Simulation; var first = TutorialWatcher.TeachingRobot(sim);
             var goal = Field<TMP_Text>(Field<DefensePlayerHUD>(battle, "playerHUD"), "guide");
-            Require(goal.transform.parent.gameObject.activeSelf && goal.text.Contains("새 전사를 배치하고 변수로 적을 찾아 공격"),
+            Require(goal.transform.parent.gameObject.activeSelf && goal.text.Contains("새 전사를 배치하고 반복으로 여러 번 베기"),
                 "1-2 free-play goal is not visible at the top of the HUD");
             Require(sim.StartError()?.Contains("새 전사") == true, "1-2 starts without placing the new robot");
             battle.StartBattle();
@@ -353,21 +356,21 @@ namespace CodingGame.Defense.Editor
             Require(sim.StartError()?.Contains("코드") == true, "1-2 starts with an uncoded new robot");
             battle.SelectRobot(second.Id); battle.DevelopSelected();
             var panel = battle.CodeEditor.Panel;
-            panel.LoadProgram("practice", TutorialAnswers.Parse("target = get_nearest_enemy()\nslash(target)"));
-            Require(panel.IsApplied, "Custom variable name did not compile");
+            panel.LoadProgram("practice", TutorialAnswers.Parse("for i in range(3):\n    slash()"));
+            Require(panel.IsApplied, "Custom loop count did not compile");
             var hint = Field<Button>(battle.CodeEditor, "hintButton");
             Require(hint.gameObject.activeSelf, "Optional hint unavailable"); hint.onClick.Invoke();
             Require(battle.CodeEditor.HintOpen, "Hint did not open"); hint.onClick.Invoke();
-            panel.LoadProgram("practice", new[] { new CodeBlock(BlockKind.Slash) });
+            panel.LoadProgram("practice", new[] { new CodeBlock(BlockKind.For) }); // no count
             Require(!panel.IsApplied, "Incomplete draft unexpectedly applied");
             battle.CodeEditor.Close(); Require(!battle.CodeEditor.IsOpen, "Incomplete draft cannot close in free play");
             battle.DevelopSelected();
             Require(!panel.IsApplied, "Incomplete draft not preserved on reopen");
-            panel.LoadProgram("practice", TutorialAnswers.Parse("target = get_nearest_enemy()\nslash(target)"));
+            panel.LoadProgram("practice", TutorialAnswers.Parse("for i in range(3):\n    slash()"));
             Require(panel.IsApplied && first.Program.Source == preserved, "Free practice changed the original robot");
             battle.CodeEditor.Close(); battle.StartBattle();
             Require(sim.Phase == BattlePhase.Running, "Free play cannot start battle");
-            Log("PASS free play: custom names, extra warrior, optional hint, close/reopen unfinished draft, original code retained, battle start");
+            Log("PASS free play: custom loop count, extra warrior, optional hint, close/reopen unfinished draft, original code retained, battle start");
         }
 
         static void FreePlayFour(DefenseBattle battle)
@@ -378,7 +381,7 @@ namespace CodingGame.Defense.Editor
             var learner = sim.Robots.OrderBy(r => r.Id).First(r => r.Program == null || !r.Program.Source.Contains("if "));
             battle.SelectRobot(learner.Id); battle.DevelopSelected();
             battle.CodeEditor.Panel.LoadProgram("condition_practice", TutorialAnswers.Parse(
-                "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= my_attack_range():\n    slash(enemy)"));
+                "for i in range(10):\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= my_attack_range():\n        slash()"));
             Require(battle.CodeEditor.Panel.IsApplied, "1-4 conditional code was not applied: " +
                 Field<TMP_Text>(battle.CodeEditor.Panel, "status").text);
             battle.CodeEditor.Close();
@@ -402,7 +405,7 @@ namespace CodingGame.Defense.Editor
             var second = sim.Robots.OrderBy(r => r.Id).Skip(1).First();
             var original = second.Program.CopyBlocks();
             sim.ApplyProgram(second.Id, "range_practice", TutorialAnswers.Parse(
-                "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nattack_range = my_attack_range()\nif enemy_distance <= attack_range:\n    slash(enemy)"));
+                "for i in range(10):\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    attack_range = my_attack_range()\n    if enemy_distance <= attack_range:\n        slash()"));
             Require(second.Program.Source.Contains("attack_range = my_attack_range()"),
                 "my_attack_range() could not be used with a variable and condition in 1-5");
             sim.ApplyProgram(second.Id, "condition_practice", original);

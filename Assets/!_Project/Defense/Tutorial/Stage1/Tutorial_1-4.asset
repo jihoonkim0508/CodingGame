@@ -129,8 +129,8 @@ MonoBehaviour:
     - textId: t2
       speaker: "\uB514\uBC84"
       text: "\uC9C0\uB09C\uBC88\uC5D0 `if`\uB97C \uB123\uC740 \uB85C\uBD07\uC774
-        \uD55C \uB300 \uC788\uC9C0?\n\uD55C \uB300 \uB354, \uAC70\uB9AC\uB97C \uC7AC\uC11C
-        \uBCA0\uB294 `if` \uBA85\uB839\uC744 \uB123\uC5B4 \uC918."
+        \uD55C \uB300 \uC788\uC9C0?\n\uD55C \uB300 \uB354, \uBC18\uBCF5 \uC548\uC5D0\uC11C
+        \uAC70\uB9AC\uB97C \uC7AC\uC11C \uBCA0\uB294 `if`\uB97C \uB123\uC5B4 \uC918."
       focusKeys: []
       highlightKeys: []
     - textId: t3

@@ -15,7 +15,7 @@ namespace CodingGame.StageMap
         static readonly string[] Titles = { "개발자의 작업실", "데이터 분기 구역", "자동화 생산 공장" };
         public static string Title(int number) => number >= 1 && number <= Titles.Length ? Titles[number - 1] : "";
         // What each island teaches, for its label on the map.
-        static readonly string[] Lessons = { "변수 · if 조건문", "for 반복 · if / elif / else", "반복 횟수 · while True" };
+        static readonly string[] Lessons = { "for 반복 · 변수 · if 조건문", "if / elif / else", "반복 횟수 · while True" };
         public static string Lesson(int number) => number >= 1 && number <= Lessons.Length ? Lessons[number - 1] : "";
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]

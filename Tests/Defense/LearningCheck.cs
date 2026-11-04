@@ -30,10 +30,11 @@ static class LearningCheck
         {
             var warrior=sim.Place(profiles[(int)RobotRole.Warrior],1,new Vector2(x,3),out _);
             Require(warrior!=null,"Warrior placed for the 1-2 and 1-4 start goals");
-            sim.ApplyProgram(warrior.Id,"guard",new[]{
+            // Inside a loop, as 1-1 teaches: 1-2 needs a slash in a for, 1-4 the distance if (anywhere in the program).
+            sim.ApplyProgram(warrior.Id,"guard",new[]{ new CodeBlock(BlockKind.For,"0",new CodeBlock(BlockKind.Number,"10")) { Body={
                 new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)),
                 new CodeBlock(BlockKind.DeclareVariable,"enemy_distance",new CodeBlock(BlockKind.Distance,"0",new CodeBlock(BlockKind.Variable,"enemy"),new CodeBlock(BlockKind.MyPos))),
-                new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,"<=",new CodeBlock(BlockKind.Variable,"enemy_distance"),new CodeBlock(BlockKind.MyAttackRange))) { Body={ new CodeBlock(BlockKind.Slash) } } });
+                new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,"<=",new CodeBlock(BlockKind.Variable,"enemy_distance"),new CodeBlock(BlockKind.MyAttackRange))) { Body={ new CodeBlock(BlockKind.Slash) } } } } });
         }
         sim.Options.unlockAll=false; sim.Options.inventoryLimit=true;
         RobotState tank=null;
