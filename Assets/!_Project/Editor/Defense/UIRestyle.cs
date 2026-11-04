@@ -87,6 +87,8 @@ namespace CodingGame.Defense.Editor
         // Headings in Jalnan, whatever they sit on.
         static readonly Regex DisplayText = new Regex("(^|/)(PlayerCanvas/Header/Brand|PlayerCanvas/Reward/Card/Title|RobotCodeEditor/Title|RobotCodeEditor/Subtitle|RobotCodeEditor/Library/Title|TutorialOverlay/DialoguePanel/SpeakerName|BlockHelpWindow/Card/Title|BlockHelpWindow/Card/Detail/Name)$");
         static readonly Regex InkText = new Regex("(^|/)PlayerCanvas/Header/Brand$");
+        // Body text in Pretendard Bold.
+        static readonly Regex BoldText = new Regex("(^|/)(TutorialOverlay/DialoguePanel/Dialogue|PlayerCanvas/Deck/(Notice|DeploymentCount))$");
         // Children of a card that sit outside it, on the editor's sky background.
         static readonly Regex OnNight = new Regex("(^|/)RobotCodeEditor/(Library/Title|Subtitle|Status)$");
 
@@ -95,25 +97,25 @@ namespace CodingGame.Defense.Editor
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new System.InvalidOperationException("Play 종료 후 적용하세요.");
             ImportSprites();
-            var display = DisplayFont();
+            var display = DisplayFont(); var bold = BoldFont();
             int changed = 0;
             foreach (var path in new[] { CodeEditor, Overlay })
             {
                 var root = PrefabUtility.LoadPrefabContents(path);
-                changed += Restyle(new[] { root }, display);
+                changed += Restyle(new[] { root }, display, bold);
                 if (path == Overlay) PortraitBadge(root);
                 PrefabUtility.SaveAsPrefabAsset(root, path);
                 PrefabUtility.UnloadPrefabContents(root);
             }
             var scene = EditorSceneManager.OpenScene(Scene, OpenSceneMode.Single);
-            changed += Restyle(scene.GetRootGameObjects(), display);
+            changed += Restyle(scene.GetRootGameObjects(), display, bold);
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.SaveAssets();
             Debug.Log($"[UIRestyle] {changed} images restyled");
         }
 
-        static int Restyle(IEnumerable<GameObject> roots, TMP_FontAsset display)
+        static int Restyle(IEnumerable<GameObject> roots, TMP_FontAsset display, TMP_FontAsset bold)
         {
             var styled = new Dictionary<Transform, Rule>();
             foreach (var root in roots)
@@ -163,6 +165,7 @@ namespace CodingGame.Defense.Editor
                         text.color = new Color(color.r, color.g, color.b, text.color.a);
                     }
                     if ((heading || rule != null && rule.Display) && display) { text.font = display; text.fontStyle &= ~FontStyles.Bold; }
+                    else if (BoldText.IsMatch(path) && bold) { text.font = bold; text.fontStyle &= ~FontStyles.Bold; }
                     EditorUtility.SetDirty(text);
                 }
             return styled.Count;
@@ -213,18 +216,23 @@ namespace CodingGame.Defense.Editor
         }
 
         // Jalnan 2 (in the project already) as a dynamic TMP font with Pretendard behind it for anything it lacks.
-        static TMP_FontAsset DisplayFont()
+        static TMP_FontAsset DisplayFont() => DynamicFont("Jalnan2TTF.ttf", "Jalnan2 SDF");
+        // Pretendard's Bold weight (PretendardBold.ttf, cut from PretendardVariable.ttf at wght 700 with fontTools'
+        // instancer), for 디버's lines and the deck hints, which read thin in the regular weight. TMP's own bold style
+        // would widen the spacing between Korean letters instead.
+        static TMP_FontAsset BoldFont() => DynamicFont("PretendardBold.ttf", "Pretendard Bold SDF");
+        static TMP_FontAsset DynamicFont(string file, string name)
         {
-            string path = Folder + "/Jalnan2 SDF.asset";
+            string path = $"{Folder}/{name}.asset";
             var asset = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(path);
             if (asset) return asset;
-            var font = AssetDatabase.LoadAssetAtPath<Font>("Assets/TextMesh Pro/Fonts/Jalnan2TTF.ttf");
-            if (!font) { Debug.LogWarning("[UIRestyle] Jalnan2TTF.ttf not found; headings keep their font"); return null; }
+            var font = AssetDatabase.LoadAssetAtPath<Font>("Assets/TextMesh Pro/Fonts/" + file);
+            if (!font) { Debug.LogWarning($"[UIRestyle] {file} not found; its texts keep their font"); return null; }
             asset = TMP_FontAsset.CreateFontAsset(font, 90, 9, GlyphRenderMode.SDFAA, 2048, 2048, AtlasPopulationMode.Dynamic, true);
-            asset.name = "Jalnan2 SDF";
+            asset.name = name;
             AssetDatabase.CreateAsset(asset, path);
-            asset.atlasTextures[0].name = "Jalnan2 SDF Atlas"; AssetDatabase.AddObjectToAsset(asset.atlasTextures[0], asset);
-            asset.material.name = "Jalnan2 SDF Material"; AssetDatabase.AddObjectToAsset(asset.material, asset);
+            asset.atlasTextures[0].name = name + " Atlas"; AssetDatabase.AddObjectToAsset(asset.atlasTextures[0], asset);
+            asset.material.name = name + " Material"; AssetDatabase.AddObjectToAsset(asset.material, asset);
             var body = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/TextMesh Pro/Fonts/PretendardVariable SDF.asset");
             if (body) asset.fallbackFontAssetTable = new List<TMP_FontAsset> { body };
             // Glyphs it picks up while playing in the Editor are dropped on build instead of piling up in the asset.
