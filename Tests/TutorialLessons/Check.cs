@@ -39,7 +39,7 @@ static class Check
         Require(robot.Program.Fault == null, robot.Program.Fault);
         return robot.AttacksThisWave;
     }
-    static int FirstSlashHits(bool guarded, float start = 8, float speed = 1.65f, float interval = .5f, float y = 2.2f, int count = 2)
+    static int FirstSlashHits(bool guarded, float start = 8, float speed = 1.65f, float interval = .5f, float y = 2.6f, int count = 2)
     {
         var spec = new RobotSpec { role = RobotRole.Warrior, range = 3.6f, interval = .8f, damage = 14 };
         var sim = new DefenseSimulation(new BattleSetup {
@@ -80,7 +80,7 @@ static class Check
             } }
         };
         var sim = new DefenseSimulation(setup);
-        var robot = sim.Place(spec, 1, new Vector2(0, 2.2f), out var error);
+        var robot = sim.Place(spec, 1, new Vector2(0, 2.6f), out var error);
         Require(robot != null, error);
         // 1-1's answer: the function runs once a wave, the loop swings five times.
         var loop = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "5"));
@@ -137,7 +137,7 @@ static class Check
         Require(!TutorialWatcher.Matches(new DefenseProgram("wrong", Program(">")), answer), "Wrong comparison must not finish the guided lesson");
         Require(FirstSlashHits(false) == FirstSlashHits(true),
             "Comparing against the robot's actual range should preserve the first attack timing");
-        Require(FirstSlashHits(true, 7, 1.2f, .5f, 1.8f, 2) > 0,
+        Require(FirstSlashHits(true, 7, 1.2f, .5f, 2.15f, 2) > 0,
             "The preview must still show an attack with my_attack_range()");
         IntroLeak();
         NearestTeachingRobot();

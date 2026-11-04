@@ -108,7 +108,7 @@ namespace CodingGame.Defense
                 Min = new Point(-50,-50), Max = new Point(50,50), BaseHealth = 100,
                 Routes = new[] { new Route(new[] {
                     battle.Simulation.Setup.Stage == 1 && battle.Simulation.WaveIndex == 2 ? new Point(7,0) : new Point(2,0),
-                    new Point(-20,0) }, 1.2f) },
+                    new Point(-20,0) }, .75f) }, // narrow, so the robot at 1.8 is clear of it under the placement rule
                 Waves = new[] { new[] { new SpawnGroup { Enemy = HarmlessEnemy(),
                     Count = battle.Simulation.Setup.Stage == 1 && battle.Simulation.WaveIndex == 2 ? 2 : 3,
                     Interval = battle.Simulation.Setup.Stage == 1 && battle.Simulation.WaveIndex == 2 ? .5f : 1.4f } } }

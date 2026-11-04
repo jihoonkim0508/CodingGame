@@ -31,21 +31,21 @@ static class MeleeCheck
         var sim = Make(new[] { line, back },
             new SpawnGroup { Enemy = new EnemySpec { health = 10000, speed = 1 }, Count = 1, Interval = 1, RouteIndex = 0 },
             new SpawnGroup { Enemy = new EnemySpec { health = 10000, speed = 1 }, Count = 1, Interval = 1, RouteIndex = 1 });
-        var bot = Warrior(sim, 0, 1.5f);
+        var bot = Warrior(sim, 0, 2f);
         sim.ApplyProgram(bot.Id, "once", new[] { Slash(), new CodeBlock(BlockKind.Wait, "0", N("100")) });
         sim.Start(); Tick(sim, 9);
         Assert(bot.Executions == 1 && sim.Enemies.Count(e => e.Health < 10000) == 2, "one slash() hits every enemy in range all the way around the robot");
 
         // Enemies five seconds apart: the second swing waits for the second enemy instead of cutting the air.
         sim = Make(new[] { line }, new SpawnGroup { Enemy = new EnemySpec { health = 20, speed = 1 }, Count = 2, Interval = 5 });
-        bot = Warrior(sim, 0, 1.5f);
+        bot = Warrior(sim, 0, 2f);
         sim.ApplyProgram(bot.Id, "twice", new[] { Loop(2, Slash()), new CodeBlock(BlockKind.Wait, "0", N("100")) });
         sim.Start(); Tick(sim, 20);
         Assert(sim.Kills == 2, "a swing in a loop waits until an enemy is in range");
 
         // The same with the swing behind an if: a turn whose condition is false waits instead of using up the loop.
         sim = Make(new[] { line }, new SpawnGroup { Enemy = new EnemySpec { health = 20, speed = 1 }, Count = 2, Interval = 5 });
-        bot = Warrior(sim, 0, 1.5f);
+        bot = Warrior(sim, 0, 2f);
         var find = new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy));
         var near = new CodeBlock(BlockKind.If, "0", new CodeBlock(BlockKind.Comparison, "<=",
             new CodeBlock(BlockKind.Distance, "0", new CodeBlock(BlockKind.Variable, "enemy"), new CodeBlock(BlockKind.MyPos)), new CodeBlock(BlockKind.MyAttackRange)));

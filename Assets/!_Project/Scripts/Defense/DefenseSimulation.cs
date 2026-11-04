@@ -301,6 +301,7 @@ namespace CodingGame.Defense
             if (Options.deploymentLimit && Robots.Count(bot => bot.Spec.role == role) >= Setup.RulesConfig.roleLimits[(int)role]) return role + " 설치개수 초과 · 최대 " + Setup.RulesConfig.roleLimits[(int)role] + "대";
             return null;
         }
+        const float PathClearance = .45f;
         public string PlacementError(RobotSpec spec, Vector2 point)
         {
             string error = DeploymentError(spec.role);
@@ -314,7 +315,9 @@ namespace CodingGame.Defense
             if (Robots.Any(bot => Vector2.Distance(bot.Position, point) < bot.Spec.radius + r + .12f)) return "다른 로봇과 겹칩니다.";
             if (Setup.Obstacles.Any(area => area.Overlaps(point, r))) return "장애물 또는 목표 시설과 겹칩니다.";
             bool pathFits = Setup.Routes.Any(route => route.Distance(point) + r <= route.HalfWidth);
-            bool touchesPath = Setup.Routes.Any(route => route.Distance(point) < route.HalfWidth + r);
+            // Others keep further off: the road is drawn past its walking half-width (border, round corners, about .3) and
+            // robot models are wider than their radius, so a body just outside the line still stood on the road (play test).
+            bool touchesPath = Setup.Routes.Any(route => route.Distance(point) < route.HalfWidth + r + PathClearance);
             if (spec.role == RobotRole.Tank && !pathFits) return "탱커는 몸체가 경로 안에 들어가도록 설치하세요.";
             if (spec.role != RobotRole.Tank && touchesPath) return "적 경로에는 탱커만 설치할 수 있습니다.";
             return null;
