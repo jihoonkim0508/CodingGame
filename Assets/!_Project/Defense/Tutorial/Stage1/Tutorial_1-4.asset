@@ -64,6 +64,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: A02
     kind: 0
     dialoguePosition: 0
@@ -115,6 +116,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: A03
     kind: 0
     dialoguePosition: 0
@@ -174,6 +176,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: A04
     kind: 0
     dialoguePosition: 0
@@ -225,6 +228,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: B01
     kind: 0
     dialoguePosition: 0
@@ -276,6 +280,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: B02
     kind: 0
     dialoguePosition: 0
@@ -321,6 +326,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: B03
     kind: 0
     dialoguePosition: 0
@@ -373,6 +379,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: B04
     kind: 1
     dialoguePosition: 1
@@ -419,3 +426,4 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0

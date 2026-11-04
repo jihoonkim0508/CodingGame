@@ -83,7 +83,7 @@ namespace CodingGame.Defense.Editor
             public string SkipIf;
             public string Demo;
             public bool Top;
-            public float Hold;
+            public float Hold, TriggerDelay;
             public bool DistanceExample, BaselineExample, RestartPreview;
         }
 
@@ -127,11 +127,11 @@ namespace CodingGame.Defense.Editor
             L("1-1.C11", Focus("Editor.Code.Line.1")),
             L("1-1.D06", Focus("Editor.Code.Line.1")),
             L("1-1.D08", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(
-                s => { s.Preview = true; s.Hold = 1.5f; }, Focus(Preview)))),
+                s => { s.Preview = true; s.Hold = 3; }, Focus(Preview)))),
             L("1-1.D09", With(Ed, Focus(Preview))), L("1-1.D10", s => s.CloseEditor = true),
             L("1-1.E01", Focus(TutorialKeys.NextWave)),
             L("1-1.E03", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => s.Top = true)),
-            L("1-1.E04", s => { s.Trigger = TutorialSignals.FirstKill; s.SlowBattle = true; }),
+            L("1-1.E04", s => { s.Trigger = TutorialSignals.FirstKill; s.TriggerDelay = .8f; s.SlowBattle = true; }),
             L("1-1.E04a", Click(TutorialKeys.Pause, s => { s.Pointer = TutorialKeys.Pause; s.SlowBattle = true; })),
             L("1-1.E04b", Click(TutorialKeys.Pause, s => { s.Pointer = TutorialKeys.Pause; s.HoldBattle = true; })),
             L("1-1.E04c", Click(TutorialKeys.Speed, s => s.Pointer = TutorialKeys.Speed)),
@@ -190,11 +190,12 @@ namespace CodingGame.Defense.Editor
                 // slash() needs nothing more, so putting it in the if finishes the lesson's code.
                 L("1-3.D02", With(EditSignal(TutorialSignals.ProgramMatches, Code13, "Editor.Palette.Slash", "Editor.Palette.Slash", "Editor.Code.Body.1/3"),
                     s => { s.AutoSlot = "Editor.Code.Body.1/3"; s.Demo = "Editor.Palette.Slash>Editor.Code.Body.1/3"; })),
-                L("1-3.D06", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(s => { s.Preview = true; s.RestartPreview = true; s.Hold = 2; }, Focus(Preview)))),
+                L("1-3.D06", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(s => { s.Preview = true; s.RestartPreview = true; s.Hold = 3; }, Focus(Preview)))),
                 L("1-3.D07", With(Ed, Focus("Editor.Code.Body.1/3"))),
                 L("1-3.E01", s => s.CloseEditor = true),
                 L("1-3.E02", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => s.Top = true)),
-                L("1-3.E03", With(Fight, s => s.Trigger = TutorialSignals.FirstAttack)),
+                // A beat after the first swing, so the player sees it before '베었다!' (play test: the line came too fast).
+                L("1-3.E03", With(Fight, s => { s.Trigger = TutorialSignals.FirstAttack; s.TriggerDelay = 1.2f; })),
                 L("1-3.E04", s => s.Trigger = TutorialSignals.WaveCleared), L("1-3.E05"),
                 L("1-3.E06", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
             };
@@ -258,7 +259,7 @@ namespace CodingGame.Defense.Editor
                     pointerKey = s.Pointer, autoSelectSlot = s.AutoSlot, hintCode = s.HintCode, pointerDelay = s.PointerDelay,
                     closeEditor = s.CloseEditor, clearProgram = s.ClearProgram, openEditor = s.OpenEditor, robotIndex = s.Robot,
                     prepareDistanceExample = s.DistanceExample, prepareBaselineExample = s.BaselineExample, restartPreview = s.RestartPreview,
-                    introEntrance = s.Intro, undimmed = s.Undimmed, alertCards = s.Cards, autoAdvance = s.Auto, dismissable = s.Dismissable, holdSeconds = s.Hold, dragDemo = s.Demo };
+                    introEntrance = s.Intro, undimmed = s.Undimmed, alertCards = s.Cards, autoAdvance = s.Auto, dismissable = s.Dismissable, holdSeconds = s.Hold, triggerDelay = s.TriggerDelay, dragDemo = s.Demo };
             }).ToArray();
             EditorUtility.SetDirty(sequence);
             return sequence;

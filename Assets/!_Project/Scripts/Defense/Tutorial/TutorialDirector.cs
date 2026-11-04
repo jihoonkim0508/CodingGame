@@ -25,6 +25,7 @@ namespace CodingGame.Defense
         readonly HashSet<string> completedStep = new HashSet<string>();
         // Signals seen during the current wave; Poll and ReportSuccess say each one once, trigger steps may come later.
         readonly HashSet<string> signals = new HashSet<string>();
+        readonly Dictionary<string, float> signalAt = new Dictionary<string, float>();
         int signalWave = -1;
         TutorialSequence active;
         DefenseSimulation session;
@@ -105,7 +106,7 @@ namespace CodingGame.Defense
                 Finish(); session = battle.Simulation; launched.Clear(); rejected.Clear(); duplicateEntries.Clear(); visitedText.Clear(); completedStep.Clear();
             }
             if (session == null) return;
-            if (session.WaveIndex != signalWave) { signals.Clear(); signalWave = session.WaveIndex; }
+            if (session.WaveIndex != signalWave) { signals.Clear(); signalAt.Clear(); signalWave = session.WaveIndex; }
             var step = Current;
             foreach (var signal in watcher.Poll(session, step != null && step.completionSignal == TutorialSignals.ProgramMatches ? step.expectedCode : null, step?.robotIndex ?? 0))
                 Signal(signal);
@@ -178,12 +179,14 @@ namespace CodingGame.Defense
         }
 
         static bool Same(string a, string b) => Regex.Replace(a ?? "", @"\s", "") == Regex.Replace(b ?? "", @"\s", "");
-        bool Triggered(TutorialStep step) => string.IsNullOrWhiteSpace(step.trigger) || signals.Contains(step.trigger);
+        bool Triggered(TutorialStep step) => string.IsNullOrWhiteSpace(step.trigger) ||
+            signals.Contains(step.trigger) && Time.unscaledTime - signalAt[step.trigger] >= step.triggerDelay;
+        void Remember(string signal) { if (signals.Add(signal)) signalAt[signal] = Time.unscaledTime; }
 
         // A signal from the game or the watcher: remember it for trigger steps and complete an action step waiting on it.
         void Signal(string signal)
         {
-            signals.Add(signal);
+            Remember(signal);
             var step = Current;
             if (step != null && step.kind == TutorialStepKind.ActionGuide && step.completionMode == TutorialCompletionMode.ExternalSignal &&
                 step.completionSignal == signal && viewedStep == progressStep && Triggered(step)) CompleteAction(step);
@@ -442,7 +445,7 @@ namespace CodingGame.Defense
         {
             if (!initialized) return;
             // Game signals count for trigger steps even when the bridge ignores the click itself.
-            if (signal != TutorialSignals.TargetClicked) signals.Add(signal);
+            if (signal != TutorialSignals.TargetClicked) Remember(signal);
             bridge.ReportSuccess(key, signal, target);
         }
         public void ReportWorldSuccess(Vector3 point,string signal) { if (initialized) bridge.ReportWorldSuccess(point,signal); }

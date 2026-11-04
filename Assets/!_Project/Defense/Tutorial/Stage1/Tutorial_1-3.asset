@@ -79,6 +79,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: A02
     kind: 0
     dialoguePosition: 0
@@ -131,6 +132,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: A03
     kind: 1
     dialoguePosition: 0
@@ -177,6 +179,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: A04
     kind: 1
     dialoguePosition: 0
@@ -222,6 +225,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: A05
     kind: 1
     dialoguePosition: 0
@@ -270,6 +274,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 1.5
+    triggerDelay: 0
   - stepId: B01
     kind: 0
     dialoguePosition: 0
@@ -332,6 +337,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: B02
     kind: 0
     dialoguePosition: 0
@@ -385,6 +391,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: B03
     kind: 0
     dialoguePosition: 0
@@ -439,6 +446,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: B04
     kind: 0
     dialoguePosition: 0
@@ -491,6 +499,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: B05
     kind: 0
     dialoguePosition: 0
@@ -542,6 +551,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: C01
     kind: 1
     dialoguePosition: 0
@@ -599,6 +609,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: C03
     kind: 1
     dialoguePosition: 0
@@ -656,6 +667,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: C04
     kind: 1
     dialoguePosition: 0
@@ -711,6 +723,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: C06
     kind: 1
     dialoguePosition: 0
@@ -760,6 +773,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: C07
     kind: 1
     dialoguePosition: 0
@@ -808,6 +822,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: C09
     kind: 1
     dialoguePosition: 0
@@ -857,6 +872,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: C09a
     kind: 0
     dialoguePosition: 0
@@ -902,6 +918,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: C10
     kind: 0
     dialoguePosition: 0
@@ -955,6 +972,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: D02
     kind: 1
     dialoguePosition: 0
@@ -1013,6 +1031,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: D06
     kind: 1
     dialoguePosition: 0
@@ -1065,7 +1084,8 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
-    holdSeconds: 2
+    holdSeconds: 3
+    triggerDelay: 0
   - stepId: D07
     kind: 0
     dialoguePosition: 0
@@ -1120,6 +1140,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: E01
     kind: 0
     dialoguePosition: 0
@@ -1164,6 +1185,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: E02
     kind: 1
     dialoguePosition: 1
@@ -1209,6 +1231,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: E03
     kind: 0
     dialoguePosition: 0
@@ -1254,6 +1277,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 1.2
   - stepId: E04
     kind: 0
     dialoguePosition: 0
@@ -1298,6 +1322,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: E05
     kind: 0
     dialoguePosition: 0
@@ -1349,6 +1374,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
   - stepId: E06
     kind: 1
     dialoguePosition: 1
@@ -1395,3 +1421,4 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
+    triggerDelay: 0
