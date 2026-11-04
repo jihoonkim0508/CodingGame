@@ -20,7 +20,7 @@ namespace CodingGame
         public static readonly Color[] BlockCategories = { Hex(0x2F7FD3), Hex(0x8A5CE6), Hex(0xD9650B), Hex(0x2F9A57) };
         // Rich-text colours that read on paper.
         public const string InkHex = "#262A3E", MutedHex = "#6B7085", CodeHex = "#1971C2", GoodHex = "#2B8A3E", WarnHex = "#E8590C",
-            DangerHex = "#E03131", GoldHex = "#C77700", KeywordHex = "#D6336C", CalmHex = "#0C8A73";
+            DangerHex = "#E03131", GoldHex = "#A35C00", KeywordHex = "#D6336C", CalmHex = "#0C8A73";
 
         public static Sprite Card => Load("ui_card");
         public static Sprite FlatCard => Load("ui_card_flat");
@@ -37,6 +37,27 @@ namespace CodingGame
         static TMP_FontAsset bold;
         // Pretendard Bold for body text that has to read clearly (Resources/UI/Pretendard Bold SDF, made by UIRestyle).
         public static TMP_FontAsset Bold => bold ? bold : bold = Resources.Load<TMP_FontAsset>("UI/Pretendard Bold SDF");
+        // Jalnan looks shared by every text that uses them (one material, not an instance per text; play feedback on text,
+        // Docs/References/비주얼_레퍼런스.md 2): Banner for big words over the world (wave call, banners, stars), a thick ink
+        // outline and a hard ink drop below; Label for small words over the world, a thin ink outline so white reads on the
+        // blue backdrop and the desk. Null before UIRestyle has made the Jalnan font.
+        public static Material Banner => banner ? banner : banner = Outlined(Display, .3f, true);
+        public static Material Label => label ? label : label = Outlined(Display, .24f, false);
+        static Material banner, label;
+        static Material Outlined(TMP_FontAsset font, float width, bool drop)
+        {
+            if (!font) return null;
+            var material = new Material(font.material) { name = font.name + (drop ? " Banner" : " Label") };
+            material.SetFloat(ShaderUtilities.ID_OutlineWidth, width); material.SetColor(ShaderUtilities.ID_OutlineColor, Ink);
+            material.EnableKeyword(ShaderUtilities.Keyword_Outline);
+            if (drop)
+            {
+                material.EnableKeyword(ShaderUtilities.Keyword_Underlay);
+                material.SetColor(ShaderUtilities.ID_UnderlayColor, Ink); material.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -.5f);
+                material.SetFloat(ShaderUtilities.ID_UnderlayDilate, .3f); material.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0);
+            }
+            return material;
+        }
 
         // Sliced sticker art on an Image; the corners shrink to fit small rects.
         public static Image Style(Image image, Sprite sprite, Color fill)

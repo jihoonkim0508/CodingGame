@@ -57,6 +57,8 @@ namespace CodingGame.Defense
             toastPosition = ((RectTransform)placementToast.transform).anchoredPosition;
             placementToast.alpha = 0;
             upcoming.text = "다음 웨이브";
+            // White on the blue backdrop: Jalnan with a thin ink outline (3.7:1 bare, below the 4.5:1 small text needs).
+            if (UITheme.Display && UITheme.Label) { upcoming.font = UITheme.Display; upcoming.fontSharedMaterial = UITheme.Label; upcoming.color = Color.white; }
             goalRect = (RectTransform)guide.transform.parent;
             goalRect.anchorMin = goalRect.anchorMax = new Vector2(.5f, 1);
             goalRect.sizeDelta = new Vector2(Mathf.Min(800, ((RectTransform)canvasRoot.transform).rect.width - 48), 56);
@@ -286,7 +288,7 @@ namespace CodingGame.Defense
                     // Regular weight: TMP's bold adds spacing per letter, which at this size pulls the Korean line apart.
                     waveCall.font = UITheme.Display ? UITheme.Display : rewardItems.font; waveCall.fontSize = 110; waveCall.characterSpacing = -2;
                     waveCall.alignment = TextAlignmentOptions.Center; waveCall.raycastTarget = false;
-                    waveCall.outlineWidth = .22f; waveCall.outlineColor = UITheme.Ink;
+                    if (UITheme.Banner) waveCall.fontSharedMaterial = UITheme.Banner;
                 }
                 bool last = sim.WaveIndex + 1 == sim.Setup.Waves.Length;
                 waveCall.text = (last ? "마지막 웨이브" : $"WAVE {sim.WaveIndex + 1}") + $"\n<size=36%>오류 코드 {sim.RemainingEnemies}마리 접근!</size>";
@@ -465,7 +467,7 @@ namespace CodingGame.Defense
                 banner.rectTransform.anchorMin = banner.rectTransform.anchorMax = new Vector2(.5f, .5f); banner.rectTransform.sizeDelta = new Vector2(1600, 220);
                 // The body font in regular weight: bold spreads Korean letters apart at this size (see the wave call).
                 banner.font = UITheme.Display ? UITheme.Display : rewardItems.font; banner.fontSize = 112; banner.characterSpacing = -2; banner.alignment = TextAlignmentOptions.Center; banner.raycastTarget = false;
-                banner.outlineWidth = .18f; banner.outlineColor = UITheme.Ink;
+                if (UITheme.Banner) banner.fontSharedMaterial = UITheme.Banner;
             }
             banner.transform.parent.SetAsLastSibling();
             banner.color = lost ? UITheme.Coral : UITheme.Sunny; banner.text = text.Replace("  /  ", "  ");
