@@ -11,7 +11,7 @@ namespace CodingGame.Defense
     {
         [SerializeField] RectTransform arrow;
         [SerializeField, Min(0)] float gap = 12, bob = 10, bobSpeed = 4;
-        const float DragSeconds = 1f, HoldSeconds = .5f, RestSeconds = .5f, GhostAlpha = .65f;
+        const float DragSeconds = 1f, HoldSeconds = .5f, RestSeconds = .5f, GhostAlpha = .65f, Lift = 14, GhostScale = 1.05f;
         Rect target;
         bool fromBelow;
         RectTransform ghostSource, ghost;
@@ -93,7 +93,8 @@ namespace CodingGame.Defense
             // The palette lays its items out a frame after a tab switch, so the size is followed rather than copied once.
             ghost.sizeDelta = ghostSource.rect.size;
             var size = ghost.rect.size * ghost.localScale.x;
-            Vector2 start = new Vector2(dragFrom.xMin + size.x * .5f, dragFrom.center.y), end = new Vector2(dragTo.xMin + size.x * .5f, dragTo.center.y);
+            // Lifted off the palette block, so the copy reads as picked up rather than as the block's text printed twice.
+            Vector2 start = new Vector2(dragFrom.xMin + size.x * .5f + Lift, dragFrom.center.y + Lift), end = new Vector2(dragTo.xMin + size.x * .5f, dragTo.center.y);
             ghost.anchoredPosition = Vector2.Lerp(start, end, move);
             ghostGroup.alpha = GhostAlpha * fade;
         }
@@ -104,7 +105,7 @@ namespace CodingGame.Defense
             var rect = DefenseViews.GraphicCopy(source, transform);
             rect.name = "Drag demo";
             rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f, .5f);
-            rect.localScale = Vector3.one * (source.lossyScale.x / transform.lossyScale.x);
+            rect.localScale = Vector3.one * (GhostScale * source.lossyScale.x / transform.lossyScale.x);
             ghostGroup = rect.GetComponent<CanvasGroup>();
             rect.gameObject.SetActive(true);
             return rect;

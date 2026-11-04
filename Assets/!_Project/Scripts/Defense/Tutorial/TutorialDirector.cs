@@ -198,8 +198,10 @@ namespace CodingGame.Defense
             Rect area = default; string chosen = null;
             bool show = viewedStep == progressStep && !completedStep.Contains(step.stepId) && !string.IsNullOrWhiteSpace(step.pointerKey) && !(Editor && Editor.HintOpen) &&
                 Time.unscaledTime - stepEntered >= step.pointerDelay && bridge.TryGetArea(step.pointerKey, out area, out chosen);
-            // Slots under or inside a code line are pointed at from below; from above the arrow would cover the line above.
-            if (show) pointer.Show(area, chosen.Contains(".After.") || chosen.Contains(".Arg.") || chosen.Contains(".Name.") || chosen.Contains(".Option.") || chosen.Contains(".Body")); else pointer.HideArrow();
+            // Slots under or inside a code line are pointed at from below; from above the arrow would cover the line above. So are
+            // palette blocks: from above the arrow sat on the category tabs and read as pointing at a tab (play test).
+            if (show) pointer.Show(area, chosen.Contains(".After.") || chosen.Contains(".Arg.") || chosen.Contains(".Name.") || chosen.Contains(".Option.") || chosen.Contains(".Body") ||
+                chosen.StartsWith(TutorialKeys.PalettePrefix, StringComparison.Ordinal)); else pointer.HideArrow();
             UpdateDragDemo(step);
             UpdateRoutePath();
             // Once the arrow moves to an empty argument slot, open the values tab, where the variables to drop in are.
