@@ -40,9 +40,11 @@ namespace CodingGame.Defense
             Hide();
         }
 
-        public void Show(TutorialSequence sequence, TutorialDialoguePosition position, string text, bool animate, string speakerName)
+        // voiceLine: the script line as written, to find its recording (GuideSpeech); null keeps quiet.
+        public void Show(TutorialSequence sequence, TutorialDialoguePosition position, string text, bool animate, string speakerName, string voiceLine = null)
         {
             StopTyping();
+            float spoken = Speak(voiceLine);
             Place(position);
             panel.SetActive(true);
             if (HasGuideFaces)
@@ -64,8 +66,26 @@ namespace CodingGame.Defense
             dialogue.ForceMeshUpdate();
             int characterCount = dialogue.textInfo.characterCount;
             dialogue.maxVisibleCharacters = animate ? 0 : int.MaxValue;
-            if (animate && characterCount > 0) typing = StartCoroutine(Type(sequence.typeSpeed, characterCount));
+            // With a voice the letters keep pace with it (finishing a little before it does) instead of racing ahead.
+            float speed = spoken > 0 ? Mathf.Clamp(characterCount / (spoken * .85f), 12, sequence.typeSpeed) : sequence.typeSpeed;
+            if (animate && characterCount > 0) typing = StartCoroutine(Type(speed, characterCount));
         }
+
+        // The player's voice switch (Esc menu), kept across sessions.
+        const string VoiceKey = "CodingGame.Voice.On";
+        public static bool VoiceOn { get => PlayerPrefs.GetInt(VoiceKey, 1) == 1; set { PlayerPrefs.SetInt(VoiceKey, value ? 1 : 0); PlayerPrefs.Save(); } }
+        AudioSource voice;
+        // Plays the line's recording, if it has one, and returns its length in seconds; anything already speaking stops.
+        public float Speak(string line)
+        {
+            if (!voice) { voice = gameObject.AddComponent<AudioSource>(); voice.playOnAwake = false; voice.spatialBlend = 0; }
+            voice.Stop();
+            var clip = VoiceOn && !string.IsNullOrEmpty(line) ? Resources.Load<AudioClip>("Voice/" + GuideSpeech.Key(line)) : null;
+            if (!clip) return 0;
+            voice.clip = clip; voice.Play();
+            return clip.length;
+        }
+        public void StopVoice() { if (voice) voice.Stop(); }
 
         bool HasGuideFaces => guideFaces.Length == Enum.GetValues(typeof(GuideMood)).Length && guideFaces.All(face => face);
         // A calm face blinks now and then; every face bobs while its line types out. Once a line is fully shown and a

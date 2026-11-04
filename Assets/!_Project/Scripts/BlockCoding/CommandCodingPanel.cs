@@ -55,6 +55,8 @@ namespace CodingGame.BlockCoding
         public Func<BlockKind, bool> IsAvailable { get; set; }
         public Func<BlockKind, int> Remaining { get; set; }
         public event Action<BlockKind, RectTransform, RectTransform> BlockDropped;
+        // "block-pick" when a drag takes a block, "block-delete" when blocks leave the program; the host plays a sound.
+        public event Action<string> Feedback;
         readonly HashSet<CommandDropZone> zones = new HashSet<CommandDropZone>();
         internal void RegisterZone(CommandDropZone zone) => zones.Add(zone);
         internal bool CanTake(CommandBlockView source) => !source.IsPalette || (Remaining?.Invoke(source.Kind) ?? int.MaxValue) > 0;
@@ -111,7 +113,7 @@ namespace CodingGame.BlockCoding
             variablePrefab.gameObject.SetActive(IsAvailable?.Invoke(BlockKind.Variable) ?? true);
             variablePalette.gameObject.SetActive(category == 2);
             for (int i = 0; i < categoryButtons.Length; i++)
-                categoryButtons[i].targetGraphic.color = i == category ? new Color(0.15f, 0.45f, 0.65f) : new Color(0.13f, 0.17f, 0.24f);
+                categoryButtons[i].targetGraphic.color = i == category ? new Color(0.34f, 0.72f, 1f) : new Color(0.95f, 0.91f, 0.83f); // sky when chosen, paper otherwise
         }
         internal void Select(CommandDropZone zone)
         {
@@ -291,7 +293,7 @@ namespace CodingGame.BlockCoding
         public void BeginDrag(CommandBlockView source, PointerEventData e)
         {
             if (Dragged || !CanTake(source)) return;
-            Dragged = source;
+            Dragged = source; Feedback?.Invoke("block-pick");
             dropAccepted = false;
             dragging = CommandDropZone.Moving(source);
             RectTransformUtility.ScreenPointToLocalPointInRectangle(program.Rect, e.pressPosition, e.pressEventCamera, out var programPress);
@@ -419,12 +421,12 @@ namespace CodingGame.BlockCoding
             if (!block || block.IsPalette || block.Owner == null) return;
             EndDrag();
             foreach (var member in block.Owner.Group(block)) RemoveSingle(member);
-            Changed();
+            Changed(); Feedback?.Invoke("block-delete");
         }
         public void DeleteOne(CommandBlockView block)
         {
             if (!block || block.IsPalette || block.Owner == null) return;
-            EndDrag(); RemoveSingle(block, true); Changed();
+            EndDrag(); RemoveSingle(block, true); Changed(); Feedback?.Invoke("block-delete");
         }
         void RemoveSingle(CommandBlockView block, bool reconnect = false)
         {

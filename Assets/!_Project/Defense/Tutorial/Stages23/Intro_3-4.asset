@@ -26,7 +26,7 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uC774\uBC88\uC5D4 \uC801\uC774 <b>\uB04A\uC784\uC5C6\uC774</b> \uC640.\n\uBA87 \uBC88 \uBC18\uBCF5\uD560\uC9C0 \uBAA8\uB97C \uB550 <b>while True</b>!"
+      text: "\uC774\uBC88\uC5D4 \uC624\uB958 \uCF54\uB4DC\uAC00 <b>\uB05D\uB3C4 \uC5C6\uC774</b> \uBC00\uB824\uC640!\n\uBA87 \uBC88 \uB418\uD480\uC774\uD560\uC9C0 \uBAA8\uB97C \uB550 <b>while True</b>\uC57C."
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -68,7 +68,7 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "<b>while True:</b> \uC548\uC758 \uBA85\uB839\uC740 \uC6E8\uC774\uBE0C\uAC00 \uB05D\uB0A0 \uB54C\uAE4C\uC9C0 \uACC4\uC18D \uB418\uD480\uC774\uB3FC."
+      text: "<b>while True:</b> \uC548\uC758 \uBA85\uB839\uC740\n\uC6E8\uC774\uBE0C\uAC00 \uB05D\uB0A0 \uB54C\uAE4C\uC9C0 \uC26C\uC9C0 \uC54A\uACE0 \uB418\uD480\uC774\uB3FC."
       focusKeys: []
       highlightKeys: []
     targetKeys: []

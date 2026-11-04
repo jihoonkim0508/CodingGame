@@ -36,6 +36,8 @@ namespace CodingGame.Defense
                 throw new InvalidOperationException("DefenseCodeEditor Inspector 참조를 연결하세요.");
             panel.ApplyToTarget = Apply;
             panel.BlockDropped += OnBlockDropped;
+            panel.BlockDropped += (kind, source, destination) => UISound.Play("block-drop");
+            panel.Feedback += kind => UISound.Play(kind);
             panel.IsAvailable = kind => editingSession == null || editingSession.Options.unlockAll || editingSession.Available(kind, editingId) > 0;
             panel.Remaining = kind => editingSession == null ? 0 : Math.Max(0, editingSession.Available(kind, editingId) - panel.Program.AllBlocks().Count(b => DefenseProgression.Canonical(b.Kind) == DefenseProgression.Canonical(kind)));
             closeButton.onClick.AddListener(() => Close());
@@ -56,7 +58,7 @@ namespace CodingGame.Defense
             foreach (int removed in drafts.Keys.Where(key => !sim.Robots.Exists(r => r.Id == key)).ToArray()) drafts.Remove(removed);
             title.text = "미리보기 · " + battle.RobotName(id);
             battle.BeginCodeView(robot);
-            editorRoot.SetActive(true);
+            editorRoot.SetActive(true); UISound.Play("open");
             if (drafts.TryGetValue(id, out var history)) panel.LoadHistory(history);
             else panel.LoadProgram(robot.Program?.Name ?? "robot_" + id, robot.Program?.CopyBlocks() ?? Array.Empty<CodeBlock>());
             panel.ShowCategory(1); panel.RefreshPalette();
@@ -80,7 +82,7 @@ namespace CodingGame.Defense
             bool wasOpen = IsOpen;
             if (IsOpen && HasCurrentSession && editingSession.Robots.Exists(r => r.Id == editingId))
                 drafts[editingId] = panel.History;
-            if (IsOpen) battle.EndCodeView();
+            if (IsOpen) { battle.EndCodeView(); UISound.Play("close"); }
             if (editorRoot) editorRoot.SetActive(false);
             editingId = 0; editingSession = null;
             if (resume && wasOpen) battle.ReportTutorialAction("Editor.Close", "TargetClicked", "EditorClosed");

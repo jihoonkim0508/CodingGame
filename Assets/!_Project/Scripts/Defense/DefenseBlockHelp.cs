@@ -64,7 +64,7 @@ namespace CodingGame.Defense
             example.text = entry?.example ?? "";
             stock.text = entry == null ? "" : "보유 " + Owned(entry) + "개 · 로봇에 배치한 블록 포함";
             foreach (var item in entries)
-                item.button.targetGraphic.color = item == entry ? new Color(.16f, .39f, .46f) : new Color(.10f, .15f, .20f);
+                item.button.targetGraphic.color = item == entry ? UITheme.Sky : UITheme.PaperDeep;
         }
         public void Close() { window.SetActive(false); battle.HelpOpen = false; }
         void Update() { if (IsOpen && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) Close(); }

@@ -77,7 +77,7 @@ namespace CodingGame.Defense
             shownCardCounts = Enumerable.Repeat(-1, enemyCards.Length).ToArray();
             upperRobotButtons = new[] { upgradeRobotButton, developRobotButton };
         }
-        static string Label(string name) => $"<color=#8FA3B5><size=82%>{name}</size></color> ";
+        static string Label(string name) => $"<color={UITheme.MutedHex}><size=82%>{name}</size></color> ";
         public void SetVisible(bool visible) => canvasRoot.SetActive(visible);
         public void ShowPlacementError(string reason)
         {
@@ -110,12 +110,12 @@ namespace CodingGame.Defense
             bool ended = sim.Phase == BattlePhase.Victory || sim.Phase == BattlePhase.Defeat;
             bool fighting = sim.Phase == BattlePhase.Running || sim.Phase == BattlePhase.Paused;
             // Dim labels, bright values; the phase in its own colour so preparing and fighting read apart at a glance.
-            string state = ended ? "<color=#8FA3B5>작전 종료</color>" : fighting ? "<color=#FF9F6B><b>전투 중</b></color>" : "<color=#5FE0C8><b>정비 중</b></color>";
+            string state = ended ? $"<color={UITheme.MutedHex}>작전 종료</color>" : fighting ? $"<color={UITheme.WarnHex}><b>전투 중</b></color>" : $"<color={UITheme.CalmHex}><b>정비 중</b></color>";
             string seconds = $"<b>{Math.Ceiling(sim.WaveRemaining):0}초</b>";
-            if (sim.FinalRush && !reward && !ended) seconds = $"<color=#FF8A7A>{seconds} · 끝나면 남은 적 돌진</color>";
+            if (sim.FinalRush && !reward && !ended) seconds = $"<color={UITheme.DangerHex}>{seconds} · 끝나면 남은 적 돌진</color>";
             counters.text = $"{state}      {Label("웨이브")}<b>{sim.WaveIndex + 1} / {sim.Setup.Waves.Length}</b>      {Label("남은 적")}<b>{(reward ? sim.LastSurvivors : sim.RemainingEnemies)}</b>" +
-                $"      {Label("시간")}{seconds}      {Label("코인")}<b><color=#FFD36B>{sim.Coins:N0}</color></b>";
-            brand.text = $"<b>{battle.Stage}-{sim.WaveIndex + 1}</b>  <size=72%><color=#CFE8FF>{StageMap.StageProgress.Title(battle.Stage)}</color></size>";
+                $"      {Label("시간")}{seconds}      {Label("코인")}<b><color={UITheme.GoldHex}>{sim.Coins:N0}</color></b>";
+            brand.text = $"<b>{battle.Stage}-{sim.WaveIndex + 1}</b>  <size=72%><color={UITheme.MutedHex}>{StageMap.StageProgress.Title(battle.Stage)}</color></size>";
             combatControls.SetActive(fighting);
             RefreshEnemyCards(sim, fighting);
             // Stage 1 goals come with its tutorial; later stages show the lesson's own goal line.
@@ -139,7 +139,7 @@ namespace CodingGame.Defense
             }
             notice.text = battle.StatusMessage;
             inventory.text = $"설치 {sim.Robots.Count} / {sim.Setup.RobotLimit}대  ·  버프형 최대 1대  ·  Esc 메뉴";
-            inventory.color = sim.Robots.Count >= sim.Setup.RobotLimit ? new Color(1, .45f, .4f) : new Color(.75f, .9f, .95f);
+            inventory.color = sim.Robots.Count >= sim.Setup.RobotLimit ? UITheme.Hex(0xE03131) : UITheme.Muted;
             startButton.interactable = ready;
             pauseButton.interactable = fighting;
             speedButton.interactable = fighting && battle.SpeedUnlocked;
@@ -284,13 +284,13 @@ namespace CodingGame.Defense
                     waveCall.rectTransform.anchorMin = waveCall.rectTransform.anchorMax = new Vector2(.5f, .5f);
                     waveCall.rectTransform.sizeDelta = new Vector2(1400, 260); waveCall.rectTransform.anchoredPosition = new Vector2(0, 110);
                     // Regular weight: TMP's bold adds spacing per letter, which at this size pulls the Korean line apart.
-                    waveCall.font = rewardItems.font; waveCall.fontSize = 110; waveCall.characterSpacing = -2;
+                    waveCall.font = UITheme.Display ? UITheme.Display : rewardItems.font; waveCall.fontSize = 110; waveCall.characterSpacing = -2;
                     waveCall.alignment = TextAlignmentOptions.Center; waveCall.raycastTarget = false;
-                    waveCall.outlineWidth = .22f; waveCall.outlineColor = new Color32(8, 14, 22, 255);
+                    waveCall.outlineWidth = .22f; waveCall.outlineColor = UITheme.Ink;
                 }
                 bool last = sim.WaveIndex + 1 == sim.Setup.Waves.Length;
                 waveCall.text = (last ? "마지막 웨이브" : $"WAVE {sim.WaveIndex + 1}") + $"\n<size=36%>오류 코드 {sim.RemainingEnemies}마리 접근!</size>";
-                waveCall.color = last ? new Color(1, .56f, .45f) : new Color(.37f, .9f, .8f);
+                waveCall.color = last ? UITheme.Coral : UITheme.Sunny;
                 waveCall.transform.SetAsLastSibling();
                 waveCallAt = Time.unscaledTime; battle.PlaySound("wave-start");
             }
@@ -334,7 +334,7 @@ namespace CodingGame.Defense
                 label.rectTransform.SetParent(floaterLayer, false); label.rectTransform.sizeDelta = new Vector2(200, 40);
                 label.font = rewardItems.font; label.fontStyle = FontStyles.Bold; label.alignment = TextAlignmentOptions.Center;
                 label.textWrappingMode = TextWrappingModes.NoWrap; label.raycastTarget = false;
-                label.outlineWidth = .32f; label.outlineColor = new Color32(10, 18, 28, 255);
+                label.outlineWidth = .32f; label.outlineColor = UITheme.Ink;
                 floaters.Add(floater = new Floater { label = label });
             }
             floater ??= floaters.OrderBy(f => f.born).First();
@@ -421,13 +421,13 @@ namespace CodingGame.Defense
                     var plate = new GameObject("Status tag", typeof(RectTransform), typeof(Image), typeof(HorizontalLayoutGroup), typeof(ContentSizeFitter));
                     var rect = (RectTransform)plate.transform; rect.SetParent(statusLayer, false);
                     rect.anchorMin = rect.anchorMax = canvas.pivot; rect.pivot = new Vector2(.5f, 0);
-                    var back = plate.GetComponent<Image>(); back.color = new Color32(0x0B, 0x16, 0x20, 0xD8); back.raycastTarget = false;
-                    var layout = plate.GetComponent<HorizontalLayoutGroup>(); layout.padding = new RectOffset(12, 12, 4, 4);
+                    var back = UITheme.Style(plate.GetComponent<Image>(), UITheme.Chip, UITheme.Paper); back.pixelsPerUnitMultiplier = 1.7f; back.raycastTarget = false;
+                    var layout = plate.GetComponent<HorizontalLayoutGroup>(); layout.padding = new RectOffset(16, 16, 6, 8);
                     layout.childControlWidth = layout.childControlHeight = true; layout.childForceExpandWidth = layout.childForceExpandHeight = false;
                     var fit = plate.GetComponent<ContentSizeFitter>(); fit.horizontalFit = fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
                     var made = new GameObject("Status", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
                     made.rectTransform.SetParent(rect, false);
-                    made.font = rewardItems.font; made.fontSize = 22; made.fontStyle = FontStyles.Bold; made.alignment = TextAlignmentOptions.Center;
+                    made.font = rewardItems.font; made.fontSize = 22; made.fontStyle = FontStyles.Bold; made.alignment = TextAlignmentOptions.Center; made.color = UITheme.Ink;
                     made.textWrappingMode = TextWrappingModes.NoWrap; made.raycastTarget = false;
                     statusLabels.Add(made);
                 }
@@ -458,16 +458,17 @@ namespace CodingGame.Defense
                 var strip = new GameObject("Result banner", typeof(RectTransform), typeof(Image), typeof(CanvasGroup)).GetComponent<RectTransform>();
                 strip.SetParent(canvasRoot.transform, false);
                 strip.anchorMin = new Vector2(0, .5f); strip.anchorMax = new Vector2(1, .5f); strip.sizeDelta = new Vector2(0, 200);
-                var shade = strip.GetComponent<Image>(); shade.color = new Color(0, 0, 0, .6f); shade.raycastTarget = false;
+                var shade = strip.GetComponent<Image>(); shade.color = new Color(UITheme.Night.r, UITheme.Night.g, UITheme.Night.b, .8f); shade.raycastTarget = false;
                 bannerGroup = strip.GetComponent<CanvasGroup>(); bannerGroup.blocksRaycasts = false; bannerGroup.interactable = false;
                 banner = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
                 banner.rectTransform.SetParent(strip, false);
                 banner.rectTransform.anchorMin = banner.rectTransform.anchorMax = new Vector2(.5f, .5f); banner.rectTransform.sizeDelta = new Vector2(1600, 220);
                 // The body font in regular weight: bold spreads Korean letters apart at this size (see the wave call).
-                banner.font = rewardItems.font; banner.fontSize = 112; banner.characterSpacing = -2; banner.alignment = TextAlignmentOptions.Center; banner.raycastTarget = false;
+                banner.font = UITheme.Display ? UITheme.Display : rewardItems.font; banner.fontSize = 112; banner.characterSpacing = -2; banner.alignment = TextAlignmentOptions.Center; banner.raycastTarget = false;
+                banner.outlineWidth = .18f; banner.outlineColor = UITheme.Ink;
             }
             banner.transform.parent.SetAsLastSibling();
-            banner.color = lost ? new Color(1, .35f, .35f) : rewardTitle.color; banner.text = text.Replace("  /  ", "  ");
+            banner.color = lost ? UITheme.Coral : UITheme.Sunny; banner.text = text.Replace("  /  ", "  ");
             resultGroup = rewardPanel.GetComponent<CanvasGroup>();
             if (!resultGroup) resultGroup = rewardPanel.AddComponent<CanvasGroup>();
             resultShown = Time.unscaledTime;
@@ -557,16 +558,17 @@ namespace CodingGame.Defense
                 guidePortrait.rectTransform.anchorMin = guidePortrait.rectTransform.anchorMax = new Vector2(.5f, 1); guidePortrait.rectTransform.pivot = new Vector2(.5f, 1);
                 guidePortrait.rectTransform.sizeDelta = new Vector2(150, 150); guidePortrait.rectTransform.anchoredPosition = Vector2.zero;
                 var bubble = new GameObject("Line", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
-                bubble.rectTransform.SetParent(guideCorner, false); bubble.color = CardBack; bubble.raycastTarget = false;
+                bubble.rectTransform.SetParent(guideCorner, false); bubble.raycastTarget = false;
                 bubble.rectTransform.anchorMin = new Vector2(0, 1); bubble.rectTransform.anchorMax = new Vector2(1, 1); bubble.rectTransform.pivot = new Vector2(.5f, 1);
                 bubble.rectTransform.sizeDelta = new Vector2(0, 150); bubble.rectTransform.anchoredPosition = new Vector2(0, -162);
-                guideLine = Text(bubble.transform, 24); guideLine.alignment = TextAlignmentOptions.Center; guideLine.color = Color.white;
+                UITheme.Style(bubble, UITheme.Card, UITheme.Paper);
+                guideLine = Text(bubble.transform, 24); guideLine.alignment = TextAlignmentOptions.Center; guideLine.color = UITheme.Ink;
                 guideLine.rectTransform.anchorMin = Vector2.zero; guideLine.rectTransform.anchorMax = Vector2.one;
                 guideLine.rectTransform.sizeDelta = new Vector2(-28, -20); guideLine.enableAutoSizing = true; guideLine.fontSizeMin = 17; guideLine.fontSizeMax = 24;
             }
             var (mood, line) = DefenseDebrief.GuideSays(sim);
             guidePortrait.sprite = guideFaces[(int)mood]; guidePortrait.enabled = guidePortrait.sprite;
-            guideLine.text = $"<color=#5FE0C8><b>디버</b></color>\n{line}";
+            guideLine.text = $"<color={UITheme.CalmHex}><b>디버</b></color>\n{line}";
         }
 
         // Under the big stars: a new record or the best one, and what the next star asks for.
@@ -574,7 +576,7 @@ namespace CodingGame.Defense
         {
             int earned = sim.StageStars, max = sim.Setup.BaseHealth;
             int best = battle.FromStageMap ? StageMap.StageProgress.BestStars(battle.Stage) : 0;
-            string line = earned > best && best > 0 ? "<color=#7FF0B0><b>새 기록!</b></color>   " : best > earned ? $"<color=#B9C7D2>최고 기록 {new string('★', best)}</color>   " : "";
+            string line = earned > best && best > 0 ? $"<color={UITheme.GoodHex}><b>새 기록!</b></color>   " : best > earned ? $"<color={UITheme.MutedHex}>최고 기록 {new string('★', best)}</color>   " : "";
             line += $"코어 {sim.BaseHealth} / {max} · " + (earned < 3 ? $"코어를 {DefenseSimulation.CoreForStars(earned + 1, max)} 이상 남기면 ★{earned + 1}" : "최고 등급!");
             return line;
         }
@@ -599,7 +601,7 @@ namespace CodingGame.Defense
                     star.rectTransform.anchorMin = star.rectTransform.anchorMax = new Vector2(.5f, .5f);
                     star.rectTransform.sizeDelta = new Vector2(120, 120); star.rectTransform.anchoredPosition = new Vector2((i - 1) * 124, 0);
                     star.font = rewardItems.font; star.fontSize = 104; star.alignment = TextAlignmentOptions.Center; star.raycastTarget = false;
-                    star.text = "★"; star.outlineWidth = .2f; star.outlineColor = new Color32(10, 18, 28, 255);
+                    star.text = "★"; star.outlineWidth = .2f; star.outlineColor = UITheme.Ink;
                     stars.Add(star);
                 }
             }
@@ -608,7 +610,7 @@ namespace CodingGame.Defense
             starsEarned = sim.StageStars; starsRung = 0;
             for (int i = 0; i < stars.Count; i++)
             {
-                stars[i].color = i < starsEarned ? new Color32(0xFF, 0xD3, 0x6B, 0xFF) : new Color32(0x3A, 0x47, 0x52, 0xFF);
+                stars[i].color = i < starsEarned ? UITheme.Sunny : UITheme.PaperDeep;
                 stars[i].rectTransform.localScale = Vector3.zero;
             }
             var margin = rewardItems.margin; margin.y = StarRowHeight + 8; rewardItems.margin = margin;
@@ -628,35 +630,46 @@ namespace CodingGame.Defense
             if (open && sim.Phase == BattlePhase.Running) { battle.TogglePause(); pausedByMenu = sim.Phase == BattlePhase.Paused; }
             else if (!open && pausedByMenu) { if (sim.Phase == BattlePhase.Paused) battle.TogglePause(); pausedByMenu = false; }
             soundLabel.text = DefenseSounds.Muted ? "소리 켜기" : "소리 끄기";
+            voiceLabel.text = VoiceLabel;
         }
+        TMP_Text voiceLabel;
+        static string VoiceLabel => TutorialDialogueView.VoiceOn ? "디버 목소리 끄기" : "디버 목소리 켜기";
         void BuildMenu()
         {
             var shade = new GameObject("Menu", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
             shade.SetParent(canvasRoot.transform, false); shade.anchorMin = Vector2.zero; shade.anchorMax = Vector2.one; shade.sizeDelta = Vector2.zero;
-            shade.GetComponent<Image>().color = new Color(0, 0, 0, .6f);
+            shade.GetComponent<Image>().color = new Color(UITheme.Night.r, UITheme.Night.g, UITheme.Night.b, .75f);
             menu = shade.gameObject;
+            // A paper card holding the title and buttons.
+            var card = new GameObject("Card", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
+            card.SetParent(shade, false); card.anchorMin = card.anchorMax = new Vector2(.5f, .5f); card.sizeDelta = new Vector2(500, 640); card.anchoredPosition = new Vector2(0, 0);
+            UITheme.Style(card.GetComponent<Image>(), UITheme.Card, UITheme.Paper);
             TMP_Text Text(string text, float y, float size)
             {
                 var label = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
-                label.rectTransform.SetParent(shade, false); label.rectTransform.sizeDelta = new Vector2(700, 60); label.rectTransform.anchoredPosition = new Vector2(0, y);
+                label.rectTransform.SetParent(card, false); label.rectTransform.sizeDelta = new Vector2(440, 60); label.rectTransform.anchoredPosition = new Vector2(0, y);
                 label.font = rewardTitle.font; label.fontSize = size; label.alignment = TextAlignmentOptions.Center; label.raycastTarget = false; label.text = text;
+                label.color = UITheme.Ink; label.textWrappingMode = TextWrappingModes.Normal;
                 return label;
             }
-            TMP_Text Add(string text, float y, Action click)
+            TMP_Text Add(string text, float y, Color fill, Action click)
             {
-                var button = Instantiate(claimButton, shade);
+                var button = Instantiate(claimButton, card);
                 var r = (RectTransform)button.transform;
-                r.anchorMin = r.anchorMax = new Vector2(.5f, .5f); r.sizeDelta = new Vector2(380, 64); r.anchoredPosition = new Vector2(0, y);
+                r.anchorMin = r.anchorMax = new Vector2(.5f, .5f); r.sizeDelta = new Vector2(380, 66); r.anchoredPosition = new Vector2(0, y);
                 button.interactable = true; button.onClick.AddListener(() => click());
-                var label = button.GetComponentInChildren<TMP_Text>(); label.text = text;
+                UITheme.Style((Image)button.targetGraphic, UITheme.Button, fill);
+                var label = button.GetComponentInChildren<TMP_Text>(); label.text = text; label.color = UITheme.Ink;
                 return label;
             }
-            Text("일시정지", 210, 44).fontStyle = FontStyles.Bold;
-            Add("계속하기", 120, ToggleMenu);
-            soundLabel = Add("소리 끄기", 40, () => { DefenseSounds.Muted = !DefenseSounds.Muted; soundLabel.text = DefenseSounds.Muted ? "소리 켜기" : "소리 끄기"; });
-            Add("이 스테이지 처음부터", -40, () => { ToggleMenu(); battle.Restart(); });
-            Add(battle.FromStageMap ? "스테이지 맵으로" : "타이틀로", -120, () => GameFlow.LoadScene(battle.FromStageMap ? GameFlow.StageScene : GameFlow.TitleScene));
-            Text("스테이지 도중에 나가면 이 스테이지 진행은 저장되지 않아요.", -200, 20).color = new Color(.72f, .8f, .86f);
+            var title = Text("일시정지", 250, 46);
+            if (UITheme.Display) title.font = UITheme.Display;
+            Add("계속하기", 160, UITheme.Sunny, ToggleMenu);
+            soundLabel = Add("소리 끄기", 80, UITheme.PaperDeep, () => { DefenseSounds.Muted = !DefenseSounds.Muted; soundLabel.text = DefenseSounds.Muted ? "소리 켜기" : "소리 끄기"; });
+            voiceLabel = Add(VoiceLabel, 0, UITheme.PaperDeep, () => { TutorialDialogueView.VoiceOn = !TutorialDialogueView.VoiceOn; voiceLabel.text = VoiceLabel; });
+            Add("이 스테이지 처음부터", -80, UITheme.PaperDeep, () => { ToggleMenu(); battle.Restart(); });
+            Add(battle.FromStageMap ? "스테이지 맵으로" : "타이틀로", -160, UITheme.Coral, () => GameFlow.LoadScene(battle.FromStageMap ? GameFlow.StageScene : GameFlow.TitleScene));
+            Text("스테이지 도중에 나가면 이 스테이지 진행은 저장되지 않아요.", -250, 19).color = UITheme.Muted;
             menu.SetActive(false); // built closed, so the first Esc opens it
         }
         // On a defeat that can go back one wave, the result button retries the wave and a copy beside it restarts the stage
@@ -694,8 +707,7 @@ namespace CodingGame.Defense
         readonly System.Collections.Generic.List<DebriefCard> debriefCards = new System.Collections.Generic.List<DebriefCard>();
         RectTransform debriefRoot;
         TextMeshProUGUI debriefHeadline;
-        static readonly Color CardBack = new Color32(0x13, 0x22, 0x2E, 0xFF), MvpColor = new Color32(0x7F, 0xF0, 0xB0, 0xFF),
-            AdviceColor = new Color32(0xFF, 0xD3, 0x6B, 0xFF), FineColor = new Color32(0x6F, 0xB8, 0xE8, 0xFF);
+        static readonly Color MvpColor = UITheme.Hex(0x40C057), AdviceColor = UITheme.Hex(0xFD7E14), FineColor = UITheme.Hex(0x4DABF7);
         void ShowDebrief(DefenseSimulation sim)
         {
             var (headline, lines) = DefenseDebrief.Summary(sim, bot => RobotLabel(sim, bot));
@@ -718,8 +730,8 @@ namespace CodingGame.Defense
                 var card = i < debriefCards.Count ? debriefCards[i] : MakeDebriefCard();
                 card.root.gameObject.SetActive(true);
                 card.stripe.color = line.Mvp ? MvpColor : line.Issue != DefenseDebrief.Issue.None ? AdviceColor : FineColor;
-                card.title.text = $"<b>{line.Name}</b>" + (line.Mvp ? $"  <color=#{ColorUtility.ToHtmlStringRGB(MvpColor)}><size=80%>MVP</size></color>" : "") +
-                    $"\n<color=#B9C7D2><size=88%>{line.Stats}</size></color>";
+                card.title.text = $"<b>{line.Name}</b>" + (line.Mvp ? $"  <color={UITheme.GoodHex}><size=80%>MVP</size></color>" : "") +
+                    $"\n<color={UITheme.MutedHex}><size=88%>{line.Stats}</size></color>";
                 card.share.rectTransform.anchorMax = new Vector2(line.Bot.DamageThisWave / most, 1);
                 card.share.color = card.stripe.color;
                 card.share.transform.parent.gameObject.SetActive(line.Bot.Spec.role != RobotRole.Buffer);
@@ -745,22 +757,22 @@ namespace CodingGame.Defense
         {
             var root = new GameObject("Robot card", typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup)).GetComponent<RectTransform>();
             root.SetParent(debriefRoot, false);
-            var back = root.GetComponent<Image>(); back.color = CardBack; back.raycastTarget = false;
+            var back = UITheme.Style(root.GetComponent<Image>(), UITheme.FlatCard, UITheme.PaperDeep); back.pixelsPerUnitMultiplier = 1.4f; back.raycastTarget = false;
             var column = root.GetComponent<VerticalLayoutGroup>(); column.padding = new RectOffset(22, 14, 10, 12); column.spacing = 6;
             column.childControlWidth = column.childControlHeight = true; column.childForceExpandWidth = true; column.childForceExpandHeight = false;
             var stripe = new GameObject("Stripe", typeof(RectTransform), typeof(Image), typeof(LayoutElement)).GetComponent<Image>();
             stripe.rectTransform.SetParent(root, false); stripe.GetComponent<LayoutElement>().ignoreLayout = true; stripe.raycastTarget = false;
             stripe.rectTransform.anchorMin = Vector2.zero; stripe.rectTransform.anchorMax = new Vector2(0, 1); stripe.rectTransform.pivot = new Vector2(0, .5f);
-            stripe.rectTransform.sizeDelta = new Vector2(6, 0); stripe.rectTransform.anchoredPosition = Vector2.zero;
+            stripe.rectTransform.sizeDelta = new Vector2(8, -16); stripe.rectTransform.anchoredPosition = new Vector2(8, 0); stripe.rectTransform.anchoredPosition = Vector2.zero;
             var title = Text(root, rewardItems.fontSize * .85f);
             // The share bar: a dark track with a fill whose width is this robot's damage over the top damage dealer's.
             var track = new GameObject("Share", typeof(RectTransform), typeof(Image), typeof(LayoutElement)).GetComponent<Image>();
-            track.rectTransform.SetParent(root, false); track.color = new Color32(0x0A, 0x14, 0x1C, 0xFF); track.raycastTarget = false;
+            track.rectTransform.SetParent(root, false); track.color = UITheme.Hex(0xDCCFB6); track.raycastTarget = false;
             track.GetComponent<LayoutElement>().preferredHeight = 6;
             var share = new GameObject("Fill", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
             share.rectTransform.SetParent(track.rectTransform, false); share.raycastTarget = false;
             share.rectTransform.anchorMin = Vector2.zero; share.rectTransform.anchorMax = Vector2.one; share.rectTransform.sizeDelta = Vector2.zero;
-            var advice = Text(root, rewardItems.fontSize * .76f); advice.color = new Color32(0xE6, 0xD9, 0xB0, 0xFF);
+            var advice = Text(root, rewardItems.fontSize * .76f); advice.color = UITheme.Hex(0x7A4E0C);
             var card = new DebriefCard { root = root, stripe = stripe, share = share, title = title, advice = advice };
             debriefCards.Add(card);
             return card;

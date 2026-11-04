@@ -4,8 +4,9 @@ using UnityEngine;
 
 namespace CodingGame.Defense
 {
-    // Short battle sounds made in code (the project has no sound files): what landed, what died, what got through and how
-    // the wave ended, so the player hears the result of their code as well as seeing it.
+    // Short battle sounds: what landed, what died, what got through and how the wave ended, so the player hears the result
+    // of their code as well as seeing it. Resources/Sounds/<kind> (Kenney's CC0 packs, see CREDITS.txt there) replaces the
+    // tone made in code for the same kind.
     public sealed class DefenseSounds : MonoBehaviour
     {
         const int Rate = 44100;
@@ -48,6 +49,7 @@ namespace CodingGame.Defense
             clips["star2"] = Notes("star2", .16f, .3f, 1568f, 2349.3f);
             clips["star3"] = Notes("star3", .16f, .34f, 2093f, 3136f);
             clips["wave-start"] = Sweep("wave-start", .35f, 220, 440, square: .6f, volume: .3f);
+            foreach (var clip in Resources.LoadAll<AudioClip>("Sounds")) clips[clip.name] = clip;
         }
 
         // Hits and kills can pile up in one frame; one of each kind per short gap is enough to hear.

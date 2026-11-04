@@ -280,6 +280,7 @@ namespace CodingGame.Defense
             if (!TutorialAllows("Battle.ClaimRewards") && !(Simulation.Phase == BattlePhase.Reward && TutorialAllows("Battle.ContinueCampaign"))) return;
             if (Simulation.Phase == BattlePhase.Reward) Trace($"wave-end kills={Simulation.Kills} leaks={Simulation.Leaks} survivors={Simulation.LastSurvivors} rewards={Simulation.PendingDrops.Count}");
             if (!Simulation.ClaimRewards()) return;
+            UISound.Play("reward"); UISound.Play("coin", .7f);
             selected = 0; rangeRing.Hide(); ClearCombatVisuals();
             ClearDrops(); Tell(Simulation.Phase == BattlePhase.Victory ? Simulation.CanAdvanceStage ?
                 "스테이지 완료 · 다음 스테이지로 진행하세요." : "모든 스테이지를 완료했습니다." :
@@ -439,10 +440,10 @@ namespace CodingGame.Defense
         {
             if (!TutorialAllows("Battle.Upgrade")) return;
             string error = Simulation.UpgradeError(selected);
-            if (error != null) { Tell(error); return; }
+            if (error != null) { Tell(error); UISound.Play("error"); return; }
             if (Simulation.UpgradeRobot(selected))
             {
-                Tell(RobotName(selected) + " · 레벨업 완료");
+                Tell(RobotName(selected) + " · 레벨업 완료"); UISound.Play("upgrade");
                 ReportTutorialAction("Battle.Upgrade", "TargetClicked", "RobotUpgraded");
             }
         }

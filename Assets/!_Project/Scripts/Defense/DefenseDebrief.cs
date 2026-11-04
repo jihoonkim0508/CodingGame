@@ -55,17 +55,17 @@ namespace CodingGame.Defense
         public static string LiveStatus(DefenseSimulation sim, RobotState bot)
         {
             if (bot.AutoExecute) return null;
-            if (bot.Program == null || bot.Program.IsEmpty) return sim.Setup.PlayerFlow ? Tag("FFD36B", "코드 없음") : null;
-            if (bot.Program.Fault != null) return Tag("FF7A7A", "코드 오류");
+            if (bot.Program == null || bot.Program.IsEmpty) return sim.Setup.PlayerFlow ? Tag("E8590C", "코드 없음") : null;
+            if (bot.Program.Fault != null) return Tag("E03131", "코드 오류");
             if (sim.Phase != BattlePhase.Running && sim.Phase != BattlePhase.Paused) return null;
             int limit = sim.FunctionRepeatLimit;
-            if (bot.Program.Completed(sim)) return Tag("FFD36B", limit > 1 ? $"함수 {limit}/{limit} 끝" : "함수 끝");
+            if (bot.Program.Completed(sim)) return Tag("E8590C", limit > 1 ? $"함수 {limit}/{limit} 끝" : "함수 끝");
             // The attack line is held by a target that is alive but out of range (it may never come; others can pass by).
-            if (bot.Program.WaitingForTarget) return Tag("CFE8FF", "사거리 밖 적 기다리는 중");
-            return limit > 1 && limit < 1000 ? Tag("CFE8FF", $"함수 {bot.Program.CompletedRuns}/{limit}") : null;
+            if (bot.Program.WaitingForTarget) return Tag("1971C2", "사거리 밖 적 기다리는 중");
+            return limit > 1 && limit < 1000 ? Tag("1971C2", $"함수 {bot.Program.CompletedRuns}/{limit}") : null;
         }
         // On the result screen: the robot's debrief name over its head, yellow when the debrief has advice for it.
-        public static string ResultTag(DefenseSimulation sim, RobotState bot, string name) => Tag(Diagnose(sim, bot) == Issue.None ? "CFE8FF" : "FFD36B", name);
+        public static string ResultTag(DefenseSimulation sim, RobotState bot, string name) => Tag(Diagnose(sim, bot) == Issue.None ? "1971C2" : "E8590C", name);
         // The HUD draws the dark backing as an Image: TMP's <mark> is an overlay on top of the letters.
         static string Tag(string color, string text) => $"<color=#{color}>{text}</color>";
 
@@ -87,9 +87,9 @@ namespace CodingGame.Defense
             int missed = Missed(sim);
             string tip = sim.Phase == BattlePhase.Defeat ? "다시 도전 팁" : sim.Phase == BattlePhase.Victory ? "다음 스테이지 팁" : "다음 웨이브 팁";
             // The headline carries the most serious robot's advice, so that robot's line below shows only its numbers.
-            string headline = worst.issue != Issue.None ? $"<color=#FFD36B><b>{tip}</b> · {name(worst.bot)}: {Advice(sim, worst.bot, worst.issue)}</color>"
-                : missed == 0 ? $"<color=#7FF0B0><b>완벽 방어!</b> MVP {name(mvp)} · 피해 {mvp.DamageThisWave:0}</color>"
-                : $"<color=#FFD36B><b>{tip}</b> · 모든 로봇이 일했지만 {missed}마리를 놓쳤어요. 로봇을 더 놓거나 길이 꺾이는 곳 가까이 옮겨 보세요.</color>";
+            string headline = worst.issue != Issue.None ? $"<color=#E8590C><b>{tip}</b> · {name(worst.bot)}: {Advice(sim, worst.bot, worst.issue)}</color>"
+                : missed == 0 ? $"<color=#2B8A3E><b>완벽 방어!</b> MVP {name(mvp)} · 피해 {mvp.DamageThisWave:0}</color>"
+                : $"<color=#E8590C><b>{tip}</b> · 모든 로봇이 일했지만 {missed}마리를 놓쳤어요. 로봇을 더 놓거나 길이 꺾이는 곳 가까이 옮겨 보세요.</color>";
             var lines = issues.Select(x => new Line
             {
                 Bot = x.bot, Issue = x.issue, Name = name(x.bot), Mvp = x.bot == mvp && mvp.DamageThisWave > 0,
@@ -104,15 +104,15 @@ namespace CodingGame.Defense
         {
             switch (sim.Phase)
             {
-                case BattlePhase.Defeat: return (GuideMood.Determined, "괜찮아, 코드만 고치면 돼!\n아래 팁부터 같이 보자.");
+                case BattlePhase.Defeat: return (GuideMood.Determined, "아직 안 끝났어!\n팁 보고 코드를 고쳐서 다시 가자.");
                 case BattlePhase.Victory:
                     int stars = sim.StageStars;
-                    return stars >= 3 ? (GuideMood.Happy, "별 세 개!\n코어를 완벽하게 지켰어!")
-                        : (GuideMood.Happy, $"스테이지 통과!\n코어를 {DefenseSimulation.CoreForStars(stars + 1, sim.Setup.BaseHealth)} 이상 남기면 별이 하나 더야.");
+                    return stars >= 3 ? (GuideMood.Happy, "별 세 개다!\n코어가 끄떡없이 버텼어!")
+                        : (GuideMood.Happy, $"이 구역은 지켜 냈어!\n코어를 {DefenseSimulation.CoreForStars(stars + 1, sim.Setup.BaseHealth)} 이상 지키면 별 하나 더!");
                 default:
-                    if (sim.LastWaveTimedOut && sim.LastSurvivors > 0) return (GuideMood.Worried, $"시간이 다 됐어.\n남은 {sim.LastSurvivors}마리는 다음 웨이브로 넘어가!");
-                    if (sim.WaveLeaks > 0) return (GuideMood.Worried, $"{sim.WaveLeaks}마리가 코어에 닿았어.\n팁을 보고 고쳐 보자!");
-                    return (GuideMood.Happy, "완벽해!\n한 마리도 안 놓쳤어!");
+                    if (sim.LastWaveTimedOut && sim.LastSurvivors > 0) return (GuideMood.Worried, $"앗, 시간이 다 됐어!\n남은 {sim.LastSurvivors}마리가 다음 웨이브에 합류해.");
+                    if (sim.WaveLeaks > 0) return (GuideMood.Worried, $"{sim.WaveLeaks}마리가 코어까지 갔어.\n팁 보고 길목을 다시 막자!");
+                    return (GuideMood.Happy, "완벽 방어!\n한 마리도 못 지나갔어!");
             }
         }
 
@@ -124,7 +124,7 @@ namespace CodingGame.Defense
             foreach (var line in lines)
             {
                 text.Append($"\n\n<b>{line.Name}</b>   {line.Stats}");
-                if (line.Advice != null) text.Append($"\n<color=#B9C7D2><size=90%>{line.Advice}</size></color>");
+                if (line.Advice != null) text.Append($"\n<color=#6B7085><size=90%>{line.Advice}</size></color>");
             }
             return text.ToString();
         }

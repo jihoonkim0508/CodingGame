@@ -63,10 +63,12 @@ namespace CodingGame.Defense.Editor
 
         sealed class Line { public string Speaker, Text; }
 
-        // One step per script line; options shape the step (see 튜토리얼_아키텍처.md §6).
+        // One step per script ID; options shape the step (see 튜토리얼_아키텍처.md §6). An ID written on several lines gives
+        // the step several texts in order; an action step waits on its last text, so that line carries the instruction.
         sealed class S
         {
-            public string Id, Text, Speaker;
+            public string Id;
+            public Line[] Lines;
             public TutorialStepKind Kind = TutorialStepKind.Dialogue;
             public string[] Targets = Array.Empty<string>(), Focus = Array.Empty<string>();
             public TutorialCompletionMode Mode;
@@ -85,11 +87,10 @@ namespace CodingGame.Defense.Editor
             public bool DistanceExample, BaselineExample, RestartPreview;
         }
 
-        static Dictionary<string, Line> lines;
+        static Dictionary<string, List<Line>> lines;
         static S L(string id, Action<S> configure = null)
         {
-            var line = lines[id];
-            var step = new S { Id = id.Substring(id.IndexOf('.') + 1), Text = line.Text, Speaker = line.Speaker };
+            var step = new S { Id = id.Substring(id.IndexOf('.') + 1), Lines = lines[id].ToArray() };
             configure?.Invoke(step);
             return step;
         }
@@ -226,9 +227,9 @@ namespace CodingGame.Defense.Editor
             "enemy.distance(get_my_pos())", ".distance(get_my_pos())", "enemy.distance()", "get_nearest_enemy()", "get_my_pos()", "my_attack_range()",
             "enemy_distance", "slash(enemy)", "slash()", ".hp", "enemy", "if", "<=" }.Select(Regex.Escape)) + @")(?![A-Za-z0-9_(`])");
 
-        static Dictionary<string, Line> ParseScript(string path)
+        static Dictionary<string, List<Line>> ParseScript(string path)
         {
-            var result = new Dictionary<string, Line>();
+            var result = new Dictionary<string, List<Line>>();
             var pattern = new Regex(@"^\[(\d-\d\.[A-Z]\d\d[a-z]?)\] (?:\((?:ui|UI)로 표시\)\s*)?(\S+) : (.*)$");
             foreach (var raw in File.ReadAllLines(path))
             {
@@ -236,7 +237,8 @@ namespace CodingGame.Defense.Editor
                 if (!m.Success) continue;
                 string text = m.Groups[3].Value.Trim().Replace("\\n", "\n").Replace(" \n ", "\n");
                 if (!text.Contains("`")) text = CodeNames.Replace(text, "`$1`");
-                result.Add(m.Groups[1].Value, new Line { Speaker = m.Groups[2].Value, Text = text });
+                if (!result.TryGetValue(m.Groups[1].Value, out var said)) result.Add(m.Groups[1].Value, said = new List<Line>());
+                said.Add(new Line { Speaker = m.Groups[2].Value, Text = text });
             }
             return result;
         }
@@ -254,7 +256,7 @@ namespace CodingGame.Defense.Editor
                 battle |= s.Battle || s.Trigger != null;
                 return new TutorialStep {
                     stepId = s.Id, kind = s.Kind, dialoguePosition = s.Top ? TutorialDialoguePosition.Top : TutorialDialoguePosition.Bottom,
-                    texts = new[] { new TutorialText { textId = "t1", speaker = s.Speaker, text = s.Text, focusKeys = s.Focus, highlightKeys = s.Highlight } },
+                    texts = s.Lines.Select((line, i) => new TutorialText { textId = "t" + (i + 1), speaker = line.Speaker, text = line.Text, focusKeys = s.Focus, highlightKeys = s.Highlight }).ToArray(),
                     targetKeys = s.Targets, dim = s.Dim, blockInput = true, outline = true,
                     completionMode = s.Kind == TutorialStepKind.ActionGuide ? s.Mode : TutorialCompletionMode.Unconfigured, completionSignal = s.Signal,
                     requiredSlotBlock = s.RequiredSlotBlock,

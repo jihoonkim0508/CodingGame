@@ -271,7 +271,7 @@ namespace CodingGame.Defense
             var s = selected.Spec;
             float nextMultiplier = (float)Math.Pow(selected.UpgradeFactor, selected.Level);
             // Dim names, bright values: the same reading pattern as the battle's top bar.
-            stats.text = $"<b>{battle.RobotName(selected.Id)}  Lv.{selected.Level}</b>" + (selected.IsMaxLevel ? "" : $" <color=#6FFFD2>→ Lv.{selected.Level + 1}</color>") +
+            stats.text = $"<b>{battle.RobotName(selected.Id)}  Lv.{selected.Level}</b>" + (selected.IsMaxLevel ? "" : $" <color={UITheme.GoodHex}>→ Lv.{selected.Level + 1}</color>") +
                 (s.role == RobotRole.Buffer ? "" : $"\n{Stat("공격력")}{UpgradeValue(selected.Damage,selected.Damage/selected.LevelMultiplier*nextMultiplier)}") +
                 $"\n{Stat("사거리")}<b>{selected.Range:0.#}</b>\n{Stat("공격 간격")}<b>{selected.Interval:0.##}초</b>\n" +
                 (selected.Health.HasValue ? (selected.IsMaxLevel ? $"{Stat("체력")}<b>{selected.Health:0}/{selected.MaxHealth:0}</b>" : $"{Stat("최대 체력")}{UpgradeValue(selected.MaxHealth,s.health*nextMultiplier)}") + $"\n{Stat("저지")}<b>{s.blockCapacity}마리</b>" : $"{Stat("체력")}공격받지 않음") +
@@ -279,11 +279,11 @@ namespace CodingGame.Defense
                 s.role == RobotRole.Buffer ? $"\n{Stat("버프 피해")}{UpgradeValue(1+(s.buffDamage-1)*selected.LevelMultiplier,1+(s.buffDamage-1)*nextMultiplier)}배" +
                     $"\n{Stat("버프 사거리")}{UpgradeValue(1+(s.buffRange-1)*selected.LevelMultiplier,1+(s.buffRange-1)*nextMultiplier)}배" +
                     $"\n{Stat("버프 간격")}{UpgradeValue(Math.Max(.01f,1-(1-s.buffInterval)*selected.LevelMultiplier),Math.Max(.01f,1-(1-s.buffInterval)*nextMultiplier))}배" : "");
-            coinLabel.text = $"<color=#8FA3B5>코인</color>  <b><color=#FFD36B>{battle.Simulation.Coins:N0}</color></b>";
+            coinLabel.text = $"<color={UITheme.MutedHex}>코인</color>  <b><color={UITheme.GoldHex}>{battle.Simulation.Coins:N0}</color></b>";
         }
-        static string Stat(string name) => $"<color=#8FA3B5>{name}</color>  ";
+        static string Stat(string name) => $"<color={UITheme.MutedHex}>{name}</color>  ";
         string UpgradeValue(float current, float upgraded) => selected.IsMaxLevel || Mathf.Approximately(current, upgraded)
-            ? $"<b>{current:0.#}</b>" : $"<b>{current:0.#}</b> <color=#6FFFD2>→ {upgraded:0.#}</color>";
+            ? $"<b>{current:0.#}</b>" : $"<b>{current:0.#}</b> <color={UITheme.GoodHex}>→ {upgraded:0.#}</color>";
         public void Close()
         {
             selected = null; HidePreview();

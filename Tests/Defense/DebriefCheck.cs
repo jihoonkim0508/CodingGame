@@ -47,8 +47,8 @@ static class DebriefCheck
         Assert(cards.Length == 4 && cards.Single(c => c.Mvp).Bot == worker &&
             cards.Single(c => c.Advice == null && c.Issue != DefenseDebrief.Issue.None).Bot == empty,
             "cards: the top damage dealer is MVP, the headline robot's card carries no advice");
-        Assert(DefenseDebrief.ResultTag(sim, empty, "슈터").Contains("FFD36B") && DefenseDebrief.ResultTag(sim, empty, "슈터").Contains("슈터") &&
-            DefenseDebrief.ResultTag(sim, worker, "전사형 1").Contains("CFE8FF"), "result tags name the robot, yellow when it has advice");
+        Assert(DefenseDebrief.ResultTag(sim, empty, "슈터").Contains("E8590C") && DefenseDebrief.ResultTag(sim, empty, "슈터").Contains("슈터") &&
+            DefenseDebrief.ResultTag(sim, worker, "전사형 1").Contains("1971C2"), "result tags name the robot, yellow when it has advice");
 
         var tough = Sim(1000, 1);
         var tired = Bot(tough, RobotRole.Warrior, -8, 2, Slash());

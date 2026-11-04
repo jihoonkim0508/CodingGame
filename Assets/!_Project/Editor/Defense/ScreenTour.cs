@@ -105,7 +105,10 @@ namespace CodingGame.Defense.Editor
                     if (coding && !lesson.CodeEditor.IsOpen && lesson.Simulation.Robots.Count > 0)
                         lesson.CodeEditor.Open(lesson.Simulation.Robots.OrderBy(r => r.Id).First().Id);
                     else if (!coding && lesson.CodeEditor.IsOpen) lesson.CodeEditor.Close(false);
-                    yield return Seconds(1.7); // long lines are still typing at one second
+                    yield return Seconds(1.7);
+                    // The letters keep pace with 디버's voice, so a long line is still typing: show it whole.
+                    var talk = Object.FindFirstObjectByType<TutorialDialogueView>(); if (talk) talk.FinishTyping();
+                    yield return Seconds(.1);
                     yield return Shot("1-1_" + steps[i].Split(' ')[0]);
                 }
             }
@@ -114,7 +117,9 @@ namespace CodingGame.Defense.Editor
             DevTest.PlayDefense(2, 1, true, new DefenseTestOptions());
             yield return Until(() => DevTest.Ready);
             yield return Seconds(2); yield return Shot("2-1_intro_banner");
-            yield return Seconds(4); yield return Shot("2-1_intro");
+            yield return Seconds(4);
+            var intro = Object.FindFirstObjectByType<TutorialDialogueView>(); if (intro) intro.FinishTyping();
+            yield return Seconds(.1); yield return Shot("2-1_intro");
 
             DevTest.PlayDefense(2, 1, true, Sandbox);
             yield return Until(() => DevTest.Ready);

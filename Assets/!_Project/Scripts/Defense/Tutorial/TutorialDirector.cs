@@ -330,8 +330,8 @@ namespace CodingGame.Defense
 
         string TextKey(TutorialStep step, TutorialText text) => active.sequenceId + "/" + step.stepId + "/" + text.textId;
         // Backticked code names in the script show in the code colour; the concepts being taught stand out in bold yellow.
-        static string Code(string text) => Regex.Replace(Regex.Replace(text ?? "", "`([^`]+)`", "<color=#6FFFD2>$1</color>"),
-            "(변수|조건문|조건식|반복문|점\\(\\.\\))", "<b><color=#FFD84D>$1</color></b>");
+        static string Code(string text) => Regex.Replace(Regex.Replace(text ?? "", "`([^`]+)`", $"<color={UITheme.CodeHex}><b>$1</b></color>"),
+            "(변수|조건문|조건식|반복문|점\\(\\.\\))", $"<b><color={UITheme.KeywordHex}>$1</color></b>");
 
         void ShowText(bool firstVisit)
         {
@@ -348,13 +348,15 @@ namespace CodingGame.Defense
             bridge.SetFocus(focus);
             highlight = text.highlightKeys ?? Array.Empty<string>(); focused = focus;
             bool system = IsAlert(text);
+            // Spoken when it first appears or when the player pages back to it, not when a line only repeats.
+            string voice = animate || !firstVisit ? text.text : null;
             if (system)
             {
-                view.Hide(); alert.Show(text.text, step.alertCards); bannerUp = true;
+                view.Hide(); alert.Show(text.text, step.alertCards); bannerUp = true; view.Speak(voice);
                 return;
             }
             bannerUp = false;
-            view.Show(active, step.dialoguePosition, Code(text.text), animate, text.speaker);
+            view.Show(active, step.dialoguePosition, Code(text.text), animate, text.speaker, voice);
             view.SetDebugId(active.sequenceId + " " + step.stepId);
             // Lines that only explain (no action, nothing to look at) sit in the middle while preparing; battle and
             // reward screens, the code editor and a selected robot's range circle (1-1 B05 "이 원") keep the bottom.

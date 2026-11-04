@@ -55,6 +55,7 @@ MonoBehaviour:
     - stage: 1
       wave: 1
       topic: "\uBCC0\uC218\uC640 \uAC8C\uC784 \uD50C\uB808\uC774 \uBC29\uBC95 \uC18C\uAC1C"
+      goal: 
       robots:
       - role: 1
         count: 1
@@ -73,6 +74,7 @@ MonoBehaviour:
     - stage: 1
       wave: 2
       topic: "\uBCC0\uC218 \uC790\uC720 \uD50C\uB808\uC774"
+      goal: 
       robots:
       - role: 1
         count: 1
@@ -90,6 +92,7 @@ MonoBehaviour:
       wave: 3
       topic: "\uC870\uAC74: \uB0B4 \uACF5\uACA9 \uC0AC\uAC70\uB9AC \uC548\uC774\uBA74
         \uBCA0\uAE30"
+      goal: 
       robots: []
       blocks:
       - kind: 14
@@ -110,6 +113,7 @@ MonoBehaviour:
     - stage: 1
       wave: 4
       topic: "\uC870\uAC74\uBB38 \uD65C\uC6A9 \uC790\uC720 \uD50C\uB808\uC774"
+      goal: 
       robots:
       - role: 1
         count: 1
@@ -138,6 +142,7 @@ MonoBehaviour:
     - stage: 1
       wave: 5
       topic: "\uBCC0\uC218\uC640 \uC870\uAC74\uBB38: \uBCF4\uC2A4 \uC885\uD569 \uC2E4\uC2B5"
+      goal: 
       robots: []
       blocks:
       - kind: 14
@@ -164,7 +169,8 @@ MonoBehaviour:
     - stage: 2
       wave: 1
       topic: "\uBC18\uBCF5 \uD574\uAE08: for\uC640 \uBC18\uBCF5 \uD69F\uC218"
-      goal: "\uD568\uC218\uB294 \uC774\uC81C \uC6E8\uC774\uBE0C\uC5D0 \uD55C \uBC88\uB9CC \u00B7 for \uC548\uC5D0\uC11C \uC801 \uCC3E\uACE0 \uACF5\uACA9\uD558\uAE30"
+      goal: "\uD568\uC218\uB294 \uC774\uC81C \uC6E8\uC774\uBE0C\uC5D0 \uD55C \uBC88\uB9CC
+        \xB7 for \uC548\uC5D0\uC11C \uC801 \uCC3E\uACE0 \uACF5\uACA9\uD558\uAE30"
       robots:
       - role: 5
         count: 1
@@ -199,7 +205,8 @@ MonoBehaviour:
     - stage: 2
       wave: 2
       topic: "\uAC70\uB9AC \uAE30\uC900\uAC12 \uC870\uC815"
-      goal: "\uAC00\uAE4C\uC6B8\uC218\uB85D \uC0AC\uACA9\uC774 \uC138\uC694 \u00B7 \uAC70\uB9AC \uAE30\uC900\uAC12\uC73C\uB85C \uACF5\uACA9 \uC2DC\uC810 \uC815\uD558\uAE30"
+      goal: "\uAC00\uAE4C\uC6B8\uC218\uB85D \uC0AC\uACA9\uC774 \uC138\uC694 \xB7
+        \uAC70\uB9AC \uAE30\uC900\uAC12\uC73C\uB85C \uACF5\uACA9 \uC2DC\uC810 \uC815\uD558\uAE30"
       robots: []
       blocks: []
       rewards:
@@ -208,7 +215,8 @@ MonoBehaviour:
     - stage: 2
       wave: 3
       topic: "\uAC70\uB9AC \uC870\uAC74\uACFC \uAC10\uC18D"
-      goal: "\uBE60\uB978 \uC18D\uB3C4\uBCD1 \uB4F1\uC7A5 \u00B7 \uAC00\uAE4C\uC774 \uC624\uBA74 slow()\uB85C \uB2A6\uCD94\uACE0 \uACF5\uACA9\uD558\uAE30"
+      goal: "\uBE60\uB978 \uC18D\uB3C4\uBCD1 \uB4F1\uC7A5 \xB7 \uAC00\uAE4C\uC774
+        \uC624\uBA74 slow()\uB85C \uB2A6\uCD94\uACE0 \uACF5\uACA9\uD558\uAE30"
       robots: []
       blocks: []
       rewards:
@@ -217,7 +225,8 @@ MonoBehaviour:
     - stage: 2
       wave: 4
       topic: "if / elif / else \uBD84\uAE30"
-      goal: "\uD0F1\uCEE4\uBCD1\uACFC \uC18D\uB3C4\uBCD1\uC774 \uC11E\uC5EC \uC640\uC694 \u00B7 if / elif / else\uB85C \uB098\uB220 \uB300\uC751\uD558\uAE30"
+      goal: "\uD0F1\uCEE4\uBCD1\uACFC \uC18D\uB3C4\uBCD1\uC774 \uC11E\uC5EC \uC640\uC694
+        \xB7 if / elif / else\uB85C \uB098\uB220 \uB300\uC751\uD558\uAE30"
       robots:
       - role: 0
         count: 1
@@ -238,7 +247,8 @@ MonoBehaviour:
     - stage: 2
       wave: 5
       topic: "\uAC70\uB9AC \uC870\uAC74\uACFC \uBD84\uAE30 \uC885\uD569"
-      goal: "\uAC70\uB9AC \uC870\uAC74\uACFC \uBD84\uAE30\uB97C \uBAA8\uB450 \uC368\uC11C \uB9C8\uC9C0\uB9C9 \uC6E8\uC774\uBE0C \uB9C9\uAE30"
+      goal: "\uAC70\uB9AC \uC870\uAC74\uACFC \uBD84\uAE30\uB97C \uBAA8\uB450 \uC368\uC11C
+        \uB9C8\uC9C0\uB9C9 \uC6E8\uC774\uBE0C \uB9C9\uAE30"
       robots: []
       blocks: []
       rewards:
@@ -247,7 +257,8 @@ MonoBehaviour:
     - stage: 3
       wave: 1
       topic: "for\uB85C \uC815\uD574\uC9C4 \uD69F\uC218 \uBC18\uBCF5"
-      goal: "\uC801\uC774 \uBB49\uCCD0 \uC640\uC694 \u00B7 \uD0F1\uCEE4\uB85C \uAE38\uC744 \uB9C9\uACE0 boom()\uC73C\uB85C \uD55C\uAEBC\uBC88\uC5D0"
+      goal: "\uC801\uC774 \uBB49\uCCD0 \uC640\uC694 \xB7 \uD0F1\uCEE4\uB85C \uAE38\uC744
+        \uB9C9\uACE0 boom()\uC73C\uB85C \uD55C\uAEBC\uBC88\uC5D0"
       robots:
       - role: 3
         count: 1
@@ -272,7 +283,8 @@ MonoBehaviour:
     - stage: 3
       wave: 2
       topic: "\uBC18\uBCF5 \uD69F\uC218 \uBCC0\uACBD"
-      goal: "\uC801\uC774 \uB450 \uBC88\uC5D0 \uB098\uB220 \uC640\uC694 \u00B7 range() \uD69F\uC218\uB97C \uB298\uB824 \uB05D\uAE4C\uC9C0 \uACF5\uACA9"
+      goal: "\uC801\uC774 \uB450 \uBC88\uC5D0 \uB098\uB220 \uC640\uC694 \xB7 range()
+        \uD69F\uC218\uB97C \uB298\uB824 \uB05D\uAE4C\uC9C0 \uACF5\uACA9"
       robots: []
       blocks: []
       rewards:
@@ -281,7 +293,8 @@ MonoBehaviour:
     - stage: 3
       wave: 3
       topic: "\uBC18\uBCF5\uACFC \uACF5\uACA9 \uD6A8\uC728"
-      goal: "\uD0F1\uCEE4\uBCD1 \uB4A4\uB85C \uC801\uC774 \uC904\uC9C0\uC5B4 \uC640\uC694 \u00B7 \uBC18\uBCF5 \uD55C \uBC88\uC5D0 \uB354 \uB9CE\uC774 \uB9DE\uD788\uAE30"
+      goal: "\uD0F1\uCEE4\uBCD1 \uB4A4\uB85C \uC801\uC774 \uC904\uC9C0\uC5B4 \uC640\uC694
+        \xB7 \uBC18\uBCF5 \uD55C \uBC88\uC5D0 \uB354 \uB9CE\uC774 \uB9DE\uD788\uAE30"
       robots: []
       blocks: []
       rewards:
@@ -290,7 +303,8 @@ MonoBehaviour:
     - stage: 3
       wave: 4
       topic: "while\uACFC for\uC758 \uCC28\uC774"
-      goal: "\uC801\uC774 \uB04A\uC784\uC5C6\uC774 \uC640\uC694 \u00B7 \uD69F\uC218\uB97C \uBAA8\uB974\uBA74 while True\uB85C \uACC4\uC18D \uACF5\uACA9"
+      goal: "\uC801\uC774 \uB04A\uC784\uC5C6\uC774 \uC640\uC694 \xB7 \uD69F\uC218\uB97C
+        \uBAA8\uB974\uBA74 while True\uB85C \uACC4\uC18D \uACF5\uACA9"
       robots: []
       blocks:
       - kind: 2
@@ -305,7 +319,8 @@ MonoBehaviour:
     - stage: 3
       wave: 5
       topic: "\uBC18\uBCF5\uBB38 \uC120\uD0DD\uACFC \uC751\uC6A9"
-      goal: "\uB9C8\uC9C0\uB9C9 \uC6E8\uC774\uBE0C \u00B7 \uC54C\uB9DE\uC740 \uBC18\uBCF5\uBB38\uC744 \uACE8\uB77C \uBAA8\uB4E0 \uC801 \uB9C9\uAE30"
+      goal: "\uB9C8\uC9C0\uB9C9 \uC6E8\uC774\uBE0C \xB7 \uC54C\uB9DE\uC740 \uBC18\uBCF5\uBB38\uC744
+        \uACE8\uB77C \uBAA8\uB4E0 \uC801 \uB9C9\uAE30"
       robots: []
       blocks: []
       rewards:

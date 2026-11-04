@@ -195,5 +195,6 @@ static class Check
         DebriefCheck.Run();
         RetryCheck.Run();
         GuideMoodCheck.Run();
+        GuideSpeechCheck.Run();
     }
 }
