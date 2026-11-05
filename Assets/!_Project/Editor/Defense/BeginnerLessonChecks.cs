@@ -86,6 +86,20 @@ namespace CodingGame.Defense.Editor
             DevTest.PlayDefense(1, 1, true, false);
         }
 
+        // Stage 2's lessons (play feedback 4): 2-1 variables, 2-2 free, 2-3 conditions; ends when 2-4 begins.
+        [MenuItem("Tools/Develop/Verify Stage 2 Lessons 2-1 to 2-3")]
+        public static void RunStageTwo()
+        {
+            TutorialSequenceBuilder.ApplyAllFive();
+            Directory.CreateDirectory(Path.GetDirectoryName(LogPath));
+            File.WriteAllText(LogPath, "START stage 2 lessons 2-1 to 2-3 integration check\n");
+            last = null; practiced = practicedFour = practicedFive = bossVisualSeen = false;
+            coreAtThirdWave = -1; next = 0;
+            SessionState.SetBool(Running, true);
+            SessionState.SetBool("CodingGame.BeginnerLessons.AllFive", false);
+            DevTest.PlayDefense(2, 1, true, true);
+        }
+
         [MenuItem("Tools/Develop/Verify Beginner Lessons 1-4 and 1-5")]
         public static void RunLastTwo()
         {
@@ -152,6 +166,21 @@ namespace CodingGame.Defense.Editor
                         sim.Enemies.Any(e => e.Active && System.Numerics.Vector2.Distance(e.Position, robot.Position) <= robot.Range))
                         battle.PlayRobot(robot.Id);
             bool allFive = SessionState.GetBool("CodingGame.BeginnerLessons.AllFive", false);
+            if (battle.Stage == 2)
+            {
+                if (sim.WaveIndex >= 3) { End("PASS 2-1 to 2-3 completed: variables lesson, free 2-2, conditions lesson; core=" + sim.BaseHealth); return; }
+                if (sim.Phase == BattlePhase.Defeat) { End("FAIL stage 2 wave " + (sim.WaveIndex + 1) + " lost; kills=" + sim.Kills + " leaks=" + sim.Leaks); return; }
+                // 2-2 has no lesson to claim its reward, so the checker does.
+                if (sim.Phase == BattlePhase.Reward && !director.IsActive)
+                {
+                    Log("CLEAR wave=" + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills +
+                        " leaks=" + sim.Leaks + " survivors=" + sim.LastSurvivors + " timedOut=" + sim.LastWaveTimedOut);
+                    battle.ClaimRewards(); return;
+                }
+                // Free time (after 2-1's lesson, all of 2-2): a second shooter with 2-1's code, then the battle.
+                if (sim.Phase == BattlePhase.Ready && !director.IsActive && (sim.WaveIndex == 1 || director.EditorStep?.stepId == "E01"))
+                { StageTwoFree(battle); battle.StartBattle(); Log("START " + (sim.WaveIndex + 1) + " robots=" + sim.Robots.Count); return; }
+            }
             if (!allFive && sim.WaveIndex >= 3) { End("PASS waves 1-1, 1-2, 1-3 completed; reached 1-4 without changing it"); return; }
             if (allFive && sim.Phase == BattlePhase.Victory)
             {
@@ -180,7 +209,7 @@ namespace CodingGame.Defense.Editor
             }
             var step = director.EditorStep;
             if (step == null) return;
-            string key = (sim.WaveIndex + 1) + "/" + step.stepId;
+            string key = (battle.Stage > 1 ? battle.Stage + ":" : "") + (sim.WaveIndex + 1) + "/" + step.stepId;
             if (key != last)
             {
                 last = key; since = now;
@@ -211,7 +240,7 @@ namespace CodingGame.Defense.Editor
                     Field<System.Collections.Generic.List<Rect>>(bridge, "outlinedAreas").Count == 0 && director.Highlighted(TutorialKeys.Range(0)),
                     "1-1 B05 must highlight the range ring itself, without a spotlight hole or outline over it");
             }
-            if (sim.WaveIndex == 1 && !director.IsActive && sim.Phase == BattlePhase.Ready && !practiced)
+            if (battle.Stage == 1 && sim.WaveIndex == 1 && !director.IsActive && sim.Phase == BattlePhase.Ready && !practiced)
             {
                 FreePlay(battle); practiced = true; return;
             }
@@ -220,7 +249,7 @@ namespace CodingGame.Defense.Editor
             if (allFive && sim.WaveIndex == 4 && !director.IsActive && sim.Phase == BattlePhase.Ready && !practicedFive)
             { FreePlayFive(battle); practicedFive = true; return; }
             // 1-3 leaves the battle start to the player after the loop lesson.
-            if (sim.WaveIndex == 2 && !director.IsActive && sim.Phase == BattlePhase.Ready) { battle.StartBattle(); return; }
+            if (battle.Stage == 1 && sim.WaveIndex == 2 && !director.IsActive && sim.Phase == BattlePhase.Ready) { battle.StartBattle(); return; }
             if (!director.IsActive) { Time.timeScale = 3; return; }
             var view = Field<TutorialDialogueView>(director, "view");
             if (!view.IsVisible) return; // System banner.
@@ -258,10 +287,10 @@ namespace CodingGame.Defense.Editor
                 Log("CLEAR wave=" + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills +
                     " leaks=" + sim.Leaks + " survivors=" + sim.LastSurvivors + " timedOut=" + sim.LastWaveTimedOut);
                 // 1-1: the Play presses fell the basic enemies (one swing each); the tank-bodied one still gets through.
-                if (sim.WaveIndex == 0) Require(sim.Kills >= 4 && sim.Leaks >= 1 && sim.BaseHealth >= 8,
+                if (battle.Stage == 1 && sim.WaveIndex == 0) Require(sim.Kills >= 4 && sim.Leaks >= 1 && sim.BaseHealth >= 8,
                     "1-1's Play lesson did not hold the road; core=" + sim.BaseHealth + " kills=" + sim.Kills + " leaks=" + sim.Leaks);
                 // 1-3: two warriors' ten-swing loops (and Play between calls) hold eight enemies.
-                if (sim.WaveIndex == 2) Require(sim.Leaks - leaksAtThirdWave <= 1 && sim.Kills - killsAtThirdWave >= 7,
+                if (battle.Stage == 1 && sim.WaveIndex == 2) Require(sim.Leaks - leaksAtThirdWave <= 1 && sim.Kills - killsAtThirdWave >= 7,
                     "1-3's loops did not hold the road; leaks=" + (sim.Leaks - leaksAtThirdWave) + " kills=" + (sim.Kills - killsAtThirdWave));
                 battle.ClaimRewards(); return;
             }
@@ -374,6 +403,16 @@ namespace CodingGame.Defense.Editor
             battle.CodeEditor.Close(); battle.StartBattle();
             Require(sim.Phase == BattlePhase.Running, "Free play cannot start battle");
             Log("PASS free play: two swings a call, extra warrior, optional hint, close/reopen unfinished draft, original code retained, battle start");
+        }
+
+        static void StageTwoFree(DefenseBattle battle)
+        {
+            var sim = battle.Simulation;
+            int shooter = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => battle.DefinitionRole(i) == RobotRole.Shooter);
+            // Two shooters: 2-1 gives the variable blocks for two copies of its code.
+            if (sim.RobotAvailable(RobotRole.Shooter) > 0 && sim.Robots.Count(r => r.Spec.role == RobotRole.Shooter) < 2) { battle.ChooseRobot(shooter); PlaceBest(battle, shooter); }
+            foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Shooter && (r.Program == null || r.Program.IsEmpty)).ToArray())
+                sim.ApplyProgram(bot.Id, "free_" + bot.Id, TutorialAnswers.Parse("for i in range(10):\n    enemy = get_nearest_enemy()\n    attack(enemy)"));
         }
 
         static void FreePlayFour(DefenseBattle battle)

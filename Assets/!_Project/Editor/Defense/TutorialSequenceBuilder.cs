@@ -62,6 +62,11 @@ namespace CodingGame.Defense.Editor
         const string Code11 = "slash()";
         const string Code13 = "for i in range(10):\n    slash()";
         const string Code14 = "for i in range(10):\n    attack(get_nearest_enemy())";
+        // 2-1: the found enemy kept in a variable; 2-3: the shooter waits until the enemy is within 3, where one shot fells it
+        // (32 x 7/distance, at most 3x), instead of firing on entry at 7 and reloading 6 s while the enemy walks past.
+        const string Code21 = "for i in range(10):\n    enemy = get_nearest_enemy()\n    attack(enemy)";
+        const string Code23 = "for i in range(10):\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:\n        attack(enemy)";
+        const string StagesFolder = "Assets/!_Project/Defense/Tutorial/Stages23";
 
         sealed class Line { public string Speaker, Text; }
 
@@ -182,6 +187,83 @@ namespace CodingGame.Defense.Editor
             L("1-3.B03", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
         };
 
+        // A guided block placement: the step finishes on signal (expected says what), with the pointer on the palette block and
+        // the drag preview from it to the code slot it fills.
+        static Action<S> EditSignal(string signal, string expected, string pointer, params string[] focus) =>
+            Signal(signal, new[] { Drop, Palette }, With(s => {
+                s.Expected = expected; s.Pointer = pointer;
+                if (signal == TutorialSignals.CodeLinePlaced || signal == TutorialSignals.SlotFilled)
+                {
+                    string slot = signal == TutorialSignals.SlotFilled ? expected :
+                        focus.LastOrDefault(key => key.StartsWith(TutorialKeys.CodePrefix, StringComparison.Ordinal));
+                    if (!string.IsNullOrEmpty(slot)) s.Demo = pointer + ">" + slot;
+                }
+            }, Focus(focus)));
+
+        // 2-1 (play feedback 4: variables open in Stage 2): a shooter stood by the road; for, then enemy = get_nearest_enemy()
+        // inside it, then attack(enemy) under that.
+        static List<S> TwoOne() => new List<S> {
+            L("2-1.A01", s => s.Cards = true), L("2-1.A02"),
+            L("2-1.A03", s => s.PlaceShooter = true),
+            L("2-1.A04", Click(Unit0, s => s.Pointer = Unit0)),
+            L("2-1.A05", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
+            L("2-1.B01", EditSignal(TutorialSignals.CodeLinePlaced, "1:For", "Editor.Palette.For", "Editor.Palette.For", "Editor.Code.Start")),
+            L("2-1.B02", With(EditSignal(TutorialSignals.CodeLinePlaced, "1/1:DeclareVariable", "Editor.Palette.DeclareVariable", "Editor.Palette.DeclareVariable", "Editor.Code.Body.1"),
+                s => s.AutoSlot = "Editor.Code.Body.1")),
+            L("2-1.B03", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/1.0", "Editor.Palette.NearestEnemy", "Editor.Palette.NearestEnemy", "Editor.Code.Arg.1/1.0"),
+                s => s.AutoSlot = "Editor.Code.Arg.1/1.0")),
+            L("2-1.B04", With(Ed, Focus("Editor.Code.Line.1/1"))),
+            L("2-1.B05", With(EditSignal(TutorialSignals.CodeLinePlaced, "1/2:Shot", "Editor.Palette.Shot", "Editor.Palette.Shot", "Editor.Code.After.1/1"),
+                s => { s.AutoSlot = "Editor.Code.Body.1"; s.Demo = "Editor.Palette.Shot>Editor.Code.After.1/1"; })),
+            L("2-1.B06", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/2.0", "Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.Arg.1/2.0"),
+                s => s.AutoSlot = "Editor.Code.Arg.1/2.0")),
+            L("2-1.B07", EditSignal(TutorialSignals.ProgramMatches, Code21, "Editor.Code.Name.1/2.0", "Editor.Code.Name.1/2.0")),
+            L("2-1.C01", With(Ed, Focus("Editor.Code.Line.1"))),
+            L("2-1.C02", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(s => { s.Preview = true; s.RestartPreview = true; s.Hold = 2; }, Focus(Preview)))),
+            L("2-1.D01", s => s.CloseEditor = true),
+            L("2-1.D02"),
+            L("2-1.E01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code21; s.Battle = true; }),
+            L("2-1.E02", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
+        };
+
+        // 2-3: the old 1-3 lesson. The shooter from 2-1 (Robot.Unit.0) first shows the plain loop firing on entry; then its code
+        // gets the distance line and the player builds the if round attack(enemy).
+        static List<S> TwoThree() => new List<S> {
+            L("2-3.A01"), L("2-3.A02"),
+            L("2-3.A03", Click(Unit0, s => s.Pointer = Unit0)),
+            L("2-3.A04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
+            // Held 6 s past the first (far) hit: the shooter reloads while the enemy walks right past it.
+            L("2-3.A05", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(
+                s => { s.BaselineExample = true; s.Preview = true; s.Hold = 6; }, Focus(Preview)))),
+            L("2-3.B01", With(s => s.DistanceExample = true, Focus("Editor.Code.Line.1/1"))),
+            L("2-3.B02", Focus("Editor.Code.Line.1/2")),
+            L("2-3.B03"),
+            L("2-3.B04"), L("2-3.B05"),
+            // Everything sits inside the for (line 1); the if becomes its third line ("1/3").
+            L("2-3.C01", With(EditSignal(TutorialSignals.CodeLinePlaced, "1/3:If", "Editor.Palette.If", "Editor.Palette.If", "Editor.Code.After.1/2"),
+                s => { s.AutoSlot = "Editor.Code.Body.1"; s.Demo = "Editor.Palette.If>Editor.Code.After.1/2"; })),
+            L("2-3.C03", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/3.0", "Editor.Palette.Comparison", "Editor.Palette.Comparison", "Editor.Code.Arg.1/3.0"), s => s.AutoSlot = "Editor.Code.Arg.1/3.0")),
+            L("2-3.C04", EditSignal(TutorialSignals.DraftValueMatches, "1/3.0|<=", "Editor.Code.Option.1/3.0", "Editor.Code.Option.1/3.0")),
+            L("2-3.C06", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/3.0.0", "Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.Arg.1/3.0.0"), s => s.AutoSlot = "Editor.Code.Arg.1/3.0.0")),
+            L("2-3.C07", EditSignal(TutorialSignals.DraftValueMatches, "1/3.0.0|enemy_distance", "Editor.Code.Name.1/3.0.0", "Editor.Code.Name.1/3.0.0")),
+            L("2-3.C09", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/3.0.1", "Editor.Palette.Number", "Editor.Palette.Number", "Editor.Code.Arg.1/3.0.1"), s => s.AutoSlot = "Editor.Code.Arg.1/3.0.1")),
+            L("2-3.C09a", EditSignal(TutorialSignals.DraftValueMatches, "1/3.0.1|3", "Editor.Code.Name.1/3.0.1", "Editor.Code.Name.1/3.0.1")),
+            L("2-3.C10", Focus("Editor.Code.Arg.1/3.0")),
+            // attack() goes in the if, then the enemy it shoots goes in its brackets (a variable renamed enemy finishes the code).
+            L("2-3.D02", With(EditSignal(TutorialSignals.CodeLinePlaced, "1/3/1:Shot", "Editor.Palette.Shot", "Editor.Palette.Shot", "Editor.Code.Body.1/3"),
+                s => { s.AutoSlot = "Editor.Code.Body.1/3"; s.Demo = "Editor.Palette.Shot>Editor.Code.Body.1/3"; })),
+            L("2-3.D03", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/3/1.0", "Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.Arg.1/3/1.0"), s => s.AutoSlot = "Editor.Code.Arg.1/3/1.0")),
+            L("2-3.D04", EditSignal(TutorialSignals.ProgramMatches, Code23, "Editor.Code.Name.1/3/1.0", "Editor.Code.Name.1/3/1.0")),
+            L("2-3.D06", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(s => { s.Preview = true; s.RestartPreview = true; s.Hold = 3; }, Focus(Preview)))),
+            L("2-3.D07", With(Ed, Focus("Editor.Code.Body.1/3"))),
+            L("2-3.E01", s => s.CloseEditor = true),
+            L("2-3.E02", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => s.Top = true)),
+            // A beat after the first shot, so the player sees it before '쐈다!'.
+            L("2-3.E03", With(Fight, s => { s.Trigger = TutorialSignals.FirstAttack; s.TriggerDelay = 1.2f; })),
+            L("2-3.E04", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code23; }), L("2-3.E05"),
+            L("2-3.E06", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
+        };
+
         static List<S> OneFour() => new List<S> {
             L("1-4.A01", s => s.Cards = true), L("1-4.A02"), L("1-4.A03"), L("1-4.A04"),
             L("1-4.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code14; s.Battle = true; }),
@@ -216,12 +298,12 @@ namespace CodingGame.Defense.Editor
             return result;
         }
 
-        static TutorialSequence Write(string id, int wave, List<S> steps)
+        static TutorialSequence Write(string id, int wave, List<S> steps, int stage = 1)
         {
-            string path = $"{Folder}/Tutorial_{id}.asset";
+            string path = $"{(stage == 1 ? Folder : StagesFolder)}/Tutorial_{id}.asset";
             var sequence = AssetDatabase.LoadAssetAtPath<TutorialSequence>(path);
             if (!sequence) { sequence = ScriptableObject.CreateInstance<TutorialSequence>(); AssetDatabase.CreateAsset(sequence, path); }
-            sequence.sequenceId = id; sequence.enabled = true; sequence.stage = 1; sequence.wave = wave;
+            sequence.sequenceId = id; sequence.enabled = true; sequence.stage = stage; sequence.wave = wave;
             sequence.entryPhase = TutorialEntryPhase.Preparation; sequence.typeSpeed = 30;
             bool battle = false;
             sequence.steps = steps.Select(s =>
@@ -252,13 +334,14 @@ namespace CodingGame.Defense.Editor
             var campaign = AssetDatabase.LoadAssetAtPath<DefenseCampaignDefinition>($"{Folder}/StageOneCampaign.asset");
             var so = new SerializedObject(campaign);
             var lessons = so.FindProperty("progression.lessons");
-            void Lesson(int wave, string topic, int warriors, params (BlockKind kind, int count)[] blocks) => RoleLesson(wave, topic, RobotRole.Warrior, warriors, blocks);
-            void RoleLesson(int wave, string topic, RobotRole role, int robotCount, params (BlockKind kind, int count)[] blocks)
+            void Lesson(int wave, string topic, int warriors, params (BlockKind kind, int count)[] blocks) => StageLesson(1, wave, topic, RobotRole.Warrior, warriors, blocks);
+            void RoleLesson(int wave, string topic, RobotRole role, int robotCount, params (BlockKind kind, int count)[] blocks) => StageLesson(1, wave, topic, role, robotCount, blocks);
+            void StageLesson(int stage, int wave, string topic, RobotRole role, int robotCount, params (BlockKind kind, int count)[] blocks)
             {
                 for (int i = 0; i < lessons.arraySize; i++)
                 {
                     var lesson = lessons.GetArrayElementAtIndex(i);
-                    if (lesson.FindPropertyRelative("stage").intValue != 1 || lesson.FindPropertyRelative("wave").intValue != wave) continue;
+                    if (lesson.FindPropertyRelative("stage").intValue != stage || lesson.FindPropertyRelative("wave").intValue != wave) continue;
                     lesson.FindPropertyRelative("topic").stringValue = topic;
                     var robots = lesson.FindPropertyRelative("robots");
                     robots.arraySize = robotCount > 0 ? 1 : 0;
@@ -272,7 +355,7 @@ namespace CodingGame.Defense.Editor
                     }
                     return;
                 }
-                throw new InvalidOperationException("lesson 1-" + wave + " not found");
+                throw new InvalidOperationException("lesson " + stage + "-" + wave + " not found");
             }
             // Play feedback 4's order: 1-1 the swing and the Play button, 1-2 free, 1-3 the loop, 1-4 free with a shooter, 1-5
             // the boss; variables open at 2-1 and conditions at 2-3.
@@ -295,6 +378,11 @@ namespace CodingGame.Defense.Editor
             }
             RoleLesson(4, "반복 자유 플레이(원거리)", RobotRole.Shooter, 1, (BlockKind.For, 1), (BlockKind.Number, 1), (BlockKind.Shot, 1), (BlockKind.NearestEnemy, 1));
             Lesson(5, "반복 보스 실습", 0, (BlockKind.For, 1), (BlockKind.Number, 1), (BlockKind.Slash, 1));
+            // Stage 2: variables at 2-1 (two shooters), conditions at 2-3 (with the utility robot's slow() to use them on).
+            StageLesson(2, 1, "변수: 찾은 적을 상자에 담기(원거리)", RobotRole.Shooter, 2, (BlockKind.For, 2), (BlockKind.Number, 2), (BlockKind.Shot, 2),
+                (BlockKind.DeclareVariable, 2), (BlockKind.Variable, 2), (BlockKind.NearestEnemy, 2));
+            StageLesson(2, 3, "조건문: 쏠 때 고르기", RobotRole.Utility, 1, (BlockKind.If, 2), (BlockKind.Comparison, 2), (BlockKind.Number, 2),
+                (BlockKind.MyPos, 2), (BlockKind.DeclareVariable, 2), (BlockKind.Variable, 3), (BlockKind.MyAttackRange, 1), (BlockKind.Slow, 1));
             var waves = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves");
             var fourth = waves.GetArrayElementAtIndex(3).FindPropertyRelative("groups").GetArrayElementAtIndex(0);
             fourth.FindPropertyRelative("count").intValue = 6;
@@ -366,15 +454,18 @@ namespace CodingGame.Defense.Editor
             var log = new System.Text.StringBuilder();
             lines = ParseScript(Path.Combine(Directory.GetCurrentDirectory(), Script));
             log.AppendLine("lines " + lines.Count);
-            var sequences = new[] { Write("1-1", 1, OneOne()), Write("1-2", 2, OneTwo()), Write("1-3", 3, OneThree()), Write("1-4", 4, OneFour()), Write("1-5", 5, OneFive()) };
+            var sequences = new[] { Write("1-1", 1, OneOne()), Write("1-2", 2, OneTwo()), Write("1-3", 3, OneThree()), Write("1-4", 4, OneFour()), Write("1-5", 5, OneFive()),
+                Write("2-1", 1, TwoOne(), 2), Write("2-3", 3, TwoThree(), 2) };
             foreach (var s in sequences) log.AppendLine(s.sequenceId + ": " + s.steps.Length + " steps");
             log.AppendLine(Campaign());
             AssetDatabase.SaveAssets();
             var director = UnityEngine.Object.FindObjectsByType<TutorialDirector>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single();
             var so = new SerializedObject(director);
             var list = so.FindProperty("sequences");
-            // Later stages' intro sequences (Defense/Tutorial/Stage2·3) are not built from this script: keep them after Stage 1's.
-            var wired = sequences.Concat(director.Sequences.Where(s => s && s.stage != 1)).ToArray();
+            // Later stages' intro sequences (Defense/Tutorial/Stages23 Intro_*) are not built from this script: keep them after the
+            // lessons, except where a lesson now covers that wave (2-1, 2-3).
+            var wired = sequences.Concat(director.Sequences.Where(s => s && s.stage != 1 && !sequences.Contains(s) &&
+                !sequences.Any(lesson => lesson.stage == s.stage && lesson.wave == s.wave))).ToArray();
             list.arraySize = wired.Length;
             for (int i = 0; i < wired.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = wired[i];
             so.ApplyModifiedPropertiesWithoutUndo();

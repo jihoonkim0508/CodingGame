@@ -127,37 +127,24 @@ MonoBehaviour:
         count: 1
     - stage: 2
       wave: 1
-      topic: "\uC6D0\uAC70\uB9AC \uB85C\uBD07: \uBC18\uBCF5 \uC548\uC5D0\uC11C \uC801
-        \uCC3E\uC544 \uC3D8\uAE30"
+      topic: "\uBCC0\uC218: \uCC3E\uC740 \uC801\uC744 \uC0C1\uC790\uC5D0 \uB2F4\uAE30(\uC6D0\uAC70\uB9AC)"
       goal: "for \uC548\uC5D0\uC11C \uAC00\uC7A5 \uAC00\uAE4C\uC6B4 \uC801\uC744
         \uCC3E\uC544 \uACF5\uACA9\uD558\uAE30"
       robots:
-      - role: 5
-        count: 1
       - role: 4
         count: 2
       blocks:
       - kind: 16
         count: 2
-      - kind: 3
+      - kind: 10
         count: 2
-      - kind: 11
+      - kind: 22
         count: 2
       - kind: 14
-        count: 1
+        count: 2
       - kind: 15
-        count: 3
+        count: 2
       - kind: 6
-        count: 3
-      - kind: 8
-        count: 1
-      - kind: 9
-        count: 1
-      - kind: 10
-        count: 4
-      - kind: 23
-        count: 1
-      - kind: 22
         count: 2
       rewards:
       - kind: 16
@@ -174,11 +161,29 @@ MonoBehaviour:
         count: 1
     - stage: 2
       wave: 3
-      topic: "\uAC70\uB9AC \uC870\uAC74\uACFC \uAC10\uC18D"
+      topic: "\uC870\uAC74\uBB38: \uC3E0 \uB54C \uACE0\uB974\uAE30"
       goal: "\uBE60\uB978 \uC18D\uB3C4\uBCD1 \uB4F1\uC7A5 \xB7 \uAC00\uAE4C\uC774
         \uC624\uBA74 slow()\uB85C \uB2A6\uCD94\uACE0 \uACF5\uACA9\uD558\uAE30"
-      robots: []
-      blocks: []
+      robots:
+      - role: 5
+        count: 1
+      blocks:
+      - kind: 3
+        count: 2
+      - kind: 11
+        count: 2
+      - kind: 10
+        count: 2
+      - kind: 27
+        count: 2
+      - kind: 14
+        count: 2
+      - kind: 15
+        count: 3
+      - kind: 26
+        count: 1
+      - kind: 23
+        count: 1
       rewards:
       - kind: 23
         count: 1
