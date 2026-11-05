@@ -5,6 +5,9 @@ using UnityEngine.UI;
 namespace CodingGame.Defense
 {
     // A bobbing arrow above a tutorial target, and a drag demo: a see-through copy of a palette block gliding to its slot.
+    // The arrow is a sticker (ui_pointer, Editor/UI~/pointer_sticker.py: a chunky arrow with an ink outline) tinted the road
+    // chevrons' sky blue on its own ink shadow, popping in when it appears; the arrow object's old yellow ▼ glyph is switched
+    // off (play feedback: the small triangle did not read, and on the yellow tabs not at all).
     // Areas come from TutorialInputBridge.TryGetArea (spotlight-local rects), so this object must fill the spotlight's
     // RectTransform with a centred pivot.
     public sealed class TutorialPointer : MonoBehaviour
@@ -12,16 +15,39 @@ namespace CodingGame.Defense
         [SerializeField] RectTransform arrow;
         [SerializeField, Min(0)] float gap = 12, bob = 10, bobSpeed = 4;
         const float DragSeconds = 1f, HoldSeconds = .5f, RestSeconds = .5f, GhostAlpha = .65f, Lift = 14, GhostScale = 1.05f;
+        const float PointerSize = 72, PointerShadow = 6, PointerPop = .3f;
+        Image pointerShadow;
+        float shownAt;
         Rect target;
         bool fromBelow;
         RectTransform ghostSource, ghost;
         CanvasGroup ghostGroup;
         Rect dragFrom, dragTo;
         float dragStarted;
-        void Awake() { if (!arrow) throw new System.InvalidOperationException(name + ": 화살표 RectTransform 참조 누락"); Hide(); }
+        void Awake()
+        {
+            if (!arrow) throw new System.InvalidOperationException(name + ": 화살표 RectTransform 참조 누락");
+            if (arrow.TryGetComponent<Graphic>(out var glyph)) glyph.enabled = false;
+            arrow.sizeDelta = new Vector2(PointerSize, PointerSize);
+            pointerShadow = Sticker("Shadow", new Color(UITheme.Ink.r, UITheme.Ink.g, UITheme.Ink.b, .3f));
+            Sticker("Face", PathColor);
+            Hide();
+        }
+        Image Sticker(string name, Color color)
+        {
+            var image = new GameObject(name, typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            image.rectTransform.SetParent(arrow, false);
+            image.rectTransform.anchorMin = Vector2.zero; image.rectTransform.anchorMax = Vector2.one; image.rectTransform.sizeDelta = Vector2.zero;
+            image.sprite = Resources.Load<Sprite>("UI/ui_pointer"); image.color = color; image.raycastTarget = false;
+            return image;
+        }
         public bool IsVisible => arrow.gameObject.activeSelf;
         public bool IsDragVisible => ghost && ghost.gameObject.activeInHierarchy;
-        public void Show(Rect area, bool below = false) { target = area; fromBelow = below; arrow.gameObject.SetActive(true); Place(); }
+        public void Show(Rect area, bool below = false)
+        {
+            if (!IsVisible) shownAt = Time.unscaledTime;
+            target = area; fromBelow = below; arrow.gameObject.SetActive(true); Place();
+        }
         public void Hide() { HideArrow(); HideDrag(); HidePath(); }
         public void HideArrow() => arrow.gameObject.SetActive(false);
 
@@ -99,6 +125,11 @@ namespace CodingGame.Defense
             bool above = !fromBelow && target.yMax + gap + half * 2 + bob <= ((RectTransform)transform).rect.yMax;
             arrow.localEulerAngles = new Vector3(0, 0, above ? 0 : 180);
             arrow.anchoredPosition = new Vector2(target.center.x, above ? target.yMax + gap + half + bounce : target.yMin - gap - half - bounce);
+            // The shadow falls down the screen whichever way the arrow points (it turns with the arrow).
+            pointerShadow.rectTransform.anchoredPosition = new Vector2(0, above ? -PointerShadow : PointerShadow);
+            // Pops in with a small overshoot (ease-out-back), so the eye catches it starting.
+            float t = Mathf.Clamp01((Time.unscaledTime - shownAt) / PointerPop) - 1;
+            arrow.localScale = Vector3.one * (1 + 2.70158f * t * t * t + 1.70158f * t * t);
         }
 
         // Glide from the palette item to the slot (the block's left edge to the slot's left edge), hold, fade, rest, repeat.
