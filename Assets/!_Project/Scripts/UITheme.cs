@@ -43,7 +43,21 @@ namespace CodingGame
         // blue backdrop and the desk. Null before UIRestyle has made the Jalnan font.
         public static Material Banner => banner ? banner : banner = Outlined(Display, .3f, true);
         public static Material Label => label ? label : label = Outlined(Display, .24f, false);
-        static Material banner, label;
+        // Caption: small Pretendard Bold sentences in white on the blue backdrop (the code editor's shortcut line), the same
+        // thin ink outline as Label.
+        public static Material Caption => caption ? caption : caption = Outlined(Bold, .2f, false);
+        static Material banner, label, caption;
+
+        // Body text is Pretendard Bold (비주얼_레퍼런스.md 2): every text under root not set in Jalnan (regular Pretendard, Malgun
+        // Gothic) switches to it. The game's strings use no glyph Pretendard lacks; texts with a material of their own (glow,
+        // outline) keep theirs.
+        public static void BoldBody(Component root)
+        {
+            if (!Bold || !root) return;
+            foreach (var text in root.GetComponentsInChildren<TMP_Text>(true))
+                if (text.font && text.font != Bold && text.font != Display && text.fontSharedMaterial == text.font.material)
+                { text.font = Bold; text.fontStyle &= ~FontStyles.Bold; }
+        }
         static Material Outlined(TMP_FontAsset font, float width, bool drop)
         {
             if (!font) return null;

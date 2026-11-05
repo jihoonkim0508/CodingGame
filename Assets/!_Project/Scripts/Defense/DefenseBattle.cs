@@ -128,6 +128,7 @@ namespace CodingGame.Defense
             if (!campaign) throw new InvalidOperationException("DefenseBattle에 캠페인 asset을 연결하세요.");
             campaign.ValidateContent(); robots = campaign.robots; enemies = campaign.enemies;
             ValidateReferences();
+            foreach (var root in gameObject.scene.GetRootGameObjects()) UITheme.BoldBody(root.transform);
             sounds = gameObject.AddComponent<DefenseSounds>();
             developerRoot.SetActive(false);
             developerHint.SetActive(DeveloperTools);

@@ -42,7 +42,9 @@ namespace CodingGame.BlockCoding
         // Sticker look (play feedback, Docs/References/비주얼_레퍼런스.md 4): every shape gets an ink outline, a block a soft drop shadow
         // under it too, and rectangles round corners. Shadow, outline and face are the same polygons grown and shifted, drawn in that
         // order, so a loop's header, arm and foot (overlapping rectangles) show one outline round the whole C and its mouth.
-        const float Corner = 8, Shadow = 3;
+        const float Corner = 8, Shadow = 3, LiftedShadow = 9;
+        // A dragged block's copy: its shadow falls further, as if held above the editor.
+        public bool Lifted { get; set; }
         static readonly Color Ink = new Color(.149f, .165f, .243f);
         bool? isBlock;
         protected override void OnPopulateMesh(VertexHelper vh)
@@ -83,7 +85,7 @@ namespace CodingGame.BlockCoding
             }
             float line = isBlock.Value ? 3 : 2;
             var ink = new Color(Ink.r, Ink.g, Ink.b, color.a);
-            if (isBlock.Value) foreach (var part in parts) Polygon(vh, r, Grow(part, line), new Color(Ink.r, Ink.g, Ink.b, .25f * color.a), Shadow);
+            if (isBlock.Value) foreach (var part in parts) Polygon(vh, r, Grow(part, line), new Color(Ink.r, Ink.g, Ink.b, (Lifted ? .3f : .25f) * color.a), Lifted ? LiftedShadow : Shadow);
             foreach (var part in parts) Polygon(vh, r, Grow(part, line), ink, 0);
             foreach (var part in parts) Polygon(vh, r, part, color, 0);
             vh.GetUIVertexStream(hitTriangles);

@@ -30,6 +30,7 @@ namespace CodingGame.BlockCoding
         readonly List<CommandBlockView> ghosts = new List<CommandBlockView>();
         readonly List<Vector2> ghostOffsets = new List<Vector2>();
         readonly Vector3[] dragCorners = new Vector3[4];
+        readonly List<Image> tabDots = new List<Image>();
         CommandDropZone selected;
         CommandDropZone snapTarget;
         Vector2 programGrabOffset, dragGrabOffset;
@@ -96,7 +97,18 @@ namespace CodingGame.BlockCoding
             {
                 int category = i;
                 categoryButtons[i].onClick.AddListener(() => ShowCategory(category));
+                // Tab names in Jalnan like the other labels, and on a paper tab a dot of its blocks' colour (비주얼_레퍼런스.md 3).
+                var label = categoryButtons[i].GetComponentInChildren<TMP_Text>(true);
+                if (label && UITheme.Display) { label.font = UITheme.Display; label.fontStyle &= ~FontStyles.Bold; label.fontSize = 16; label.margin = new Vector4(14, 0, 0, 0); }
+                var dot = new GameObject("Dot", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+                dot.rectTransform.SetParent(categoryButtons[i].transform, false);
+                dot.rectTransform.anchorMin = dot.rectTransform.anchorMax = new Vector2(0, .5f);
+                dot.rectTransform.sizeDelta = new Vector2(9, 9); dot.rectTransform.anchoredPosition = new Vector2(14, 0);
+                dot.sprite = UITheme.Circle; dot.color = UITheme.BlockCategories[Mathf.Min(i, UITheme.BlockCategories.Length - 1)]; dot.raycastTarget = false;
+                tabDots.Add(dot);
             }
+            // The shortcut line sits on the blue backdrop: bold, outlined and 18 px at least (3.7:1 bare white).
+            if (UITheme.Bold && UITheme.Caption) { status.font = UITheme.Bold; status.fontSharedMaterial = UITheme.Caption; status.fontSize = Mathf.Max(18, status.fontSize); }
             selected = program;
             ShowCategory(0);
             Changed();
@@ -120,6 +132,7 @@ namespace CodingGame.BlockCoding
                 categoryButtons[i].targetGraphic.color = chosen ? UITheme.BlockCategories[Mathf.Min(i, UITheme.BlockCategories.Length - 1)] : UITheme.Paper;
                 var label = categoryButtons[i].GetComponentInChildren<TMP_Text>(true);
                 if (label) label.color = chosen ? Color.white : UITheme.Muted;
+                if (i < tabDots.Count) tabDots[i].enabled = !chosen;
                 categoryButtons[i].transform.localScale = Vector3.one * (chosen ? 1.06f : 1);
             }
         }
@@ -314,7 +327,7 @@ namespace CodingGame.BlockCoding
             {
                 ghostOffsets.Add(TopLeft(dragLayer, block.Rect) - sourceDragTopLeft);
                 var copy = block.Copy(dragLayer);
-                copy.SetDragAppearance(true);
+                copy.SetGhostAppearance();
                 copy.Rect.anchorMin = copy.Rect.anchorMax = copy.Rect.pivot = new Vector2(0, 1);
                 copy.Rect.sizeDelta = new Vector2(copy.preferredWidth, copy.preferredHeight);
                 LayoutRebuilder.ForceRebuildLayoutImmediate(copy.Rect);

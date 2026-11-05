@@ -133,10 +133,11 @@ namespace CodingGame.Defense
         {
             var text = new GameObject("Damage", typeof(TextMeshPro)).GetComponent<TextMeshPro>();
             text.gameObject.layer = arena.gameObject.layer; text.transform.SetParent(arena, true);
-            if (damageFont) text.font = damageFont;
-            text.text = "-" + e.Amount.ToString("0.#"); text.fontSize = 7; text.fontStyle = FontStyles.Bold;
+            text.text = "-" + e.Amount.ToString("0.#"); text.fontSize = 7;
             text.alignment = TextAlignmentOptions.Center; text.color = new Color(1, .82f, .3f);
-            text.outlineWidth = .25f; text.outlineColor = new Color32(40, 10, 0, 255);
+            // The battle's floating numbers' look: Jalnan with the shared thin ink outline.
+            if (UITheme.Display && UITheme.Label) { text.font = UITheme.Display; text.fontSharedMaterial = UITheme.Label; }
+            else { if (damageFont) text.font = damageFont; text.fontStyle = FontStyles.Bold; text.outlineWidth = .25f; text.outlineColor = new Color32(40, 10, 0, 255); }
             text.rectTransform.sizeDelta = new Vector2(6, 2);
             text.transform.position = World(e.Position) + Vector3.up * 1.6f; text.transform.rotation = previewCamera.transform.rotation;
             damagePopups.Add((text, 0));
@@ -270,20 +271,20 @@ namespace CodingGame.Defense
         {
             var s = selected.Spec;
             float nextMultiplier = (float)Math.Pow(selected.UpgradeFactor, selected.Level);
-            // Dim names, bright values: the same reading pattern as the battle's top bar.
-            stats.text = $"<b>{battle.RobotName(selected.Id)}  Lv.{selected.Level}</b>" + (selected.IsMaxLevel ? "" : $" <color={UITheme.GoodHex}>→ Lv.{selected.Level + 1}</color>") +
+            // Dim names, bright values 15% larger: the same reading pattern as the battle's top bar (not <b>: the text is already Pretendard Bold).
+            stats.text = $"<size=115%>{battle.RobotName(selected.Id)}  Lv.{selected.Level}</size>" + (selected.IsMaxLevel ? "" : $" <color={UITheme.GoodHex}>→ Lv.{selected.Level + 1}</color>") +
                 (s.role == RobotRole.Buffer ? "" : $"\n{Stat("공격력")}{UpgradeValue(selected.Damage,selected.Damage/selected.LevelMultiplier*nextMultiplier)}") +
-                $"\n{Stat("사거리")}<b>{selected.Range:0.#}</b>\n{Stat("공격 간격")}<b>{selected.Interval:0.##}초</b>\n" +
-                (selected.Health.HasValue ? (selected.IsMaxLevel ? $"{Stat("체력")}<b>{selected.Health:0}/{selected.MaxHealth:0}</b>" : $"{Stat("최대 체력")}{UpgradeValue(selected.MaxHealth,s.health*nextMultiplier)}") + $"\n{Stat("저지")}<b>{s.blockCapacity}마리</b>" : $"{Stat("체력")}공격받지 않음") +
-                (s.role == RobotRole.Bomber ? $"\n{Stat("폭발 반경")}<b>{s.effectRadius:0.#}</b>" : s.role == RobotRole.Utility ? $"\n{Stat("감속")}<b>{(1-s.slowMultiplier)*100:0}%</b>" :
+                $"\n{Stat("사거리")}<size=115%>{selected.Range:0.#}</size>\n{Stat("공격 간격")}<size=115%>{selected.Interval:0.##}초</size>\n" +
+                (selected.Health.HasValue ? (selected.IsMaxLevel ? $"{Stat("체력")}<size=115%>{selected.Health:0}/{selected.MaxHealth:0}</size>" : $"{Stat("최대 체력")}{UpgradeValue(selected.MaxHealth,s.health*nextMultiplier)}") + $"\n{Stat("저지")}<size=115%>{s.blockCapacity}마리</size>" : $"{Stat("체력")}공격받지 않음") +
+                (s.role == RobotRole.Bomber ? $"\n{Stat("폭발 반경")}<size=115%>{s.effectRadius:0.#}</size>" : s.role == RobotRole.Utility ? $"\n{Stat("감속")}<size=115%>{(1-s.slowMultiplier)*100:0}%</size>" :
                 s.role == RobotRole.Buffer ? $"\n{Stat("버프 피해")}{UpgradeValue(1+(s.buffDamage-1)*selected.LevelMultiplier,1+(s.buffDamage-1)*nextMultiplier)}배" +
                     $"\n{Stat("버프 사거리")}{UpgradeValue(1+(s.buffRange-1)*selected.LevelMultiplier,1+(s.buffRange-1)*nextMultiplier)}배" +
                     $"\n{Stat("버프 간격")}{UpgradeValue(Math.Max(.01f,1-(1-s.buffInterval)*selected.LevelMultiplier),Math.Max(.01f,1-(1-s.buffInterval)*nextMultiplier))}배" : "");
-            coinLabel.text = $"<color={UITheme.MutedHex}>코인</color>  <b><color={UITheme.GoldHex}>{battle.Simulation.Coins:N0}</color></b>";
+            coinLabel.text = $"<color={UITheme.MutedHex}>코인</color>  <size=115%><color={UITheme.GoldHex}>{battle.Simulation.Coins:N0}</color></size>";
         }
         static string Stat(string name) => $"<color={UITheme.MutedHex}>{name}</color>  ";
         string UpgradeValue(float current, float upgraded) => selected.IsMaxLevel || Mathf.Approximately(current, upgraded)
-            ? $"<b>{current:0.#}</b>" : $"<b>{current:0.#}</b> <color={UITheme.GoodHex}>→ {upgraded:0.#}</color>";
+            ? $"<size=115%>{current:0.#}</size>" : $"<size=115%>{current:0.#}</size> <color={UITheme.GoodHex}>→ {upgraded:0.#}</color>";
         public void Close()
         {
             selected = null; HidePreview();

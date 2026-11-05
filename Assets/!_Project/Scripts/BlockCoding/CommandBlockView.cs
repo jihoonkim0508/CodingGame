@@ -243,10 +243,18 @@ namespace CodingGame.BlockCoding
             LayoutRebuilder.ForceRebuildLayoutImmediate(copy.Rect);
             return copy;
         }
+        // The block left behind while dragged fades; the copy under the cursor is the block lifted, a little larger on a
+        // deeper shadow (비주얼_레퍼런스.md 4).
         public void SetDragAppearance(bool dragged)
         {
-            canvasGroup.alpha = dragged ? 0.55f : 1;
+            canvasGroup.alpha = dragged ? .4f : 1;
             canvasGroup.blocksRaycasts = !dragged;
+        }
+        public void SetGhostAppearance()
+        {
+            canvasGroup.alpha = 1; canvasGroup.blocksRaycasts = false;
+            rect.localScale = Vector3.one * 1.05f;
+            shape.Lifted = true; shape.SetVerticesDirty();
         }
         public void JoinNext(bool joined) { shape.JoinNext = joined; shape.SetVerticesDirty(); }
         public void SetLayoutHorizontal()

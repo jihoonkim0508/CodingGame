@@ -55,6 +55,8 @@ namespace CodingGame.Defense
             developRobotButton.onClick.AddListener(battle.DevelopSelected);
             recallRobotButton.onClick.AddListener(battle.RemoveSelected);
             toastPosition = ((RectTransform)placementToast.transform).anchoredPosition;
+            // Clear of the deck's ink edge: top-aligned at the very top, the status line touched it.
+            notice.alignment = TextAlignmentOptions.MidlineLeft; ((RectTransform)notice.transform).anchoredPosition += new Vector2(0, -8);
             placementToast.alpha = 0;
             upcoming.text = "다음 웨이브";
             // White on the blue backdrop: Jalnan with a thin ink outline (3.7:1 bare, below the 4.5:1 small text needs).
@@ -334,9 +336,10 @@ namespace CodingGame.Defense
             {
                 var label = new GameObject("Floater", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
                 label.rectTransform.SetParent(floaterLayer, false); label.rectTransform.sizeDelta = new Vector2(200, 40);
-                label.font = rewardItems.font; label.fontStyle = FontStyles.Bold; label.alignment = TextAlignmentOptions.Center;
-                label.textWrappingMode = TextWrappingModes.NoWrap; label.raycastTarget = false;
-                label.outlineWidth = .32f; label.outlineColor = UITheme.Ink;
+                label.alignment = TextAlignmentOptions.Center; label.textWrappingMode = TextWrappingModes.NoWrap; label.raycastTarget = false;
+                // Numbers over the world share Jalnan's thin-outline Label look (one material, not an instance per floater).
+                if (UITheme.Display && UITheme.Label) { label.font = UITheme.Display; label.fontSharedMaterial = UITheme.Label; }
+                else { label.font = rewardItems.font; label.outlineWidth = .32f; label.outlineColor = UITheme.Ink; }
                 floaters.Add(floater = new Floater { label = label });
             }
             floater ??= floaters.OrderBy(f => f.born).First();
@@ -603,7 +606,9 @@ namespace CodingGame.Defense
                     star.rectTransform.anchorMin = star.rectTransform.anchorMax = new Vector2(.5f, .5f);
                     star.rectTransform.sizeDelta = new Vector2(120, 120); star.rectTransform.anchoredPosition = new Vector2((i - 1) * 124, 0);
                     star.font = rewardItems.font; star.fontSize = 104; star.alignment = TextAlignmentOptions.Center; star.raycastTarget = false;
-                    star.text = "★"; star.outlineWidth = .2f; star.outlineColor = UITheme.Ink;
+                    star.text = "★";
+                    if (UITheme.Display && UITheme.Banner) { star.font = UITheme.Display; star.fontSharedMaterial = UITheme.Banner; }
+                    else { star.outlineWidth = .2f; star.outlineColor = UITheme.Ink; }
                     stars.Add(star);
                 }
             }
