@@ -52,7 +52,8 @@ namespace CodingGame.Defense
             projectileViews.Clear();hitEffects.Clear();foreach(var view in views.Values)view.ClearVisuals();RefreshStats();
         }
 #endif
-        EnemySpec HarmlessEnemy() { var enemy = battle.PreviewEnemy.stats.Copy(); enemy.damage = 0; return enemy; }
+        EnemySpec HarmlessEnemy() => Harmless(battle.PreviewEnemy.stats);
+        static EnemySpec Harmless(EnemySpec spec) { var enemy = spec.Copy(); enemy.damage = 0; return enemy; }
         // The preview runs the live battle's balance so the demo matches what the robot will do.
         void CopyRules(BattleSetup setup)
         {
@@ -103,15 +104,18 @@ namespace CodingGame.Defense
         {
             ClearActors(); source = selected.Program; emptyElapsed = 0; firstHitReported = false; firstHitCount = 0;
             sourceLevel = selected.Level;
+            // 1-3's distance lesson on a straight road: one of the wave's own enemies at a time walks in from beyond the shooter's
+            // range, so a shot fired on entry leaves it reloading while the enemy passes close, and a shot held until close fells it.
+            bool approach = battle.Simulation.Setup.Stage == 1 && battle.Simulation.WaveIndex == 2;
+            var lessonEnemy = approach ? battle.Simulation.Setup.Waves[2].FirstOrDefault()?.Enemy : null;
             var setup = new BattleSetup {
                 TestOptions = battle.Simulation.Options,
                 Min = new Point(-50,-50), Max = new Point(50,50), BaseHealth = 100,
                 Routes = new[] { new Route(new[] {
-                    battle.Simulation.Setup.Stage == 1 && battle.Simulation.WaveIndex == 2 ? new Point(7,0) : new Point(2,0),
+                    approach ? new Point(Math.Max(7, selected.Range + 1), 0) : new Point(2,0),
                     new Point(-20,0) }, .75f) }, // narrow, so the robot at 1.8 is clear of it under the placement rule
-                Waves = new[] { new[] { new SpawnGroup { Enemy = HarmlessEnemy(),
-                    Count = battle.Simulation.Setup.Stage == 1 && battle.Simulation.WaveIndex == 2 ? 2 : 3,
-                    Interval = battle.Simulation.Setup.Stage == 1 && battle.Simulation.WaveIndex == 2 ? .5f : 1.4f } } }
+                Waves = new[] { new[] { new SpawnGroup { Enemy = lessonEnemy != null ? Harmless(lessonEnemy) : HarmlessEnemy(),
+                    Count = approach ? 1 : 3, Interval = 1.4f } } }
             };
             CopyRules(setup);
             simulation = new DefenseSimulation(setup);

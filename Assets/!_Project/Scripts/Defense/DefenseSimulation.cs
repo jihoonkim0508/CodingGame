@@ -187,7 +187,8 @@ namespace CodingGame.Defense
         {
             foreach (var bot in Robots)
             {
-                bot.Buffs.Clear(); bot.BlockingEnabled = false; bot.NextAction = Time + bot.Spec.interval;
+                // Ready from battle start, so a slow shooter can fire as soon as an enemy comes in range.
+                bot.Buffs.Clear(); bot.BlockingEnabled = false; bot.NextAction = Time;
                 if (bot.Program != null) bot.Program = new DefenseProgram(bot.Program.Name, bot.Program.CopyBlocks());
             }
         }
@@ -213,9 +214,9 @@ namespace CodingGame.Defense
                     block.Kind == BlockKind.For && block.Body.Any(action => ContainsKind(action, BlockKind.Slash)))))
                     return "1-2 목표: 새 전사에게 반복 안에서 베는 코드를 적용하세요.";
             }
-            if (Setup.PlayerFlow && Setup.Stage == 1 && WaveIndex == 3 &&
-                Robots.Count(bot => bot.Spec.role == RobotRole.Warrior && HasDistanceConditionAttack(bot.Program)) < 2)
-                return "1-4 목표: 두 전사 모두 적과의 거리를 비교하는 if 안에 베기를 넣으세요.";
+            // 1-4: 1-3's shooter already has its if; one more robot (the new warrior) needs one too.
+            if (Setup.PlayerFlow && Setup.Stage == 1 && WaveIndex == 3 && Robots.Count(bot => HasDistanceConditionAttack(bot.Program)) < 2)
+                return "1-4 목표: 로봇 두 대가 적과의 거리를 비교하는 if 안에서 공격하게 하세요.";
             return null;
         }
         static bool HasDistanceConditionAttack(DefenseProgram program)
@@ -229,7 +230,7 @@ namespace CodingGame.Defense
             return distanceNames.Length > 0 && blocks.Any(block => block.Kind == BlockKind.If &&
                 block.Arguments.Any(condition => condition.Kind == BlockKind.Comparison &&
                     distanceNames.Any(name => ContainsVariable(condition, name))) &&
-                block.Body.Any(action => action.Kind == BlockKind.Slash));
+                block.Body.Any(action => action.Kind == BlockKind.Slash || action.Kind == BlockKind.Shot));
         }
         static IEnumerable<CodeBlock> Flatten(IEnumerable<CodeBlock> blocks) => blocks.SelectMany(block => new[] { block }.Concat(Flatten(block.Body)));
         static bool ContainsKind(CodeBlock block, BlockKind kind) => block.Kind == kind ||
@@ -329,7 +330,7 @@ namespace CodingGame.Defense
             var bot = new RobotState { Id = nextId++, DefinitionIndex = definitionIndex, Position = point, Spec = spec.Copy(),
                 LevelCap = Setup.RulesConfig.maxLevel, UpgradeFactor = Setup.RulesConfig.upgradeMultiplier,
                 Action = spec.NativeAction, Health = spec.role == RobotRole.Tank ? (float?)spec.health : null,
-                NextAction = Time + spec.interval };
+                NextAction = Time };
             if (Setup.PlayerFlow && Options.inventoryLimit) RobotInventory[spec.role]--;
             Robots.Add(bot); return bot;
         }

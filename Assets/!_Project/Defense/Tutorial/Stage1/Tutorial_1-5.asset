@@ -55,6 +55,7 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    placeShooter: 0
     prepareBaselineExample: 0
     restartPreview: 0
     introEntrance: 0
@@ -114,6 +115,7 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    placeShooter: 0
     prepareBaselineExample: 0
     restartPreview: 0
     introEntrance: 0
@@ -166,6 +168,7 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    placeShooter: 0
     prepareBaselineExample: 0
     restartPreview: 0
     introEntrance: 0
@@ -227,6 +230,7 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    placeShooter: 0
     prepareBaselineExample: 0
     restartPreview: 0
     introEntrance: 0
@@ -278,6 +282,7 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    placeShooter: 0
     prepareBaselineExample: 0
     restartPreview: 0
     introEntrance: 0
@@ -324,6 +329,7 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    placeShooter: 0
     prepareBaselineExample: 0
     restartPreview: 0
     introEntrance: 0
@@ -378,6 +384,7 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    placeShooter: 0
     prepareBaselineExample: 0
     restartPreview: 0
     introEntrance: 0
@@ -424,6 +431,7 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    placeShooter: 0
     prepareBaselineExample: 0
     restartPreview: 0
     introEntrance: 0

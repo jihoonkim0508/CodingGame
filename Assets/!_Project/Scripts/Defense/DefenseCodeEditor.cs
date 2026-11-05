@@ -123,8 +123,8 @@ namespace CodingGame.Defense
         public void PrepareBaselineExample()
         {
             if (!IsOpen || !HasCurrentSession) return;
-            // 1-3 A05: 1-1's answer, to compare against.
-            panel.LoadProgram(panel.FunctionName, new[] { Loop(new CodeBlock(BlockKind.Slash)) });
+            // 1-3 A05: the shooter firing at the nearest enemy the moment one is in range, to compare against.
+            panel.LoadProgram(panel.FunctionName, new[] { Loop(new CodeBlock(BlockKind.Shot, "0", new CodeBlock(BlockKind.NearestEnemy))) });
             if (!panel.IsApplied) throw new InvalidOperationException("비교용 기본 베기 코드의 블록 지급량을 확인하세요.");
             RestartPreview();
         }

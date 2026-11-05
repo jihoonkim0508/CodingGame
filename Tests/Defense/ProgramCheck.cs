@@ -31,7 +31,8 @@ static class ProgramCheck
         });
         RobotState Tank(DefenseSimulation simulation, float x, int capacity)
         {
-            var bot = simulation.Place(new RobotSpec{role=RobotRole.Tank,interval=3,blockRadius=1.25f,blockCapacity=capacity},2,new Vector2(x,0),out _);
+            // A near-zero stun: robots are ready at battle start, so a stun lands first; only the body block is under test.
+            var bot = simulation.Place(new RobotSpec{role=RobotRole.Tank,interval=3,duration=.01f,blockRadius=1.25f,blockCapacity=capacity},2,new Vector2(x,0),out _);
             simulation.ApplyProgram(bot.Id,"guard",new[]{new CodeBlock(BlockKind.Block,"0",new CodeBlock(BlockKind.NearestEnemy))});
             return bot;
         }
@@ -79,13 +80,11 @@ static class ProgramCheck
         blocking.ApplyProgram(tank.Id,"guard",new[]{new CodeBlock(BlockKind.Block,"0",new CodeBlock(BlockKind.NearestEnemy))});
         Assert(!tank.BlockingEnabled,"adding code alone does not activate blocking");
         blocking.Start(); Tick(blocking,1);
-        Assert(tank.BlockingEnabled&&tank.Executions==0,"block stance starts before first attack cooldown");
+        Assert(tank.BlockingEnabled&&tank.Executions==1&&blocking.Enemies.Single().Stunned(blocking.Time),"block stance and the stun start with the battle");
         Tick(blocking,149);
         Assert(blocking.Enemies.Count==3&&blocking.Enemies.All(e=>e.BlockedBy==tank.Id&&e.Position.X>0),"all preview enemies stop in front of tank");
-        Assert(blocking.Enemies.All(e=>e.Health==100&&!e.Stunned(blocking.Time)),"stance does not bypass stun or damage cooldown");
-        Tick(blocking,30);
-        Assert(tank.Executions==1&&blocking.Enemies.All(e=>e.Stunned(blocking.Time)),"stun executes after original cooldown");
-        Tick(blocking,75);
+        Assert(tank.Executions==1&&blocking.Enemies.All(e=>!e.Stunned(blocking.Time)),"the one block() run stuns once and the stance keeps holding");
+        Tick(blocking,105);
         Assert(blocking.Enemies.All(e=>e.BlockedBy==tank.Id&&!e.Stunned(blocking.Time)),"body blocking persists after stun expires");
         var delayed = new DefenseSimulation(tankSetup);
         var delayedTank = delayed.Place(tank.Spec.Copy(),2,Vector2.Zero,out _);

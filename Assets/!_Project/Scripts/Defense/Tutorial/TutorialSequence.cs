@@ -66,6 +66,7 @@ namespace CodingGame.Defense
         [Min(0)] public int robotIndex;
         [Tooltip("1-3 조건문 소개용으로 적 찾기·거리 저장 두 줄을 준비합니다. 다른 로봇의 코드는 유지합니다.")]
         public bool prepareDistanceExample;
+        [Tooltip("단계 진입 시 원거리 로봇을 입구 근처 길 옆에 세웁니다(1-3).")] public bool placeShooter;
         public bool prepareBaselineExample;
         public bool restartPreview;
         [Tooltip("흑백 화면 가운데에 대화창을 크게 띄웁니다. 이어지는 단계도 켜 두면 가운데에 남고, 꺼진 단계로 넘어갈 때 원래 자리로 줄어들며 이동합니다.")] public bool introEntrance;

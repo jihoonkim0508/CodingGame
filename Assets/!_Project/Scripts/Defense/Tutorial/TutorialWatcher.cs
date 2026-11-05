@@ -14,7 +14,7 @@ namespace CodingGame.Defense
         bool firstKill, firstAttack, cleared;
         readonly List<string> signals = new List<string>();
 
-        // In 1-3, Robot.Unit.0 is whichever deployed robot is closest to the current wave's entrance.
+        // In 1-3, Robot.Unit.0 is the lesson's shooter (then whichever deployed robot is closest to the current wave's entrance).
         // Elsewhere the stable installation order keeps the existing tutorial targets unchanged.
         public static IReadOnlyList<RobotState> OrderedRobots(DefenseSimulation sim)
         {
@@ -24,8 +24,8 @@ namespace CodingGame.Defense
                 sim.Setup.Waves.Length <= 2 || sim.Setup.Waves[2].Length == 0) return robots.ToArray();
             int route = sim.Setup.Waves[2].OrderBy(group => group.Delay).First().RouteIndex;
             var entrance = sim.Setup.Routes[route].Points[0];
-            return robots.OrderBy(robot => System.Numerics.Vector2.DistanceSquared(robot.Position, entrance))
-                .ThenBy(robot => robot.Id).ToArray();
+            return robots.OrderBy(robot => robot.Spec.role != RobotRole.Shooter)
+                .ThenBy(robot => System.Numerics.Vector2.DistanceSquared(robot.Position, entrance)).ThenBy(robot => robot.Id).ToArray();
         }
         public static RobotState Robot(DefenseSimulation sim, int index) => OrderedRobots(sim).ElementAtOrDefault(index);
         public static int RobotIndex(DefenseSimulation sim, int id) =>
@@ -74,7 +74,10 @@ namespace CodingGame.Defense
                 session = sim; wave = sim.WaveIndex; killsAtWaveStart = sim.Kills; leaks = sim.Leaks; firstKill = firstAttack = cleared = false;
             }
             if (!firstKill && sim.Kills > killsAtWaveStart) { firstKill = true; signals.Add(TutorialSignals.FirstKill); }
-            if (!firstAttack && sim.Robots.Any(r => r.AttacksThisWave > 0)) { firstAttack = true; signals.Add(TutorialSignals.FirstAttack); }
+            // 1-3 waits for the lesson's shooter, not a warrior from 1-1 or 1-2 swinging first.
+            bool lesson = sim.Setup.PlayerFlow && sim.Setup.Stage == 1 && sim.WaveIndex == 2;
+            if (!firstAttack && (lesson ? TeachingRobot(sim)?.AttacksThisWave > 0 : sim.Robots.Any(r => r.AttacksThisWave > 0)))
+            { firstAttack = true; signals.Add(TutorialSignals.FirstAttack); }
             if (sim.Leaks > leaks) { leaks = sim.Leaks; signals.Add(TutorialSignals.Leak); }
             if (!cleared && sim.BaseHealth > 0 && (sim.Phase == BattlePhase.Reward || sim.Phase == BattlePhase.Victory))
             { cleared = true; signals.Add(TutorialSignals.WaveCleared); }

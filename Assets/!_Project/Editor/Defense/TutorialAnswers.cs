@@ -7,7 +7,8 @@ using CodingGame.BlockCoding;
 namespace CodingGame.Defense.Editor
 {
     // Reads the Stage 1 tutorial answers (TutorialStep.expectedCode) into blocks: "name = get_nearest_enemy()",
-    // "x = enemy.distance(get_my_pos())", "name = my_attack_range()", "slash()", "if a <= b:" and "for i in range(n):" with an indented body.
+    // "x = enemy.distance(get_my_pos())", "name = my_attack_range()", "slash()", "attack(enemy)", "if a <= b:" and "for i in range(n):"
+    // with an indented body.
     // ponytail: only what the Stage 1 answers use; a new answer shape needs a case here.
     public static class TutorialAnswers
     {
@@ -38,6 +39,7 @@ namespace CodingGame.Defense.Editor
                     result.Add(block);
                 }
                 else if (line == "slash()") result.Add(new CodeBlock(BlockKind.Slash));
+                else if (line.StartsWith("attack(") && line.EndsWith(")")) result.Add(new CodeBlock(BlockKind.Shot, "0", Value(line.Substring(7, line.Length - 8))));
                 else
                 {
                     var parts = line.Split(new[] { " = " }, 2, StringSplitOptions.None);

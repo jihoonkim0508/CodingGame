@@ -420,6 +420,44 @@ namespace CodingGame.Defense
             robotViews.Add(bot.Id, view);
             return view;
         }
+        // 1-3: the tutorial stands the lesson's shooter by the road, far enough past the entrance (8) that the enemies walk into
+        // its range (7) and close enough to the road that they pass within 3 of it (the lesson's condition); out on the open
+        // floor that condition might never come true.
+        public void PlaceLessonShooter()
+        {
+            int index = Array.FindIndex(robots, r => r.stats.role == RobotRole.Shooter);
+            var sim = Simulation;
+            if (index < 0 || sim == null || !sim.CanEdit || sim.Robots.Any(r => r.Spec.role == RobotRole.Shooter)) return;
+            var groups = sim.Setup.Waves[sim.WaveIndex];
+            var road = sim.Setup.Routes[groups.Length > 0 ? groups[0].RouteIndex : 0].Points;
+            for (float along = 8; along < 20; along += .5f)
+                for (float off = 2; off <= 2.81f; off += .2f)
+                    foreach (float side in new[] { 1f, -1f })
+                    {
+                        var (point, normal) = Along(road, along);
+                        var spot = point + normal * off * side;
+                        if (sim.PlacementError(robots[index].stats, spot) != null) continue;
+                        SpawnRobotView(sim.Place(robots[index].stats, index, spot, out _));
+                        sounds.Play("place"); SyncViews(0); RefreshHUD();
+                        return;
+                    }
+            throw new InvalidOperationException("1-3 원거리 로봇을 세울 길 옆 자리가 없습니다.");
+        }
+        // The point at distance s along a polyline and the unit normal to its left there.
+        static (Point point, Point normal) Along(Point[] points, float s)
+        {
+            for (int i = 1; i < points.Length; i++)
+            {
+                var segment = points[i] - points[i - 1]; float length = segment.Length();
+                if (s <= length || i == points.Length - 1)
+                {
+                    var dir = length > 0 ? segment / length : new Point(1, 0);
+                    return (points[i - 1] + dir * Math.Min(s, length), new Point(-dir.Y, dir.X));
+                }
+                s -= length;
+            }
+            return (points[0], new Point(0, 1));
+        }
         public bool PlaceRobot(int index, Vector3 position)
         {
             if (index < 0 || index >= robots.Length ||
