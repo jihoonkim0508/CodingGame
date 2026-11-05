@@ -9,6 +9,9 @@ namespace CodingGame.Defense
         [SerializeField, Tooltip("Optional transparent vertex-colour material; tints the area inside the ring.")] Material fillMaterial;
         [SerializeField, Range(0, 1)] float fillAlpha = .18f;
         readonly Vector3[] points = new Vector3[97];
+        // Above the road's top (.08 on the maps' road modules; the floor is at 0): at .06 the ring lay just under the road and
+        // flickered where it crossed it (z-fighting, worst when the tutorial lights the ring).
+        const float LineHeight = .12f, FillHeight = .115f;
         Mesh fillMesh;
         MeshRenderer fillRenderer;
         float lineWidth, glow;
@@ -42,10 +45,10 @@ namespace CodingGame.Defense
             for (int i = 0; i < points.Length; i++)
             {
                 float a = i * Mathf.PI * 2 / (points.Length - 1);
-                points[i] = center + new Vector3(Mathf.Cos(a) * radius, .065f, Mathf.Sin(a) * radius);
+                points[i] = center + new Vector3(Mathf.Cos(a) * radius, LineHeight, Mathf.Sin(a) * radius);
             }
             Draw(color);
-            Fill(center + Vector3.up * .06f, points.Length, color);
+            Fill(center + Vector3.up * FillHeight, points.Length, color);
         }
         public void Hide() { line.enabled = false; line.widthMultiplier = lineWidth; if (fillRenderer) fillRenderer.enabled = false; }
         public void ShowSemicircle(Vector3 center, Vector3 forward, float radius, Color color)
