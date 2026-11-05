@@ -43,10 +43,16 @@ namespace CodingGame.BlockCoding
         public string RetainedName { get; private set; }
         public bool TextInputFocused => input && input.isFocused;
         bool initialized;
-        // Expressions share a fixed height even when nested; only their width grows.
-        float headHeight => PythonTreeCompiler.OutputSlot(Kind) == BlockSlotKind.Statement ? 46 : 32;
+        // Value and condition blocks are as tall as what they hold plus a small margin, at least ExpressionHeight, and as wide as
+        // their contents (play feedback 3: a 122x32 number filled a line's header); a line is 46 high unless it holds a taller one.
+        public const float ExpressionHeight = 28, ExpressionPad = 3;
+        bool IsStatement => PythonTreeCompiler.OutputSlot(Kind) == BlockSlotKind.Statement;
+        float headHeight => IsStatement ? Mathf.Max(46, LayoutUtility.GetPreferredHeight(header) + 12) :
+            Mathf.Max(ExpressionHeight, LayoutUtility.GetPreferredHeight(header) + 2 * ExpressionPad);
+        // Room left and right of the header: a number's digits sit close in their pill; a condition clears its pointed ends.
+        float Margin => IsStatement ? 14 : kind == BlockKind.Number ? 8 : PythonTreeCompiler.OutputSlot(Kind) == BlockSlotKind.Condition ? 14 : 10;
         public float minWidth => preferredWidth;
-        public float preferredWidth => Mathf.Max(100, Mathf.Max(LayoutUtility.GetPreferredWidth(header) + 28, body ? body.preferredWidth + 32 : 0));
+        public float preferredWidth => Mathf.Max(IsStatement ? 100 : 36, Mathf.Max(LayoutUtility.GetPreferredWidth(header) + 2 * Margin, body ? body.preferredWidth + 32 : 0));
         public float flexibleWidth => 0;
         public float minHeight => preferredHeight;
         public float preferredHeight => headHeight + (body ? body.preferredHeight + 18 : 0);
@@ -75,6 +81,12 @@ namespace CodingGame.BlockCoding
                 if (input) input.onValueChanged.AddListener(InputChanged);
                 // Only a Python name can be typed (a name like "123" left the code unapplied without a word).
                 if (input && kind == BlockKind.DeclareVariable) input.onValidateInput = (text, index, c) => c == '_' || char.IsLetter(c) || (char.IsDigit(c) && index > 0) ? c : '\0';
+                if (input && !IsStatement && input.TryGetComponent<LayoutElement>(out var field))
+                {
+                    // A field in a value block fits its 28 px pill; its text area has no vertical inset, so 17 px text is not clipped.
+                    field.minHeight = field.preferredHeight = ExpressionHeight - 2 * ExpressionPad;
+                    if (input.textViewport) input.textViewport.sizeDelta = new Vector2(kind == BlockKind.Number ? -4 : -12, 0);
+                }
                 if (dropdown) dropdown.onValueChanged.AddListener(SelectionChanged);
             }
             foreach (var argument in arguments) argument.Bind(panel, this);
@@ -90,6 +102,7 @@ namespace CodingGame.BlockCoding
 
         void InputChanged(string value)
         {
+            FitInput(input, MinField);
             if (kind == BlockKind.Variable) RefreshVariableOptions();
             if (kind == BlockKind.DeclareVariable)
             {
@@ -106,6 +119,7 @@ namespace CodingGame.BlockCoding
         void SelectionChanged(int value)
         {
             if (kind == BlockKind.Variable) RefreshVariableOptions();
+            FitDropdown(dropdown);
             if (!IsPalette) Panel.Changed();
             LayoutRebuilder.MarkLayoutForRebuild(rect);
         }
@@ -114,7 +128,7 @@ namespace CodingGame.BlockCoding
             variableName = value;
             if (kind == BlockKind.Variable)
             {
-                input.SetTextWithoutNotify(value + (HasDot ? "." : ""));
+                input.SetTextWithoutNotify(value + (HasDot ? "." : "")); FitInput(input, MinField);
                 RefreshVariableOptions();
             }
         }
@@ -132,8 +146,31 @@ namespace CodingGame.BlockCoding
             RefreshShape();
             LayoutRebuilder.MarkLayoutForRebuild(rect);
         }
+        float MinField => kind == BlockKind.Number ? 16 : 40;
+        // A typed field as wide as its text (or its placeholder) plus its text area's insets and the caret, at least min (play
+        // feedback 3: fields kept their authored widths, a lone 0 in a 94 px box and long names cut off).
+        public static void FitInput(TMP_InputField field, float min)
+        {
+            if (!field || !field.textComponent || !field.TryGetComponent<LayoutElement>(out var layout)) return;
+            string shown = field.text.Length > 0 ? field.text : field.placeholder is TMP_Text hint ? hint.text : "";
+            float inset = field.textViewport ? -field.textViewport.sizeDelta.x : 0;
+            float width = Mathf.Ceil(Mathf.Max(min, field.textComponent.GetPreferredValues(shown).x + inset + 4));
+            if (Mathf.Approximately(layout.preferredWidth, width)) return;
+            layout.minWidth = layout.preferredWidth = width;
+            LayoutRebuilder.MarkLayoutForRebuild((RectTransform)field.transform);
+        }
+        // A picker (<=, distance() as wide as its choice plus its arrow, like the typed fields.
+        static void FitDropdown(TMP_Dropdown list)
+        {
+            if (!list || !list.captionText || !list.TryGetComponent<LayoutElement>(out var layout)) return;
+            float width = Mathf.Ceil(list.captionText.GetPreferredValues(list.captionText.text).x - list.captionText.rectTransform.sizeDelta.x + 4);
+            if (Mathf.Approximately(layout.preferredWidth, width)) return;
+            layout.minWidth = layout.preferredWidth = width;
+            LayoutRebuilder.MarkLayoutForRebuild((RectTransform)list.transform);
+        }
         void RefreshShape()
         {
+            FitInput(input, MinField); FitDropdown(dropdown);
             if (methodArguments) methodArguments.SetActive(Kind == BlockKind.Distance);
             shape.Configure(PythonTreeCompiler.OutputSlot(Kind), body);
         }
@@ -183,8 +220,6 @@ namespace CodingGame.BlockCoding
                 field.colors = new ColorBlock { normalColor = Color.white, highlightedColor = new Color(.96f, .96f, .96f), pressedColor = new Color(.86f, .86f, .86f),
                     selectedColor = Color.white, disabledColor = Color.white, colorMultiplier = 1, fadeDuration = .08f };
             }
-            // The method list (distance( …) was 205 px wide, mostly empty, and pushed a condition off the code area.
-            if (dropdown && kind == BlockKind.Variable && dropdown.TryGetComponent<LayoutElement>(out var method)) method.preferredWidth = method.minWidth = 136;
             if (literal && input && input.targetGraphic) input.targetGraphic.color = Color.clear;
             if (input && input.textComponent)
             {
@@ -211,15 +246,15 @@ namespace CodingGame.BlockCoding
         public void SelectOption(int value) { dropdown.value = value; }
         internal void LoadData(CodeBlock data)
         {
-            if (kind == BlockKind.Number || kind == BlockKind.DeclareVariable) input.SetTextWithoutNotify(data.Value);
+            if (kind == BlockKind.Number || kind == BlockKind.DeclareVariable) { input.SetTextWithoutNotify(data.Value); FitInput(input, MinField); }
             if (kind == BlockKind.DeclareVariable) RetainedName = data.Value;
-            if (kind == BlockKind.Comparison) dropdown.SetValueWithoutNotify(Array.IndexOf(PythonTreeCompiler.Comparisons, data.Value));
+            if (kind == BlockKind.Comparison) { dropdown.SetValueWithoutNotify(Array.IndexOf(PythonTreeCompiler.Comparisons, data.Value)); FitDropdown(dropdown); }
             int skip = 0;
             if (kind == BlockKind.Variable)
             {
                 bool member = data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp;
                 variableName = member ? data.Arguments[0].Value : data.Value;
-                input.SetTextWithoutNotify(variableName + (member ? "." : ""));
+                input.SetTextWithoutNotify(variableName + (member ? "." : "")); FitInput(input, MinField);
                 dropdown.ClearOptions(); dropdown.AddOptions(new List<string> { "메서드 선택" }); dropdown.AddOptions(new List<string>(Methods));
                 dropdown.SetValueWithoutNotify(data.Kind == BlockKind.Distance ? 1 : data.Kind == BlockKind.Hp ? 2 : 0);
                 RefreshVariableOptions();
@@ -290,7 +325,8 @@ namespace CodingGame.BlockCoding
         public void JoinNext(bool joined) { shape.JoinNext = joined; shape.SetVerticesDirty(); }
         public void SetLayoutHorizontal()
         {
-            Place(header, 14, 6, rect.rect.width - 28, headHeight - 12);
+            float inset = IsStatement ? 6 : ExpressionPad;
+            Place(header, Margin, inset, rect.rect.width - 2 * Margin, headHeight - 2 * inset);
             if (body) Place(body.Rect, 24, headHeight, rect.rect.width - 32, body.preferredHeight);
         }
         public void SetLayoutVertical()

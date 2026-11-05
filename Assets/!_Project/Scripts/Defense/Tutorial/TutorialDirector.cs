@@ -240,6 +240,7 @@ namespace CodingGame.Defense
         // The first "palette>slot" pair with both ends on screen plays as a drag demo until the step is done.
         void UpdateDragDemo(TutorialStep step)
         {
+            if (Editor) Editor.TutorialDemo = step.dragDemo;
             if (viewedStep == progressStep && !completedStep.Contains(step.stepId) && !string.IsNullOrWhiteSpace(step.dragDemo) && Editor)
                 foreach (var pair in step.dragDemo.Split('|'))
                 {

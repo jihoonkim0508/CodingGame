@@ -83,9 +83,10 @@ namespace CodingGame.BlockCoding
                 parts.Add(Rounded(0, 0, w, header));
                 if (control)
                 {
-                    // The arm and foot reach into the part above, so the rounded corners leave no notch where they meet.
+                    // The arm reaches into the header and down over the foot, so the rounded corners leave no notch where they meet;
+                    // the foot stays under the mouth (reaching up, it covered the mouth's last 8 px and crowded the lines inside).
                     parts.Add(Rounded(0, header - Corner, 18, h - header + Corner));
-                    if (!JoinNext) parts.Add(Rounded(0, h - 18 - Corner, w, 18 + Corner));
+                    if (!JoinNext) parts.Add(Rounded(0, h - 18, w, 18));
                 }
             }
             float line = isBlock.Value ? 3 : 2;

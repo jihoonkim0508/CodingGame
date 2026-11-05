@@ -45,7 +45,31 @@ namespace CodingGame.Defense
             if (hintButton) hintButton.onClick.AddListener(ToggleHint);
             SetHint(null);
             inventory.text = "블록 인벤토리";
+            Arrange();
             editorRoot.SetActive(false);
+        }
+        // The top row's buttons together at the right (play feedback 3: 비우기 sat 130 px from 닫기): 닫기, then 비우기, then the
+        // tutorial's hint, 10 px apart, 비우기 in Jalnan like 닫기. The block guide's i (DefenseBlockHelp) follows the inventory's
+        // title instead of floating alone over the card's corner.
+        void Arrange()
+        {
+            var clear = (RectTransform)automaticButton.transform;
+            LeftOf(clear, (RectTransform)closeButton.transform, 10);
+            if (hintButton) LeftOf((RectTransform)hintButton.transform, clear, 10);
+            var label = automaticButton.GetComponentInChildren<TMP_Text>();
+            if (label && UITheme.Display) { label.font = UITheme.Display; label.fontStyle &= ~FontStyles.Bold; }
+            var info = panel.GetComponentsInChildren<Button>(true).FirstOrDefault(b => b.name == "Info" && b.transform.parent == panel.transform);
+            if (!info) return;
+            var rect = (RectTransform)info.transform; var heading = inventory.rectTransform; var size = rect.rect.size;
+            rect.anchorMin = rect.anchorMax = heading.anchorMin; rect.pivot = new Vector2(0, .5f); rect.sizeDelta = size;
+            rect.anchoredPosition = heading.anchoredPosition + new Vector2(-heading.pivot.x * heading.rect.width + inventory.preferredWidth + 10, (.5f - heading.pivot.y) * heading.rect.height);
+        }
+        // rect's right edge gap left of anchor's left edge, on the same row; both under one parent, anchor anchored at a point.
+        static void LeftOf(RectTransform rect, RectTransform anchor, float gap)
+        {
+            var size = rect.rect.size;
+            rect.anchorMin = rect.anchorMax = anchor.anchorMin; rect.pivot = new Vector2(1, .5f); rect.sizeDelta = size;
+            rect.anchoredPosition = anchor.anchoredPosition + new Vector2(-anchor.pivot.x * anchor.rect.width - gap, (.5f - anchor.pivot.y) * anchor.rect.height);
         }
         public void Open(int id)
         {
@@ -149,15 +173,15 @@ namespace CodingGame.Defense
             if (!key.StartsWith(TutorialKeys.CodePrefix)) return false;
             var program = panel.Program;
             var parts = key.Substring(TutorialKeys.CodePrefix.Length).Split('.');
-            // The start slot, or the block once one sits there (the slot is narrower than e.g. enemy = get_nearest_enemy()).
+            // The start slot, or the block once one sits there (the slot is narrower than e.g. enemy = get_nearest_enemy()). Empty,
+            // it is boxed at the size of the block the step's demo drops there (play feedback 3: the for went past a one-line box).
             if (parts[0] == "Start")
             {
                 var first = program.StartChain().FirstOrDefault();
                 if (first) return Corners(first.Rect, null, corners);
-                // ponytail: an empty start is boxed at the size of 1-1's finished first line (enemy = get_nearest_enemy(), 352x46),
-                // the only step that points here; measure the expected block instead if another step needs it.
                 var slot = program.StartArea;
-                return Corners(program.Rect, new Rect(slot.xMin, slot.yMax - 46, Mathf.Max(slot.width, 352), 46), corners);
+                var size = Incoming(key, program.Rect) ?? new Vector2(Mathf.Max(slot.width, 352), 46);
+                return Corners(program.Rect, new Rect(slot.xMin, slot.yMax - size.y, size.x, size.y), corners);
             }
             if (parts[0] == "Loose") { var loose = program.LooseRoots().FirstOrDefault(); return Corners(loose ? loose.Rect : null, null, corners); }
             var block = parts.Length < 2 ? null : Line(parts[1]);
@@ -181,10 +205,11 @@ namespace CodingGame.Defense
                 case "After": var r = block.Rect.rect; return Corners(block.Rect, new Rect(r.xMin, r.yMin - r.height, r.width, r.height), corners);
                 case "Body":
                     if (!block.Body) return false;
-                    // Point at the beginning of an empty body, where the first action is inserted.
+                    if (block.Body.Blocks.Count > 0) return Corners(block.Body.Rect, null, corners);
+                    // An empty body: the place its first line goes, at the size of the block the step's demo drops there.
                     var bodyRect = block.Body.Rect.rect;
-                    return Corners(block.Body.Rect, block.Body.Blocks.Count == 0
-                        ? new Rect(bodyRect.xMin, bodyRect.yMin, Mathf.Min(32, bodyRect.width), bodyRect.height) : (Rect?)null, corners);
+                    var fit = Incoming(key, block.Body.Rect) ?? new Vector2(Mathf.Min(32, bodyRect.width), bodyRect.height - 2 * CommandDropZone.Inset.y);
+                    return Corners(block.Body.Rect, new Rect(bodyRect.xMin + CommandDropZone.Inset.x, bodyRect.yMax - CommandDropZone.Inset.y - fit.y, fit.x, fit.y), corners);
                 case "Arg":
                     CommandDropZone slot = null;
                     for (int i = 2; i < parts.Length; i++)
@@ -196,6 +221,20 @@ namespace CodingGame.Defense
                     return Corners(slot ? slot.Rect : null, null, corners);
                 default: return false;
             }
+        }
+        // The tutorial step's drag demo ("Editor.Palette.X>destination|…", TutorialStep.dragDemo), set by the director.
+        public string TutorialDemo { get; set; }
+        // The size, in target's units, of the palette block the demo drops on destination; null when none does.
+        Vector2? Incoming(string destination, RectTransform target)
+        {
+            foreach (var pair in (TutorialDemo ?? "").Split('|'))
+            {
+                var ends = pair.Split('>');
+                if (ends.Length != 2 || ends[1].Trim() != destination || !(TutorialPaletteItem(ends[0].Trim()) is RectTransform item)) continue;
+                var view = item.GetComponent<CommandBlockView>();
+                return new Vector2(view.preferredWidth, view.preferredHeight) * (item.lossyScale.x / target.lossyScale.x);
+            }
+            return null;
         }
         // An Editor.Code.Arg.N.i[.j…] slot that holds a block (the slot exists, empty, as soon as its line does).
         public bool SlotFilled(string key)

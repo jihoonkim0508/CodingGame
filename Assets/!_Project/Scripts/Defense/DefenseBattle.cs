@@ -392,6 +392,10 @@ namespace CodingGame.Defense
             string error = Simulation.DeploymentError(robots[index].stats.role);
             if (error != null) { palette = -1; RejectPlacement(index, error); return; }
             palette = index; selected = 0;
+            // The marker under the cursor is the robot's body as the placement rules see it (play feedback 3: a 0.9 disc under a
+            // 1.5 body made it hard to judge what fits).
+            float body = robots[index].stats.radius * 2;
+            placementMarker.localScale = new Vector3(body, placementMarker.localScale.y, body);
             Tell(robots[index].displayName + " 배치 · 허용 위치 클릭 / 우클릭 또는 ESC 취소");
             RefreshHUD();
             ReportTutorialAction(tutorialKey, "TargetClicked");
@@ -492,12 +496,14 @@ namespace CodingGame.Defense
         {
             if (tutorial) tutorial.RegisterWorldTarget(TutorialKeys.SelectedRobot, view.gameObject, RobotBounds(robot));
         }
-        // A robot's clickable body as a tutorial target.
+        // A robot's clickable body as a tutorial target, tall enough to take the status tag over its head too (play feedback 3:
+        // the focus box ran along the '코드 없음' tag's top edge).
         static Bounds RobotBounds(RobotState robot)
         {
-            float width = Mathf.Max(robot.Spec.radius * 2.5f, RobotWidth);
-            return new Bounds(DefenseViews.World(robot.Position, RobotHeight / 2), new Vector3(width, RobotHeight, width));
+            float width = Mathf.Max(robot.Spec.radius * 2.5f, RobotWidth), height = RobotHeight + RobotTagHeight;
+            return new Bounds(DefenseViews.World(robot.Position, height / 2), new Vector3(width, height, width));
         }
+        const float RobotTagHeight = .35f;
         public void DevelopSelected()
         {
             if (!TutorialAllows("Battle.Develop")) return;

@@ -25,6 +25,10 @@ namespace CodingGame.BlockCoding
         static readonly Color EmptyHint = new Color(1f, .45f, .4f, .9f);
         // elif/else rows tuck under the block above by this much.
         const float BranchOverlap = 18;
+        // A loop's or if's body keeps its lines this far in from the C's arm, header and foot (play feedback 3: with 4 px their
+        // outlines touched and the blocks read as overlapping). An empty body is one line high.
+        public static readonly Vector2 Inset = new Vector2(8, 10);
+        const float StatementHeight = 46;
         public bool FreePlacement => freePlacement;
         public RectTransform Rect => rect;
         public BlockSlotKind Slot => slot;
@@ -32,18 +36,21 @@ namespace CodingGame.BlockCoding
         public CommandBlockView ParentBlock { get; private set; }
         public IReadOnlyList<CommandBlockView> Blocks => blocks;
         public float minWidth => preferredWidth;
-        public float preferredWidth => Mathf.Max(minimumWidth, blocks.Count == 0 ? 0 : blocks.Max(b => b.preferredWidth + (freePlacement ? b.Rect.anchoredPosition.x : 0)) + 8);
+        public float preferredWidth => slot != BlockSlotKind.Statement ? (blocks.Count == 0 ? EmptyWidth : blocks[0].preferredWidth) :
+            Mathf.Max(minimumWidth, blocks.Count == 0 ? 0 : blocks.Max(b => b.preferredWidth + (freePlacement ? b.Rect.anchoredPosition.x : 0)) + (freePlacement ? 8 : 2 * Inset.x));
+        // A value or condition hole fits its hint; filled, it is the block in it (play feedback 3: holes 64 to 122 wide).
+        float EmptyWidth => Mathf.Max(40, hint ? hint.GetPreferredValues(hint.text).x + 20 : minimumWidth);
         public float flexibleWidth => 0;
         public float minHeight => preferredHeight;
         public float preferredHeight
         {
             get
             {
-                if (slot != BlockSlotKind.Statement) return minimumHeight;
+                if (slot != BlockSlotKind.Statement) return blocks.Count == 0 ? CommandBlockView.ExpressionHeight : blocks[0].preferredHeight;
                 if (freePlacement) return Mathf.Max(minimumHeight, blocks.Count == 0 ? 0 : blocks.Max(b => -b.Rect.anchoredPosition.y + b.preferredHeight) + 32);
-                float height = 8;
+                float height = 2 * Inset.y;
                 for (int i = 0; i < blocks.Count; i++) height += blocks[i].preferredHeight - (i > 0 ? Overlap(i) : 0);
-                return Mathf.Max(minimumHeight, height);
+                return Mathf.Max(minimumHeight, blocks.Count == 0 ? height + StatementHeight : height);
             }
         }
         public float flexibleHeight => 0;
@@ -313,16 +320,17 @@ namespace CodingGame.BlockCoding
             {
                 var position = ClampToWorkspace(Panel.DropPosition(e));
                 // Share the drop rule: the first-line anchor is a snap target only nearby.
+                // The empty start shows the block's own outline where it lands; a join between lines is a bar.
                 if (SnapsToFirstPosition(moved, position))
                 {
-                    preview = new Rect(FirstPosition.x, FirstPosition.y + 3, source.preferredWidth, 6);
+                    preview = new Rect(FirstPosition.x, FirstPosition.y, source.preferredWidth, source.preferredHeight);
                     return true;
                 }
                 FindSnap(moved, position, out var after, out var before);
                 var target = after ? after : before;
                 if (!target) return false;
                 var edge = target.Rect.anchoredPosition + (after ? new Vector2(0, -target.preferredHeight + (IsBranch(source) ? BranchOverlap : 0)) : Vector2.zero);
-                preview = new Rect(edge.x, edge.y + 3, Mathf.Max(target.preferredWidth, source.preferredWidth), 6);
+                preview = new Rect(edge.x, edge.y + 4, Mathf.Max(target.preferredWidth, source.preferredWidth), 8);
                 return true;
             }
             if (slot != BlockSlotKind.Statement)
@@ -332,8 +340,9 @@ namespace CodingGame.BlockCoding
             }
             int index = PointerIndex(e);
             if (!FitsStatements(source, moved, index, out _)) return false;
-            float y = index < blocks.Count ? blocks[index].Rect.anchoredPosition.y : blocks.Count == 0 ? -4 : blocks.Last().Rect.anchoredPosition.y - blocks.Last().preferredHeight;
-            preview = new Rect(4, y + 3, Mathf.Max(source.preferredWidth, rect.rect.width - 8), 6); return true;
+            if (blocks.Count == 0) { preview = new Rect(Inset.x, -Inset.y, source.preferredWidth, source.preferredHeight); return true; }
+            float y = index < blocks.Count ? blocks[index].Rect.anchoredPosition.y : blocks.Last().Rect.anchoredPosition.y - blocks.Last().preferredHeight;
+            preview = new Rect(Inset.x, y + 4, Mathf.Max(source.preferredWidth, rect.rect.width - 2 * Inset.x), 8); return true;
         }
         int PointerIndex(PointerEventData e)
         {
@@ -359,6 +368,8 @@ namespace CodingGame.BlockCoding
         public void Refresh()
         {
             if (hint) hint.gameObject.SetActive(blocks.Count == 0);
+            // A filled hole is the block in it: the hole's own outline round it read as a double border.
+            if (slot != BlockSlotKind.Statement && background) background.enabled = blocks.Count == 0;
             for (int i = 0; i < blocks.Count; i++) blocks[i].JoinNext(freePlacement ?
                 next.TryGetValue(blocks[i], out var following) && IsBranch(following) : i + 1 < blocks.Count && IsBranch(blocks[i + 1]));
             LayoutRebuilder.MarkLayoutForRebuild(rect);
@@ -381,12 +392,13 @@ namespace CodingGame.BlockCoding
                 }
                 return;
             }
-            float y = slot == BlockSlotKind.Statement ? 4 : 0;
+            bool statement = slot == BlockSlotKind.Statement;
+            float y = statement ? Inset.y : 0;
             for (int i = 0; i < blocks.Count; i++)
             {
                 if (i > 0) y -= Overlap(i);
                 var block = blocks[i];
-                CommandBlockView.Place(block.Rect, 4, y, BranchWidth(blocks, i), slot == BlockSlotKind.Statement ? block.preferredHeight : minimumHeight);
+                CommandBlockView.Place(block.Rect, statement ? Inset.x : 0, y, statement ? BranchWidth(blocks, i) : block.preferredWidth, block.preferredHeight);
                 y += block.preferredHeight;
             }
         }

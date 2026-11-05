@@ -89,7 +89,9 @@ namespace CodingGame.BlockCoding
             initialized = true;
             if (string.IsNullOrWhiteSpace(functionName.text)) functionName.SetTextWithoutNotify("f" + nextName++);
             pythonPreview.richText = false;
-            functionName.onValueChanged.AddListener(_ => Changed());
+            // The def name's box follows what is typed, like the blocks' fields.
+            functionName.onValueChanged.AddListener(_ => { CommandBlockView.FitInput(functionName, 80); Changed(); });
+            CommandBlockView.FitInput(functionName, 80);
             program.Bind(this, null);
             foreach (var item in palette) { item.view.Bind(this, null, true); item.view.Style(UITheme.BlockCategories[item.category]); }
             variablePrefab.Bind(this, null, true); variablePrefab.Style(UITheme.BlockCategories[2]);
@@ -139,6 +141,9 @@ namespace CodingGame.BlockCoding
             }
             if (program.transform.parent && program.transform.parent.TryGetComponent<Image>(out var paper))
             { paper.sprite = null; paper.type = Image.Type.Simple; paper.color = UITheme.GridPaper; }
+            // Where a dragged block will land: a rounded sky bar between lines, or the block's own outline in an empty place.
+            if (snapMarker && snapMarker.TryGetComponent<Image>(out var mark) && UITheme.Fill)
+            { mark.sprite = UITheme.Fill; mark.type = Image.Type.Sliced; mark.color = new Color(UITheme.Sky.r, UITheme.Sky.g, UITheme.Sky.b, .6f); }
         }
         public void ShowCategory(int category)
         {
@@ -271,7 +276,7 @@ namespace CodingGame.BlockCoding
             try
             {
                 var draft = History.states[History.index];
-                functionName.SetTextWithoutNotify(draft.name);
+                functionName.SetTextWithoutNotify(draft.name); CommandBlockView.FitInput(functionName, 80);
                 selected = program;
                 program.RestoreDraft(draft.groups);
                 updating = false;
@@ -323,7 +328,7 @@ namespace CodingGame.BlockCoding
             try
             {
                 Initialize(); EndDrag(); updating = true;
-                functionName.SetTextWithoutNotify(name); selected = program; program.Load(blocks);
+                functionName.SetTextWithoutNotify(name); CommandBlockView.FitInput(functionName, 80); selected = program; program.Load(blocks);
             }
             finally { updating = false; loading = false; }
             Changed();
@@ -410,6 +415,7 @@ namespace CodingGame.BlockCoding
                 target.Rect.rect.yMax + targetPreview.y, 0));
             var scale = target.Rect.lossyScale.x / snapMarker.parent.lossyScale.x;
             snapMarker.sizeDelta = new Vector2(targetPreview.width, targetPreview.height) * scale;
+            if (snapMarker.TryGetComponent<Image>(out var mark)) mark.pixelsPerUnitMultiplier = 16f / Mathf.Clamp(snapMarker.sizeDelta.y * .5f, 1, 8);
             snapMarker.gameObject.SetActive(true); snapMarker.SetAsLastSibling();
         }
         Rect DraggedBounds(RectTransform target)

@@ -36,11 +36,13 @@ namespace CodingGame.Defense
         // Generated Python body equals the expected lines, ignoring the def header, indentation, blank lines and the names the
         // player gave variables (any name holding the enemy object works, not only `enemy`). The same lines in another order
         // also count: the program only runs once it compiles, so a line that uses a variable before it is set never gets here.
+        // Any loop count of one or more counts as the lesson's (play feedback 3: a player who typed range(100) into 1-1's new
+        // loop was stuck on the next step).
         public static bool Matches(DefenseProgram program, string expected)
         {
             if (program == null) return false;
-            var actual = Canonical(Lines(string.Join("\n", program.Source.Replace("\r", "").Split('\n').Skip(1))));
-            var wanted = Canonical(Lines(expected));
+            var actual = Canonical(Lines(string.Join("\n", program.Source.Replace("\r", "").Split('\n').Skip(1)))).Select(AnyCount).ToList();
+            var wanted = Canonical(Lines(expected)).Select(AnyCount).ToList();
             return actual.SequenceEqual(wanted) || actual.OrderBy(l => l).SequenceEqual(wanted.OrderBy(l => l));
         }
         public static bool ConditionMatches(string condition, DefenseProgram program, string expected, string reference)
@@ -51,6 +53,7 @@ namespace CodingGame.Defense
             var wanted = Canonical(Lines(reference).Append("if " + expected).ToList());
             return Bare(actual.Last()) == Bare(wanted.Last());
         }
+        static string AnyCount(string line) => Regex.Replace(line, @"\brange\([1-9]\d*\)", "range(n)");
         static List<string> Lines(string text) =>
             (text ?? "").Replace("\r", "").Split('\n').Select(line => line.Trim()).Where(line => line.Length > 0).ToList();
         static readonly Regex Assignment = new Regex(@"^([^\W\d]\w*)\s*=(?!=)"); // any Python name, Korean included

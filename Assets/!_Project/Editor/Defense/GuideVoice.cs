@@ -13,8 +13,8 @@ namespace CodingGame.Defense.Editor
     // no line uses any more are deleted. Batchmode works:
     //   Unity.exe -batchmode -projectPath . -executeMethod CodingGame.Defense.Editor.GuideVoice.Build -quit
     // The Typecast menu reads 디버's lines with Typecast's 시우 instead (make_voice.ps1 -Engine typecast; the alert banner keeps
-    // Heami). It needs the TYPECAST_API_KEY environment variable set before Unity starts; a free key may not be used
-    // commercially and must credit Typecast.
+    // Heami). It needs the TYPECAST_API_KEY environment variable (setx works without restarting Unity: the user's variables are
+    // read again on each run); a free key may not be used commercially and must credit Typecast.
     public static class GuideVoice
     {
         const string Folder = "Assets/!_Project/Resources/Voice";
@@ -30,8 +30,8 @@ namespace CodingGame.Defense.Editor
         [MenuItem("Tools/Develop/디버 음성 만들기 (타입캐스트 시우)")]
         public static void BuildTypecast()
         {
-            if (string.IsNullOrEmpty(System.Environment.GetEnvironmentVariable("TYPECAST_API_KEY")))
-                throw new System.InvalidOperationException("[GuideVoice] TYPECAST_API_KEY 환경 변수가 없습니다. 키를 설정하고 Unity를 다시 연 뒤 실행하세요.");
+            if (string.IsNullOrEmpty(TypecastKey))
+                throw new System.InvalidOperationException("[GuideVoice] TYPECAST_API_KEY 환경 변수가 없습니다. 명령 프롬프트에서 setx TYPECAST_API_KEY \"키\" 로 설정한 뒤 다시 실행하세요.");
             if (!Application.isBatchMode && !EditorUtility.DisplayDialog("디버 음성", "디버 대사를 모두 타입캐스트 " + TypecastVoice + " 목소리로 다시 녹음합니다.", "녹음", "취소")) return;
             if (!SessionState.GetBool("GuideVoice.TypecastStarted", false))
             {
@@ -42,6 +42,10 @@ namespace CodingGame.Defense.Editor
             Build("typecast");
             SessionState.SetBool("GuideVoice.TypecastStarted", false);
         }
+
+        // Unity's own environment is fixed when it starts; a key set later with setx is in the user's variables.
+        static string TypecastKey => System.Environment.GetEnvironmentVariable("TYPECAST_API_KEY") is string key && key.Length > 0 ? key :
+            System.Environment.GetEnvironmentVariable("TYPECAST_API_KEY", System.EnvironmentVariableTarget.User);
 
         static List<TutorialText> Lines() => AssetDatabase.FindAssets("t:TutorialSequence").Select(AssetDatabase.GUIDToAssetPath)
             .Select(AssetDatabase.LoadAssetAtPath<TutorialSequence>).Where(s => s && s.enabled)
@@ -56,8 +60,10 @@ namespace CodingGame.Defense.Editor
             string jobs = Path.Combine(Path.GetTempPath(), "guide_voice_jobs.txt");
             File.WriteAllLines(jobs, lines.Select(t => GuideSpeech.Key(t.text) + "\t" + (t.speaker == TutorialSignals.SystemSpeaker ? "system" : "guide") + "\t" + GuideSpeech.Speakable(t.text)),
                 new System.Text.UTF8Encoding(false));
-            var run = Process.Start(new ProcessStartInfo("powershell.exe", $"-NoProfile -ExecutionPolicy Bypass -File \"{Path.GetFullPath(Script)}\" -Jobs \"{jobs}\" -Out \"{Path.GetFullPath(Folder)}\" -Engine {engine} -VoiceName {TypecastVoice}")
-                { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true });
+            var start = new ProcessStartInfo("powershell.exe", $"-NoProfile -ExecutionPolicy Bypass -File \"{Path.GetFullPath(Script)}\" -Jobs \"{jobs}\" -Out \"{Path.GetFullPath(Folder)}\" -Engine {engine} -VoiceName {TypecastVoice}")
+                { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
+            if (engine == "typecast") start.EnvironmentVariables["TYPECAST_API_KEY"] = TypecastKey;
+            var run = Process.Start(start);
             string output = run.StandardOutput.ReadToEnd(), errors = run.StandardError.ReadToEnd();
             run.WaitForExit();
             if (run.ExitCode != 0) throw new System.InvalidOperationException("[GuideVoice] recording failed: " + errors + output);

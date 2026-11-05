@@ -73,7 +73,19 @@ namespace CodingGame.Defense
             if (!cameraControl || !coinLabel || !projectilePrefab || !battle || !arena || !previewCamera || !previewImage || !previewPanel || !stats || !status || !effectRing)
                 throw new InvalidOperationException("공격 미리보기 Inspector 참조를 연결하세요.");
             rangeRing = Instantiate(effectRing, effectRing.transform.parent); rangeRing.name = "Preview range";
+            Frame();
             Close();
+        }
+        // The preview in a paper card like the editor's others, not a near-black frame, its top clear of the title above, and
+        // the stats card in from the screen's corner, its bottom in line with the inventory's (play feedback 3).
+        void Frame()
+        {
+            var frame = (RectTransform)previewPanel.transform;
+            if (previewPanel.TryGetComponent<Image>(out var back)) UITheme.Style(back, UITheme.Card, UITheme.Paper);
+            frame.offsetMax += new Vector2(0, -14);
+            foreach (var text in previewPanel.GetComponentsInChildren<TMP_Text>(true)) text.color = text == status ? UITheme.Ink : UITheme.Muted;
+            var card = (RectTransform)stats.transform.parent;
+            card.offsetMin = new Vector2(8, 46); card.offsetMax = new Vector2(-8, -8);
         }
         public void Open(RobotState robot)
         {

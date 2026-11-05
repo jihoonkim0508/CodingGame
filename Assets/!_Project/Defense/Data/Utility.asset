@@ -20,7 +20,7 @@ MonoBehaviour:
     range: 4.3
     damage: 3
     interval: 1.1
-    radius: 0.45
+    radius: 0.75
     health: 100
     blockRadius: 1.1
     blockCapacity: 3

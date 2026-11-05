@@ -93,9 +93,7 @@ namespace CodingGame.Defense
                 image.rectTransform.sizeDelta = new Vector2(PathSize, PathSize * 102 / 96f);
                 chevrons.Add(image.rectTransform);
             }
-            // The lead arrow's distance along the path: it runs past the end until the whole pack is off, rests, and restarts.
-            float lap = total + (PathPack - 1) * PathSpacing + PathRest * PathSpeed;
-            float lead = Time.unscaledTime * PathSpeed % lap;
+            float lead = PathLead(Time.unscaledTime, total);
             for (int k = 0; k < chevrons.Count; k++)
             {
                 var chevron = chevrons[k];
@@ -111,6 +109,15 @@ namespace CodingGame.Defense
                 var graphic = chevron.GetComponent<Graphic>();
                 if (graphic) graphic.color = new Color(PathColor.r, PathColor.g, PathColor.b, Mathf.Min(grow, shrink));
             }
+        }
+        // The lead arrow's distance along a path of length total at time t: it runs past the end until the whole pack is off,
+        // rests, and restarts. Each run eases in and out (play feedback 3: slow off the start, fast in the middle, slowing into
+        // the core), PathSpeed on average.
+        public static float PathRunSeconds(float total) => (total + (PathPack - 1) * PathSpacing) / PathSpeed;
+        public static float PathLead(float t, float total)
+        {
+            float run = PathRunSeconds(total), u = t % (run + PathRest) / run;
+            return u >= 1 ? float.MaxValue : Mathf.SmoothStep(0, 1, u) * (total + (PathPack - 1) * PathSpacing);
         }
         // The point at distance s along the polyline.
         static Vector2 At(IReadOnlyList<Vector2> points, float s)
