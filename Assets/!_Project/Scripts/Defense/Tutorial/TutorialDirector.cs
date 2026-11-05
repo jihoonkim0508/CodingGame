@@ -322,6 +322,7 @@ namespace CodingGame.Defense
             if (step.previewLesson > 0) Editor.ConfigurePreviewLesson(step.previewLesson);
             if (step.prepareBaselineExample) Editor.PrepareBaselineExample();
             if (step.prepareRangedExample) Editor.PrepareRangedExample();
+            if (step.prepareWhileExample) Editor.PrepareWhileExample();
             if (step.prepareDistanceExample) Editor.PrepareDistanceExample();
             if (step.restartPreview) Editor.RestartPreview();
             if (!string.IsNullOrEmpty(step.autoSelectSlot) && !Editor.SelectTutorialSlot(step.autoSelectSlot))

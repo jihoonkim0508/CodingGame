@@ -68,7 +68,7 @@ MonoBehaviour:
       - kind: 19
         count: 1
       rewards:
-      - kind: 19
+      - kind: 3
         count: 1
     - stage: 1
       wave: 2
@@ -83,20 +83,42 @@ MonoBehaviour:
         count: 1
       - kind: 15
         count: 1
+      - kind: 19
+        count: 1
       rewards:
-      - kind: 10
+      - kind: 11
         count: 1
     - stage: 1
       wave: 3
-      topic: "\ubc18\ubcf5\ubb38 \uc18c\uac1c: \ud55c \ubc88\uacfc \uc5ec\ub7ec \ubc88 \ube44\uad50"
-      robots: []
+      topic: "전사 for 베기와 원거리 로봇 while 사격"
+      robots:
+      - role: 4
+        count: 1
       blocks:
       - kind: 16
         count: 2
       - kind: 10
+        count: 4
+      - kind: 2
+        count: 1
+      - kind: 17
+        count: 1
+      - kind: 3
+        count: 1
+      - kind: 11
+        count: 1
+      - kind: 14
+        count: 1
+      - kind: 6
+        count: 1
+      - kind: 15
         count: 2
+      - kind: 22
+        count: 1
+      - kind: 1
+        count: 1
       rewards:
-      - kind: 10
+      - kind: 27
         count: 1
     - stage: 1
       wave: 4
@@ -118,7 +140,7 @@ MonoBehaviour:
       - kind: 10
         count: 1
       rewards:
-      - kind: 16
+      - kind: 3
         count: 1
     - stage: 1
       wave: 5
@@ -152,7 +174,7 @@ MonoBehaviour:
       - kind: 10
         count: 1
       rewards:
-      - kind: 10
+      - kind: 21
         count: 1
     - stage: 2
       wave: 2
@@ -164,7 +186,7 @@ MonoBehaviour:
       - kind: 10
         count: 2
       rewards:
-      - kind: 10
+      - kind: 20
         count: 1
     - stage: 2
       wave: 3
@@ -190,7 +212,7 @@ MonoBehaviour:
       - kind: 10
         count: 1
       rewards:
-      - kind: 16
+      - kind: 2
         count: 1
     - stage: 2
       wave: 4
@@ -218,7 +240,7 @@ MonoBehaviour:
       - kind: 16
         count: 1
       rewards:
-      - kind: 10
+      - kind: 17
         count: 1
     - stage: 2
       wave: 5
@@ -240,7 +262,7 @@ MonoBehaviour:
       - kind: 16
         count: 2
       rewards:
-      - kind: 10
+      - kind: 18
         count: 1
     - stage: 3
       wave: 1

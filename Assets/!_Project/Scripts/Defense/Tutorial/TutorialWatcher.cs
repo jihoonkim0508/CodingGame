@@ -14,7 +14,7 @@ namespace CodingGame.Defense
         bool firstKill, firstAttack, cleared;
         readonly List<string> signals = new List<string>();
 
-        // In 1-3, Robot.Unit.0 is whichever deployed robot is closest to the current wave's entrance.
+        // In 1-3, the closest warrior is Robot.Unit.0 and the newly placed shooter follows the warriors.
         // Elsewhere the stable installation order keeps the existing tutorial targets unchanged.
         public static IReadOnlyList<RobotState> OrderedRobots(DefenseSimulation sim)
         {
@@ -28,7 +28,8 @@ namespace CodingGame.Defense
                 sim.Setup.Waves.Length <= 2 || sim.Setup.Waves[2].Length == 0) return robots.ToArray();
             int route = sim.Setup.Waves[2].OrderBy(group => group.Delay).First().RouteIndex;
             var entrance = sim.Setup.Routes[route].Points[0];
-            return robots.OrderBy(robot => System.Numerics.Vector2.DistanceSquared(robot.Position, entrance))
+            return robots.OrderBy(robot => robot.Spec.role == RobotRole.Shooter ? 1 : 0)
+                .ThenBy(robot => System.Numerics.Vector2.DistanceSquared(robot.Position, entrance))
                 .ThenBy(robot => robot.Id).ToArray();
         }
         public static RobotState Robot(DefenseSimulation sim, int index) => OrderedRobots(sim).ElementAtOrDefault(index);

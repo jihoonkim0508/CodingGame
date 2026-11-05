@@ -333,6 +333,7 @@ namespace CodingGame.Defense
         }
         public void ChooseRobot(int index)
         {
+            if (Simulation == null) return;
             string tutorialKey = "Battle.Robot." + index;
             if (!TutorialAllows(tutorialKey)) return;
             if (!Simulation.CanPrepare || index < 0 || index >= robots.Length) return;

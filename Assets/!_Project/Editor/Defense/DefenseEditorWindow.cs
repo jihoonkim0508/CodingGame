@@ -223,6 +223,27 @@ namespace CodingGame.Defense.Editor
             }
             else Buttons(("저장", SaveToAsset), ("설정 검사", () => { c.ValidateContent(); feedback.text = "설정 검사 통과"; }));
 
+            Heading("빠른 수치 조정");
+            Note("로봇의 공격력·공격 간격·사거리·폭발 반경과 몬스터의 체력·속도·공격력을 한글 항목으로 조정합니다. 공격 간격은 초 단위이며 값이 작을수록 자주 공격합니다. 폭발 반경은 폭탄형의 착탄 범위입니다. 변경 후 위의 저장 버튼을 누르세요.");
+            Note("반복문은 게임 코드 편집기에서 0~10회 정수로 설정합니다. 이 제한은 모든 로봇에 공통으로 적용됩니다.");
+            foreach (var r in c.robots)
+            {
+                var fold = new Foldout { text = r.displayName, value = false };
+                QuickNumber(fold, r, "공격력", r.stats.damage, value => r.stats.damage = value, false);
+                QuickNumber(fold, r, "공격 간격 (초)", r.stats.interval, value => r.stats.interval = value);
+                QuickNumber(fold, r, "사거리", r.stats.range, value => r.stats.range = value);
+                QuickNumber(fold, r, "폭발 반경", r.stats.effectRadius, value => r.stats.effectRadius = value);
+                content.Add(fold);
+            }
+            foreach (var e in c.enemies)
+            {
+                var fold = new Foldout { text = e.displayName + " (몬스터)", value = false };
+                QuickNumber(fold, e, "체력", e.stats.health, value => e.stats.health = value);
+                QuickNumber(fold, e, "이동 속도", e.stats.speed, value => e.stats.speed = value);
+                QuickNumber(fold, e, "공격력", e.stats.damage, value => e.stats.damage = value, false);
+                QuickNumber(fold, e, "공격 간격 (초)", e.stats.attackInterval, value => e.stats.attackInterval = value);
+                content.Add(fold);
+            }
             Heading("공통");
             Property(c, "baseHealth", "robotLimit", "rules", "permissions", "progression");
             Heading("로봇");
@@ -241,6 +262,24 @@ namespace CodingGame.Defense.Editor
                         plan.Add(new Label($"{s + 1}-{w + 1} · 경로 {g.route} · {g.enemy.displayName} ×{g.count} · HP {v.health:0.#} · 속도 {v.speed:0.##} · {g.delay}s/{g.interval}s"));
                     }
             content.Add(plan);
+        }
+        void QuickNumber(VisualElement parent, Object asset, string label, float value, Action<float> change, bool positive = true)
+        {
+            var field = new FloatField(label) { value = value };
+            field.RegisterValueChangedCallback(e =>
+            {
+                if (float.IsNaN(e.newValue) || float.IsInfinity(e.newValue) || (positive ? e.newValue <= 0 : e.newValue < 0))
+                {
+                    field.SetValueWithoutNotify(e.previousValue);
+                    feedback.text = label + (positive ? "은(는) 0보다 커야 합니다." : "은(는) 0 이상이어야 합니다.");
+                    return;
+                }
+                Undo.RecordObject(asset, "밸런스 수치 조정");
+                change(e.newValue);
+                EditorUtility.SetDirty(asset);
+                feedback.text = label + " 변경됨 · 저장 버튼을 누르세요.";
+            });
+            parent.Add(field);
         }
         void StatsFoldout(Object asset, string title)
         {

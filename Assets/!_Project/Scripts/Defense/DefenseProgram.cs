@@ -18,6 +18,7 @@ namespace CodingGame.Defense
         readonly Dictionary<BlockKind, int> blockCounts;
         readonly List<Instruction> code = new List<Instruction>();
         readonly Dictionary<string, object> variables = new Dictionary<string, object>();
+        readonly HashSet<string> nearestVariables = new HashSet<string>();
         readonly Dictionary<int, LoopState> loops = new Dictionary<int, LoopState>();
         int pc, nextLoop, invocationTargetId;
         bool invocationStarted;
@@ -64,7 +65,7 @@ namespace CodingGame.Defense
         public int BlockCount(BlockKind kind) => blockCounts.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0;
         public double WaitRemaining(double time) => Math.Max(0, wakeTime - time);
         public IReadOnlyList<CodeBlock> CopyBlocks() => blocks.Select(Clone).ToList();
-        void EndInvocation() { pc = 0; invocationTargetId = 0; invocationStarted = actedThisInvocation = false; variables.Clear(); loops.Clear(); }
+        void EndInvocation() { pc = 0; invocationTargetId = 0; invocationStarted = actedThisInvocation = false; variables.Clear(); nearestVariables.Clear(); loops.Clear(); }
         public const int InstructionBudget = 64;
 
         public DefenseProgram(string name, IReadOnlyList<CodeBlock> program)
@@ -78,9 +79,9 @@ namespace CodingGame.Defense
             EmitSuite(blocks, null, null);
         }
         static CodeBlock Clone(CodeBlock b) => b == null ? null : new CodeBlock(b.Kind, b.Value, b.Arguments.Select(Clone).ToArray()) { Body = b.Body.Select(Clone).ToList() };
-        int Emit(Op op, CodeBlock block = null, int jump = 0, int loop = 0)
+        int Emit(Op op, CodeBlock block = null, int jump = 0, int loop = -1)
         { code.Add(new Instruction { Op = op, Block = block, Jump = jump, Loop = loop }); return code.Count - 1; }
-        void EmitSuite(IReadOnlyList<CodeBlock> suite, List<int> breaks, List<int> continues)
+        void EmitSuite(IReadOnlyList<CodeBlock> suite, List<int> breaks, List<int> continues, int activeLoop = -1)
         {
             for (int i = 0; i < suite.Count; i++)
             {
@@ -93,7 +94,7 @@ namespace CodingGame.Defense
                         {
                             var branch = suite[i];
                             int condition = branch.Kind == BlockKind.Else ? -1 : Emit(Op.Condition, branch.Arguments[0]);
-                            EmitSuite(branch.Body, breaks, continues);
+                            EmitSuite(branch.Body, breaks, continues, activeLoop);
                             exits.Add(Emit(Op.Jump));
                             if (condition >= 0) code[condition].Jump = code.Count;
                             if (branch.Kind == BlockKind.Else || i + 1 == suite.Count ||
@@ -109,7 +110,7 @@ namespace CodingGame.Defense
                         int start = code.Count;
                         int test = Emit(Op.ForTest, loop: loop);
                         var innerBreaks = new List<int>(); var innerContinues = new List<int>();
-                        EmitSuite(b.Body, innerBreaks, innerContinues);
+                        EmitSuite(b.Body, innerBreaks, innerContinues, loop);
                         int step = code.Count;
                         Emit(Op.ForNext, loop: loop);
                         Emit(Op.Jump, jump: start);
@@ -119,7 +120,7 @@ namespace CodingGame.Defense
                         break;
                     case BlockKind.Break: breaks.Add(Emit(Op.Jump)); break;
                     case BlockKind.Continue: continues.Add(Emit(Op.Jump)); break;
-                    default: Emit(Op.Statement, b); break;
+                    default: Emit(Op.Statement, b, loop: activeLoop); break;
                 }
             }
         }
@@ -161,14 +162,14 @@ namespace CodingGame.Defense
                         case Op.Condition: LastCondition = Truth(Value(instruction.Block, sim, robot)); pc = LastCondition.Value ? pc + 1 : instruction.Jump; break;
                         case Op.ForInit:
                             double count = Number(Value(instruction.Block, sim, robot));
-                            if (count != Math.Truncate(count) || count < 0 || count > PythonTreeCompiler.MaxLoopIterations) throw new FormatException("반복 횟수는 0~5회 정수여야 합니다.");
+                            if (count != Math.Truncate(count) || count < 0 || count > PythonTreeCompiler.MaxLoopIterations) throw new FormatException($"반복 횟수는 0~{PythonTreeCompiler.MaxLoopIterations}회 정수여야 합니다.");
                             loops[instruction.Loop] = new LoopState { Count = count }; pc++; break;
                         case Op.ForTest:
                             var state = loops[instruction.Loop];
                             if (state.Index >= state.Count) pc = instruction.Jump;
-                            else { variables["i"] = state.Index; LoopIteration = (int)state.Index + 1; LoopCount = (int)state.Count; pc++; }
+                            else { variables["i"] = state.Index; LoopIteration = (int)state.Index; LoopCount = (int)state.Count; pc++; }
                             break;
-                        case Op.ForNext: loops[instruction.Loop].Index++; pc++; break;
+                        case Op.ForNext: LoopIteration = (int)++loops[instruction.Loop].Index; pc++; break;
                         default:
                             var block = instruction.Block;
                             if (block.Kind == BlockKind.DeclareVariable)
@@ -176,6 +177,8 @@ namespace CodingGame.Defense
                                 string name = PythonTreeCompiler.NormalizeIdentifier(block.Value);
                                 var value = Value(block.Arguments[0], sim, robot);
                                 variables[name] = value;
+                                if (block.Arguments[0].Kind == BlockKind.NearestEnemy) nearestVariables.Add(name);
+                                else nearestVariables.Remove(name);
                                 pc++; break;
                             }
                             if (block.Kind == BlockKind.Wait)
@@ -191,14 +194,25 @@ namespace CodingGame.Defense
                                 var enemy = Value(block.Arguments[0], sim, robot) as EnemyValue;
                                 if (enemy == null) throw new FormatException("공격 대상에는 Enemy 객체가 필요합니다.");
                                 target = enemy.Id; LastTargetId = target;
-                                // 지정한 적이 사라져도 다른 적으로 자동 교체하지 않습니다.
                                 if (target == 0 || !sim.Enemies.Any(e => e.Id == target && e.Active))
-                                { robot.LastResult = ActionResult.NoTarget; pc++; return; }
+                                {
+                                    // get_nearest_enemy()로 저장한 변수는 새 적이 들어오면 다시 찾습니다.
+                                    if (block.Arguments[0].Kind == BlockKind.Variable)
+                                    {
+                                        string name = PythonTreeCompiler.NormalizeIdentifier(block.Arguments[0].Value);
+                                        if (nearestVariables.Contains(name))
+                                            variables[name] = Value(new CodeBlock(BlockKind.NearestEnemy), sim, robot);
+                                    }
+                                    robot.LastResult = ActionResult.NoTarget; return;
+                                }
                             }
-                            var result = sim.RequestAction(robot.Id, action, target);
+                            float damageMultiplier = 1;
+                            if (instruction.Loop >= 0 && loops.TryGetValue(instruction.Loop, out var repetition) && repetition.Count > 1)
+                                damageMultiplier -= .1f * (float)(repetition.Index / (repetition.Count - 1));
+                            var result = sim.RequestAction(robot.Id, action, target, damageMultiplier);
                             if (result == ActionResult.Executed) { actedThisInvocation = true; if (target != 0) invocationTargets.Add(target); }
                             // 재사용 대기 중에는 같은 명령에서 기다리고, 실행 결과가 나오면 다음으로 이동합니다.
-                            if (result != ActionResult.CoolingDown) pc++;
+                            if (result != ActionResult.CoolingDown && result != ActionResult.NoTarget) pc++;
                             return;
                     }
                 }

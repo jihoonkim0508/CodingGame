@@ -26,7 +26,7 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uC2DC\uC2A4\uD15C"
-      text: "\uc774\ubc88\uc5d0\ub294 <b>\uc6d0\uac70\ub9ac \ub85c\ubd07</b>\uc744 \ubc30\uc6cc \ubcf4\uc790. \uc804\uc0ac\ubcf4\ub2e4 \uba40\ub9ac \uc788\ub294 \uc801\ub3c4 \uacf5\uaca9\ud560 \uc218 \uc788\uc5b4!"
+      text: "이번에는 <b>원거리 로봇의 사거리와 for 반복 사격</b>을 배워 보자. 전사보다 멀리 있는 적도 공격할 수 있어!"
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -73,7 +73,7 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "\uc774\ubc88\uc5d0 \ud569\ub958\ud55c \uac74 <b>\uc6d0\uac70\ub9ac \ub85c\ubd07</b>\uc774\uc57c!\n\uc804\uc0ac\ubcf4\ub2e4 \uba3c \uacf3\uc758 \uc801\uc5d0\uac8c \ud0c4\uc744 \uc3e0 \uc218 \uc788\uc5b4."
+      text: "원거리 로봇이 한 대 더 합류했어!\n전사보다 먼 곳의 적에게 탄을 쏠 수 있어."
       focusKeys: []
       highlightKeys: []
     targetKeys: []

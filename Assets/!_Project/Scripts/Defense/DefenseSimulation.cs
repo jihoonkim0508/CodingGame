@@ -57,7 +57,7 @@ namespace CodingGame.Defense
         public int RobotAvailable(RobotRole role) => !Setup.PlayerFlow || (!Options.inventoryLimit && RobotUnlocked(role)) ? int.MaxValue : RobotInventory.TryGetValue(role, out int count) ? count : 0;
         public bool RobotUnlocked(RobotRole role) => !Setup.PlayerFlow || Options.unlockAll || RobotInventory.ContainsKey(role);
         public bool LoopsUnlocked => Setup.PlayerFlow && (Inventory.ContainsKey(BlockKind.For) || Inventory.ContainsKey(BlockKind.While));
-        // Enemy programs run once for each new target; explicit loops control additional attacks within that invocation.
+        // Player programs run once per wave; explicit loops control additional attacks.
         public int FunctionRepeatLimit => Setup.PlayerFlow ? 1 : Setup.FunctionRepeatLimit;
         public void GrantRobot(RobotRole role, int count)
         {
@@ -397,7 +397,7 @@ namespace CodingGame.Defense
         public float ActionDamage(RobotState bot, RobotAction action, float distance) => ActionDamage(bot, action) *
             (bot.Spec.role == RobotRole.Shooter && action == RobotAction.Attack ? Rules.RangedDamageFactor(bot.Spec.range, distance) : 1f);
         public float ActionInterval(RobotState bot, RobotAction action) => Profile(bot, action).interval * (bot.Interval / bot.Spec.interval);
-        public ActionResult RequestAction(int robotId, RobotAction action, int targetId = 0)
+        public ActionResult RequestAction(int robotId, RobotAction action, int targetId = 0, float damageMultiplier = 1)
         {
             var bot = FindRobot(robotId);
             if (bot == null || Phase != BattlePhase.Running || !Enum.IsDefined(typeof(RobotAction), action)) return ActionResult.Unavailable;
@@ -420,10 +420,10 @@ namespace CodingGame.Defense
                 if (target == null) return bot.LastResult = ActionResult.NoTarget;
                 switch (action)
                 {
-                    case RobotAction.Block: Stun(bot, profile, strength, targets, target); break;
-                    case RobotAction.Boom: Launch(bot, profile, strength, target); break;
-                    case RobotAction.Slash: Slash(bot, target); break;
-                    default: Shoot(bot, action, profile, strength, target); break;
+                    case RobotAction.Block: Stun(bot, profile, strength, targets, target, damageMultiplier); break;
+                    case RobotAction.Boom: Launch(bot, profile, strength, target, damageMultiplier); break;
+                    case RobotAction.Slash: Slash(bot, target, damageMultiplier); break;
+                    default: Shoot(bot, action, profile, strength, target, damageMultiplier); break;
                 }
             }
             bot.NextAction = Time + ActionInterval(bot, action); bot.Executions++;
@@ -444,21 +444,21 @@ namespace CodingGame.Defense
             Emit("buff", bot.Id, 0, bot.Position, 0, bot.Range);
             return true;
         }
-        void Stun(RobotState bot, RobotSpec profile, float strength, List<EnemyState> targets, EnemyState target)
+        void Stun(RobotState bot, RobotSpec profile, float strength, List<EnemyState> targets, EnemyState target, float damageMultiplier)
         {
             foreach (var e in targets) { var effect = Effect(e, bot.Id); effect.StunUntil = Math.Max(effect.StunUntil, Time + profile.duration * strength); }
-            Hit(target, ActionDamage(bot, RobotAction.Block, Vector2.Distance(bot.Position, target.Position)), bot.Id);
+            Hit(target, ActionDamage(bot, RobotAction.Block, Vector2.Distance(bot.Position, target.Position)) * damageMultiplier, bot.Id);
             Emit("stun", bot.Id, target.Id, bot.Position, 0, bot.Range);
         }
-        void Launch(RobotState bot, RobotSpec profile, float strength, EnemyState target)
+        void Launch(RobotState bot, RobotSpec profile, float strength, EnemyState target, float damageMultiplier)
         {
-            // 폭발의 위치·범위 연출은 유지하며, 피해 대상은 발사할 때 선택한 한 마리로 고정합니다.
+            // 발사 시 정한 지점에 도착하면 폭발 반경 안의 모든 적에게 피해를 줍니다.
             Projectiles.Add(new ProjectileState { Id = nextId++, Source = bot.Id, Target = target.Id, Origin = bot.Position, Destination = target.Position,
                 LaunchedAt = Time, ImpactAt = Time + Math.Max(TickDuration, Vector2.Distance(bot.Position, target.Position) / profile.projectileSpeed),
-                Damage = profile.damage * bot.DamageMultiplier * strength, Radius = profile.effectRadius });
+                Damage = profile.damage * bot.DamageMultiplier * strength * damageMultiplier, Radius = profile.effectRadius });
             Emit("launch", bot.Id, target.Id, target.Position);
         }
-        void Slash(RobotState bot, EnemyState target)
+        void Slash(RobotState bot, EnemyState target, float damageMultiplier)
         {
             var direction = target.Position - bot.Position;
             if (direction.LengthSquared() < .000001f) direction = Vector2.UnitY;
@@ -466,10 +466,12 @@ namespace CodingGame.Defense
             double strike = ActionInterval(bot, RobotAction.Slash) * StrikeShare;
             Events.Add(new CombatEvent { Kind = "slash", Source = bot.Id, Target = target.Id,
                 Origin = bot.Position, Position = bot.Position + direction, Radius = bot.Range, Seconds = (float)strike });
-            // The wide arc is presentation only. Damage is reserved for the chosen monster.
-            var victims = new[] { target };
+            // 표시되는 전방 반원 안의 적을 한 번씩 타격합니다.
+            var victims = Enemies.Where(e => e.Active &&
+                Vector2.DistanceSquared(e.Position, bot.Position) <= bot.Range * bot.Range &&
+                Vector2.Dot(e.Position - bot.Position, direction) >= 0).ToArray();
             bot.Program?.RecordAttackTargets(victims.Select(e => e.Id));
-            strikes.Add((Time + strike, bot, victims, ActionDamage(bot, RobotAction.Slash)));
+            strikes.Add((Time + strike, bot, victims, ActionDamage(bot, RobotAction.Slash) * damageMultiplier));
         }
         // A robot recalled before its sword gets there does not hit.
         void ResolveStrikes()
@@ -480,9 +482,9 @@ namespace CodingGame.Defense
                 if (Robots.Contains(strike.bot)) foreach (var enemy in strike.targets) Hit(enemy, strike.damage, strike.bot.Id, meleeSource: strike.bot);
             }
         }
-        void Shoot(RobotState bot, RobotAction action, RobotSpec profile, float strength, EnemyState target)
+        void Shoot(RobotState bot, RobotAction action, RobotSpec profile, float strength, EnemyState target, float damageMultiplier)
         {
-            float distance = Vector2.Distance(bot.Position, target.Position), damage = ActionDamage(bot, action, distance);
+            float distance = Vector2.Distance(bot.Position, target.Position), damage = ActionDamage(bot, action, distance) * damageMultiplier;
             if (action == RobotAction.Attack)
             {
                 // 사격형 탄은 날아가서 도착할 때 피해를 줍니다(기획). 도착 시점에 같은 적을 맞힙니다.
@@ -556,13 +558,18 @@ namespace CodingGame.Defense
             foreach (var shot in Projectiles.Where(p => Time + 1e-8 >= p.ImpactAt).ToArray())
             {
                 Projectiles.Remove(shot);
-                if (shot.Target != 0)
+                if (shot.Radius > 0)
+                {
+                    foreach (var enemy in Enemies.Where(e => e.Active &&
+                        Vector2.DistanceSquared(e.Position, shot.Destination) <= shot.Radius * shot.Radius).ToArray())
+                        Hit(enemy, shot.Damage, shot.Source, true);
+                    Emit("blast", shot.Source, 0, shot.Destination, 0, shot.Radius);
+                }
+                else if (shot.Target != 0)
                 {
                     var enemy = Enemies.Find(e => e.Id == shot.Target);
                     if (enemy != null) Hit(enemy, shot.Damage, shot.Source, true);
                 }
-                // A dead/missing target never redirects damage to nearby monsters.
-                if (shot.Radius > 0) Emit("blast", shot.Source, 0, shot.Destination, 0, shot.Radius);
             }
         }
         void Tick()

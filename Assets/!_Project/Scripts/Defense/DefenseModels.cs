@@ -145,7 +145,8 @@ namespace CodingGame.Defense
         public int InitialWave;
         public bool PreviousStageRewards = true;
         public int FunctionRepeatLimit = 1;
-        public bool RunProgramPerEnemy = true;
+        // 기본 실행은 웨이브당 한 번이며, 추가 공격은 코드의 반복문으로 지정합니다.
+        public bool RunProgramPerEnemy = false;
         public Vector2 Min, Max;
         public Route[] Routes;
         public SpawnGroup[][] Waves;
@@ -270,7 +271,7 @@ namespace CodingGame.Defense
     public sealed class ProjectileState
     {
         public int Id, Source;
-        public int Target; // The only damage target; Radius controls the explosion visual, not extra victims.
+        public int Target; // Radius == 0: direct target. Radius > 0: area damage at Destination on impact.
         public Vector2 Origin, Destination;
         public double LaunchedAt, ImpactAt;
         public float Damage, Radius;

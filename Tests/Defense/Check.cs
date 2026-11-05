@@ -20,8 +20,58 @@ static class Check
         bot.AutoExecute = true; bot.BlockingEnabled = true; return bot;
     }
     static void Advance(DefenseSimulation sim, double seconds) { for (int i = 0; i < (int)(seconds * 60); i++) sim.Advance(1.0 / 60); }
-    static void Main()
+    static void MultiTargetChecks()
     {
+        foreach (var role in new[] { RobotRole.Warrior, RobotRole.Bomber, RobotRole.Shooter, RobotRole.Utility })
+        {
+            var setup = Setup(); setup.TestOptions.enemyMovement = false; setup.TestOptions.enemySpawn = false;
+            var sim = new DefenseSimulation(setup);
+            var bot = Place(sim, role, 0, 3); bot.AutoExecute = false;
+            sim.Start();
+            var offsets = new[] { new Vector2(0,-2), new Vector2(1,-2), new Vector2(2,-2),
+                new Vector2(0,-5), new Vector2(0,1), new Vector2(0,-5.1f) };
+            foreach (var offset in offsets)
+                sim.Enemies.Add(new EnemyState { Id = 900 + sim.Enemies.Count, Spec = new EnemySpec(),
+                    Health = 100, Position = bot.Position + offset });
+            Advance(sim, .2);
+            Assert(sim.RequestAction(bot.Id, bot.Spec.NativeAction, 900) == ActionResult.Executed, "multi-target command executes: " + role);
+            Assert(bot.AttacksThisWave == 1 && bot.Executions == 1, "one command counts as one attack: " + role);
+            Assert(sim.RequestAction(bot.Id, bot.Spec.NativeAction, 900) == ActionResult.CoolingDown, "multi-target cooldown: " + role);
+            if (role != RobotRole.Utility) Assert(sim.Enemies.All(e => e.Health == 100), "damage waits for impact: " + role);
+            Advance(sim, 1);
+            int victims = role == RobotRole.Warrior ? 4 : role == RobotRole.Bomber ? 3 : 1;
+            for (int i = 0; i < sim.Enemies.Count; i++)
+            {
+                var enemy = sim.Enemies[i];
+                float damage = sim.ActionDamage(bot, bot.Spec.NativeAction, Vector2.Distance(bot.Position, enemy.Position));
+                Assert(Math.Abs(enemy.Health - (i < victims ? 100 - damage : 100)) < .001f,
+                    $"{role}: target {i} respects arc/radius, boundary and single-target rules");
+                Assert(sim.Events.Count(e => (e.Kind == "hit" || e.Kind == "projectile-hit") && e.Target == enemy.Id) == (i < victims ? 1 : 0),
+                    $"{role}: target {i} is hit at most once");
+            }
+        }
+        // The explosion remains at its launch destination even after its original target dies.
+        var blastSetup = Setup(); blastSetup.TestOptions.enemyMovement = false;
+        var blast = new DefenseSimulation(blastSetup);
+        var bomber = Place(blast, RobotRole.Bomber, -8, 3); bomber.AutoExecute = false;
+        blast.Start(); Advance(blast, .2);
+        var original = blast.Enemies.Single();
+        blast.RequestAction(bomber.Id, RobotAction.Boom, original.Id);
+        var destination = blast.Projectiles.Single().Destination;
+        original.Active = false;
+        var neighbor = new EnemyState { Id = 900, Spec = new EnemySpec(), Health = 100, Position = destination + Vector2.UnitX };
+        blast.Enemies.Add(neighbor);
+        Advance(blast, 1);
+        Assert(neighbor.Health == 95 && blast.Events.Single(e => e.Kind == "blast").Position == destination,
+            "dead primary target does not cancel or redirect blast damage");
+        Console.WriteLine($"Multi-target checks passed: {checks}");
+    }
+    static void Main(string[] args)
+    {
+        if (args.Contains("--attack-count")) { ProgramCheck.RunAttackCounts(); return; }
+        if (args.Contains("--multi-target")) { MultiTargetChecks(); return; }
+        if (args.Contains("--learning")) { LearningCheck.Run(); return; }
+        MultiTargetChecks();
         var sim = new DefenseSimulation(Setup());
         Assert(sim.Place(Spec(RobotRole.Warrior), 1, new Vector2(-8, 0), out _) == null, "ordinary robot cannot occupy path");
         var warrior = Place(sim, RobotRole.Warrior, -8.123f, 2.123f);

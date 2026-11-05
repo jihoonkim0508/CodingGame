@@ -87,6 +87,8 @@ static class TreeCheck
         Reject(B(BlockKind.If, Compare("!=", N("1"), N("2"))));
         Reject(B(BlockKind.If, Compare("<", nearest, N("2"))));
         Reject(B(BlockKind.For, N("1.5")));
+        PythonTreeCompiler.Compile("ten_repetitions", new[] { Body(B(BlockKind.For, N("10")), wait) });
+        Reject(Body(B(BlockKind.For, N("11")), wait));
         Reject(B(BlockKind.For, N("2f")));
         Reject(Set("count", N("3.0")), B(BlockKind.For, V("count")));
         Reject(B(BlockKind.Break));

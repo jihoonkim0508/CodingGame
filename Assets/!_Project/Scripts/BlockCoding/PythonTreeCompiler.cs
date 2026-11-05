@@ -12,7 +12,7 @@ namespace CodingGame.BlockCoding
     /// <summary>Entry-style nested blocks. This does not execute Python or modify Unity objects.</summary>
     public static class PythonTreeCompiler
     {
-        public const int MaxLoopIterations = 5;
+        public const int MaxLoopIterations = 10;
         [Flags]
         enum ValueType { Integer = 1, Float = 2, Enemy = 4, Boolean = 8, Vector2 = 16 }
         const ValueType Numeric = ValueType.Integer | ValueType.Float;
@@ -168,7 +168,7 @@ namespace CodingGame.BlockCoding
                             if (block.Arguments[0].Kind == BlockKind.Number &&
                                 double.TryParse(NormalizeNumber(block.Arguments[0].Value), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var count) &&
                                 (count < 0 || count > MaxLoopIterations))
-                                throw new FormatException("반복 횟수는 0~5회로 입력해 주세요.");
+                                throw new FormatException($"반복 횟수는 0~{MaxLoopIterations}회로 입력해 주세요.");
                             inner["i"] = ValueType.Integer;
                         }
                         Append(source, depth, isFor ? "for i in range(" + Expression(block.Arguments[0], variables) + "):" :

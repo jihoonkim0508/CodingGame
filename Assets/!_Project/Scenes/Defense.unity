@@ -30906,7 +30906,7 @@ MonoBehaviour:
       10\uC744 \uC790\uB3D9\uC73C\uB85C \uB123\uC2B5\uB2C8\uB2E4. \uC22B\uC790\uB97C
       \uD074\uB9AD\uD574 \uD69F\uC218\uB97C \uBC14\uAFB8\uC138\uC694.\n\uC785\uB825:
       \uC815\uC218 \uC22B\uC790 1\uAC1C \xB7 \uC548\uCABD: \uC2E4\uD589\uD560 \uBA85\uB839"
-    example: "for i in range(10):\n    Attack()"
+    example: "for i in range(10):\n    enemy = get_nearest_enemy()\n    slash(enemy)"
   - kind: 2
     button: {fileID: 1256806581}
     label: {fileID: 2034095239}
@@ -30917,7 +30917,7 @@ MonoBehaviour:
       \uBA85\uB839\uC744 \uAC74\uB108\uB6F0\uACE0 \uB2E4\uC74C \uBC18\uBCF5\uC73C\uB85C
       \uC774\uB3D9\uD569\uB2C8\uB2E4.\n\uC785\uB825: \uC5C6\uC74C \xB7 \uC548\uCABD:
       \uC2E4\uD589\uD560 \uBA85\uB839"
-    example: "while True:\n    Attack()\n    wait(1)"
+    example: "while True:\n    enemy = get_nearest_enemy()\n    if enemy.hp <= 0:\n        break\n    slash(enemy)"
   - kind: 3
     button: {fileID: 1582705698}
     label: {fileID: 1094863375}
@@ -30927,7 +30927,7 @@ MonoBehaviour:
       \uBE44\uAD50, True, False\uB97C \uB123\uC2B5\uB2C8\uB2E4. \uAC12 \uBE44\uAD50\uAC00
       \uD544\uC694\uD558\uBA74 \uBE44\uAD50 \uBE14\uB85D \uC548\uC5D0 \uC22B\uC790\uB098
       \uAC70\uB9AC \uAC12\uC744 \uB123\uC73C\uC138\uC694."
-    example: "if 2 < 3:\n    Attack()"
+    example: "if 2 < 3:\n    slash(enemy)"
   - kind: 4
     button: {fileID: 293882988}
     label: {fileID: 490168175}
@@ -30936,7 +30936,7 @@ MonoBehaviour:
       \uC544\uB798\uC5D0 \uC5F0\uACB0\uD569\uB2C8\uB2E4. \uC55E\uC120 \uC870\uAC74\uC774
       \uBAA8\uB450 False\uC774\uACE0 \uC774 \uC870\uAC74\uC774 True\uC77C \uB54C
       \uC2E4\uD589\uD569\uB2C8\uB2E4."
-    example: "if 3 < 2:\n    Attack()\nelif 2 < 3:\n    slash()"
+    example: "if 3 < 2:\n    slash(enemy)\nelif 2 < 3:\n    slash(enemy)"
   - kind: 5
     button: {fileID: 858101201}
     label: {fileID: 1925470796}
@@ -30944,7 +30944,7 @@ MonoBehaviour:
     description: "if \uB610\uB294 elif \uBC14\uB85C \uC544\uB798\uC5D0 \uC5F0\uACB0\uD569\uB2C8\uB2E4.
       \uC55E\uC120 \uC870\uAC74\uC774 \uBAA8\uB450 False\uC77C \uB54C \uC2E4\uD589\uD569\uB2C8\uB2E4.
       \uC870\uAC74 \uC785\uB825\uC740 \uC5C6\uC2B5\uB2C8\uB2E4."
-    example: "if 3 < 2:\n    Attack()\nelse:\n    wait(1)"
+    example: "if 3 < 2:\n    slash(enemy)\nelse:\n    wait(1)"
   - kind: 17
     button: {fileID: 826785543}
     label: {fileID: 1689862311}
@@ -30953,7 +30953,7 @@ MonoBehaviour:
       \uC788\uC2B5\uB2C8\uB2E4. \uAC00\uC7A5 \uAC00\uAE4C\uC6B4 \uBC18\uBCF5\uBB38\uC744
       \uC989\uC2DC \uB05D\uB0B4\uACE0 \uBC18\uBCF5\uBB38 \uB4A4 \uBA85\uB839\uC73C\uB85C
       \uC774\uB3D9\uD569\uB2C8\uB2E4."
-    example: "while True:\n    Attack()\n    break"
+    example: "while True:\n    slash(enemy)\n    break"
   - kind: 18
     button: {fileID: 690819505}
     label: {fileID: 912171971}
@@ -30961,7 +30961,7 @@ MonoBehaviour:
     description: "for \uB610\uB294 while \uC548\uC5D0\uB9CC \uBC30\uCE58\uD560 \uC218
       \uC788\uC2B5\uB2C8\uB2E4. \uC774\uBC88 \uBC18\uBCF5\uC758 \uB0A8\uC740 \uBA85\uB839\uC744
       \uAC74\uB108\uB6F0\uACE0 \uB2E4\uC74C \uBC18\uBCF5\uC744 \uC2DC\uC791\uD569\uB2C8\uB2E4."
-    example: "for i in range(3):\n    if i == 1:\n        continue\n    Attack()"
+    example: "for i in range(3):\n    if i == 1:\n        continue\n    slash(enemy)"
   - kind: 22
     button: {fileID: 354947182}
     label: {fileID: 1773440419}
@@ -31045,7 +31045,7 @@ MonoBehaviour:
       \uC4F8 \uC218 \uC788\uC2B5\uB2C8\uB2E4."
     example: 'wait(0.5)
 
-      Attack()'
+      slash(enemy)'
   - kind: 10
     button: {fileID: 1264060185}
     label: {fileID: 1589163245}
@@ -31063,7 +31063,7 @@ MonoBehaviour:
       <, >, <=, >=, ==.\n\n\uACB0\uACFC\uB294 True \uB610\uB294 False\uC785\uB2C8\uB2E4.
       \uB300\uC18C \uBE44\uAD50\uC5D0\uB294 \uC22B\uC790\uB97C \uB123\uC73C\uC138\uC694.
       if\uC640 elif \uC870\uAC74 \uC2AC\uB86F\uC5D0 \uC5F0\uACB0\uD569\uB2C8\uB2E4."
-    example: "if 2 < 3:\n    Attack()"
+    example: "if 2 < 3:\n    slash(enemy)"
   - kind: 12
     button: {fileID: 1646198137}
     label: {fileID: 365948797}
@@ -31071,7 +31071,7 @@ MonoBehaviour:
     description: "\uD56D\uC0C1 \uCC38\uC778 \uC870\uAC74\uC785\uB2C8\uB2E4. if \uB610\uB294
       elif \uC870\uAC74 \uC2AC\uB86F\uC5D0 \uB123\uC73C\uBA74 \uD574\uB2F9 \uC870\uAC74\uC744
       \uB9CC\uC871\uD569\uB2C8\uB2E4."
-    example: "if True:\n    Attack()"
+    example: "if True:\n    slash(enemy)"
   - kind: 13
     button: {fileID: 640585463}
     label: {fileID: 261192916}
@@ -31079,7 +31079,7 @@ MonoBehaviour:
     description: "\uD56D\uC0C1 \uAC70\uC9D3\uC778 \uC870\uAC74\uC785\uB2C8\uB2E4.
       \uC870\uAC74 \uBD84\uAE30 \uC548\uC758 \uCF54\uB4DC\uB97C \uC7A0\uC2DC \uC2E4\uD589\uD558\uC9C0
       \uC54A\uC744 \uB54C \uC0AC\uC6A9\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4."
-    example: "if False:\n    Attack()\nelse:\n    wait(1)"
+    example: "if False:\n    slash(enemy)\nelse:\n    wait(1)"
   - kind: 14
     button: {fileID: 1188441622}
     label: {fileID: 1550710765}
@@ -31091,7 +31091,7 @@ MonoBehaviour:
       \uBAA8\uB4E0 \uACBD\uB85C\uC5D0\uC11C \uC120\uC5B8\uD574\uC57C \uD569\uB2C8\uB2E4.
       \uC774\uB984\uC5D0 \uACF5\uBC31\uC744 \uB123\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
     example: "enemy = get_nearest_enemy()\nif enemy.get_distance(get_pos_x(), get_pos_y())
-      < 4:\n    Attack()"
+      < 4:\n    slash(enemy)"
   - kind: 15
     button: {fileID: 1933268393}
     label: {fileID: 749515873}
@@ -31105,7 +31105,7 @@ MonoBehaviour:
       \uC810\uC744 \uC9C0\uC6B0\uBA74 \uAE30\uBCF8 \uBCC0\uC218 \uCC38\uC870\uB85C
       \uB3CC\uC544\uAC11\uB2C8\uB2E4."
     example: "enemy = get_nearest_enemy()\nif enemy.get_distance(get_pos_x(), get_pos_y())
-      < 4:\n    Attack()"
+      < 4:\n    slash(enemy)"
   - kind: 6
     button: {fileID: 1962793866}
     label: {fileID: 1053959535}
@@ -31116,7 +31116,7 @@ MonoBehaviour:
       \uC5C6\uAC70\uB098 \uC0AC\uB77C\uC9C0\uBA74 \uAC70\uB9AC \uACC4\uC0B0\uC740
       \uBB34\uD55C\uB300\uB97C \uBC18\uD658\uD569\uB2C8\uB2E4."
     example: "enemy = get_nearest_enemy()\nif enemy.get_distance(get_pos_x(), get_pos_y())
-      < 4:\n    Attack()"
+      < 4:\n    slash(enemy)"
   - kind: 7
     button: {fileID: 720286920}
     label: {fileID: 407373871}
@@ -31127,7 +31127,7 @@ MonoBehaviour:
       \uC801\uC774 \uC0AC\uB77C\uC9C0\uBA74 \uAC70\uB9AC\uB294 \uBB34\uD55C\uB300\uC785\uB2C8\uB2E4.
       \uC22B\uC790\uB97C \uBC18\uD658\uD558\uB294 \uC6D0\uD615 \uBE14\uB85D\uC785\uB2C8\uB2E4."
     example: "enemy = get_nearest_enemy()\nif enemy.get_distance(get_pos_x(), get_pos_y())
-      < 4:\n    Attack()"
+      < 4:\n    slash(enemy)"
   - kind: 8
     button: {fileID: 1296098484}
     label: {fileID: 1649335521}

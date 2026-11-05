@@ -82,7 +82,7 @@ namespace CodingGame.Defense.Editor
             public string Demo;
             public bool Top;
             public float Hold;
-            public bool DistanceExample, BaselineExample, RestartPreview, RangedExample, Prediction, Compare;
+            public bool DistanceExample, BaselineExample, RestartPreview, RangedExample, WhileExample, Prediction, Compare;
             public int PreviewLesson;
         }
 
@@ -191,8 +191,21 @@ namespace CodingGame.Defense.Editor
             L("1-3.D03", Code(Loop5, s => { s.Preview = false; s.Pointer = "Editor.Code.Name.1.0"; s.Focus = new[] { "Editor.Code.Arg.1.0" }; })),
             L("1-3.D04", With(Observe(TutorialSignals.PreviewRetargetHit, 2), Focus(Preview, "Editor.Code.Body.1"))),
             L("1-3.D05", Focus(Preview, "Editor.Code.Body.1")), L("1-3.D06"),
-            L("1-3.E01", Click(Close, s => { s.Pointer = Close; s.Undimmed = true; })),
-            L("1-3.E01", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => { s.Id = "E01a"; s.Top = true; s.Pointer = Start; })),
+            L("1-3.F01", Click(Close, s => { s.Pointer = Close; s.Undimmed = true; })),
+            L("1-3.F02", Click(TutorialKeys.RobotButton(4), s => s.Pointer = TutorialKeys.RobotButton(4))),
+            L("1-3.F03", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, Focus(TutorialKeys.Floor))),
+            L("1-3.F04", Click(TutorialKeys.Unit(2), s => s.Pointer = TutorialKeys.Unit(2))),
+            L("1-3.F05", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Robot = 2; })),
+            L("1-3.F06", Signal(TutorialSignals.CodeLinePlaced, new[] { Drop, Palette }, s => {
+                s.Expected = "1:While"; s.Pointer = "Editor.Palette.While";
+                s.Demo = "Editor.Palette.While>Editor.Code.Start";
+                s.Focus = new[] { "Editor.Palette.While", "Editor.Code.Start" };
+            })),
+            L("1-3.F06a", s => { s.Robot = 2; s.WhileExample = true; s.PreviewLesson = 4; s.Focus = new[] { Drop }; }),
+            L("1-3.F07", With(Observe(TutorialSignals.PreviewProgramEnded, restart:true), Focus(Preview))),
+            L("1-3.F08", Focus(Drop, Preview)),
+            L("1-3.F09", Click(Close, s => { s.Pointer = Close; s.Undimmed = true; })),
+            L("1-3.E01a", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => { s.Top = true; s.Pointer = Start; })),
             L("1-3.E02", s => s.Trigger = TutorialSignals.WaveCleared),
             L("1-3.E03", Click("Battle.ClaimRewards", s => { s.Top = true; s.Pointer = "Battle.ClaimRewards"; }))
         };
@@ -210,7 +223,7 @@ namespace CodingGame.Defense.Editor
         // Script code names in the code colour (1-4 already has backticks).
         static readonly Regex CodeNames = new Regex(@"(?<![A-Za-z0-9_.`])(" + string.Join("|", new[] {
             "enemy.distance(get_my_pos())", ".distance(get_my_pos())", "enemy.distance()", "get_nearest_enemy()", "get_my_pos()", "my_attack_range()",
-            "enemy_distance", "slash(enemy)", "slash()", ".hp", "enemy", "if", "<=" }.Select(Regex.Escape)) + @")(?![A-Za-z0-9_(`])");
+            "enemy_distance", "slash(enemy)", "slash()", "attack(enemy)", ".hp", "enemy", "if", "<=" }.Select(Regex.Escape)) + @")(?![A-Za-z0-9_(`])");
 
         static Dictionary<string, Line> ParseScript(string path)
         {
@@ -251,7 +264,7 @@ namespace CodingGame.Defense.Editor
                     pointerKey = s.Pointer, autoSelectSlot = s.AutoSlot, hintCode = s.HintCode, pointerDelay = s.PointerDelay,
                     closeEditor = s.CloseEditor, clearProgram = s.ClearProgram, openEditor = s.OpenEditor, robotIndex = s.Robot,
                     prepareDistanceExample = s.DistanceExample, prepareBaselineExample = s.BaselineExample, restartPreview = s.RestartPreview,
-                    previewLesson = s.PreviewLesson, prepareRangedExample = s.RangedExample, prediction = s.Prediction, compareRepeats = s.Compare,
+                    previewLesson = s.PreviewLesson, prepareRangedExample = s.RangedExample, prepareWhileExample = s.WhileExample, prediction = s.Prediction, compareRepeats = s.Compare,
                     introEntrance = s.Intro, undimmed = s.Undimmed, alertCards = s.Cards, autoAdvance = s.Auto, dismissable = s.Dismissable, holdSeconds = s.Hold, dragDemo = s.Demo };
             }).ToArray();
             EditorUtility.SetDirty(sequence);

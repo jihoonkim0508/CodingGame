@@ -36,7 +36,9 @@ namespace CodingGame.Defense
                 throw new InvalidOperationException("DefenseCodeEditor Inspector 참조를 연결하세요.");
             panel.ApplyToTarget = Apply;
             panel.BlockDropped += OnBlockDropped;
-            panel.IsAvailable = kind => editingSession == null || editingSession.Options.unlockAll || editingSession.Available(kind, editingId) > 0;
+            panel.IsAvailable = kind => editingSession == null ||
+                ((kind != BlockKind.Shot && kind != BlockKind.Attack || editingSession.FindRobot(editingId)?.Spec.role == RobotRole.Shooter) &&
+                 (editingSession.Options.unlockAll || editingSession.Available(kind, editingId) > 0));
             panel.Remaining = kind => editingSession == null ? 0 : Math.Max(0, editingSession.Available(kind, editingId) - panel.Program.AllBlocks().Count(b => DefenseProgression.Canonical(b.Kind) == DefenseProgression.Canonical(kind)));
             closeButton.onClick.AddListener(() => Close());
             automaticButton.onClick.AddListener(RestoreAutomatic);
@@ -135,6 +137,25 @@ namespace CodingGame.Defense
             loop.Body.Add(new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)));
             panel.LoadProgram(panel.FunctionName, new[] { loop });
             if (!panel.IsApplied) throw new InvalidOperationException("원거리 기초 코드 지급량을 확인하세요.");
+        }
+        public void PrepareWhileExample()
+        {
+            if (!IsOpen || !HasCurrentSession) return;
+            if (editingSession.FindRobot(editingId).Spec.role != RobotRole.Shooter)
+                throw new InvalidOperationException("while 사격 예시는 원거리 로봇에서만 사용할 수 있습니다.");
+            var loop = new CodeBlock(BlockKind.While);
+            loop.Body.Add(new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)));
+            loop.Body.Add(new CodeBlock(BlockKind.Shot, "0", new CodeBlock(BlockKind.Variable, "enemy")));
+            loop.Body.Add(new CodeBlock(BlockKind.Wait, "0", new CodeBlock(BlockKind.Number, "0.5")));
+            var stop = new CodeBlock(BlockKind.If, "0",
+                new CodeBlock(BlockKind.Comparison, "==",
+                    new CodeBlock(BlockKind.Hp, "0", new CodeBlock(BlockKind.Variable, "enemy")),
+                    new CodeBlock(BlockKind.Number, "0")));
+            stop.Body.Add(new CodeBlock(BlockKind.Break));
+            loop.Body.Add(stop);
+            panel.LoadProgram(panel.FunctionName, new[] { loop });
+            if (!panel.IsApplied) throw new InvalidOperationException("while 사격 예시의 블록 지급량을 확인하세요.");
+            RestartPreview();
         }
         public void ConfigurePreviewLesson(int mode) => battle.ConfigurePreviewLesson(mode);
         public void RestartPreview() => battle.RestartCodePreview();

@@ -128,7 +128,9 @@ namespace CodingGame.Defense
             };
             if (lessonMode > 0)
             {
-                var enemy = HarmlessEnemy(); enemy.speed = .01f; enemy.health = Math.Max(1, selected.Damage * 100);
+                var enemy = HarmlessEnemy(); enemy.speed = .01f;
+                // The while lesson lets the target die so the preview reaches the break branch.
+                enemy.health = Math.Max(1, selected.Damage * (lessonMode == 4 ? 2.5f : 100f));
                 setup.Routes = new[] { new Route(new[] { new Point(0, 0), new Point(-20, 0) }, .01f),
                     new Route(new[] { new Point(2.5f, 0), new Point(-20, 0) }, .01f) };
                 setup.Waves = new[] { lessonMode == 2 ? new[] {
@@ -136,6 +138,7 @@ namespace CodingGame.Defense
                     new SpawnGroup { Enemy = enemy.Copy(), RouteIndex = 1, Count = 1, Interval = 1 }
                 } : new[] { new SpawnGroup { Enemy = enemy, Count = 1, Interval = 1 } } };
                 if (lessonMode == 2) setup.Waves[0][0].Enemy.health = Math.Max(1, selected.Damage * .5f);
+                if (lessonMode == 4) { setup.Waves[0][0].Count = 2; setup.Waves[0][0].Interval = 20; }
             }
             if (RangedConditionLesson) { setup.Waves[0][0].Enemy.health = 1000; setup.Waves[0][0].Enemy.speed = 1.2f; }
             CopyRules(setup);

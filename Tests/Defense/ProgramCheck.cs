@@ -21,6 +21,86 @@ static class ProgramCheck
     static RobotState Bot(DefenseSimulation sim, RobotRole role=RobotRole.Warrior,float x=-9)
         => sim.Place(new RobotSpec{role=role,range=6,damage=role==RobotRole.Buffer?0:20,interval=.1f},(int)role,new Vector2(x,role==RobotRole.Tank?0:2),out _);
     static void Tick(DefenseSimulation sim,int frames) { for(int i=0;i<frames;i++)sim.Advance(1.0/60); }
+    public static void RunAttackCounts()
+    {
+        CheckRangePause();
+        var maximum = Make(); maximum.Setup.TestOptions.enemyMovement = false;
+        var maximumBot = Bot(maximum);
+        var ten = new CodeBlock(BlockKind.For, "0", N("10"));
+        ten.Body.Add(new CodeBlock(BlockKind.Slash, "0", new CodeBlock(BlockKind.NearestEnemy)));
+        maximum.ApplyProgram(maximumBot.Id, "ten_attacks", new[] { ten });
+        maximum.Start(); Tick(maximum, 180);
+        Assert(maximumBot.AttacksThisWave == 10 && maximumBot.Program.CompletedRuns == 1 && maximumBot.Program.Fault == null,
+            "ten loop iterations execute ten attacks");
+        Assert(Math.Abs(maximum.Enemies.Single().Health - (10000 - maximum.ActionDamage(maximumBot, RobotAction.Slash) * 9.5f)) < .01f,
+            "ten repeated attacks taper from full damage to ten percent reduction");
+        foreach (var role in new[] { RobotRole.Warrior, RobotRole.Shooter })
+        foreach (int repetitions in new[] { 0, 1, 3, 5 })
+        foreach (bool fragile in new[] { false, true })
+        {
+            var setup = Make().Setup;
+            setup.Waves[0][0].Count = 8;
+            setup.Waves[0][0].Interval = fragile ? 1.1f : .1f;
+            setup.Waves[0][0].Enemy.health = fragile ? 1 : 10000;
+            var sim = new DefenseSimulation(setup);
+            var robot = Bot(sim, role);
+            var target = new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy));
+            var attack = new CodeBlock(role == RobotRole.Warrior ? BlockKind.Slash : BlockKind.Shot,
+                "0", new CodeBlock(BlockKind.Variable, "enemy"));
+            var loop = new CodeBlock(BlockKind.For, "0", N(repetitions.ToString()));
+            loop.Body.Add(target); loop.Body.Add(attack);
+            // Wait for the slash/projectile to land before looking up the next living enemy.
+            if (fragile) loop.Body.Add(new CodeBlock(BlockKind.Wait, "0", N("1.2")));
+            sim.ApplyProgram(robot.Id, "counted_attacks", repetitions == 0 ? new[] { target, attack } : new[] { loop });
+            sim.Start(); Tick(sim, 600);
+            int expected = repetitions == 0 ? 1 : repetitions;
+            string scenario = $"{role}, repetitions={repetitions}, fragile={fragile}";
+            Assert(robot.AttacksThisWave == expected, "attacks follow code, not monster count: " + scenario);
+            Assert(robot.Program.CompletedRuns == 1 && robot.Program.Completed(sim) && robot.Program.Fault == null,
+                "one completed program run: " + scenario);
+            Assert(!sim.HasPendingActions(robot.Id), "final attack finishes: " + scenario);
+            Assert(fragile ? sim.Kills == expected : sim.Enemies.Any(e => e.Health < e.Spec.health),
+                "loop repeats on a living target or finds a new one after a kill: " + scenario);
+            Tick(sim, 120);
+            Assert(robot.AttacksThisWave == expected, "surviving monsters do not restart code: " + scenario);
+        }
+        Console.WriteLine($"Attack count checks passed: {checks}");
+    }
+    static void CheckRangePause()
+    {
+        var setup = Make().Setup; setup.TestOptions.enemyMovement = false;
+        var sim = new DefenseSimulation(setup);
+        var bot = Bot(sim);
+        var loop = new CodeBlock(BlockKind.For, "0", N("3"));
+        loop.Body.Add(new CodeBlock(BlockKind.Slash, "0", new CodeBlock(BlockKind.Variable, "enemy")));
+        sim.ApplyProgram(bot.Id, "range_pause", new[] {
+            new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)), loop });
+        sim.Start();
+        for (int frame = 0; frame < 30 && bot.AttacksThisWave == 0; frame++) Tick(sim, 1);
+        Assert(bot.AttacksThisWave == 1 && bot.Program.LoopIteration == 0,
+            "first attack counts once while its loop body is still finishing");
+        var enemy = sim.Enemies.Single();
+        enemy.Position = new Vector2(10, 0);
+        Tick(sim, 40);
+        Assert(bot.AttacksThisWave == 1 && bot.Program.LoopIteration == 1 && bot.Program.CompletedRuns == 0,
+            "out-of-range enemy pauses the next attack and loop count");
+        enemy.Position = new Vector2(-10, 0);
+        Tick(sim, 90);
+        Assert(bot.AttacksThisWave == 3 && bot.Program.LoopIteration == 3 && bot.Program.CompletedRuns == 1,
+            "loop resumes and spends only successful attacks");
+
+        sim = new DefenseSimulation(setup); bot = Bot(sim);
+        sim.ApplyProgram(bot.Id, "retarget", new[] {
+            new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)), loop });
+        sim.Start();
+        for (int frame = 0; frame < 30 && bot.AttacksThisWave == 0; frame++) Tick(sim, 1);
+        enemy = sim.Enemies.Single(); enemy.Active = false;
+        var replacement = new EnemyState { Id = 999, Spec = enemy.Spec, Health = 10000, Position = enemy.Position };
+        sim.Enemies.Add(replacement);
+        Tick(sim, 90);
+        Assert(bot.AttacksThisWave == 3 && replacement.Health < 10000 && bot.Program.CompletedRuns == 1,
+            "nearest-enemy variable reacquires a replacement without spending an empty iteration");
+    }
     static void CheckTankLifecycle()
     {
         DefenseSimulation Scenario(int count) => new DefenseSimulation(new BattleSetup { Progression = FixtureProgression.Create(),
@@ -66,6 +146,7 @@ static class ProgramCheck
     }
     public static void Run()
     {
+        RunAttackCounts();
         CheckTankLifecycle();
         // Same close spawn and cooldown as the authored tank preview.
         var tankSetup = new BattleSetup { Progression = FixtureProgression.Create(),
@@ -144,7 +225,48 @@ static class ProgramCheck
         sim=Make();robot=Bot(sim);
         var endless=new CodeBlock(BlockKind.While);
         sim.ApplyProgram(robot.Id,"empty_loop",new[]{endless});sim.Start();Tick(sim,2);
-        Assert(robot.Program.StepsLastTick==DefenseProgram.InstructionBudget&&robot.Program.Fault==null&&sim.Time>0,"empty infinite loop bounded per tick");
+        Assert(robot.Program.LoopCount==10&&robot.Program.StepsLastTick<=DefenseProgram.InstructionBudget&&
+            robot.Program.Fault==null&&sim.Time>0,"empty while loop remains bounded by ten iterations");
+
+        var shooterSetup=Make().Setup;
+        shooterSetup.Waves[0][0].Enemy.health=45;
+        shooterSetup.Waves[0][0].Count=2;
+        shooterSetup.Waves[0][0].Interval=20;
+        sim=new DefenseSimulation(shooterSetup);robot=Bot(sim,RobotRole.Shooter);
+        var fireUntilDefeated=new CodeBlock(BlockKind.While);
+        fireUntilDefeated.Body.Add(new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)));
+        fireUntilDefeated.Body.Add(new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.Variable,"enemy")));
+        fireUntilDefeated.Body.Add(new CodeBlock(BlockKind.Wait,"0",N("0.5")));
+        var stopWhenDefeated=new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,"==",
+            new CodeBlock(BlockKind.Hp,"0",new CodeBlock(BlockKind.Variable,"enemy")),N("0")));
+        stopWhenDefeated.Body.Add(new CodeBlock(BlockKind.Break));
+        fireUntilDefeated.Body.Add(stopWhenDefeated);
+        sim.ApplyProgram(robot.Id,"shooter_while",new[]{fireUntilDefeated});sim.Start();Tick(sim,300);
+        Assert(robot.Program.Fault==null&&sim.Kills==1&&robot.AttacksThisWave>1&&robot.AttacksThisWave<10&&
+            robot.Program.CompletedRuns==1,$"shooter while example fires until the target dies then breaks: fault={robot.Program.Fault}, kills={sim.Kills}, attacks={robot.AttacksThisWave}, runs={robot.Program.CompletedRuns}");
+
+        var lessonSetup=Make().Setup;
+        lessonSetup.PlayerFlow=true;lessonSetup.Stage=1;lessonSetup.InitialWave=2;
+        lessonSetup.PreviousStageRewards=true;
+        lessonSetup.Waves=Enumerable.Repeat(lessonSetup.Waves[0],3).ToArray();
+        lessonSetup.Progression=FixtureProgression.Create();
+        lessonSetup.Progression.initial=Array.Empty<BlockStock>();
+        lessonSetup.Progression.robots=Array.Empty<RobotStock>();
+        lessonSetup.Progression.lessons=DefenseCurriculum.Create();
+        var lesson=new DefenseSimulation(lessonSetup);
+        var first=Bot(lesson,RobotRole.Warrior,-9);
+        var second=Bot(lesson,RobotRole.Warrior,-5);
+        var ranged=Bot(lesson,RobotRole.Shooter,-1);
+        Assert(first!=null&&second!=null&&ranged!=null,"1-3 grants two warriors and a shooter");
+        var warriorLoop=new CodeBlock(BlockKind.For,"0",N("5"));
+        warriorLoop.Body.Add(new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)));
+        warriorLoop.Body.Add(new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"enemy")));
+        lesson.ApplyProgram(first.Id,"warrior_for",new[]{warriorLoop});
+        lesson.ApplyProgram(second.Id,"warrior_basic",new[]{
+            new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)),
+            new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"enemy"))});
+        lesson.ApplyProgram(ranged.Id,"shooter_while",new[]{fireUntilDefeated});
+        Assert(lesson.StartError()==null,"1-3 grants enough blocks for both tutorial examples");
 
         sim=Make();robot=Bot(sim);
         var condition=new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.False));condition.Body.Add(new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy)));

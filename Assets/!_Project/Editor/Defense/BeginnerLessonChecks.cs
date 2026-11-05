@@ -293,6 +293,7 @@ namespace CodingGame.Defense.Editor
                 return;
             }
             if (step.targetKeys.Contains(TutorialKeys.RobotButton(1))) { battle.ChooseRobot(1); return; }
+            if (step.targetKeys.Contains(TutorialKeys.RobotButton(4))) { battle.ChooseRobot(4); return; }
             if (step.completionSignal == TutorialSignals.RobotPlaced)
             {
                 if (key == "1/B02")
@@ -303,9 +304,10 @@ namespace CodingGame.Defense.Editor
                     Require(Field<int>(battle, "palette") == 1 && sim.Robots.Count == 0,
                         "Releasing a slight drag over the robot button cleared the selected robot");
                 }
-                PlaceBest(battle, 1); return;
+                PlaceBest(battle, step.stepId == "F03" ? 4 : 1); return;
             }
             if (step.targetKeys.Contains(TutorialKeys.Unit(0))) { battle.SelectRobot(TutorialWatcher.TeachingRobot(sim).Id); return; }
+            if (step.targetKeys.Contains(TutorialKeys.Unit(2))) { battle.SelectRobot(TutorialWatcher.Robot(sim, 2).Id); return; }
             if (step.completionSignal == TutorialSignals.EditorOpened) { battle.DevelopSelected(); return; }
             if (step.completionSignal == TutorialSignals.BattleStarted) { battle.StartBattle(); return; }
             if (step.completionSignal == TutorialSignals.PreviewHit ||

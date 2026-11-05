@@ -157,12 +157,15 @@ namespace CodingGame.Defense.Editor
             var current = StageOneSequence(wave);
             var done = Enumerable.Range(1, wave - 1).Select(StageOneSequence).Where(s => s).SelectMany(s => s.steps)
                 .Concat(current ? current.steps.Take(step) : Enumerable.Empty<TutorialStep>()).ToList();
-            int robots = done.Count(s => s.completionSignal == TutorialSignals.RobotPlaced);
-            while (b.Simulation.Robots.Count < robots) PlaceTeachingRobot(b, RobotRole.Warrior);
-            var warriors = b.Simulation.Robots.Where(r => r.Spec.role == RobotRole.Warrior).OrderBy(r => r.Id).ToList();
+            int warriors = done.Count(s => s.completionSignal == TutorialSignals.RobotPlaced && s.stepId != "F03");
+            while (b.Simulation.Robots.Count(r => r.Spec.role == RobotRole.Warrior) < warriors)
+                PlaceTeachingRobot(b, RobotRole.Warrior);
+            if (done.Any(s => s.stepId == "F03" && s.completionSignal == TutorialSignals.RobotPlaced) &&
+                !b.Simulation.Robots.Any(r => r.Spec.role == RobotRole.Shooter))
+                PlaceTeachingRobot(b, RobotRole.Shooter);
             foreach (var answers in done.Where(s => s.completionSignal == TutorialSignals.ProgramMatches).GroupBy(s => s.robotIndex))
             {
-                var bot = answers.Key < warriors.Count ? warriors[answers.Key] : null;
+                var bot = TutorialWatcher.Robot(b.Simulation, answers.Key);
                 if (bot == null || bot.Program != null) continue;
                 try { b.Simulation.ApplyProgram(bot.Id, "robot_" + bot.Id, TutorialAnswers.Parse(answers.Last().expectedCode)); }
                 catch (FormatException e) { Debug.LogWarning($"튜토리얼 코드 복원 실패 (로봇 {bot.Id}): {e.Message}"); }
