@@ -45,6 +45,11 @@ namespace CodingGame.BlockCoding
         const float Corner = 8, Shadow = 3, LiftedShadow = 9;
         // A dragged block's copy: its shadow falls further, as if held above the editor.
         public bool Lifted { get; set; }
+        // 0..1: an unavailable block (out of stock, or left behind while dragged) mixed towards the paper, drawn opaque; alpha
+        // would show the loop's overlapping header, arm and foot as darker seams.
+        public float Fade { get; set; }
+        static readonly Color FadeTo = new Color(.945f, .906f, .827f); // UITheme.PaperDeep
+        Color Faded(Color c) => Fade > 0 ? Color.Lerp(c, new Color(FadeTo.r, FadeTo.g, FadeTo.b, c.a), Fade) : c;
         static readonly Color Ink = new Color(.149f, .165f, .243f);
         bool? isBlock;
         protected override void OnPopulateMesh(VertexHelper vh)
@@ -84,10 +89,10 @@ namespace CodingGame.BlockCoding
                 }
             }
             float line = isBlock.Value ? 3 : 2;
-            var ink = new Color(Ink.r, Ink.g, Ink.b, color.a);
-            if (isBlock.Value) foreach (var part in parts) Polygon(vh, r, Grow(part, line), new Color(Ink.r, Ink.g, Ink.b, (Lifted ? .3f : .25f) * color.a), Lifted ? LiftedShadow : Shadow);
+            var ink = Faded(new Color(Ink.r, Ink.g, Ink.b, color.a));
+            if (isBlock.Value && Fade < 1) foreach (var part in parts) Polygon(vh, r, Grow(part, line), new Color(Ink.r, Ink.g, Ink.b, (Lifted ? .3f : .25f) * color.a * (1 - Fade)), Lifted ? LiftedShadow : Shadow);
             foreach (var part in parts) Polygon(vh, r, Grow(part, line), ink, 0);
-            foreach (var part in parts) Polygon(vh, r, part, color, 0);
+            foreach (var part in parts) Polygon(vh, r, part, Faded(color), 0);
             vh.GetUIVertexStream(hitTriangles);
         }
 

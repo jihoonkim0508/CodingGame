@@ -22,7 +22,7 @@ namespace CodingGame.Defense.Editor
         // 9-slice borders (left, bottom, right, top) of what Editor/UI~/ui_sprites.py draws.
         static readonly Dictionary<string, Vector4> Borders = new Dictionary<string, Vector4> {
             ["ui_card"] = new Vector4(24, 30, 24, 24), ["ui_card_flat"] = new Vector4(20, 20, 20, 20), ["ui_button"] = new Vector4(22, 34, 22, 22),
-            ["ui_pill"] = new Vector4(27, 31, 27, 27), ["ui_chip"] = new Vector4(23, 23, 23, 23),
+            ["ui_pill"] = new Vector4(27, 31, 27, 27), ["ui_chip"] = new Vector4(23, 23, 23, 23), ["ui_tab"] = new Vector4(13, 16, 13, 13),
             ["ui_bar_bottom"] = new Vector4(2, 2, 2, 15), ["ui_bar_top"] = new Vector4(2, 15, 2, 2), ["ui_circle"] = Vector4.zero, ["ui_grid"] = Vector4.zero, ["ui_arrow"] = Vector4.zero, ["ui_fill"] = new Vector4(18, 18, 18, 18) };
 
         sealed class Rule
@@ -62,7 +62,7 @@ namespace CodingGame.Defense.Editor
             R("RobotCodeEditor/Editor/TitleBar/FunctionName", "ui_card_flat", White, Ink),
             R("RobotCodeEditor/Editor/PreviewPanel", "ui_card", UITheme.Paper, Ink),
             R("RobotCodeEditor/Library", "ui_card", UITheme.Paper, Ink),
-            R("RobotCodeEditor/Library/Categories/Category\\d", "ui_pill", UITheme.PaperDeep, Ink, still: true),
+            R("RobotCodeEditor/Library/Categories/Category\\d", "ui_tab", UITheme.PaperDeep, Ink, still: true),
             R("RobotCodeEditor/RobotStats", "ui_card", UITheme.Paper, Ink),
             R("RobotCodeEditor/RobotStats/Recall", "ui_button", UITheme.Coral, White, true, White),
             R("RobotCodeEditor/Automatic", "ui_button", UITheme.Paper, Ink, icon: UITheme.Coral),

@@ -38,6 +38,7 @@ sticker("ui_card_flat", 96, 96, 16, 3, 0)          # inner panels: outline, no s
 sticker("ui_button", 96, 96, 18, 4, 5, lip=7)
 sticker("ui_pill", 96, 48, 23, 3, 4)
 sticker("ui_chip", 64, 40, 19, 3, 0)               # small tags over the map
+sticker("ui_tab", 96, 48, 9, 3, 3)                 # the code editor's palette tabs: squarer than a pill
 
 # A plain rounded shape without outline or shadow: the fill inside a sticker (the core health bar).
 img = Image.new("RGBA", (48 * SS, 48 * SS), (0, 0, 0, 0))

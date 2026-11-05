@@ -145,14 +145,16 @@ namespace CodingGame.BlockCoding
             stockLabel.text = count >= int.MaxValue / 2 ? "∞" : "×" + count; // unlimited stock minus blocks in use is still unlimited
             stockLabel.gameObject.SetActive(counted);
             // Out-of-stock palette blocks stay visible (so players learn they exist) but read as unavailable.
-            if (counted) canvasGroup.alpha = count > 0 ? 1 : .4f;
+            if (counted) SetFaded(count <= 0);
         }
         // The look of the block's palette tab (UITheme.BlockCategories): the face in its colour with white Pretendard Bold labels, and
         // value holes, inputs and the loop's mouth in paper with ink text, so they read as places to fill (play feedback: the dark
         // holes looked disabled). Placed blocks are copies of palette blocks and keep it.
         internal void Style(Color face)
         {
-            shape.color = face;
+            // A number is a literal: a paper pill with its digits in ink, not an orange block round a white field.
+            bool literal = kind == BlockKind.Number;
+            shape.color = literal ? UITheme.Paper : face;
             foreach (var graphic in GetComponentsInChildren<Graphic>(true))
             {
                 var list = graphic.GetComponentInParent<ScrollRect>(true);
@@ -164,28 +166,47 @@ namespace CodingGame.BlockCoding
                     if (text.name == "Hint") text.color = UITheme.Muted;
                     else if (text.name == "Arrow") text.color = UITheme.Ink;
                 }
+                // The loop's mouth is see-through, so the C reads as one shape round the code it holds (play feedback: its paper
+                // panel and outline looked broken, with a white bar over the foot).
+                else if (graphic.name == "Body") graphic.color = Color.clear;
                 else if (graphic is CommandBlockShape) graphic.color = UITheme.Paper;
-                else if (graphic.name == "Body") graphic.color = new Color(1, 1, 1, .6f);
             }
-            // The fields' colour tints multiply the paper; their dark tints made the inputs look like holes.
+            // The fields' colour tints multiply the paper; their dark tints made the inputs look like holes. Rounded (7 px) so two fields
+            // side by side (enemy. and distance( in a condition) read as two places to fill, not one white bar; a palette block's
+            // fields are not interactable, and the disabled tint turned them grey.
             foreach (var field in new Selectable[] { input, dropdown })
             {
                 if (!field) continue;
+                if (field.targetGraphic is Image box && UITheme.Fill)
+                { box.sprite = UITheme.Fill; box.type = Image.Type.Sliced; box.pixelsPerUnitMultiplier = 16f / 7; }
                 if (field.targetGraphic) field.targetGraphic.color = UITheme.Paper;
                 field.colors = new ColorBlock { normalColor = Color.white, highlightedColor = new Color(.96f, .96f, .96f), pressedColor = new Color(.86f, .86f, .86f),
-                    selectedColor = Color.white, disabledColor = new Color(.8f, .8f, .8f), colorMultiplier = 1, fadeDuration = .08f };
+                    selectedColor = Color.white, disabledColor = Color.white, colorMultiplier = 1, fadeDuration = .08f };
             }
-            if (input && input.textComponent) input.textComponent.color = UITheme.Ink;
+            // The method list (distance( …) was 205 px wide, mostly empty, and pushed a condition off the code area.
+            if (dropdown && kind == BlockKind.Variable && dropdown.TryGetComponent<LayoutElement>(out var method)) method.preferredWidth = method.minWidth = 136;
+            if (literal && input && input.targetGraphic) input.targetGraphic.color = Color.clear;
+            if (input && input.textComponent)
+            {
+                input.textComponent.color = UITheme.Ink;
+                if (literal) input.textComponent.alignment = TextAlignmentOptions.Center;
+            }
+            if (stockLabel)
+            {
+                if (UITheme.Bold) stockLabel.font = UITheme.Bold;
+                stockLabel.fontStyle &= ~FontStyles.Bold; stockLabel.alignment = TextAlignmentOptions.Center; stockLabel.color = UITheme.Ink;
+                stockLabel.rectTransform.pivot = new Vector2(.5f, .5f); stockLabel.rectTransform.sizeDelta = new Vector2(40, 28);
+            }
             if (input && input.placeholder is Graphic placeholder) placeholder.color = UITheme.Muted;
             if (dropdown && dropdown.captionText) dropdown.captionText.color = UITheme.Ink;
         }
         void LateUpdate()
         {
             if (!IsPalette || !stockLabel || !stockLabel.gameObject.activeSelf) return;
-            // Keep differently sized block silhouettes while sharing one right-aligned count column.
+            // One count column at the palette's right edge for every block, each count centred in it and on its block's first line.
             var edge = rect.InverseTransformPoint(stockColumn.TransformPoint(new Vector3(stockColumn.rect.xMax - 8, 0, 0)));
             var label = stockLabel.rectTransform;
-            label.anchoredPosition = new Vector2(edge.x - rect.rect.xMax, -3);
+            label.anchoredPosition = new Vector2(edge.x - rect.rect.xMax - label.rect.width * .5f, -Mathf.Min(rect.rect.height, headHeight) * .5f);
         }
         public void SelectOption(int value) { dropdown.value = value; }
         internal void LoadData(CodeBlock data)
@@ -247,8 +268,18 @@ namespace CodingGame.BlockCoding
         // deeper shadow (비주얼_레퍼런스.md 4).
         public void SetDragAppearance(bool dragged)
         {
-            canvasGroup.alpha = dragged ? .4f : 1;
+            SetFaded(dragged);
             canvasGroup.blocksRaycasts = !dragged;
+        }
+        // Shapes mix towards the paper (CommandBlockShape.Fade, opaque); texts and fields dim through their renderers.
+        void SetFaded(bool faded)
+        {
+            foreach (var graphic in GetComponentsInChildren<Graphic>(true))
+            {
+                if (graphic.GetComponentInParent<CommandBlockView>(true) != this) continue;
+                if (graphic is CommandBlockShape part) { part.Fade = faded ? .65f : 0; part.SetVerticesDirty(); }
+                else graphic.canvasRenderer.SetAlpha(faded ? .45f : 1);
+            }
         }
         public void SetGhostAppearance()
         {

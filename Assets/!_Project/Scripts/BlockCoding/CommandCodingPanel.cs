@@ -107,11 +107,38 @@ namespace CodingGame.BlockCoding
                 dot.sprite = UITheme.Circle; dot.color = UITheme.BlockCategories[Mathf.Min(i, UITheme.BlockCategories.Length - 1)]; dot.raycastTarget = false;
                 tabDots.Add(dot);
             }
+            Breathe();
             // The shortcut line sits on the blue backdrop: bold, outlined and 18 px at least (3.7:1 bare white).
             if (UITheme.Bold && UITheme.Caption) { status.font = UITheme.Bold; status.fontSharedMaterial = UITheme.Caption; status.fontSize = Mathf.Max(18, status.fontSize); }
             selected = program;
             ShowCategory(0);
             Changed();
+        }
+        // Room to breathe (play feedback: no padding looked cramped; the palette's edge also clipped the blocks' outlines, which
+        // are drawn 3 px outside them): tabs squarer than pills and a little apart, the palette inset from its card with a
+        // margin round its blocks and one column the width of the card, and the code area plain paper without the grid.
+        void Breathe()
+        {
+            const float Inset = 12;
+            foreach (var tab in categoryButtons)
+                if (tab && tab.targetGraphic is Image face && UITheme.Tab) UITheme.Style(face, UITheme.Tab, face.color);
+            var tabs = categoryButtons.Length > 0 && categoryButtons[0] ? categoryButtons[0].transform.parent as RectTransform : null;
+            if (tabs)
+            {
+                tabs.sizeDelta = new Vector2(-2 * Inset, tabs.sizeDelta.y);
+                if (tabs.TryGetComponent<HorizontalLayoutGroup>(out var row)) row.spacing = 6;
+            }
+            var content = palette.Length > 0 && palette[0].view ? palette[0].view.transform.parent as RectTransform : null;
+            if (content && content.parent is RectTransform viewport)
+            {
+                viewport.sizeDelta = new Vector2(-2 * Inset, viewport.sizeDelta.y);
+                content.anchorMin = new Vector2(0, 1); content.anchorMax = new Vector2(1, 1);
+                content.sizeDelta = new Vector2(0, content.sizeDelta.y);
+                // Left and top room for the outlines and shadows; the counts take the right edge (CommandBlockView.LateUpdate).
+                if (content.TryGetComponent<VerticalLayoutGroup>(out var column)) { column.padding = new RectOffset(8, 0, 10, 24); column.spacing = 14; }
+            }
+            if (program.transform.parent && program.transform.parent.TryGetComponent<Image>(out var paper))
+            { paper.sprite = null; paper.type = Image.Type.Simple; paper.color = UITheme.GridPaper; }
         }
         public void ShowCategory(int category)
         {
