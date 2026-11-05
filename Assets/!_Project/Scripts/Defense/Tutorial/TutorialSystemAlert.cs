@@ -9,7 +9,7 @@ namespace CodingGame.Defense
 {
     // Lines spoken by "시스템" show here: a red alarm banner (outlined message on a hazard-striped bar over a pulsing red
     // vignette) that plays the warning sound and fades out after a fixed time. With cards (1-1 A01) three warning cards
-    // slam in above the bar first. The visuals are built at run time inside the scene's boot overlay (panel + CanvasGroup).
+    // slam in above the bar first, each with the sound. The visuals are built at run time inside the scene's boot overlay (panel + CanvasGroup).
     public sealed class TutorialSystemAlert : MonoBehaviour
     {
         [SerializeField] GameObject panel;
@@ -27,6 +27,7 @@ namespace CodingGame.Defense
         static readonly Color Red = new Color(1, .16f, .2f), DarkRed = new Color(.32f, .02f, .04f);
         float clock, duration;
         bool withCards;
+        int sounded;
         RectTransform bar, stripes, shake;
         Image vignette;
         readonly List<(RectTransform rect, CanvasGroup group)> cards = new List<(RectTransform, CanvasGroup)>();
@@ -52,8 +53,9 @@ namespace CodingGame.Defense
             // The bar sits under the cards, or in the middle on its own.
             bar.anchoredPosition = new Vector2(0, showCards ? -40 : 0);
             panel.SetActive(true);
+            sounded = 0;
             Animate();
-            if (warning.clip) warning.Play();
+            if (!showCards && warning.clip) warning.Play();
         }
         public void Hide() => panel.SetActive(false);
 
@@ -66,6 +68,7 @@ namespace CodingGame.Defense
             float step = Time.unscaledDeltaTime;
             if (step < .25f) clock += step;
             if (clock >= duration) { Hide(); return; }
+            while (withCards && sounded < cards.Count && clock >= Land(sounded)) { sounded++; if (warning.clip) warning.PlayOneShot(warning.clip); }
             Animate();
         }
 

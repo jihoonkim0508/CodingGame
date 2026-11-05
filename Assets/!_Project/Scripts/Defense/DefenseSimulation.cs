@@ -206,37 +206,8 @@ namespace CodingGame.Defense
         {
             if (Phase != BattlePhase.Ready) return "준비 단계에서 시작할 수 있습니다.";
             if (Setup.PlayerFlow && Robots.Count == 0) return "로봇을 먼저 배치하세요.";
-            if (Setup.PlayerFlow && Setup.Stage == 1 && WaveIndex == 1)
-            {
-                if (Robots.Count < 2) return "1-2 목표: 새 전사를 한 대 더 배치하세요.";
-                // 1-1 taught `for i in range(10): slash()`: the new warrior needs a loop with a slash in it.
-                if (!Robots.Skip(1).Any(bot => bot.Program != null && bot.Program.CopyBlocks().Any(block =>
-                    block.Kind == BlockKind.For && block.Body.Any(action => ContainsKind(action, BlockKind.Slash)))))
-                    return "1-2 목표: 새 전사에게 반복 안에서 베는 코드를 적용하세요.";
-            }
-            // 1-4: 1-3's shooter already has its if; one more robot (the new warrior) needs one too.
-            if (Setup.PlayerFlow && Setup.Stage == 1 && WaveIndex == 3 && Robots.Count(bot => HasDistanceConditionAttack(bot.Program)) < 2)
-                return "1-4 목표: 로봇 두 대가 적과의 거리를 비교하는 if 안에서 공격하게 하세요.";
             return null;
         }
-        static bool HasDistanceConditionAttack(DefenseProgram program)
-        {
-            if (program == null) return false;
-            // Anywhere in the program: with one run a wave the if sits inside a loop.
-            var blocks = Flatten(program.CopyBlocks()).ToArray();
-            var distanceNames = blocks.Where(block => block.Kind == BlockKind.DeclareVariable &&
-                block.Arguments.Any(value => ContainsKind(value, BlockKind.Distance)))
-                .Select(block => block.Value).ToArray();
-            return distanceNames.Length > 0 && blocks.Any(block => block.Kind == BlockKind.If &&
-                block.Arguments.Any(condition => condition.Kind == BlockKind.Comparison &&
-                    distanceNames.Any(name => ContainsVariable(condition, name))) &&
-                block.Body.Any(action => action.Kind == BlockKind.Slash || action.Kind == BlockKind.Shot));
-        }
-        static IEnumerable<CodeBlock> Flatten(IEnumerable<CodeBlock> blocks) => blocks.SelectMany(block => new[] { block }.Concat(Flatten(block.Body)));
-        static bool ContainsKind(CodeBlock block, BlockKind kind) => block.Kind == kind ||
-            block.Arguments.Any(child => ContainsKind(child, kind)) || block.Body.Any(child => ContainsKind(child, kind));
-        static bool ContainsVariable(CodeBlock block, string name) => block.Kind == BlockKind.Variable && block.Value == name ||
-            block.Arguments.Any(child => ContainsVariable(child, name)) || block.Body.Any(child => ContainsVariable(child, name));
         public void Start() { if (StartError() == null) { Checkpoint = Capture(); accumulated = 0; waveStart = Time; Phase = BattlePhase.Running; } }
         // The last wave start; a defeat can go back to it with Restore on a fresh simulation of the same stage and wave.
         public WaveCheckpoint Checkpoint { get; private set; }

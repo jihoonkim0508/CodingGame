@@ -37,7 +37,8 @@ namespace CodingGame.BlockCoding
         // Tutorial targets: the name field and the comparison picker, and what they hold before the line compiles.
         public RectTransform InputRect => input ? input.transform as RectTransform : null;
         public RectTransform OptionRect => dropdown ? dropdown.transform as RectTransform : null;
-        public string DraftValue => kind == BlockKind.Comparison ? PythonTreeCompiler.Comparisons[dropdown.value] : input ? input.text : null;
+        public string DraftValue => kind == BlockKind.Comparison ? PythonTreeCompiler.Comparisons[dropdown.value] :
+            kind == BlockKind.Arithmetic ? PythonTreeCompiler.Operators[dropdown.value] : input ? input.text : null;
         public string VariableName => kind == BlockKind.DeclareVariable ? input.text :
             kind == BlockKind.Variable ? (HasDot ? input.text.Substring(0, input.text.Length - 1) : input.text) : variableName;
         public string RetainedName { get; private set; }
@@ -45,10 +46,12 @@ namespace CodingGame.BlockCoding
         bool initialized;
         // Value and condition blocks are as tall as what they hold plus a small margin, at least ExpressionHeight, and as wide as
         // their contents (play feedback 3: a 122x32 number filled a line's header); a line is 46 high unless it holds a taller one.
-        public const float ExpressionHeight = 28, ExpressionPad = 3;
+        // A value block holding another keeps NestPad above and below it, so the two outlines do not run together (play feedback 4:
+        // get_my_pos() inside distance( touched its holder's edge).
+        public const float ExpressionHeight = 28, ExpressionPad = 3, NestPad = 6, FieldHeight = ExpressionHeight - 2 * ExpressionPad;
         bool IsStatement => PythonTreeCompiler.OutputSlot(Kind) == BlockSlotKind.Statement;
-        float headHeight => IsStatement ? Mathf.Max(46, LayoutUtility.GetPreferredHeight(header) + 12) :
-            Mathf.Max(ExpressionHeight, LayoutUtility.GetPreferredHeight(header) + 2 * ExpressionPad);
+        float headHeight => IsStatement ? Mathf.Max(46, LayoutUtility.GetPreferredHeight(header) + 12) : ExpressionHead(LayoutUtility.GetPreferredHeight(header));
+        static float ExpressionHead(float content) => Mathf.Max(ExpressionHeight, content + 2 * (content > FieldHeight + .5f ? NestPad : ExpressionPad));
         // Room left and right of the header: a number's digits sit close in their pill; a condition clears its pointed ends.
         float Margin => IsStatement ? 14 : kind == BlockKind.Number ? 8 : PythonTreeCompiler.OutputSlot(Kind) == BlockSlotKind.Condition ? 14 : 10;
         public float minWidth => preferredWidth;
@@ -65,7 +68,7 @@ namespace CodingGame.BlockCoding
         {
             if (!rect || !header || !canvasGroup || !shape ||
                 ((kind == BlockKind.Number || kind == BlockKind.DeclareVariable || kind == BlockKind.Variable) && !input) ||
-                ((kind == BlockKind.Variable || kind == BlockKind.Comparison) && !dropdown) ||
+                ((kind == BlockKind.Variable || kind == BlockKind.Comparison || kind == BlockKind.Arithmetic) && !dropdown) ||
                 (PythonTreeCompiler.HasBody(kind) && !body) || (stockLabel && !stockColumn))
                 throw new InvalidOperationException(name + ": Inspector 참조가 누락되었습니다.");
             Panel = panel;
@@ -84,10 +87,15 @@ namespace CodingGame.BlockCoding
                 if (input && !IsStatement && input.TryGetComponent<LayoutElement>(out var field))
                 {
                     // A field in a value block fits its 28 px pill; its text area has no vertical inset, so 17 px text is not clipped.
-                    field.minHeight = field.preferredHeight = ExpressionHeight - 2 * ExpressionPad;
+                    field.minHeight = field.preferredHeight = FieldHeight;
                     if (input.textViewport) input.textViewport.sizeDelta = new Vector2(kind == BlockKind.Number ? -4 : -12, 0);
                 }
                 if (dropdown) dropdown.onValueChanged.AddListener(SelectionChanged);
+                // The calculation block is a copy of the comparison's (two holes and a picker) with the operators in its picker.
+                if (kind == BlockKind.Arithmetic)
+                { dropdown.ClearOptions(); dropdown.AddOptions(new List<string>(PythonTreeCompiler.Operators)); dropdown.SetValueWithoutNotify(0); dropdown.RefreshShownValue(); }
+                // Pieces of a value block (enemy., distance(, a held block) 8 apart, not touching (play feedback 4).
+                if (!IsStatement && header.TryGetComponent<HorizontalLayoutGroup>(out var row)) row.spacing = 8;
             }
             foreach (var argument in arguments) argument.Bind(panel, this);
             if (body) body.Bind(panel, this);
@@ -249,6 +257,7 @@ namespace CodingGame.BlockCoding
             if (kind == BlockKind.Number || kind == BlockKind.DeclareVariable) { input.SetTextWithoutNotify(data.Value); FitInput(input, MinField); }
             if (kind == BlockKind.DeclareVariable) RetainedName = data.Value;
             if (kind == BlockKind.Comparison) { dropdown.SetValueWithoutNotify(Array.IndexOf(PythonTreeCompiler.Comparisons, data.Value)); FitDropdown(dropdown); }
+            if (kind == BlockKind.Arithmetic) { dropdown.SetValueWithoutNotify(Array.IndexOf(PythonTreeCompiler.Operators, data.Value)); FitDropdown(dropdown); }
             int skip = 0;
             if (kind == BlockKind.Variable)
             {
@@ -271,6 +280,7 @@ namespace CodingGame.BlockCoding
             var block = new CodeBlock(Kind);
             if (kind == BlockKind.Number || kind == BlockKind.DeclareVariable) block.Value = input.text;
             if (kind == BlockKind.Comparison) block.Value = PythonTreeCompiler.Comparisons[dropdown.value];
+            if (kind == BlockKind.Arithmetic) block.Value = PythonTreeCompiler.Operators[dropdown.value];
             if (kind == BlockKind.Variable)
             {
                 if (Kind == BlockKind.Variable) { block.Value = input.text; return block; }

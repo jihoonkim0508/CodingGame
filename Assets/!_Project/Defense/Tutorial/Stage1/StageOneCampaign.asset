@@ -116,31 +116,29 @@ MonoBehaviour:
         count: 1
     - stage: 1
       wave: 4
-      topic: "\uC870\uAC74\uBB38 \uD65C\uC6A9 \uC790\uC720 \uD50C\uB808\uC774"
+      topic: "\uC870\uAC74\uBB38 \uD65C\uC6A9 \uC790\uC720 \uD50C\uB808\uC774(\uC6D0\uAC70\uB9AC)"
       goal: 
       robots:
-      - role: 1
+      - role: 4
         count: 1
       blocks:
       - kind: 16
         count: 1
       - kind: 10
+        count: 2
+      - kind: 22
         count: 1
       - kind: 14
         count: 2
       - kind: 6
         count: 1
       - kind: 15
-        count: 2
-      - kind: 19
-        count: 1
+        count: 3
       - kind: 27
         count: 1
       - kind: 3
         count: 1
       - kind: 11
-        count: 1
-      - kind: 26
         count: 1
       rewards:
       - kind: 10
@@ -391,6 +389,15 @@ MonoBehaviour:
         leakDamageOverride: 0
         boss: 0
       - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
+        route: 0
+        count: 4
+        delay: 4
+        interval: 0.6
+        healthOverride: 0
+        speedOverride: 0
+        leakDamageOverride: 0
+        boss: 0
+      - enemy: {fileID: 11400000, guid: cf273f278dd8c1d46a9cf5129cd7955d, type: 2}
         route: 0
         count: 1
         delay: 12

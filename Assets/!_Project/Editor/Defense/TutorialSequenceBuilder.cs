@@ -214,7 +214,7 @@ namespace CodingGame.Defense.Editor
 
         static List<S> OneFour() => new List<S> {
             L("1-4.A01", s => s.Cards = true), L("1-4.A02"), L("1-4.A03"), L("1-4.A04"),
-            L("1-4.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.Battle = true; }),
+            L("1-4.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code13; s.Battle = true; }),
             L("1-4.B02"), L("1-4.B03"),
             L("1-4.B04", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
         };
@@ -326,8 +326,8 @@ namespace CodingGame.Defense.Editor
                 so.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(campaign);
                 return "campaign: lessons 1-1 to 1-3 only";
             }
-            Lesson(4, "조건문 활용 자유 플레이", 1, (BlockKind.For, 1), (BlockKind.Number, 1), (BlockKind.DeclareVariable, 2), (BlockKind.NearestEnemy, 1),
-                (BlockKind.Variable, 2), (BlockKind.Slash, 1), (BlockKind.MyPos, 1), (BlockKind.If, 1), (BlockKind.Comparison, 1), (BlockKind.MyAttackRange, 1));
+            RoleLesson(4, "조건문 활용 자유 플레이(원거리)", RobotRole.Shooter, 1, (BlockKind.For, 1), (BlockKind.Number, 2), (BlockKind.Shot, 1),
+                (BlockKind.DeclareVariable, 2), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 3), (BlockKind.MyPos, 1), (BlockKind.If, 1), (BlockKind.Comparison, 1));
             Lesson(5, "변수와 조건문: 보스 종합 실습", 0,
                 (BlockKind.DeclareVariable, 3), (BlockKind.Variable, 5), (BlockKind.Number, 2),
                 (BlockKind.If, 2), (BlockKind.Comparison, 2), (BlockKind.MyAttackRange, 2),
@@ -367,18 +367,32 @@ namespace CodingGame.Defense.Editor
         {
             var stage = so.FindProperty("stages").GetArrayElementAtIndex(0);
             var firstGroups = stage.FindPropertyRelative("waves").GetArrayElementAtIndex(0).FindPropertyRelative("groups");
-            firstGroups.arraySize = 2;
+            firstGroups.arraySize = 3;
             var basicEnemy = AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"{Folder}/TutorialError.asset");
-            if (!basicEnemy) throw new InvalidOperationException("1-1의 기본 적 asset이 없습니다.");
-            var strongGroup = firstGroups.GetArrayElementAtIndex(1);
-            strongGroup.FindPropertyRelative("enemy").objectReferenceValue = basicEnemy;
+            var tankEnemy = AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"{Folder}/TutorialBoss.asset");
+            if (!basicEnemy || !tankEnemy) throw new InvalidOperationException("1-1의 기본·단단한 적 asset이 없습니다.");
+            // While 디버 slows, pauses and resumes the battle (E04 to E04c) a bunched group walks in, so there is something to
+            // watch (play feedback 4): from 4s, 0.6s apart, they take five of range(10)'s swings after the first two's four.
+            var crowd = firstGroups.GetArrayElementAtIndex(1);
+            crowd.FindPropertyRelative("enemy").objectReferenceValue = basicEnemy;
+            crowd.FindPropertyRelative("route").intValue = 0;
+            crowd.FindPropertyRelative("count").intValue = 4;
+            crowd.FindPropertyRelative("delay").floatValue = 4;
+            crowd.FindPropertyRelative("interval").floatValue = .6f;
+            crowd.FindPropertyRelative("healthOverride").floatValue = 0;
+            crowd.FindPropertyRelative("speedOverride").floatValue = 0;
+            crowd.FindPropertyRelative("leakDamageOverride").intValue = 0;
+            crowd.FindPropertyRelative("boss").boolValue = false;
+            // The one that reaches the core has the tank's body (play feedback 4: it looked like the others); the tank rule
+            // slows it to 0.75x, so it leaks about four seconds later than the basic body did.
+            var strongGroup = firstGroups.GetArrayElementAtIndex(2);
+            strongGroup.FindPropertyRelative("enemy").objectReferenceValue = tankEnemy;
             strongGroup.FindPropertyRelative("route").intValue = 0;
             strongGroup.FindPropertyRelative("count").intValue = 1;
             strongGroup.FindPropertyRelative("delay").floatValue = 12;
             strongGroup.FindPropertyRelative("interval").floatValue = 2;
             strongGroup.FindPropertyRelative("healthOverride").floatValue = 500;
             strongGroup.FindPropertyRelative("speedOverride").floatValue = 1.6f;
-            // All three enemies use the same basic prefab; only this last spawn has stronger stats.
             stage.FindPropertyRelative("waveSeconds").floatValue = 120;
         }
 

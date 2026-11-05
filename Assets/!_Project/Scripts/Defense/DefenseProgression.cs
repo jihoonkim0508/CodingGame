@@ -99,6 +99,7 @@ namespace CodingGame.Defense
                 case BlockKind.PositionX: return "get_pos_x()"; case BlockKind.PositionY: return "get_pos_y()";
                 case BlockKind.MyAttackRange: return "my_attack_range()"; case BlockKind.MyPos: return "get_my_pos()";
                 case BlockKind.True: return "True"; case BlockKind.False: return "False";
+                case BlockKind.IsDead: return "is_dead()"; case BlockKind.Arithmetic: return "+ - * /";
                 default: return kind.ToString().ToLowerInvariant();
             }
         }

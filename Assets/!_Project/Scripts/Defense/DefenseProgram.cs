@@ -224,6 +224,20 @@ namespace CodingGame.Defense
                     int id = ((EnemyValue)Arg(0)).Id; var enemy = sim.Enemies.Find(e => e.Id == id && e.Active);
                     if (!(Arg(1) is Vector2 from)) throw new FormatException("distance에는 위치(Vector2)가 필요합니다.");
                     return enemy == null ? double.PositiveInfinity : (double)Vector2.Distance(enemy.Position, from);
+                case BlockKind.IsDead:
+                    // An enemy variable not assigned yet is no enemy, and no enemy is dead (see PythonTreeCompiler).
+                    var receiver = block.Arguments[0];
+                    if (receiver.Kind == BlockKind.Variable && !variables.ContainsKey(PythonTreeCompiler.NormalizeIdentifier(receiver.Value))) return true;
+                    int watched = ((EnemyValue)Arg(0)).Id;
+                    return watched == 0 || !sim.Enemies.Any(e => e.Id == watched && e.Active);
+                case BlockKind.Arithmetic:
+                    double x = Number(Arg(0)), y = Number(Arg(1));
+                    switch (block.Value)
+                    {
+                        case "+": return x + y; case "-": return x - y; case "*": return x * y;
+                        case "/": if (y == 0) throw new FormatException("0으로 나눌 수 없습니다."); return x / y;
+                    }
+                    break;
                 case BlockKind.Hp:
                     int target = ((EnemyValue)Arg(0)).Id;
                     return (double)(sim.Enemies.Find(e => e.Id == target && e.Active)?.Health ?? 0); // a defeated enemy reads as 0 hp

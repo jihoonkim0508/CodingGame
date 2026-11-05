@@ -58,11 +58,24 @@ namespace CodingGame.Defense
             if (hintButton) LeftOf((RectTransform)hintButton.transform, clear, 10);
             var label = automaticButton.GetComponentInChildren<TMP_Text>();
             if (label && UITheme.Display) { label.font = UITheme.Display; label.fontStyle &= ~FontStyles.Bold; }
+            if (hintButton) Like(hintButton, automaticButton);
             var info = panel.GetComponentsInChildren<Button>(true).FirstOrDefault(b => b.name == "Info" && b.transform.parent == panel.transform);
             if (!info) return;
             var rect = (RectTransform)info.transform; var heading = inventory.rectTransform; var size = rect.rect.size;
             rect.anchorMin = rect.anchorMax = heading.anchorMin; rect.pivot = new Vector2(0, .5f); rect.sizeDelta = size;
             rect.anchoredPosition = heading.anchoredPosition + new Vector2(-heading.pivot.x * heading.rect.width + inventory.preferredWidth + 10, (.5f - heading.pivot.y) * heading.rect.height);
+        }
+        // The hint button in 비우기's look with its word centred (play feedback 4: a dark box with the word at its right edge).
+        static void Like(Button button, Button model)
+        {
+            if (button.targetGraphic is Image image && model.targetGraphic is Image look)
+            { image.sprite = look.sprite; image.type = look.type; image.pixelsPerUnitMultiplier = look.pixelsPerUnitMultiplier; image.color = look.color; }
+            button.transition = model.transition; button.colors = model.colors; button.spriteState = model.spriteState;
+            TMP_Text text = button.GetComponentInChildren<TMP_Text>(true), font = model.GetComponentInChildren<TMP_Text>(true);
+            if (!text || !font) return;
+            text.font = font.font; text.fontSharedMaterial = font.fontSharedMaterial; text.fontSize = font.fontSize;
+            text.fontStyle = font.fontStyle; text.color = font.color; text.alignment = TextAlignmentOptions.Center;
+            var box = text.rectTransform; box.anchorMin = Vector2.zero; box.anchorMax = Vector2.one; box.offsetMin = box.offsetMax = Vector2.zero;
         }
         // rect's right edge gap left of anchor's left edge, on the same row; both under one parent, anchor anchored at a point.
         static void LeftOf(RectTransform rect, RectTransform anchor, float gap)

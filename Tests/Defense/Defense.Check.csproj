@@ -17,6 +17,7 @@
     <Compile Include="GuideMoodCheck.cs" />
     <Compile Include="GuideSpeechCheck.cs" />
     <Compile Include="MeleeCheck.cs" />
+    <Compile Include="WhileTrueCheck.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/Tutorial/GuideSpeech.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/Tutorial/GuideMood.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseDebrief.cs" />

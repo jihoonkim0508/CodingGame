@@ -131,7 +131,7 @@ namespace CodingGame.Defense
             {
                 guide.text = !string.IsNullOrEmpty(lessonGoal) ? "목표 · " + lessonGoal :
                     sim.WaveIndex == 1 ? "목표 · 새 전사를 배치하고 반복으로 여러 번 베기" :
-                    sim.WaveIndex == 3 ? "목표 · 두 로봇의 조건문으로 몰려오는 적 막기" :
+                    sim.WaveIndex == 3 ? "목표 · 새 원거리 로봇과 조건문으로 몰려오는 적 막기" :
                     "목표 · my_attack_range()와 조건문으로 잡몹과 보스 막기";
                 AnimateGoal();
             }
@@ -516,8 +516,9 @@ namespace CodingGame.Defense
             if (drops == null || drops.Count == 0) return;
             rewardBlocks = new GameObject("Reward blocks", typeof(RectTransform)).GetComponent<RectTransform>();
             rewardBlocks.SetParent(rewardItems.transform, false);
-            rewardBlocks.anchorMin = rewardBlocks.anchorMax = rewardBlocks.pivot = new Vector2(0, 1); rewardBlocks.anchoredPosition = Vector2.zero;
-            float x = 0, y = 0, rowHeight = 0, width = ((RectTransform)rewardItems.transform).rect.width;
+            // RewardTop clear of the list's top edge, which clipped the blocks as they popped to 1.15x (play feedback 4).
+            rewardBlocks.anchorMin = rewardBlocks.anchorMax = rewardBlocks.pivot = new Vector2(0, 1); rewardBlocks.anchoredPosition = new Vector2(RewardInset, -RewardTop);
+            float x = 0, y = 0, rowHeight = 0, width = ((RectTransform)rewardItems.transform).rect.width - 2 * RewardInset;
             popping.Clear();
             foreach (var group in drops.GroupBy(k => k).OrderBy(g => g.Key))
             {
@@ -537,11 +538,13 @@ namespace CodingGame.Defense
                 count.rectTransform.SetParent(rewardBlocks, false); count.rectTransform.anchorMin = count.rectTransform.anchorMax = new Vector2(0, 1); count.rectTransform.pivot = new Vector2(.5f, .5f);
                 count.rectTransform.anchoredPosition = new Vector2(x + w + 30, -y - h * .5f); count.rectTransform.sizeDelta = new Vector2(48, h);
                 count.font = rewardItems.font; count.fontSize = 26; count.alignment = TextAlignmentOptions.MidlineLeft; count.text = "x" + group.Count(); count.raycastTarget = false;
+                count.color = UITheme.Ink; // the default white was lost on the paper card
                 x += w + 60; rowHeight = Mathf.Max(rowHeight, h);
                 popping.Add(copy); popping.Add(count.rectTransform);
             }
-            rewardItems.margin = new Vector4(0, y + rowHeight + 16, 0, 0);
+            rewardItems.margin = new Vector4(0, RewardTop + y + rowHeight + 16, 0, 0);
         }
+        const float RewardTop = 14, RewardInset = 6;
         // The stage's stars, the core left and what the next star needs, so a clear invites a better run.
         // 디버 to the left of the result card (the title's parent; the reward panel itself is the full-screen shade), so it
         // fades in with the panel: face and one line for this result.

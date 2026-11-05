@@ -139,6 +139,8 @@ namespace CodingGame.Defense.Editor
         {
             Log(result); SessionState.SetBool(Running, false); Time.timeScale = 1;
             if (result.StartsWith("FAIL")) Debug.LogError(result); else Debug.Log(result);
+            // A batchmode run (a worktree without the open editor) ends with the result.
+            if (Application.isBatchMode) EditorApplication.Exit(result.StartsWith("FAIL") ? 1 : 0);
         }
 
         static void Advance()
@@ -185,11 +187,13 @@ namespace CodingGame.Defense.Editor
                 if (key == "1/A01")
                 {
                     var groups = sim.UpcomingWave.ToArray();
-                    Require(groups.Length == 2 && groups[0].DefinitionIndex == groups[1].DefinitionIndex &&
-                        groups[0].Count == 2 && groups[1].Count == 1 &&
-                        groups[1].Enemy.health > groups[0].Enemy.health * 10 &&
-                        groups[1].Enemy.speed > groups[0].Enemy.speed,
-                        "1-1 must use basic enemy visuals for all three spawns and strengthen only the last one");
+                    // Two basic enemies, the crowd that walks in while pace and pause are explained, and one strong enemy in
+                    // the tank's body (play feedback 4).
+                    Require(groups.Length == 3 && groups[0].DefinitionIndex == groups[1].DefinitionIndex &&
+                        groups[0].Count == 2 && groups[1].Count == 4 && groups[2].Count == 1 &&
+                        groups[2].DefinitionIndex != groups[0].DefinitionIndex && groups[2].Enemy.type == EnemyType.Tank &&
+                        groups[2].Enemy.health > groups[0].Enemy.health * 10,
+                        "1-1 must send two basic enemies, a crowd of four and one tank-bodied strong enemy");
                 }
                 if (key == "3/A01") { coreAtThirdWave = sim.BaseHealth; killsAtThirdWave = sim.Kills; }
                 if (key == "5/A01") killsAtFifthWave = sim.Kills;
@@ -270,7 +274,7 @@ namespace CodingGame.Defense.Editor
             {
                 Log("CLEAR wave=" + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills +
                     " leaks=" + sim.Leaks + " survivors=" + sim.LastSurvivors + " timedOut=" + sim.LastWaveTimedOut);
-                if (sim.WaveIndex == 0) Require(sim.BaseHealth == 11 && sim.Kills == 2 && sim.Leaks == 1,
+                if (sim.WaveIndex == 0) Require(sim.BaseHealth == 11 && sim.Kills == 6 && sim.Leaks == 1,
                     "1-1 did not teach exactly one strong-enemy leak; core=" + sim.BaseHealth + " kills=" + sim.Kills + " leaks=" + sim.Leaks);
                 if (sim.WaveIndex == 2) Require(sim.BaseHealth == coreAtThirdWave && sim.Kills - killsAtThirdWave == 4,
                     "1-3 did not defend all four enemies; core=" + sim.BaseHealth + " kills=" + (sim.Kills - killsAtThirdWave));
@@ -352,15 +356,13 @@ namespace CodingGame.Defense.Editor
             var goal = Field<TMP_Text>(Field<DefensePlayerHUD>(battle, "playerHUD"), "guide");
             Require(goal.transform.parent.gameObject.activeSelf && goal.text.Contains("새 전사를 배치하고 반복으로 여러 번 베기"),
                 "1-2 free-play goal is not visible at the top of the HUD");
-            Require(sim.StartError()?.Contains("새 전사") == true, "1-2 starts without placing the new robot");
-            battle.StartBattle();
-            Require(sim.Phase == BattlePhase.Ready, "1-2 auto-started with only the original robot");
+            Require(sim.StartError() == null, "1-2 free play must start with only the original robot: " + sim.StartError());
             string preserved = first.Program.Source;
             Require(battle.TutorialAllows(TutorialKeys.Start) && battle.TutorialAllows(TutorialKeys.Close), "Free play still restricts input");
             battle.ChooseRobot(1); PlaceBest(battle, 1);
             var second = sim.Robots.OrderBy(r => r.Id).Last();
             Require(second.Id != first.Id, "Practice warrior was not granted");
-            Require(sim.StartError()?.Contains("코드") == true, "1-2 starts with an uncoded new robot");
+            Require(sim.StartError() == null, "1-2 free play must start with an uncoded new robot: " + sim.StartError());
             battle.SelectRobot(second.Id); battle.DevelopSelected();
             var panel = battle.CodeEditor.Panel;
             panel.LoadProgram("practice", TutorialAnswers.Parse("for i in range(3):\n    slash()"));
@@ -383,19 +385,21 @@ namespace CodingGame.Defense.Editor
         static void FreePlayFour(DefenseBattle battle)
         {
             var sim = battle.Simulation;
-            if (sim.Robots.Count < 2) { battle.ChooseRobot(1); PlaceBest(battle, 1); }
-            Require(sim.StartError()?.Contains("로봇 두 대") == true, "1-4 allows battle without two conditional robots");
-            var learner = sim.Robots.OrderBy(r => r.Id).First(r => r.Program == null || !r.Program.Source.Contains("if "));
+            Require(sim.RobotAvailable(RobotRole.Shooter) >= 1, "1-4 must bring a new shooter");
+            Require(sim.StartError() == null, "1-4 free play must start without new code: " + sim.StartError());
+            int shooter = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => battle.DefinitionRole(i) == RobotRole.Shooter);
+            battle.ChooseRobot(shooter); PlaceBest(battle, shooter);
+            var learner = sim.Robots.OrderBy(r => r.Id).Last();
+            Require(learner.Spec.role == RobotRole.Shooter, "1-4's new robot is not a shooter");
             battle.SelectRobot(learner.Id); battle.DevelopSelected();
             battle.CodeEditor.Panel.LoadProgram("condition_practice", TutorialAnswers.Parse(
-                "for i in range(10):\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= my_attack_range():\n        slash()"));
-            Require(battle.CodeEditor.Panel.IsApplied, "1-4 conditional code was not applied: " +
+                "for i in range(10):\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:\n        attack(enemy)"));
+            Require(battle.CodeEditor.Panel.IsApplied, "1-4 shooter code was not applied: " +
                 Field<TMP_Text>(battle.CodeEditor.Panel, "status").text);
             battle.CodeEditor.Close();
-            Require(sim.StartError() == null, "1-4 remains blocked after the shooter and a warrior use conditions: " + sim.StartError());
             battle.StartBattle();
             Require(sim.Phase == BattlePhase.Running, "1-4 battle did not start");
-            Log("PASS 1-4: no-condition start blocked, two distance conditions allowed");
+            Log("PASS 1-4: free play starts without new code, new shooter takes 1-3's code");
         }
 
         static void FreePlayFive(DefenseBattle battle)

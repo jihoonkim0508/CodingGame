@@ -86,32 +86,37 @@ static class Check
             Routes = new[] { new Route(new[] { new Vector2(8, 0), new Vector2(-10, 0) }, 1.65f) },
             Waves = new[] { new[] {
                 new SpawnGroup { Enemy = new EnemySpec { health = 20, speed = 1.4f, leakDamage = 1 }, Count = 2, Interval = 2 },
+                new SpawnGroup { Enemy = new EnemySpec { health = 20, speed = 1.4f, leakDamage = 1 }, Count = 4, Delay = 4, Interval = .6f },
                 new SpawnGroup { Enemy = new EnemySpec { health = 500, speed = 1.6f, leakDamage = 1 }, Count = 1, Delay = 12, Interval = 2 }
             } }
         };
         var sim = new DefenseSimulation(setup);
         var robot = sim.Place(spec, 1, new Vector2(0, 2.6f), out var error);
         Require(robot != null, error);
-        // 1-1's answer: the function runs once a wave, the loop swings five times.
-        var loop = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "5"));
+        // 1-1's answer: the function runs once a wave, the loop swings ten times.
+        var loop = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "10"));
         loop.Body.Add(new CodeBlock(BlockKind.Slash));
         sim.ApplyProgram(robot.Id, "intro", new[] { loop });
         sim.Start();
-        bool paused = false;
+        bool paused = false; double firstKill = -1, emptyAt = -1;
         for (int i = 0; i < 10000 && sim.Phase == BattlePhase.Running; i++)
         {
             sim.Advance(1.0 / 60);
+            // E04 to E04b (pace and pause, play feedback): read at voice speed in slow motion they take about 4 battle seconds
+            // from 0.8 after the first kill; enemies must still be walking in all that time.
+            if (firstKill >= 0 && emptyAt < 0 && sim.Time <= firstKill + .8 + 5 && !sim.Enemies.Any(e => e.Active)) emptyAt = sim.Time - firstKill;
             if (!paused && sim.Kills > 0)
             {
-                paused = true;
+                paused = true; firstKill = sim.Time;
                 sim.TogglePause(); double frozenAt = sim.Time;
                 sim.Advance(2);
                 Require(sim.Time == frozenAt && sim.Phase == BattlePhase.Paused, "Pause must freeze battle time");
                 sim.TogglePause();
             }
         }
-        Require(paused && sim.Kills == 2 && sim.Leaks == 1 && sim.BaseHealth == 11,
-            $"Intro must kill two basic enemies and leak one strong enemy: kills={sim.Kills}, leaks={sim.Leaks}, core={sim.BaseHealth}");
+        Require(paused && sim.Kills == 6 && sim.Leaks == 1 && sim.BaseHealth == 11,
+            $"Intro must kill six basic enemies and leak one strong enemy: kills={sim.Kills}, leaks={sim.Leaks}, core={sim.BaseHealth}");
+        Require(emptyAt < 0, $"1-1's pace and pause lines must have enemies to watch: the road emptied {emptyAt:0.0}s after the first kill");
     }
     static void TeachingShooter()
     {
@@ -163,6 +168,6 @@ static class Check
         }
         IntroLeak();
         TeachingShooter();
-        Console.WriteLine("PASS: 1-1 strong enemy leaks once after two kills; pause freezes battle; 1-3 shooter waits until within 3 and fells each enemy with one shot.");
+        Console.WriteLine("PASS: 1-1 strong enemy leaks once after six kills, enemies walking through the pace and pause lines; pause freezes battle; 1-3 shooter waits until within 3 and fells each enemy with one shot.");
     }
 }
