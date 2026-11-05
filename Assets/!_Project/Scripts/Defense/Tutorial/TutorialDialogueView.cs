@@ -19,6 +19,8 @@ namespace CodingGame.Defense
         Coroutine typing, entrance;
         RectTransform panelRect;
         Vector2 bottomAnchorMin, bottomAnchorMax, bottomPosition, bottomPivot;
+        Image accent;
+        Color speakerColor, accentColor;
         public bool IsTyping => typing != null;
         public bool IsVisible => panel && panel.activeSelf;
 
@@ -30,6 +32,9 @@ namespace CodingGame.Defense
             if (!panelRect) throw new InvalidOperationException(name + ": 대화 패널에 RectTransform이 필요합니다.");
             bottomAnchorMin = panelRect.anchorMin; bottomAnchorMax = panelRect.anchorMax;
             bottomPosition = panelRect.anchoredPosition; bottomPivot = panelRect.pivot;
+            speakerColor = speaker.color;
+            accent = panelRect.Find("Accent")?.GetComponent<Image>();
+            if (accent) accentColor = accent.color;
             previousText.onClick.AddListener(() => onPrevious?.Invoke());
             nextText.onClick.AddListener(() => onNext?.Invoke());
             Hide();
@@ -52,6 +57,11 @@ namespace CodingGame.Defense
         }
 
         public RectTransform Panel => panelRect;
+        public void SetAttention(bool attention)
+        {
+            speaker.color = attention ? new Color(1, .28f, .3f) : speakerColor;
+            if (accent) accent.color = attention ? new Color(1, .2f, .25f) : accentColor;
+        }
         public bool IsCentered => centered;
         public bool AtTop { get; private set; }
         // Mirror the authored bottom layout; retain width, height and edge spacing at any resolution.
@@ -129,7 +139,7 @@ namespace CodingGame.Defense
             Vector3 middle = parent.rect.center + Vector2.Scale(panelRect.pivot - new Vector2(.5f, .5f), panelRect.rect.size) * scale;
             if (entrance != null) StopCoroutine(entrance);
             entrance = null;
-            if (on) { entrance = StartCoroutine(centered ? Hold(middle, scale) : PunchIn(middle, scale)); SetGrey(grey ? 1 : 0); }
+            if (on) { entrance = StartCoroutine(centered ? Hold(middle, scale) : grey ? PunchIn(middle, scale) : SoftIn(middle, scale)); SetGrey(grey ? 1 : 0); }
             else if (centered) entrance = StartCoroutine(Shrink(middle, scale, home));
             else { panelRect.localScale = Vector3.one; SetGrey(0); }
             centered = on;
@@ -164,6 +174,17 @@ namespace CodingGame.Defense
             SetGrey(0);
         }
         IEnumerator Hold(Vector3 middle, float scale) { panelRect.localPosition = middle; panelRect.localScale = Vector3.one * scale; yield break; }
+        IEnumerator SoftIn(Vector3 middle, float scale)
+        {
+            for (float t = 0; t < .5f; t += Time.unscaledDeltaTime)
+            {
+                float k = Mathf.SmoothStep(0, 1, t / .5f);
+                panelRect.localScale = Vector3.one * scale * Mathf.Lerp(.98f, 1, k);
+                panelRect.localPosition = middle + Vector3.down * (12 * (1 - k));
+                yield return null;
+            }
+            panelRect.localPosition = middle; panelRect.localScale = Vector3.one * scale; entrance = null;
+        }
         // Bursts in slightly too big with a shake, then settles.
         IEnumerator PunchIn(Vector3 middle, float scale)
         {

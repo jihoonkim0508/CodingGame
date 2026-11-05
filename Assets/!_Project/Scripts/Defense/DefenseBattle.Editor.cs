@@ -57,6 +57,7 @@ namespace CodingGame.Defense
             Simulation.StepOnce();
             SyncViews((float)DefenseSimulation.TickDuration); RefreshHUD();
         }
+        public void EditorRefreshView() { SyncViews(0); RefreshHUD(); playerHUD.EditorRefresh(); }
         public void EditorGrantAll() { Simulation.GrantAll(); RefreshHUD(); }
         public void EditorSetCoins(int value) { Simulation.SetCoins(value); RefreshHUD(); }
         public void EditorRestoreRobotState(int id,int level,float health)

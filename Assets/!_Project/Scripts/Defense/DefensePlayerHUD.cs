@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 namespace CodingGame.Defense
 {
-    public sealed class DefensePlayerHUD : MonoBehaviour
+    public sealed partial class DefensePlayerHUD : MonoBehaviour
     {
         [SerializeField] DefenseBattle battle;
         [SerializeField] GameObject canvasRoot, rewardPanel;
@@ -96,6 +96,7 @@ namespace CodingGame.Defense
         {
             var sim = battle.Simulation;
             if (sim == null) return;
+            RefreshStageTwoFailure(sim);
             AnimateResult();
             bool ready = sim.CanPrepare, reward = sim.Phase == BattlePhase.Reward;
             bool ended = sim.Phase == BattlePhase.Victory || sim.Phase == BattlePhase.Defeat;
@@ -109,7 +110,9 @@ namespace CodingGame.Defense
             guide.transform.parent.gameObject.SetActive(freePlayGoal);
             if (freePlayGoal)
             {
-                guide.text = sim.WaveIndex == 1 ? "목표 · 새 전사를 배치하고 변수로 적을 찾아 공격하기" :
+                guide.text = battle.Stage == 2 ? sim.WaveIndex == 1 ? "목표 · 새 전사를 배치하고 반복문으로 적을 찾아 공격하기" :
+                    sim.WaveIndex == 3 ? "목표 · 새 원거리를 배치하고 반복문으로 적을 찾아 공격하기" : "목표 · 전사와 원거리의 반복 코드로 보스를 상대하기" :
+                    sim.WaveIndex == 1 ? "목표 · 새 전사를 배치하고 변수로 적을 찾아 공격하기" :
                     sim.WaveIndex == 3 ? "목표 · 두 전사의 조건문으로 몰려오는 적 막기" :
                     "목표 · my_attack_range()와 조건문으로 잡몹과 보스 막기";
                 AnimateGoal();
@@ -136,6 +139,9 @@ namespace CodingGame.Defense
             else resultShown = -100; // a restart right after the result clears its banner too, not only after BannerSeconds
             shownRewardPhase = sim.Phase; shownRewardWave = sim.WaveIndex; shownRewardStage = battle.Stage;
         }
+#if UNITY_EDITOR
+        public void EditorRefresh() => LateUpdate();
+#endif
         void AnimateGoal()
         {
             // Unscaled time keeps the gentle motion consistent while the player pauses or changes battle speed.

@@ -265,7 +265,7 @@ namespace CodingGame.Defense.Editor
                     pointerKey = s.Pointer, autoSelectSlot = s.AutoSlot, hintCode = s.HintCode, pointerDelay = s.PointerDelay,
                     closeEditor = s.CloseEditor, clearProgram = s.ClearProgram, openEditor = s.OpenEditor, robotIndex = s.Robot,
                     prepareDistanceExample = s.DistanceExample, prepareBaselineExample = s.BaselineExample, restartPreview = s.RestartPreview,
-                    introEntrance = s.Intro, undimmed = s.Undimmed, alertCards = s.Cards, autoAdvance = s.Auto, dismissable = s.Dismissable, holdSeconds = s.Hold, dragDemo = s.Demo };
+                    introEntrance = s.Intro, attentionEntrance = s.Intro, undimmed = s.Undimmed, alertCards = s.Cards, autoAdvance = s.Auto, dismissable = s.Dismissable, holdSeconds = s.Hold, dragDemo = s.Demo };
             }).ToArray();
             EditorUtility.SetDirty(sequence);
             return sequence;
@@ -380,8 +380,11 @@ namespace CodingGame.Defense.Editor
             var director = UnityEngine.Object.FindObjectsByType<TutorialDirector>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single();
             var so = new SerializedObject(director);
             var list = so.FindProperty("sequences");
-            list.arraySize = sequences.Length;
-            for (int i = 0; i < sequences.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = sequences[i];
+            var kept = Enumerable.Range(0, list.arraySize).Select(i => list.GetArrayElementAtIndex(i).objectReferenceValue as TutorialSequence)
+                .Where(s => s && s.stage != 1).ToArray();
+            var combined = sequences.Concat(kept).ToArray();
+            list.arraySize = combined.Length;
+            for (int i = 0; i < combined.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = combined[i];
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorSceneManager.MarkSceneDirty(director.gameObject.scene);
             log.AppendLine("scene saved " + EditorSceneManager.SaveScene(director.gameObject.scene));

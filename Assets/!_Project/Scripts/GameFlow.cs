@@ -121,7 +121,7 @@ namespace CodingGame
             instance.StartCoroutine(instance.ChangeScene(sceneName, delay));
         }
 
-        static void QuitGame()
+        public static void QuitGame()
         {
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;

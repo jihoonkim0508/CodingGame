@@ -237,6 +237,7 @@ namespace CodingGame.Defense
         public float MaxHealth => Spec.health * LevelMultiplier;
         internal int UpgradeCostPaid;
         public int Id, DefinitionIndex;
+        public int PlacedWave;
         public Vector2 Position;
         public RobotSpec Spec;
         public RobotAction Action;

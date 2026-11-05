@@ -44,16 +44,29 @@ static class LearningCheck
             for(int wave=1;wave<=5;wave++)
             {
                 Require(sim.WaveIndex==wave-1 && sim.Lesson.stage==stage && sim.Lesson.wave==wave,"Correct lesson");
+                if (stage == 2 && wave < 5)
+                {
+                    var role = wave < 3 ? RobotRole.Warrior : RobotRole.Shooter;
+                    var learner = sim.Place(profiles[(int)role], (int)role, new Vector2(-9 + (wave - 1) * 3, 2), out var error);
+                    Require(learner != null, "Stage 2 practice robot: " + error);
+                    sim.ApplyProgram(learner.Id, "loop", new[] { StageTwoLearning.Loop(role, 3) });
+                }
                 var expected=sim.Lesson.rewards.SelectMany(s=>Enumerable.Repeat(s.kind,s.count)).ToArray();
-                sim.Start();for(int i=0;i<20 && sim.Phase==BattlePhase.Running;i++)sim.Advance(.05);
+                sim.Start();for(int i=0;i<3000 && sim.Phase==BattlePhase.Running;i++)sim.Advance(.05);
                 Require(sim.Phase==BattlePhase.Reward && sim.PendingDrops.SequenceEqual(expected),"Fixed rewards independent of kills");
                 Require(sim.ClaimRewards() && !sim.ClaimRewards(),"Claim exactly once");
                 if(tank!=null)Require(tank.Health==37,"Tank health survives transitions");
             }
             Require(sim.Phase==BattlePhase.Victory,"Stage clear");
             int stock=sim.Inventory[BlockKind.Shot];
+            if (stage == 1)
+            {
+                setup.WaveSeconds = 120;
+                for (int i = 0; i < 5; i++) { setup.Waves[i][0].Enemy.health = 1; setup.Waves[i][0].Enemy.speed = .05f; setup.Waves[i][0].Boss = i == 4; }
+            }
             Require(sim.AdvanceStage()==(stage<3),"Campaign ends at 3");
-            Require(sim.Inventory[BlockKind.Shot]>=stock && sim.Robots.Contains(bot) && bot.Program!=null,"Inventory, placement and code persist");
+            Require(sim.Inventory[BlockKind.Shot]>=stock, "Inventory persists across stages");
+            if (stage == 1) Require(sim.Robots.Count == 0, "Stage 2 starts without Stage 1 placements or code");
         }
         setup.Stage=0; setup.PlayerFlow=false;
         var combat=new DefenseSimulation(setup);

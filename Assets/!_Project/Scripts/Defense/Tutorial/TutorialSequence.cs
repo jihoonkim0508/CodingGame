@@ -7,6 +7,7 @@ namespace CodingGame.Defense
     public enum TutorialStepKind { Dialogue, ActionGuide }
     public enum TutorialDialoguePosition { [InspectorName("아래")] Bottom, [InspectorName("위")] Top }
     public enum TutorialCompletionMode { Unconfigured, TargetClick, DragDrop, ExternalSignal }
+    public enum TutorialNoticeTone { Warning, Positive, Calm }
 
     [Serializable]
     public sealed class TutorialText
@@ -65,10 +66,20 @@ namespace CodingGame.Defense
         [Min(0)] public int robotIndex;
         [Tooltip("1-3 조건문 소개용으로 적 찾기·거리 저장 두 줄을 준비합니다. 다른 로봇의 코드는 유지합니다.")]
         public bool prepareDistanceExample;
+        [Tooltip("Stage 2 기초 예제: 1=전사 두 줄, 2=원거리 for 골격")]
+        public int stageTwoExample;
+        public bool observePreview;
+        public int previewIteration;
+        public bool stageTwoRestartOnly;
         public bool prepareBaselineExample;
         public bool restartPreview;
+        [Tooltip("처음 안내자가 주의를 끄는 대사에 빨간 이름·강조선을 표시합니다.")]
+        public bool attentionEntrance;
         [Tooltip("흑백 화면 가운데에 대화창을 크게 띄웁니다. 이어지는 단계도 켜 두면 가운데에 남고, 꺼진 단계로 넘어갈 때 원래 자리로 줄어들며 이동합니다.")] public bool introEntrance;
         [Tooltip("시스템 배너에 경고 카드 세 장을 함께 띄웁니다(1-1 A01).")] public bool alertCards;
+        [Tooltip("시스템 알림: 적·보스는 Warning, 해금은 Positive, 일반 구역 진입은 Calm")]
+        public TutorialNoticeTone systemTone;
+        public string systemTitle;
         [Tooltip("끌어다 놓기 시연: '팔레트 키>놓을 키', 'a>b|c>d'면 앞에서부터 둘 다 화면에 있는 것. 반투명 블록이 반복해서 움직입니다.")]
         public string dragDemo;
         [Tooltip("0보다 크면 다음 버튼 없이, 글자가 다 나오고 이 시간(초) 뒤 저절로 다음 단계로 넘어갑니다.")] [Min(0)] public float autoAdvance;
