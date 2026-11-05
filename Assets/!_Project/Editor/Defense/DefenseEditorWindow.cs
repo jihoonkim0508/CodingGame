@@ -17,11 +17,12 @@ namespace CodingGame.Defense.Editor
         [SerializeField] DefenseCampaignDefinition campaign;
         [SerializeField] int testStage = 1, testWave = 1, coins = 100, campaignStages = 5;
         [SerializeField] bool previousStageRewards = true, tutorial;
-        [SerializeField] int jumpWave = 1, jumpSection;
+        [SerializeField] int jumpStage = 1, jumpWave = 1, jumpSection;
         [SerializeField] string scenePath;
         [SerializeField] DefenseTestOptions options = new DefenseTestOptions();
         DefenseCampaignDefinition playContent;
         readonly List<Object> copies = new List<Object>();
+        readonly Dictionary<TutorialSequence, TutorialSequence> tutorialCopies = new Dictionary<TutorialSequence, TutorialSequence>();
         ScrollView content;
         Label status, feedback, live;
         string tab = Tabs[0];
@@ -173,17 +174,57 @@ namespace CodingGame.Defense.Editor
                 if (!EditorUtility.DisplayDialog("저장 데이터 초기화", "클리어한 스테이지 등 저장된 정보를 모두 지우고 처음 설치한 상태로 되돌립니다.", "초기화", "취소")) return;
                 DevTest.ResetSaveData(); feedback.text = "저장 데이터를 초기화했습니다.";
             }));
-            var row = new VisualElement(); row.AddToClassList("row");
-            jumpWave = Mathf.Clamp(jumpWave, 1, 5);
-            var waves = new PopupField<int>("Stage 1 튜토리얼", Enumerable.Range(1, 5).ToList(), jumpWave - 1, w => "1-" + w, w => "1-" + w);
-            var titles = DevTest.TutorialSections(jumpWave).Select((t, i) => $"{i + 1}. {t}").ToList();
-            if (titles.Count == 0) titles.Add("(구간 없음)");
-            var sections = new PopupField<string>(titles, Mathf.Clamp(jumpSection, 0, titles.Count - 1));
+            Heading("튜토리얼 구간");
+            var stageChoices = DevTest.TutorialStages.ToList();
+            if (stageChoices.Count == 0) { Note("사용 가능한 튜토리얼 asset이 없습니다. 튜토리얼 빌더를 실행하세요."); return; }
+            if (!stageChoices.Contains(jumpStage)) jumpStage = stageChoices[0];
+            var stages = new PopupField<int>("스테이지", stageChoices, stageChoices.IndexOf(jumpStage), s => "Stage " + s, s => "Stage " + s) { name = "tutorial-stage" };
+            stages.RegisterValueChangedCallback(e => { jumpStage = e.newValue; jumpWave = 1; jumpSection = 0; Build(); });
+            content.Add(stages);
+            var waveChoices = DevTest.TutorialWaves(jumpStage).ToList();
+            if (!waveChoices.Contains(jumpWave)) jumpWave = waveChoices[0];
+            var waves = new PopupField<int>("웨이브", waveChoices, waveChoices.IndexOf(jumpWave), w => jumpStage + "-" + w, w => jumpStage + "-" + w) { name = "tutorial-wave" };
+            content.Add(waves);
+            var sequence = DevTest.TutorialSequenceFor(jumpStage, jumpWave);
+            var editable = EditableTutorial(sequence);
+            var titles = editable.steps.Select((s, i) => $"{i + 1}. {s.stepId} {(s.texts.Length > 0 ? s.texts[0].text : "")}".Replace("\n", " ")).ToList();
+            jumpSection = Mathf.Clamp(jumpSection, 0, Math.Max(0, titles.Count - 1));
+            if (titles.Count == 0) { Note("이 웨이브에는 단계가 없습니다."); return; }
+            var sections = new PopupField<string>("구간", titles, jumpSection) { name = "tutorial-section" };
             waves.RegisterValueChangedCallback(e => { jumpWave = e.newValue; jumpSection = 0; Build(); });
-            sections.RegisterValueChangedCallback(e => jumpSection = titles.IndexOf(e.newValue));
-            row.Add(waves); row.Add(sections);
-            row.Add(new Button(() => Act(() => DevTest.JumpTutorial(jumpWave, jumpSection))) { text = "이 구간으로" });
-            content.Add(row);
+            sections.RegisterValueChangedCallback(e => { jumpSection = titles.IndexOf(e.newValue); Build(); });
+            content.Add(sections);
+            Buttons(("이 구간으로", () => DevTest.JumpTutorial(jumpStage, jumpWave, jumpSection, editable)),
+                ("asset 선택", () => { Selection.activeObject = sequence; EditorGUIUtility.PingObject(sequence); }));
+            var editing = new Foldout { text = "선택 구간 편집 · 대사 / 강조 / 진행 조건", value = false, name = "tutorial-step-editor" };
+            var sourceField = new ObjectField("원본 튜토리얼") { objectType = typeof(TutorialSequence), value = sequence, allowSceneObjects = false };
+            sourceField.SetEnabled(false); editing.Add(sourceField);
+            editing.Add(new Label(EditorApplication.isPlaying
+                ? "Play 중에는 복사본을 편집합니다. ‘이 구간으로’로 반영하고, 보관하려면 ‘튜토리얼 원본 저장’을 누르세요."
+                : "선택 구간을 편집한 뒤 ‘튜토리얼 원본 저장’을 누르세요. 대본에서 asset을 재생성하면 이 편집은 덮어써집니다.") { style = { whiteSpace = WhiteSpace.Normal } });
+            var serialized = new SerializedObject(editable);
+            editing.Add(new PropertyField(serialized.FindProperty("typeSpeed"), "대사 출력 속도"));
+            editing.Add(new PropertyField(serialized.FindProperty("steps").GetArrayElementAtIndex(jumpSection), $"{jumpStage}-{jumpWave} / {editable.steps[jumpSection].stepId}"));
+            editing.Bind(serialized);
+            editing.Add(new Button(() => Act(() => SaveTutorial(sequence, editable))) { text = "튜토리얼 원본 저장" });
+            content.Add(editing);
+        }
+
+        TutorialSequence EditableTutorial(TutorialSequence source)
+        {
+            if (!EditorApplication.isPlaying) return source;
+            if (!tutorialCopies.TryGetValue(source, out var copy) || !copy) tutorialCopies[source] = copy = Copy(source);
+            return copy;
+        }
+        void SaveTutorial(TutorialSequence source, TutorialSequence edited)
+        {
+            if (source != edited)
+            {
+                Undo.RecordObject(source, "튜토리얼 구간 저장");
+                EditorJsonUtility.FromJsonOverwrite(EditorJsonUtility.ToJson(edited), source);
+            }
+            EditorUtility.SetDirty(source); AssetDatabase.SaveAssetIfDirty(source);
+            feedback.text = $"{source.sequenceId} 튜토리얼 원본 저장 완료";
         }
 
         // Play Mode edits go to copies so a test never changes the asset until "원본에 저장".
@@ -327,6 +368,6 @@ namespace CodingGame.Defense.Editor
             if (state == PlayModeStateChange.EnteredEditMode) DisposeCopies();
             if (state == PlayModeStateChange.EnteredEditMode || state == PlayModeStateChange.EnteredPlayMode) { hadBattle = false; CreateGUI(); }
         }
-        void DisposeCopies() { foreach (var c in copies) if (c) DestroyImmediate(c); copies.Clear(); playContent = null; }
+        void DisposeCopies() { foreach (var c in copies) if (c) DestroyImmediate(c); copies.Clear(); tutorialCopies.Clear(); playContent = null; }
     }
 }

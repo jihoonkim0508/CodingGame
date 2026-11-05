@@ -7,7 +7,7 @@ using CodingGame.BlockCoding;
 namespace CodingGame.Defense
 {
     /// <summary>Unity 화면과 분리된 전투 규칙입니다. 필요한 설정은 생성 시 전달받습니다.</summary>
-    public sealed class DefenseSimulation
+    public sealed partial class DefenseSimulation
     {
         public DefenseTestOptions Options => Setup.TestOptions;
         public const double TickDuration = 1.0 / 60;
@@ -46,6 +46,7 @@ namespace CodingGame.Defense
         public int LastSurvivors { get; private set; }
         public bool LastWaveTimedOut { get; private set; }
         public bool ObjectiveFailed { get; private set; }
+        public bool BossKilled { get; private set; }
         public readonly List<int> WaveSurvivors = new List<int>();
         readonly List<SpawnGroup> carry = new List<SpawnGroup>();
         SpawnGroup[] currentWave, nextWave;
@@ -124,7 +125,7 @@ namespace CodingGame.Defense
             currentWave = nextWave ?? ScaledWave(WaveIndex);
             nextWave = WaveIndex + 1 < Setup.Waves.Length ? ScaledWave(WaveIndex + 1) : Array.Empty<SpawnGroup>();
             carry.Clear(); groupCounts = new int[currentWave.Length]; waveStart = Time; spawnElapsed = 0;
-            waveLeaksAtStart = Leaks; ObjectiveFailed = false;
+            waveLeaksAtStart = Leaks; ObjectiveFailed = false; BossKilled = false;
             foreach (var bot in Robots) bot.AttacksThisWave = 0;
             if (Setup.PlayerFlow && Lesson != null) GrantSupply(Lesson);
         }
@@ -166,6 +167,11 @@ namespace CodingGame.Defense
         {
             if (!CanAdvanceStage) return false;
             Setup.Stage++; WaveIndex = 0;
+            if (Setup.Stage == 2 && Setup.Progression.lessons.Any(l => l.stage == 2))
+            {
+                foreach (var bot in Robots) AddStock(RobotInventory, bot.Spec.role, 1);
+                Robots.Clear(); drafts.Clear(); Enemies.Clear(); Projectiles.Clear(); strikes.Clear();
+            }
             if (Setup.CampaignWaves != null) { Setup.Waves = Setup.CampaignWaves[Setup.Stage-1]; Setup.WaveSeconds = Setup.CampaignSeconds[Setup.Stage-1]; } BaseHealth = Setup.BaseHealth;
             nextWave = null; carry.Clear(); WaveSurvivors.Clear(); LastSurvivors = 0; LastWaveTimedOut = false;
             PrepareWave(); ResetPrograms(); Phase = BattlePhase.Ready; return true;
@@ -192,6 +198,8 @@ namespace CodingGame.Defense
         {
             if (Phase != BattlePhase.Ready) return "준비 단계에서 시작할 수 있습니다.";
             if (Setup.PlayerFlow && Robots.Count == 0) return "로봇을 먼저 배치하세요.";
+            string stageTwoError = StageTwoLearning.StartError(this);
+            if (stageTwoError != null) return stageTwoError;
             if (Setup.PlayerFlow && Setup.Stage == 1 && WaveIndex == 1)
             {
                 if (Robots.Count < 2) return "1-2 목표: 새 전사를 한 대 더 배치하세요.";
@@ -223,7 +231,7 @@ namespace CodingGame.Defense
             block.Arguments.Any(child => ContainsKind(child, kind)) || block.Body.Any(child => ContainsKind(child, kind));
         static bool ContainsVariable(CodeBlock block, string name) => block.Kind == BlockKind.Variable && block.Value == name ||
             block.Arguments.Any(child => ContainsVariable(child, name)) || block.Body.Any(child => ContainsVariable(child, name));
-        public void Start() { if (StartError() == null) { accumulated = 0; waveStart = Time; Phase = BattlePhase.Running; } }
+        public void Start() { if (StartError() == null) { SavePreparation(); accumulated = 0; waveStart = Time; Phase = BattlePhase.Running; } }
         public bool ClaimRewards()
         {
             if (Phase != BattlePhase.Reward) return false;
@@ -286,7 +294,7 @@ namespace CodingGame.Defense
         {
             spec.Validate(); error = PlacementError(spec, point);
             if (error != null) {Events.Add(new CombatEvent{Kind="placement-failed",Reason=error,Target=definitionIndex,Position=point});return null;}
-            var bot = new RobotState { Id = nextId++, DefinitionIndex = definitionIndex, Position = point, Spec = spec.Copy(),
+            var bot = new RobotState { Id = nextId++, DefinitionIndex = definitionIndex, PlacedWave = WaveIndex, Position = point, Spec = spec.Copy(),
                 LevelCap = Setup.RulesConfig.maxLevel, UpgradeFactor = Setup.RulesConfig.upgradeMultiplier,
                 Action = spec.NativeAction, Health = spec.role == RobotRole.Tank ? (float?)spec.health : null,
                 NextAction = Time + spec.interval };
@@ -497,6 +505,7 @@ namespace CodingGame.Defense
             if (e.Health <= 0)
             {
                 e.Active = false; e.BlockedBy = 0; Kills++; Emit("killed", source, e.Id, e.Position);
+                if (e.Boss) { BossKilled = true; Emit("boss-killed", source, e.Id, e.Position); }
                 if (Setup.PlayerFlow)
                 {
                     Coins = (int)Math.Min(int.MaxValue, (long)Coins + Setup.Progression.coinsPerKill);
@@ -581,6 +590,8 @@ namespace CodingGame.Defense
         // Carries survivors and unspawned enemies into the next wave, then moves to rewards or the next wave.
         void CompleteWave(int remaining)
         {
+            if (Setup.PlayerFlow && Setup.Stage == 2 && Lesson != null && WaveIndex == 4 && !BossKilled)
+            { ObjectiveFailed = true; Phase = BattlePhase.Defeat; Projectiles.Clear(); strikes.Clear(); return; }
             LastWaveTimedOut = remaining > 0;
             LastSurvivors = remaining; WaveSurvivors.Add(LastSurvivors);
             // 살아 있는 적과 아직 생성되지 않은 적을 다음 웨이브로 이월하며 처치 보상은 주지 않습니다.

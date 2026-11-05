@@ -7,7 +7,8 @@ using UnityEngine.UI;
 
 namespace CodingGame.Defense
 {
-    // Lines spoken by "시스템" show here: a red alarm banner (glowing message on a hazard-striped bar over a pulsing red
+    // System messages distinguish red enemy warnings from calm teal/gold unlock announcements.
+    // A red alarm banner (glowing message on a hazard-striped bar over a pulsing red
     // vignette) that plays the warning sound and fades out after a fixed time. With cards (1-1 A01) three warning cards
     // slam in above the bar first. The visuals are built at run time inside the scene's boot overlay (panel + CanvasGroup).
     public sealed class TutorialSystemAlert : MonoBehaviour
@@ -29,6 +30,11 @@ namespace CodingGame.Defense
         bool withCards;
         RectTransform bar, stripes, shake;
         Image vignette;
+        Image barFill, background;
+        RectTransform positiveBadge;
+        TMP_Text positiveHeading;
+        AudioClip unlockChime;
+        public TutorialNoticeTone Tone { get; private set; }
         readonly List<(RectTransform rect, CanvasGroup group)> cards = new List<(RectTransform, CanvasGroup)>();
         Material glow;
         public bool IsShowing => panel.activeSelf;
@@ -40,19 +46,23 @@ namespace CodingGame.Defense
             panel.SetActive(false);
         }
 
-        public void Show(string text, bool showCards = false)
+        public void Show(string text, bool showCards = false, TutorialNoticeTone tone = TutorialNoticeTone.Warning, string title = null)
         {
+            Tone = tone; showCards &= tone == TutorialNoticeTone.Warning;
             message.text = text ?? ""; withCards = showCards;
             // New glyphs join the dynamic font atlas while the alert is still dark, not when a card lands: adding them mid
             // sequence stalled a frame (about 1 s in the Editor, which re-imports the font asset) and broke the beat.
-            message.font.TryAddCharacters(message.text + (showCards ? string.Concat(Cards.Select(c => c.title + c.body)) : ""));
-            clock = 0; duration = seconds + (showCards ? Land(Cards.Length) : 0);
+            message.font.TryAddCharacters(message.text + (showCards ? string.Concat(Cards.Select(c => c.title + c.body)) : "") + (title ?? "새로운 가능성이 열렸어요!"));
+            clock = 0; duration = Mathf.Max(seconds, 2.4f) + (showCards ? Land(Cards.Length) : 0);
+            ApplyTone(title);
             foreach (var card in cards) card.rect.gameObject.SetActive(showCards);
             // The bar sits under the cards, or in the middle on its own.
             bar.anchoredPosition = new Vector2(0, showCards ? -40 : 0);
             panel.SetActive(true);
             Animate();
-            if (warning.clip) warning.Play();
+            warning.Stop();
+            if (tone == TutorialNoticeTone.Positive) warning.PlayOneShot(unlockChime, .35f);
+            else if (tone == TutorialNoticeTone.Warning && warning.clip) warning.Play();
         }
         public void Hide() => panel.SetActive(false);
 
@@ -71,7 +81,18 @@ namespace CodingGame.Defense
         void Animate()
         {
             float t = clock;
-            fade.alpha = Mathf.Min(Mathf.Clamp01(t / .12f), Mathf.Clamp01((duration - t) / fadeSeconds));
+            bool calm = Tone == TutorialNoticeTone.Calm;
+            fade.alpha = Mathf.Min(Mathf.SmoothStep(0, 1, t / (calm ? .55f : Tone == TutorialNoticeTone.Positive ? .35f : .12f)), Mathf.Clamp01((duration - t) / fadeSeconds));
+            if (Tone != TutorialNoticeTone.Warning)
+            {
+                vignette.color = new Color(.12f, .8f, .68f, calm ? .035f : .07f + .02f * Mathf.Sin(t * 3));
+                float appear = Mathf.SmoothStep(0, 1, t / .55f);
+                bar.localScale = Vector3.one * Mathf.Lerp(calm ? .99f : .97f, 1, appear);
+                bar.anchoredPosition = Vector2.down * (calm ? 10 * (1 - appear) : 0);
+                positiveBadge.localScale = Vector3.one * (1 + .035f * Mathf.Sin(t * 3));
+                shake.anchoredPosition = Vector2.zero; message.alpha = 1;
+                return;
+            }
             vignette.color = new Color(Red.r, Red.g, Red.b, .24f + .16f * Mathf.Sin(t * 7));
             // Cards slam in one after another (big and clear, then settle).
             for (int i = 0; i < cards.Count; i++)
@@ -101,7 +122,8 @@ namespace CodingGame.Defense
         void Build()
         {
             var root = (RectTransform)panel.transform;
-            if (panel.TryGetComponent<Image>(out var background)) background.color = Color.black;
+            panel.TryGetComponent(out background);
+            if (background) background.color = Color.black;
             vignette = NewImage("Alarm vignette", root, Vignette(), Color.clear); Stretch(vignette);
             shake = Stretch(New("Alarm content", root));
             glow = new Material(message.fontSharedMaterial);
@@ -110,8 +132,9 @@ namespace CodingGame.Defense
             glow.SetFloat(ShaderUtilities.ID_GlowOuter, .55f); glow.SetFloat(ShaderUtilities.ID_GlowPower, .75f);
 
             bar = New("Alarm bar", shake); bar.sizeDelta = new Vector2(1560, 92);
-            var barFill = Stretch(NewImage("Fill", bar, null, new Color(.5f, 0, .03f, .35f)));
-            barFill.offsetMin = new Vector2(-40, 0); barFill.offsetMax = new Vector2(40, 0);
+            barFill = NewImage("Fill", bar, null, new Color(.5f, 0, .03f, .35f));
+            var fillRect = Stretch(barFill);
+            fillRect.offsetMin = new Vector2(-40, 0); fillRect.offsetMax = new Vector2(40, 0);
             var mask = Stretch(New("Stripes mask", bar)); mask.gameObject.AddComponent<RectMask2D>();
             stripes = New("Stripes", mask); stripes.anchorMin = stripes.anchorMax = new Vector2(.5f, .5f); stripes.sizeDelta = new Vector2(1560, 92);
             // Four slanted stripes at each end, scrolling; the middle stays clear for the message.
@@ -129,6 +152,13 @@ namespace CodingGame.Defense
             message.textWrappingMode = TextWrappingModes.NoWrap; message.alignment = TextAlignmentOptions.Center;
             message.fontSize = 42; message.fontStyle = FontStyles.Bold; message.color = new Color(1, .25f, .28f);
             message.fontMaterial = glow;
+
+            positiveHeading = Label(bar, "", 26, new Color(.98f, .85f, .4f), new Vector2(0, 42), new Vector2(1100, 40));
+            positiveBadge = NewImage("Unlock badge", bar, Circle(), new Color(.07f, .35f, .31f)).rectTransform;
+            positiveBadge.sizeDelta = new Vector2(94, 94); positiveBadge.anchoredPosition = new Vector2(-650, 0);
+            var star = NewImage("Unlock star", positiveBadge, Star(), new Color(1, .83f, .31f)).rectTransform; star.sizeDelta = new Vector2(58, 58);
+            positiveHeading.gameObject.SetActive(false); positiveBadge.gameObject.SetActive(false);
+            unlockChime = Chime();
 
             var circle = Circle(); var triangle = Triangle();
             for (int i = 0; i < Cards.Length; i++)
@@ -149,6 +179,46 @@ namespace CodingGame.Defense
                 cards.Add((card, group));
             }
         }
+
+        void ApplyTone(string title)
+        {
+            bool positive = Tone == TutorialNoticeTone.Positive;
+            bool peaceful = Tone != TutorialNoticeTone.Warning;
+            bool heading = peaceful || !string.IsNullOrEmpty(title);
+            positiveHeading.gameObject.SetActive(heading); positiveBadge.gameObject.SetActive(positive);
+            positiveHeading.color = Tone == TutorialNoticeTone.Calm ? new Color(.65f, .85f, .9f) : peaceful ? new Color(.98f, .85f, .4f) : new Color(1, .7f, .7f);
+            stripes.parent.gameObject.SetActive(!peaceful);
+            if (background) background.color = peaceful ? new Color(.01f, .06f, .07f, .3f) : Color.black;
+            bar.sizeDelta = new Vector2(1560, heading ? 150 : 92);
+            barFill.color = peaceful ? new Color(.02f, .17f, .16f, .96f) : new Color(.5f, 0, .03f, .35f);
+            positiveHeading.text = string.IsNullOrEmpty(title) ? "새로운 가능성이 열렸어요!" : title;
+            message.rectTransform.anchoredPosition = new Vector2(0, heading ? -18 : 0);
+            message.color = peaceful ? new Color(.82f, 1, .93f) : new Color(1, .25f, .28f);
+            message.fontSize = heading ? 38 : 42;
+            glow.SetColor(ShaderUtilities.ID_GlowColor, peaceful ? new Color(.1f, .65f, .5f, .3f) : new Color(1, .05f, .1f, .8f));
+        }
+
+        static Sprite Star() => Draw(128, (u, v) => {
+            var p = new Vector2(u - .5f, v - .5f); float angle = Mathf.Atan2(p.y, p.x) - Mathf.PI / 2;
+            float radius = .29f + .15f * Mathf.Cos(angle * 5);
+            return (radius - p.magnitude) * 128;
+        });
+        static AudioClip Chime()
+        {
+            const int rate = 22050; var data = new float[rate];
+            for (int i = 0; i < data.Length; i++)
+            {
+                float t = i / (float)rate;
+                for (int note = 0; note < 3; note++)
+                {
+                    float start = note * .16f;
+                    float age = t - start;
+                    if (age >= 0) data[i] += Mathf.Sin(2 * Mathf.PI * (start < .1f ? 660 : start < .3f ? 880 : 1108.73f) * age) * Mathf.Exp(-age * 9) * Mathf.Min(1, age * 80) * .2f;
+                }
+            }
+            var clip = AudioClip.Create("Unlock chime", data.Length, 1, rate, false); clip.SetData(data, 0); return clip;
+        }
+        void OnDestroy() { if (unlockChime) Destroy(unlockChime); if (glow) Destroy(glow); }
 
         TMP_Text Label(RectTransform parent, string text, float size, Color color, Vector2 position, Vector2 box)
         {

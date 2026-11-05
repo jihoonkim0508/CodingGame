@@ -25,6 +25,17 @@ namespace CodingGame.BlockCoding
         static readonly Color EmptyHint = new Color(1f, .45f, .4f, .9f);
         // elif/else rows tuck under the block above by this much.
         const float BranchOverlap = 18;
+        const float TutorialRowHeight = 46;
+        bool tutorialAppend;
+        public Rect TutorialAppendArea => new Rect(4, -preferredHeight + 4, Mathf.Max(64, rect.rect.width - 8), TutorialRowHeight);
+        // A presentation-only row: it is never read as code or counted against inventory.
+        public void ShowTutorialAppend(bool show)
+        {
+            show &= !freePlacement && slot == BlockSlotKind.Statement && blocks.Count > 0;
+            if (tutorialAppend == show) return;
+            tutorialAppend = show;
+            LayoutRebuilder.MarkLayoutForRebuild(rect);
+        }
         public bool FreePlacement => freePlacement;
         public RectTransform Rect => rect;
         public BlockSlotKind Slot => slot;
@@ -43,6 +54,7 @@ namespace CodingGame.BlockCoding
                 if (freePlacement) return Mathf.Max(minimumHeight, blocks.Count == 0 ? 0 : blocks.Max(b => -b.Rect.anchoredPosition.y + b.preferredHeight) + 32);
                 float height = 8;
                 for (int i = 0; i < blocks.Count; i++) height += blocks[i].preferredHeight - (i > 0 ? Overlap(i) : 0);
+                if (tutorialAppend) height += TutorialRowHeight;
                 return Mathf.Max(minimumHeight, height);
             }
         }

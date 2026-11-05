@@ -90,6 +90,8 @@ namespace CodingGame.Defense
         public string StatusMessage { get; private set; }
         public TutorialDirector Tutorial => tutorial;
         public DefenseCodeEditor CodeEditor => codeEditor;
+        public DefenseAttackPreview AttackPreview => attackPreview;
+        public bool StageTwoRestarted { get; private set; }
         int tutorialUnits;
         public bool TutorialBlocksInput => tutorial && tutorial.BlocksGameplayInput;
         public bool TutorialBlocksPreview => tutorial && tutorial.BlocksPreview;
@@ -203,16 +205,21 @@ namespace CodingGame.Defense
         public void Restart()
         {
             if (!TutorialAllows("Battle.Restart") && !(Simulation != null && Simulation.Phase == BattlePhase.Defeat && TutorialAllows("Battle.ContinueCampaign"))) return;
+            bool stageTwoRetry = stage == 2 && Simulation != null && Simulation.Phase == BattlePhase.Defeat && Simulation.WaveIndex == 4;
             var setup = MakeSetup(campaign, stage);
             setup.PreviousStageRewards = FromStageMap;
 #if UNITY_EDITOR
             setup.TestOptions=EditorOptions;
 #endif
             ResetSession(setup);
+            StageTwoRestarted = stageTwoRetry;
         }
         void ResetSession(BattleSetup setup)
+            => ResetSession(new DefenseSimulation(setup));
+        void ResetSession(DefenseSimulation simulation)
         {
-            setup.Validate();
+            StageTwoRestarted = false;
+            simulation.Setup.Validate();
             inventoryUI.Close();
             codeEditor.Close(false);
             tutorial?.UnregisterRuntimeTarget(TutorialKeys.SelectedRobot, null);
@@ -221,7 +228,7 @@ namespace CodingGame.Defense
             ClearDrops();
             projectileViews.Clear();
             hitEffects.Clear();
-            Simulation = new DefenseSimulation(setup);
+            Simulation = simulation;
             bossEntranceStarted = bossCameraRestored = false;
             bossEntranceUntil = bossCameraRestoreAt = 0;
             selectionCamera.Restore();
@@ -257,6 +264,8 @@ namespace CodingGame.Defense
         void ClearDrops() { foreach (var drop in dropViews) if (drop) Destroy(drop.gameObject); dropViews.Clear(); }
         public void ContinueCampaign()
         {
+            if (stage == 2 && Simulation.Phase == BattlePhase.Defeat && Simulation.WaveIndex < 4)
+            { var retry = Simulation.RetryPreparation(); if (retry != null) ResetSession(retry); return; }
             if (Simulation.Phase == BattlePhase.Reward) { ClaimRewards(); return; }
             if (Simulation.Phase == BattlePhase.Defeat) { Restart(); return; }
             if (!TutorialAllows("Battle.ContinueCampaign")) return;
@@ -369,6 +378,7 @@ namespace CodingGame.Defense
         {
             if (!robotViews.TryGetValue(id, out var view) || !view) return;
             string unit = TutorialKeys.Unit(TutorialWatcher.RobotIndex(Simulation, id));
+            if (stage == 2 && tutorial && tutorial.StageTwoRobot?.Id == id && TutorialAllows(TutorialDirector.TeachingUnit)) unit = TutorialDirector.TeachingUnit;
             string key = TutorialAllows(unit) ? unit : TutorialAllows(TutorialKeys.SelectedRobot) ? TutorialKeys.SelectedRobot : "Battle.SelectRobot";
             if (!TutorialAllows(key)) return;
             var robot = Simulation.FindRobot(id);
@@ -588,6 +598,14 @@ namespace CodingGame.Defense
             for (int i = bots.Count; i < tutorialUnits; i++)
             { tutorial.UnregisterRuntimeTarget(TutorialKeys.Unit(i), null); tutorial.UnregisterRuntimeTarget(TutorialKeys.Range(i), null); }
             tutorialUnits = bots.Count;
+            var teaching = stage == 2 ? tutorial.StageTwoRobot : null;
+            if (teaching != null && robotViews.TryGetValue(teaching.Id, out var teachingView))
+            {
+                tutorial.RegisterWorldTarget(TutorialDirector.TeachingUnit, teachingView.gameObject, RobotBounds(teaching));
+                tutorial.RegisterWorldTarget(TutorialDirector.TeachingRange, teachingView.gameObject,
+                    new Bounds(DefenseViews.World(teaching.Position), new Vector3(teaching.Range * 2, .1f, teaching.Range * 2)), true);
+            }
+            else { tutorial.UnregisterRuntimeTarget(TutorialDirector.TeachingUnit, null); tutorial.UnregisterRuntimeTarget(TutorialDirector.TeachingRange, null); }
             var route = new List<Bounds>();
             // Clipped to the map, in case a route starts off it.
             var min = DefenseViews.World(Simulation.Setup.Min); var max = DefenseViews.World(Simulation.Setup.Max);

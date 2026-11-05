@@ -23,6 +23,19 @@ namespace CodingGame.Defense
         bool invocationStarted;
         bool actedThisInvocation;
         double wakeTime;
+        // Observation is opt-in; normal combat keeps its existing execution budget and timing.
+        public bool ObserveSingleInvocation { get; set; }
+        public bool ObservationFinished { get; private set; }
+        public int Iteration { get; private set; }
+        public int IterationTotal { get; private set; }
+        public int FinishedIterations { get; private set; }
+        public int ObservedCommands { get; private set; }
+        public string ObservedPath { get; private set; }
+        public BlockKind ObservedKind { get; private set; }
+        bool observationStep;
+        int pendingIteration, pendingIterationTotal;
+        readonly Dictionary<CodeBlock, string> paths = new Dictionary<CodeBlock, string>();
+        public void AdvanceObservation() { if (!ObservationFinished) observationStep = true; }
         public string Name { get; }
         public string Source { get; }
         public string Fault { get; private set; }
@@ -41,11 +54,21 @@ namespace CodingGame.Defense
             Source = PythonTreeCompiler.Compile(name, program);
             Name = PythonTreeCompiler.NormalizeIdentifier(name);
             blocks = program.Select(Clone).ToList();
+            MapPaths(blocks, null);
             // 적용된 코드는 수정되지 않으므로 아이템 수량도 한 번만 계산합니다.
             blockCounts = DefenseProgression.Used(blocks).GroupBy(kind => kind).ToDictionary(group => group.Key, group => group.Count());
             EmitSuite(blocks, null, null);
         }
         static CodeBlock Clone(CodeBlock b) => b == null ? null : new CodeBlock(b.Kind, b.Value, b.Arguments.Select(Clone).ToArray()) { Body = b.Body.Select(Clone).ToList() };
+        void MapPaths(IReadOnlyList<CodeBlock> suite, string parent)
+        {
+            for (int index = 0; index < suite.Count; index++)
+            {
+                var block = suite[index];
+                paths[block] = parent == null ? "Editor.Code.Line." + (index + 1) : "Editor.Code.BodyLine." + parent + "." + index;
+                MapPaths(block.Body, parent == null ? (index + 1).ToString() : parent + "." + index);
+            }
+        }
         int Emit(Op op, CodeBlock block = null, int jump = 0, int loop = 0)
         { code.Add(new Instruction { Op = op, Block = block, Jump = jump, Loop = loop }); return code.Count - 1; }
         void EmitSuite(IReadOnlyList<CodeBlock> suite, List<int> breaks, List<int> continues)
@@ -94,7 +117,7 @@ namespace CodingGame.Defense
         public void Tick(DefenseSimulation sim, RobotState robot)
         {
             StepsLastTick = 0;
-            if (Fault != null || Completed(sim) || sim.Phase != BattlePhase.Running || sim.Time + 1e-9 < wakeTime) return;
+            if (Fault != null || ObservationFinished || Completed(sim) || sim.Phase != BattlePhase.Running || sim.Time + 1e-9 < wakeTime) return;
             // A program that targets enemies starts a run only once one is in range, so idle runs don't use up the repeat limit.
             if (!invocationStarted)
             {
@@ -109,6 +132,7 @@ namespace CodingGame.Defense
                 {
                     if (pc == code.Count)
                     {
+                        if (ObserveSingleInvocation) { ObservationFinished = true; observationStep = false; return; }
                         // A false condition has not used an action. It must be retried after enemies move,
                         // without spending one of the wave's limited successful program runs.
                         if (actedThisInvocation) CompletedRuns++;
@@ -127,17 +151,23 @@ namespace CodingGame.Defense
                         case Op.ForTest:
                             var state = loops[instruction.Loop];
                             if (state.Index >= state.Count) pc = instruction.Jump;
-                            else { variables["i"] = state.Index; pc++; }
+                            else { variables["i"] = state.Index; pendingIteration = (int)state.Index + 1; pendingIterationTotal = (int)state.Count; pc++; }
                             break;
-                        case Op.ForNext: loops[instruction.Loop].Index++; pc++; break;
+                        case Op.ForNext: FinishedIterations = (int)++loops[instruction.Loop].Index; pc++; break;
                         default:
                             var block = instruction.Block;
+                            if (ObserveSingleInvocation && !observationStep) return;
+                            Iteration = pendingIteration; IterationTotal = pendingIterationTotal;
+                            ObservedPath = paths.TryGetValue(block, out var path) ? path : null;
+                            ObservedKind = block.Kind;
                             if (block.Kind == BlockKind.DeclareVariable)
                             {
                                 string name = PythonTreeCompiler.NormalizeIdentifier(block.Value);
                                 var value = Value(block.Arguments[0], sim, robot);
                                 variables[name] = value;
-                                pc++; break;
+                                pc++; ObservedCommands++;
+                                if (ObserveSingleInvocation) { observationStep = false; return; }
+                                break;
                             }
                             if (block.Kind == BlockKind.Wait)
                             {
@@ -154,12 +184,12 @@ namespace CodingGame.Defense
                                 target = enemy.Id;
                                 // 지정한 적이 사라져도 다른 적으로 자동 교체하지 않습니다.
                                 if (target == 0 || !sim.Enemies.Any(e => e.Id == target && e.Active))
-                                { robot.LastResult = ActionResult.NoTarget; pc++; return; }
+                                { robot.LastResult = ActionResult.NoTarget; pc++; ObservedCommands++; observationStep = false; return; }
                             }
                             var result = sim.RequestAction(robot.Id, action, target);
                             if (result == ActionResult.Executed) actedThisInvocation = true;
                             // 재사용 대기 중에는 같은 명령에서 기다리고, 실행 결과가 나오면 다음으로 이동합니다.
-                            if (result != ActionResult.CoolingDown) pc++;
+                            if (result != ActionResult.CoolingDown) { pc++; ObservedCommands++; observationStep = false; }
                             return;
                     }
                 }

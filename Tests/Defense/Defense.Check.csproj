@@ -11,6 +11,9 @@
     <Compile Include="LearningCheck.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseCurriculum.cs" />
     <Compile Include="ProgramCheck.cs" />
+    <Compile Include="StageTwoCheck.cs" />
+    <Compile Include="../../Assets/!_Project/Scripts/Defense/StageTwoLearning.cs" />
+    <Compile Include="../../Assets/!_Project/Scripts/Defense/DefensePreparation.cs" />
     <Compile Include="CampaignCheck.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseProgression.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseModels.cs" />

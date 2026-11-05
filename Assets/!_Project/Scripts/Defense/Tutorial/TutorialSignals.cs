@@ -18,6 +18,7 @@ namespace CodingGame.Defense
         // Incomplete programs cannot emit ProgramMatches: inspect the live editor draft instead.
         public const string CodeLinePlaced = "CodeLinePlaced", SlotSelected = "SlotSelected";
         public const string DraftValueMatches = "DraftValueMatches";
+        public const string StageTwoAttackPlaced = "StageTwoAttackPlaced";
         // Speaker whose lines show as the system alert banner instead of the dialogue box.
         public const string SystemSpeaker = "시스템";
     }
