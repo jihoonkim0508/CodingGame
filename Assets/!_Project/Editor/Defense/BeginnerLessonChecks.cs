@@ -311,6 +311,8 @@ namespace CodingGame.Defense.Editor
             if (step.completionSignal == TutorialSignals.EditorOpened) { battle.DevelopSelected(); return; }
             if (step.completionSignal == TutorialSignals.BattleStarted) { battle.StartBattle(); return; }
             if (step.completionSignal == TutorialSignals.PreviewHit ||
+                step.completionSignal == TutorialSignals.PreviewRepeatedHit ||
+                step.completionSignal == TutorialSignals.PreviewProgramEnded ||
                 step.completionSignal == TutorialSignals.PreviewSingleHit || step.completionSignal == TutorialSignals.PreviewMultiHit)
             { Require(Field<DefenseAttackPreview>(battle, "attackPreview").IsShowing, "Preview is closed at " + key); return; }
             Require(editor.IsOpen && battle.TutorialAllows(TutorialKeys.Palette), "Editor action blocked at " + key);

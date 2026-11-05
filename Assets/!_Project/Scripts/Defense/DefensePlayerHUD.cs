@@ -126,7 +126,8 @@ namespace CodingGame.Defense
             var inspected = sim.FindRobot(battle.SelectedId);
             notice.text = sim.Setup.PlayerFlow && fighting && inspected?.Program != null ?
                 battle.RobotName(inspected.Id) + " · " + inspected.Program.ExecutionStatus(sim, inspected) +
-                (inspected.Program.LoopCount > 0 ? $" · 반복 {inspected.Program.LoopIteration}/{inspected.Program.LoopCount}" : "") : battle.StatusMessage;
+                (inspected.Program.LoopCount < 0 ? $" · while 반복 {inspected.Program.LoopIteration}회" :
+                    inspected.Program.LoopCount > 0 ? $" · 반복 {inspected.Program.LoopIteration}/{inspected.Program.LoopCount}" : "") : battle.StatusMessage;
             inventory.text = $"설치 {sim.Robots.Count} / {sim.Setup.RobotLimit}대  ·  버프형 최대 1대";
             inventory.color = sim.Robots.Count >= sim.Setup.RobotLimit ? new Color(1, .45f, .4f) : new Color(.75f, .9f, .95f);
             startButton.interactable = ready;

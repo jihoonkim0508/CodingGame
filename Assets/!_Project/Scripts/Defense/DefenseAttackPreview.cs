@@ -41,6 +41,7 @@ namespace CodingGame.Defense
         string DamageComparison => !RangedConditionLesson ? "" : "\n조건 없음: " + (baselineShotDamage?.ToString("0.0") ?? "관찰 중") + " / 거리 3 이하: " + (conditionalShotDamage?.ToString("0.0") ?? "관찰 전");
         int lessonMode;
         bool endedReported, retargetReported;
+        int repeatedHits;
         readonly HashSet<int> lessonAttackTargets = new HashSet<int>();
         public void ConfigureLesson(int mode)
         {
@@ -114,7 +115,7 @@ namespace CodingGame.Defense
         void ResetPreview()
         {
             ClearActors(); source = selected.Program; emptyElapsed = 0; firstHitReported = false; firstHitCount = 0;
-            endedReported = retargetReported = false; lessonAttackTargets.Clear();
+            endedReported = retargetReported = false; repeatedHits = 0; lessonAttackTargets.Clear();
             sourceLevel = selected.Level;
             var setup = new BattleSetup {
                 TestOptions = battle.Simulation.Options,
@@ -128,9 +129,7 @@ namespace CodingGame.Defense
             };
             if (lessonMode > 0)
             {
-                var enemy = HarmlessEnemy(); enemy.speed = .01f;
-                // The while lesson lets the target die so the preview reaches the break branch.
-                enemy.health = Math.Max(1, selected.Damage * (lessonMode == 4 ? 2.5f : 100f));
+                var enemy = HarmlessEnemy(); enemy.speed = .01f; enemy.health = Math.Max(1, selected.Damage * 100);
                 setup.Routes = new[] { new Route(new[] { new Point(0, 0), new Point(-20, 0) }, .01f),
                     new Route(new[] { new Point(2.5f, 0), new Point(-20, 0) }, .01f) };
                 setup.Waves = new[] { lessonMode == 2 ? new[] {
@@ -138,7 +137,6 @@ namespace CodingGame.Defense
                     new SpawnGroup { Enemy = enemy.Copy(), RouteIndex = 1, Count = 1, Interval = 1 }
                 } : new[] { new SpawnGroup { Enemy = enemy, Count = 1, Interval = 1 } } };
                 if (lessonMode == 2) setup.Waves[0][0].Enemy.health = Math.Max(1, selected.Damage * .5f);
-                if (lessonMode == 4) { setup.Waves[0][0].Count = 2; setup.Waves[0][0].Interval = 20; }
             }
             if (RangedConditionLesson) { setup.Waves[0][0].Enemy.health = 1000; setup.Waves[0][0].Enemy.speed = 1.2f; }
             CopyRules(setup);
@@ -288,6 +286,8 @@ namespace CodingGame.Defense
                         else baselineShotDamage = e.Amount;
                     }
                     battle.ReportTutorialAction(TutorialKeys.Preview, TutorialSignals.PreviewHit);
+                    if (++repeatedHits == 2)
+                        battle.ReportTutorialAction(TutorialKeys.Preview, TutorialSignals.PreviewRepeatedHit);
                     if (lessonMode == 2)
                     {
                         if (!retargetReported && lessonAttackTargets.Count > 1 && lessonAttackTargets.Contains(e.Target))
@@ -341,7 +341,8 @@ namespace CodingGame.Defense
                     $"저지 {blocked}/{bot.Spec.blockCapacity}" + (blocked >= bot.Spec.blockCapacity ? " · 한도 도달" : "");
                 state += "  |  " + blocking;
             }
-            if (program != null && program.LoopCount > 0) state = $"반복 {program.LoopIteration}/{program.LoopCount} · " + state;
+            if (program != null && program.LoopCount < 0) state = $"while 반복 {program.LoopIteration}회 · " + state;
+            else if (program != null && program.LoopCount > 0) state = $"반복 {program.LoopIteration}/{program.LoopCount} · " + state;
             if (program?.LastCondition != null)
                 state = (program.LastCondition.Value ? "조건 참 → if 안의 공격 실행" : "조건 거짓 → 공격 건너뛰기 · 가까워지면 다시 확인") + "\n" + state;
             status.text = state + DamageComparison;

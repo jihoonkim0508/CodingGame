@@ -302,6 +302,7 @@ namespace CodingGame.Defense
             if (pointer) pointer.Hide();
             var step = active.steps[index];
             if (step.completionSignal == TutorialSignals.PreviewSingleHit || step.completionSignal == TutorialSignals.PreviewMultiHit ||
+                step.completionSignal == TutorialSignals.PreviewRepeatedHit ||
                 step.completionSignal == TutorialSignals.PreviewHit || step.completionSignal == TutorialSignals.PreviewProgramEnded ||
                 step.completionSignal == TutorialSignals.PreviewRetargetHit)
                 signals.Remove(step.completionSignal);

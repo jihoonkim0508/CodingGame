@@ -857,7 +857,7 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "<b>\u2460 \ub178\ub780 \uc22b\uc790\ub97c 3\uc5d0\uc11c 5\ub85c</b> \ubc14\uafd4 \uc918.\n\uac19\uc740 \uba85\ub839 \ubb36\uc74c\uc744 \ub2e4\uc12f \ubc88 \uc2e4\ud589\ud574. <b>\ubc18\ubcf5\ubb38 \ud558\ub098\uc758 \ucd5c\ub300 \ud69f\uc218\ub294 10\ud68c</b>\uc57c."
+      text: "<b>① 노란 숫자를 3에서 5로</b> 바꿔 줘.\n같은 명령 묶음을 다섯 번 실행해. <b>for의 최대 횟수는 10회</b>야."
       focusKeys:
       - Editor.Code.Arg.1.0
       highlightKeys: []
@@ -1351,7 +1351,7 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "<b>while True</b> 안의 예시를 채웠어.\n적을 찾아 사격하고 잠깐 기다린 뒤, 체력이 0이면 <b>break</b>로 멈춰."
+      text: "<b>while True</b> 안에 적 찾기와 <b>attack(enemy)</b> 예시를 채웠어.\n적이 사거리에 있으면 계속 사격하고, 없으면 기다려."
       focusKeys:
       - Editor.ProgramDropZone
       highlightKeys: []
@@ -1383,7 +1383,7 @@ MonoBehaviour:
     prepareDistanceExample: 0
     prepareBaselineExample: 0
     restartPreview: 0
-    previewLesson: 4
+    previewLesson: 1
     prepareWhileExample: 1
     prepareRangedExample: 0
     prediction: 0
@@ -1400,7 +1400,7 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "미리보기에서 적이 쓰러지면 <b>break</b>가 반복을 멈추는지 확인해 봐."
+      text: "미리보기에서 원거리 로봇이 <b>같은 적을 두 번 이상 사격</b>하는지 확인해 봐."
       focusKeys:
       - Editor.Preview
       highlightKeys: []
@@ -1411,7 +1411,7 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 3
-    completionSignal: PreviewProgramEnded
+    completionSignal: PreviewRepeatedHit
     requiredSlotBlock:
     sourceKey:
     destinationKey:
@@ -1450,7 +1450,7 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uC548\uB0B4\uC790"
-      text: "<b>for</b>는 정한 횟수만큼 반복해. <b>while True</b>는 break를 만날 때까지 반복하려고 해.\n이 게임에서는 한 번에 최대 10회까지만 실행돼."
+      text: "<b>for</b>는 정한 횟수만큼, 최대 10회 반복해.\n<b>while True</b>는 횟수를 정하지 않고 계속 반복해."
       focusKeys:
       - Editor.ProgramDropZone
       - Editor.Preview

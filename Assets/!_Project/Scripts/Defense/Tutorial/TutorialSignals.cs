@@ -7,7 +7,7 @@ namespace CodingGame.Defense
         // Reported by DefenseBattle / DefenseCodeEditor / DefenseAttackPreview through ReportTutorialAction.
         public const string TargetClicked = "TargetClicked", RobotPlaced = "RobotPlaced", EditorOpened = "EditorOpened",
             EditorClosed = "EditorClosed", BattleStarted = "BattleStarted", PreviewHit = "PreviewHit",
-            PreviewSingleHit = "PreviewSingleHit", PreviewMultiHit = "PreviewMultiHit";
+            PreviewSingleHit = "PreviewSingleHit", PreviewMultiHit = "PreviewMultiHit", PreviewRepeatedHit = "PreviewRepeatedHit";
         // Produced by TutorialWatcher from the live simulation.
         public const string FirstKill = "FirstKill", FirstAttack = "FirstAttack", Leak = "Leak", WaveCleared = "WaveCleared", ProgramMatches = "ProgramMatches";
         // Produced by TutorialDirector: a loose condition block in the editor reads as the step's expectedCode.

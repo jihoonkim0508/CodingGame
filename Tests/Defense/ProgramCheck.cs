@@ -225,8 +225,15 @@ static class ProgramCheck
         sim=Make();robot=Bot(sim);
         var endless=new CodeBlock(BlockKind.While);
         sim.ApplyProgram(robot.Id,"empty_loop",new[]{endless});sim.Start();Tick(sim,2);
-        Assert(robot.Program.LoopCount==10&&robot.Program.StepsLastTick<=DefenseProgram.InstructionBudget&&
-            robot.Program.Fault==null&&sim.Time>0,"empty while loop remains bounded by ten iterations");
+        Assert(robot.Program.LoopCount==-1&&robot.Program.StepsLastTick<=DefenseProgram.InstructionBudget&&
+            robot.Program.Fault==null&&sim.Time>0,"empty while loop remains unbounded across ticks without freezing");
+
+        sim=Make();robot=Bot(sim);
+        var unbounded=new CodeBlock(BlockKind.While);
+        unbounded.Body.Add(new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.NearestEnemy)));
+        sim.ApplyProgram(robot.Id,"unbounded_while",new[]{unbounded});sim.Start();Tick(sim,180);
+        Assert(robot.AttacksThisWave>10&&robot.Program.LoopCount==-1&&robot.Program.Fault==null,
+            "while keeps attacking past the for-loop limit");
 
         var shooterSetup=Make().Setup;
         shooterSetup.Waves[0][0].Enemy.health=45;
@@ -265,8 +272,13 @@ static class ProgramCheck
         lesson.ApplyProgram(second.Id,"warrior_basic",new[]{
             new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)),
             new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"enemy"))});
-        lesson.ApplyProgram(ranged.Id,"shooter_while",new[]{fireUntilDefeated});
-        Assert(lesson.StartError()==null,"1-3 grants enough blocks for both tutorial examples");
+        var tutorialWhile=new CodeBlock(BlockKind.While);
+        tutorialWhile.Body.Add(new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)));
+        tutorialWhile.Body.Add(new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.Variable,"enemy")));
+        lesson.ApplyProgram(ranged.Id,"shooter_while",new[]{tutorialWhile});
+        Assert(lesson.StartError()==null&&DefenseCurriculum.Create().Where(l=>l.stage==1).All(l=>
+            !l.blocks.Concat(l.rewards).Any(b=>b.kind==BlockKind.If||b.kind==BlockKind.Comparison||b.kind==BlockKind.Break)),
+            "1-3 supplies both examples without unlocking conditions or break");
 
         sim=Make();robot=Bot(sim);
         var condition=new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.False));condition.Body.Add(new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy)));

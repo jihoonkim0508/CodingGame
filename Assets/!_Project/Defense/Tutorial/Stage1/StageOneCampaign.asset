@@ -68,7 +68,7 @@ MonoBehaviour:
       - kind: 19
         count: 1
       rewards:
-      - kind: 3
+      - kind: 19
         count: 1
     - stage: 1
       wave: 2
@@ -83,10 +83,8 @@ MonoBehaviour:
         count: 1
       - kind: 15
         count: 1
-      - kind: 19
-        count: 1
       rewards:
-      - kind: 11
+      - kind: 16
         count: 1
     - stage: 1
       wave: 3
@@ -96,26 +94,18 @@ MonoBehaviour:
         count: 1
       blocks:
       - kind: 16
-        count: 2
+        count: 1
       - kind: 10
-        count: 4
+        count: 2
       - kind: 2
-        count: 1
-      - kind: 17
-        count: 1
-      - kind: 3
-        count: 1
-      - kind: 11
         count: 1
       - kind: 14
         count: 1
       - kind: 6
         count: 1
       - kind: 15
-        count: 2
-      - kind: 22
         count: 1
-      - kind: 1
+      - kind: 22
         count: 1
       rewards:
       - kind: 27
@@ -140,7 +130,7 @@ MonoBehaviour:
       - kind: 10
         count: 1
       rewards:
-      - kind: 3
+      - kind: 16
         count: 1
     - stage: 1
       wave: 5

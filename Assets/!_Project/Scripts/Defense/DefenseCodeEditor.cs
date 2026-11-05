@@ -146,13 +146,6 @@ namespace CodingGame.Defense
             var loop = new CodeBlock(BlockKind.While);
             loop.Body.Add(new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)));
             loop.Body.Add(new CodeBlock(BlockKind.Shot, "0", new CodeBlock(BlockKind.Variable, "enemy")));
-            loop.Body.Add(new CodeBlock(BlockKind.Wait, "0", new CodeBlock(BlockKind.Number, "0.5")));
-            var stop = new CodeBlock(BlockKind.If, "0",
-                new CodeBlock(BlockKind.Comparison, "==",
-                    new CodeBlock(BlockKind.Hp, "0", new CodeBlock(BlockKind.Variable, "enemy")),
-                    new CodeBlock(BlockKind.Number, "0")));
-            stop.Body.Add(new CodeBlock(BlockKind.Break));
-            loop.Body.Add(stop);
             panel.LoadProgram(panel.FunctionName, new[] { loop });
             if (!panel.IsApplied) throw new InvalidOperationException("while 사격 예시의 블록 지급량을 확인하세요.");
             RestartPreview();

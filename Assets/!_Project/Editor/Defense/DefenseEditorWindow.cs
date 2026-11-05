@@ -225,7 +225,7 @@ namespace CodingGame.Defense.Editor
 
             Heading("빠른 수치 조정");
             Note("로봇의 공격력·공격 간격·사거리·폭발 반경과 몬스터의 체력·속도·공격력을 한글 항목으로 조정합니다. 공격 간격은 초 단위이며 값이 작을수록 자주 공격합니다. 폭발 반경은 폭탄형의 착탄 범위입니다. 변경 후 위의 저장 버튼을 누르세요.");
-            Note("반복문은 게임 코드 편집기에서 0~10회 정수로 설정합니다. 이 제한은 모든 로봇에 공통으로 적용됩니다.");
+            Note("for 반복 횟수는 게임 코드 편집기에서 0~10회 정수로 설정합니다. while True는 횟수 제한 없이 반복합니다.");
             foreach (var r in c.robots)
             {
                 var fold = new Foldout { text = r.displayName, value = false };

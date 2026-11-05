@@ -106,7 +106,7 @@ namespace CodingGame.Defense
                     case BlockKind.For: case BlockKind.While:
                         int loop = nextLoop++;
                         bool counted = b.Kind == BlockKind.For;
-                        Emit(Op.ForInit, counted ? b.Arguments[0] : new CodeBlock(BlockKind.Number, PythonTreeCompiler.MaxLoopIterations.ToString(CultureInfo.InvariantCulture)), loop: loop);
+                        Emit(Op.ForInit, counted ? b.Arguments[0] : new CodeBlock(BlockKind.True), loop: loop);
                         int start = code.Count;
                         int test = Emit(Op.ForTest, loop: loop);
                         var innerBreaks = new List<int>(); var innerContinues = new List<int>();
@@ -161,15 +161,21 @@ namespace CodingGame.Defense
                         case Op.Jump: pc = instruction.Jump; break;
                         case Op.Condition: LastCondition = Truth(Value(instruction.Block, sim, robot)); pc = LastCondition.Value ? pc + 1 : instruction.Jump; break;
                         case Op.ForInit:
+                            if (instruction.Block.Kind == BlockKind.True)
+                            {
+                                loops[instruction.Loop] = new LoopState { Count = double.PositiveInfinity };
+                                pc++; break;
+                            }
                             double count = Number(Value(instruction.Block, sim, robot));
                             if (count != Math.Truncate(count) || count < 0 || count > PythonTreeCompiler.MaxLoopIterations) throw new FormatException($"반복 횟수는 0~{PythonTreeCompiler.MaxLoopIterations}회 정수여야 합니다.");
                             loops[instruction.Loop] = new LoopState { Count = count }; pc++; break;
                         case Op.ForTest:
                             var state = loops[instruction.Loop];
                             if (state.Index >= state.Count) pc = instruction.Jump;
-                            else { variables["i"] = state.Index; LoopIteration = (int)state.Index; LoopCount = (int)state.Count; pc++; }
+                            else { variables["i"] = state.Index; LoopIteration = (int)Math.Min(state.Index, int.MaxValue);
+                                LoopCount = double.IsPositiveInfinity(state.Count) ? -1 : (int)state.Count; pc++; }
                             break;
-                        case Op.ForNext: LoopIteration = (int)++loops[instruction.Loop].Index; pc++; break;
+                        case Op.ForNext: LoopIteration = (int)Math.Min(++loops[instruction.Loop].Index, int.MaxValue); pc++; break;
                         default:
                             var block = instruction.Block;
                             if (block.Kind == BlockKind.DeclareVariable)
@@ -208,7 +214,9 @@ namespace CodingGame.Defense
                             }
                             float damageMultiplier = 1;
                             if (instruction.Loop >= 0 && loops.TryGetValue(instruction.Loop, out var repetition) && repetition.Count > 1)
-                                damageMultiplier -= .1f * (float)(repetition.Index / (repetition.Count - 1));
+                                damageMultiplier -= .1f * (float)(double.IsPositiveInfinity(repetition.Count)
+                                    ? Math.Min(repetition.Index, 9) / 9
+                                    : repetition.Index / (repetition.Count - 1));
                             var result = sim.RequestAction(robot.Id, action, target, damageMultiplier);
                             if (result == ActionResult.Executed) { actedThisInvocation = true; if (target != 0) invocationTargets.Add(target); }
                             // 재사용 대기 중에는 같은 명령에서 기다리고, 실행 결과가 나오면 다음으로 이동합니다.

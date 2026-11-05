@@ -201,8 +201,8 @@ namespace CodingGame.Defense.Editor
                 s.Demo = "Editor.Palette.While>Editor.Code.Start";
                 s.Focus = new[] { "Editor.Palette.While", "Editor.Code.Start" };
             })),
-            L("1-3.F06a", s => { s.Robot = 2; s.WhileExample = true; s.PreviewLesson = 4; s.Focus = new[] { Drop }; }),
-            L("1-3.F07", With(Observe(TutorialSignals.PreviewProgramEnded, restart:true), Focus(Preview))),
+            L("1-3.F06a", s => { s.Robot = 2; s.WhileExample = true; s.PreviewLesson = 1; s.Focus = new[] { Drop }; }),
+            L("1-3.F07", With(Observe(TutorialSignals.PreviewRepeatedHit, restart:true), Focus(Preview))),
             L("1-3.F08", Focus(Drop, Preview)),
             L("1-3.F09", Click(Close, s => { s.Pointer = Close; s.Undimmed = true; })),
             L("1-3.E01a", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => { s.Top = true; s.Pointer = Start; })),
