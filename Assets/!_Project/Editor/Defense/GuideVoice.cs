@@ -12,24 +12,51 @@ namespace CodingGame.Defense.Editor
     // Rerun after editing the script and rebuilding the sequences; lines that kept their text keep their clip, and clips
     // no line uses any more are deleted. Batchmode works:
     //   Unity.exe -batchmode -projectPath . -executeMethod CodingGame.Defense.Editor.GuideVoice.Build -quit
+    // The Typecast menu reads 디버's lines with Typecast's 시우 instead (make_voice.ps1 -Engine typecast; the alert banner keeps
+    // Heami). It needs the TYPECAST_API_KEY environment variable set before Unity starts; a free key may not be used
+    // commercially and must credit Typecast.
     public static class GuideVoice
     {
         const string Folder = "Assets/!_Project/Resources/Voice";
         const string Script = "Assets/!_Project/Editor/Defense/Voice~/make_voice.ps1";
 
+        const string TypecastVoice = "시우";
+
         [MenuItem("Tools/Develop/디버 음성 만들기")]
-        public static void Build()
+        public static void Build() => Build("windows");
+
+        // Every guide line again: the generator keeps existing clips, so 디버's are removed first (the banner's stay). A run cut
+        // short (credits, rate limit) can be repeated: it records only what is still missing.
+        [MenuItem("Tools/Develop/디버 음성 만들기 (타입캐스트 시우)")]
+        public static void BuildTypecast()
         {
-            var lines = AssetDatabase.FindAssets("t:TutorialSequence").Select(AssetDatabase.GUIDToAssetPath)
-                .Select(AssetDatabase.LoadAssetAtPath<TutorialSequence>).Where(s => s && s.enabled)
-                .SelectMany(s => s.steps).SelectMany(step => step.texts)
-                .Where(t => !string.IsNullOrWhiteSpace(t.text) && GuideSpeech.Speakable(t.text).Length > 0)
-                .GroupBy(t => GuideSpeech.Key(t.text)).Select(g => g.First()).ToList();
+            if (string.IsNullOrEmpty(System.Environment.GetEnvironmentVariable("TYPECAST_API_KEY")))
+                throw new System.InvalidOperationException("[GuideVoice] TYPECAST_API_KEY 환경 변수가 없습니다. 키를 설정하고 Unity를 다시 연 뒤 실행하세요.");
+            if (!Application.isBatchMode && !EditorUtility.DisplayDialog("디버 음성", "디버 대사를 모두 타입캐스트 " + TypecastVoice + " 목소리로 다시 녹음합니다.", "녹음", "취소")) return;
+            if (!SessionState.GetBool("GuideVoice.TypecastStarted", false))
+            {
+                foreach (var key in Lines().Where(t => t.speaker != TutorialSignals.SystemSpeaker).Select(t => GuideSpeech.Key(t.text)))
+                    AssetDatabase.DeleteAsset($"{Folder}/{key}.ogg");
+                SessionState.SetBool("GuideVoice.TypecastStarted", true);
+            }
+            Build("typecast");
+            SessionState.SetBool("GuideVoice.TypecastStarted", false);
+        }
+
+        static List<TutorialText> Lines() => AssetDatabase.FindAssets("t:TutorialSequence").Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<TutorialSequence>).Where(s => s && s.enabled)
+            .SelectMany(s => s.steps).SelectMany(step => step.texts)
+            .Where(t => !string.IsNullOrWhiteSpace(t.text) && GuideSpeech.Speakable(t.text).Length > 0)
+            .GroupBy(t => GuideSpeech.Key(t.text)).Select(g => g.First()).ToList();
+
+        static void Build(string engine)
+        {
+            var lines = Lines();
             Directory.CreateDirectory(Folder);
             string jobs = Path.Combine(Path.GetTempPath(), "guide_voice_jobs.txt");
             File.WriteAllLines(jobs, lines.Select(t => GuideSpeech.Key(t.text) + "\t" + (t.speaker == TutorialSignals.SystemSpeaker ? "system" : "guide") + "\t" + GuideSpeech.Speakable(t.text)),
                 new System.Text.UTF8Encoding(false));
-            var run = Process.Start(new ProcessStartInfo("powershell.exe", $"-NoProfile -ExecutionPolicy Bypass -File \"{Path.GetFullPath(Script)}\" -Jobs \"{jobs}\" -Out \"{Path.GetFullPath(Folder)}\"")
+            var run = Process.Start(new ProcessStartInfo("powershell.exe", $"-NoProfile -ExecutionPolicy Bypass -File \"{Path.GetFullPath(Script)}\" -Jobs \"{jobs}\" -Out \"{Path.GetFullPath(Folder)}\" -Engine {engine} -VoiceName {TypecastVoice}")
                 { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true });
             string output = run.StandardOutput.ReadToEnd(), errors = run.StandardError.ReadToEnd();
             run.WaitForExit();
