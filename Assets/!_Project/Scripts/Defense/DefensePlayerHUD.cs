@@ -803,7 +803,8 @@ namespace CodingGame.Defense
             bool retry = battle.CanRetryWave;
             SplitDefeatButtons(retry);
             claimLabel.text = reward ? (sim.WaveIndex + 1 == sim.Setup.Waves.Length ? "보상 수령 · 스테이지 완료" : "보상 수령 · 다음 준비") :
-                retry ? $"WAVE {sim.Checkpoint.Wave + 1} 다시 도전\n<size=70%>배치·코드 그대로</size>" : sim.Phase != BattlePhase.Victory ? "이 스테이지 재도전" : battle.FromStageMap ? "스테이지 맵으로" : sim.CanAdvanceStage ? $"스테이지 {battle.Stage + 1}로 진행" : "3스테이지 완료";
+                // Two lines in one button: smaller and closer together, or the second line touched the button's edge.
+                retry ? $"<size=88%>WAVE {sim.Checkpoint.Wave + 1} 다시 도전</size>\n<size=60%>배치·코드 그대로</size>" : sim.Phase != BattlePhase.Victory ? "이 스테이지 재도전" : battle.FromStageMap ? "스테이지 맵으로" : sim.CanAdvanceStage ? $"스테이지 {battle.Stage + 1}로 진행" : "3스테이지 완료";
             if (shownRewardPhase != sim.Phase || shownRewardWave != sim.WaveIndex || shownRewardStage != battle.Stage)
             {
                 // Korean first; the banner keeps the English call as a small line above it.

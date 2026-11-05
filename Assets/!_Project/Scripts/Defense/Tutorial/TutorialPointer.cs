@@ -154,7 +154,8 @@ namespace CodingGame.Defense
             // Lifted off the palette block, so the copy reads as picked up rather than as the block's text printed twice.
             Vector2 start = new Vector2(dragFrom.xMin + size.x * .5f + Lift, dragFrom.center.y + Lift), end = new Vector2(dragTo.xMin + size.x * .5f, dragTo.center.y);
             ghost.anchoredPosition = Vector2.Lerp(start, end, move);
-            ghostGroup.alpha = GhostAlpha * fade;
+            // Fades in as it leaves: at the start it sat over the palette block and read as the block's text printed twice.
+            ghostGroup.alpha = GhostAlpha * fade * Mathf.Clamp01(move * 4);
         }
 
         // A look-alike of the palette block: copied while inactive so none of its scripts run, then stripped to graphics and layout.

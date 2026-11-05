@@ -106,8 +106,10 @@ namespace CodingGame.Defense.Editor
         static Action<S> With(params Action<S>[] parts) => s => { foreach (var part in parts) part?.Invoke(s); };
         static Action<S> Ed => s => s.Preview = true;
         static Action<S> Fight => s => s.Battle = true;
+        // 디버's entrance lines: the HUD dims with the greyed map, so the dialogue is the one bright thing (focus report 1-3).
+        static Action<S> Intro => s => { s.Intro = true; s.Dim = true; };
         static List<S> OneOne() => new List<S> {
-            L("1-1.A01", s => s.Cards = true), L("1-1.A02", s => s.Intro = true), L("1-1.A03", s => s.Intro = true), L("1-1.A04", s => s.Intro = true), L("1-1.A04a", Focus(Route)), L("1-1.A04b", Focus(Core)), L("1-1.A04c", Focus(Core)), L("1-1.A05"), L("1-1.A06"),
+            L("1-1.A01", s => s.Cards = true), L("1-1.A02", Intro), L("1-1.A03", Intro), L("1-1.A04", Intro), L("1-1.A04a", Focus(Route)), L("1-1.A04b", Focus(Core)), L("1-1.A04c", Focus(Core)), L("1-1.A05"), L("1-1.A06"),
             L("1-1.B01", Click(TutorialKeys.RobotButton(1), s => s.Dim = true)),
             L("1-1.B02", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => s.Dim = true, Focus(TutorialKeys.Floor)))),
             L("1-1.B03", Click(Unit0, s => s.Pointer = Unit0)),
