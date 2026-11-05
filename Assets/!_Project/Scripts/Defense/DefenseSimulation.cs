@@ -172,7 +172,8 @@ namespace CodingGame.Defense
         {
             foreach (var bot in Robots)
             {
-                bot.Buffs.Clear(); bot.BlockingEnabled = false; bot.NextAction = Time + bot.Spec.interval;
+                // Ready from battle start, so a slow shooter can fire as soon as an enemy comes in range.
+                bot.Buffs.Clear(); bot.BlockingEnabled = false; bot.NextAction = Time;
                 if (bot.Program != null) bot.Program = new DefenseProgram(bot.Program.Name, bot.Program.CopyBlocks());
             }
         }
@@ -294,7 +295,7 @@ namespace CodingGame.Defense
             var bot = new RobotState { Id = nextId++, DefinitionIndex = definitionIndex, Position = point, Spec = spec.Copy(),
                 LevelCap = Setup.RulesConfig.maxLevel, UpgradeFactor = Setup.RulesConfig.upgradeMultiplier,
                 Action = spec.NativeAction, Health = spec.role == RobotRole.Tank ? (float?)spec.health : null,
-                NextAction = Time + spec.interval };
+                NextAction = Time };
             if (Setup.PlayerFlow && Options.inventoryLimit) RobotInventory[spec.role]--;
             Robots.Add(bot); return bot;
         }

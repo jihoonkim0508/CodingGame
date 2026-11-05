@@ -215,7 +215,8 @@ namespace CodingGame.Defense.Editor
             L("2-1.B01", PlaceShooter), L("2-1.B02", Placed),
             L("2-1.B03", Click(Unit0, s => s.Pointer = Unit0)),
             L("2-1.B04", OpenEditor),
-            L("2-1.B05", With(Watch(false, 2), s => s.BaselineExample = true)),
+            // Held 6s past the first (far) hit: the shooter reloads while the enemy walks right past it.
+            L("2-1.B05", With(Watch(false, 6), s => s.BaselineExample = true)),
             L("2-1.C01", With(s => s.DistanceExample = true, Focus("Editor.Code.Line.1>1"))),
             L("2-1.C02", Focus("Editor.Code.Line.1>2")),
             L("2-1.C03"), L("2-1.C04"),
@@ -338,11 +339,15 @@ namespace CodingGame.Defense.Editor
             boss.FindPropertyRelative("speedOverride").floatValue = .65f;
             boss.FindPropertyRelative("leakDamageOverride").intValue = 12;
             boss.FindPropertyRelative("boss").boolValue = true;
-            // 2-1: one shooter needs two close shots (2.4s) per enemy, so the five enemies come 3s apart, not 2s.
-            // 2-2: eight enemies 2.2s apart (was 1.7s); at 1.7s the front shooter fell behind and one outlasted the 35s wave.
+            // The shooter reloads for 6s, so one close shot per enemy: 2-1 four enemies 5s apart for one shooter
+            // (a shooter firing on entry falls behind), 2-2 five enemies 3s apart for two.
             var stageTwo = so.FindProperty("stages").GetArrayElementAtIndex(1).FindPropertyRelative("waves");
-            stageTwo.GetArrayElementAtIndex(0).FindPropertyRelative("groups").GetArrayElementAtIndex(0).FindPropertyRelative("interval").floatValue = 3;
-            stageTwo.GetArrayElementAtIndex(1).FindPropertyRelative("groups").GetArrayElementAtIndex(0).FindPropertyRelative("interval").floatValue = 2.2f;
+            void Group(int wave, int count, float interval)
+            {
+                var group = stageTwo.GetArrayElementAtIndex(wave).FindPropertyRelative("groups").GetArrayElementAtIndex(0);
+                group.FindPropertyRelative("count").intValue = count; group.FindPropertyRelative("interval").floatValue = interval;
+            }
+            Group(0, 4, 5); Group(1, 5, 3);
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(campaign);
             return "campaign: lesson table, 1-1 to 1-5 encounters, 1-4 swarm, 1-5 basic-enemy boss";

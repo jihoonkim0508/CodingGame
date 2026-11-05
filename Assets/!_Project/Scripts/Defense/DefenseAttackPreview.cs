@@ -105,14 +105,15 @@ namespace CodingGame.Defense
         {
             ClearActors(); source = selected.Program; emptyElapsed = 0; firstHitReported = false; firstHitCount = 0;
             sourceLevel = selected.Level;
-            // 2-1's distance lesson: enemies walk in from beyond the shooter's range, so far and near shots differ in damage.
+            // 2-1's distance lesson on a straight road: one enemy at a time walks in from beyond the shooter's range, so a shot fired
+            // on entry leaves it reloading while the enemy passes close, and a shot held until close hits hard.
             bool approach = battle.Simulation.Setup.Stage == 2 && battle.Simulation.WaveIndex == 0;
             var setup = new BattleSetup {
                 TestOptions = battle.Simulation.Options,
                 Min = new Point(-50,-50), Max = new Point(50,50), BaseHealth = 100,
-                Routes = new[] { new Route(new[] { approach ? new Point(7,0) : new Point(2,0), new Point(-20,0) }, 1.2f) },
+                Routes = new[] { new Route(new[] { approach ? new Point(Math.Max(7, selected.Range + 1), 0) : new Point(2,0), new Point(-20,0) }, 1.2f) },
                 Waves = new[] { new[] { new SpawnGroup { Enemy = HarmlessEnemy(),
-                    Count = approach ? 2 : 3, Interval = 1.4f } } }
+                    Count = approach ? 1 : 3, Interval = 1.4f } } }
             };
             CopyRules(setup);
             simulation = new DefenseSimulation(setup);
@@ -249,7 +250,7 @@ namespace CodingGame.Defense
             else if (bot.LastResult == ActionResult.Ineffective) state = "호환되지 않는 명령 · 이 로봇에서는 동작하지 않아요";
             else if (program.Completed(simulation)) state = $"함수 {program.CompletedRuns}/{simulation.FunctionRepeatLimit}회 완료";
             else if (program.WaitRemaining(simulation.Time) is double wait && wait > 0) state = $"wait · {wait:0.0}s";
-            else if (program.StepsLastTick == 0) state = "코드 대기";
+            else if (program.StepsLastTick == 0 && bot.LastResult != ActionResult.NoTarget) state = "코드 대기";
             else switch (bot.LastResult)
             {
                 case ActionResult.CoolingDown:

@@ -20,9 +20,9 @@ namespace CodingGame.Defense
         readonly Dictionary<string, object> variables = new Dictionary<string, object>();
         readonly Dictionary<int, LoopState> loops = new Dictionary<int, LoopState>();
         int pc, nextLoop;
-        bool invocationStarted;
         bool actedThisInvocation;
         double wakeTime;
+        bool retrying; // the wake time is a retry after a run or turn that did not act, not a wait() block
         public string Name { get; }
         public string Source { get; }
         public string Fault { get; private set; }
@@ -31,9 +31,9 @@ namespace CodingGame.Defense
         public int CompletedRuns { get; private set; }
         public bool Completed(DefenseSimulation sim) => CompletedRuns >= sim.FunctionRepeatLimit;
         public int BlockCount(BlockKind kind) => blockCounts.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0;
-        public double WaitRemaining(double time) => Math.Max(0, wakeTime - time);
+        public double WaitRemaining(double time) => retrying ? 0 : Math.Max(0, wakeTime - time);
         public IReadOnlyList<CodeBlock> CopyBlocks() => blocks.Select(Clone).ToList();
-        void EndInvocation() { pc = 0; invocationStarted = actedThisInvocation = false; variables.Clear(); loops.Clear(); }
+        void EndInvocation() { pc = 0; actedThisInvocation = false; variables.Clear(); loops.Clear(); }
         public const int InstructionBudget = 64;
 
         public DefenseProgram(string name, IReadOnlyList<CodeBlock> program)
@@ -95,13 +95,6 @@ namespace CodingGame.Defense
         {
             StepsLastTick = 0;
             if (Fault != null || Completed(sim) || sim.Phase != BattlePhase.Running || sim.Time + 1e-9 < wakeTime) return;
-            // A program that targets enemies starts a run only once one is in range, so idle runs don't use up the repeat limit.
-            if (!invocationStarted)
-            {
-                if (blocks.Any(TargetsEnemies) && !sim.Enemies.Any(e => e.Active &&
-                    Vector2.DistanceSquared(e.Position, robot.Position) <= robot.Range * robot.Range)) return;
-                invocationStarted = true;
-            }
             try
             {
                 // 무한 반복문도 한 틱을 독점하지 못하도록 실행 예산을 나눕니다.
@@ -109,10 +102,10 @@ namespace CodingGame.Defense
                 {
                     if (pc == code.Count)
                     {
-                        // A false condition has not used an action. It must be retried after enemies move,
-                        // without spending one of the wave's limited successful program runs.
+                        // The function is first called at battle start. A run that did not act (no target in range yet, or a false
+                        // condition) is retried after enemies move, without spending one of the wave's limited successful runs.
                         if (actedThisInvocation) CompletedRuns++;
-                        else wakeTime = Math.Max(wakeTime, sim.Time + .25);
+                        else { wakeTime = Math.Max(wakeTime, sim.Time + .25); retrying = true; }
                         EndInvocation(); return;
                     }
                     var instruction = code[pc];
@@ -135,7 +128,7 @@ namespace CodingGame.Defense
                             var iteration = loops[instruction.Loop];
                             // A turn that did not act (no target in range, or a false condition) is retried after enemies move,
                             // so range(n) means n actions; a turn ended by continue counts.
-                            if (!iteration.Acted && instruction.Block.Body.Any(Acts)) { wakeTime = sim.Time + .25; pc++; return; }
+                            if (!iteration.Acted && instruction.Block.Body.Any(Acts)) { wakeTime = sim.Time + .25; retrying = true; pc++; return; }
                             iteration.Index++; iteration.Acted = false; pc++; break;
                         default:
                             var block = instruction.Block;
@@ -150,7 +143,7 @@ namespace CodingGame.Defense
                             {
                                 double seconds = Number(Value(block.Arguments[0], sim, robot));
                                 if (seconds < 0) throw new FormatException("wait 시간은 0 이상이어야 합니다.");
-                                wakeTime = sim.Time + seconds; pc++; return;
+                                wakeTime = sim.Time + seconds; retrying = false; pc++; return;
                             }
                             var action = Action(block.Kind); robot.Action = action;
                             int target = 0;
@@ -174,8 +167,6 @@ namespace CodingGame.Defense
             }
             catch (FormatException error) { Fault = error.Message; }
         }
-        static bool TargetsEnemies(CodeBlock block) => block != null && (PythonTreeCompiler.HasEnemyArgument(block.Kind) ||
-            block.Kind == BlockKind.Slash || block.Kind == BlockKind.NearestEnemy || block.Arguments.Any(TargetsEnemies) || block.Body.Any(TargetsEnemies));
         static bool Acts(CodeBlock block) => PythonTreeCompiler.HasEnemyArgument(block.Kind) || block.Kind == BlockKind.Slash ||
             block.Kind == BlockKind.Buff || block.Body.Any(Acts);
         static RobotAction Action(BlockKind kind)

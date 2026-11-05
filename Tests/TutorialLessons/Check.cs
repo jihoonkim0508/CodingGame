@@ -11,7 +11,7 @@ static class Check
 {
     static void Require(bool ok, string reason) { if (!ok) throw new Exception(reason); }
     static readonly RobotSpec Warrior = new RobotSpec { role = RobotRole.Warrior, range = 3.2f, interval = .8f, damage = 14, radius = .45f, projectileSpeed = 4 };
-    static readonly RobotSpec Shooter = new RobotSpec { role = RobotRole.Shooter, range = 5.5f, interval = 1.2f, damage = 22, radius = .45f, projectileSpeed = 15 };
+    static readonly RobotSpec Shooter = new RobotSpec { role = RobotRole.Shooter, range = 7, interval = 6, damage = 32, radius = .45f, projectileSpeed = 15 };
     static CodeBlock N(string n) => new CodeBlock(BlockKind.Number, n);
     static CodeBlock V(string name) => new CodeBlock(BlockKind.Variable, name);
     // Stages 1 and 2 loop with while True: the robot keeps acting until the wave ends.
@@ -91,24 +91,34 @@ static class Check
             !PythonTreeCompiler.HasStaleEnemyLoop(new[] { Loop(FindEnemy(), Shoot()) }), "an enemy found outside the loop is flagged");
     }
 
-    // 2-1: the shotgun hits harder up close, so the guarded loop's shots land for more damage than shots fired on entering range.
-    static float[] ShotDamage(CodeBlock[] code, out DefenseSimulation sim)
+    // 2-1 on a straight road: the shotgun hits harder up close and reloads for 6s, so a shot fired on entering range leaves the
+    // shooter reloading while that enemy walks right past it; the guarded loop holds its shot until distance 3 and kills with it.
+    static List<(int target, float distance, float damage)> Shots(CodeBlock[] code, out DefenseSimulation sim, out float health)
     {
-        sim = Battle(2, Shooter, 1.6f, new SpawnGroup { Enemy = new EnemySpec { health = 55, speed = 1.65f, leakDamage = 1 }, Count = 5, Interval = 2 });
+        sim = Battle(2, Shooter, 1.6f, new SpawnGroup { Enemy = new EnemySpec { health = 55, speed = 1.65f, leakDamage = 1 }, Count = 4, Interval = 5 });
         var bot = sim.Robots.Single(); sim.ApplyProgram(bot.Id, "shot", code); sim.Start();
-        var hits = new List<float>();
-        Run(sim, s => { hits.AddRange(s.Events.Where(e => e.Kind == "projectile-hit" && e.Amount > 0).Select(e => e.Amount)); s.Events.Clear(); });
-        return hits.ToArray();
+        var shots = new List<(int, float, float)>(); float hp = 0;
+        Run(sim, s => {
+            if (hp == 0 && s.Enemies.Count > 0) hp = s.Enemies[0].Spec.health;
+            foreach (var e in s.Events.Where(e => e.Kind == "shot"))
+            { float d = Vector2.Distance(e.Position, bot.Position); shots.Add((e.Target, d, s.ActionDamage(bot, RobotAction.Attack, d))); }
+            s.Events.Clear();
+        });
+        health = hp; return shots;
     }
     static void Conditions()
     {
-        var plain = ShotDamage(new[] { Loop(FindEnemy(), Shoot()) }, out var plainSim);
-        var guarded = ShotDamage(Guarded(), out var guardedSim);
-        Require(plain.Length > 0 && guarded.Length > 0 && guarded[0] >= 1.5f * plain[0],
-            $"2-1: the close shot must hit clearly harder: near={guarded.FirstOrDefault():0.#} far={plain.FirstOrDefault():0.#}");
-        Require(guardedSim.Kills > 0, $"2-1's guarded loop kills: shots={guarded.Length} kills={guardedSim.Kills}");
-        Console.WriteLine($"2-1 wave (5 scaled enemies, one shooter): no condition kills {plainSim.Kills}, first hit {plain[0]:0.#}; " +
-            $"distance <= 3 kills {guardedSim.Kills}, first hit {guarded[0]:0.#}");
+        var plain = Shots(new[] { Loop(FindEnemy(), Shoot()) }, out var plainSim, out float health);
+        var guarded = Shots(Guarded(), out var guardedSim, out _);
+        Require(plain.Count > 0 && guarded.Count > 0, "2-1: both loops shoot");
+        Require(plain[0].distance >= Shooter.range - .3f && !plain.Any(s => s.target == plain[0].target && s.distance <= 3),
+            $"2-1: a shot on entering range must leave the shooter unable to shoot that enemy up close: " + string.Join(",", plain.Select(s => $"#{s.target}@{s.distance:0.0}")));
+        Require(guarded[0].distance <= 3 && guarded[0].damage >= health,
+            $"2-1: the held shot must land within 3 and kill in one hit: {guarded[0].distance:0.0}m {guarded[0].damage:0.#} vs hp {health:0.#}");
+        Require(guardedSim.Kills == 4 && plainSim.Kills < guardedSim.Kills,
+            $"2-1's guarded loop clears the wave and the plain loop does not: guarded {guardedSim.Kills}, plain {plainSim.Kills}");
+        Console.WriteLine($"2-1 wave (4 enemies 5s apart, one shooter, straight road): no condition kills {plainSim.Kills}, first shot {plain[0].distance:0.0}m {plain[0].damage:0.#}; " +
+            $"distance <= 3 kills {guardedSim.Kills}, first shot {guarded[0].distance:0.0}m {guarded[0].damage:0.#} (hp {health:0.#})");
         const string answer = "while True:\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:\n        attack(enemy)";
         Require(TutorialWatcher.Matches(new DefenseProgram("renamed", Guarded("3", "target", "gap")), answer), "2-1 accepts consistent custom names");
         Require(!TutorialWatcher.Matches(new DefenseProgram("other", Guarded("5")), answer), "2-1's guided threshold is 3");

@@ -401,7 +401,8 @@ MonoBehaviour:
       text: "\uBA3C\uC800 \uC870\uAC74\uC774 \uC5C6\uB294 \uACF5\uACA9\uC744 \uC67C\uCABD\uC5D0\uC11C
         \uBCF4\uC790.\n\uC801\uC774 \uC0AC\uAC70\uB9AC\uC5D0 \uB4E4\uC5B4\uC624\uC790\uB9C8\uC790
         \uBA40\uB9AC\uC11C \uC3D8\uB2C8\uAE4C <b>\uD53C\uD574 \uC22B\uC790\uAC00
-        \uC791\uC544.</b>"
+        \uC791\uC544.</b> \uB2E4\uC2DC \uC3E0 \uC900\uBE44\uB97C \uD558\uB294 \uB3D9\uC548
+        \uC801\uC774 <b>\uBC14\uB85C \uC606\uC744 \uADF8\uB0E5 \uC9C0\uB098\uAC00!</b>"
       focusKeys:
       - Editor.Preview
       highlightKeys: []
@@ -439,7 +440,7 @@ MonoBehaviour:
     dragDemo: 
     autoAdvance: 0
     dismissable: 0
-    holdSeconds: 2
+    holdSeconds: 6
     placeSpot: 0
   - stepId: C01
     kind: 0
@@ -1179,7 +1180,8 @@ MonoBehaviour:
       speaker: "\uC548\uB0B4\uC790"
       text: "\uC67C\uCABD \uBBF8\uB9AC\uBCF4\uAE30\uB97C \uBD10!\n\uC801\uC774 \uAC00\uAE4C\uC774
         \uC62C \uB54C\uAE4C\uC9C0 \uAE30\uB2E4\uB838\uB2E4\uAC00 \uC3D8\uB2C8\uAE4C
-        <b>\uD53C\uD574 \uC22B\uC790\uAC00 \uD6E8\uC52C \uCEE4\uC84C\uC5B4.</b>"
+        <b>\uD53C\uD574 \uC22B\uC790\uAC00 \uD6E8\uC52C \uCEE4\uC84C\uC5B4.</b> \uD55C
+        \uBC29\uC5D0 \uC4F0\uB7EC\uB728\uB838\uC9C0?"
       focusKeys:
       - Editor.Preview
       highlightKeys: []

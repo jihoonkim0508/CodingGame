@@ -31,7 +31,8 @@ static class ProgramCheck
         });
         RobotState Tank(DefenseSimulation simulation, float x, int capacity)
         {
-            var bot = simulation.Place(new RobotSpec{role=RobotRole.Tank,interval=3,blockRadius=1.25f,blockCapacity=capacity},2,new Vector2(x,0),out _);
+            // Range inside the block radius: the stun (ready at battle start) never reaches, so only the body block acts.
+            var bot = simulation.Place(new RobotSpec{role=RobotRole.Tank,range=.5f,interval=3,blockRadius=1.25f,blockCapacity=capacity},2,new Vector2(x,0),out _);
             simulation.ApplyProgram(bot.Id,"guard",new[]{new CodeBlock(BlockKind.Block,"0",new CodeBlock(BlockKind.NearestEnemy))});
             return bot;
         }
@@ -79,13 +80,11 @@ static class ProgramCheck
         blocking.ApplyProgram(tank.Id,"guard",new[]{new CodeBlock(BlockKind.Block,"0",new CodeBlock(BlockKind.NearestEnemy))});
         Assert(!tank.BlockingEnabled,"adding code alone does not activate blocking");
         blocking.Start(); Tick(blocking,1);
-        Assert(tank.BlockingEnabled&&tank.Executions==0,"block stance starts before first attack cooldown");
+        Assert(tank.BlockingEnabled&&tank.Executions==1&&blocking.Enemies.Single().Stunned(blocking.Time),"block stance and the stun start with the battle");
         Tick(blocking,149);
         Assert(blocking.Enemies.Count==3&&blocking.Enemies.All(e=>e.BlockedBy==tank.Id&&e.Position.X>0),"all preview enemies stop in front of tank");
-        Assert(blocking.Enemies.All(e=>e.Health==100&&!e.Stunned(blocking.Time)),"stance does not bypass stun or damage cooldown");
-        Tick(blocking,30);
-        Assert(tank.Executions==1&&blocking.Enemies.All(e=>e.Stunned(blocking.Time)),"stun executes after original cooldown");
-        Tick(blocking,75);
+        Assert(tank.Executions==1&&blocking.Enemies.All(e=>!e.Stunned(blocking.Time)),"the one block() run stuns once and the stance keeps holding");
+        Tick(blocking,105);
         Assert(blocking.Enemies.All(e=>e.BlockedBy==tank.Id&&!e.Stunned(blocking.Time)),"body blocking persists after stun expires");
         var delayed = new DefenseSimulation(tankSetup);
         var delayedTank = delayed.Place(tank.Spec.Copy(),2,Vector2.Zero,out _);
@@ -135,6 +134,14 @@ static class ProgramCheck
         sim.Start();Tick(sim,20);Assert(robot.Executions==0,"wait blocks subsequent action");
         sim.TogglePause();var time=sim.Time;sim.Advance(10);Assert(sim.Time==time,"program wait freezes during pause");sim.TogglePause();Tick(sim,13);
         Assert(robot.Executions==1,"wait resumes on battle time");
+
+        sim=Make();robot=Bot(sim,x:10); // far out of range of the slow enemy
+        sim.ApplyProgram(robot.Id,"far",new[]{new CodeBlock(BlockKind.Wait,"0",N("0.5")),new CodeBlock(BlockKind.Slash)});
+        sim.Start();Tick(sim,10);
+        Assert(robot.Program.WaitRemaining(sim.Time)>0,"function is first called at battle start, not when an enemy comes in range");
+        Tick(sim,30);
+        Assert(robot.LastResult==ActionResult.NoTarget&&robot.Program.CompletedRuns==0,"a run that hits nothing does not use up the wave's run");
+        Assert(robot.Program.WaitRemaining(sim.Time)==0,"the retry after a run that hit nothing is not shown as a wait");
 
         sim=Make();robot=Bot(sim);
         var loop=new CodeBlock(BlockKind.For,"0",N("3"));loop.Body.Add(new CodeBlock(BlockKind.Slash));
