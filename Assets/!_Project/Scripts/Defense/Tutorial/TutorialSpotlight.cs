@@ -16,15 +16,22 @@ namespace CodingGame.Defense
         // A ground shape (the road): its box is left out of the grid and roadDim, already in perspective, dims the box off the road.
         readonly List<Rect> roadBoxes = new List<Rect>();
         readonly List<Vector2[]> roadDim = new List<Vector2[]>();
-        const float OutlineWidth = 3;
+        // The frame (Docs/References/튜토리얼_포커스_조사.md 3-2): a sunny band with a thin ink edge outside it, 3:1 or more against
+        // both the cream UI and the dark (the cyan line read 1.15:1 on cream).
+        const float FrameWidth = 5, EdgeWidth = 2;
+        // α .78 on the prefab dimmed only about half on screen (linear colour space); .92 gives about 70%.
+        const float DimAlpha = .92f;
         const int RoundSegments = 64; // a multiple of 8, so the rect corners (45°) are sampled exactly
         const int RoundSlices = 4;
         bool dim = true;
-        // Motion: a new target opens wide and closes in on it, the dark fades in, outlines breathe.
-        const float IntroSeconds = .35f, IntroGrow = 48, DimSeconds = .25f;
+        // Motion (the report's 3-3): a new target's hole and frame start a beat after its line (IntroDelay), close in from wide
+        // with an ease-out, then a ripple leaves the frame every RippleEvery seconds: an onset catches the eye, a constant breath
+        // does not. The dark fades in.
+        const float IntroDelay = .35f, IntroSeconds = .5f, IntroGrow = 140, DimSeconds = .25f, RippleEvery = 1.75f, RippleSeconds = .6f, RippleGrow = 22;
         float introStart = -10, dimStart = -10;
         public void Pulse() => introStart = Time.unscaledTime;
-        float Intro => Mathf.Clamp01((Time.unscaledTime - introStart) / IntroSeconds);
+        float Intro => Mathf.Clamp01((Time.unscaledTime - introStart - IntroDelay) / IntroSeconds);
+        bool Waiting => Time.unscaledTime - introStart < IntroDelay;
         void Update() { if (dim || outlines.Count > 0) SetVerticesDirty(); }
         // Shown again after a wait (spotlight off): fade the dark in rather than snapping to it.
         protected override void OnEnable() { base.OnEnable(); dimStart = Time.unscaledTime; }
@@ -40,8 +47,8 @@ namespace CodingGame.Defense
             dim = darken;
             foreach (var area in clickable) if (Expand(area, padding, out var r)) clicks.Add(r);
             foreach (var area in visible) if (Expand(area, padding, out var r)) holes.Add(r);
-            // Outlines are drawn outside their rect (up to ~9 px while breathing); keep them that far inside the screen
-            // so a target on the edge (the start button) shows its whole frame.
+            // Frames are drawn outside their rect (7 px); keep them that far inside the screen so a target on the edge (the start
+            // button) shows its whole frame.
             var screen = rectTransform.rect; const float Edge = 10;
             var inner = Rect.MinMaxRect(screen.xMin + Edge, screen.yMin + Edge, screen.xMax - Edge, screen.yMax - Edge);
             foreach (var area in outlined) if (Expand(area, padding, out var r)) outlines.Add(Intersect(inner, r));
@@ -64,10 +71,10 @@ namespace CodingGame.Defense
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear();
-            float k = Intro, grow = (1 - k) * (1 - k) * IntroGrow;
+            float k = Intro, grow = Mathf.Pow(1 - k, 3) * IntroGrow;
             // Grown for this frame only (the stored rects stay as set), so the hole closes in on its target.
             if (grow > .01f) { Grow(holes, grow); Grow(outlines, grow); Grow(rounds, grow); }
-            var color = this.color; color.a *= Mathf.SmoothStep(0, 1, (Time.unscaledTime - dimStart) / DimSeconds);
+            var color = this.color; color.a = DimAlpha * Mathf.SmoothStep(0, 1, (Time.unscaledTime - dimStart) / DimSeconds);
             try { Populate(vh, color, k); }
             finally { if (grow > .01f) { Grow(holes, -grow); Grow(outlines, -grow); Grow(rounds, -grow); } }
         }
@@ -119,23 +126,37 @@ namespace CodingGame.Defense
                         }
                     }
             }
-            // Breathing outline, brighter and thicker while the hole closes in.
-            float breath = .5f + .5f * Mathf.Sin(Time.unscaledTime * 4);
-            var outline = Color.Lerp(new Color(.2f, .95f, 1, .8f), new Color(.8f, 1, 1, 1), Mathf.Max(breath * .6f, 1 - intro));
-            float OutlineWidth = TutorialSpotlight.OutlineWidth * (1 + .5f * breath + 1.5f * (1 - intro));
+            // Frames: drawn once the target's beat has come; a ripple leaves each one now and then after it has closed in.
+            if (Waiting) return;
+            float since = Time.unscaledTime - introStart - IntroDelay - IntroSeconds;
+            float ripple = since < 0 ? -1 : since % RippleEvery / RippleSeconds;
+            var sunny = UITheme.Sunny; var ripples = sunny; ripples.a = .8f * (1 - Mathf.Clamp01(ripple));
             foreach (var r in outlines)
             {
-                if (rounds.Contains(r))
+                Band(vh, r, 0, FrameWidth, sunny);
+                Band(vh, r, FrameWidth, FrameWidth + EdgeWidth, UITheme.Ink);
+                if (ripple >= 0 && ripple < 1)
                 {
-                    for (int i = 0; i < RoundSegments; i++)
-                        AddQuad(vh, Ellipse(r, i), Ellipse(r, i, OutlineWidth), Ellipse(r, i + 1, OutlineWidth), Ellipse(r, i + 1), outline);
-                    continue;
+                    float from = FrameWidth + EdgeWidth + ripple * RippleGrow;
+                    Band(vh, r, from, from + 3, ripples);
                 }
-                AddQuad(vh, Rect.MinMaxRect(r.xMin - OutlineWidth, r.yMin - OutlineWidth, r.xMax + OutlineWidth, r.yMin), outline);
-                AddQuad(vh, Rect.MinMaxRect(r.xMin - OutlineWidth, r.yMax, r.xMax + OutlineWidth, r.yMax + OutlineWidth), outline);
-                AddQuad(vh, Rect.MinMaxRect(r.xMin - OutlineWidth, r.yMin, r.xMin, r.yMax), outline);
-                AddQuad(vh, Rect.MinMaxRect(r.xMax, r.yMin, r.xMax + OutlineWidth, r.yMax), outline);
             }
+        }
+        // The ring between from and to px outside r (an ellipse for a round hole).
+        void Band(VertexHelper vh, Rect r, float from, float to, Color color)
+        {
+            if (rounds.Contains(r))
+            {
+                for (int i = 0; i < RoundSegments; i++)
+                    AddQuad(vh, Ellipse(r, i, from), Ellipse(r, i, to), Ellipse(r, i + 1, to), Ellipse(r, i + 1, from), color);
+                return;
+            }
+            var inner = Rect.MinMaxRect(r.xMin - from, r.yMin - from, r.xMax + from, r.yMax + from);
+            var outer = Rect.MinMaxRect(r.xMin - to, r.yMin - to, r.xMax + to, r.yMax + to);
+            AddQuad(vh, Rect.MinMaxRect(outer.xMin, outer.yMin, outer.xMax, inner.yMin), color);
+            AddQuad(vh, Rect.MinMaxRect(outer.xMin, inner.yMax, outer.xMax, outer.yMax), color);
+            AddQuad(vh, Rect.MinMaxRect(outer.xMin, inner.yMin, inner.xMin, inner.yMax), color);
+            AddQuad(vh, Rect.MinMaxRect(inner.xMax, inner.yMin, outer.xMax, inner.yMax), color);
         }
 
         public static List<Vector2> Corners(Rect r) =>

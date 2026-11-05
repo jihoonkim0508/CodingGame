@@ -129,7 +129,8 @@ namespace CodingGame.Defense.Editor
                 Focus("Editor.Palette.Slash", "Editor.Code.Body.1")))),
             L("1-1.C09", Focus("Editor.Code.Line.1/1")), L("1-1.C10", Focus("Editor.Code.Line.1")),
             L("1-1.C11", Focus("Editor.Code.Line.1")),
-            L("1-1.D06", Focus("Editor.Code.Line.1")),
+            // The line is about the preview's circle (wait outside it, swing inside), so the preview is lit with the code.
+            L("1-1.D06", Focus("Editor.Code.Line.1", Preview)),
             L("1-1.D08", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(
                 s => { s.Preview = true; s.Hold = 3; }, Focus(Preview)))),
             L("1-1.D09", With(Ed, Focus(Preview))), L("1-1.D10", s => s.CloseEditor = true),

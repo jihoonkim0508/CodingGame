@@ -26,6 +26,8 @@ namespace CodingGame.Defense
         Vector2 bottomAnchorMin, bottomAnchorMax, bottomPosition, bottomPivot;
         public bool IsTyping => typing != null;
         public bool IsVisible => panel && panel.activeSelf;
+        // Where 디버's face is, for the pointer to fly out from.
+        public RectTransform Portrait => portrait && IsVisible ? portrait.rectTransform : null;
 
         public void Initialize(Action onPrevious, Action onNext)
         {

@@ -15,9 +15,10 @@ namespace CodingGame.Defense
         [SerializeField] RectTransform arrow;
         [SerializeField, Min(0)] float gap = 12, bob = 10, bobSpeed = 4;
         const float DragSeconds = 1f, HoldSeconds = .5f, RestSeconds = .5f, GhostAlpha = .65f, Lift = 14, GhostScale = 1.05f;
-        const float PointerSize = 72, PointerShadow = 6, PointerPop = .3f;
+        const float PointerSize = 72, PointerShadow = 6, PointerPop = .3f, FlySeconds = .4f;
         Image pointerShadow;
         float shownAt;
+        Vector2? flyFrom;
         Rect target;
         bool fromBelow;
         RectTransform ghostSource, ghost;
@@ -43,11 +44,18 @@ namespace CodingGame.Defense
         }
         public bool IsVisible => arrow.gameObject.activeSelf;
         public bool IsDragVisible => ghost && ghost.gameObject.activeInHierarchy;
-        public void Show(Rect area, bool below = false)
+        // from: 디버's face, if on screen; a newly shown arrow flies out of it to the target (the guide points at what it means:
+        // Docs/References/튜토리얼_포커스_조사.md 3-4).
+        public void Show(RectTransform from, Rect area, bool below = false)
         {
-            if (!IsVisible) shownAt = Time.unscaledTime;
+            if (!IsVisible)
+            {
+                shownAt = Time.unscaledTime;
+                flyFrom = from ? (Vector2)((RectTransform)transform).InverseTransformPoint(from.TransformPoint(from.rect.center)) : (Vector2?)null;
+            }
             target = area; fromBelow = below; arrow.gameObject.SetActive(true); Place();
         }
+        public void Show(Rect area, bool below = false) => Show(null, area, below);
         public void Hide() { HideArrow(); HideDrag(); HidePath(); }
         public void HideArrow() => arrow.gameObject.SetActive(false);
 
@@ -124,7 +132,9 @@ namespace CodingGame.Defense
             // Targets on the top edge (e.g. the editor's hint button) get the arrow underneath, pointing up.
             bool above = !fromBelow && target.yMax + gap + half * 2 + bob <= ((RectTransform)transform).rect.yMax;
             arrow.localEulerAngles = new Vector3(0, 0, above ? 0 : 180);
-            arrow.anchoredPosition = new Vector2(target.center.x, above ? target.yMax + gap + half + bounce : target.yMin - gap - half - bounce);
+            var goal = new Vector2(target.center.x, above ? target.yMax + gap + half + bounce : target.yMin - gap - half - bounce);
+            float fly = Mathf.Clamp01((Time.unscaledTime - shownAt) / FlySeconds);
+            arrow.anchoredPosition = flyFrom.HasValue && fly < 1 ? Vector2.Lerp(flyFrom.Value, goal, 1 - (1 - fly) * (1 - fly) * (1 - fly)) : goal;
             // The shadow falls down the screen whichever way the arrow points (it turns with the arrow).
             pointerShadow.rectTransform.anchoredPosition = new Vector2(0, above ? -PointerShadow : PointerShadow);
             // Pops in with a small overshoot (ease-out-back), so the eye catches it starting.

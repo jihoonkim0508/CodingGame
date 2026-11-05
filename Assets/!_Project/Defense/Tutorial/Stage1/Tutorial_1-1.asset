@@ -1227,6 +1227,7 @@ MonoBehaviour:
         \uC21C\uAC04 \uBCA0\uACE0, \uB2E4\uC74C \uBC14\uD034\uB85C \uB118\uC5B4\uAC00\uC9C0!"
       focusKeys:
       - Editor.Code.Line.1
+      - Editor.Preview
       highlightKeys: []
     targetKeys: []
     dim: 0
