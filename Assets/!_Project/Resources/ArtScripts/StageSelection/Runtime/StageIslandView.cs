@@ -20,11 +20,15 @@ namespace CodingGame.Art.StageSelection
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
         Vector3 rest;
         bool hovering;
+        public bool IsPurifying { get; private set; }
+        public float Purification { get; private set; }
+        static readonly Color Unpurified = new Color(1,.61f,.22f);
+        static readonly Color Purified = new Color(.24f,1,.61f);
         public Bounds VisualBounds
         {
             get
             {
-                if (boundsRenderers == null) boundsRenderers = GetComponentsInChildren<Renderer>(true);
+                if (boundsRenderers == null) boundsRenderers = CollectRenderers();
                 var bounds=new Bounds(transform.position,Vector3.zero);
                 foreach(var renderer in boundsRenderers)
                     if (renderer && renderer.gameObject.activeInHierarchy) bounds.Encapsulate(renderer.bounds);
@@ -34,7 +38,7 @@ namespace CodingGame.Art.StageSelection
         void OnEnable()
         {
             originalColors.Clear();shown=(StageState)(-1);
-            boundsRenderers=GetComponentsInChildren<Renderer>(true);
+            boundsRenderers=CollectRenderers();
             if (block == null) block = new MaterialPropertyBlock();
             foreach(var renderer in boundsRenderers)
                 if(renderer.sharedMaterial&&renderer.sharedMaterial.HasProperty(BaseColor))originalColors[renderer]=renderer.sharedMaterial.GetColor(BaseColor);
@@ -43,14 +47,34 @@ namespace CodingGame.Art.StageSelection
         }
         public void RefreshState(StageState state)
         {
-            if(shown==state)return;shown=state;
+            if(shown==state && !IsPurifying)return;shown=state;
+            IsPurifying=false; Purification=state==StageState.Cleared?1:0;
+            ApplyLook();
+        }
+        public void BeginPurification()
+        {
+            IsPurifying=true; Purification=0; ApplyLook();
+        }
+        public void Purify(float progress)
+        {
+            Purification=Mathf.Clamp01(progress); IsPurifying=Purification<1;
+            ApplyLook();
+        }
+        void ApplyLook()
+        {
+            float scanY=VisualBounds.min.y+VisualBounds.size.y*Purification;
             foreach(var pair in originalColors)
             {
                 if(!pair.Key)continue;pair.Key.GetPropertyBlock(block);
                 Color color=pair.Value;
-                if(pair.Key==statusRing)color=state==StageState.Locked?new Color(.23f,.34f,.46f):state==StageState.Cleared?new Color(.33f,1,.69f)*1.35f:accent*1.6f;
-                else if(state==StageState.Locked)color=Color.Lerp(color,new Color(.30f,.38f,.48f),.22f)*.86f;
-                color.a=1;block.SetColor(BaseColor,color);pair.Key.SetPropertyBlock(block);
+                if(pair.Key==statusRing)color=shown==StageState.Locked?new Color(.58f,.3f,.08f):Color.Lerp(Unpurified,Purified,Purification)*1.7f;
+                else if(shown==StageState.Locked)color=Color.Lerp(color,new Color(.25f,.32f,.42f),.65f)*.68f;
+                else color=Color.Lerp(Color.Lerp(color,new Color(.39f,.3f,.23f),.16f)*.80f,Color.Lerp(color,new Color(.68f,1,.82f),.18f)*1.16f,Purification);
+                color.a=1;block.SetColor(BaseColor,color);
+                block.SetFloat("_PurifyAmount",Purification);
+                block.SetFloat("_PurifyScanY",scanY);
+                block.SetFloat("_PurifyFlash",IsPurifying?Mathf.Sin(Purification*Mathf.PI):0);
+                pair.Key.SetPropertyBlock(block);
             }
         }
         void OnMouseEnter(){hovering=true;}
@@ -59,15 +83,22 @@ namespace CodingGame.Art.StageSelection
         {
             if(!Application.isPlaying)return;
             if(visualRoot)visualRoot.localPosition=rest+Vector3.up*(Mathf.Sin(Time.unscaledTime*1.05f+stageNumber*1.7f)*.035f);
-            if(rotors!=null)foreach(var rotor in rotors)if(rotor)rotor.Rotate(0,Time.unscaledDeltaTime*18,0,Space.Self);
+            if(shown!=StageState.Locked&&rotors!=null)foreach(var rotor in rotors)if(rotor)rotor.Rotate(0,Time.unscaledDeltaTime*18,0,Space.Self);
             if(statusRing&&shown!=StageState.Locked)
             {
                 statusRing.GetPropertyBlock(block);
-                var color=(shown==StageState.Cleared?new Color(.33f,1,.69f):accent)*(1.35f+.15f*Mathf.Sin(Time.unscaledTime*2.5f)+(hovering?.3f:0));
+                var color=Color.Lerp(Unpurified,Purified,Purification)*(1.55f+.12f*Mathf.Sin(Time.unscaledTime*2.5f)+(hovering?.3f:0));
                 color.a=1;block.SetColor(BaseColor,color);statusRing.SetPropertyBlock(block);
             }
         }
         void OnDisable(){if(visualRoot)visualRoot.localPosition=rest;}
+        Renderer[] CollectRenderers()
+        {
+            var renderers = new List<Renderer>();
+            foreach (var renderer in GetComponentsInChildren<Renderer>(true))
+                if (!renderer.GetComponentInParent<StageLockVisual>() && !renderer.GetComponentInParent<StagePurificationVisual>()) renderers.Add(renderer);
+            return renderers.ToArray();
+        }
         void OnTransformChildrenChanged(){boundsRenderers=null;}
     }
 }

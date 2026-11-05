@@ -1,6 +1,10 @@
+using System.Collections;
 using System.Linq;
+using CodingGame.Art.StageSelection;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering.Universal;
 
 namespace CodingGame.StageMap
 {
@@ -10,188 +14,161 @@ namespace CodingGame.StageMap
         StageNode[] nodes;
         Camera mapCamera;
         StageCameraController cameraController;
-        GUIStyle bodyStyle, toastStyle, guideTitleStyle, guideBodyStyle;
-        GUIStyle islandTitleStyle,islandNumberStyle,islandStateStyle;
-        string toast;
-        bool entering; // a stage was chosen: the camera flies there and the scene fades, no more "click here"
-        float toastUntil;
+        StageMapHUD hud;
+        bool entering, unlocking;
         StageNode recommendedStage;
-        string guideMessage = "클리어한 섬을 골라 다시 도전할 수 있어.";
-        CodingGame.Art.StageSelection.StageIslandView[] islands;
-        string[] stageLabels, stateLabels;
         public StageNode RecommendedStage => recommendedStage;
-        public string GuideMessage => guideMessage;
+        public bool IsUnlocking => unlocking;
+        public StageMapHUD HUD => hud;
 
         public void Configure(StageNode[] stageNodes, Camera camera)
         {
-            nodes = stageNodes;
-            islands = new CodingGame.Art.StageSelection.StageIslandView[nodes.Length];
-            stageLabels = new string[nodes.Length]; stateLabels = new string[nodes.Length];
-            for (int i = 0; i < nodes.Length; i++)
-            {
-                islands[i] = nodes[i].GetComponent<CodingGame.Art.StageSelection.StageIslandView>();
-                stageLabels[i] = $"STAGE {nodes[i].Number:00}";
-            }
-            mapCamera = camera;
+            nodes = stageNodes; mapCamera = camera;
+            var cameraData=camera.GetUniversalAdditionalCameraData();
+            cameraData.antialiasing=AntialiasingMode.SubpixelMorphologicalAntiAliasing;
+            cameraData.antialiasingQuality=AntialiasingQuality.High;
+            cameraData.renderPostProcessing=true;
             cameraController = gameObject.AddComponent<StageCameraController>();
-            cameraController.Configure(camera, stageNodes);
+            cameraController.Configure(camera, nodes);
+            hud = gameObject.AddComponent<StageMapHUD>();
+            hud.Configure(nodes, camera, Enter);
             RefreshNodes();
+            PlayPendingUnlock();
         }
 
         void Update()
         {
+            if (entering || unlocking || cameraController.IsMoving) return;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             Keyboard keyboard = Keyboard.current;
             if (keyboard != null)
             {
-                if (keyboard.zKey.wasPressedThisFrame) DeveloperClear();
-                if (keyboard.qKey.wasPressedThisFrame) DeveloperReset();
+                if (keyboard.zKey.wasPressedThisFrame) { DeveloperClear(); return; }
+                if (keyboard.qKey.wasPressedThisFrame) { DeveloperReset(); return; }
             }
 #endif
-
             Mouse mouse = Mouse.current;
-            if (mouse == null || !mouse.leftButton.wasPressedThisFrame || cameraController.IsMoving) return;
+            if (mouse == null || !mouse.leftButton.wasPressedThisFrame) return;
+            // Native Canvas buttons handle cards. Only unobstructed map clicks raycast into the world.
+            if (EventSystem.current && EventSystem.current.IsPointerOverGameObject()) return;
             if (Physics.Raycast(mapCamera.ScreenPointToRay(mouse.position.ReadValue()), out RaycastHit hit) &&
                 hit.collider.GetComponentInParent<StageNode>() is StageNode node) Enter(node);
         }
 
         void Enter(StageNode node)
         {
-            if (node.State == StageState.Locked) { ShowToast($"STAGE {node.Number} - LOCKED"); return; }
+            if (entering || unlocking || cameraController.IsMoving) return;
+            if (node.State == StageState.Locked)
+            {
+                node.LockVisual.Reject();
+                return;
+            }
             StageProgress.SelectedStage = node.Number;
-            entering = true;
+            entering = true; hud.SetEntering();
             cameraController.Focus(node.transform);
-            // The fade waits for the camera to land on the stage (planner: the click moved on too fast).
             GameFlow.LoadScene(GameFlow.DefenseScene, StageCameraController.Duration);
         }
 
         void DeveloperClear()
         {
+            if (entering || unlocking) return;
             StageNode target = nodes.FirstOrDefault(node => node.State == StageState.Available);
-            if (target == null) { ShowToast("모든 스테이지가 클리어되었습니다."); return; }
+            if (target == null) return;
             StageProgress.MarkClearedForPreview(target.Number);
-            ShowToast($"DEV: STAGE {target.Number} 임시 클리어");
             RefreshNodes();
+            PlayPendingUnlock();
         }
 
         void DeveloperReset()
         {
+            if (entering || unlocking) return;
             StageProgress.ResetAll(nodes.Length);
             RefreshNodes();
-            ShowToast("DEV: 진행 상태 초기화");
         }
 
         void RefreshNodes()
         {
             recommendedStage = null;
-            for (int i = 0; i < nodes.Length; i++)
-            {
-                StageNode node = nodes[i]; node.Refresh();
-                if (node.State == StageState.Available && (!recommendedStage || node.Number < recommendedStage.Number)) recommendedStage = node;
-                stateLabels[i] = node.State == StageState.Locked ? "이전 스테이지 클리어 후 해금" : node.State == StageState.Cleared ? "CLEARED · 다시 플레이" : "READY · 클릭하여 시작";
-            }
-            guideMessage = recommendedStage ? $"빛나는 {recommendedStage.Number}스테이지 섬을 클릭해 줘!" : "클리어한 섬을 골라 다시 도전할 수 있어.";
-        }
-
-        void ShowToast(string message)
-        {
-            toast = message;
-            toastUntil = Time.unscaledTime + 2.5f;
-        }
-
-        void EnsureStyles()
-        {
-            if (bodyStyle != null) return;
-            Font font = Font.CreateDynamicFontFromOSFont(new[] { "Malgun Gothic", "Apple SD Gothic Neo", "Arial" }, 28);
-            bodyStyle = new GUIStyle(GUI.skin.label) { font = font, fontSize = 18, wordWrap = true, normal = { textColor = new Color(.68f,.76f,.84f) } };
-            toastStyle = new GUIStyle(GUI.skin.button) { font = font, fontSize = 18, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.12f, 0.14f, 0.18f) } };
-            guideTitleStyle = new GUIStyle(bodyStyle) { fontSize = 20, fontStyle = FontStyle.Bold, normal = { textColor = new Color(0.35f, 0.9f, 1f) } };
-            guideBodyStyle = new GUIStyle(bodyStyle) { normal = { textColor = Color.white } };
-        }
-
-        void OnGUI()
-        {
-            // Absolute-position labels have no input/layout work; draw once per repaint.
-            if (Event.current.type != EventType.Repaint) return;
-            EnsureStyles();
-            DrawRect(new Rect(18f, 18f, 510f, 76f), new Color(0.04f, 0.09f, 0.16f, 0.92f));
-            GUI.Label(new Rect(34f, 25f, 480f, 30f), "도우미 로봇", guideTitleStyle);
-            GUI.Label(new Rect(34f, 53f, 480f, 28f), GuideMessage, guideBodyStyle);
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            GUI.Label(new Rect(18f, Screen.height - 38f, 420f, 28f), "DEV  Z: 임시 클리어    Q: 초기화", bodyStyle);
-#endif
-            DrawNodeNumbers();
-            DrawEnterHint();
-            DrawIslandNames();
-            if (Time.unscaledTime < toastUntil)
-                GUI.Box(new Rect((Screen.width - 430f) * 0.5f, Screen.height - 80f, 430f, 45f), toast, toastStyle);
-        }
-
-        // Each node's number under it, so players can tell the stages apart before clicking.
-        void DrawNodeNumbers()
-        {
-            if (nodes == null || !mapCamera || entering) return;
             foreach (var node in nodes)
             {
-                // Islands show their own STAGE number and title (DrawIslandNames).
-                if (!node || node.GetComponent<CodingGame.Art.StageSelection.StageIslandView>()) continue;
-                Vector3 p = mapCamera.WorldToScreenPoint(node.transform.position);
-                if (p.z <= 0) continue;
-                if (numberStyle == null) numberStyle = new GUIStyle(guideBodyStyle) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold, wordWrap = false };
-                var rect = new Rect(p.x - 50, Screen.height - p.y + 30, 100, 28);
-                DrawRect(rect, new Color(0.04f, 0.09f, 0.16f, 0.85f));
-                GUI.Label(rect, $"STAGE {node.Number}", numberStyle);
+                node.Refresh();
+                if (node.State == StageState.Available && (!recommendedStage || node.Number < recommendedStage.Number)) recommendedStage = node;
             }
+            hud.Refresh(recommendedStage);
         }
 
-        // A bouncing arrow over the first stage that can be entered, so the player knows where to click.
-        GUIStyle arrowStyle, hintStyle, numberStyle;
-        void DrawEnterHint()
+        bool PlayPendingUnlock()
         {
-            var node = RecommendedStage;
-            if (!node || !mapCamera || cameraController.IsMoving || entering) return;
-            var bounds = node.VisualBounds;
-            Vector3 top = mapCamera.WorldToScreenPoint(bounds.center + Vector3.up * bounds.extents.y);
-            if (top.z <= 0) return;
-            if (arrowStyle == null) arrowStyle = new GUIStyle(GUI.skin.label) { fontSize = 46, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold };
-            if (hintStyle == null) hintStyle = new GUIStyle(guideBodyStyle) { fontSize = 22, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold, wordWrap = false };
-            float bounce = Mathf.Abs(Mathf.Sin(Time.unscaledTime * 4)) * 16;
-            var old = GUI.color;
-            GUI.color = new Color(1, .85f, .25f, 1);
-            const float hintLift = 12;
-            GUI.Label(new Rect(top.x - 40, Screen.height - top.y - 80 - bounce - hintLift, 80, 60), "▼", arrowStyle);
-            GUI.Label(new Rect(top.x - 160, Screen.height - top.y - 118 - bounce - hintLift, 320, 34), $"{node.Number}스테이지 · 여기를 클릭!", hintStyle);
-            GUI.color = old;
+            int number = StageProgress.ConsumePendingUnlock();
+            int purified = StageProgress.ConsumePendingPurification();
+            var target = nodes.FirstOrDefault(n => n.Number == number && n.State == StageState.Available);
+            var source = nodes.FirstOrDefault(n => n.Number == (purified>0?purified:number-1) && n.State==StageState.Cleared);
+            if (!source) return false;
+            StartCoroutine(UnlockRoute(source,target));
+            return true;
         }
 
-        void DrawIslandNames()
+        IEnumerator UnlockRoute(StageNode source, StageNode target)
         {
-            if(nodes==null||!mapCamera||entering||cameraController.IsMoving)return;
-            islandTitleStyle??=new GUIStyle(guideBodyStyle){fontSize=20,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleCenter};
-            islandNumberStyle??=new GUIStyle(islandTitleStyle){fontSize=12};
-            islandStateStyle??=new GUIStyle(islandTitleStyle){fontSize=12,fontStyle=FontStyle.Normal};
-            islandTitleStyle.fontSize=Mathf.Clamp(Mathf.RoundToInt(Screen.height*.021f),14,22);
-            islandNumberStyle.fontSize=Mathf.Clamp(Mathf.RoundToInt(Screen.height*.014f),10,14);
-            islandStateStyle.fontSize=Mathf.Clamp(Mathf.RoundToInt(Screen.height*.012f),9,12);
-            for (int i = 0; i < nodes.Length; i++)
+            unlocking = true;
+            hud.SetCinematic(true,source);
+            var sourceIsland=source.GetComponent<StageIslandView>();
+            if(sourceIsland)sourceIsland.BeginPurification();
+            source.PurificationVisual.Begin();
+            if(target)target.LockVisual.SetLocked(true);
+            var island = target?target.GetComponent<StageIslandView>():null;
+            if(island) island.RefreshState(StageState.Locked);
+            yield return new WaitForSecondsRealtime(.4f);
+            cameraController.ShowPurificationIsland(source);
+            yield return new WaitForSecondsRealtime(.9f);
+            cameraController.RiseOverPurification(source);
+            for(float elapsed=0;elapsed<1.25f;elapsed+=Time.unscaledDeltaTime)
             {
-                var node = nodes[i]; var island=islands[i];if(!island)continue;
-                var p=mapCamera.WorldToScreenPoint(node.transform.position+new Vector3(0,-.8f,-3.1f));if(p.z<=0)continue;
-                float y=Screen.height-p.y;var old=GUI.color;float width=Mathf.Min(340,Screen.width*.30f);
-                GUI.color=island.accent;GUI.Label(new Rect(p.x-width*.5f,y-9,width,22),stageLabels[i],islandNumberStyle);
-                GUI.color=Color.white;GUI.Label(new Rect(p.x-width*.5f,y+13,width,30),island.stageTitle,islandTitleStyle);
-                GUI.color=node.State==StageState.Locked?new Color(.6f,.72f,.83f):island.accent;
-                GUI.Label(new Rect(p.x-width*.5f,y+43,width,22),stateLabels[i],islandStateStyle);
-                GUI.color=old;
+                float t=Mathf.SmoothStep(0,1,Mathf.Clamp01(elapsed/1.25f));
+                if(sourceIsland)sourceIsland.Purify(t);
+                source.PurificationVisual.SetProgress(t);
+                yield return null;
             }
+            if(sourceIsland)sourceIsland.Purify(1);source.PurificationVisual.SetProgress(1);
+            yield return new WaitForSecondsRealtime(.35f);
+            if(!target)
+            {
+                cameraController.RestoreOverview();yield return new WaitForSecondsRealtime(1.1f);
+                unlocking=false;hud.SetCinematic(false);RefreshNodes();yield break;
+            }
+            hud.SetCinematic(true,target);
+            cameraController.ShowUnlockRoute(source,target);
+            yield return new WaitForSecondsRealtime(.85f);
+            var effectRoot = new GameObject("Stage unlock journey");
+            effectRoot.transform.SetParent(transform,false);
+            var effect = effectRoot.AddComponent<StageUnlockEffect>(); effect.Configure(source,target);
+            bool approaching = false;
+            for(float elapsed=0;elapsed<1.5f;elapsed+=Time.unscaledDeltaTime)
+            {
+                float t = Mathf.Clamp01(elapsed/1.5f);
+                effect.Show(Mathf.SmoothStep(0,1,t));
+                if(t>.15f&&!approaching)cameraController.FollowUnlockPulse(effect.HeadPosition);
+                if(!approaching && t>.68f) { approaching=true; cameraController.ShowUnlockIsland(target); }
+                yield return null;
+            }
+            effect.Show(1); effect.Burst();
+            for(float elapsed=0;elapsed<1f;elapsed+=Time.unscaledDeltaTime)
+            {
+                float t=Mathf.Clamp01(elapsed);
+                target.LockVisual.Release(t);
+                if(t>.45f && island) island.RefreshState(StageState.Available);
+                yield return null;
+            }
+            target.Refresh();
+            cameraController.ShowOpenedIsland(target);
+            yield return new WaitForSecondsRealtime(.7f);
+            cameraController.RestoreOverview();
+            yield return new WaitForSecondsRealtime(1.1f);
+            Destroy(effectRoot);
+            unlocking=false; hud.SetCinematic(false); RefreshNodes();
         }
 
-        static void DrawRect(Rect rect, Color color)
-        {
-            Color previous = GUI.color;
-            GUI.color = color;
-            GUI.DrawTexture(rect, Texture2D.whiteTexture);
-            GUI.color = previous;
-        }
+        // Kept in screen coordinates for input/viewport probes.
+        Rect CardRect(int index) => hud.CardScreenRect(index);
     }
 }
