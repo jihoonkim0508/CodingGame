@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 namespace CodingGame.Defense
 {
-    // Lines spoken by "시스템" show here: a red alarm banner (glowing message on a hazard-striped bar over a pulsing red
+    // Lines spoken by "시스템" show here: a red alarm banner (outlined message on a hazard-striped bar over a pulsing red
     // vignette) that plays the warning sound and fades out after a fixed time. With cards (1-1 A01) three warning cards
     // slam in above the bar first. The visuals are built at run time inside the scene's boot overlay (panel + CanvasGroup).
     public sealed class TutorialSystemAlert : MonoBehaviour
@@ -86,7 +86,7 @@ namespace CodingGame.Defense
             float open = Mathf.Clamp01((t - barStart) / .25f);
             bar.localScale = new Vector3(1 - (1 - open) * (1 - open), 1, 1);
             float lit = t - barStart - .2f;
-            message.alpha = lit < 0 ? 0 : lit < .35f ? (Mathf.Sin(lit * 90) > -.2f ? 1 : .15f) : .85f + .15f * Mathf.Sin(t * 9);
+            message.alpha = lit < 0 ? 0 : lit < .35f ? (Mathf.Sin(lit * 90) > -.2f ? 1 : .15f) : .93f + .07f * Mathf.Sin(t * 9);
             stripes.anchoredPosition = new Vector2(-Mathf.Repeat(t * 70, 40), 0);
             // A short jolt when the cards land.
             float jolt = Mathf.Clamp01(1 - (withCards ? t - barStart : t) / .25f);
@@ -105,21 +105,30 @@ namespace CodingGame.Defense
             if (panel.TryGetComponent<Image>(out var background)) background.color = Color.black;
             vignette = NewImage("Alarm vignette", root, Vignette(), Color.clear); Stretch(vignette);
             shake = Stretch(New("Alarm content", root));
+            // Jalnan like every other heading, so the alarm reads as part of the game rather than a terminal (play feedback:
+            // the square red frames looked stiff). Panels and stripes are rounded a little (ui_fill), framed thicker, on a shadow.
+            if (UITheme.Display) message.font = UITheme.Display;
+            // Light letters with a dark maroon outline and a hard dark drop, the banner look in the alarm's colours (Jalnan's
+            // material has no glow pass; the glow stays for a font that has one).
             glow = new Material(message.fontSharedMaterial);
             glow.EnableKeyword(ShaderUtilities.Keyword_Glow);
             glow.SetColor(ShaderUtilities.ID_GlowColor, new Color(1, .05f, .1f, .8f));
             glow.SetFloat(ShaderUtilities.ID_GlowOuter, .55f); glow.SetFloat(ShaderUtilities.ID_GlowPower, .75f);
+            glow.EnableKeyword(ShaderUtilities.Keyword_Outline);
+            glow.SetFloat(ShaderUtilities.ID_OutlineWidth, .25f); glow.SetColor(ShaderUtilities.ID_OutlineColor, new Color(.12f, 0, .02f));
+            glow.EnableKeyword(ShaderUtilities.Keyword_Underlay);
+            glow.SetColor(ShaderUtilities.ID_UnderlayColor, new Color(.08f, 0, .01f, .9f)); glow.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -.45f);
+            glow.SetFloat(ShaderUtilities.ID_UnderlayDilate, .25f); glow.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0);
 
             bar = New("Alarm bar", shake); bar.sizeDelta = new Vector2(1560, 92);
-            var barFill = Stretch(NewImage("Fill", bar, null, new Color(.5f, 0, .03f, .35f)));
-            barFill.offsetMin = new Vector2(-40, 0); barFill.offsetMax = new Vector2(40, 0);
+            Panel(bar, 40, 16, new Color(.36f, 0, .04f, .92f));
             var mask = Stretch(New("Stripes mask", bar)); mask.gameObject.AddComponent<RectMask2D>();
             stripes = New("Stripes", mask); stripes.anchorMin = stripes.anchorMax = new Vector2(.5f, .5f); stripes.sizeDelta = new Vector2(1560, 92);
             // Four slanted stripes at each end, scrolling; the middle stays clear for the message.
             foreach (float side in new[] { -1f, 1f })
                 for (int i = 0; i < 6; i++)
                 {
-                    var stripe = NewImage("Stripe", stripes, null, new Color(1, .1f, .15f, .85f - i * .1f)).rectTransform;
+                    var stripe = Rounded(NewImage("Stripe", stripes, null, new Color(1, .1f, .15f, .85f - i * .1f)), 7).rectTransform;
                     stripe.sizeDelta = new Vector2(18, 70); stripe.localEulerAngles = new Vector3(0, 0, -25);
                     stripe.anchoredPosition = new Vector2(side * (600 + i * 40), 0);
                 }
@@ -128,7 +137,8 @@ namespace CodingGame.Defense
             text.anchorMin = text.anchorMax = text.pivot = new Vector2(.5f, .5f);
             text.sizeDelta = new Vector2(1000, 90); text.anchoredPosition = Vector2.zero;
             message.textWrappingMode = TextWrappingModes.NoWrap; message.alignment = TextAlignmentOptions.Center;
-            message.fontSize = 42; message.fontStyle = FontStyles.Bold; message.color = new Color(1, .25f, .28f);
+            message.fontSize = 42; message.fontStyle = UITheme.Display ? FontStyles.Normal : FontStyles.Bold; message.color = Color.white;
+            message.enableAutoSizing = true; message.fontSizeMax = 42; message.fontSizeMin = 30; // longer lines stay inside the stripes
             message.fontMaterial = glow;
 
             var circle = Circle(); var triangle = Triangle();
@@ -137,16 +147,16 @@ namespace CodingGame.Defense
                 var card = New("Warning card", shake); card.sizeDelta = new Vector2(350, 182);
                 card.anchoredPosition = new Vector2((i - 1) * 382, 150);
                 var group = card.gameObject.AddComponent<CanvasGroup>(); group.blocksRaycasts = false;
-                // A 2px red frame: a red plate with the dark fill inset on it (Outline would tint the whole fill).
-                var frame = Stretch(NewImage("Frame", card, null, new Color(1, .15f, .2f, .75f))); frame.offsetMin = new Vector2(-2, -2); frame.offsetMax = new Vector2(2, 2);
-                Stretch(NewImage("Fill", card, null, new Color(.13f, .005f, .015f, .96f)));
+                Panel(card, 0, 12, new Color(.16f, .01f, .03f, .97f));
                 var ring = NewImage("Icon ring", card, circle, new Color(.95f, .1f, .15f, 1)).rectTransform;
                 ring.sizeDelta = new Vector2(90, 90); ring.anchoredPosition = new Vector2(0, 91);
                 var disc = NewImage("Icon", ring, circle, DarkRed).rectTransform; disc.sizeDelta = new Vector2(82, 82);
                 var sign = NewImage("Sign", disc, triangle, Red).rectTransform; sign.sizeDelta = new Vector2(52, 46); sign.anchoredPosition = new Vector2(0, 2);
                 Label(sign, "!", 30, Color.white, new Vector2(0, -6), new Vector2(40, 40));
-                Label(card, Cards[i].title, 30, new Color(1, .9f, .9f), new Vector2(0, 12), new Vector2(330, 44)).fontStyle = FontStyles.Bold;
-                Label(card, Cards[i].body, 21, new Color(1, .72f, .72f), new Vector2(0, -48), new Vector2(330, 64));
+                Label(card, Cards[i].title, 30, new Color(1, .9f, .9f), new Vector2(0, 12), new Vector2(330, 44)).fontStyle = UITheme.Display ? FontStyles.Normal : FontStyles.Bold;
+                // Sentences in Pretendard Bold without the glow (the glow material is Jalnan's).
+                var body = Label(card, Cards[i].body, 21, new Color(1, .76f, .76f), new Vector2(0, -48), new Vector2(330, 64));
+                if (UITheme.Bold) { body.font = UITheme.Bold; body.fontSharedMaterial = UITheme.Bold.material; }
                 cards.Add((card, group));
             }
         }
@@ -158,6 +168,23 @@ namespace CodingGame.Defense
             label.font = message.font; label.fontSharedMaterial = glow; label.fontSize = size; label.color = color;
             label.alignment = TextAlignmentOptions.Center; label.raycastTarget = false; label.text = text;
             return label;
+        }
+        // A rounded panel behind parent's content: an ink shadow 6 px below, a 3 px red frame, then the dark fill. wide: how far
+        // the fill reaches past parent's sides; radius: the fill's corner radius in px.
+        static void Panel(RectTransform parent, float wide, float radius, Color fill)
+        {
+            var shadow = Stretch(Rounded(NewImage("Shadow", parent, null, new Color(0, 0, 0, .45f)), radius + 3));
+            shadow.offsetMin = new Vector2(-wide - 3, -9); shadow.offsetMax = new Vector2(wide + 3, -3);
+            var frame = Stretch(Rounded(NewImage("Frame", parent, null, new Color(1, .16f, .2f, .9f)), radius + 3));
+            frame.offsetMin = new Vector2(-wide - 3, -3); frame.offsetMax = new Vector2(wide + 3, 3);
+            var inside = Stretch(Rounded(NewImage("Fill", parent, null, fill), radius));
+            inside.offsetMin = new Vector2(-wide, 0); inside.offsetMax = new Vector2(wide, 0);
+        }
+        // ui_fill is a white rounded square with a 16 px radius; the multiplier scales the corners to radius.
+        static Image Rounded(Image image, float radius)
+        {
+            image.sprite = UITheme.Fill; image.type = Image.Type.Sliced; image.pixelsPerUnitMultiplier = 16f / radius;
+            return image;
         }
         static RectTransform New(string name, RectTransform parent)
         {
