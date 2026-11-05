@@ -57,11 +57,11 @@ namespace CodingGame.Defense.Editor
             Hint = TutorialKeys.Hint, Close = TutorialKeys.Close, Route = TutorialKeys.Route, Core = TutorialKeys.CoreHealth, Preview = TutorialKeys.Preview;
         static readonly string Unit0 = TutorialKeys.Unit(0), Range0 = TutorialKeys.Range(0), Range1 = TutorialKeys.Range(1);
 
-        // 1-1: the function runs once a wave, so the swing goes in a loop (a new loop comes with range(10)).
-        const string Code11 = "for i in range(10):\n    slash()";
-        // 1-3: the shooter waits until the enemy is within 3, where one shot fells it (32 x 7/distance), instead of firing on
-        // entry at 7 and reloading 6 s while the enemy walks past.
-        const string Code13 = "for i in range(10):\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:\n        attack(enemy)";
+        // The function runs when called: battle start calls it once, the robot's Play button again (play feedback 4).
+        // 1-1: one swing a call; 1-3: the loop (a new loop comes with range(10)) swings ten times a call; 1-4: the shooter's loop.
+        const string Code11 = "slash()";
+        const string Code13 = "for i in range(10):\n    slash()";
+        const string Code14 = "for i in range(10):\n    attack(get_nearest_enemy())";
 
         sealed class Line { public string Speaker, Text; }
 
@@ -118,30 +118,27 @@ namespace CodingGame.Defense.Editor
             L("1-1.B04", Highlight(Range0)), L("1-1.B05", Highlight(Range0)),
             L("1-1.C01", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
             L("1-1.C02", Focus(Drop)), L("1-1.C03", Focus(Preview)), L("1-1.C04"),
-            // Inspect the draft at each small action: incomplete lines cannot match compiled Python yet.
-            // The loop first (it comes with range(10)), then the swing inside it.
-            L("1-1.C05", Signal(TutorialSignals.CodeLinePlaced, new[] { Drop, Palette }, With(
-                s => { s.Expected = "1:For"; s.Pointer = "Editor.Palette.For";
-                    s.Demo = "Editor.Palette.For>Editor.Code.Start"; },
-                Focus("Editor.Palette.For", "Editor.Code.Start")))),
-            L("1-1.C06", Focus("Editor.Code.Arg.1.0")),
-            L("1-1.C08", Code(Code11, With(
-                s => { s.Pointer = "Editor.Palette.Slash"; s.AutoSlot = "Editor.Code.Body.1";
-                    s.Demo = "Editor.Palette.Slash>Editor.Code.Body.1"; },
-                Focus("Editor.Palette.Slash", "Editor.Code.Body.1")))),
-            L("1-1.C09", Focus("Editor.Code.Line.1/1")), L("1-1.C10", Focus("Editor.Code.Line.1")),
+            L("1-1.C05", Code(Code11, With(
+                s => { s.Pointer = "Editor.Palette.Slash"; s.Demo = "Editor.Palette.Slash>Editor.Code.Start"; },
+                Focus("Editor.Palette.Slash", "Editor.Code.Start")))),
+            L("1-1.C09", Focus("Editor.Code.Line.1")), L("1-1.C10", Focus("Editor.Code.Line.1")),
             L("1-1.C11", Focus("Editor.Code.Line.1")),
-            // The line is about the preview's circle (wait outside it, swing inside), so the preview is lit with the code.
+            // The line is about when the function is called (the preview calls it again whenever it ends).
             L("1-1.D06", Focus("Editor.Code.Line.1", Preview)),
             L("1-1.D08", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(
                 s => { s.Preview = true; s.Hold = 3; }, Focus(Preview)))),
             L("1-1.D09", With(Ed, Focus(Preview))), L("1-1.D10", s => s.CloseEditor = true),
             L("1-1.E01", Focus(TutorialKeys.NextWave)),
             L("1-1.E03", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => s.Top = true)),
+            // Battle start called the function once and it ended (a swing, likely at nobody); then, slowed, the first enemy
+            // in range is the moment for the robot's Play button.
+            L("1-1.E03a", s => { s.Trigger = TutorialSignals.FunctionEnded; s.TriggerDelay = .6f; s.HoldBattle = true; }),
+            L("1-1.E03b", Click(TutorialKeys.Play(0), s => { s.Trigger = TutorialSignals.EnemyInRange; s.Pointer = TutorialKeys.Play(0); s.SlowBattle = true; s.Top = true; })),
             L("1-1.E04", s => { s.Trigger = TutorialSignals.FirstKill; s.TriggerDelay = .8f; s.SlowBattle = true; }),
             L("1-1.E04a", Click(TutorialKeys.Pause, s => { s.Pointer = TutorialKeys.Pause; s.SlowBattle = true; })),
             L("1-1.E04b", Click(TutorialKeys.Pause, s => { s.Pointer = TutorialKeys.Pause; s.HoldBattle = true; })),
             L("1-1.E04c", Click(TutorialKeys.Speed, s => s.Pointer = TutorialKeys.Speed)),
+            L("1-1.E04d"),
             L("1-1.E05", With(Fight, Focus(Core), s => s.Trigger = TutorialSignals.Leak)),
             L("1-1.E06", s => s.Trigger = TutorialSignals.WaveCleared),
             L("1-1.E07"), L("1-1.E08", Focus(TutorialKeys.RewardPanel)),
@@ -161,60 +158,33 @@ namespace CodingGame.Defense.Editor
             };
         }
 
-        static List<S> OneThree()
-        {
-            Action<S> EditSignal(string signal, string expected, string pointer, params string[] focus) =>
-                Signal(signal, new[] { Drop, Palette }, With(s => {
-                    s.Expected = expected; s.Pointer = pointer;
-                    // Every guided block placement previews its path from the palette to the actual slot.
-                    if (signal == TutorialSignals.CodeLinePlaced || signal == TutorialSignals.SlotFilled)
-                    {
-                        string slot = signal == TutorialSignals.SlotFilled ? expected :
-                            focus.LastOrDefault(key => key.StartsWith(TutorialKeys.CodePrefix, StringComparison.Ordinal));
-                        if (!string.IsNullOrEmpty(slot)) s.Demo = pointer + ">" + slot;
-                    }
-                }, Focus(focus)));
-            return new List<S> {
-                // The lesson's shooter is stood by the road for the player (DefenseBattle.PlaceLessonShooter) and is Robot.Unit.0 in 1-3.
-                L("1-3.A01"), L("1-3.A02", s => s.PlaceShooter = true),
-                L("1-3.A03", Click(Unit0, s => s.Pointer = Unit0)),
-                L("1-3.A04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
-                // Held 6 s past the first (far) hit: the shooter reloads while the enemy walks right past it.
-                L("1-3.A05", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(
-                    s => { s.BaselineExample = true; s.Preview = true; s.Hold = 6; }, Focus(Preview)))),
-                L("1-3.B01", With(s => s.DistanceExample = true, Focus("Editor.Code.Line.1/1"))),
-                L("1-3.B02", Focus("Editor.Code.Line.1/2")),
-                L("1-3.B03"),
-                L("1-3.B04"), L("1-3.B05"),
-                // Everything sits inside the for from 1-1 (line 1); the if becomes its third line ("1/3").
-                L("1-3.C01", With(EditSignal(TutorialSignals.CodeLinePlaced, "1/3:If", "Editor.Palette.If", "Editor.Palette.If", "Editor.Code.After.1/2"),
-                    s => { s.AutoSlot = "Editor.Code.Body.1"; s.Demo = "Editor.Palette.If>Editor.Code.After.1/2"; })),
-                L("1-3.C03", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/3.0", "Editor.Palette.Comparison", "Editor.Palette.Comparison", "Editor.Code.Arg.1/3.0"), s => s.AutoSlot = "Editor.Code.Arg.1/3.0")),
-                L("1-3.C04", EditSignal(TutorialSignals.DraftValueMatches, "1/3.0|<=", "Editor.Code.Option.1/3.0", "Editor.Code.Option.1/3.0")),
-                L("1-3.C06", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/3.0.0", "Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.Arg.1/3.0.0"), s => s.AutoSlot = "Editor.Code.Arg.1/3.0.0")),
-                L("1-3.C07", EditSignal(TutorialSignals.DraftValueMatches, "1/3.0.0|enemy_distance", "Editor.Code.Name.1/3.0.0", "Editor.Code.Name.1/3.0.0")),
-                L("1-3.C09", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/3.0.1", "Editor.Palette.Number", "Editor.Palette.Number", "Editor.Code.Arg.1/3.0.1"), s => s.AutoSlot = "Editor.Code.Arg.1/3.0.1")),
-                L("1-3.C09a", EditSignal(TutorialSignals.DraftValueMatches, "1/3.0.1|3", "Editor.Code.Name.1/3.0.1", "Editor.Code.Name.1/3.0.1")),
-                L("1-3.C10", Focus("Editor.Code.Arg.1/3.0")),
-                // attack() goes in the if, then the enemy it shoots goes in its brackets (a variable renamed enemy finishes the code).
-                L("1-3.D02", With(EditSignal(TutorialSignals.CodeLinePlaced, "1/3/1:Shot", "Editor.Palette.Shot", "Editor.Palette.Shot", "Editor.Code.Body.1/3"),
-                    s => { s.AutoSlot = "Editor.Code.Body.1/3"; s.Demo = "Editor.Palette.Shot>Editor.Code.Body.1/3"; })),
-                L("1-3.D03", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/3/1.0", "Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.Arg.1/3/1.0"), s => s.AutoSlot = "Editor.Code.Arg.1/3/1.0")),
-                L("1-3.D04", EditSignal(TutorialSignals.ProgramMatches, Code13, "Editor.Code.Name.1/3/1.0", "Editor.Code.Name.1/3/1.0")),
-                L("1-3.D06", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(s => { s.Preview = true; s.RestartPreview = true; s.Hold = 3; }, Focus(Preview)))),
-                L("1-3.D07", With(Ed, Focus("Editor.Code.Body.1/3"))),
-                L("1-3.E01", s => s.CloseEditor = true),
-                L("1-3.E02", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => s.Top = true)),
-                // A beat after the first swing, so the player sees it before '베었다!' (play test: the line came too fast).
-                L("1-3.E03", With(Fight, s => { s.Trigger = TutorialSignals.FirstAttack; s.TriggerDelay = 1.2f; })),
-                L("1-3.E04", s => s.Trigger = TutorialSignals.WaveCleared), L("1-3.E05"),
-                L("1-3.E06", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
-            };
-        }
+        // 1-3: the loop lesson moved from 1-1. The warrior from 1-1 gets a for with the swing inside; the code is cleared first.
+        static List<S> OneThree() => new List<S> {
+            L("1-3.A01"), L("1-3.A02"),
+            L("1-3.A03", Click(Unit0, s => s.Pointer = Unit0)),
+            L("1-3.A04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
+            L("1-3.C01", With(Ed, s => s.ClearProgram = true, Focus(Drop))),
+            L("1-3.C05", Signal(TutorialSignals.CodeLinePlaced, new[] { Drop, Palette }, With(
+                s => { s.Expected = "1:For"; s.Pointer = "Editor.Palette.For"; s.Preview = true;
+                    s.Demo = "Editor.Palette.For>Editor.Code.Start"; },
+                Focus("Editor.Palette.For", "Editor.Code.Start")))),
+            L("1-3.C06", With(Ed, Focus("Editor.Code.Arg.1.0"))),
+            L("1-3.C08", Code(Code13, With(
+                s => { s.Pointer = "Editor.Palette.Slash"; s.AutoSlot = "Editor.Code.Body.1";
+                    s.Demo = "Editor.Palette.Slash>Editor.Code.Body.1"; },
+                Focus("Editor.Palette.Slash", "Editor.Code.Body.1")))),
+            L("1-3.C10", With(Ed, Focus("Editor.Code.Line.1"))), L("1-3.C11", With(Ed, Focus("Editor.Code.Line.1"))),
+            L("1-3.D01", With(Ed, Focus("Editor.Code.Line.1", Preview))),
+            L("1-3.D02", s => s.CloseEditor = true),
+            L("1-3.E01"),
+            L("1-3.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code13; s.Battle = true; }),
+            L("1-3.B02"),
+            L("1-3.B03", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
+        };
 
         static List<S> OneFour() => new List<S> {
             L("1-4.A01", s => s.Cards = true), L("1-4.A02"), L("1-4.A03"), L("1-4.A04"),
-            L("1-4.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code13; s.Battle = true; }),
+            L("1-4.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code14; s.Battle = true; }),
             L("1-4.B02"), L("1-4.B03"),
             L("1-4.B04", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
         };
@@ -228,7 +198,7 @@ namespace CodingGame.Defense.Editor
         // Script code names in the code colour (1-4 already has backticks).
         static readonly Regex CodeNames = new Regex(@"(?<![A-Za-z0-9_.`])(" + string.Join("|", new[] {
             "enemy.distance(get_my_pos())", ".distance(get_my_pos())", "enemy.distance()", "get_nearest_enemy()", "get_my_pos()", "my_attack_range()",
-            "enemy_distance", "for i in range(10)", "range(10)", "slash()", ".hp", "enemy", "for", "if", "<=" }.Select(Regex.Escape)) + @")(?![A-Za-z0-9_(`])");
+            "enemy_distance", "for i in range(10)", "range(10)", "slash()", "attack()", ".hp", "enemy", "for", "if", "<=" }.Select(Regex.Escape)) + @")(?![A-Za-z0-9_(`])");
 
         static Dictionary<string, List<Line>> ParseScript(string path)
         {
@@ -304,34 +274,27 @@ namespace CodingGame.Defense.Editor
                 }
                 throw new InvalidOperationException("lesson 1-" + wave + " not found");
             }
-            // Loops open at 1-1, so a robot's function runs once a wave from the start and the swing goes in a for.
-            Lesson(1, "반복문과 게임 플레이 방법 소개", 1, (BlockKind.For, 1), (BlockKind.Number, 1), (BlockKind.Slash, 1));
-            Lesson(2, "반복 자유 플레이", 1, (BlockKind.For, 1), (BlockKind.Number, 1));
-            // 1-3 brings the shooter and its own loop: for with range(10) and 3 (two numbers), attack(), and a third variable for
-            // the enemy in attack()'s brackets.
-            RoleLesson(3, "변수와 조건: 가까이 오면 쏘기(원거리)", RobotRole.Shooter, 1, (BlockKind.For, 1), (BlockKind.Number, 2), (BlockKind.Shot, 1),
-                (BlockKind.DeclareVariable, 2), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 3), (BlockKind.MyPos, 1), (BlockKind.If, 1), (BlockKind.Comparison, 1));
+            // Play feedback 4's order: 1-1 the swing and the Play button, 1-2 free, 1-3 the loop, 1-4 free with a shooter, 1-5
+            // the boss; variables open at 2-1 and conditions at 2-3.
+            Lesson(1, "베기와 실행 버튼", 1, (BlockKind.Slash, 1));
+            Lesson(2, "베기 자유 플레이", 1, (BlockKind.Slash, 2));
+            Lesson(3, "반복문", 0, (BlockKind.For, 2), (BlockKind.Number, 2));
             SetupIntroEncounter(so);
-            // 1-3's enemies outlast a far shot (32 at 7, and 60 at about 3.7 six seconds later) but not a close one (75 at 3), and
-            // walk fast enough to pass the 3 band while the shooter reloads (6 s); four of them 6 s apart, one close shot each
-            // (5 s let the shots fall behind until one slipped by: Tests/TutorialLessons).
+            // 1-3: eight basic enemies 1.2 s apart, two swings each: the two warriors' loops (ten swings a call) and a Play
+            // press or two between them hold the road.
             var practiceGroup = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves").GetArrayElementAtIndex(2)
                 .FindPropertyRelative("groups").GetArrayElementAtIndex(0);
-            practiceGroup.FindPropertyRelative("count").intValue = 4;
-            practiceGroup.FindPropertyRelative("interval").floatValue = 6;
-            practiceGroup.FindPropertyRelative("healthOverride").floatValue = 64;
-            practiceGroup.FindPropertyRelative("speedOverride").floatValue = 1.65f;
+            practiceGroup.FindPropertyRelative("count").intValue = 8;
+            practiceGroup.FindPropertyRelative("interval").floatValue = 1.2f;
+            practiceGroup.FindPropertyRelative("healthOverride").floatValue = 0;
+            practiceGroup.FindPropertyRelative("speedOverride").floatValue = 0;
             if (firstThreeOnly)
             {
                 so.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(campaign);
                 return "campaign: lessons 1-1 to 1-3 only";
             }
-            RoleLesson(4, "조건문 활용 자유 플레이(원거리)", RobotRole.Shooter, 1, (BlockKind.For, 1), (BlockKind.Number, 2), (BlockKind.Shot, 1),
-                (BlockKind.DeclareVariable, 2), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 3), (BlockKind.MyPos, 1), (BlockKind.If, 1), (BlockKind.Comparison, 1));
-            Lesson(5, "변수와 조건문: 보스 종합 실습", 0,
-                (BlockKind.DeclareVariable, 3), (BlockKind.Variable, 5), (BlockKind.Number, 2),
-                (BlockKind.If, 2), (BlockKind.Comparison, 2), (BlockKind.MyAttackRange, 2),
-                (BlockKind.MyPos, 1), (BlockKind.NearestEnemy, 1), (BlockKind.Slash, 1), (BlockKind.For, 1));
+            RoleLesson(4, "반복 자유 플레이(원거리)", RobotRole.Shooter, 1, (BlockKind.For, 1), (BlockKind.Number, 1), (BlockKind.Shot, 1), (BlockKind.NearestEnemy, 1));
+            Lesson(5, "반복 보스 실습", 0, (BlockKind.For, 1), (BlockKind.Number, 1), (BlockKind.Slash, 1));
             var waves = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves");
             var fourth = waves.GetArrayElementAtIndex(3).FindPropertyRelative("groups").GetArrayElementAtIndex(0);
             fourth.FindPropertyRelative("count").intValue = 6;
@@ -369,17 +332,19 @@ namespace CodingGame.Defense.Editor
             var firstGroups = stage.FindPropertyRelative("waves").GetArrayElementAtIndex(0).FindPropertyRelative("groups");
             firstGroups.arraySize = 3;
             var basicEnemy = AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"{Folder}/TutorialError.asset");
+            // One swing (14) fells a basic enemy here (14 x 0.9 for wave 1): each Play press at the right moment is a kill.
+            firstGroups.GetArrayElementAtIndex(0).FindPropertyRelative("healthOverride").floatValue = 14;
             var tankEnemy = AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"{Folder}/TutorialBoss.asset");
             if (!basicEnemy || !tankEnemy) throw new InvalidOperationException("1-1의 기본·단단한 적 asset이 없습니다.");
             // While 디버 slows, pauses and resumes the battle (E04 to E04c) a bunched group walks in, so there is something to
-            // watch (play feedback 4): from 4s, 0.6s apart, they take five of range(10)'s swings after the first two's four.
+            // watch (play feedback 4): from 4s, 0.6s apart, bunched so one well-timed Play press cuts several.
             var crowd = firstGroups.GetArrayElementAtIndex(1);
             crowd.FindPropertyRelative("enemy").objectReferenceValue = basicEnemy;
             crowd.FindPropertyRelative("route").intValue = 0;
             crowd.FindPropertyRelative("count").intValue = 4;
             crowd.FindPropertyRelative("delay").floatValue = 4;
             crowd.FindPropertyRelative("interval").floatValue = .6f;
-            crowd.FindPropertyRelative("healthOverride").floatValue = 0;
+            crowd.FindPropertyRelative("healthOverride").floatValue = 14;
             crowd.FindPropertyRelative("speedOverride").floatValue = 0;
             crowd.FindPropertyRelative("leakDamageOverride").intValue = 0;
             crowd.FindPropertyRelative("boss").boolValue = false;

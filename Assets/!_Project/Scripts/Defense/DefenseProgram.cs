@@ -8,11 +8,14 @@ using CodingGame.BlockCoding;
 namespace CodingGame.Defense
 {
     /// <summary>검증된 블록 코드를 전투 시간에 맞춰 실행하며, 틱당 명령 수를 제한합니다.</summary>
+    // Synchronous, like the farm in 'The Farmer Was Replaced' (play feedback 4): the function runs only when called (battle
+    // start calls every robot's once, the robot's Play button calls it again), one statement after another, and a call made
+    // while it runs is refused, not queued. An attack waits only for its cooldown; a slash with nobody in range still swings.
     public sealed class DefenseProgram
     {
         enum Op { Statement, Condition, Jump, ForInit, ForTest, ForNext }
         sealed class Instruction { public Op Op; public CodeBlock Block; public int Jump, Loop; }
-        sealed class LoopState { public double Count, Index; public int TurnActions, TurnFalse; }
+        sealed class LoopState { public double Count, Index; }
         sealed class EnemyValue { public int Id; }
         readonly List<CodeBlock> blocks;
         readonly Dictionary<BlockKind, int> blockCounts;
@@ -20,11 +23,6 @@ namespace CodingGame.Defense
         readonly Dictionary<string, object> variables = new Dictionary<string, object>();
         readonly Dictionary<int, LoopState> loops = new Dictionary<int, LoopState>();
         int pc, nextLoop;
-        // Commands that ran or were skipped, and conditions that came out false: a loop turn with no command and a false
-        // condition is waited out instead of used up (see ForNext).
-        int resolvedActions, falseConditions;
-        bool invocationStarted;
-        bool actedThisInvocation;
         double wakeTime;
         public string Name { get; }
         public string Source { get; }
@@ -32,12 +30,17 @@ namespace CodingGame.Defense
         public int StepsLastTick { get; private set; }
         public bool IsEmpty => blocks.Count == 0;
         public int CompletedRuns { get; private set; }
-        public bool WaitingForTarget { get; private set; }
-        public bool Completed(DefenseSimulation sim) => CompletedRuns >= sim.FunctionRepeatLimit;
+        public bool Running { get; private set; }
         public int BlockCount(BlockKind kind) => blockCounts.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0;
         public double WaitRemaining(double time) => Math.Max(0, wakeTime - time);
         public IReadOnlyList<CodeBlock> CopyBlocks() => blocks.Select(Clone).ToList();
-        void EndInvocation() { pc = 0; invocationStarted = actedThisInvocation = false; variables.Clear(); loops.Clear(); }
+        void EndInvocation() { pc = 0; Running = false; variables.Clear(); loops.Clear(); }
+        // A call while the function runs (or after it faulted) is refused: Play stays locked until it ends.
+        public bool Invoke()
+        {
+            if (Running || Fault != null || IsEmpty) return false;
+            EndInvocation(); Running = true; return true;
+        }
         public const int InstructionBudget = 64;
 
         public DefenseProgram(string name, IReadOnlyList<CodeBlock> program)
@@ -97,35 +100,20 @@ namespace CodingGame.Defense
         }
         public void Tick(DefenseSimulation sim, RobotState robot)
         {
-            StepsLastTick = 0; WaitingForTarget = false;
-            if (Fault != null || Completed(sim) || sim.Phase != BattlePhase.Running || sim.Time + 1e-9 < wakeTime) return;
-            // A program that targets enemies starts a run only once one is in range, so idle runs don't use up the repeat limit.
-            if (!invocationStarted)
-            {
-                if (blocks.Any(TargetsEnemies) && !sim.Enemies.Any(e => e.Active &&
-                    Vector2.DistanceSquared(e.Position, robot.Position) <= robot.Range * robot.Range)) return;
-                invocationStarted = true;
-            }
+            StepsLastTick = 0;
+            if (!Running || Fault != null || sim.Phase != BattlePhase.Running || sim.Time + 1e-9 < wakeTime) return;
             try
             {
                 // 무한 반복문도 한 틱을 독점하지 못하도록 실행 예산을 나눕니다.
                 while (StepsLastTick++ < InstructionBudget)
                 {
-                    if (pc == code.Count)
-                    {
-                        // A false condition has not used an action. It must be retried after enemies move,
-                        // without spending one of the wave's limited successful program runs.
-                        if (actedThisInvocation) CompletedRuns++;
-                        else wakeTime = Math.Max(wakeTime, sim.Time + .25);
-                        EndInvocation(); return;
-                    }
+                    if (pc == code.Count) { CompletedRuns++; EndInvocation(); return; }
                     var instruction = code[pc];
                     switch (instruction.Op)
                     {
                         case Op.Jump: pc = instruction.Jump; break;
                         case Op.Condition:
-                            if (Truth(Value(instruction.Block, sim, robot))) pc++;
-                            else { falseConditions++; pc = instruction.Jump; }
+                            pc = Truth(Value(instruction.Block, sim, robot)) ? pc + 1 : instruction.Jump;
                             break;
                         case Op.ForInit:
                             double count = Number(Value(instruction.Block, sim, robot));
@@ -134,15 +122,10 @@ namespace CodingGame.Defense
                         case Op.ForTest:
                             var state = loops[instruction.Loop];
                             if (state.Index >= state.Count) pc = instruction.Jump;
-                            else { variables["i"] = state.Index; state.TurnActions = resolvedActions; state.TurnFalse = falseConditions; pc++; }
+                            else { variables["i"] = state.Index; pc++; }
                             break;
                         case Op.ForNext:
-                            var turn = loops[instruction.Loop];
-                            // `for i in range(5): if 적이 사거리 안: slash()` means five swings: a turn whose if was false and that ran
-                            // no command is tried again once enemies have moved, instead of spending one of the five.
-                            if (resolvedActions == turn.TurnActions && falseConditions > turn.TurnFalse)
-                            { pc = instruction.Jump; wakeTime = Math.Max(wakeTime, sim.Time + .25); return; }
-                            turn.Index++; robot.LoopTurnsThisWave++; pc++; break;
+                            loops[instruction.Loop].Index++; robot.LoopTurnsThisWave++; pc++; break;
                         default:
                             var block = instruction.Block;
                             if (block.Kind == BlockKind.DeclareVariable)
@@ -167,16 +150,11 @@ namespace CodingGame.Defense
                                 target = enemy.Id;
                                 // 지정한 적이 사라져도 다른 적으로 자동 교체하지 않습니다.
                                 if (target == 0 || !sim.Enemies.Any(e => e.Id == target && e.Active))
-                                { robot.LastResult = ActionResult.NoTarget; resolvedActions++; pc++; return; }
+                                { robot.LastResult = ActionResult.NoTarget; pc++; return; }
                             }
-                            var result = sim.RequestAction(robot.Id, action, target);
-                            if (result == ActionResult.Executed) { actedThisInvocation = true; resolvedActions++; }
-                            // 재사용 대기 중에는 같은 명령에서 기다리고, 실행 결과가 나오면 다음으로 이동합니다.
-                            // A living target out of range is waited for the same way, so `for i in range(5)` means five attacks
-                            // instead of turns spent on an enemy that is not there yet.
-                            // slash() has no target: it waits for any enemy to come into range.
-                            WaitingForTarget = result == ActionResult.NoTarget && (target != 0 || block.Kind == BlockKind.Slash);
-                            if (result != ActionResult.CoolingDown && !WaitingForTarget) pc++;
+                            // 재사용 대기 중에는 같은 명령에서 기다리고, 실행 결과가 나오면 다음으로 이동합니다. A target out of
+                            // range is a miss (NoTarget): the next statement runs, nothing waits for it to come closer.
+                            if (sim.RequestAction(robot.Id, action, target) != ActionResult.CoolingDown) pc++;
                             return;
                     }
                 }
@@ -184,8 +162,6 @@ namespace CodingGame.Defense
             }
             catch (FormatException error) { Fault = error.Message; }
         }
-        static bool TargetsEnemies(CodeBlock block) => block != null && (PythonTreeCompiler.HasEnemyArgument(block.Kind) || block.Kind == BlockKind.Slash ||
-            block.Kind == BlockKind.NearestEnemy || block.Arguments.Any(TargetsEnemies) || block.Body.Any(TargetsEnemies));
         static RobotAction Action(BlockKind kind)
         {
             switch (kind)

@@ -70,9 +70,10 @@ namespace CodingGame.Defense
         public int RobotAvailable(RobotRole role) => !Setup.PlayerFlow || (!Options.inventoryLimit && RobotUnlocked(role)) ? int.MaxValue : RobotInventory.TryGetValue(role, out int count) ? count : 0;
         public bool RobotUnlocked(RobotRole role) => !Setup.PlayerFlow || Options.unlockAll || RobotInventory.ContainsKey(role);
         public bool LoopsUnlocked => Setup.PlayerFlow && (Inventory.ContainsKey(BlockKind.For) || Inventory.ContainsKey(BlockKind.While));
+        // The robot's Play button: calls its function during a battle unless it is still running (play feedback 4).
+        public bool CanInvoke(int robotId) => Phase == BattlePhase.Running && FindRobot(robotId)?.Program is DefenseProgram p && !p.IsEmpty && !p.Running && p.Fault == null;
+        public bool Invoke(int robotId) => CanInvoke(robotId) && FindRobot(robotId).Program.Invoke();
         // The robot's function runs as `for i in range(5): f()` per wave; once loops unlock it runs once, so the player writes the loop.
-        public int FunctionRepeatLimit => Setup.PlayerFlow && LoopsUnlocked ? 1 :
-            Setup.PlayerFlow && Setup.Stage == 1 && WaveIndex == 4 ? 8 : Setup.FunctionRepeatLimit;
         public void GrantRobot(RobotRole role, int count)
         {
             if (!Enum.IsDefined(typeof(RobotRole), role) || count < 1) throw new ArgumentException("아이템 종류와 양수 수량을 확인하세요.");
@@ -208,7 +209,13 @@ namespace CodingGame.Defense
             if (Setup.PlayerFlow && Robots.Count == 0) return "로봇을 먼저 배치하세요.";
             return null;
         }
-        public void Start() { if (StartError() == null) { Checkpoint = Capture(); accumulated = 0; waveStart = Time; Phase = BattlePhase.Running; } }
+        // Battle start calls every robot's function once, at once (play feedback 4).
+        public void Start()
+        {
+            if (StartError() != null) return;
+            Checkpoint = Capture(); accumulated = 0; waveStart = Time; Phase = BattlePhase.Running;
+            foreach (var bot in Robots) bot.Program?.Invoke();
+        }
         // The last wave start; a defeat can go back to it with Restore on a fresh simulation of the same stage and wave.
         public WaveCheckpoint Checkpoint { get; private set; }
         WaveCheckpoint Capture() => new WaveCheckpoint {
@@ -409,7 +416,7 @@ namespace CodingGame.Defense
             {
                 var targets = Enemies.Where(e => e.Active && Vector2.DistanceSquared(e.Position, bot.Position) <= bot.Range * bot.Range).ToList();
                 var target = targetId == 0 ? Rules.Nearest(targets, bot.Position) : targets.FirstOrDefault(e => e.Id == targetId);
-                if (target == null) return bot.LastResult = ActionResult.NoTarget;
+                if (target == null && action != RobotAction.Slash) return bot.LastResult = ActionResult.NoTarget;
                 switch (action)
                 {
                     case RobotAction.Block: Stun(bot, profile, strength, targets, target); break;
@@ -418,8 +425,9 @@ namespace CodingGame.Defense
                     default: Shoot(bot, action, profile, strength, target); break;
                 }
             }
-            bot.NextAction = Time + ActionInterval(bot, action); bot.Executions++; bot.ActionsThisWave++;
-            if (action != RobotAction.Buff) bot.AttacksThisWave++;
+            bot.NextAction = Time + ActionInterval(bot, action); bot.Executions++;
+            bool whiff = action == RobotAction.Slash && !Enemies.Any(e => e.Active && Vector2.DistanceSquared(e.Position, bot.Position) <= bot.Range * bot.Range);
+            if (!whiff) { bot.ActionsThisWave++; if (action != RobotAction.Buff) bot.AttacksThisWave++; }
             return bot.LastResult = ActionResult.Executed;
         }
         bool Buff(RobotState bot, RobotSpec profile, float strength)
@@ -452,11 +460,12 @@ namespace CodingGame.Defense
         }
         void Slash(RobotState bot, List<EnemyState> targets, EnemyState target)
         {
-            var direction = target.Position - bot.Position;
+            target = target ?? Rules.Nearest(Enemies.Where(e => e.Active), bot.Position);
+            var direction = target == null ? Vector2.UnitY : target.Position - bot.Position;
             if (direction.LengthSquared() < .000001f) direction = Vector2.UnitY;
             direction = Vector2.Normalize(direction);
             double strike = ActionInterval(bot, RobotAction.Slash) * StrikeShare;
-            Events.Add(new CombatEvent { Kind = "slash", Source = bot.Id, Target = target.Id,
+            Events.Add(new CombatEvent { Kind = "slash", Source = bot.Id, Target = target?.Id ?? 0,
                 Origin = bot.Position, Position = bot.Position + direction, Radius = bot.Range, Seconds = (float)strike });
             // A spin all the way round: every enemy in range when the swing starts is hit, even if it moves on before the
             // sword gets there. The event still faces the nearest one, where the spin starts.

@@ -350,6 +350,14 @@ namespace CodingGame.Defense
             ReportTutorialAction("Editor.ApplyProgram", "TargetClicked", "ProgramApplied");
         }
         public bool TutorialAllows(string key) => !tutorial || tutorial.CanPerformAction(key);
+        // The robot's Play button (play feedback 4): calls its function again once it has ended; a press while it runs does
+        // nothing. The tutorial knows the button by the robot's place in id order, like Robot.Unit.
+        public void PlayRobot(int id)
+        {
+            string key = TutorialKeys.Play(TutorialWatcher.RobotIndex(Simulation, id));
+            if (!TutorialAllows(key) || !Simulation.Invoke(id)) return;
+            UISound.Play("click"); ReportTutorialAction(key, TutorialSignals.TargetClicked);
+        }
         public void ReportTutorialAction(string key, params string[] signals) { if (tutorial) foreach (var signal in signals) tutorial.ReportSuccess(key, signal); }
         public void ReportTutorialDrop(RectTransform source, RectTransform destination, string signal) => tutorial?.ReportDrop(source, destination, signal);
         public void ToggleDeveloper()
@@ -812,7 +820,7 @@ namespace CodingGame.Defense
             {
                 string health = bot.Health.HasValue ? $"HP {bot.Health:0}/{bot.MaxHealth:0} · 저지 {Simulation.Enemies.Count(e => e.BlockedBy == bot.Id)}/{bot.Spec.blockCapacity}" : "체력 없음 · 적 피해 대상 제외";
                 string control = bot.Program == null || bot.Program.IsEmpty ? "빈 로봇 · 코드 필요" : bot.Program.Fault == null ? "코드: " + bot.Program.Name : "코드 중지: " + bot.Program.Fault;
-                if (bot.Program != null && !bot.Program.IsEmpty) control += $" · 함수 {bot.Program.CompletedRuns}/{Simulation.FunctionRepeatLimit}회";
+                if (bot.Program != null && !bot.Program.IsEmpty) control += bot.Program.Running ? " · 실행 중" : $" · 실행 {bot.Program.CompletedRuns}번 끝";
                 string attacks = $"공격 {bot.AttacksThisWave}회";
                 selectionText.text = $"{robots[bot.DefinitionIndex].displayName}  #{bot.Id}\n\n{health}\n사거리 {bot.Range:0.00}    피해 {Simulation.ActionDamage(bot, bot.Action):0.0}\n공격 간격 {Simulation.ActionInterval(bot, bot.Action):0.00}s\n\n{ActionName(bot.Action)}\n{CompatibilityText(bot)}\n{control}\n실행 {bot.Executions}회 · {attacks} · 버프 {bot.Buffs.Count}개";
             }

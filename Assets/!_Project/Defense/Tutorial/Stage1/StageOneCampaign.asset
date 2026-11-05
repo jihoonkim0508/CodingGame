@@ -54,17 +54,12 @@ MonoBehaviour:
     lessons:
     - stage: 1
       wave: 1
-      topic: "\uBC18\uBCF5\uBB38\uACFC \uAC8C\uC784 \uD50C\uB808\uC774 \uBC29\uBC95
-        \uC18C\uAC1C"
+      topic: "\uBCA0\uAE30\uC640 \uC2E4\uD589 \uBC84\uD2BC"
       goal: 
       robots:
       - role: 1
         count: 1
       blocks:
-      - kind: 16
-        count: 1
-      - kind: 10
-        count: 1
       - kind: 19
         count: 1
       rewards:
@@ -72,51 +67,33 @@ MonoBehaviour:
         count: 1
     - stage: 1
       wave: 2
-      topic: "\uBC18\uBCF5 \uC790\uC720 \uD50C\uB808\uC774"
+      topic: "\uBCA0\uAE30 \uC790\uC720 \uD50C\uB808\uC774"
       goal: 
       robots:
       - role: 1
         count: 1
       blocks:
-      - kind: 16
-        count: 1
-      - kind: 10
-        count: 1
+      - kind: 19
+        count: 2
       rewards:
       - kind: 19
         count: 1
     - stage: 1
       wave: 3
-      topic: "\uBCC0\uC218\uC640 \uC870\uAC74: \uAC00\uAE4C\uC774 \uC624\uBA74 \uC3D8\uAE30(\uC6D0\uAC70\uB9AC)"
+      topic: "\uBC18\uBCF5\uBB38"
       goal: 
-      robots:
-      - role: 4
-        count: 1
+      robots: []
       blocks:
       - kind: 16
-        count: 1
+        count: 2
       - kind: 10
         count: 2
-      - kind: 22
-        count: 1
-      - kind: 14
-        count: 2
-      - kind: 6
-        count: 1
-      - kind: 15
-        count: 3
-      - kind: 27
-        count: 1
-      - kind: 3
-        count: 1
-      - kind: 11
-        count: 1
       rewards:
       - kind: 11
         count: 1
     - stage: 1
       wave: 4
-      topic: "\uC870\uAC74\uBB38 \uD65C\uC6A9 \uC790\uC720 \uD50C\uB808\uC774(\uC6D0\uAC70\uB9AC)"
+      topic: "\uBC18\uBCF5 \uC790\uC720 \uD50C\uB808\uC774(\uC6D0\uAC70\uB9AC)"
       goal: 
       robots:
       - role: 4
@@ -125,49 +102,25 @@ MonoBehaviour:
       - kind: 16
         count: 1
       - kind: 10
-        count: 2
+        count: 1
       - kind: 22
         count: 1
-      - kind: 14
-        count: 2
       - kind: 6
-        count: 1
-      - kind: 15
-        count: 3
-      - kind: 27
-        count: 1
-      - kind: 3
-        count: 1
-      - kind: 11
         count: 1
       rewards:
       - kind: 10
         count: 1
     - stage: 1
       wave: 5
-      topic: "\uBCC0\uC218\uC640 \uC870\uAC74\uBB38: \uBCF4\uC2A4 \uC885\uD569 \uC2E4\uC2B5"
+      topic: "\uBC18\uBCF5 \uBCF4\uC2A4 \uC2E4\uC2B5"
       goal: 
       robots: []
       blocks:
-      - kind: 14
-        count: 3
-      - kind: 15
-        count: 5
-      - kind: 10
-        count: 2
-      - kind: 3
-        count: 2
-      - kind: 11
-        count: 2
-      - kind: 26
-        count: 2
-      - kind: 27
+      - kind: 16
         count: 1
-      - kind: 6
+      - kind: 10
         count: 1
       - kind: 19
-        count: 1
-      - kind: 16
         count: 1
       rewards:
       - kind: 19
@@ -384,7 +337,7 @@ MonoBehaviour:
         count: 2
         delay: 0
         interval: 2
-        healthOverride: 0
+        healthOverride: 14
         speedOverride: 0
         leakDamageOverride: 0
         boss: 0
@@ -393,7 +346,7 @@ MonoBehaviour:
         count: 4
         delay: 4
         interval: 0.6
-        healthOverride: 0
+        healthOverride: 14
         speedOverride: 0
         leakDamageOverride: 0
         boss: 0
@@ -419,11 +372,11 @@ MonoBehaviour:
     - groups:
       - enemy: {fileID: 11400000, guid: cf4edc9ec078ecc40a20ee0ca5fe13ce, type: 2}
         route: 0
-        count: 4
+        count: 8
         delay: 0
-        interval: 6
-        healthOverride: 64
-        speedOverride: 1.65
+        interval: 1.2
+        healthOverride: 0
+        speedOverride: 0
         leakDamageOverride: 0
         boss: 0
     - groups:

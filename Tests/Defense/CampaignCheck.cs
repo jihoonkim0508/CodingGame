@@ -17,7 +17,8 @@ static class CampaignCheck
     // Shots land within one .1 s interval, so five program runs kill five enemies (real shooters fire every 1.2 s).
     static RobotSpec Spec(RobotRole role) => new RobotSpec{role=role,damage=100,range=8,interval=.1f,projectileSpeed=200};
     static RobotState Place(DefenseSimulation sim, RobotRole role, float x=-8) => sim.Place(Spec(role),(int)role,new Vector2(x,role==RobotRole.Tank?0:2),out _);
-    static void RunWave(DefenseSimulation sim) { for(int i=0;i<6000&&sim.Phase==BattlePhase.Running;i++)sim.Advance(1.0/60); }
+    // A player who presses each robot's Play whenever its function has ended (play feedback 4).
+    static void RunWave(DefenseSimulation sim) { for(int i=0;i<6000&&sim.Phase==BattlePhase.Running;i++){foreach(var r in sim.Robots)sim.Invoke(r.Id);sim.Advance(1.0/60);} }
     static void Reject(Action action,string label) { bool rejected=false;try{action();}catch(FormatException){rejected=true;}Assert(rejected,label); }
     static void CheckHealthTrail()
     {
@@ -190,11 +191,14 @@ static class CampaignCheck
         needed.ApplyProgram(neededBot.Id,"fire",new[]{new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy))});needed.Start();RunWave(needed);
         Assert(needed.PendingDrops.Take(4).SequenceEqual(new[]{BlockKind.Boom,BlockKind.Buff,BlockKind.Block,BlockKind.Boom}),
             "drops fill missing native actions before surplus blocks");
-        var runs=new DefenseSimulation(Setup());
-        Assert(runs.FunctionRepeatLimit==5,"function runs 5 times per wave before loops");
-        runs.GrantBlock(BlockKind.For,1);Assert(runs.FunctionRepeatLimit==1,"function runs once after loops unlock");
-        // The reward flow below needs every wave cleared, not the per-wave run limit.
-        var flow=Setup();flow.FunctionRepeatLimit=int.MaxValue;
+        // Play (play feedback 4): battle start calls each function once; Play calls it again, never while it runs.
+        var runs=new DefenseSimulation(Setup());var caller=Place(runs,RobotRole.Warrior);
+        runs.ApplyProgram(caller.Id,"swing",new[]{new CodeBlock(BlockKind.Slash)});
+        Assert(!runs.CanInvoke(caller.Id),"Play waits for the battle");
+        runs.Start();Assert(caller.Program.Running&&!runs.Invoke(caller.Id),"battle start calls the function; Play is locked while it runs");
+        for(int i=0;i<60&&caller.Program.Running;i++)runs.Advance(1.0/60);
+        Assert(!caller.Program.Running&&caller.Program.CompletedRuns==1&&runs.Invoke(caller.Id)&&caller.Program.Running,"after it ends Play calls it again");
+        var flow=Setup();
         var sim=new DefenseSimulation(flow); sim.Start();Assert(sim.Phase==BattlePhase.Ready,"no robots start rejected");
         var bot=Place(sim,RobotRole.Shooter);
         Assert(bot.Program==null&&!bot.AutoExecute&&!bot.BlockingEnabled,"placed robot is empty");

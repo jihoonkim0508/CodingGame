@@ -19,8 +19,9 @@ namespace CodingGame.Defense
             if (bot.Program == null || bot.Program.IsEmpty) return Issue.NoCode;
             if (bot.Program.Fault != null) return Issue.Fault;
             if (bot.ActionsThisWave == 0) return bot.Spec.role == RobotRole.Buffer || bot.SawEnemyThisWave ? Issue.NeverActed : Issue.NoEnemyInRange;
-            // A for loop counts turns, not attacks: half its turns or more without one spent the count on false conditions.
-            if (bot.Program.Completed(sim) && Missed(sim) > 0)
+            // The function ended while enemies still got by. A for loop counts turns, not attacks: half its turns or more without
+            // one spent the count on false conditions.
+            if (!bot.Program.Running && Missed(sim) > 0)
                 return bot.LoopTurnsThisWave >= 2 * Math.Max(1, bot.ActionsThisWave) ? Issue.LoopSpun : Issue.OutOfRuns;
             if (sim.Compatibility(bot, bot.Action) == ActionCompatibility.Reduced) return Issue.Reduced;
             return Issue.None;
@@ -41,28 +42,24 @@ namespace CodingGame.Defense
                         : "적이 사거리에 들어왔지만 공격 명령이 실행되지 않았어요. 공격 블록과 대상 칸을 확인해 보세요.";
                 case Issue.LoopSpun:
                     return $"for 반복이 {bot.LoopTurnsThisWave}번 도는 동안 공격은 {bot.ActionsThisWave}번뿐이었어요. if 조건이 거짓이거나 노린 적이 이미 사라져도 반복 횟수는 줄어요. " +
-                        (sim.Owned(BlockKind.While) > 0 ? "끝까지 공격하려면 while True를 써 보세요." : "반복 안에서는 조건 없이 공격하거나(공격 블록은 적이 사거리에 올 때까지 기다려요) range() 횟수를 늘려 보세요.");
+                        (sim.Owned(BlockKind.While) > 0 ? "끝까지 공격하려면 while True를 써 보세요." : "range() 횟수를 늘리거나 함수가 끝나면 로봇 아래 '실행'으로 다시 불러 보세요.");
                 case Issue.OutOfRuns:
-                    return $"함수 {bot.Program.CompletedRuns}/{sim.FunctionRepeatLimit}회를 다 써서 일찍 멈췄어요. " +
-                        (sim.LoopsUnlocked ? "반복문으로 계속 공격하게 해 보세요." : "함수 안에 공격 블록을 더 넣으면 한 번에 여러 번 공격해요.");
+                    return $"함수가 끝나 멈춰 있었어요(이번 웨이브 {bot.Program.CompletedRuns}번 실행). 적이 올 때 로봇 아래 '실행'을 눌러 다시 부르거나 " +
+                        (sim.LoopsUnlocked ? "반복문으로 계속 공격하게 해 보세요." : "함수 안에 공격 블록을 더 넣어 보세요.");
                 case Issue.Reduced: return $"다른 직군 명령이라 힘이 10%만 나왔어요. 이 로봇은 {native}가 제일 강해요.";
                 default: return null;
             }
         }
 
-        // The tag over a robot's head: missing or stopped code at any time, and in battle its function runs against the wave's
-        // limit (5 before loops unlock), so a robot that stops attacking shows why. Null: nothing to show.
+        // The tag over a robot's head: missing or stopped code at any time, and in battle a function that has ended (the robot
+        // waits for its Play button). Null: nothing to show.
         public static string LiveStatus(DefenseSimulation sim, RobotState bot)
         {
             if (bot.AutoExecute) return null;
             if (bot.Program == null || bot.Program.IsEmpty) return sim.Setup.PlayerFlow ? Tag("E8590C", "코드 없음") : null;
             if (bot.Program.Fault != null) return Tag("E03131", "코드 오류");
             if (sim.Phase != BattlePhase.Running && sim.Phase != BattlePhase.Paused) return null;
-            int limit = sim.FunctionRepeatLimit;
-            if (bot.Program.Completed(sim)) return Tag("E8590C", limit > 1 ? $"함수 {limit}/{limit} 끝" : "함수 끝");
-            // The attack line is held by a target that is alive but out of range (it may never come; others can pass by).
-            if (bot.Program.WaitingForTarget) return Tag("1971C2", "사거리 밖 적 기다리는 중");
-            return limit > 1 && limit < 1000 ? Tag("1971C2", $"함수 {bot.Program.CompletedRuns}/{limit}") : null;
+            return bot.Program.Running ? null : Tag("E8590C", "함수 끝");
         }
         // On the result screen: the robot's debrief name over its head, yellow when the debrief has advice for it.
         public static string ResultTag(DefenseSimulation sim, RobotState bot, string name) => Tag(Diagnose(sim, bot) == Issue.None ? "1971C2" : "E8590C", name);

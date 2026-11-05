@@ -40,6 +40,8 @@ namespace CodingGame.Defense
         readonly List<Rect> outlinedAreas = new List<Rect>();
         readonly Dictionary<string, TutorialTargetBinding> byKey = new Dictionary<string, TutorialTargetBinding>();
         readonly Dictionary<string, RuntimeTarget> runtimeTargets = new Dictionary<string, RuntimeTarget>();
+        // UI made at run time (a robot's Play button), by key.
+        readonly Dictionary<string, RectTransform> runtimeUi = new Dictionary<string, RectTransform>();
         readonly Vector3[] corners = new Vector3[4];
         TutorialDirector director;
         TutorialStep currentStep;
@@ -60,7 +62,7 @@ namespace CodingGame.Defense
         {
             director = owner;
             if (!canvas || !spotlight) throw new InvalidOperationException(name + ": Canvas/Spotlight 참조 누락");
-            byKey.Clear(); runtimeTargets.Clear();
+            byKey.Clear(); runtimeTargets.Clear(); runtimeUi.Clear();
             foreach (var target in targets)
             {
                 if (target == null || string.IsNullOrWhiteSpace(target.key) ||
@@ -266,6 +268,11 @@ namespace CodingGame.Defense
         int AddArea(string key)
         {
             if (TutorialKeys.IsEditorArea(key)) return editorArea != null && editorArea(key, corners) && AddCorners(CanvasCamera) ? 1 : 0;
+            if (runtimeUi.TryGetValue(key, out var made))
+            {
+                if (!made || !made.gameObject.activeInHierarchy) return 0;
+                made.GetWorldCorners(corners); return AddCorners(CanvasCamera) ? 1 : 0;
+            }
             if (byKey.TryGetValue(key, out var binding) && binding.uiTarget)
             {
                 if (!binding.uiTarget.gameObject.activeInHierarchy) return 0;
@@ -358,6 +365,7 @@ namespace CodingGame.Defense
             if (!IsGuiding) return true;
             if (!Acting || !ContainsKey(key)) return false;
             if (target && runtimeTargets.TryGetValue(key, out var runtime) && runtime.owner) return runtime.owner == target;
+            if (target && runtimeUi.TryGetValue(key, out var made) && made) return made.gameObject == target;
             if (target && byKey.TryGetValue(key, out var binding))
             {
                 var expected = binding.uiTarget ? binding.uiTarget.gameObject : binding.worldTarget ? binding.worldTarget.gameObject : null;
@@ -389,6 +397,7 @@ namespace CodingGame.Defense
             {
                 // Code positions move while blocks are dragged, so they never count as lost.
                 if (TutorialKeys.IsEditorArea(key)) continue;
+                if (runtimeUi.TryGetValue(key, out var made)) { if (!made || !made.gameObject.activeInHierarchy) return false; continue; }
                 if (runtimeTargets.TryGetValue(key, out var runtime))
                 { if (!runtime.owner || !runtime.owner.activeInHierarchy) return false; continue; }
                 if (!byKey.TryGetValue(key, out var binding)) return false;
@@ -411,6 +420,13 @@ namespace CodingGame.Defense
         {
             if (runtimeTargets.TryGetValue(key, out var target) && (!owner || target.owner == owner))
             { runtimeTargets.Remove(key); RefreshIfActing(); }
+            if (runtimeUi.TryGetValue(key, out var made) && (!owner || !made || made.gameObject == owner))
+            { runtimeUi.Remove(key); RefreshIfActing(); }
+        }
+        public void RegisterUITarget(string key, RectTransform target)
+        {
+            if (!target || !HasRuntimeTarget(key)) throw new InvalidOperationException(name + ": 런타임 UI 대상 키가 등록되지 않았습니다: " + key);
+            runtimeUi[key] = target;
         }
 
         public void ReportWorldSuccess(Vector3 point, string signal)

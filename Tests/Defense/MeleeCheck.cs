@@ -4,8 +4,8 @@ using System.Numerics;
 using CodingGame.BlockCoding;
 using CodingGame.Defense;
 
-// The melee robot's slash(): no target, it cuts all the way around the robot, and in a loop each swing waits for an enemy,
-// so `for i in range(n): slash()` is n hits even when the enemies come one by one.
+// The melee robot's slash(): no target, it cuts all the way around the robot; with nobody in range it still swings (and
+// spends its cooldown), so `for i in range(n): slash()` is n swings right away (play feedback 4: Play calls it again).
 static class MeleeCheck
 {
     static int checks;
@@ -32,16 +32,20 @@ static class MeleeCheck
             new SpawnGroup { Enemy = new EnemySpec { health = 10000, speed = 1 }, Count = 1, Interval = 1, RouteIndex = 0 },
             new SpawnGroup { Enemy = new EnemySpec { health = 10000, speed = 1 }, Count = 1, Interval = 1, RouteIndex = 1 });
         var bot = Warrior(sim, 0, 2f);
-        sim.ApplyProgram(bot.Id, "once", new[] { Slash(), new CodeBlock(BlockKind.Wait, "0", N("100")) });
+        sim.ApplyProgram(bot.Id, "once", new[] { new CodeBlock(BlockKind.Wait, "0", N("8.5")), Slash(), new CodeBlock(BlockKind.Wait, "0", N("100")) });
         sim.Start(); Tick(sim, 9);
-        Assert(bot.Executions == 1 && sim.Enemies.Count(e => e.Health < 10000) == 2, "one slash() hits every enemy in range all the way around the robot");
+        Assert(bot.Executions == 1 && sim.Enemies.Count(e => e.Health < 10000) == 2, $"one slash() hits every enemy in range all the way around the robot: exec={bot.Executions} hurt={sim.Enemies.Count(e => e.Health < 10000)} pos={string.Join(",", sim.Enemies.Select(e => e.Position.X.ToString("0.0")))}");
 
-        // Enemies five seconds apart: the second swing waits for the second enemy instead of cutting the air.
+        // Enemies far away: both swings go at once into the air, and Play with an enemy near lands them.
         sim = Make(new[] { line }, new SpawnGroup { Enemy = new EnemySpec { health = 20, speed = 1 }, Count = 2, Interval = 5 });
         bot = Warrior(sim, 0, 2f);
-        sim.ApplyProgram(bot.Id, "twice", new[] { Loop(2, Slash()), new CodeBlock(BlockKind.Wait, "0", N("100")) });
-        sim.Start(); Tick(sim, 20);
-        Assert(sim.Kills == 2, "a swing in a loop waits until an enemy is in range");
+        sim.ApplyProgram(bot.Id, "twice", new[] { Loop(2, Slash()) });
+        sim.Start(); Tick(sim, 1);
+        Assert(bot.Executions == 2 && sim.Kills == 0 && !bot.Program.Running, "slash() swings at nobody instead of waiting; the function then ends");
+        Tick(sim, 8);
+        Assert(sim.Invoke(bot.Id), "Play with the first enemy near");
+        Tick(sim, 1.5);
+        Assert(sim.Kills == 1, "Play's swings cut the enemy in range");
 
         // The same with the swing behind an if: a turn whose condition is false waits instead of using up the loop.
         sim = Make(new[] { line }, new SpawnGroup { Enemy = new EnemySpec { health = 20, speed = 1 }, Count = 2, Interval = 5 });
@@ -50,9 +54,10 @@ static class MeleeCheck
         var near = new CodeBlock(BlockKind.If, "0", new CodeBlock(BlockKind.Comparison, "<=",
             new CodeBlock(BlockKind.Distance, "0", new CodeBlock(BlockKind.Variable, "enemy"), new CodeBlock(BlockKind.MyPos)), new CodeBlock(BlockKind.MyAttackRange)));
         near.Body.Add(Slash());
-        sim.ApplyProgram(bot.Id, "guarded", new[] { Loop(2, find, near), new CodeBlock(BlockKind.Wait, "0", N("100")) });
-        sim.Start(); Tick(sim, 20);
-        Assert(sim.Kills == 2 && bot.Program.Fault == null, "a loop turn whose if is false waits for the condition instead of being spent");
+        sim.ApplyProgram(bot.Id, "guarded", new[] { Loop(2, find, near) });
+        sim.Start(); Tick(sim, 1);
+        Assert(bot.Executions == 0 && bot.LoopTurnsThisWave == 2 && !bot.Program.Running && bot.Program.Fault == null,
+            "a loop turn whose if is false is spent (synchronous: nothing waits for the condition)");
 
         Console.WriteLine($"Melee checks passed: {checks}");
     }

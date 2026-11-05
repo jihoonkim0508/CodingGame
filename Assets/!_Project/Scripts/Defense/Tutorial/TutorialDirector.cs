@@ -458,6 +458,7 @@ namespace CodingGame.Defense
         public void RegisterWorldTarget(string key, GameObject owner, Bounds[] parts, bool round = false, bool box = false)
         { if (initialized && bridge.HasRuntimeTarget(key)) bridge.RegisterWorldTarget(key,owner,parts,round,box); }
         public void UnregisterRuntimeTarget(string key, GameObject owner) { if (initialized) bridge.UnregisterRuntimeTarget(key,owner); }
+        public void RegisterUITarget(string key, RectTransform target) { if (initialized && bridge.HasRuntimeTarget(key)) bridge.RegisterUITarget(key, target); }
 
         void Finish()
         {

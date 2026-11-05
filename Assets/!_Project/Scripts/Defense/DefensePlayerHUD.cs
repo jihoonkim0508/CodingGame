@@ -130,9 +130,10 @@ namespace CodingGame.Defense
             if (freePlayGoal)
             {
                 guide.text = !string.IsNullOrEmpty(lessonGoal) ? "목표 · " + lessonGoal :
-                    sim.WaveIndex == 1 ? "목표 · 새 전사를 배치하고 반복으로 여러 번 베기" :
-                    sim.WaveIndex == 3 ? "목표 · 새 원거리 로봇과 조건문으로 몰려오는 적 막기" :
-                    "목표 · my_attack_range()와 조건문으로 잡몹과 보스 막기";
+                    sim.WaveIndex == 1 ? "목표 · 새 전사를 배치하고 '실행'으로 베기" :
+                    sim.WaveIndex == 2 ? "목표 · 반복문으로 한 번에 여러 번 베기" :
+                    sim.WaveIndex == 3 ? "목표 · 새 원거리 로봇과 반복문으로 몰려오는 적 막기" :
+                    "목표 · 반복문과 '실행'으로 잡몹과 보스 막기";
                 AnimateGoal();
             }
             else
@@ -154,6 +155,7 @@ namespace CodingGame.Defense
             RefreshRobotIcons(sim);
             RefreshRobotActions(sim);
             RefreshRobotStatus(sim);
+            RefreshPlayButtons(sim);
             rewardPanel.SetActive(reward || ended);
             if (reward || ended) RefreshRewardPanel(sim, reward);
             else resultShown = -100; // a restart right after the result clears its banner too, not only after BannerSeconds
@@ -402,6 +404,73 @@ namespace CodingGame.Defense
             return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(.5f, .5f));
         }
 
+        // A Play button under each robot with code while a battle is on (play feedback 4, like 'The Farmer Was Replaced'): it
+        // calls the robot's function, and reads 실행 중 (locked) until the function ends.
+        readonly System.Collections.Generic.List<(Button button, TextMeshProUGUI label, Image icon)> playButtons = new System.Collections.Generic.List<(Button, TextMeshProUGUI, Image)>();
+        int playShown;
+        static Sprite playTriangle;
+        void RefreshPlayButtons(DefenseSimulation sim)
+        {
+            var canvas = (RectTransform)canvasRoot.transform;
+            var ordered = TutorialWatcher.OrderedRobots(sim);
+            bool battleOn = sim.Phase == BattlePhase.Running || sim.Phase == BattlePhase.Paused;
+            int shown = 0;
+            for (int index = 0; battleOn && statusLayer && index < ordered.Count; index++)
+            {
+                var bot = ordered[index];
+                if (bot.Program == null || bot.Program.IsEmpty || bot.Program.Fault != null) continue;
+                if (shown == playButtons.Count) playButtons.Add(MakePlayButton());
+                var (button, label, icon) = playButtons[shown++];
+                int id = bot.Id;
+                button.onClick.RemoveAllListeners(); button.onClick.AddListener(() => battle.PlayRobot(id));
+                bool running = bot.Program.Running;
+                button.interactable = !running && sim.Phase == BattlePhase.Running;
+                label.text = running ? "실행 중" : "실행";
+                icon.gameObject.SetActive(!running);
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, battleCamera.WorldToScreenPoint(DefenseViews.World(bot.Position)), null, out var foot);
+                var rect = (RectTransform)button.transform;
+                rect.anchoredPosition = foot + Vector2.down * 30;
+                rect.gameObject.SetActive(true);
+                battle.Tutorial?.RegisterUITarget(TutorialKeys.Play(index), rect);
+            }
+            for (int i = shown; i < playButtons.Count; i++) playButtons[i].button.gameObject.SetActive(false);
+            for (int i = shown; i < playShown; i++) battle.Tutorial?.UnregisterRuntimeTarget(TutorialKeys.Play(i), null);
+            playShown = shown;
+        }
+        (Button, TextMeshProUGUI, Image) MakePlayButton()
+        {
+            var made = new GameObject("Play", typeof(RectTransform), typeof(Image), typeof(Button), typeof(HorizontalLayoutGroup), typeof(ContentSizeFitter));
+            var rect = (RectTransform)made.transform; rect.SetParent(statusLayer, false);
+            rect.anchorMin = rect.anchorMax = ((RectTransform)canvasRoot.transform).pivot; rect.pivot = new Vector2(.5f, 1);
+            var back = UITheme.Style(made.GetComponent<Image>(), UITheme.Chip, UITheme.Sunny); back.pixelsPerUnitMultiplier = 1.7f;
+            var button = made.GetComponent<Button>();
+            var colors = button.colors; colors.disabledColor = new Color(.78f, .78f, .78f, .85f); button.colors = colors;
+            var layout = made.GetComponent<HorizontalLayoutGroup>(); layout.padding = new RectOffset(14, 16, 6, 8); layout.spacing = 6;
+            layout.childAlignment = TextAnchor.MiddleCenter; layout.childControlWidth = layout.childControlHeight = true; layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+            var fit = made.GetComponent<ContentSizeFitter>(); fit.horizontalFit = fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            if (!playTriangle)
+            {
+                // A right-pointing triangle, antialiased.
+                var texture = new Texture2D(64, 64, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+                var pixels = new Color32[64 * 64];
+                for (int y = 0; y < 64; y++) for (int x = 0; x < 64; x++)
+                {
+                    float u = (x + .5f) / 64, v = (y + .5f) / 64;
+                    float inside = Mathf.Min(u - .12f, (.5f - Mathf.Abs(v - .5f)) * 1.6f - (u - .12f) * .8f);
+                    pixels[y * 64 + x] = new Color32(255, 255, 255, (byte)(255 * Mathf.Clamp01(inside * 40)));
+                }
+                texture.SetPixels32(pixels); texture.Apply();
+                playTriangle = Sprite.Create(texture, new Rect(0, 0, 64, 64), new Vector2(.5f, .5f));
+            }
+            var icon = new GameObject("Icon", typeof(RectTransform), typeof(Image), typeof(LayoutElement)).GetComponent<Image>();
+            icon.rectTransform.SetParent(rect, false); icon.sprite = playTriangle; icon.color = UITheme.Ink; icon.raycastTarget = false;
+            var size = icon.GetComponent<LayoutElement>(); size.preferredWidth = size.preferredHeight = 18;
+            var label = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+            label.rectTransform.SetParent(rect, false);
+            label.font = UITheme.Display ? UITheme.Display : rewardItems.font; label.fontSize = 22; label.color = UITheme.Ink;
+            label.alignment = TextAlignmentOptions.Center; label.textWrappingMode = TextWrappingModes.NoWrap; label.raycastTarget = false;
+            return (button, label, icon);
+        }
         RectTransform statusLayer;
         readonly System.Collections.Generic.List<TextMeshProUGUI> statusLabels = new System.Collections.Generic.List<TextMeshProUGUI>();
         void RefreshRobotStatus(DefenseSimulation sim)

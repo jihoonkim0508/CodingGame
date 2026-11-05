@@ -45,7 +45,7 @@ static class ProgramCheck
         Assert(!tank.BlockingEnabled&&sim.Enemies.All(e=>e.BlockedBy==0),"clearing code immediately releases held enemies");
         Tick(sim,1);
         Assert(sim.Enemies.All(e=>e.Position.X<0),"released enemies resume moving");
-        sim.ApplyProgram(tank.Id,"guard",new[]{new CodeBlock(BlockKind.Block,"0",new CodeBlock(BlockKind.NearestEnemy))}); Tick(sim,1);
+        sim.ApplyProgram(tank.Id,"guard",new[]{new CodeBlock(BlockKind.Block,"0",new CodeBlock(BlockKind.NearestEnemy))}); sim.Invoke(tank.Id); Tick(sim,1);
         Assert(sim.Enemies.All(e=>e.BlockedBy==tank.Id),"reaching block again catches enemies still inside radius");
         Assert(sim.DamageRobot(tank.Id,tank.Spec.health)&&sim.Robots.Count==0&&sim.Enemies.All(e=>e.BlockedBy==0),"destroying tank releases all occupied slots");
         Tick(sim,15);
@@ -182,7 +182,7 @@ static class ProgramCheck
         var inRange=InRange("==");inRange.Body.Add(new CodeBlock(BlockKind.Slash));
         rangeSim.ApplyProgram(rangeBot.Id,"range",new[]{inRange,new CodeBlock(BlockKind.Wait,"0",N("100"))});rangeSim.Start();Tick(rangeSim,10);
         Assert(rangeBot.Executions==1&&rangeBot.Program.Fault==null&&rangeBot.Program.Source.Contains("my_attack_range() == ")&&rangeSim.Enemies.Single().Health<10000,"my_attack_range() reads the robot's range");
-        sim.ApplyProgram(robot.Id,"invalid_wait",new[]{new CodeBlock(BlockKind.Wait,"0",N("-1"))});Tick(sim,1);
+        sim.ApplyProgram(robot.Id,"invalid_wait",new[]{new CodeBlock(BlockKind.Wait,"0",N("-1"))});sim.Invoke(robot.Id);Tick(sim,1);
         Assert(robot.Program.Fault!=null&&sim.Phase==BattlePhase.Running,"runtime diagnostic stops only offending program");
         sim.RestoreAutomatic(robot.Id);Assert(robot.Program==null&&robot.AutoExecute&&robot.Action==RobotAction.Slash,"restore native automatic mode");
         var before=robot.Executions;Tick(sim,10);Assert(robot.Executions>before,"native automatic mode resumes");

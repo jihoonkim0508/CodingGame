@@ -95,7 +95,8 @@ namespace CodingGame.Defense.Editor
             {
                 var loop = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, count)); loop.Body.AddRange(body); return loop;
             }
-            for (int i = 0; i <= Index("C08"); i++)
+            // 1-1 up to C05 (slash() at the start); the loop's checks (80, 84) follow in 1-3, where the loop is taught now.
+            for (int i = 0; i <= Index("C05"); i++)
             {
                 string id = steps[i].Split(' ')[0];
                 // B03 points at the robot B02 placed, which the battle registers as a target a frame after the jump places it.
@@ -107,13 +108,11 @@ namespace CodingGame.Defense.Editor
                     yield return Seconds(.3);
                     if (failed == null) break;
                 }
-                if (failed != null) { if (id == "B03" || id == "C05" || id == "C08") Check(false, "jump " + id, failed); continue; }
+                if (failed != null) { if (id == "B03" || id == "C05") Check(false, "jump " + id, failed); continue; }
                 bool coding = id.StartsWith("C") && id != "C01";
                 if (coding && !b.CodeEditor.IsOpen && b.Simulation.Robots.Count > 0) b.CodeEditor.Open(b.Simulation.Robots.OrderBy(r => r.Id).First().Id);
                 else if (!coding && b.CodeEditor.IsOpen) b.CodeEditor.Close(false);
-                // The jump skips the drags: the loop is put in place the way C05 leaves it.
-                if (id == "C08") b.CodeEditor.Panel.LoadProgram(b.CodeEditor.Panel.FunctionName, new[] { Loop("10") });
-                if (id != "B03" && id != "C05" && id != "C08") continue;
+                if (id != "B03" && id != "C05") continue;
                 yield return Seconds(1.7);
                 var talk = Object.FindFirstObjectByType<TutorialDialogueView>(); if (talk) talk.FinishTyping();
                 yield return Seconds(.1);
@@ -133,15 +132,28 @@ namespace CodingGame.Defense.Editor
                 }
                 if (id == "C05")
                 {
-                    // 79: the empty start is boxed at the size of the for block about to go there.
+                    // 79: the empty start is boxed at the size of the block about to go there (slash() since play feedback 4).
                     var start = Corners(c => b.CodeEditor.TryGetTutorialCorners("Editor.Code.Start", c));
-                    var item = b.CodeEditor.TutorialPaletteItem("Editor.Palette.For");
+                    var item = b.CodeEditor.TutorialPaletteItem("Editor.Palette.Slash");
                     var view = item.GetComponent<CommandBlockView>();
                     var placed = OnScreen(item, new Rect(0, 0, view.preferredWidth, view.preferredHeight));
                     Check(Mathf.Abs(start.width - placed.width) <= 16 && Mathf.Abs(start.height - placed.height) <= 8, "79 start box",
-                        $"box {R(start)}, for block {placed.width:0}x{placed.height:0}");
+                        $"box {R(start)}, slash block {placed.width:0}x{placed.height:0}");
                 }
-                if (id == "C08")
+            }
+            {
+                // 1-3 C08: the jump skips the drags, so the empty loop is put in place the way C05 leaves it.
+                var lesson = DevTest.TutorialSections(3);
+                DevTest.JumpTutorial(3, System.Array.FindIndex(lesson, s => s.Split(' ')[0] == "C08"));
+                yield return Until(() => DevTest.Ready && DevTest.Sim.WaveIndex == 2 && Object.FindFirstObjectByType<TutorialDirector>().EditorStep?.stepId == "C08", 20);
+                b = DevTest.Battle; director = Object.FindFirstObjectByType<TutorialDirector>();
+                var bridge = director.EditorBridge;
+                if (!b.CodeEditor.IsOpen) b.CodeEditor.Open(b.Simulation.Robots.OrderBy(r => r.Id).First().Id);
+                b.CodeEditor.Panel.LoadProgram(b.CodeEditor.Panel.FunctionName, new[] { Loop("10") });
+                yield return Seconds(1.7);
+                var talk = Object.FindFirstObjectByType<TutorialDialogueView>(); if (talk) talk.FinishTyping();
+                yield return Seconds(.1);
+                yield return Shot("1-3_C08");
                 {
                     // 80: the loop's empty mouth is boxed where slash() goes, at its size.
                     var body = Corners(c => b.CodeEditor.TryGetTutorialCorners("Editor.Code.Body.1", c));
@@ -159,7 +171,7 @@ namespace CodingGame.Defense.Editor
                     Check(director.EditorStep?.stepId != "C08", "84 loop of 100", "step after slash() in range(100): " + director.EditorStep?.stepId);
                     yield return Seconds(.5);
                     if (talk) talk.FinishTyping();
-                    yield return Shot("1-1_C08_filled");
+                    yield return Shot("1-3_C08_filled");
                     yield return EditorBlocks(b);
                     yield return EditorLayout(b);
                 }

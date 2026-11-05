@@ -60,8 +60,6 @@ namespace CodingGame.Defense
             var live = battle.Simulation;
             setup.ActionProfiles = live.Setup.ActionProfiles.Select(p => p.Copy()).ToArray();
             setup.RulesConfig = live.Setup.RulesConfig; setup.Permissions = live.Setup.Permissions;
-            // The demo loops forever; the per-wave function limit applies only to real waves.
-            setup.FunctionRepeatLimit = int.MaxValue;
         }
         public DefenseSimulation PreviewSimulation => simulation;
         public bool IsShowing => selected != null && previewPanel.activeSelf;
@@ -185,6 +183,8 @@ namespace CodingGame.Defense
                     bot.AutoExecute = false;
                 }
             }
+            // The demo calls the function again as soon as it ends, as if Play were pressed each time.
+            if (simulation.Robots.FirstOrDefault() is RobotState demo) simulation.Invoke(demo.Id);
             bool wasOver = DemoOver;
             simulation.Advance(dt);
             if (!DemoOver) { emptyElapsed = 0; return; }
@@ -263,14 +263,13 @@ namespace CodingGame.Defense
             else if (program.Fault != null) state = program.Fault;
             // Explain a wasted command before "completed", or a one-run function hides why nothing happened.
             else if (bot.LastResult == ActionResult.Ineffective) state = "호환되지 않는 명령 · 이 로봇에서는 동작하지 않아요";
-            else if (program.Completed(simulation)) state = $"함수 {program.CompletedRuns}/{simulation.FunctionRepeatLimit}회 완료";
             else if (program.WaitRemaining(simulation.Time) is double wait && wait > 0) state = $"wait() · {wait:0.0}초 기다리는 중";
             else if (program.StepsLastTick == 0) state = "코드 대기";
             else switch (bot.LastResult)
             {
                 case ActionResult.CoolingDown:
                     state = $"재사용 대기 · {Math.Max(0, bot.NextAction - simulation.Time):0.0}초"; break;
-                case ActionResult.NoTarget: state = "대상 없음 · 사거리에 적이 오길 기다리는 중"; break;
+                case ActionResult.NoTarget: state = "대상이 사거리 밖 · 빗나감"; break;
                 case ActionResult.Undecided: state = "호환 미정 명령"; break;
                 default: state = $"코드 시연 · {bot.Executions}회"; break;
             }

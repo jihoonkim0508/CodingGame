@@ -22,12 +22,13 @@ static class DebriefCheck
         return bot;
     }
     static CodeBlock Slash() => new CodeBlock(BlockKind.Slash);
+    static CodeBlock Forever(params CodeBlock[] body) { var loop = new CodeBlock(BlockKind.While); loop.Body.AddRange(body); return loop; }
     static void RunToEnd(DefenseSimulation sim) { sim.Start(); for (int i = 0; i < 60 * 60 && sim.Phase == BattlePhase.Running; i++) sim.Advance(1.0 / 60); }
 
     public static void Run()
     {
         var sim = Sim(10, 3);
-        var worker = Bot(sim, RobotRole.Warrior, -8, 2, Slash());
+        var worker = Bot(sim, RobotRole.Warrior, -8, 2, Forever(Slash()));
         var far = Bot(sim, RobotRole.Warrior, 8, 7, Slash());
         var empty = Bot(sim, RobotRole.Shooter, -6, -2);
         var never = new CodeBlock(BlockKind.If, "0", new CodeBlock(BlockKind.False)); never.Body.Add(Slash());
@@ -53,9 +54,9 @@ static class DebriefCheck
         var tough = Sim(1000, 1);
         var tired = Bot(tough, RobotRole.Warrior, -8, 2, Slash());
         RunToEnd(tough);
-        Assert(tough.WaveLeaks == 1 && tired.Program.Completed(tough), "tough enemy outlasts five runs");
+        Assert(tough.WaveLeaks == 1 && !tired.Program.Running && tired.Program.CompletedRuns == 1, "one call, one swing: the tough enemy walks past the ended function");
         Assert(DefenseDebrief.Diagnose(tough, tired) == DefenseDebrief.Issue.OutOfRuns &&
-            DefenseDebrief.Advice(tough, tired, DefenseDebrief.Issue.OutOfRuns).Contains("5/5"), "used-up runs are the advice");
+            DefenseDebrief.Advice(tough, tired, DefenseDebrief.Issue.OutOfRuns).Contains("'실행'"), "an ended function's advice is Play or a loop");
 
         var weak = Sim(.4f, 1);
         var offRole = Bot(weak, RobotRole.Shooter, -8, 2, Slash());
@@ -93,9 +94,10 @@ static class DebriefCheck
         var broken = Bot(live, RobotRole.Shooter, -4, -2, new CodeBlock(BlockKind.Wait, "0", new CodeBlock(BlockKind.Number, "-1")));
         Assert(Tag(live, runner) == "" && Tag(live, sandbox) == "", "no tag while preparing, none for a sandbox robot without code");
         live.Start();
-        Assert(Tag(live, runner).Contains("함수 0/5"), "runs shown against the wave's limit in battle");
-        for (int i = 0; i < 60 * 30 && !runner.Program.Completed(live); i++) live.Advance(1.0 / 60);
-        Assert(Tag(live, runner).Contains("함수 5/5 끝"), "used-up runs say the function ended");
+        Assert(Tag(live, runner) == "" && runner.Program.Running, "a running function has no tag");
+        for (int i = 0; i < 60 * 30 && runner.Program.Running; i++) live.Advance(1.0 / 60);
+        Assert(Tag(live, runner).Contains("함수 끝"), "an ended function says so");
+        Assert(live.Invoke(runner.Id) && Tag(live, runner) == "" && !live.Invoke(runner.Id), "Play calls it again, and not twice at once");
         Assert(broken.Program.Fault != null && Tag(live, broken).Contains("코드 오류"), "stopped code is tagged");
         var campaign = Sim(10, 1, playerFlow: true);
         Assert(Tag(campaign, Bot(campaign, RobotRole.Shooter, -6, -2)).Contains("코드 없음"), "a campaign robot without code is tagged while preparing");
@@ -105,8 +107,14 @@ static class DebriefCheck
     // One run a wave (as once loops unlock): enemies 4 s apart, each dies to one slash, a robot mid-road.
     static DefenseSimulation OneRun()
     {
-        var sim = Sim(5, 3); sim.Setup.FunctionRepeatLimit = 1; sim.Setup.Waves[0][0].Interval = 4;
+        var sim = Sim(5, 3); sim.Setup.Waves[0][0].Interval = 4;
         return sim;
+    }
+    // Until the robot's function has gone idle and an enemy is within its range.
+    static void Near(DefenseSimulation sim, RobotState bot)
+    {
+        for (int i = 0; i < 60 * 30 && (bot.Program.Running || !sim.Enemies.Any(e => e.Active && Vector2.Distance(e.Position, bot.Position) <= bot.Range)); i++)
+            sim.Advance(1.0 / 60);
     }
     static void CheckLoops(Func<DefenseSimulation, RobotState, string> tag)
     {
@@ -114,19 +122,23 @@ static class DebriefCheck
         var loop = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "3")); loop.Body.Add(Slash());
         var waiter = Bot(sim, RobotRole.Warrior, 0, 2, loop);
         sim.Start();
-        for (int i = 0; i < 60 * 7; i++) sim.Advance(1.0 / 60);
-        Assert(waiter.KillsThisWave == 1 && waiter.Program.WaitingForTarget && tag(sim, waiter).Contains("기다리는 중"), "after the first kill the next turn waits for the far enemy");
-        for (int i = 0; i < 60 * 30 && sim.Phase == BattlePhase.Running; i++) sim.Advance(1.0 / 60);
-        Assert(waiter.KillsThisWave == 3 && waiter.ActionsThisWave == 3 && waiter.LoopTurnsThisWave == 3 && sim.WaveLeaks == 0, "range(3) means three attacks");
+        for (int i = 0; i < 60; i++) sim.Advance(1.0 / 60);
+        Assert(waiter.Executions == 3 && waiter.KillsThisWave == 0 && !waiter.Program.Running && tag(sim, waiter).Contains("함수 끝"),
+            "range(3) is three swings at once, at nobody while the enemies are far");
+        Near(sim, waiter);
+        Assert(sim.Invoke(waiter.Id), "Play once the first enemy is near");
+        for (int i = 0; i < 60; i++) sim.Advance(1.0 / 60);
+        Assert(waiter.KillsThisWave == 1 && waiter.LoopTurnsThisWave == 6, "the swings land when Play is pressed with the enemy near");
 
         var stale = OneRun();
         var spin = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "30"));
         // slash() has no target; the shooter's attack(enemy) is what can hold an enemy that is gone.
         spin.Body.Add(new CodeBlock(BlockKind.Shot, "0", new CodeBlock(BlockKind.Variable, "enemy")));
         var spinner = Bot(stale, RobotRole.Shooter, 0, 2, new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)), spin);
-        RunToEnd(stale);
-        Assert(spinner.KillsThisWave == 1 && spinner.LoopTurnsThisWave == 30 && stale.WaveLeaks == 2, "turns on a gone enemy spend the count"); // shots still in flight let it fire at the same enemy a few times
+        stale.Start(); Near(stale, spinner); stale.Invoke(spinner.Id);
+        for (int i = 0; i < 60 * 60 && stale.Phase == BattlePhase.Running; i++) stale.Advance(1.0 / 60);
+        Assert(spinner.KillsThisWave == 1 && spinner.LoopTurnsThisWave == 60 && stale.WaveLeaks == 2, "turns on a gone or far enemy spend the count"); // shots still in flight let it fire at the same enemy a few times
         Assert(DefenseDebrief.Diagnose(stale, spinner) == DefenseDebrief.Issue.LoopSpun &&
-            DefenseDebrief.Advice(stale, spinner, DefenseDebrief.Issue.LoopSpun).Contains("30번 도는 동안 공격은"), "spun loop is the advice");
+            DefenseDebrief.Advice(stale, spinner, DefenseDebrief.Issue.LoopSpun).Contains("60번 도는 동안 공격은"), $"spun loop is the advice: {DefenseDebrief.Diagnose(stale, spinner)} turns={spinner.LoopTurnsThisWave} actions={spinner.ActionsThisWave}");
     }
 }
