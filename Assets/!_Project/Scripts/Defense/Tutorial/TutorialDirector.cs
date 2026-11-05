@@ -357,7 +357,7 @@ namespace CodingGame.Defense
             string voice = animate || !firstVisit ? text.text : null;
             if (system)
             {
-                view.Hide(); alert.Show(text.text, step.alertCards); bannerUp = true; view.Speak(voice);
+                view.Hide(); alert.Show(text.text, step.alertCards, view.Speak(voice)); bannerUp = true;
                 return;
             }
             bannerUp = false;

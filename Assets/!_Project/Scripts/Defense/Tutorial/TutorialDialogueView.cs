@@ -76,9 +76,10 @@ namespace CodingGame.Defense
         public static bool VoiceOn { get => PlayerPrefs.GetInt(VoiceKey, 1) == 1; set { PlayerPrefs.SetInt(VoiceKey, value ? 1 : 0); PlayerPrefs.Save(); } }
         AudioSource voice;
         // Plays the line's recording, if it has one, and returns its length in seconds; anything already speaking stops.
+        // The source is its own scene object: the panel is off while a 시스템 banner speaks (1-1 A01 stayed silent).
         public float Speak(string line)
         {
-            if (!voice) { voice = gameObject.AddComponent<AudioSource>(); voice.playOnAwake = false; voice.spatialBlend = 0; }
+            if (!voice) { voice = new GameObject("Guide voice").AddComponent<AudioSource>(); voice.playOnAwake = false; voice.spatialBlend = 0; }
             voice.Stop();
             var clip = VoiceOn && !string.IsNullOrEmpty(line) ? Resources.Load<AudioClip>("Voice/" + GuideSpeech.Key(line)) : null;
             if (!clip) return 0;
@@ -164,7 +165,7 @@ namespace CodingGame.Defense
 
         public void Hide()
         {
-            StopTyping(); StopEntrance();
+            StopTyping(); StopEntrance(); StopVoice();
             if (panel) panel.SetActive(false);
         }
 

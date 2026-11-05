@@ -40,13 +40,14 @@ namespace CodingGame.Defense
             panel.SetActive(false);
         }
 
-        public void Show(string text, bool showCards = false)
+        // spoken: the length of the line's recording; the banner stays until it has been read out.
+        public void Show(string text, bool showCards = false, float spoken = 0)
         {
             message.text = text ?? ""; withCards = showCards;
             // New glyphs join the dynamic font atlas while the alert is still dark, not when a card lands: adding them mid
             // sequence stalled a frame (about 1 s in the Editor, which re-imports the font asset) and broke the beat.
             message.font.TryAddCharacters(message.text + (showCards ? string.Concat(Cards.Select(c => c.title + c.body)) : ""));
-            clock = 0; duration = seconds + (showCards ? Land(Cards.Length) : 0);
+            clock = 0; duration = Mathf.Max(seconds + (showCards ? Land(Cards.Length) : 0), spoken + .3f);
             foreach (var card in cards) card.rect.gameObject.SetActive(showCards);
             // The bar sits under the cards, or in the middle on its own.
             bar.anchoredPosition = new Vector2(0, showCards ? -40 : 0);

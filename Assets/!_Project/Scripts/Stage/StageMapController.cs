@@ -15,6 +15,8 @@ namespace CodingGame.StageMap
         Texture2D guideFace; // 디버, the tutorial's guide robot, so the map talks in the same voice
         string toast;
         bool entering; // a stage was chosen: the camera flies there and the scene fades, no more "click here"
+        float enteredAt;
+        const float GuideFadeSeconds = .35f;
         float toastUntil;
         StageNode recommendedStage, hovered;
         string guideMessage = "지켜 낸 구역에도 언제든 다시 갈 수 있어. 섬을 눌러 봐!";
@@ -70,7 +72,7 @@ namespace CodingGame.StageMap
             if (node.State == StageState.Locked) { ShowToast($"STAGE {node.Number} - LOCKED"); UISound.Play("deny"); return; }
             UISound.Play("stage-select");
             StageProgress.SelectedStage = node.Number;
-            entering = true;
+            entering = true; enteredAt = Time.unscaledTime;
             cameraController.Focus(node.transform);
             // The fade waits for the camera to land on the stage (planner: the click moved on too fast).
             GameFlow.LoadScene(GameFlow.DefenseScene, StageCameraController.Duration);
@@ -130,8 +132,8 @@ namespace CodingGame.StageMap
             guideTitleStyle = new GUIStyle(displayStyle) { normal = { textColor = UITheme.Hex(0x0C8A73) } };
             guideBodyStyle = new GUIStyle(bodyStyle) { font = bold, fontStyle = bold == font ? FontStyle.Bold : FontStyle.Normal };
             devStyle = new GUIStyle(bodyStyle) { normal = { textColor = new Color(1, 1, 1, .6f) } };
-            islandLessonStyle = new GUIStyle(bodyStyle) { alignment = TextAnchor.MiddleCenter, wordWrap = false, normal = { textColor = UITheme.Muted } };
-            islandStateStyle = new GUIStyle(bodyStyle) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold, wordWrap = false };
+            islandLessonStyle = new GUIStyle(guideBodyStyle) { alignment = TextAnchor.MiddleCenter, wordWrap = false, normal = { textColor = UITheme.Muted } };
+            islandStateStyle = new GUIStyle(guideBodyStyle) { alignment = TextAnchor.MiddleCenter, wordWrap = false };
         }
         GUIStyle devStyle;
         // Sliced sticker art (borders as ui_sprites.py draws them) in a fill colour.
@@ -140,9 +142,18 @@ namespace CodingGame.StageMap
             if (!texture) { DrawRect(rect, fill); return; }
             sticker.normal.background = texture;
             sticker.border = texture == pill ? new RectOffset(27, 27, 27, 31) : new RectOffset(24, 24, 24, 30);
+            // Shorter than its slice borders the corners overlap (the island's STAGE pill looked cut on top): draw it at
+            // the borders' height and scale it down.
+            float k = Mathf.Min(1, rect.height / sticker.border.vertical);
+            var matrix = GUI.matrix;
+            if (k < 1)
+            {
+                GUIUtility.ScaleAroundPivot(Vector2.one * k, rect.center);
+                rect = new Rect(rect.center.x - rect.width / k * .5f, rect.center.y - sticker.border.vertical * .5f, rect.width / k, sticker.border.vertical);
+            }
             var old = GUI.backgroundColor; GUI.backgroundColor = fill;
             GUI.Box(rect, GUIContent.none, sticker);
-            GUI.backgroundColor = old;
+            GUI.backgroundColor = old; GUI.matrix = matrix;
         }
 
         void OnGUI()
@@ -150,18 +161,9 @@ namespace CodingGame.StageMap
             // Absolute-position labels have no input/layout work; draw once per repaint.
             if (Event.current.type != EventType.Repaint) return;
             EnsureStyles();
-            // 디버 on a mint badge, talking from a paper card at the top middle, sized for a 1080p screen.
-            float s = Screen.height / 1080f, cardWidth = Mathf.Min(1000 * s, Screen.width - 36), cardX = (Screen.width - cardWidth) * .5f, cardY = 18 * s;
-            Sticker(new Rect(cardX, cardY, cardWidth, 138 * s), card, UITheme.Paper);
-            float textX = cardX + 22 * s;
-            if (guideFace)
-            {
-                if (badge) { var tint = GUI.color; GUI.color = UITheme.Mint; GUI.DrawTexture(new Rect(cardX + 14 * s, cardY + 10 * s, 112 * s, 116 * s), badge, ScaleMode.ScaleToFit); GUI.color = tint; }
-                GUI.DrawTexture(new Rect(cardX + 19 * s, cardY + 15 * s, 102 * s, 102 * s), guideFace, ScaleMode.ScaleToFit); textX = cardX + 142 * s;
-            }
-            guideTitleStyle.fontSize = Mathf.RoundToInt(26 * s); guideBodyStyle.fontSize = Mathf.RoundToInt(25 * s);
-            Text(new Rect(textX, cardY + 12 * s, cardWidth, 36 * s), "디버", guideTitleStyle);
-            Text(new Rect(textX, cardY + 50 * s, cardX + cardWidth - textX - 20 * s, 76 * s), GuideMessage, guideBodyStyle);
+            // 디버's card fades out once a stage is chosen, while the camera flies there.
+            float guide = entering ? 1 - Mathf.Clamp01((Time.unscaledTime - enteredAt) / GuideFadeSeconds) : 1;
+            if (guide > 0) DrawGuide(guide);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             Text(new Rect(18f, Screen.height - 38f, 420f, 28f), "DEV  Z: 임시 클리어    Q: 초기화", devStyle);
 #endif
@@ -174,6 +176,24 @@ namespace CodingGame.StageMap
                 Sticker(rect, card, UITheme.Coral);
                 Text(new Rect(rect.x, rect.y, rect.width, rect.height - 6f), toast, toastStyle);
             }
+        }
+
+        // 디버 on a mint badge, talking from a paper card at the top middle, sized for a 1080p screen.
+        void DrawGuide(float alpha)
+        {
+            var faded = GUI.color; GUI.color = new Color(1, 1, 1, alpha);
+            float s = Screen.height / 1080f, cardWidth = Mathf.Min(1000 * s, Screen.width - 36), cardX = (Screen.width - cardWidth) * .5f, cardY = 18 * s;
+            Sticker(new Rect(cardX, cardY, cardWidth, 138 * s), card, UITheme.Paper);
+            float textX = cardX + 22 * s;
+            if (guideFace)
+            {
+                if (badge) { var tint = GUI.color; GUI.color = tint * UITheme.Mint; GUI.DrawTexture(new Rect(cardX + 14 * s, cardY + 10 * s, 112 * s, 116 * s), badge, ScaleMode.ScaleToFit); GUI.color = tint; }
+                GUI.DrawTexture(new Rect(cardX + 19 * s, cardY + 15 * s, 102 * s, 102 * s), guideFace, ScaleMode.ScaleToFit); textX = cardX + 142 * s;
+            }
+            guideTitleStyle.fontSize = Mathf.RoundToInt(26 * s); guideBodyStyle.fontSize = Mathf.RoundToInt(25 * s);
+            Text(new Rect(textX, cardY + 12 * s, cardWidth, 36 * s), "디버", guideTitleStyle);
+            Text(new Rect(textX, cardY + 50 * s, cardX + cardWidth - textX - 20 * s, 76 * s), GuideMessage, guideBodyStyle);
+            GUI.color = faded;
         }
 
         // Each node's number under it, so players can tell the stages apart before clicking.
