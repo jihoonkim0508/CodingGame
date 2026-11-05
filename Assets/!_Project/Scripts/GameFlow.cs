@@ -12,6 +12,10 @@ namespace CodingGame
         const float FadeSeconds = 0.35f;
         static GameFlow instance;
         Image fade;
+        // The title's music (Resources/Music/title, CC0: Resources/Music/CREDITS.txt), under the interface sounds; it plays only on
+        // the title and fades with the screen.
+        AudioSource music;
+        const float MusicVolume = .55f;
         bool changingScene;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -44,6 +48,9 @@ namespace CodingGame
             rect.anchorMax = Vector2.one;
             rect.sizeDelta = Vector2.zero;
             fade.color = Color.black;
+            music = gameObject.AddComponent<AudioSource>();
+            music.loop = true; music.playOnAwake = false; music.spatialBlend = 0; music.volume = 0;
+            music.clip = Resources.Load<AudioClip>("Music/title");
 
             // Subscribed before the first scene loads, so this also fires for it.
             SceneManager.sceneLoaded += OnSceneLoaded;
@@ -59,6 +66,8 @@ namespace CodingGame
         {
             if (scene.name == TitleScene) BindTitleButtons();
             else if (scene.name == StageScene) StageMap.StageMapBootstrap.Install();
+            if (scene.name != TitleScene) music.Stop();
+            else if (music.clip && !music.isPlaying) music.Play();
             StartCoroutine(FadeInAfterLoad());
         }
 
@@ -103,6 +112,7 @@ namespace CodingGame
             color.a = alpha;
             fade.color = color;
             fade.raycastTarget = alpha > 0.001f || changingScene;
+            music.volume = MusicVolume * (1 - alpha);
         }
 
         IEnumerator ChangeScene(string sceneName, float delay)
