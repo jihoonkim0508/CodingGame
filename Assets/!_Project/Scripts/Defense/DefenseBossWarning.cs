@@ -101,10 +101,12 @@ namespace CodingGame.Defense
         {
             var window = Box("Window", new Color(.05f, .06f, .09f, .95f), new Vector2(0, 40), new Vector2(980, 380));
             var bar = Box("TitleBar", Red, new Vector2(0, 165), new Vector2(980, 50), window);
-            Label("Title", bar, "⚠ SYSTEM ALERT", 30, Color.white, new Vector2(-300, 0)).alignment = TextAlignmentOptions.Left;
+            var title = Label("Title", bar, "! SYSTEM ALERT", 30, Color.white, Vector2.zero);
+            title.rectTransform.sizeDelta = new Vector2(920, 50); title.alignment = TextAlignmentOptions.Left;
             var body = Label("Body", window, "", 38, new Color(1, .45f, .45f), new Vector2(0, -25));
             body.rectTransform.sizeDelta = new Vector2(880, 280); body.alignment = TextAlignmentOptions.TopLeft;
-            const string report = "> 거대한 오류 코드 감지\n> 체력: ████████  보통의 4배\n> 목표: 코어\n> 모든 로봇, 전투 준비!";
+            // Jalnan has no block glyphs, so the health bar is drawn with I.
+            const string report = "> 거대한 오류 코드 감지\n> 체력: IIIIIIIIIIII  보통의 4배\n> 목표: 코어\n> 모든 로봇, 전투 준비!";
             return t =>
             {
                 window.localScale = Vector3.one * Mathf.Lerp(.6f, 1, Ease(t / .18f));
@@ -139,10 +141,8 @@ namespace CodingGame.Defense
         // 4: a comic burst slams in with 디버 shouting from the corner.
         Action<float> Burst()
         {
-            var star = new GameObject("Burst", typeof(RectTransform), typeof(StarBurst)).GetComponent<StarBurst>();
-            star.rectTransform.SetParent(root, false); star.rectTransform.sizeDelta = new Vector2(980, 560); star.color = Yellow;
-            var back = new GameObject("BurstInk", typeof(RectTransform), typeof(StarBurst)).GetComponent<StarBurst>();
-            back.rectTransform.SetParent(root, false); back.rectTransform.sizeDelta = new Vector2(1040, 610); back.color = Ink; back.transform.SetSiblingIndex(0);
+            var back = Star("BurstInk", new Vector2(1040, 610), Ink);
+            var star = Star("Burst", new Vector2(980, 560), Yellow);
             var title = Label("Title", star.rectTransform, "보스 등장!!", 120, Ink, new Vector2(0, 10));
             var guide = new GameObject("Guide", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
             guide.rectTransform.SetParent(root, false); guide.rectTransform.anchoredPosition = new Vector2(-720, -330); guide.rectTransform.sizeDelta = new Vector2(260, 280);
@@ -225,22 +225,28 @@ namespace CodingGame.Defense
             return ring;
         }
 
-        // A sixteen-point comic starburst.
-        sealed class StarBurst : Graphic
+        RawImage Star(string name, Vector2 size, Color color)
         {
-            protected override void OnPopulateMesh(VertexHelper vh)
+            var raw = new GameObject(name, typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
+            raw.rectTransform.SetParent(root, false); raw.rectTransform.sizeDelta = size;
+            raw.texture = StarTexture(); raw.color = color; raw.raycastTarget = false;
+            return raw;
+        }
+        static Texture2D star;
+        // A sixteen-point comic starburst mask.
+        static Texture2D StarTexture()
+        {
+            if (star) return star;
+            const int n = 256, points = 16; star = new Texture2D(n, n) { wrapMode = TextureWrapMode.Clamp };
+            for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
             {
-                vh.Clear();
-                var r = rectTransform.rect; Vector2 c = r.center;
-                vh.AddVert(c, color, Vector2.zero);
-                const int points = 16;
-                for (int i = 0; i <= points * 2; i++)
-                {
-                    float a = i * Mathf.PI / points, k = i % 2 == 0 ? 1 : .72f + .08f * Mathf.Sin(i * 1.7f);
-                    vh.AddVert(c + new Vector2(Mathf.Cos(a) * r.width * .5f * k, Mathf.Sin(a) * r.height * .5f * k), color, Vector2.zero);
-                    if (i > 0) vh.AddTriangle(0, i, i + 1);
-                }
+                float dx = (x + .5f) / n * 2 - 1, dy = (y + .5f) / n * 2 - 1, r = Mathf.Sqrt(dx * dx + dy * dy);
+                float a = Mathf.Repeat(Mathf.Atan2(dy, dx) / (Mathf.PI * 2) * points, 1);   // 0..1 across one point
+                float edge = Mathf.Lerp(.72f, 1, 1 - Mathf.Abs(a * 2 - 1));                  // tip at the middle
+                star.SetPixel(x, y, r <= edge ? Color.white : Color.clear);
             }
+            star.Apply();
+            return star;
         }
     }
 }
