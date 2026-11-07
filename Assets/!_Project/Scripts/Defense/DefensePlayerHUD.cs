@@ -116,12 +116,16 @@ namespace CodingGame.Defense
             bool ended = sim.Phase == BattlePhase.Victory || sim.Phase == BattlePhase.Defeat;
             bool fighting = sim.Phase == BattlePhase.Running || sim.Phase == BattlePhase.Paused;
             string state = ended ? "작전 종료" : fighting ? "전투 중" : "정비 중";
-            counters.text = $"{battle.Stage} 스테이지  ·  {state}";
-            if (sim.FinalRush && !reward && !ended) counters.text += "  ·  <color=#FF8A80>끝나면 남은 적 돌진</color>";
-            if(waveCounter) waveCounter.text=$"{sim.WaveIndex+1} / {sim.Setup.Waves.Length}";
-            if(enemyCounter) enemyCounter.text=(reward ? sim.LastSurvivors : sim.RemainingEnemies).ToString();
-            if(timeCounter) timeCounter.text=$"{Math.Ceiling(sim.WaveRemaining):00}초";
-            if(coinCounter) coinCounter.text=sim.Coins.ToString("N0");
+            // Strings are made only when the number behind them changes (13차 132): this ran every frame.
+            bool rush = sim.FinalRush && !reward && !ended;
+            if (Changed(ref shownCounters, (battle.Stage, ended ? 2 : fighting ? 1 : 0, rush ? 1 : 0)))
+                counters.text = $"{battle.Stage} 스테이지  ·  {state}" + (rush ? "  ·  <color=#FF8A80>끝나면 남은 적 돌진</color>" : "");
+            if (waveCounter && Changed(ref shownWave, (sim.WaveIndex, sim.Setup.Waves.Length, 0))) waveCounter.text = $"{sim.WaveIndex+1} / {sim.Setup.Waves.Length}";
+            int enemies = reward ? sim.LastSurvivors : sim.RemainingEnemies;
+            if (enemyCounter && Changed(ref shownEnemies, (enemies, 0, 0))) enemyCounter.text = enemies.ToString();
+            int seconds = (int)Math.Ceiling(sim.WaveRemaining);
+            if (timeCounter && Changed(ref shownSeconds, (seconds, 0, 0))) timeCounter.text = $"{seconds:00}초";
+            if (coinCounter && Changed(ref shownCoins, (sim.Coins, 0, 0))) coinCounter.text = sim.Coins.ToString("N0");
             combatControls.SetActive(fighting);
             RefreshEnemyCards(sim, fighting);
             // Stage 1 goals come with its tutorial; later stages show the lesson's own goal line.
@@ -131,11 +135,12 @@ namespace CodingGame.Defense
             guide.transform.parent.gameObject.SetActive(freePlayGoal);
             if (freePlayGoal)
             {
-                guide.text = !string.IsNullOrEmpty(lessonGoal) ? "목표 · " + lessonGoal :
+                if (!ReferenceEquals(lessonGoal, shownGoal) || string.IsNullOrEmpty(lessonGoal)) guide.text = !string.IsNullOrEmpty(lessonGoal) ? "목표 · " + lessonGoal :
                     sim.WaveIndex == 1 ? "목표 · 새 전사를 배치하고 '실행'으로 베기" :
                     sim.WaveIndex == 2 ? "목표 · 반복문으로 한 번에 여러 번 베기" :
                     sim.WaveIndex == 3 ? "목표 · 새 원거리 로봇과 반복문으로 몰려오는 적 막기" :
                     "목표 · 반복문과 '실행'으로 잡몹과 보스 막기";
+                shownGoal = lessonGoal;
                 AnimateGoal();
             }
             else
@@ -145,14 +150,18 @@ namespace CodingGame.Defense
                 if (goalBackground) goalBackground.color = goalColor;
             }
             notice.text = battle.StatusMessage;
-            inventory.text = $"설치 {sim.Robots.Count} / {sim.Setup.RobotLimit}대  ·  버프형 최대 1대  ·  Esc 메뉴";
-            inventory.color = sim.Robots.Count >= sim.Setup.RobotLimit ? new Color(.64f,.2f,.14f) : new Color(.1f,.28f,.36f);
+            if (Changed(ref shownPlaced, (sim.Robots.Count, sim.Setup.RobotLimit, 0)))
+            {
+                inventory.text = $"설치 {sim.Robots.Count} / {sim.Setup.RobotLimit}대  ·  버프형 최대 1대  ·  Esc 메뉴";
+                inventory.color = sim.Robots.Count >= sim.Setup.RobotLimit ? new Color(.64f,.2f,.14f) : new Color(.1f,.28f,.36f);
+            }
             startButton.interactable = ready;
             pauseButton.interactable = fighting;
             speedButton.interactable = fighting && battle.SpeedUnlocked;
             pauseLabel.text = sim.Phase == BattlePhase.Paused ? "계속" : "일시정지";
-            speedLabel.text = fighting && battle.Tutorial && Mathf.Approximately(battle.Tutorial.BattlePace, .2f)
-                ? "0.2x" : battle.BattleSpeed + "x";
+            bool slowed = fighting && battle.Tutorial && Mathf.Approximately(battle.Tutorial.BattlePace, .2f);
+            if (Changed(ref shownSpeed, (slowed ? -1 : Mathf.RoundToInt(battle.BattleSpeed * 100), 0, 0)))
+                speedLabel.text = slowed ? "0.2x" : battle.BattleSpeed + "x";
             RefreshRobotButtons(battle, robotButtons, robotLabels, "\nx");
             RefreshRobotIcons(sim);
             RefreshRobotActions(sim);
@@ -162,6 +171,16 @@ namespace CodingGame.Defense
             if (reward || ended) RefreshRewardPanel(sim, reward);
             else resultShown = -100; // a restart right after the result clears its banner too, not only after BannerSeconds
             shownRewardPhase = sim.Phase; shownRewardWave = sim.WaveIndex; shownRewardStage = battle.Stage;
+        }
+        (int, int, int) shownCounters = (-1, -1, -1), shownWave = (-1, -1, -1), shownEnemies = (-1, -1, -1), shownSeconds = (-1, -1, -1),
+            shownCoins = (-1, -1, -1), shownPlaced = (-1, -1, -1), shownSpeed = (int.MinValue, 0, 0);
+        string shownGoal;
+        static bool Changed(ref (int, int, int) shown, (int, int, int) now) { if (shown == now) return false; shown = now; return true; }
+        // A layer that moves or changes every frame gets its own canvas, so only it is rebuilt, not the whole PlayerCanvas.
+        static void OwnCanvas(GameObject layer, bool clickable)
+        {
+            if (!layer.GetComponent<Canvas>()) layer.AddComponent<Canvas>();
+            if (clickable && !layer.GetComponent<GraphicRaycaster>()) layer.AddComponent<GraphicRaycaster>();
         }
         void AnimateGoal()
         {
@@ -302,7 +321,7 @@ namespace CodingGame.Defense
                 if (!waveCall)
                 {
                     waveCall = new GameObject("Wave call", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
-                    waveCall.rectTransform.SetParent(canvasRoot.transform, false);
+                    waveCall.rectTransform.SetParent(canvasRoot.transform, false); OwnCanvas(waveCall.gameObject, false);
                     waveCall.rectTransform.anchorMin = waveCall.rectTransform.anchorMax = new Vector2(.5f, .5f);
                     waveCall.rectTransform.sizeDelta = new Vector2(1400, 260); waveCall.rectTransform.anchoredPosition = new Vector2(0, 110);
                     // Regular weight: TMP's bold adds spacing per letter, which at this size pulls the Korean line apart.
@@ -346,7 +365,7 @@ namespace CodingGame.Defense
             if (!floaterLayer)
             {
                 floaterLayer = new GameObject("Combat text", typeof(RectTransform)).GetComponent<RectTransform>();
-                floaterLayer.SetParent(canvasRoot.transform, false); floaterLayer.SetSiblingIndex(0);
+                floaterLayer.SetParent(canvasRoot.transform, false); floaterLayer.SetSiblingIndex(0); OwnCanvas(floaterLayer.gameObject, false);
                 floaterLayer.anchorMin = Vector2.zero; floaterLayer.anchorMax = Vector2.one; floaterLayer.sizeDelta = Vector2.zero;
             }
             var floater = floaters.FirstOrDefault(f => !f.label.gameObject.activeSelf);
@@ -437,8 +456,7 @@ namespace CodingGame.Defense
                 if (bot.Program == null || bot.Program.IsEmpty || bot.Program.Fault != null) continue;
                 if (shown == playButtons.Count) playButtons.Add(MakePlayButton());
                 var (button, label, icon) = playButtons[shown++];
-                int id = bot.Id;
-                button.onClick.RemoveAllListeners(); button.onClick.AddListener(() => battle.PlayRobot(id));
+                playIds[shown - 1] = bot.Id;
                 bool running = bot.Program.Running;
                 button.interactable = !running && sim.Phase == BattlePhase.Running;
                 label.text = running ? "실행 중" : "실행";
@@ -460,6 +478,8 @@ namespace CodingGame.Defense
             rect.anchorMin = rect.anchorMax = ((RectTransform)canvasRoot.transform).pivot; rect.pivot = new Vector2(.5f, 1);
             var back = UITheme.Style(made.GetComponent<Image>(), UITheme.Chip, UITheme.Sunny); back.pixelsPerUnitMultiplier = 1.7f;
             var button = made.GetComponent<Button>();
+            int slot = playIds.Count; playIds.Add(0);
+            button.onClick.AddListener(() => battle.PlayRobot(playIds[slot]));
             var colors = button.colors; colors.disabledColor = new Color(.78f, .78f, .78f, .85f); button.colors = colors;
             var layout = made.GetComponent<HorizontalLayoutGroup>(); layout.padding = new RectOffset(14, 16, 6, 8); layout.spacing = 6;
             layout.childAlignment = TextAnchor.MiddleCenter; layout.childControlWidth = layout.childControlHeight = true; layout.childForceExpandWidth = layout.childForceExpandHeight = false;
@@ -488,6 +508,7 @@ namespace CodingGame.Defense
             return (button, label, icon);
         }
         RectTransform statusLayer;
+        readonly System.Collections.Generic.List<int> playIds = new System.Collections.Generic.List<int>();
         readonly System.Collections.Generic.List<TextMeshProUGUI> statusLabels = new System.Collections.Generic.List<TextMeshProUGUI>();
         void RefreshRobotStatus(DefenseSimulation sim)
         {
@@ -495,7 +516,7 @@ namespace CodingGame.Defense
             if (!statusLayer)
             {
                 statusLayer = new GameObject("Robot status", typeof(RectTransform)).GetComponent<RectTransform>();
-                statusLayer.SetParent(canvas, false); statusLayer.SetSiblingIndex(0);
+                statusLayer.SetParent(canvas, false); statusLayer.SetSiblingIndex(0); OwnCanvas(statusLayer.gameObject, true);
                 statusLayer.anchorMin = Vector2.zero; statusLayer.anchorMax = Vector2.one; statusLayer.sizeDelta = Vector2.zero; statusLayer.pivot = canvas.pivot;
             }
             int shown = 0;

@@ -84,6 +84,19 @@ namespace CodingGame.Defense.Editor
         static TMPro.TMP_Text[] ToBold(Scene scene) => All<TMPro.TMP_Text>(scene).Where(text => text.font && text.font != UITheme.Bold &&
             text.font != UITheme.Display && text.font != UITheme.Lines && text.fontSharedMaterial == text.font.material).ToArray();
 
+        // 132: the goal banner bobs every frame (DefensePlayerHUD.AnimateGoal); on its own canvas only it is rebuilt.
+        [MenuItem("Tools/Optimize/132 HUD Canvases")]
+        public static void HudCanvases132() => EditScene(DefenseScene, scene =>
+        {
+            var goal = GoalBanner(scene);
+            if (!goal.GetComponent<Canvas>()) goal.gameObject.AddComponent<Canvas>();
+        });
+        static Transform GoalBanner(Scene scene)
+        {
+            var hud = All<DefensePlayerHUD>(scene).First();
+            return ((Component)new SerializedObject(hud).FindProperty("guide").objectReferenceValue).transform.parent;
+        }
+
         // A camera that needs neither the depth nor the opaque texture nor shadows (no shader samples them).
         static void Lean(Camera camera)
         {
@@ -135,6 +148,9 @@ namespace CodingGame.Defense.Editor
                 var left = ToBold(defense);
                 Check(left.Length == 0, $"126 the battle's body texts are saved in Pretendard Bold ({left.Length} left)");
                 Check(!File.ReadAllText("Assets/!_Project/Scripts/Defense/DefenseBattle.cs").Contains("UITheme.BoldBody"), "126 no body-font pass when the battle starts");
+                Check(GoalBanner(defense).GetComponent<Canvas>(), "132 the goal banner has its own canvas");
+                var hudCode = File.ReadAllText("Assets/!_Project/Scripts/Defense/DefensePlayerHUD.cs");
+                Check(!hudCode.Contains("button.onClick.RemoveAllListeners(); button.onClick.AddListener(() => battle.PlayRobot(id))"), "132 Play listeners wired once, not every frame");
             }
             finally { if (openedDefense && SceneManager.sceneCount > 1) EditorSceneManager.CloseScene(defense, true); }
 
