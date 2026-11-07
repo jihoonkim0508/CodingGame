@@ -65,6 +65,11 @@ namespace CodingGame.Defense
         [SerializeField] Transform healthFill;
         [SerializeField] LineRenderer beam;
         [SerializeField, Tooltip("레이저가 나가는 곳(사격형: 포신 끝). 비우면 머리 위치")] Transform muzzle;
+        [SerializeField, Tooltip("떠서 나는 몸(이속형: 모델과 발 불꽃, Tools/Develop/Runner Thrusters). 비우면 뜨지 않음")] Transform hover;
+        [SerializeField] ParticleSystem[] thrusters = Array.Empty<ParticleSystem>();
+        // The hovering body bobs on the battle clock (still while paused), each enemy at its own phase.
+        float hoverY, hoverTime;
+        const float HoverHeight = .06f, HoverHz = 1.1f;
         MaterialPropertyBlock colors;
         // The rigged models (CharacterAnimation): robots idle and play "Attack" on each attack, the monster walks on its own.
         Animator animator;
@@ -98,6 +103,7 @@ namespace CodingGame.Defense
             foreach (var renderer in healthTrail.GetComponentsInChildren<Renderer>()) renderer.SetPropertyBlock(trailColors);
             beam.enabled = false;
             animator = GetComponentInChildren<Animator>();
+            if (hover) { hoverY = hover.localPosition.y; hoverTime = UnityEngine.Random.value * 10; }
             if (animator) attackClip = animator.runtimeAnimatorController.animationClips.Where(c => c.name.Contains("Attack")).Select(c => c.length).DefaultIfEmpty(0).First();
         }
         public void SyncRobot(RobotState bot, Vector3 position, Quaternion viewRotation)
@@ -113,7 +119,12 @@ namespace CodingGame.Defense
             Sync(position, enemy.Health, enemy.Spec.health, enemy.Stunned(time), enemy.Speed(time) < enemy.Spec.speed, false, viewRotation);
         }
         // Animation speed follows the battle clock: 0 while paused, 2-3 at 2x/3x.
-        public void SetPace(float pace) => this.pace = pace;
+        public void SetPace(float pace)
+        {
+            if (pace == this.pace) return;
+            this.pace = pace;
+            foreach (var flame in thrusters) { var main = flame.main; main.simulationSpeed = pace; }
+        }
         void Sync(Vector3 position, float? health, float maximum, bool stunned, bool slowed, bool buffed, Quaternion viewRotation)
         {
             transform.position = position;
@@ -175,6 +186,11 @@ namespace CodingGame.Defense
                 float k = Mathf.Clamp01(spinTime / spinSeconds);
                 head.rotation = spinFrom * Quaternion.Euler(0, 360 * Mathf.SmoothStep(0, 1, k), 0);
                 if (k >= 1) spinSeconds = 0;
+            }
+            if (hover)
+            {
+                hoverTime += delta * pace;
+                var at = hover.localPosition; at.y = hoverY + HoverHeight * Mathf.Sin(hoverTime * HoverHz * 2 * Mathf.PI); hover.localPosition = at;
             }
             beamTime -= delta;
             if (beamTime <= 0) beam.enabled = false;

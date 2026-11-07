@@ -56,9 +56,110 @@ namespace CodingGame.Defense.Editor
         public static void Apply()
         {
             Fit("Heavy", "MonsterTank", 1.1f);
-            Fit("Runner", "MonsterRunner", 1.25f); // at 1.0 the runner read as a small dot on the road (3-5 screenshot)
-            AssetDatabase.SaveAssets();
+            Runner();
             Debug.Log("[MonsterModels] Heavy and Runner use the team's models");
+        }
+
+        // The runner flies: lifted off its base disc and bobbing (DefenseActorView.hover), a flame from each foot (the two
+        // octagonal nozzles low on its left and right, facing outward and down).
+        [MenuItem("Tools/Develop/Runner Thrusters")]
+        public static void Runner()
+        {
+            Fit("Runner", "MonsterRunner", 1.25f); // at 1.0 the runner read as a small dot on the road (3-5 screenshot)
+            Thrusters("Runner", .5f);
+            AssetDatabase.SaveAssets();
+        }
+
+        static void Thrusters(string enemy, float lift)
+        {
+            string path = Prefabs + enemy + ".prefab";
+            var root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                var model = root.transform.Find("Model");
+                var renderer = model.GetComponentInChildren<MeshRenderer>();
+                var hover = new GameObject("Hover").transform; hover.SetParent(root.transform, false);
+                model.SetParent(hover, true);
+                var glow = AssetDatabase.LoadAssetAtPath<Material>(Folder + "ThrusterFlame.mat");
+                if (!glow)
+                {
+                    glow = new Material(AssetDatabase.LoadAssetAtPath<Material>("Assets/!_Project/Defense/Effects/HIE_Hit_04_PointGlow_01.mat"));
+                    AssetDatabase.CreateAsset(glow, Folder + "ThrusterFlame.mat");
+                }
+                // The hit glow's soft dot, alpha-blended instead of added: added light vanished on the cream road and desk wood.
+                glow.SetFloat("_Blend", 0);
+                glow.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha); glow.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                glow.SetFloat("_SrcBlendAlpha", 1); glow.SetFloat("_DstBlendAlpha", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                EditorUtility.SetDirty(glow);
+                var flames = new[] { -1, 1 }.Select(side =>
+                {
+                    var (at, outward) = Nozzle(root.transform, renderer, side);
+                    return Flame(hover, side < 0 ? "Thruster L" : "Thruster R", at, outward, glow);
+                }).ToArray();
+                hover.localPosition = Vector3.up * lift;
+                // The health bar as far over the lifted head as it was over the standing one.
+                root.transform.Find("Health").localPosition = Vector3.up * (LocalBounds(root.transform, renderer).max.y + .34f);
+                var view = new SerializedObject(root.GetComponent<DefenseActorView>());
+                view.FindProperty("hover").objectReferenceValue = hover;
+                var list = view.FindProperty("thrusters"); list.arraySize = flames.Length;
+                for (int i = 0; i < flames.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = flames[i];
+                view.ApplyModifiedPropertiesWithoutUndo();
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+            }
+            finally { PrefabUtility.UnloadPrefabContents(root); }
+        }
+
+        // The outer face centre and facing of the nozzle on one side, in the enemy's local space: the mesh's points low on that
+        // side near the middle (the runner's nozzles sit at x ±0.39, y 0.1-0.25, z 0 at height 1.25).
+        static (Vector3 at, Vector3 outward) Nozzle(Transform space, MeshRenderer renderer, int side)
+        {
+            var mesh = renderer.GetComponent<MeshFilter>().sharedMesh;
+            var toSpace = space.worldToLocalMatrix * renderer.transform.localToWorldMatrix;
+            var vertices = mesh.vertices; var normals = mesh.normals;
+            float bottom = LocalBounds(space, renderer).min.y;
+            var points = new System.Collections.Generic.List<Vector3>(); var normal = Vector3.zero;
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                var p = toSpace.MultiplyPoint3x4(vertices[i]);
+                if (p.y > bottom + .25f || side * p.x < .28f || Mathf.Abs(p.z) > .13f) continue;
+                points.Add(p); normal += toSpace.MultiplyVector(normals[i]).normalized;
+            }
+            var outward = normal.normalized;
+            if (points.Count < 20 || outward.y > -.3f || side * outward.x < .3f)
+                throw new InvalidOperationException($"{renderer.name}: {side} 쪽 발(노즐)을 찾지 못했습니다 (점 {points.Count}, 방향 {outward}).");
+            var centre = points.Aggregate(Vector3.zero, (sum, p) => sum + p) / points.Count;
+            return (centre + outward * points.Max(p => Vector3.Dot(p - centre, outward)), outward);
+        }
+
+        // A short jet along the nozzle's facing: white-yellow at the nozzle, orange, red, gone; in the enemy's own space and
+        // scale, so it turns and shrinks with it.
+        static ParticleSystem Flame(Transform parent, string name, Vector3 at, Vector3 outward, Material glow)
+        {
+            var flame = new GameObject(name, typeof(ParticleSystem)).GetComponent<ParticleSystem>();
+            flame.transform.SetParent(parent, false);
+            flame.transform.localPosition = at; flame.transform.localRotation = Quaternion.LookRotation(outward);
+            flame.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = flame.main;
+            main.duration = 1; main.loop = true; main.playOnAwake = true; main.maxParticles = 70;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(.26f, .34f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(2f, 2.4f);
+            main.startSize = new ParticleSystem.MinMaxCurve(.8f, 1f); // the glow dot fills only the middle of its quad; seen from the battle camera
+            main.startColor = Color.white;
+            main.simulationSpace = ParticleSystemSimulationSpace.Local; main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+            var emission = flame.emission; emission.rateOverTime = 130;
+            var shape = flame.shape; shape.shapeType = ParticleSystemShapeType.Cone; shape.angle = 5; shape.radius = .04f;
+            var size = flame.sizeOverLifetime; size.enabled = true; size.size = new ParticleSystem.MinMaxCurve(1, AnimationCurve.Linear(0, 1, 1, .3f));
+            var gradient = new Gradient();
+            gradient.SetKeys(
+                new[] { new GradientColorKey(new Color(1, 1, .85f), 0), new GradientColorKey(new Color(1, .85f, .3f), .2f),
+                        new GradientColorKey(new Color(1, .45f, .08f), .5f), new GradientColorKey(new Color(.75f, .12f, .05f), 1) },
+                new[] { new GradientAlphaKey(1, 0), new GradientAlphaKey(1, .45f), new GradientAlphaKey(.75f, .75f), new GradientAlphaKey(0, 1) });
+            var color = flame.colorOverLifetime; color.enabled = true; color.color = gradient;
+            var look = flame.GetComponent<ParticleSystemRenderer>();
+            // Stretched along the jet, so the dots read as one flame.
+            look.renderMode = ParticleSystemRenderMode.Stretch; look.lengthScale = 1.8f; look.velocityScale = 0;
+            look.sharedMaterial = glow; look.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; look.receiveShadows = false;
+            return flame;
         }
 
         static void Fit(string enemy, string model, float height)
@@ -69,7 +170,7 @@ namespace CodingGame.Defense.Editor
             {
                 foreach (var name in new[] { "Body", "Head/Helmet", "Head/Visor" })
                 { var part = root.transform.Find(name); if (part) part.gameObject.SetActive(false); }
-                var old = root.transform.Find("Model");
+                var old = root.transform.Find("Hover") ?? root.transform.Find("Model"); // the runner's model flies in Hover
                 if (old) Object.DestroyImmediate(old.gameObject);
                 var instance = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(Folder + model + ".fbx"), root.transform);
                 instance.name = "Model";
