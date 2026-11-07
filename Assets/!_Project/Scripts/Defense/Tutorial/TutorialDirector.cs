@@ -52,6 +52,19 @@ namespace CodingGame.Defense
         public bool CanUseDialogueShortcut => initialized && IsActive && view.IsVisible && view.CanAdvance &&
             !bannerUp && autoNextAt <= 0 && (!battle || !battle.HasDialogueBlockingWindow);
         public void AdvanceDialogueShortcut() { if (CanUseDialogueShortcut) NextText(); }
+        // While the Esc menu is open (it opens mid-tutorial too): no steps or timed lines; the timers go on where they were.
+        float pausedAt = -1;
+        public bool Paused => pausedAt >= 0;
+        public void SetPaused(bool pause)
+        {
+            if (pause == Paused) return;
+            if (pause) { pausedAt = Time.unscaledTime; return; }
+            float shift = Time.unscaledTime - pausedAt; pausedAt = -1;
+            if (autoNextAt > 0 && autoNextAt != float.MaxValue) autoNextAt += shift;
+            if (heldUntil > 0 && heldUntil != float.MaxValue) heldUntil += shift;
+            if (targetsLostAt >= 0) targetsLostAt += shift;
+            stepEntered += shift;
+        }
         // Waiting for a trigger hides the dialogue and leaves the game free; a system banner still holds input.
         public bool IsActive => active && view && (view.IsVisible || bannerUp || guideDismissed);
         // A lesson is loaded, shown or not (its hidden free-play steps still point at robots and the road).
@@ -110,7 +123,7 @@ namespace CodingGame.Defense
 
         void Update()
         {
-            if (!initialized) return;
+            if (!initialized || Paused) return;
             bridge.SetInputLimited(InputLimited);
             if (battle.Simulation != null && !battle.Simulation.Options.tutorial) { Finish(); return; }
             if (session != battle.Simulation)

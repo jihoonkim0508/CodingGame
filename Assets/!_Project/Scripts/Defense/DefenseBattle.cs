@@ -94,7 +94,7 @@ namespace CodingGame.Defense
         public static bool DeveloperTools => Application.isEditor || Debug.isDebugBuild;
         public bool ShowHitRanges { get; private set; }
         public bool HelpOpen { get; internal set; }
-        public bool HasDialogueBlockingWindow => HelpOpen || (inventoryUI && inventoryUI.IsOpen) || (codeEditor && codeEditor.HintOpen);
+        public bool HasDialogueBlockingWindow => HelpOpen || (inventoryUI && inventoryUI.IsOpen) || (codeEditor && codeEditor.HintOpen) || (playerHUD && playerHUD.MenuOpen);
         int palette = -1, selected;
         bool draggingRobot;
         public DefenseSimulation Simulation { get; private set; }
@@ -378,6 +378,18 @@ namespace CodingGame.Defense
             inventoryUI.Close(); codeEditor.Close(); CancelPlacement(); DeveloperMode = on;
             developerRoot.SetActive(on); playerHUD.SetVisible(!on);
         }
+        // The Esc menu: it opens at any time, the tutorial included. Its pause is not the player's pause button, so the tutorial
+        // neither gates nor counts it; the tutorial and the battle's sounds wait while it is open.
+        public void ToggleMenu() => playerHUD.ToggleMenu();
+        public bool InTutorial => tutorial && tutorial.IsActive;
+        public bool CanRestart => TutorialAllows("Battle.Restart");
+        // pausedWave: the menu paused a running wave (opening) / resumes it (closing); a wave the player paused stays paused.
+        public void MenuOpened(bool open, bool pausedWave)
+        {
+            if (pausedWave && Simulation != null && Simulation.Phase == (open ? BattlePhase.Running : BattlePhase.Paused)) { Simulation.TogglePause(); RefreshHUD(); }
+            if (tutorial) tutorial.SetPaused(open);
+            AudioListener.pause = open;
+        }
         public void TogglePause()
         {
             if (!TutorialAllows(TutorialKeys.Pause)) return;
@@ -563,9 +575,12 @@ namespace CodingGame.Defense
             if (!tutorialActive && keyboard != null && !DeveloperMode && !codeEditor.IsOpen && !inventoryUI.IsOpen)
             {
                 if (keyboard.spaceKey.wasPressedThisFrame && !playerHUD.MenuOpen) { if (Simulation.Phase == BattlePhase.Ready) StartBattle(); else TogglePause(); }
-                // Esc first drops a robot being placed; otherwise it opens or closes the menu.
-                if (keyboard.escapeKey.wasPressedThisFrame) { if (palette >= 0 || draggingRobot) CancelPlacement(); else playerHUD.ToggleMenu(); }
             }
+            // Esc first drops a robot being placed (outside the tutorial); otherwise it opens or closes the menu, the tutorial
+            // included (play feedback: there was no way out of a lesson). The code editor and inventory use Esc themselves.
+            var esc = Keyboard.current;
+            if (esc != null && esc.escapeKey.wasPressedThisFrame && !DeveloperMode && !codeEditor.IsOpen && !inventoryUI.IsOpen)
+            { if (!tutorialActive && (palette >= 0 || draggingRobot)) CancelPlacement(); else playerHUD.ToggleMenu(); }
             if (keyboard != null && keyboard.fKey.wasPressedThisFrame && SpeedUnlocked && !DeveloperMode &&
                 !codeEditor.IsOpen && !inventoryUI.IsOpen) ToggleSpeed();
             if (draggingRobot && mouse != null && mouse.leftButton.wasReleasedThisFrame) EndRobotDrag(mouse.position.ReadValue());

@@ -82,9 +82,16 @@ namespace CodingGame.Defense
             if (animate && characterCount > 0) typing = StartCoroutine(Type(speed, characterCount));
         }
 
-        // The player's voice switch (Esc menu), kept across sessions.
-        const string VoiceKey = "CodingGame.Voice.On";
-        public static bool VoiceOn { get => PlayerPrefs.GetInt(VoiceKey, 1) == 1; set { PlayerPrefs.SetInt(VoiceKey, value ? 1 : 0); PlayerPrefs.Save(); } }
+        // The guide's voice volume (Esc menu slider, 0-1), kept across sessions; at 0 the lines are not played at all. The old
+        // on/off switch's "off" starts it at 0.
+        const string VoiceKey = "CodingGame.Voice.On", VoiceVolumeKey = "CodingGame.Voice.Volume";
+        static float voiceVolume = -1;
+        public static float VoiceVolume
+        {
+            get => voiceVolume >= 0 ? voiceVolume : voiceVolume = PlayerPrefs.GetFloat(VoiceVolumeKey, PlayerPrefs.GetInt(VoiceKey, 1));
+            set { voiceVolume = Mathf.Clamp01(value); PlayerPrefs.SetFloat(VoiceVolumeKey, voiceVolume); PlayerPrefs.Save(); }
+        }
+        public static bool VoiceOn => VoiceVolume > 0;
         AudioSource voice;
         // Plays the line's recording, if it has one, and returns its length in seconds; anything already speaking stops.
         // The source is its own scene object: the panel is off while a 시스템 banner speaks (1-1 A01 stayed silent).
@@ -94,7 +101,7 @@ namespace CodingGame.Defense
             voice.Stop();
             var clip = VoiceOn && !string.IsNullOrEmpty(line) ? Resources.Load<AudioClip>("Voice/" + GuideSpeech.Key(line)) : null;
             if (!clip) return 0;
-            voice.clip = clip; voice.Play();
+            voice.clip = clip; voice.volume = VoiceVolume; voice.Play();
             return clip.length;
         }
         public void StopVoice() { if (voice) voice.Stop(); }
@@ -104,6 +111,7 @@ namespace CodingGame.Defense
         // click moves on, the next button breathes so the player knows the game waits for them.
         void Update()
         {
+            if (voice && voice.volume != VoiceVolume) voice.volume = VoiceVolume; // the Esc menu's slider moved mid-line
             if (!IsVisible) return;
             float now = Time.unscaledTime;
             bool waiting = typing == null && nextText.interactable;

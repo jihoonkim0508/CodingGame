@@ -29,6 +29,7 @@ namespace CodingGame
         {
             source = gameObject.AddComponent<AudioSource>();
             source.playOnAwake = false; source.spatialBlend = 0;
+            source.ignoreListenerPause = true; // the Esc menu pauses the battle's sounds, not its own clicks
             foreach (var clip in Resources.LoadAll<AudioClip>("Sounds")) clips[clip.name] = clip;
         }
 

@@ -748,10 +748,11 @@ namespace CodingGame.Defense
             }
             var margin = rewardItems.margin; margin.y = StarRowHeight + 8; rewardItems.margin = margin;
         }
-        // Esc: a menu over the battle to resume, switch sound, restart the stage or leave for the stage map. A running wave
-        // pauses while it is open and resumes when it closes.
+        // Esc: a menu over the battle (and over a lesson) to resume, set the sound and voice volume, restart the stage or leave
+        // for the stage map. A running wave pauses while it is open and resumes when it closes; a lesson waits.
         GameObject menu;
-        TMP_Text soundLabel;
+        Slider soundSlider, voiceSlider;
+        Button restartButton;
         bool pausedByMenu;
         public bool MenuOpen => menu && menu.activeSelf;
         public void ToggleMenu()
@@ -760,19 +761,22 @@ namespace CodingGame.Defense
             bool open = !menu.activeSelf;
             menu.SetActive(open); menu.transform.SetAsLastSibling();
             var sim = battle.Simulation;
-            if (open && sim.Phase == BattlePhase.Running) { battle.TogglePause(); pausedByMenu = sim.Phase == BattlePhase.Paused; }
-            else if (!open && pausedByMenu) { if (sim.Phase == BattlePhase.Paused) battle.TogglePause(); pausedByMenu = false; }
-            soundLabel.text = DefenseSounds.Muted ? "소리 켜기" : "소리 끄기";
-            voiceLabel.text = VoiceLabel;
+            if (open) pausedByMenu = sim.Phase == BattlePhase.Running;
+            battle.MenuOpened(open, pausedByMenu);
+            if (!open) pausedByMenu = false;
+            soundSlider.value = DefenseSounds.Volume; voiceSlider.value = TutorialDialogueView.VoiceVolume;
+            restartButton.interactable = battle.CanRestart; // a lesson restarts only where it says so
         }
-        TMP_Text voiceLabel;
-        static string VoiceLabel => TutorialDialogueView.VoiceOn ? "디버 목소리 끄기" : "디버 목소리 켜기";
+        // Back on when the scene goes (the menu's 타이틀로 / 스테이지 맵으로 leave with it open).
+        void OnDestroy() { if (MenuOpen) AudioListener.pause = false; }
         void BuildMenu()
         {
             var shade = new GameObject("Menu", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
             shade.SetParent(canvasRoot.transform, false); shade.anchorMin = Vector2.zero; shade.anchorMax = Vector2.one; shade.sizeDelta = Vector2.zero;
             shade.GetComponent<Image>().color = new Color(UITheme.Night.r, UITheme.Night.g, UITheme.Night.b, .75f);
             menu = shade.gameObject;
+            // Over the tutorial (80) and the code editor (20), under the scene fade.
+            var layer = menu.AddComponent<Canvas>(); layer.overrideSorting = true; layer.sortingOrder = 90; menu.AddComponent<GraphicRaycaster>();
             // A paper card holding the title and buttons.
             var card = new GameObject("Card", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
             card.SetParent(shade, false); card.anchorMin = card.anchorMax = new Vector2(.5f, .5f); card.sizeDelta = new Vector2(500, 640); card.anchoredPosition = new Vector2(0, 0);
@@ -797,10 +801,41 @@ namespace CodingGame.Defense
             }
             var title = Text("일시정지", 250, 46);
             if (UITheme.Display) title.font = UITheme.Display;
+            // A label, a slider and its percent on one row.
+            Slider Volume(string name, float y, Action<float> changed)
+            {
+                var label = Text(name, y, 24); label.rectTransform.sizeDelta = new Vector2(150, 60); label.rectTransform.anchoredPosition = new Vector2(-150, y);
+                label.alignment = TextAlignmentOptions.MidlineLeft;
+                var percent = Text("", y, 22); percent.rectTransform.sizeDelta = new Vector2(80, 60); percent.rectTransform.anchoredPosition = new Vector2(180, y);
+                percent.alignment = TextAlignmentOptions.MidlineRight; percent.color = UITheme.Muted;
+                var root = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
+                root.SetParent(card, false); root.sizeDelta = new Vector2(190, 30); root.anchoredPosition = new Vector2(32, y);
+                RectTransform Part(string partName, Transform parent, Sprite sprite, Color color)
+                {
+                    var part = new GameObject(partName, typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
+                    part.SetParent(parent, false); part.anchorMin = Vector2.zero; part.anchorMax = Vector2.one; part.sizeDelta = Vector2.zero;
+                    UITheme.Style(part.GetComponent<Image>(), sprite, color);
+                    return part;
+                }
+                var track = Part("Track", root, UITheme.Pill, UITheme.PaperDeep); track.sizeDelta = new Vector2(0, -12);
+                var fillArea = new GameObject("Fill Area", typeof(RectTransform)).GetComponent<RectTransform>();
+                fillArea.SetParent(root, false); fillArea.anchorMin = Vector2.zero; fillArea.anchorMax = Vector2.one; fillArea.sizeDelta = new Vector2(0, -12);
+                var fill = Part("Fill", fillArea, UITheme.Pill, UITheme.Primary);
+                var handleArea = new GameObject("Handle Area", typeof(RectTransform)).GetComponent<RectTransform>();
+                handleArea.SetParent(root, false); handleArea.anchorMin = Vector2.zero; handleArea.anchorMax = Vector2.one; handleArea.sizeDelta = new Vector2(-30, 0);
+                var handle = Part("Handle", handleArea, UITheme.Circle, UITheme.Paper); handle.sizeDelta = new Vector2(30, 0);
+                var slider = root.gameObject.AddComponent<Slider>();
+                slider.fillRect = fill; slider.handleRect = handle; slider.targetGraphic = handle.GetComponent<Image>();
+                slider.direction = Slider.Direction.LeftToRight; slider.minValue = 0; slider.maxValue = 1;
+                // Starts at 0 with "0%"; opening the menu moves it to the saved volume (the percent follows any change).
+                percent.text = "0%";
+                slider.onValueChanged.AddListener(v => { changed(v); percent.text = Mathf.RoundToInt(v * 100) + "%"; });
+                return slider;
+            }
             Add("계속하기", 160, UITheme.Primary, ToggleMenu);
-            soundLabel = Add("소리 끄기", 80, UITheme.PaperDeep, () => { DefenseSounds.Muted = !DefenseSounds.Muted; soundLabel.text = DefenseSounds.Muted ? "소리 켜기" : "소리 끄기"; });
-            voiceLabel = Add(VoiceLabel, 0, UITheme.PaperDeep, () => { TutorialDialogueView.VoiceOn = !TutorialDialogueView.VoiceOn; voiceLabel.text = VoiceLabel; });
-            Add("이 스테이지 처음부터", -80, UITheme.PaperDeep, () => { ToggleMenu(); battle.Restart(); });
+            soundSlider = Volume("소리", 80, v => DefenseSounds.Volume = v);
+            voiceSlider = Volume("디버 목소리", 0, v => TutorialDialogueView.VoiceVolume = v);
+            restartButton = Add("이 스테이지 처음부터", -80, UITheme.PaperDeep, () => { ToggleMenu(); battle.Restart(); }).GetComponentInParent<Button>();
             Add(battle.FromStageMap ? "스테이지 맵으로" : "타이틀로", -160, UITheme.Coral, () => GameFlow.LoadScene(battle.FromStageMap ? GameFlow.StageScene : GameFlow.TitleScene));
             Text("스테이지 도중에 나가면 이 스테이지 진행은 저장되지 않아요.", -250, 19).color = UITheme.Muted;
             menu.SetActive(false); // built closed, so the first Esc opens it

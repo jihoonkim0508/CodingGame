@@ -15,17 +15,20 @@ namespace CodingGame.Defense
         readonly Dictionary<string, float> lastPlayed = new Dictionary<string, float>();
         BattlePhase shownPhase = BattlePhase.Ready;
 
-        // The player's sound switch (Esc menu), kept across sessions; it silences every sound through the listener.
-        const string MutedKey = "CodingGame.Sound.Muted";
-        public static bool Muted
+        // The player's sound volume (Esc menu slider, 0-1), kept across sessions; it scales every sound through the listener.
+        // The old on/off switch's "off" starts it at 0.
+        const string VolumeKey = "CodingGame.Sound.Volume", MutedKey = "CodingGame.Sound.Muted";
+        public static float Volume
         {
-            get => PlayerPrefs.GetInt(MutedKey, 0) == 1;
-            set { PlayerPrefs.SetInt(MutedKey, value ? 1 : 0); PlayerPrefs.Save(); AudioListener.volume = value ? 0 : 1; }
+            get => PlayerPrefs.GetFloat(VolumeKey, PlayerPrefs.GetInt(MutedKey, 0) == 1 ? 0 : 1);
+            set { PlayerPrefs.SetFloat(VolumeKey, Mathf.Clamp01(value)); PlayerPrefs.Save(); AudioListener.volume = Mathf.Clamp01(value); }
         }
+        // From the first scene on (the title's music too), not only once a battle has loaded.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        static void ApplyVolume() => AudioListener.volume = Volume;
 
         void Awake()
         {
-            AudioListener.volume = Muted ? 0 : 1;
             source = gameObject.AddComponent<AudioSource>();
             source.playOnAwake = false; source.spatialBlend = 0;
             clips["hit"] = clips["projectile-hit"] = Sweep("hit", .03f, 1400, 900, volume: .1f);

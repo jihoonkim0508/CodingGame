@@ -431,7 +431,8 @@ namespace CodingGame.Defense
             if (!HasCurrentSession || !sim.CanEdit || !sim.Robots.Exists(r => r.Id == editingId)) { Close(false); return; }
             var keyboard = Keyboard.current;
             if (keyboard == null) return;
-            if (keyboard.escapeKey.wasPressedThisFrame) { Close(); return; }
+            // In a lesson Esc opens the menu over the editor; closing the editor there would leave the step behind.
+            if (keyboard.escapeKey.wasPressedThisFrame) { if (battle.InTutorial) battle.ToggleMenu(); else Close(); return; }
             if (battle.TutorialBlocksInput) return;
             // 텍스트 입력 중에는 입력창 단축키를 유지하고, 그 밖에서만 블록 실행 취소를 처리합니다.
             if (panel.TextInputFocused || keyboard.altKey.isPressed || keyboard.leftMetaKey.isPressed || keyboard.rightMetaKey.isPressed) return;
