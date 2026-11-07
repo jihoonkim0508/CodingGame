@@ -19,14 +19,40 @@ namespace CodingGame.Defense.Editor
         static readonly System.Collections.Generic.Stack<IEnumerator> tour = new System.Collections.Generic.Stack<IEnumerator>();
         static int shot;
 
+        static string folder = Folder;
+
         [MenuItem("Tools/Develop/화면 캡처 투어")]
-        public static void Run()
+        public static void Run() => Start(Folder, Steps());
+
+        // 12차 120: 1-5 to the boss's entrance, then the entrance replayed with each warning draft, photographed into BossWarning/.
+        [MenuItem("Tools/Develop/보스 경고 시안 찍기")]
+        public static void RunBossWarnings() => Start("BossWarning", BossWarnings());
+
+        static void Start(string into, IEnumerator steps)
         {
-            if (Directory.Exists(Folder)) foreach (var old in Directory.GetFiles(Folder, "*.png")) File.Delete(old);
-            Directory.CreateDirectory(Folder);
+            folder = into;
+            if (Directory.Exists(folder)) foreach (var old in Directory.GetFiles(folder, "*.png")) File.Delete(old);
+            Directory.CreateDirectory(folder);
             PlayModeWindow.SetCustomRenderingResolution(1920, 1080, "ScreenTour");
-            shot = 0; tour.Clear(); tour.Push(Steps());
+            shot = 0; tour.Clear(); tour.Push(steps);
             EditorApplication.update += Tick;
+        }
+
+        static IEnumerator BossWarnings()
+        {
+            DevTest.PlayDefense(1, 5, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy(); DevTest.Battle.StartBattle(); DevTest.Speed(4);
+            yield return Until(() => DevTest.Battle.EditorBossEntered, 120);
+            DevTest.Speed(1);
+            yield return Seconds(DefenseBossWarning.Seconds + .3);
+            for (int i = 0; i < DefenseBossWarning.Drafts.Length; i++)
+            {
+                DevTest.Battle.EditorReplayBossEntrance(i);
+                yield return Seconds(1.0); yield return Shot(DefenseBossWarning.Drafts[i]);
+                yield return Seconds(DefenseBossWarning.Seconds);
+            }
         }
         static void Tick()
         {
@@ -38,7 +64,7 @@ namespace CodingGame.Defense.Editor
             catch (System.Exception error) { Debug.LogError("[ScreenTour] " + error); tour.Clear(); }
             if (tour.Count > 0) return;
             EditorApplication.update -= Tick;
-            Debug.Log($"[ScreenTour] {shot} shots → {Folder}");
+            Debug.Log($"[ScreenTour] {shot} shots → {folder}");
             // Quitting from inside Play Mode crashed the Editor on the way out: quit once it is back in Edit Mode. The play-mode
             // scene backup goes first, or a crash on exit leaves it and the next Editor launch stops on "Recovering Scene Backups".
             if (System.Environment.GetCommandLineArgs().Contains("-executeMethod"))
@@ -61,7 +87,7 @@ namespace CodingGame.Defense.Editor
         {
             bool saved = false;
             var host = new GameObject("ScreenTour").AddComponent<Capture>();
-            host.path = Path.Combine(Folder, $"{++shot:00}_{name}.png"); host.done = () => saved = true;
+            host.path = Path.Combine(folder, $"{++shot:00}_{name}.png"); host.done = () => saved = true;
             yield return Until(() => saved, 10);
             if (!saved) Debug.LogWarning("[ScreenTour] no frame captured for " + host.path); // the game view did not render (screen off?)
             if (host) Object.DestroyImmediate(host.gameObject);

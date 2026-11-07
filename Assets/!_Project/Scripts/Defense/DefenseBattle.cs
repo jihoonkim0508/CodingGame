@@ -83,6 +83,8 @@ namespace CodingGame.Defense
         readonly List<Transform> dropViews = new List<Transform>();
         readonly DefenseProjectileVisuals projectileViews = new DefenseProjectileVisuals();
         bool bossEntranceStarted, bossCameraRestored;
+        DefenseBossWarning bossWarning;
+        DefenseBossWarning BossWarning => bossWarning ? bossWarning : bossWarning = new GameObject("BossWarning").AddComponent<DefenseBossWarning>();
         float bossEntranceUntil, bossCameraRestoreAt;
         public bool DeveloperMode { get; private set; }
         // The developer panel (F1/F2) is for the team: the Editor and development builds, not a player's release build.
@@ -758,6 +760,7 @@ namespace CodingGame.Defense
                             bossEntranceUntil = Time.unscaledTime + 2.9f;
                             selectionCamera.FocusBoss(DefenseViews.World(enemy.Position, 1f));
                             Tell("보스 출현! · 잡몹을 막아낸 뒤 강력한 오류 코드가 등장했습니다.");
+                            BossWarning.Play(DefenseBossWarning.Style);
                         }
                     }
                     enemyViews.Add(enemy.Id, view);

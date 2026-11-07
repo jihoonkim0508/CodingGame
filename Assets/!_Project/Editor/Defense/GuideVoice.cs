@@ -31,7 +31,7 @@ namespace CodingGame.Defense.Editor
         public static void BuildTypecast()
         {
             if (string.IsNullOrEmpty(TypecastKey))
-                throw new System.InvalidOperationException("[GuideVoice] TYPECAST_API_KEY 환경 변수가 없습니다. 명령 프롬프트에서 setx TYPECAST_API_KEY \"키\" 로 설정한 뒤 다시 실행하세요.");
+                throw new System.InvalidOperationException("[GuideVoice] TYPECAST_API_KEY가 없습니다. 프로젝트 폴더의 .env에 TYPECAST_API_KEY=키 를 적어 주세요.");
             if (!Application.isBatchMode && !EditorUtility.DisplayDialog("디버 음성", "디버 대사를 모두 타입캐스트 " + TypecastVoice + " 목소리로 다시 녹음합니다.", "녹음", "취소")) return;
             if (!SessionState.GetBool("GuideVoice.TypecastStarted", false))
             {
@@ -44,8 +44,12 @@ namespace CodingGame.Defense.Editor
         }
 
         // Unity's own environment is fixed when it starts; a key set later with setx is in the user's variables.
-        static string TypecastKey => System.Environment.GetEnvironmentVariable("TYPECAST_API_KEY") is string key && key.Length > 0 ? key :
+        // The project's .env (git-ignored) comes first, then the environment.
+        static string TypecastKey => DotEnv("TYPECAST_API_KEY") is string fromFile && fromFile.Length > 0 ? fromFile :
+            System.Environment.GetEnvironmentVariable("TYPECAST_API_KEY") is string key && key.Length > 0 ? key :
             System.Environment.GetEnvironmentVariable("TYPECAST_API_KEY", System.EnvironmentVariableTarget.User);
+        static string DotEnv(string name) => File.Exists(".env") ? File.ReadAllLines(".env").Select(line => line.Trim())
+            .Where(line => line.StartsWith(name + "=")).Select(line => line.Substring(name.Length + 1).Trim().Trim('"')).FirstOrDefault() : null;
 
         static List<TutorialText> Lines() => AssetDatabase.FindAssets("t:TutorialSequence").Select(AssetDatabase.GUIDToAssetPath)
             .Select(AssetDatabase.LoadAssetAtPath<TutorialSequence>).Where(s => s && s.enabled)
