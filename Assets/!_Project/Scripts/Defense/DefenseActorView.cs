@@ -196,5 +196,13 @@ namespace CodingGame.Defense
             if (beamTime <= 0) beam.enabled = false;
         }
         public void ClearVisuals() { beamTime = 0; beam.enabled = false; }
+        // Ready to stand for another actor (the code preview reuses its views): no beam, spin or strike under way, facing
+        // ahead, the animator back at its first state.
+        public void Recycle()
+        {
+            ClearVisuals(); spinSeconds = 0; strikeSpeed = 0;
+            head.localRotation = Quaternion.identity;
+            if (animator) { animator.Rebind(); animator.Update(0); }
+        }
     }
 }

@@ -104,7 +104,8 @@ namespace CodingGame.Defense
             cameraControl.ResetView();
             if (!previewTexture)
             {
-                previewTexture = new RenderTexture(640, 720, 24) { name = "Robot code preview", antiAliasing = 4 };
+                // 2x MSAA: the preview is a 640x720 picture in a panel; 4x cost twice the memory and fill for no visible gain.
+                previewTexture = new RenderTexture(640, 720, 24) { name = "Robot code preview", antiAliasing = 2 };
                 previewCamera.targetTexture = previewTexture; previewImage.texture = previewTexture;
             }
             ResetPreview(); previewPanel.SetActive(true); previewCamera.enabled = true;
@@ -118,7 +119,7 @@ namespace CodingGame.Defense
         {
             projectileViews.Clear();
             hitEffects.Clear(); ClearDamage();
-            foreach (var view in views.Values) DefenseViews.Discard(view);
+            foreach (var view in views.Values) Spare(view);
             views.Clear(); effectRing.Hide();
         }
         void ResetPreview()
@@ -151,7 +152,27 @@ namespace CodingGame.Defense
             rangeRing.Show(World(bot.Position), bot.Range, battle.RobotDefinition(bot.DefinitionIndex).color);
             simulation.Start();
         }
-        void AddView(int id, DefenseActorView prefab) => views.Add(id, Instantiate(prefab, arena));
+        // The preview restarts on every code change and made and destroyed its robot and enemies each time; their views now
+        // wait switched off for the next one, a stack per prefab.
+        readonly Dictionary<DefenseActorView, Stack<DefenseActorView>> spareViews = new Dictionary<DefenseActorView, Stack<DefenseActorView>>();
+        readonly Dictionary<DefenseActorView, DefenseActorView> viewPrefab = new Dictionary<DefenseActorView, DefenseActorView>();
+        readonly HashSet<int> liveIds = new HashSet<int>();
+        readonly List<int> goneIds = new List<int>();
+        void AddView(int id, DefenseActorView prefab)
+        {
+            DefenseActorView view;
+            if (spareViews.TryGetValue(prefab, out var spare) && spare.Count > 0) { view = spare.Pop(); view.gameObject.SetActive(true); view.Recycle(); }
+            else { view = Instantiate(prefab, arena); viewPrefab[view] = prefab; }
+            views.Add(id, view);
+        }
+        void Spare(DefenseActorView view)
+        {
+            if (!view) return;
+            view.gameObject.SetActive(false);
+            var prefab = viewPrefab[view];
+            if (!spareViews.TryGetValue(prefab, out var spare)) spareViews[prefab] = spare = new Stack<DefenseActorView>();
+            spare.Push(view);
+        }
         Vector3 World(Point p) => arena.position + DefenseViews.World(p);
         // Floating "-N" over the hit enemy so the code's damage value is visible, not just inferred from a health bar.
         // A number that has faded waits switched off for the next hit (13차 133); only the first few are ever made.
@@ -238,8 +259,9 @@ namespace CodingGame.Defense
             AdvancePreview(dt);
             hitEffects.Tick(dt);
             if (simulation.Options.projectiles) projectileViews.Sync(simulation, projectilePrefab, arena, arena.position); else projectileViews.Clear();
-            foreach (var id in views.Keys.Where(id => !simulation.Robots.Any(r => r.Id == id) && !simulation.Enemies.Any(e => e.Id == id)).ToArray())
-            { DefenseViews.Discard(views[id]); views.Remove(id); }
+            liveIds.Clear(); foreach (var r in simulation.Robots) liveIds.Add(r.Id); foreach (var e in simulation.Enemies) liveIds.Add(e.Id);
+            goneIds.Clear(); foreach (var id in views.Keys) if (!liveIds.Contains(id)) goneIds.Add(id);
+            foreach (var id in goneIds) { Spare(views[id]); views.Remove(id); }
             foreach (var bot in simulation.Robots)
                 views[bot.Id].SyncRobot(bot, World(bot.Position), previewCamera.transform.rotation);
             foreach (var e in simulation.Enemies)
