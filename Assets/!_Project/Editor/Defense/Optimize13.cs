@@ -120,6 +120,73 @@ namespace CodingGame.Defense.Editor
                 PrefabUtility.RecordPrefabInstancePropertyModifications(component);
         });
 
+        // Robot and enemy health bars as pooled UI (DefenseHealthBars) instead of three cubes per actor: the actors' prefabs keep
+        // only the bar's anchor; the battle's layer (under the HUD) and the code preview's (over its picture) are baked with
+        // their bars. Rerunnable.
+        [MenuItem("Tools/Optimize/Unit Health Bars")]
+        public static void HealthBars()
+        {
+            foreach (var path in AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/!_Project/Defense/Prefabs" }).Select(AssetDatabase.GUIDToAssetPath))
+            {
+                if (!AssetDatabase.LoadAssetAtPath<GameObject>(path).GetComponent<DefenseActorView>()) continue;
+                var root = PrefabUtility.LoadPrefabContents(path);
+                try
+                {
+                    var anchor = (Transform)new SerializedObject(root.GetComponent<DefenseActorView>()).FindProperty("healthRoot").objectReferenceValue;
+                    for (int i = anchor.childCount - 1; i >= 0; i--) Object.DestroyImmediate(anchor.GetChild(i).gameObject);
+                    PrefabUtility.SaveAsPrefabAsset(root, path);
+                }
+                finally { PrefabUtility.UnloadPrefabContents(root); }
+            }
+            EditScene(DefenseScene, scene =>
+            {
+                var hud = All<Canvas>(scene).First(c => c.name == "PlayerCanvas").transform;
+                var battleBars = BarLayer(hud, 32); battleBars.transform.SetAsFirstSibling();
+                Wire(All<DefenseBattle>(scene).First(), "healthBars", battleBars);
+                var preview = All<DefenseAttackPreview>(scene).First();
+                var picture = ((Component)new SerializedObject(preview).FindProperty("previewImage").objectReferenceValue).transform;
+                var previewBars = BarLayer(picture, 6); previewBars.transform.SetAsLastSibling();
+                Wire(preview, "healthBars", previewBars);
+                foreach (var component in All<Component>(scene).Where(c => c && PrefabUtility.IsPartOfPrefabInstance(c)))
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(component);
+            });
+        }
+        static DefenseHealthBars BarLayer(Transform parent, int count)
+        {
+            var old = parent.Find("Health bars"); if (old) Object.DestroyImmediate(old.gameObject);
+            var layer = new GameObject("Health bars", typeof(RectTransform), typeof(Canvas), typeof(DefenseHealthBars)).GetComponent<RectTransform>();
+            layer.SetParent(parent, false); layer.anchorMin = Vector2.zero; layer.anchorMax = Vector2.one; layer.sizeDelta = Vector2.zero;
+            var made = new List<RectTransform>();
+            for (int i = 0; i < count; i++) made.Add(HealthBar(layer));
+            var bars = layer.GetComponent<DefenseHealthBars>(); bars.SetBars(made); EditorUtility.SetDirty(bars);
+            return bars;
+        }
+        // The cubes' colours: a dark track, the teal fill and the pale part lost to the last hit.
+        static readonly Color BarTrack = new Color32(0x1B, 0x34, 0x45, 255), BarFill = new Color32(0x64, 0xE6, 0xDA, 255), BarLag = new Color(1, .93f, .8f);
+        static RectTransform HealthBar(Transform layer)
+        {
+            var bar = new GameObject("Bar", typeof(RectTransform)).GetComponent<RectTransform>();
+            bar.SetParent(layer, false); bar.anchorMin = bar.anchorMax = Vector2.zero; bar.pivot = new Vector2(.5f, 0); bar.sizeDelta = new Vector2(64, 8);
+            RectTransform Part(string name, Transform parent, Color color)
+            {
+                var image = new GameObject(name, typeof(RectTransform), typeof(UnityEngine.UI.Image)).GetComponent<UnityEngine.UI.Image>();
+                var rect = image.rectTransform; rect.SetParent(parent, false); rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.sizeDelta = Vector2.zero;
+                image.sprite = UITheme.Pill; image.type = UnityEngine.UI.Image.Type.Sliced; image.pixelsPerUnitMultiplier = 8;
+                image.color = color; image.raycastTarget = false;
+                return rect;
+            }
+            Part("Track", bar, BarTrack);
+            var well = new GameObject("Well", typeof(RectTransform)).GetComponent<RectTransform>();
+            well.SetParent(bar, false); well.anchorMin = Vector2.zero; well.anchorMax = Vector2.one; well.offsetMin = new Vector2(1.5f, 1.5f); well.offsetMax = new Vector2(-1.5f, -1.5f);
+            Part("Trail", well, BarLag); Part("Fill", well, BarFill);
+            bar.gameObject.SetActive(false);
+            return bar;
+        }
+        static void Wire(Object target, string field, Object value)
+        {
+            var so = new SerializedObject(target); so.FindProperty(field).objectReferenceValue = value; so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         // A camera that needs neither the depth nor the opaque texture nor shadows (no shader samples them).
         static void Lean(Camera camera)
         {

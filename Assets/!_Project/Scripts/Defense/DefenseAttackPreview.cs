@@ -32,6 +32,7 @@ namespace CodingGame.Defense
         RobotState selected;
         DefenseProgram source;
         readonly Dictionary<int, DefenseActorView> views = new Dictionary<int, DefenseActorView>();
+        [SerializeField, Tooltip("미리보기 그림 위 체력바 UI 층(Tools/Optimize/Unit Health Bars)")] DefenseHealthBars healthBars;
         RenderTexture previewTexture;
         float emptyElapsed;
         int sourceLevel;
@@ -121,6 +122,7 @@ namespace CodingGame.Defense
             hitEffects.Clear(); ClearDamage();
             foreach (var view in views.Values) Spare(view);
             views.Clear(); effectRing.Hide();
+            if (healthBars) healthBars.Flush();
         }
         void ResetPreview()
         {
@@ -263,12 +265,20 @@ namespace CodingGame.Defense
             goneIds.Clear(); foreach (var id in views.Keys) if (!liveIds.Contains(id)) goneIds.Add(id);
             foreach (var id in goneIds) { Spare(views[id]); views.Remove(id); }
             foreach (var bot in simulation.Robots)
-                views[bot.Id].SyncRobot(bot, World(bot.Position), previewCamera.transform.rotation);
+            {
+                var view = views[bot.Id];
+                view.SyncRobot(bot, World(bot.Position), previewCamera.transform.rotation);
+                if (healthBars && bot.Health.HasValue)
+                    healthBars.Show(DefenseHealthBars.RobotKey(bot.Id), previewCamera, view.HealthAnchor, view.HealthWidth, bot.Health.Value, bot.MaxHealth);
+            }
             foreach (var e in simulation.Enemies)
             {
                 if (!views.ContainsKey(e.Id)) AddView(e.Id, battle.PreviewEnemy.prefab);
-                views[e.Id].SyncEnemy(e, simulation.Time, World(e.Position), previewCamera.transform.rotation);
+                var view = views[e.Id];
+                view.SyncEnemy(e, simulation.Time, World(e.Position), previewCamera.transform.rotation);
+                if (healthBars) healthBars.Show(e.Id, previewCamera, view.HealthAnchor, view.HealthWidth, e.Health, e.Spec.health);
             }
+            if (healthBars) healthBars.Flush();
             foreach (var view in views.Values) view.TickVisual(dt);
             foreach (var e in simulation.Events)
             {

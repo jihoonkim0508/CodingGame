@@ -11,6 +11,8 @@ namespace CodingGame.Defense
         bool started;
         public float Value { get; private set; }
         public bool JustHit { get; private set; }
+        // For a new actor (a pooled health bar): the next value is taken as is, not as a hit.
+        public void Reset() { started = false; hold = 0; JustHit = false; }
         public float Step(float current, float deltaSeconds)
         {
             JustHit = started && current < last;

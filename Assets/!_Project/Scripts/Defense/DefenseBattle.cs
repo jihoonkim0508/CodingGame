@@ -30,6 +30,7 @@ namespace CodingGame.Defense
         CodingGame.Art.MapPainter.ModularMapRoot stageOneMap;
         [SerializeField] CodingGame.Art.MapPainter.ModularMapRoot workshopMap;
         [SerializeField] Transform stageOneView;
+        [SerializeField, Tooltip("로봇·적 체력바 UI 층(Tools/Optimize/Unit Health Bars)")] DefenseHealthBars healthBars;
         Pose workshopView; bool workshopViewKnown;
         [SerializeField] EventSystem eventSystem;
         [SerializeField] DefenseCodeEditor codeEditor;
@@ -771,6 +772,8 @@ namespace CodingGame.Defense
                 // A robot placed straight into the simulation (dev tools, tests) has no view; skip it instead of throwing every frame.
                 if (!robotViews.TryGetValue(bot.Id, out var view)) continue;
                 view.SyncRobot(bot, DefenseViews.World(bot.Position), battleCamera.transform.rotation); view.TickVisual(elapsed); view.SetPace(pace);
+                if (healthBars && bot.Health.HasValue)
+                    healthBars.Show(DefenseHealthBars.RobotKey(bot.Id), battleCamera, view.HealthAnchor, view.HealthWidth, bot.Health.Value, bot.MaxHealth);
             }
             foreach (var enemy in Simulation.Enemies)
             {
@@ -794,7 +797,9 @@ namespace CodingGame.Defense
                 }
                 view.SyncEnemy(enemy, Simulation.Time, DefenseViews.World(enemy.Position), battleCamera.transform.rotation);
                 view.TickVisual(elapsed); view.SetPace(pace);
+                if (healthBars) healthBars.Show(enemy.Id, battleCamera, view.HealthAnchor, view.HealthWidth, enemy.Health, enemy.Spec.health);
             }
+            if (healthBars) healthBars.Flush();
         }
         string CompatibilityText(RobotState bot)
         {

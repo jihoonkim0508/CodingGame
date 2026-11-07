@@ -61,8 +61,8 @@ namespace CodingGame.Defense
     {
         [SerializeField] Transform head;
         [SerializeField] Renderer body;
+        // Where the actor's health bar stands (a UI bar on DefenseHealthBars, 13차; the prefab's cubes are gone).
         [SerializeField] Transform healthRoot;
-        [SerializeField] Transform healthFill;
         [SerializeField] LineRenderer beam;
         [SerializeField, Tooltip("레이저가 나가는 곳(사격형: 포신 끝). 비우면 머리 위치")] Transform muzzle;
         [SerializeField, Tooltip("떠서 나는 몸(이속형: 모델과 발 불꽃, Tools/Develop/Runner Thrusters). 비우면 뜨지 않음")] Transform hover;
@@ -80,27 +80,19 @@ namespace CodingGame.Defense
         // Melee_Attack (1 s): the sampled sword sweeps clockwise from the left (-64° at .40, -10° at .45, +22° at .50).
         const float StrikeAt = .46f;
         Color baseColor;
-        Vector3 fullHealthScale;
         float beamTime;
-        // Pale copy behind the fill that lags after hits (DefenseHealthTrail).
-        static readonly Color TrailColor = new Color(1, .93f, .8f);
-        const float TrailDepth = .015f; // behind the fill, still in front of the backdrop
-        readonly DefenseHealthTrail trail = new DefenseHealthTrail();
-        Transform healthTrail;
         public const float HealthLift = .3f;
+        public Vector3 HealthAnchor => healthRoot.position;
+        // The bar's width in the world: one unit at the actor's own scale (Heavy 1.3, Runner 0.8), as the cubes were.
+        public float HealthWidth => transform.lossyScale.x;
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         Color shownTint = new Color(-1, -1, -1, -1);
         void Awake()
         {
-            if (!head || !body || !healthRoot || !healthFill || !beam || !beam.sharedMaterial)
+            if (!head || !body || !healthRoot || !beam || !beam.sharedMaterial)
                 throw new InvalidOperationException(name + ": ActorView Inspector 참조 누락");
             colors = new MaterialPropertyBlock(); baseColor = body.sharedMaterial.GetColor("_BaseColor");
-            fullHealthScale = healthFill.localScale;
             healthRoot.position += Vector3.up * HealthLift; // clear of the head (9차 100: the bar sat on it)
-            healthTrail = Instantiate(healthFill, healthFill.parent); healthTrail.name = "Trail";
-            healthTrail.localPosition = healthFill.localPosition + Vector3.forward * TrailDepth;
-            var trailColors = new MaterialPropertyBlock(); trailColors.SetColor("_BaseColor", TrailColor); trailColors.SetColor("_Color", TrailColor);
-            foreach (var renderer in healthTrail.GetComponentsInChildren<Renderer>()) renderer.SetPropertyBlock(trailColors);
             beam.enabled = false;
             animator = GetComponentInChildren<Animator>();
             if (hover) { hoverY = hover.localPosition.y; hoverTime = UnityEngine.Random.value * 10; }
@@ -109,14 +101,14 @@ namespace CodingGame.Defense
         public void SyncRobot(RobotState bot, Vector3 position, Quaternion viewRotation)
         {
             attackInterval = bot.Interval;
-            Sync(position, bot.Health, bot.MaxHealth, false, false, bot.Buffs.Count > 0, viewRotation);
+            Sync(position, false, false, bot.Buffs.Count > 0);
         }
         public void SyncEnemy(EnemyState enemy, double time, Vector3 position, Quaternion viewRotation)
         {
             // Faces the way it walks (the monster model has a walk cycle).
             var step = position - transform.position; step.y = 0;
             if (step.sqrMagnitude > 1e-6f) transform.rotation = Quaternion.LookRotation(step);
-            Sync(position, enemy.Health, enemy.Spec.health, enemy.Stunned(time), enemy.Speed(time) < enemy.Spec.speed, false, viewRotation);
+            Sync(position, enemy.Stunned(time), enemy.Speed(time) < enemy.Spec.speed, false);
         }
         // Animation speed follows the battle clock: 0 while paused, 2-3 at 2x/3x.
         public void SetPace(float pace)
@@ -125,17 +117,9 @@ namespace CodingGame.Defense
             this.pace = pace;
             foreach (var flame in thrusters) { var main = flame.main; main.simulationSpeed = pace; }
         }
-        void Sync(Vector3 position, float? health, float maximum, bool stunned, bool slowed, bool buffed, Quaternion viewRotation)
+        void Sync(Vector3 position, bool stunned, bool slowed, bool buffed)
         {
             transform.position = position;
-            healthRoot.gameObject.SetActive(health.HasValue);
-            if (health.HasValue)
-            {
-                healthRoot.rotation = viewRotation;
-                float ratio = maximum > 0 ? Mathf.Clamp01(health.Value / maximum) : 0;
-                healthFill.localScale = new Vector3(fullHealthScale.x * ratio, fullHealthScale.y, fullHealthScale.z);
-                healthTrail.localScale = new Vector3(fullHealthScale.x * trail.Step(ratio, Time.unscaledDeltaTime), fullHealthScale.y, fullHealthScale.z);
-            }
             Color tint = stunned ? new Color(.8f,.4f,1) : slowed ? new Color(.2f,.8f,1) : buffed ? Color.Lerp(baseColor, Color.white, .35f) : baseColor;
             // Set only when it changes (13차 134): this ran for every actor every frame.
             if (tint == shownTint) return;
