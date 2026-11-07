@@ -88,6 +88,43 @@ namespace CodingGame.Defense.Editor
             }
         }
 
+        // 142: the inventory window (TAB) has one slot per block kind; is_dead() and calculations (play feedback 4) never got
+        // theirs, so DefenseInventoryUI.Start threw "인벤토리 Inspector 참조를 연결하세요" on every battle. Each missing kind gets a
+        // copy of the last slot in the grid's next cell (three columns, rows going down); the label is filled from the kind.
+        [MenuItem("Tools/Learning UI/Fix Inventory Slots")]
+        public static void InventorySlots()
+        {
+            if (SceneManager.GetActiveScene().path != Scene) EditorSceneManager.OpenScene(Scene);
+            var ui = Object.FindFirstObjectByType<DefenseInventoryUI>(FindObjectsInactive.Include);
+            var so = new SerializedObject(ui);
+            var slots = so.FindProperty("blockSlots");
+            RectTransform Cell(int i) => (RectTransform)((Component)slots.GetArrayElementAtIndex(i).FindPropertyRelative("label").objectReferenceValue).transform.parent;
+            var have = new HashSet<int>(Enumerable.Range(0, slots.arraySize).Select(i => slots.GetArrayElementAtIndex(i).FindPropertyRelative("kind").intValue));
+            var missing = DefenseProgression.ItemKinds.Where(kind => !have.Contains((int)kind)).ToArray();
+            if (missing.Length == 0) { Debug.Log("[UIRequests] inventory slots complete"); return; }
+            var columns = Enumerable.Range(0, slots.arraySize).Select(i => Cell(i).anchorMin.x).Distinct().OrderBy(x => x).ToArray();
+            float rowStep = Cell(0).anchorMin.y - Cell(columns.Length).anchorMin.y;
+            var last = Cell(slots.arraySize - 1);
+            int column = Array.IndexOf(columns, last.anchorMin.x); float row = last.anchorMin.y;
+            foreach (var kind in missing)
+            {
+                if (++column == columns.Length) { column = 0; row -= rowStep; }
+                var copy = (RectTransform)Object.Instantiate(last.gameObject, last.parent).transform;
+                copy.name = "Block" + kind;
+                var size = last.anchorMax - last.anchorMin;
+                copy.anchorMin = new Vector2(columns[column], row); copy.anchorMax = copy.anchorMin + size;
+                copy.offsetMin = last.offsetMin; copy.offsetMax = last.offsetMax;
+                int index = slots.arraySize; slots.arraySize++;
+                var slot = slots.GetArrayElementAtIndex(index);
+                slot.FindPropertyRelative("kind").intValue = (int)kind;
+                slot.FindPropertyRelative("label").objectReferenceValue = copy.Find("Label").GetComponent<TMP_Text>();
+                slot.FindPropertyRelative("count").objectReferenceValue = copy.Find("Count").GetComponent<TMP_Text>();
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene()); EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
+            Debug.Log("[UIRequests] inventory slots added: " + string.Join(", ", missing));
+        }
+
         // 112: no 'This is Coding' logo, the stage line starts at the bar's left. 113: the i sits just under the bar at its right
         // end, as tall as the pause and speed buttons, which move left to make room.
         const float InfoSize = 46, BarGap = 20, ControlsRight = 24, InfoGap = 10;
@@ -325,6 +362,13 @@ namespace CodingGame.Defense.Editor
             var guideSpeaker = guidePanel ? guidePanel.Find("SpeakerName").GetComponent<TMP_Text>() : null;
             Check(guideSpeaker && guideSpeaker.text == "디버" && StageMap.StageMapController.GuideSpeaker == "디버" && guideSpeaker.font == jalnan,
                 "117 speaker fixed to 디버 in Jalnan (prefab and the map's code)");
+            // 142: one inventory slot per block kind, every slot wired (DefenseInventoryUI.Start's check).
+            var inventory = new SerializedObject(Object.FindFirstObjectByType<DefenseInventoryUI>(FindObjectsInactive.Include)).FindProperty("blockSlots");
+            var slotKinds = Enumerable.Range(0, inventory.arraySize).Select(i => inventory.GetArrayElementAtIndex(i)).ToArray();
+            Check(slotKinds.Length == DefenseProgression.ItemKinds.Length && DefenseProgression.ItemKinds.All(k => slotKinds.Any(e => e.FindPropertyRelative("kind").intValue == (int)k)) &&
+                slotKinds.All(e => e.FindPropertyRelative("label").objectReferenceValue && e.FindPropertyRelative("count").objectReferenceValue),
+                $"142 an inventory slot for every block kind ({slotKinds.Length} of {DefenseProgression.ItemKinds.Length})");
+
             // 122: every hover card knows its tooltip, where to show it and what it describes (Awake throws otherwise).
             var hovers = Object.FindObjectsByType<DefenseHoverInfo>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             var unwired = hovers.Where(h => { var so = new SerializedObject(h); return !so.FindProperty("tooltip").objectReferenceValue ||
