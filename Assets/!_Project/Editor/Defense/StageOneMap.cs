@@ -15,11 +15,19 @@ namespace CodingGame.Defense.Editor
     {
         const string Scene = "Assets/!_Project/Scenes/Defense.unity", Name = "Stage1Map", View = "Stage1View";
         // Cells. The base is the workshop's (11, -1), so the core and its health bar stay where they are.
-        const int Left = -1, Right = 12, Bottom = -3, Road = -1, Start = 0, Base = 11;
+        const int Road = -1, Start = 0, Base = 11;
 
         // The ㄷ: right from the gate, up, right along the top, down, right to the core. TestResults/Editor/stage1-map.png shows
         // it from Stage1View.
         const int Up = 3, BendLeft = 3, BendRight = 8;
+        // The desk under it, row by row (z, then x from..to): not a rectangle but stepped like the workshop's (play feedback: the
+        // rectangle read as a plain board). A bump behind the board at the top, steps down to the core on the right, a notch in
+        // the middle of the front edge with a bump each side (the workshop's books and notes stand on them).
+        static readonly (int z, int from, int to)[] Desk =
+        {
+            (5, 2, 6), (4, 1, 9), (3, 0, 10), (2, 0, 11), (1, -1, 11), (0, -1, 12), (-1, -1, 12), (-2, -1, 12),
+            (-3, 1, 6), (-3, 9, 12), (-4, 2, 4), (-4, 9, 11),
+        };
         [MenuItem("Tools/Develop/1스테이지 맵 만들기 (ㄷ자)")]
         public static void Build()
         {
@@ -28,12 +36,12 @@ namespace CodingGame.Defense.Editor
                 .Concat(Enumerable.Range(BendLeft, BendRight - BendLeft).Select(x => new GridCell(x, Up)))
                 .Concat(Enumerable.Range(Road + 1, Up - Road).Select(z => new GridCell(BendRight, z)))
                 .Concat(Enumerable.Range(BendRight, Base - BendRight + 1).Select(x => new GridCell(x, Road))).ToList();
-            Make(Name, View, road, Up + 2);
+            Make(Name, View, road, Desk.SelectMany(row => Enumerable.Range(row.from, row.to - row.from + 1).Select(x => new GridCell(x, row.z))).ToList());
         }
 
-        // One map beside the workshop's: floor from Left..Right and Bottom..top, the road cells, the workshop's look and props,
+        // One map beside the workshop's: its floor and road cells, the workshop's look and props,
         // wired to DefenseBattle as Stage 1's map.
-        static void Make(string name, string viewName, System.Collections.Generic.List<GridCell> road, int top)
+        static void Make(string name, string viewName, System.Collections.Generic.List<GridCell> road, System.Collections.Generic.List<GridCell> floor)
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new System.InvalidOperationException("Play 종료 후 실행하세요.");
             // Opening the scene alone drops unsaved edits in the open scenes, so refuse then and reopen them afterwards.
@@ -58,8 +66,8 @@ namespace CodingGame.Defense.Editor
             map.blueprintLines = workshop.blueprintLines; map.blueprintSpacing = workshop.blueprintSpacing; map.blueprintLineWidth = workshop.blueprintLineWidth;
             map.blueprintMinorOpacity = workshop.blueprintMinorOpacity; map.blueprintMajorOpacity = workshop.blueprintMajorOpacity; map.blueprintMajorEvery = workshop.blueprintMajorEvery;
 
-            var floor = from x in Enumerable.Range(Left, Right - Left + 1) from z in Enumerable.Range(Bottom, top - Bottom + 1) select new GridCell(x, z);
-            MapPainterEditing.Paint(map, floor.ToList(), false, false, false);
+            if (!road.All(floor.Contains)) throw new System.InvalidOperationException(name + ": 길이 바닥 밖으로 나갑니다.");
+            MapPainterEditing.Paint(map, floor, false, false, false);
             MapPainterEditing.Paint(map, road, true, false, false);
             MapRouteEditing.SetBase(map, new GridCell(Base, Road));
             int route = MapRouteEditing.AddStart(map, new GridCell(Start, Road));
