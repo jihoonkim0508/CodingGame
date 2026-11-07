@@ -189,7 +189,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -20, y: -10}
+  m_AnchoredPosition: {x: -26, y: -10}
   m_SizeDelta: {x: 360, y: -128}
   m_Pivot: {x: 1, y: 0.5}
 --- !u!222 &8154449327623490818
@@ -213,7 +213,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.85, g: 0.9, b: 1, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -688,7 +688,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &9099092192570090042
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1197,7 +1197,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &8529890565318706982
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2433,14 +2433,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.55, g: 0.66, b: 0.74, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -6658123099400432529, guid: 8557b523c7e065448898e707b523dd2a, type: 3}
+  m_Sprite: {fileID: 6321614639297036393, guid: 5a72f000b7fee9d0c028811e37e6a4ef, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -3400,8 +3400,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0.25, y: 1}
-  m_AnchoredPosition: {x: 18, y: -12}
-  m_SizeDelta: {x: -30, y: 32}
+  m_AnchoredPosition: {x: 24, y: -12}
+  m_SizeDelta: {x: -36, y: 32}
   m_Pivot: {x: 0, y: 1}
 --- !u!222 &8653870089744424060
 CanvasRenderer:
@@ -4868,6 +4868,7 @@ GameObject:
   - component: {fileID: 5898904310911298859}
   - component: {fileID: 571854449617361008}
   - component: {fileID: 3260254787817470669}
+  - component: {fileID: 571854449617361009}
   m_Layer: 0
   m_Name: Library
   m_TagString: Untagged
@@ -4918,15 +4919,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.8, g: 0.9, b: 0.98, a: 1}
+  m_Color: {r: 0.106, g: 0.164, b: 0.23, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -4606913968869742402, guid: 0cd2d38a23331f244aa3a93cbda6e6ef, type: 3}
-  m_Type: 1
+  m_Sprite: {fileID: 0}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -4934,7 +4935,24 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 4
+  m_PixelsPerUnitMultiplier: 1
+--- !u!114 &571854449617361009
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2396753919296235966}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 539c1201cf4ebfb4b92227c22fb84c0e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.LearningCardShape
+  radius: 12
+  borderWidth: 1
+  border: {r: 0.24, g: 0.36, b: 0.47, a: 1}
+  shadow: 0
+  fadeBorderWithFill: 1
 --- !u!114 &3260254787817470669
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5736,8 +5754,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0.4}
   m_AnchorMax: {x: 0.25, y: 0.94}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 8, y: 0}
+  m_SizeDelta: {x: -32, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &6340155203330838812
 CanvasRenderer:
@@ -6132,7 +6150,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &6587310485304223672
 RectTransform:
   m_ObjectHideFlags: 0
@@ -6612,15 +6630,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.6, g: 0.7, b: 0.8, a: 1}
+  m_Color: {r: 0.075, g: 0.105, b: 0.15, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -1155141349623431878, guid: cde527baa6a8b7c43b36d0feacdc2dd8, type: 3}
-  m_Type: 1
+  m_Sprite: {fileID: 0}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -6628,7 +6646,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 6
+  m_PixelsPerUnitMultiplier: 1
 --- !u!1 &3768288219573321730
 GameObject:
   m_ObjectHideFlags: 0
@@ -6750,6 +6768,7 @@ GameObject:
   - component: {fileID: 1451933666933499419}
   - component: {fileID: 6224117763402213282}
   - component: {fileID: 6249273760838325180}
+  - component: {fileID: 6224117763402213283}
   m_Layer: 0
   m_Name: RobotStats
   m_TagString: Untagged
@@ -6795,8 +6814,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0.25, y: 0.4}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 8, y: 23}
+  m_SizeDelta: {x: -32, y: -46}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1451933666933499419
 CanvasRenderer:
@@ -6819,15 +6838,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.43, g: 0.58, b: 0.62, a: 1}
+  m_Color: {r: 0.106, g: 0.164, b: 0.23, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 4683959272915869614, guid: 7b3c7ea09e52fcb419c585347a570935, type: 3}
-  m_Type: 1
+  m_Sprite: {fileID: 0}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -6835,7 +6854,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 4
+  m_PixelsPerUnitMultiplier: 1
 --- !u!114 &6249273760838325180
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6863,6 +6882,23 @@ MonoBehaviour:
   - {fileID: 4577075302909735806, guid: afca2ba66fc2e9f448d470b4c46c91a1, type: 3}
   - {fileID: -3639698937099142714, guid: afca2ba66fc2e9f448d470b4c46c91a1, type: 3}
   - {fileID: 6188399133200197446, guid: afca2ba66fc2e9f448d470b4c46c91a1, type: 3}
+--- !u!114 &6224117763402213283
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3818555134181602521}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 539c1201cf4ebfb4b92227c22fb84c0e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.LearningCardShape
+  radius: 12
+  borderWidth: 1
+  border: {r: 0.24, g: 0.36, b: 0.47, a: 1}
+  shadow: 0
+  fadeBorderWithFill: 1
 --- !u!1 &3833402797032550154
 GameObject:
   m_ObjectHideFlags: 0
@@ -7011,6 +7047,7 @@ GameObject:
   - component: {fileID: 339097260487182007}
   - component: {fileID: 2242050855545217766}
   - component: {fileID: 7822411241008753292}
+  - component: {fileID: 7822411241008753293}
   m_Layer: 0
   m_Name: PreviewPanel
   m_TagString: Untagged
@@ -7060,15 +7097,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.106, g: 0.164, b: 0.23, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 1643098011452061694, guid: 7b872963fb5a99645ba72802378dc6c3, type: 3}
-  m_Type: 1
+  m_Sprite: {fileID: 0}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -7076,7 +7113,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 3
+  m_PixelsPerUnitMultiplier: 1
 --- !u!1 &3878170349391969959
 GameObject:
   m_ObjectHideFlags: 0
@@ -7214,6 +7251,23 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &7822411241008753293
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3861883438917470667}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 539c1201cf4ebfb4b92227c22fb84c0e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.LearningCardShape
+  radius: 12
+  borderWidth: 1
+  border: {r: 0.24, g: 0.36, b: 0.47, a: 1}
+  shadow: 0
+  fadeBorderWithFill: 1
 --- !u!1 &3881464455804255429
 GameObject:
   m_ObjectHideFlags: 0
@@ -8454,8 +8508,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.25, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 163, y: -6}
-  m_SizeDelta: {x: -350, y: -104}
+  m_AnchoredPosition: {x: 156, y: -6}
+  m_SizeDelta: {x: -364, y: -104}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &305611955655534337
 CanvasRenderer:
@@ -8859,7 +8913,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_Sprite: {fileID: 0}
-  m_Type: 1
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -8867,7 +8921,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 6
+  m_PixelsPerUnitMultiplier: 1
 --- !u!114 &5047271323830581787
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11929,7 +11983,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &4483472566279995653
 RectTransform:
   m_ObjectHideFlags: 0
@@ -14172,7 +14226,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1797146032062542349
 RectTransform:
   m_ObjectHideFlags: 0
@@ -16216,7 +16270,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &7314081284137466896
 RectTransform:
   m_ObjectHideFlags: 0

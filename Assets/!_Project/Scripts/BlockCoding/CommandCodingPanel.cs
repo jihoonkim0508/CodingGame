@@ -392,7 +392,7 @@ namespace CodingGame.BlockCoding
                 var draggedBounds=DraggedBounds(block.Rect);
                 float draggedLeft=draggedBounds.xMin-block.Rect.rect.xMin;
                 // Enter through the lower half of the header; retain the opening while inside its cavity.
-                float bottom=block==openingBody?Mathf.Max(block.Rect.rect.height,block.HeaderHeight+zone.preferredHeight+18):block.HeaderHeight+Dragged.HeaderHeight*.5f+18;
+                float bottom=block==openingBody?Mathf.Max(block.Rect.rect.height,block.HeaderHeight+zone.preferredHeight+CommandBlockShape.ControlFooterHeight):block.HeaderHeight+Dragged.HeaderHeight*.5f+18;
                 if(left<24 || left>block.Rect.rect.width+18 || down<block.HeaderHeight*.5f || down>bottom ||
                     block!=openingBody && down>block.HeaderHeight && draggedLeft<12)continue;
                 if(!candidate || block.transform.IsChildOf(candidate.transform))candidate=block;

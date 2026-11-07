@@ -456,13 +456,11 @@ namespace CodingGame.Defense.Editor
                 if ((sim.PlacementError(spec, p) ?? "").Contains("장애물")) blocked++;
             }
             Check(inside > 0 && blocked == inside, $"설치 영역 안 소품 {inside}개 중 {blocked}개 위에 설치 막힘");
-            var core = Field<Transform>(Battle, "core");
-            var model = Field<Transform>(core.GetComponent<DefenseCoreGlitch>(), "model");
-            var bar = core.GetComponentInChildren<DefenseCoreHealthBar>();
+            var cam = Field<Camera>(Battle, "battleCamera");
+            var bar = Object.FindFirstObjectByType<DefenseCoreHealthBar>();
             yield return .2f;
-            var barCorners = new Vector3[4]; ((RectTransform)bar.transform).GetWorldCorners(barCorners);
-            var cam = Field<Camera>(bar, "battleCamera");
-            var points = barCorners.Select(c => cam.WorldToScreenPoint(c)).ToArray();
+            var barCorners = new Vector3[4]; bar.BarRect.GetWorldCorners(barCorners);
+            var points = barCorners.Select(c => RectTransformUtility.WorldToScreenPoint(null, c)).ToArray();
             bool onScreen = points.All(p => cam.pixelRect.Contains(p));
             Check(onScreen, $"기지 체력바가 화면 안 (x {points.Min(p => p.x):0}~{points.Max(p => p.x):0} / 화면 폭 {cam.pixelWidth})");
             DevTest.PlaceTeachingRobot(Battle, RobotRole.Warrior);
@@ -496,7 +494,7 @@ namespace CodingGame.Defense.Editor
         // Screen rectangle of a world box (8 corners) or of a world-space RectTransform.
         static Rect ScreenRect(Camera camera, IEnumerable<Vector3> points)
         {
-            var s = points.Select(p => (Vector2)camera.WorldToScreenPoint(p)).ToArray();
+            var s = points.Select(p => RectTransformUtility.WorldToScreenPoint(camera, p)).ToArray();
             var min = s.Aggregate(Vector2.Min); var max = s.Aggregate(Vector2.Max);
             return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
@@ -511,15 +509,17 @@ namespace CodingGame.Defense.Editor
             yield return 3f; // after the map's build-in animation
             var core = Field<Transform>(Battle, "core");
             var model = Field<Transform>(core.GetComponent<DefenseCoreGlitch>(), "model");
-            var bar = core.GetComponentInChildren<DefenseCoreHealthBar>();
-            var cam = Field<Camera>(bar, "battleCamera");
+            var cam = Field<Camera>(Battle, "battleCamera");
+            var bar = Object.FindFirstObjectByType<DefenseCoreHealthBar>();
             var parts = model.GetComponentsInChildren<Renderer>(); var box = parts[0].bounds; foreach (var r in parts) box.Encapsulate(r.bounds);
             var modelRect = ScreenRect(cam, BoxCorners(box));
-            var corners = new Vector3[4]; ((RectTransform)bar.transform).GetWorldCorners(corners);
-            var barRect = ScreenRect(cam, corners);
+            var corners = new Vector3[4]; bar.BarRect.GetWorldCorners(corners);
+            var barRect = ScreenRect(null, corners);
             float pad = Director.EditorStep.highlightPadding + 4; // the focus box: padding plus its outline
             var focusRect = Rect.MinMaxRect(barRect.xMin - pad, barRect.yMin - pad, barRect.xMax + pad, barRect.yMax + pad);
-            Check((bar.transform.localPosition - new Vector3(-1.573f, 5.912f, 0)).sqrMagnitude < 1e-4f, "기지 체력바가 씬 위치 그대로 " + bar.transform.localPosition.ToString("0.000"));
+            var canvas = bar.BarRect.GetComponentInParent<Canvas>();
+            Check(canvas.name == "PlayerCanvas" && canvas.renderMode == RenderMode.ScreenSpaceOverlay, "기지 체력바를 HUD에서 편집할 수 있음");
+            Check(Director.EditorBridge.TryGetArea(TutorialKeys.CoreHealth, out _), "기지 체력바의 튜토리얼 집중 영역이 연결됨");
             // The position is the planner's; against the model's box (larger than the tower itself) this is only reported.
             checks.Add($"ℹ 기지 체력바 {barRect.yMin:0}~{barRect.yMax:0}px, 집중 테두리 아래끝 {focusRect.yMin:0}px, 기지 모델 상자 위끝 {modelRect.yMax:0}px — {StepId}");
             Check(focusRect.xMax <= cam.pixelRect.xMax && focusRect.yMax <= cam.pixelRect.yMax, "집중 테두리가 화면 안");

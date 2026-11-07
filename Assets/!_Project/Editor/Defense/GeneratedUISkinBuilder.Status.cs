@@ -1,13 +1,9 @@
 using TMPro;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 namespace CodingGame.Defense.Editor {
  public static partial class GeneratedUISkinBuilder {
   static void StatusHUD(Transform canvas){
-   var brand=canvas.Find("Header/Brand");if(brand)brand.gameObject.SetActive(false);
-   var logo=Icon(canvas.Find("Header"),"TitleLogo",AssetDatabase.LoadAssetAtPath<Sprite>("Assets/!_Project/Title/Asset/titleImg.png"),new Vector2(0,.5f),new Vector2(122,0),70);
-   logo.rectTransform.sizeDelta=new Vector2(210,70);logo.preserveAspect=true;
    Specific(canvas,"Guide","WebtoonGoalPanel",Color.white,3.4f);
    var goal=canvas.Find("Guide");var text=goal.GetComponentInChildren<TMP_Text>(true);text.rectTransform.offsetMin=new Vector2(108,8);text.rectTransform.offsetMax=new Vector2(-32,-8);text.fontSize=20;text.enableAutoSizing=true;text.fontSizeMin=17;text.fontSizeMax=20;text.alignment=TextAlignmentOptions.Center;text.color=new Color(.84f,.95f,1);
    var icon=goal.Find("GoalIcon") as RectTransform;if(icon)SetRect(icon,new Vector2(0,.5f),new Vector2(24,0),new Vector2(23,23),new Vector2(.5f,.5f));

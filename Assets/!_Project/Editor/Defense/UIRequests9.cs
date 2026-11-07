@@ -271,10 +271,9 @@ namespace CodingGame.Defense.Editor
             {
                 var panel = prefab.GetComponentsInChildren<Transform>(true).First(t => t.name == "DialoguePanel");
                 Check(!panel.Find("PortraitBadge"), "107 PortraitBadge removed");
+                // PR #21 lays the portrait out in its own dialogue card; only its aspect is this branch's.
                 var portrait = (RectTransform)panel.Find("RobotPortrait");
-                Check(portrait.pivot == new Vector2(.5f, .5f) && portrait.anchorMin == portrait.anchorMax &&
-                    Mathf.Abs(portrait.anchoredPosition.x - PortraitColumn / 2) < .5f && Mathf.Abs(portrait.anchoredPosition.y) < .5f &&
-                    portrait.GetComponent<Image>().preserveAspect, "107 RobotPortrait in the middle of its column");
+                Check(portrait && portrait.GetComponent<Image>().preserveAspect, "107 RobotPortrait keeps its aspect");
                 var speaker = panel.Find("SpeakerName").GetComponent<TMP_Text>();
                 Check(speaker.font == jalnan && (speaker.fontStyle & FontStyles.Bold) == 0, "106 speaker in Jalnan, not bold");
                 Check(panel.Find("Dialogue").GetComponent<TMP_Text>().font == a2z, "105 dialogue lines in A2Z");
@@ -304,9 +303,8 @@ namespace CodingGame.Defense.Editor
 
             EditorSceneManager.OpenScene(Scene);
             var robots = Canvas("PlayerCanvas").Find("Deck/Robots").GetComponentsInChildren<Button>(true);
-            Check(robots.Length == 6 && robots.All(b => !b.GetComponent<LearningRobotBadge>() && !b.transform.Find("Generated icon") &&
-                !b.transform.Find("StockBox") && !b.transform.Find("RoleName") && b.image.sprite && b.image.sprite.name.StartsWith("ui_")),
-                "99 robot cards keep this branch's look (no PR badge, emblem, stock box or role name)");
+            Check(robots.Length == 6 && robots.All(b => b.GetComponent<LearningRobotBadge>() && b.image.sprite &&
+                b.image.sprite.name == "RobotCardBlue"), "99 robot cards use the updated art frames and role badges");
             Check(Canvas("TutorialOverlay").GetComponentsInChildren<Transform>(true).All(t => t.name != "PortraitBadge"), "107 no PortraitBadge in the scene's overlay");
             // Shapes load PR #19's surfaces in OnEnable; the editor's blocks are inactive in the saved scene, so check the type and
             // the surfaces it loads.
@@ -324,7 +322,9 @@ namespace CodingGame.Defense.Editor
                 float top = enemy.GetComponentsInChildren<Renderer>(true).Where(r => !r.transform.IsChildOf(bar)).Max(r => r.bounds.max.y);
                 Check(bar.position.y + DefenseActorView.HealthLift - top >= .15f, $"100 {name}'s bar clears its head (bar {bar.position.y + DefenseActorView.HealthLift:0.00}, head {top:0.00})");
             }
-            Check(DefenseCoreHealthBar.Lift >= .5f, "100 core bar lifted");
+            var coreBar = Canvas("PlayerCanvas").Find("CoreHealth") as RectTransform;
+            Check(coreBar && coreBar.anchoredPosition.y >= -264 && coreBar.GetComponentInChildren<DefenseCoreHealthBar>(true),
+                "100 core bar is positioned in the screen HUD above the core");
             // 111: PR #19's (art to develop) battle-map backdrop, navy with its grid showing.
             bool ArtBackdrop(ModularMapRoot map) => map && map.blueprintBackground && ColorUtility.ToHtmlStringRGB(map.blueprintBlue) == "182F42" &&
                 Mathf.Abs(map.blueprintMinorOpacity - .07f) < .001f && Mathf.Abs(map.blueprintMajorOpacity - .18f) < .001f;
@@ -338,14 +338,17 @@ namespace CodingGame.Defense.Editor
             // 112, 113: the top bar.
             var player = (RectTransform)Canvas("PlayerCanvas");
             var header = (RectTransform)player.Find("Header");
-            Check(!header.Find("TitleLogo"), "112 no logo at the top left");
+            var logo = header.Find("TitleLogo");
+            Check(!logo || !logo.gameObject.activeSelf, "112 no logo at the top left"); // PR #21 keeps it, switched off
             var topBar = Box(header, player); var counters = Box((RectTransform)header.Find("Counters"), player);
             Check(counters.xMin - topBar.xMin <= 40, $"112 the stage line starts at the bar's left ({counters.xMin - topBar.xMin:0} in)");
             var info = Box((RectTransform)header.Find("Info"), player);
             var hud = Object.FindFirstObjectByType<DefensePlayerHUD>(FindObjectsInactive.Include);
             var controls = Box((RectTransform)((GameObject)new SerializedObject(hud).FindProperty("combatControls").objectReferenceValue).transform, player);
             Check(info.yMax < topBar.yMin && topBar.yMin - info.yMax <= 30, $"113 i just under the top bar ({topBar.yMin - info.yMax:0} below)");
-            Check(player.rect.xMax - info.xMax <= 30 && info.xMin > player.rect.center.x, $"113 i at the right end ({player.rect.xMax - info.xMax:0} from the edge)");
+            // PR #21: the i stands just left of the pause and speed buttons rather than at the bar's very end.
+            Check(info.xMin > player.rect.center.x && info.xMax <= controls.xMin && controls.xMin - info.xMax <= 40,
+                $"113 i at the right, left of the combat controls ({controls.xMin - info.xMax:0} apart)");
             Check(!info.Overlaps(controls) && !info.Overlaps(topBar), "113 i clear of the pause and speed buttons and of the bar");
             // 116, 117: the stage map's 디버 in the battle's dialogue box, speaker 디버.
             var guide = AssetDatabase.LoadAssetAtPath<GameObject>(GuidePrefab);
