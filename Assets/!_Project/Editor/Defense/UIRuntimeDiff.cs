@@ -27,23 +27,19 @@ namespace CodingGame.Defense.Editor
             EditorSceneManager.OpenScene(Scene);
             before = Snapshot();
             SessionState.SetString("UIRuntimeDiff.before", string.Join("\u0001", before.Select(kv => kv.Key + "\u0002" + kv.Value)));
-            EditorApplication.playModeStateChanged += Changed;
-            EditorApplication.isPlaying = true;
-        }
-
-        static void Changed(PlayModeStateChange state)
-        {
-            if (state != PlayModeStateChange.EnteredPlayMode) return;
-            EditorApplication.playModeStateChanged -= Changed;
-            before = SessionState.GetString("UIRuntimeDiff.before", "").Split('\u0001').Where(s => s.Length > 0)
-                .Select(s => s.Split('\u0002')).ToDictionary(p => p[0], p => p[1]);
-            until = EditorApplication.timeSinceStartup + 4;
+            // Played straight, the scene goes to the title (GameFlow); DevTest opens 1-1 the way the screen tour does.
+            DevTest.PlayDefense(1, 1, true);
+            until = 0;
             EditorApplication.update += Wait;
         }
 
         static void Wait()
         {
+            if (!EditorApplication.isPlaying || !DevTest.Ready) return;
+            if (until == 0) until = EditorApplication.timeSinceStartup + 3;
             if (EditorApplication.timeSinceStartup < until) return;
+            if (before == null) before = SessionState.GetString("UIRuntimeDiff.before", "").Split('\u0001').Where(s => s.Length > 0)
+                .Select(s => s.Split('\u0002')).ToDictionary(p => p[0], p => p[1]);
             EditorApplication.update -= Wait;
             var after = Snapshot();
             var report = new StringBuilder();
