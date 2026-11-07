@@ -89,11 +89,13 @@ namespace CodingGame.Defense
         public static bool DeveloperTools => Application.isEditor || Debug.isDebugBuild;
         public bool ShowHitRanges { get; private set; }
         public bool HelpOpen { get; internal set; }
+        public bool HasDialogueBlockingWindow => HelpOpen || (inventoryUI && inventoryUI.IsOpen) || (codeEditor && codeEditor.HintOpen);
         int palette = -1, selected;
         bool draggingRobot;
         public DefenseSimulation Simulation { get; private set; }
         public int SelectedId => selected;
         public bool IsPlacing => palette >= 0;
+        public int PlacingDefinition => palette;
         public float BattleSpeed { get; private set; } = 1;
         public bool SpeedUnlocked => Simulation != null && (!Simulation.Setup.PlayerFlow || !Simulation.Options.tutorial ||
             Stage != 1 || Simulation.WaveIndex > 0 || tutorial && tutorial.SpeedLessonReached);
@@ -131,7 +133,7 @@ namespace CodingGame.Defense
             foreach (var root in gameObject.scene.GetRootGameObjects()) UITheme.BoldBody(root.transform);
             sounds = gameObject.AddComponent<DefenseSounds>();
             developerRoot.SetActive(false);
-            developerHint.SetActive(DeveloperTools);
+            developerHint.SetActive(false); // PR #19's header puts the coin stat in this corner; F1/F2 still work
             startButton.onClick.AddListener(StartBattle);
             pauseButton.onClick.AddListener(TogglePause);
             speedButton.onClick.AddListener(ToggleSpeed);
@@ -544,7 +546,8 @@ namespace CodingGame.Defense
         {
             if (Simulation == null || HelpOpen) return;
             SetPlacementTint(palette >= 0);
-            var mouse = Mouse.current; var keyboard = Keyboard.current;
+            bool dialogueInput = tutorial && tutorial.DialogueInputCaptured;
+            var mouse = dialogueInput ? null : Mouse.current; var keyboard = dialogueInput ? null : Keyboard.current;
             bool tutorialActive = TutorialBlocksInput;
             // Keep F1 and offer F2 when a recording overlay intercepts the help key.
             if (DeveloperTools && !tutorialActive && keyboard != null && (keyboard.f1Key.wasPressedThisFrame || keyboard.f2Key.wasPressedThisFrame)) ToggleDeveloper();

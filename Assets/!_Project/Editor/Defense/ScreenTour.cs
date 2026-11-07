@@ -77,6 +77,21 @@ namespace CodingGame.Defense.Editor
             }
         }
 
+        // DevTest.AutoDeploy gives a shooter attack() with no target, which the compiler now rejects; the tour fills in
+        // attack(enemy) for any robot left without a program.
+        static void Deploy()
+        {
+            try { DevTest.AutoDeploy(); } catch (System.FormatException) { }
+            var sim = DevTest.Sim;
+            foreach (var bot in sim.Robots.Where(r => r.Program == null || r.Program.IsEmpty).ToArray())
+                try
+                {
+                    sim.ApplyProgram(bot.Id, "robot_" + bot.Id, TutorialAnswers.Parse(bot.Spec.NativeAction == RobotAction.Attack ?
+                        "for i in range(10):\n    enemy = get_nearest_enemy()\n    attack(enemy)" : "for i in range(10):\n    slash()"));
+                }
+                catch (System.Exception error) { Debug.LogWarning("[ScreenTour] " + bot.Spec.role + ": " + error.Message); }
+        }
+
         static IEnumerator Steps()
         {
             // -tourBattleOnly skips the title, the map and the 1-1 steps.
@@ -124,7 +139,7 @@ namespace CodingGame.Defense.Editor
             DevTest.PlayDefense(2, 1, true, Sandbox);
             yield return Until(() => DevTest.Ready);
             yield return Seconds(.5);
-            DevTest.AutoDeploy();
+            Deploy();
             yield return Seconds(.5); yield return Shot("2-1_ready");
             var battle = DevTest.Battle;
             battle.SelectRobot(battle.Simulation.Robots[0].Id); battle.DevelopSelected();
@@ -147,7 +162,7 @@ namespace CodingGame.Defense.Editor
             DevTest.PlayDefense(3, 5, true, Sandbox);
             yield return Until(() => DevTest.Ready);
             yield return Seconds(.5);
-            DevTest.AutoDeploy();
+            Deploy();
             var sim = DevTest.Sim;
             foreach (var extra in sim.Robots.Skip(1).ToArray()) sim.RemoveRobot(extra.Id);
             DevTest.Battle.StartBattle(); DevTest.Speed(4);
@@ -162,7 +177,7 @@ namespace CodingGame.Defense.Editor
             DevTest.PlayDefense(2, 5, true, Sandbox);
             yield return Until(() => DevTest.Ready);
             yield return Seconds(.5);
-            DevTest.AutoDeploy(); DevTest.Battle.StartBattle(); DevTest.RunWave();
+            Deploy(); DevTest.Battle.StartBattle(); DevTest.RunWave();
             yield return Seconds(4); yield return Shot("2-5_reward");
             DevTest.Battle.ContinueCampaign();
             yield return Seconds(4); yield return Shot("2-5_victory");

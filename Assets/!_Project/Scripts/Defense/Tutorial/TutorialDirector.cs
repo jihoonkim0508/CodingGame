@@ -45,6 +45,13 @@ namespace CodingGame.Defense
         bool targetsSeen;
         string shownText;
         bool initialized, bannerUp;
+        TutorialDialogueInput dialogueInput;
+        public int DialogueRevision { get; private set; }
+        public bool DialogueInputCaptured => dialogueInput && dialogueInput.ConsumedThisFrame;
+        public bool HasVisibleDialogue => IsActive && view.IsVisible;
+        public bool CanUseDialogueShortcut => initialized && IsActive && view.IsVisible && view.CanAdvance &&
+            !bannerUp && autoNextAt <= 0 && (!battle || !battle.HasDialogueBlockingWindow);
+        public void AdvanceDialogueShortcut() { if (CanUseDialogueShortcut) NextText(); }
         // Waiting for a trigger hides the dialogue and leaves the game free; a system banner still holds input.
         public bool IsActive => active && view && (view.IsVisible || bannerUp || guideDismissed);
         public bool ShowFreePlayGoal => active &&
@@ -82,6 +89,9 @@ namespace CodingGame.Defense
                 bridge.Initialize(this); bridge.Completed += CompleteAction;
                 bridge.SetEditorAreas((key, corners) => Editor && Editor.TryGetTutorialCorners(key, corners));
                 view.Initialize(PreviousText, NextText);
+                dialogueInput=GetComponent<TutorialDialogueInput>();
+                if(!dialogueInput)dialogueInput=gameObject.AddComponent<TutorialDialogueInput>();
+                dialogueInput.Initialize(this);
                 session = battle.Simulation;
                 initialized = true;
             }
@@ -336,12 +346,13 @@ namespace CodingGame.Defense
         }
 
         string TextKey(TutorialStep step, TutorialText text) => active.sequenceId + "/" + step.stepId + "/" + text.textId;
-        // Backticked code names in the script show in the code colour; the concepts being taught stand out in bold yellow.
-        static string Code(string text) => Regex.Replace(Regex.Replace(text ?? "", "`([^`]+)`", $"<color={UITheme.CodeHex}><b>$1</b></color>"),
-            "(변수|조건문|조건식|반복문|점\\(\\.\\))", $"<b><color={UITheme.KeywordHex}>$1</color></b>");
+        // Dark blue/teal keep code and concepts readable on the ivory learning card.
+        static string Code(string text) => Regex.Replace(Regex.Replace(text ?? "", "`([^`]+)`", "<b><color=#88D4CA>$1</color></b>"),
+            "(변수|조건문|조건식|반복문|점\\(\\.\\))", "<b><color=#D9BB7D>$1</color></b>");
 
         void ShowText(bool firstVisit)
         {
+            DialogueRevision++;
             var step = active.steps[viewedStep]; var text = step.texts[viewedText];
             string key = TextKey(step,text);
             // The second half of a two-step action repeats the same line; do not type it again.
@@ -372,11 +383,11 @@ namespace CodingGame.Defense
                 session.FindRobot(battle.SelectedId) == null;
             view.SetCentered(step.introEntrance || explain, step.introEntrance);
             autoNextAt = step.autoAdvance > 0 && viewedStep == progressStep ? float.MaxValue : -1;
-            bool previous = (viewedStep > 0 || viewedText > 0) && !Waiting;
+            bool previous = HasPreviousText() && !Waiting;
             bool next = viewedText + 1 < step.texts.Length || viewedStep < progressStep || step.kind != TutorialStepKind.ActionGuide || completedStep.Contains(step.stepId) ||
                 step.dismissable;
             if (autoNextAt > 0) next = false;
-            view.SetNavigation(previous,next);
+            view.SetNavigation(previous,next, step.kind == TutorialStepKind.ActionGuide, step.dismissable, autoNextAt > 0);
         }
 
         // Waiting for a trigger: no dialogue, no spotlight, no click blocking until the signal comes.
@@ -392,6 +403,13 @@ namespace CodingGame.Defense
         bool Waiting => active && viewedStep == progressStep && progressStep < active.steps.Length &&
             active.steps[progressStep].kind == TutorialStepKind.ActionGuide && !completedStep.Contains(active.steps[progressStep].stepId);
         bool IsAlert(TutorialText text) => alert && text.speaker == TutorialSignals.SystemSpeaker;
+        bool HasPreviousText()
+        {
+            for (int s = viewedStep; s >= 0; s--)
+                for (int t = s == viewedStep ? viewedText - 1 : active.steps[s].texts.Length - 1; t >= 0; t--)
+                    if (!IsAlert(active.steps[s].texts[t])) return true;
+            return false;
+        }
         void PreviousText()
         {
             if (!IsActive || Waiting) return;
@@ -413,7 +431,7 @@ namespace CodingGame.Defense
             if (!IsActive || bannerUp && alert && alert.IsShowing) return;
             var step = active.steps[viewedStep];
             if (autoNextAt > 0) return;
-            if (view.IsTyping) { view.FinishTyping(); return; }
+            if (view.IsTyping) { DialogueRevision++; view.FinishTyping(); return; }
             if (Waiting && step.dismissable) { bridge.Dismiss(); view.Hide(); guideDismissed = true; return; }
             if (viewedText + 1 < step.texts.Length) { viewedText++; ShowText(true); return; }
             if (viewedStep < progressStep)

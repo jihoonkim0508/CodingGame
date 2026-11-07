@@ -15,6 +15,10 @@ namespace CodingGame.Defense
         [SerializeField] Image portrait;
         [SerializeField] TMP_Text speaker, stageWave, dialogue;
         [SerializeField] Button previousText, nextText;
+        [SerializeField] Sprite defaultPortrait, surprisedPortrait;
+        [SerializeField] bool showDebugId;
+        TMP_Text nextLabel;
+        TMP_Text advanceHint;
         [SerializeField, Tooltip("Top position keeps this gap so the HUD header stays readable.")] float topInset = 96;
         [SerializeField, Tooltip("Bottom position sits this much higher than authored, clear of the HUD's bottom bar.")] float bottomLift = 170;
         [SerializeField, Tooltip("안내 로봇 디버의 표정, GuideMood 순서(Normal, Blink, Happy, Surprised, Worried, Determined). 비우면 시퀀스 초상화를 쓴다.")]
@@ -28,6 +32,7 @@ namespace CodingGame.Defense
         public bool IsVisible => panel && panel.activeSelf;
         // Where 디버's face is, for the pointer to fly out from.
         public RectTransform Portrait => portrait && IsVisible ? portrait.rectTransform : null;
+        public bool CanAdvance => nextText && nextText.gameObject.activeInHierarchy && nextText.interactable;
 
         public void Initialize(Action onPrevious, Action onNext)
         {
@@ -39,6 +44,11 @@ namespace CodingGame.Defense
             bottomPosition = panelRect.anchoredPosition; bottomPivot = panelRect.pivot;
             previousText.onClick.AddListener(() => onPrevious?.Invoke());
             nextText.onClick.AddListener(() => onNext?.Invoke());
+            nextLabel = nextText.GetComponentInChildren<TMP_Text>(true);
+            if(nextLabel){nextLabel.text="";nextLabel.gameObject.SetActive(false);}
+            var previousLabel=previousText.GetComponentInChildren<TMP_Text>(true);
+            if(previousLabel){previousLabel.text="";previousLabel.gameObject.SetActive(false);}
+            advanceHint=panelRect.Find("AdvanceHint")?.GetComponent<TMP_Text>();
             Hide();
         }
 
@@ -49,21 +59,20 @@ namespace CodingGame.Defense
             float spoken = Speak(voiceLine);
             Place(position);
             panel.SetActive(true);
+            // The PR's guide art (default and surprised) when assigned; otherwise 디버's mood faces.
+            mood = GuideMoods.For(text);
+            bool surprised = mood == GuideMood.Surprised || mood == GuideMood.Worried;
             if (HasGuideFaces)
             {
-                // The guide's face replaces the placeholder drawn from the plate's child shapes.
-                mood = GuideMoods.For(text);
                 foreach (Transform shape in portrait.transform) shape.gameObject.SetActive(false);
                 portrait.type = Image.Type.Simple; portrait.preserveAspect = true; portrait.color = Color.white;
-                portrait.sprite = guideFaces[(int)mood]; portrait.enabled = true;
             }
-            else
-            {
-                portrait.sprite = sequence.speakerPortrait;
-                portrait.enabled = sequence.speakerPortrait;
-            }
-            speaker.text = speakerName ?? "";
-            stageWave.text = sequence.stage + "-" + sequence.wave;
+            portrait.sprite = HasGuideFaces ? guideFaces[(int)mood] : sequence.speakerPortrait ? sequence.speakerPortrait :
+                surprised && surprisedPortrait ? surprisedPortrait : defaultPortrait;
+            portrait.enabled = portrait.sprite;
+            speaker.text = string.IsNullOrWhiteSpace(speakerName) || speakerName.StartsWith("안내", StringComparison.Ordinal) || speakerName == "도우미 로봇" ? "코디" : speakerName;
+            stageWave.text = "";
+            stageWave.gameObject.SetActive(false);
             dialogue.text = text ?? string.Empty;
             dialogue.ForceMeshUpdate();
             int characterCount = dialogue.textInfo.characterCount;
@@ -90,7 +99,7 @@ namespace CodingGame.Defense
         }
         public void StopVoice() { if (voice) voice.Stop(); }
 
-        bool HasGuideFaces => guideFaces.Length == Enum.GetValues(typeof(GuideMood)).Length && guideFaces.All(face => face);
+        bool HasGuideFaces => !defaultPortrait && guideFaces.Length == Enum.GetValues(typeof(GuideMood)).Length && guideFaces.All(face => face);
         // A calm face blinks now and then; every face bobs while its line types out. Once a line is fully shown and a
         // click moves on, the next button breathes so the player knows the game waits for them.
         void Update()
@@ -146,13 +155,14 @@ namespace CodingGame.Defense
         public void SetDebugId(string id)
         {
 #if UNITY_EDITOR
+            if (!showDebugId) { if (idLabel) idLabel.gameObject.SetActive(false); return; }
             if (!idLabel)
             {
                 idLabel = new GameObject("Debug id", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
                 var rect = idLabel.rectTransform; rect.SetParent(panelRect, false);
                 rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one; rect.anchoredPosition = new Vector2(-14, -8); rect.sizeDelta = new Vector2(240, 28);
                 idLabel.font = dialogue.font; idLabel.fontSize = 18; idLabel.alignment = TextAlignmentOptions.TopRight;
-                idLabel.color = new Color(1, 1, 1, .45f); idLabel.raycastTarget = false;
+                idLabel.color = new Color(.14f, .26f, .36f, .55f); idLabel.raycastTarget = false;
             }
             idLabel.text = id;
 #endif
@@ -162,8 +172,15 @@ namespace CodingGame.Defense
         // A click the tutorial turned away (전투 시작 while a line still waits): the next button jumps to show what to press.
         public void Nudge() => nudgedAt = Time.unscaledTime;
 
-        public void SetNavigation(bool canPrevious, bool canNext)
-        { previousText.interactable = canPrevious; nextText.interactable = canNext; }
+        public void SetNavigation(bool canPrevious, bool canNext, bool action = false, bool dismissable = false, bool automatic = false)
+        {
+            previousText.interactable = canPrevious; nextText.interactable = canNext;
+            previousText.gameObject.SetActive(canPrevious);
+            nextText.gameObject.SetActive(canNext || automatic);
+            stageWave.gameObject.SetActive(false);
+            if (nextLabel) nextLabel.text = "";
+            if(advanceHint)advanceHint.gameObject.SetActive(canNext&&!automatic);
+        }
 
         public void Hide()
         {
@@ -212,7 +229,7 @@ namespace CodingGame.Defense
             entrance = null;
         }
         const float SlideSeconds = .3f;
-        const float CenterScale = 1.6f, PlainScale = 1.25f, PunchSeconds = .35f, ShrinkSeconds = .6f;
+        const float CenterScale = 1.23f, PlainScale = 1.08f, PunchSeconds = .35f, ShrinkSeconds = .6f;
         bool centered;
         Volume grey;
         UniversalAdditionalCameraData greyCamera;
@@ -225,14 +242,14 @@ namespace CodingGame.Defense
             SetGrey(0);
         }
         IEnumerator Hold(Vector3 middle, float scale) { panelRect.localPosition = middle; panelRect.localScale = Vector3.one * scale; yield break; }
-        // Bursts in slightly too big with a shake, then settles.
+        // A restrained settling motion keeps the reading area steady.
         IEnumerator PunchIn(Vector3 middle, float scale)
         {
             for (float t = 0; t < PunchSeconds; t += Time.unscaledDeltaTime)
             {
                 float k = t / PunchSeconds, settle = 1 - k;
-                panelRect.localScale = Vector3.one * scale * (1 + .18f * settle * settle);
-                panelRect.localPosition = middle + new Vector3(Mathf.Sin(t * 90) * 14 * settle, Mathf.Cos(t * 70) * 6 * settle, 0);
+                panelRect.localScale = Vector3.one * scale * (1 + .035f * settle * settle);
+                panelRect.localPosition = middle + Vector3.down * (8 * settle * settle);
                 yield return null;
             }
             panelRect.localPosition = middle; panelRect.localScale = Vector3.one * scale;

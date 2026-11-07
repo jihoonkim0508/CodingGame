@@ -21,6 +21,7 @@ namespace CodingGame.Defense
         // then stripped to graphics and layout; the palette's stock count ("x1") is dropped. Returned inactive.
         public static RectTransform GraphicCopy(RectTransform source, Transform parent)
         {
+            if(source.GetComponent<CodingGame.BlockCoding.CommandBlockView>())return BlockCopy(source,parent);
             var holder = new GameObject(source.name + " (copy)", typeof(RectTransform));
             holder.SetActive(false);
             holder.transform.SetParent(parent, false);
@@ -28,7 +29,7 @@ namespace CodingGame.Defense
             copy.gameObject.SetActive(true);
             // Reversed: a component that requires another goes first.
             foreach (var behaviour in copy.GetComponentsInChildren<MonoBehaviour>(true).Reverse())
-                if (!(behaviour is Graphic || behaviour is LayoutGroup || behaviour is ContentSizeFitter || behaviour is LayoutElement || behaviour is RectMask2D || behaviour is Mask))
+                if (!(behaviour is Graphic || behaviour is BaseMeshEffect || behaviour is LayoutGroup || behaviour is ContentSizeFitter || behaviour is LayoutElement || behaviour is RectMask2D || behaviour is Mask))
                 {
                     // A slot's size comes from its script; keep that size once the script is gone.
                     var size = behaviour is ILayoutElement e ? new Vector2(e.preferredWidth, e.preferredHeight) : Vector2.zero;
@@ -43,6 +44,16 @@ namespace CodingGame.Defense
             copy.offsetMin = copy.offsetMax = Vector2.zero; copy.localScale = Vector3.one;
             var group = holder.AddComponent<CanvasGroup>(); group.blocksRaycasts = false; group.interactable = false;
             return (RectTransform)holder.transform;
+        }
+        static RectTransform BlockCopy(RectTransform source,Transform parent)
+        {
+            var holder=new GameObject(source.name+" (preview)",typeof(RectTransform),typeof(CanvasGroup));holder.SetActive(false);holder.transform.SetParent(parent,false);
+            var rect=(RectTransform)holder.transform;rect.sizeDelta=new Vector2(Mathf.Max(100,source.rect.width),Mathf.Max(38,source.rect.height));
+            var copy=(RectTransform)UnityEngine.Object.Instantiate(source.gameObject,rect,false).transform;copy.gameObject.SetActive(true);
+            copy.anchorMin=Vector2.zero;copy.anchorMax=Vector2.one;copy.offsetMin=copy.offsetMax=Vector2.zero;
+            foreach(var block in copy.GetComponentsInChildren<CodingGame.BlockCoding.CommandBlockView>(true))block.PreparePreview();
+            var group=holder.GetComponent<CanvasGroup>();group.interactable=false;group.blocksRaycasts=false;
+            return rect;
         }
     }
 

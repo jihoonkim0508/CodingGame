@@ -311,6 +311,15 @@ namespace CodingGame.BlockCoding
         }
         // The block left behind while dragged fades; the copy under the cursor is the block lifted, a little larger on a
         // deeper shadow (비주얼_레퍼런스.md 4).
+        // A copy in a robot's code tooltip (DefenseActorView, PR #19): read-only, no stock count, no panel or palette.
+        public void PreparePreview()
+        {
+            IsPalette = false; Panel = null; Owner = null;
+            if (stockLabel) stockLabel.gameObject.SetActive(false);
+            if (input) { input.interactable = false; input.enabled = false; }
+            if (dropdown) { dropdown.interactable = false; dropdown.enabled = false; }
+            canvasGroup.alpha = 1; canvasGroup.interactable = false; canvasGroup.blocksRaycasts = false;
+        }
         public void SetDragAppearance(bool dragged)
         {
             SetFaded(dragged);
