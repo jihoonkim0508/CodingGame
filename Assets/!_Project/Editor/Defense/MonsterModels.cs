@@ -49,8 +49,8 @@ namespace CodingGame.Defense.Editor
             Debug.Log("[MonsterModels] sides → TestResults/Editor/monsters");
         }
 
-        // The tank on Heavy and the runner on Runner: the primitive body, helmet and visor are switched off (the base disc stays),
-        // the model stands on the base at a height in the enemy's own units (Heavy is scaled 1.3, Runner 0.8) and faces +Z as
+        // The tank on Heavy and the runner on Runner: the primitive body, helmet and visor are switched off and the base disc
+        // removed, the model stands on the ground at a height in the enemy's own units (Heavy is scaled 1.3, Runner 0.8) and faces +Z as
         // the walk turns it, and it becomes the body DefenseActorView tints when stunned or slowed.
         [MenuItem("Tools/Develop/Apply Monster Models")]
         public static void Apply()
@@ -60,7 +60,7 @@ namespace CodingGame.Defense.Editor
             Debug.Log("[MonsterModels] Heavy and Runner use the team's models");
         }
 
-        // The runner flies: lifted off its base disc and bobbing (DefenseActorView.hover), a flame from each foot (the two
+        // The runner flies: lifted off the ground and bobbing (DefenseActorView.hover), a flame from each foot (the two
         // octagonal nozzles low on its left and right, facing outward and down).
         [MenuItem("Tools/Develop/Runner Thrusters")]
         public static void Runner()
@@ -68,6 +68,29 @@ namespace CodingGame.Defense.Editor
             Fit("Runner", "MonsterRunner", 1.25f); // at 1.0 the runner read as a small dot on the road (3-5 screenshot)
             Thrusters("Runner", .5f);
             AssetDatabase.SaveAssets();
+        }
+
+        // No dark base disc under the enemies (the team's models stood on a primitive cylinder): removed from the three enemy
+        // prefabs, the walking model set down onto the ground, and the next-wave cards photographed again.
+        [MenuItem("Tools/Develop/Enemy Base Discs Off")]
+        public static void NoBase()
+        {
+            foreach (var enemy in new[] { "Enemy", "Heavy", "Runner" })
+            {
+                string path = Prefabs + enemy + ".prefab";
+                var root = PrefabUtility.LoadPrefabContents(path);
+                try
+                {
+                    var disc = root.transform.Find("Base");
+                    if (disc) Object.DestroyImmediate(disc.gameObject);
+                    var model = root.transform.Find("Model"); // the runner's flies in Hover
+                    var mesh = model ? model.GetComponentInChildren<MeshRenderer>() : null;
+                    if (mesh) model.localPosition -= Vector3.up * LocalBounds(root.transform, mesh).min.y;
+                    PrefabUtility.SaveAsPrefabAsset(root, path);
+                }
+                finally { PrefabUtility.UnloadPrefabContents(root); }
+            }
+            RobotIcons.Build();
         }
 
         static void Thrusters(string enemy, float lift)
@@ -170,6 +193,7 @@ namespace CodingGame.Defense.Editor
             {
                 foreach (var name in new[] { "Body", "Head/Helmet", "Head/Visor" })
                 { var part = root.transform.Find(name); if (part) part.gameObject.SetActive(false); }
+                var disc = root.transform.Find("Base"); if (disc) Object.DestroyImmediate(disc.gameObject);
                 var old = root.transform.Find("Hover") ?? root.transform.Find("Model"); // the runner's model flies in Hover
                 if (old) Object.DestroyImmediate(old.gameObject);
                 var instance = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(Folder + model + ".fbx"), root.transform);
@@ -177,7 +201,7 @@ namespace CodingGame.Defense.Editor
                 var renderer = instance.GetComponentInChildren<MeshRenderer>();
                 renderer.sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>(Folder + model + ".mat");
                 renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
-                // Size and place in the enemy's local space: as tall as asked, centred, standing just above the base disc. The
+                // Size and place in the enemy's local space: as tall as asked, centred, standing on the ground. The
                 // FBX root keeps its own rotation and scale (3ds Max axes: the tank turned 270° on X, the runner scaled -0.04).
                 var source = AssetDatabase.LoadAssetAtPath<GameObject>(Folder + model + ".fbx").transform;
                 instance.transform.localPosition = Vector3.zero; instance.transform.localRotation = source.localRotation; instance.transform.localScale = source.localScale;
@@ -185,7 +209,7 @@ namespace CodingGame.Defense.Editor
                 float k = height / local.size.y;
                 instance.transform.localScale = source.localScale * k;
                 local = LocalBounds(root.transform, renderer);
-                instance.transform.localPosition = new Vector3(-local.center.x, .06f - local.min.y, -local.center.z);
+                instance.transform.localPosition = new Vector3(-local.center.x, -local.min.y, -local.center.z);
                 var view = new SerializedObject(root.GetComponent<DefenseActorView>());
                 view.FindProperty("body").objectReferenceValue = renderer;
                 view.ApplyModifiedPropertiesWithoutUndo();
