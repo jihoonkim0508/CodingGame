@@ -56,24 +56,14 @@ namespace CodingGame.Defense
             upgradeRobotButton.onClick.AddListener(battle.UpgradeSelected);
             developRobotButton.onClick.AddListener(battle.DevelopSelected);
             recallRobotButton.onClick.AddListener(battle.RemoveSelected);
+            if (!baked) Bake(battle.RobotDefinitions);
             toastPosition = ((RectTransform)placementToast.transform).anchoredPosition;
-            // Clear of the deck's ink edge: top-aligned at the very top, the status line touched it.
-            notice.alignment = TextAlignmentOptions.MidlineLeft; ((RectTransform)notice.transform).anchoredPosition += new Vector2(0, -8);
             placementToast.alpha = 0;
-            upcoming.text = "다음 웨이브";
-            // White on the blue backdrop: Jalnan with a thin ink outline (3.7:1 bare, below the 4.5:1 small text needs).
-            if (UITheme.Display && UITheme.Label) { upcoming.font = UITheme.Display; upcoming.fontSharedMaterial = UITheme.Label; upcoming.color = Color.white; }
             goalRect = (RectTransform)guide.transform.parent;
-            goalRect.anchorMin = goalRect.anchorMax = new Vector2(.5f, 1);
-            goalRect.sizeDelta = new Vector2(Mathf.Min(880, ((RectTransform)canvasRoot.transform).rect.width - 48), 64);
-            goalRect.anchoredPosition = new Vector2(0, -128);
             goalPosition = goalRect.anchoredPosition;
             goalScale = goalRect.localScale;
-            guide.alignment = TextAlignmentOptions.Center;
-            // Later stages' goal lines are longer than Stage 1's; shrink rather than spill out of the 56 px banner.
-            guide.fontSizeMax = guide.fontSize; guide.fontSizeMin = 17; guide.enableAutoSizing = true;
             goalBackground = goalRect.GetComponent<Image>();
-            if (goalBackground) { goalBackground.raycastTarget = false; goalColor = goalBackground.color; }
+            if (goalBackground) goalColor = goalBackground.color;
 
             for (int i = 0; i < robotButtons.Length; i++) { int index = i; robotButtons[i].onClick.AddListener(() => battle.ChooseRobot(index)); }
             enemyImages = enemyCards.Select(c => c.GetComponentInChildren<RawImage>(true)).ToArray();
@@ -82,6 +72,42 @@ namespace CodingGame.Defense
             cardCounts = new int[enemyCards.Length];
             shownCardCounts = Enumerable.Repeat(-1, enemyCards.Length).ToArray();
             upperRobotButtons = new[] { upgradeRobotButton, developRobotButton };
+        }
+        // The look the battle used to give these on start (status line, next-wave label, goal banner, robot photos on the cards),
+        // built once in the editor and saved with the scene (13차: the scene showed the old look until Play). Start builds it
+        // only in a scene that was never baked.
+        [SerializeField, HideInInspector] bool baked;
+        public bool Baked => baked;
+        public void Bake(System.Collections.Generic.IReadOnlyList<RobotDefinition> definitions)
+        {
+            if (baked) return;
+            // Clear of the deck's ink edge: top-aligned at the very top, the status line touched it.
+            notice.alignment = TextAlignmentOptions.MidlineLeft; ((RectTransform)notice.transform).anchoredPosition += new Vector2(0, -8);
+            upcoming.text = "다음 웨이브";
+            // White on the blue backdrop: Jalnan with a thin ink outline (3.7:1 bare, below the 4.5:1 small text needs).
+            if (UITheme.Display && UITheme.Label) { upcoming.font = UITheme.Display; upcoming.fontSharedMaterial = UITheme.Label; upcoming.color = Color.white; }
+            var goal = (RectTransform)guide.transform.parent;
+            goal.anchorMin = goal.anchorMax = new Vector2(.5f, 1);
+            goal.sizeDelta = new Vector2(880, 64);
+            goal.anchoredPosition = new Vector2(0, -128);
+            guide.alignment = TextAlignmentOptions.Center;
+            // Later stages' goal lines are longer than Stage 1's; shrink rather than spill out of the 56 px banner.
+            guide.fontSizeMax = guide.fontSize; guide.fontSizeMin = 17; guide.enableAutoSizing = true;
+            if (goal.TryGetComponent<Image>(out var back)) back.raycastTarget = false;
+            // Each robot card shows the robot itself (RobotDefinition.icon, photographed from its prefab) left of its name.
+            robotIcons = new Image[robotButtons.Length];
+            for (int i = 0; i < robotButtons.Length && i < definitions.Count; i++)
+            {
+                var sprite = definitions[i] ? definitions[i].icon : null;
+                if (!sprite) continue;
+                var icon = robotIcons[i] = new GameObject("Icon", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+                icon.rectTransform.SetParent(robotButtons[i].transform, false);
+                icon.rectTransform.anchorMin = Vector2.zero; icon.rectTransform.anchorMax = new Vector2(0, 1); icon.rectTransform.pivot = new Vector2(0, .5f);
+                icon.rectTransform.sizeDelta = new Vector2(58, -18); icon.rectTransform.anchoredPosition = new Vector2(14, 1); // inside the card's ink outline
+                icon.sprite = sprite; icon.preserveAspect = true; icon.raycastTarget = false;
+                var label = robotLabels[i].rectTransform; label.offsetMin = new Vector2(label.offsetMin.x + 62, label.offsetMin.y);
+            }
+            baked = true;
         }
         static string Label(string name) => $"<color={UITheme.MutedHex}><size=82%>{name}</size></color> ";
         public void SetVisible(bool visible) => canvasRoot.SetActive(visible);
@@ -197,25 +223,9 @@ namespace CodingGame.Defense
         // Shared with the inventory window: unlocked robots show, and only stocked ones can be picked while preparing.
         // Each robot card shows the robot itself (RobotDefinition.icon, photographed from its prefab) left of its name,
         // faded while none are left to place.
-        Image[] robotIcons;
+        [SerializeField, HideInInspector] Image[] robotIcons = Array.Empty<Image>();
         void RefreshRobotIcons(DefenseSimulation sim)
         {
-            if (robotIcons == null)
-            {
-                robotIcons = new Image[robotButtons.Length];
-                for (int i = 0; i < robotButtons.Length; i++)
-                {
-                    var sprite = battle.RobotDefinition(i).icon;
-                    // PR #19's deck card (LearningRobotBadge) has its own role emblem and stock box.
-                    if (!sprite || robotButtons[i].GetComponent<LearningRobotBadge>()) continue;
-                    var icon = robotIcons[i] = new GameObject("Icon", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
-                    icon.rectTransform.SetParent(robotButtons[i].transform, false);
-                    icon.rectTransform.anchorMin = Vector2.zero; icon.rectTransform.anchorMax = new Vector2(0, 1); icon.rectTransform.pivot = new Vector2(0, .5f);
-                    icon.rectTransform.sizeDelta = new Vector2(58, -18); icon.rectTransform.anchoredPosition = new Vector2(14, 1); // inside the card's ink outline
-                    icon.sprite = sprite; icon.preserveAspect = true; icon.raycastTarget = false;
-                    var label = robotLabels[i].rectTransform; label.offsetMin = new Vector2(label.offsetMin.x + 62, label.offsetMin.y);
-                }
-            }
             for (int i = 0; i < robotIcons.Length; i++)
                 if (robotIcons[i]) robotIcons[i].color = new Color(1, 1, 1, sim.RobotAvailable(battle.DefinitionRole(i)) > 0 ? 1 : .4f);
         }

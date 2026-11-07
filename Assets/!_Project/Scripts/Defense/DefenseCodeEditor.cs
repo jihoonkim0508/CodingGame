@@ -44,13 +44,23 @@ namespace CodingGame.Defense
             automaticButton.onClick.AddListener(RestoreAutomatic);
             if (hintButton) hintButton.onClick.AddListener(ToggleHint);
             SetHint(null);
-            inventory.text = "블록 인벤토리";
-            Arrange();
+            if (!baked) Bake();
             editorRoot.SetActive(false);
         }
         // The top row's buttons together at the right (play feedback 3: 비우기 sat 130 px from 닫기): 닫기, then 비우기, then the
         // tutorial's hint, 10 px apart, 비우기 in Jalnan like 닫기. The block guide's i (DefenseBlockHelp) follows the inventory's
         // title instead of floating alone over the card's corner.
+        // Built once in the editor and saved with the scene or prefab (13차: the editor showed the old look until Play); at run
+        // time only in one that was never baked.
+        [SerializeField, HideInInspector] bool baked;
+        public bool Baked => baked;
+        public void Bake()
+        {
+            if (baked) return;
+            inventory.text = "블록 인벤토리";
+            Arrange();
+            baked = true;
+        }
         void Arrange()
         {
             var clear = (RectTransform)automaticButton.transform;

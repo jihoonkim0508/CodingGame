@@ -22,10 +22,25 @@ namespace CodingGame.Defense
         Vector3 frameScale;
         Color labelColor;
         float flash, shake;
+        // The painted track, fill well, trail and label look are built once in the editor and saved with the scene (13차:
+        // the scene showed the old bar until Play); Start only builds them in a scene that was never baked.
+        [SerializeField, HideInInspector] bool baked;
+        public bool Baked => baked;
         void Start()
         {
             if (!battle || !battleCamera || !fill || !background || !label)
                 throw new InvalidOperationException("DefenseCoreHealthBar Inspector 참조를 연결하세요.");
+            if (!baked) Bake();
+            fillImage = fill.GetComponent<Image>();
+            trailBar = (RectTransform)fill.parent.Find("Trail");
+            trailImage = trailBar.GetComponent<Image>();
+            labelColor = label.color;
+            frame = (RectTransform)fill.parent.parent; // the painted track (fill sits in its well)
+            framePosition = frame.anchoredPosition; frameScale = frame.localScale;
+        }
+        public void Bake()
+        {
+            if (baked) return;
             transform.position += Vector3.up * Lift;
             ((RectTransform)transform).sizeDelta=new Vector2(220,50);
             var container=fill.parent as RectTransform;
@@ -37,19 +52,16 @@ namespace CodingGame.Defense
             // Keep fill and damage trail inside the painted track border at every health fraction.
             var well=new GameObject("Fill well",typeof(RectTransform)).GetComponent<RectTransform>();well.SetParent(trackRect,false);well.anchorMin=Vector2.zero;well.anchorMax=Vector2.one;well.offsetMin=new Vector2(6,5);well.offsetMax=new Vector2(-6,-6);
             fill.SetParent(well,false);fill.anchorMin=Vector2.zero;fill.anchorMax=Vector2.one;fill.offsetMin=fill.offsetMax=Vector2.zero;
-            fillImage=fill.GetComponent<Image>();
+            var fillImage=fill.GetComponent<Image>();
             fillImage.sprite=Skin("CoreHealthFillSoft");fillImage.color=Color.white;fillImage.type=Image.Type.Filled;fillImage.fillMethod=Image.FillMethod.Horizontal;fillImage.fillOrigin=0;fillImage.fillAmount=1;fillImage.preserveAspect=false;fillImage.raycastTarget=false;
             label.rectTransform.anchorMin=new Vector2(0,1);label.rectTransform.anchorMax=Vector2.one;label.rectTransform.offsetMin=new Vector2(0,-24);label.rectTransform.offsetMax=new Vector2(0,-1);
             label.color=new Color(.92f,.97f,1f);label.fontStyle=FontStyles.Bold;label.fontSize=19;label.alignment=TextAlignmentOptions.Midline;label.margin=Vector4.zero;label.raycastTarget=false;
             var previous=transform.Find("BaseShield");if(previous)previous.gameObject.SetActive(false);
             // A copy of the fill drawn just before it, so the lost part shows as a trail.
-            trailBar = Instantiate(fill, fill.parent); trailBar.name = "Trail";
-            trailBar.SetSiblingIndex(fill.GetSiblingIndex());
-            trailImage=trailBar.GetComponent<Image>();
-            if (trailBar.TryGetComponent<Graphic>(out var graphic)) { graphic.color = trailColor; graphic.raycastTarget = false; }
-            labelColor = label.color;
-            frame = (RectTransform)fill.parent.parent; // the painted track (fill sits in its well)
-            framePosition = frame.anchoredPosition; frameScale = frame.localScale;
+            var trail = Instantiate(fill, fill.parent); trail.name = "Trail";
+            trail.SetSiblingIndex(fill.GetSiblingIndex());
+            if (trail.TryGetComponent<Graphic>(out var graphic)) { graphic.color = trailColor; graphic.raycastTarget = false; }
+            baked = true;
         }
         static Sprite Skin(string name)
         {

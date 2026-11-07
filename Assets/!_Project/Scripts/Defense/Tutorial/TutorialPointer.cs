@@ -28,11 +28,22 @@ namespace CodingGame.Defense
         void Awake()
         {
             if (!arrow) throw new System.InvalidOperationException(name + ": 화살표 RectTransform 참조 누락");
+            if (!baked) Bake();
+            pointerShadow = arrow.Find("Shadow").GetComponent<Image>();
+            Hide();
+        }
+        // Built once in the editor and saved with the scene or prefab (13차: the editor showed the old look until Play); at run
+        // time only in one that was never baked.
+        [SerializeField, HideInInspector] bool baked;
+        public bool Baked => baked;
+        public void Bake()
+        {
+            if (baked) return;
             if (arrow.TryGetComponent<Graphic>(out var glyph)) glyph.enabled = false;
             arrow.sizeDelta = new Vector2(PointerSize, PointerSize);
-            pointerShadow = Sticker("Shadow", new Color(UITheme.Ink.r, UITheme.Ink.g, UITheme.Ink.b, .3f));
+            Sticker("Shadow", new Color(UITheme.Ink.r, UITheme.Ink.g, UITheme.Ink.b, .3f));
             Sticker("Face", PathColor);
-            Hide();
+            baked = true;
         }
         Image Sticker(string name, Color color)
         {

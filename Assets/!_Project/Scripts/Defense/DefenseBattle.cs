@@ -63,6 +63,7 @@ namespace CodingGame.Defense
         public int Stage => stage;
         public bool FromStageMap => StageMap.StageProgress.SelectedStage > 0;
         public RobotDefinition RobotDefinition(int index) => robots[index];
+        public IReadOnlyList<RobotDefinition> RobotDefinitions => robots;
         public EnemyDefinition PreviewEnemy => enemies[0];
         [Header("Authored HUD")]
         [SerializeField] TMP_Text header;

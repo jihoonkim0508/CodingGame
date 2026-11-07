@@ -21,7 +21,7 @@ namespace CodingGame.Defense
         [SerializeField] DefenseRobotStatsCard statsCard;
         [SerializeField] DefensePreviewCameraControl cameraControl;
         [SerializeField] DefenseRangeRing effectRing;
-        DefenseRangeRing rangeRing; // the robot's attack range, a runtime copy of effectRing so hit effects can't hide it
+        [SerializeField, HideInInspector] DefenseRangeRing rangeRing; // the robot's attack range, a runtime copy of effectRing so hit effects can't hide it
         [SerializeField] Transform projectilePrefab;
         [SerializeField] DefenseHitVisuals hitEffects = new DefenseHitVisuals();
         [SerializeField, Tooltip("Font for the damage numbers that pop over hit enemies in the preview.")] TMP_FontAsset damageFont;
@@ -71,12 +71,22 @@ namespace CodingGame.Defense
             if (!hitEffects.IsConfigured) throw new InvalidOperationException("미리보기 피격 이펙트 프리팹을 Inspector에 연결하세요.");
             if (!cameraControl || !coinLabel || !projectilePrefab || !battle || !arena || !previewCamera || !previewImage || !previewPanel || !stats || !status || !effectRing)
                 throw new InvalidOperationException("공격 미리보기 Inspector 참조를 연결하세요.");
-            rangeRing = Instantiate(effectRing, effectRing.transform.parent); rangeRing.name = "Preview range";
-            Frame();
+            if (!baked) Bake();
             Close();
         }
         // The preview in a paper card like the editor's others, not a near-black frame, its top clear of the title above, and
         // the stats card in from the screen's corner, its bottom in line with the inventory's (play feedback 3).
+        // Built once in the editor and saved with the scene or prefab (13차: the editor showed the old look until Play); at run
+        // time only in one that was never baked.
+        [SerializeField, HideInInspector] bool baked;
+        public bool Baked => baked;
+        public void Bake()
+        {
+            if (baked) return;
+            rangeRing = Instantiate(effectRing, effectRing.transform.parent); rangeRing.name = "Preview range";
+            Frame();
+            baked = true;
+        }
         void Frame()
         {
             var frame = (RectTransform)previewPanel.transform;

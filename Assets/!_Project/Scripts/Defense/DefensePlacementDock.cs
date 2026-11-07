@@ -21,6 +21,9 @@ namespace CodingGame.Defense
             previousMask = -1;
         }
         void OnEnable() { previousMask = -1; }
+        // The editor lays the dock out once (13차) so the scene shows it as the battle does; at run time it follows which robots
+        // are on the deck.
+        public void Layout() { previousMask = -1; LateUpdate(); }
         void LateUpdate()
         {
             if (!roster || !action || robots == null || !(transform.parent is RectTransform parent)) return;

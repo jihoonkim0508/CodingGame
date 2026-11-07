@@ -97,6 +97,24 @@ namespace CodingGame.Defense.Editor
             return ((Component)new SerializedObject(hud).FindProperty("guide").objectReferenceValue).transform.parent;
         }
 
+        // 127/128: what the battle built or restyled when it started (UIRuntimeDiff: the core bar, the status line, next-wave label,
+        // goal banner and robot photos, the dock's layout, the code editor's top row, the preview frame, the tutorial pointer)
+        // is built here once and saved with the scene; at run time those components skip it.
+        [MenuItem("Tools/Optimize/128 Bake Battle UI")]
+        public static void BattleUI128() => EditScene(DefenseScene, scene =>
+        {
+            foreach (var bar in All<DefenseCoreHealthBar>(scene)) bar.Bake();
+            var battle = All<DefenseBattle>(scene).First();
+            foreach (var hud in All<DefensePlayerHUD>(scene)) hud.Bake(battle.EditorCampaign.robots);
+            foreach (var dock in All<DefensePlacementDock>(scene)) dock.Layout();
+            foreach (var editor in All<DefenseCodeEditor>(scene)) editor.Bake();
+            foreach (var preview in All<DefenseAttackPreview>(scene)) preview.Bake();
+            foreach (var pointer in All<TutorialPointer>(scene)) pointer.Bake();
+            // Changes on prefab instances (the code editor, the tutorial overlay) are kept as overrides.
+            foreach (var component in All<Component>(scene).Where(c => c && PrefabUtility.IsPartOfPrefabInstance(c)))
+                PrefabUtility.RecordPrefabInstancePropertyModifications(component);
+        });
+
         // A camera that needs neither the depth nor the opaque texture nor shadows (no shader samples them).
         static void Lean(Camera camera)
         {
@@ -149,6 +167,12 @@ namespace CodingGame.Defense.Editor
                 Check(left.Length == 0, $"126 the battle's body texts are saved in Pretendard Bold ({left.Length} left)");
                 Check(!File.ReadAllText("Assets/!_Project/Scripts/Defense/DefenseBattle.cs").Contains("UITheme.BoldBody"), "126 no body-font pass when the battle starts");
                 Check(GoalBanner(defense).GetComponent<Canvas>(), "132 the goal banner has its own canvas");
+                var unbaked = All<DefenseCoreHealthBar>(defense).Where(c => !c.Baked).Select(c => c.name)
+                    .Concat(All<DefensePlayerHUD>(defense).Where(c => !c.Baked).Select(c => c.name))
+                    .Concat(All<DefenseCodeEditor>(defense).Where(c => !c.Baked).Select(c => c.name))
+                    .Concat(All<DefenseAttackPreview>(defense).Where(c => !c.Baked).Select(c => c.name))
+                    .Concat(All<TutorialPointer>(defense).Where(c => !c.Baked).Select(c => c.name)).ToArray();
+                Check(unbaked.Length == 0, "128 the battle's start-up UI is saved in the scene" + (unbaked.Length > 0 ? " (not: " + string.Join(", ", unbaked) + ")" : ""));
                 var hudCode = File.ReadAllText("Assets/!_Project/Scripts/Defense/DefensePlayerHUD.cs");
                 Check(!hudCode.Contains("button.onClick.RemoveAllListeners(); button.onClick.AddListener(() => battle.PlayRobot(id))"), "132 Play listeners wired once, not every frame");
             }
