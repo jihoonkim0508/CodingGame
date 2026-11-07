@@ -19,6 +19,7 @@ namespace CodingGame.Defense
         [SerializeField, HideInInspector] RectTransform root;
         [SerializeField, HideInInspector] int bakedStyle = -1;
         [SerializeField, HideInInspector] Texture2D hazardTexture; // Resources/LearningSkins/BossHazard
+        [SerializeField, HideInInspector] Sprite guideArt; // 디버, surprised (UI/Learning/GuideRobotSurprised)
         Action<float> animate;
         float startedAt = -1;
         TMP_FontAsset font;
@@ -52,9 +53,9 @@ namespace CodingGame.Defense
 
         public bool Baked => root && bakedStyle == Style;
 #if UNITY_EDITOR
-        public void Bake(Texture2D hazard)
+        public void Bake(Texture2D hazard, Sprite guide)
         {
-            hazardTexture = hazard;
+            hazardTexture = hazard; guideArt = guide;
             if (!root) Build();
             for (int i = root.childCount - 1; i >= 0; i--) DestroyImmediate(root.GetChild(i).gameObject);
             font = UITheme.Display;
@@ -177,7 +178,7 @@ namespace CodingGame.Defense
             var title = Label("Title", star.rectTransform, "보스 등장!!", 120, Ink, new Vector2(0, 10));
             var guide = new GameObject("Guide", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
             guide.rectTransform.SetParent(root, false); guide.rectTransform.anchoredPosition = new Vector2(-720, -330); guide.rectTransform.sizeDelta = new Vector2(260, 280);
-            guide.sprite = Resources.Load<Sprite>("Guide/Guide_surprised") ?? Resources.Load<Sprite>("Guide/Guide_normal"); guide.preserveAspect = true;
+            guide.sprite = guideArt; guide.preserveAspect = true; guide.enabled = guideArt;
             var shout = Box("Shout", Color.white, new Vector2(-470, -230), new Vector2(300, 90));
             Label("ShoutText", shout, "조심해!", 46, Red, Vector2.zero);
             return t =>

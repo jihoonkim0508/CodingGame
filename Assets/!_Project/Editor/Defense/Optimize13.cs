@@ -115,7 +115,10 @@ namespace CodingGame.Defense.Editor
             // the result banner and stars, 디버's corner, debrief cards, the Esc menu, the stage-restart button).
             var glow = SaveSprite("LeakEdgeGlow", DefensePlayerHUD.EdgeGlowTexture());
             var triangle = SaveSprite("PlayTriangle", DefensePlayerHUD.PlayTriangleTexture());
-            foreach (var hud in All<DefensePlayerHUD>(scene)) { hud.BakeParts(glow, triangle); EditorUtility.SetDirty(hud); }
+            // 디버's art (the old square-head faces are gone).
+            var guide = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/!_Project/UI/Learning/GuideRobot.png");
+            var guideSurprised = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/!_Project/UI/Learning/GuideRobotSurprised.png");
+            foreach (var hud in All<DefensePlayerHUD>(scene)) { hud.BakeParts(glow, triangle, guide, guideSurprised); EditorUtility.SetDirty(hud); }
             // 127: the system alarm (1-1's boot alert) and the boss warning, with their textures and the alarm's letter
             // material as assets.
             var alarmGlow = AlarmGlow();
@@ -129,7 +132,7 @@ namespace CodingGame.Defense.Editor
                 warning = new GameObject("BossWarning").AddComponent<DefenseBossWarning>();
                 SceneManager.MoveGameObjectToScene(warning.gameObject, scene);
             }
-            warning.Bake(SaveTexture("BossHazard", DefenseBossWarning.HazardTexture()));
+            warning.Bake(SaveTexture("BossHazard", DefenseBossWarning.HazardTexture()), guideSurprised);
             EditorUtility.SetDirty(warning);
             Wire(battle, "bossWarning", warning);
             foreach (var dock in All<DefensePlacementDock>(scene)) dock.Layout();

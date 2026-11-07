@@ -84,9 +84,9 @@ namespace CodingGame.Defense
         // buttons and robot tags, the result banner, 디버's corner, the stars, debrief cards, the Esc menu, the stage-restart
         // button), built once in the editor and saved with the scene (13차); the glow and the Play triangle are textures in
         // Resources/LearningSkins instead of made at load. Rerunnable: what is there stays.
-        public void BakeParts(Sprite glow, Sprite triangle)
+        public void BakeParts(Sprite glow, Sprite triangle, Sprite guide, Sprite guideSurprised)
         {
-            edgeGlow = glow; playIcon = triangle;
+            edgeGlow = glow; playIcon = triangle; guideArt = guide; guideArtSurprised = guideSurprised;
             if (!waveCall) BuildWaveCall();
             if (!floaterLayer) BuildFloaterLayer();
             while (floaterLabels.Count < MaxFloaters) MakeFloaterLabel();
@@ -751,13 +751,13 @@ namespace CodingGame.Defense
         [SerializeField, HideInInspector] RectTransform guideCorner;
         [SerializeField, HideInInspector] Image guidePortrait;
         [SerializeField, HideInInspector] TextMeshProUGUI guideLine;
-        Sprite[] guideFaces;
+        // 디버's art (UI/Learning/GuideRobot, GuideRobotSurprised), set by the editor with the baked parts.
+        [SerializeField, HideInInspector] Sprite guideArt, guideArtSurprised;
         void ShowGuide(DefenseSimulation sim)
         {
             if (!guideCorner) BuildGuide();
-            guideFaces ??= Enum.GetNames(typeof(GuideMood)).Select(m => Resources.Load<Sprite>("Guide/Guide_" + m.ToLowerInvariant())).ToArray();
             var (mood, line) = DefenseDebrief.GuideSays(sim);
-            guidePortrait.sprite = guideFaces[(int)mood]; guidePortrait.enabled = guidePortrait.sprite;
+            guidePortrait.sprite = mood == GuideMood.Worried || mood == GuideMood.Surprised ? guideArtSurprised : guideArt; guidePortrait.enabled = guidePortrait.sprite;
             guideLine.text = $"<color={UITheme.CalmHex}><b>디버</b></color>\n{line}";
         }
         void BuildGuide()

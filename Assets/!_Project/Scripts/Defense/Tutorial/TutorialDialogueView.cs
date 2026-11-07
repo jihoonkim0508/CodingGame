@@ -21,10 +21,7 @@ namespace CodingGame.Defense
         TMP_Text advanceHint;
         [SerializeField, Tooltip("Top position keeps this gap so the HUD header stays readable.")] float topInset = 96;
         [SerializeField, Tooltip("Bottom position sits this much higher than authored, clear of the HUD's bottom bar.")] float bottomLift = 170;
-        [SerializeField, Tooltip("안내 로봇 디버의 표정, GuideMood 순서(Normal, Blink, Happy, Surprised, Worried, Determined). 비우면 시퀀스 초상화를 쓴다.")]
-        Sprite[] guideFaces = Array.Empty<Sprite>();
         GuideMood mood;
-        float nextBlink;
         Coroutine typing, entrance;
         RectTransform panelRect;
         Vector2 bottomAnchorMin, bottomAnchorMax, bottomPosition, bottomPivot;
@@ -59,16 +56,10 @@ namespace CodingGame.Defense
             float spoken = Speak(voiceLine);
             Place(position);
             panel.SetActive(true);
-            // The PR's guide art (default and surprised) when assigned; otherwise 디버's mood faces.
+            // 디버's art (default, or surprised for a startled or worried line).
             mood = GuideMoods.For(text);
             bool surprised = mood == GuideMood.Surprised || mood == GuideMood.Worried;
-            if (HasGuideFaces)
-            {
-                foreach (Transform shape in portrait.transform) shape.gameObject.SetActive(false);
-                portrait.type = Image.Type.Simple; portrait.preserveAspect = true; portrait.color = Color.white;
-            }
-            portrait.sprite = HasGuideFaces ? guideFaces[(int)mood] : sequence.speakerPortrait ? sequence.speakerPortrait :
-                surprised && surprisedPortrait ? surprisedPortrait : defaultPortrait;
+            portrait.sprite = sequence.speakerPortrait ? sequence.speakerPortrait : surprised && surprisedPortrait ? surprisedPortrait : defaultPortrait;
             portrait.enabled = portrait.sprite;
             speaker.text = string.IsNullOrWhiteSpace(speakerName) || speakerName.StartsWith("안내", StringComparison.Ordinal) || speakerName == "도우미 로봇" ? "디버" : speakerName;
             stageWave.text = "";
@@ -106,9 +97,7 @@ namespace CodingGame.Defense
         }
         public void StopVoice() { if (voice) voice.Stop(); }
 
-        bool HasGuideFaces => !defaultPortrait && guideFaces.Length == Enum.GetValues(typeof(GuideMood)).Length && guideFaces.All(face => face);
-        // A calm face blinks now and then; every face bobs while its line types out. Once a line is fully shown and a
-        // click moves on, the next button breathes so the player knows the game waits for them.
+        // Once a line is fully shown and a click moves on, the next button breathes so the player knows the game waits for them.
         void Update()
         {
             if (voice && voice.volume != VoiceVolume) voice.volume = VoiceVolume; // the Esc menu's slider moved mid-line
@@ -117,13 +106,7 @@ namespace CodingGame.Defense
             bool waiting = typing == null && nextText.interactable;
             float nudge = Mathf.Sin(Mathf.Clamp01(1 - (now - nudgedAt) / .45f) * Mathf.PI) * .35f;
             nextText.transform.localScale = Vector3.one * ((waiting ? 1 + .07f * (.5f + .5f * Mathf.Sin(now * 5)) : 1) + nudge);
-            if (!HasGuideFaces) return;
-            if (now > nextBlink + BlinkSeconds) nextBlink = now + UnityEngine.Random.Range(2.5f, 4.5f);
-            bool blink = mood == GuideMood.Normal && now >= nextBlink;
-            portrait.sprite = guideFaces[(int)(blink ? GuideMood.Blink : mood)];
-            portrait.rectTransform.anchoredPosition = new Vector2(0, typing != null ? Mathf.Abs(Mathf.Sin(now * 14)) * 5 : 0);
         }
-        const float BlinkSeconds = .12f;
 
         public RectTransform Panel => panelRect;
         public bool IsCentered => centered;
