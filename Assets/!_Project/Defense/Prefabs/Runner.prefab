@@ -403,7 +403,7 @@ Transform:
   - {fileID: 3699468256150400847}
   - {fileID: 62339088092220130}
   - {fileID: 6317975568753763042}
-  - {fileID: 1340357136476349846}
+  - {fileID: 3862134694277940745}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &8292641712839652615
@@ -419,7 +419,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.DefenseActorView
   head: {fileID: 3699468256150400847}
-  body: {fileID: 203448590986305273}
+  body: {fileID: 2725280126865112422}
   healthRoot: {fileID: 62339088092220130}
   healthFill: {fileID: 6449051507008935899}
   beam: {fileID: 3800248903327099787}
@@ -970,7 +970,7 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!1001 &1518661728301761149
+--- !u!1001 &3608428351919448546
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -980,27 +980,27 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 0a36c214e6d09d347bd7216e3e3b2698, type: 3}
       propertyPath: m_LocalScale.x
-      value: -0.027702944
+      value: -0.034628678
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0a36c214e6d09d347bd7216e3e3b2698, type: 3}
       propertyPath: m_LocalScale.y
-      value: -0.027702944
+      value: -0.034628678
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0a36c214e6d09d347bd7216e3e3b2698, type: 3}
       propertyPath: m_LocalScale.z
-      value: -0.027702944
+      value: -0.034628678
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0a36c214e6d09d347bd7216e3e3b2698, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.0034692585
+      value: -0.0043365955
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0a36c214e6d09d347bd7216e3e3b2698, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.2121064
+      value: -0.28013295
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0a36c214e6d09d347bd7216e3e3b2698, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.020743996
+      value: 0.025929987
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0a36c214e6d09d347bd7216e3e3b2698, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1043,13 +1043,13 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0a36c214e6d09d347bd7216e3e3b2698, type: 3}
---- !u!23 &203448590986305273 stripped
+--- !u!23 &2725280126865112422 stripped
 MeshRenderer:
   m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: 0a36c214e6d09d347bd7216e3e3b2698, type: 3}
-  m_PrefabInstance: {fileID: 1518661728301761149}
+  m_PrefabInstance: {fileID: 3608428351919448546}
   m_PrefabAsset: {fileID: 0}
---- !u!4 &1340357136476349846 stripped
+--- !u!4 &3862134694277940745 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 0a36c214e6d09d347bd7216e3e3b2698, type: 3}
-  m_PrefabInstance: {fileID: 1518661728301761149}
+  m_PrefabInstance: {fileID: 3608428351919448546}
   m_PrefabAsset: {fileID: 0}

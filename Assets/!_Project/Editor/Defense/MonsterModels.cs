@@ -56,7 +56,7 @@ namespace CodingGame.Defense.Editor
         public static void Apply()
         {
             Fit("Heavy", "MonsterTank", 1.1f);
-            Fit("Runner", "MonsterRunner", 1.0f);
+            Fit("Runner", "MonsterRunner", 1.25f); // at 1.0 the runner read as a small dot on the road (3-5 screenshot)
             AssetDatabase.SaveAssets();
             Debug.Log("[MonsterModels] Heavy and Runner use the team's models");
         }
