@@ -323,8 +323,10 @@ namespace CodingGame.Defense.Editor
                 Check(bar.position.y + DefenseActorView.HealthLift - top >= .15f, $"100 {name}'s bar clears its head (bar {bar.position.y + DefenseActorView.HealthLift:0.00}, head {top:0.00})");
             }
             var coreBar = Canvas("PlayerCanvas").Find("CoreHealth") as RectTransform;
-            Check(coreBar && coreBar.anchoredPosition.y >= -264 && coreBar.GetComponentInChildren<DefenseCoreHealthBar>(true),
-                "100 core bar is positioned in the screen HUD above the core");
+            // PR #21 put it on the screen HUD; it stands over the core of the stage being played (DefenseCoreHealthBar.FollowCore).
+            Check(coreBar && coreBar.GetComponentInChildren<DefenseCoreHealthBar>(true) &&
+                File.ReadAllText("Assets/!_Project/Scripts/Defense/DefenseCoreHealthBar.cs").Contains("FollowCore();"),
+                "100 core bar is on the screen HUD, over the core");
             // 111: PR #19's (art to develop) battle-map backdrop, navy with its grid showing.
             bool ArtBackdrop(ModularMapRoot map) => map && map.blueprintBackground && ColorUtility.ToHtmlStringRGB(map.blueprintBlue) == "182F42" &&
                 Mathf.Abs(map.blueprintMinorOpacity - .07f) < .001f && Mathf.Abs(map.blueprintMajorOpacity - .18f) < .001f;

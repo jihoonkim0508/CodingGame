@@ -18,9 +18,15 @@ namespace CodingGame.Defense
         int maxHealth = PreviewHealth;
         int health = PreviewHealth;
         float trailHealth = PreviewHealth;
-        Vector2 restPosition;
         Vector3 restScale;
         float shake;
+        // Where the frame stands: over the core of the map in use (PR #21 fixed it to the screen's top right, and Stage 1's
+        // camera puts its core elsewhere). Moved only when that spot changes on the screen or while a hit shakes it.
+        public const float AboveCore = .45f; // world units over the core model's top
+        Vector2 home;
+        bool homeKnown, moved;
+        Transform placedModel;
+        Vector3 coreTop;
 
         public RectTransform BarRect => (RectTransform)transform.parent;
         public override Texture mainTexture => fillTexture ? fillTexture : base.mainTexture;
@@ -28,6 +34,7 @@ namespace CodingGame.Defense
         void LateUpdate()
         {
             if (!Application.isPlaying || !battle || battle.Simulation == null) return;
+            FollowCore();
             var sim = battle.Simulation;
             int maximum = sim.Setup.BaseHealth;
             int current = Mathf.Clamp(sim.BaseHealth, 0, maximum);
@@ -40,30 +47,70 @@ namespace CodingGame.Defense
             SetVerticesDirty();
         }
 
+        void FollowCore()
+        {
+            if (!homeKnown) { home = BarRect.anchoredPosition; homeKnown = true; }
+            var model = battle.CoreModel;
+            var camera = battle.BattleCamera;
+            if (!model || !camera) return;
+            if (model != placedModel) { placedModel = model; coreTop = Top(model); }
+            var spot = Spot(camera, coreTop);
+            if ((spot - home).sqrMagnitude > .25f) { home = spot; moved = true; }
+        }
+        // The frame's anchored position that puts its bottom middle over the core on the screen, kept on the screen.
+        Vector2 Spot(Camera camera, Vector3 top)
+        {
+            var frame = BarRect;
+            var parent = (RectTransform)frame.parent;
+            Vector2 screen = camera.WorldToScreenPoint(top + Vector3.up * AboveCore);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, screen, null, out var local);
+            var area = parent.rect;
+            var size = frame.rect.size;
+            float halfWidth = size.x * .5f + 16;
+            local.x = Mathf.Clamp(local.x, area.xMin + halfWidth, area.xMax - halfWidth);
+            local.y = Mathf.Clamp(local.y, area.yMin + 16, area.yMax - size.y - 96); // under the top bar
+            var pivot = local + new Vector2((frame.pivot.x - .5f) * size.x, frame.pivot.y * size.y);
+            var anchor = new Vector2(Mathf.Lerp(area.xMin, area.xMax, frame.anchorMin.x), Mathf.Lerp(area.yMin, area.yMax, frame.anchorMin.y));
+            return pivot - anchor;
+        }
+        // The top middle of the core model's meshes.
+        static Vector3 Top(Transform model)
+        {
+            var renderers = model.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) return model.position;
+            var bounds = renderers[0].bounds;
+            foreach (var r in renderers) bounds.Encapsulate(r.bounds);
+            return new Vector3(bounds.center.x, bounds.max.y, bounds.center.z);
+        }
+        // The editor places the frame for the scene's own camera and core (the workshop's), so the scene shows it where
+        // the game does; the battle then follows the core of the stage it plays.
+        public void Place(Camera camera, Transform model) => BarRect.anchoredPosition = Spot(camera, Top(model));
+
         void UpdateHitAnimation()
         {
             var frame = BarRect;
             if (trail.JustHit)
             {
-                if (shake <= 0)
-                {
-                    restPosition = frame.anchoredPosition;
-                    restScale = frame.localScale;
-                }
+                if (shake <= 0) restScale = frame.localScale;
                 shake = ShakeSeconds;
             }
-            if (shake <= 0) return;
+            if (shake <= 0)
+            {
+                if (moved) { frame.anchoredPosition = home; moved = false; }
+                return;
+            }
             shake = Mathf.Max(0, shake - Time.unscaledDeltaTime);
             float fade = shake / ShakeSeconds;
-            frame.anchoredPosition = restPosition + Vector2.right * (Mathf.Sin(shake * 70) * 9 * fade);
+            frame.anchoredPosition = home + Vector2.right * (Mathf.Sin(shake * 70) * 9 * fade);
             frame.localScale = restScale * (1 + .14f * fade * fade);
+            moved = true; // back to home once the shake ends
         }
 
         protected override void OnDisable()
         {
             if (shake > 0 && BarRect)
             {
-                BarRect.anchoredPosition = restPosition;
+                BarRect.anchoredPosition = home;
                 BarRect.localScale = restScale;
                 shake = 0;
             }

@@ -195,6 +195,9 @@ namespace CodingGame.Defense
         // Stage 1 plays on a short straight road and Stages 2·3 on the workshop (play feedback: the workshop was too big for the
         // first lessons). Only one map is active, so routes, tiles and props (DefenseRoute.Map) come from it; the camera and the
         // core's glitch follow.
+        // The core model of the map in use (the core bar stands over it) and the camera that shows it.
+        public Transform CoreModel { get; private set; }
+        public Camera BattleCamera => battleCamera;
         void UseStageMap(int selectedStage)
         {
             if (!stageOneMap || !workshopMap || !stageOneView) return;
@@ -204,7 +207,8 @@ namespace CodingGame.Defense
             var view = first ? new Pose(stageOneView.position, stageOneView.rotation) : workshopView;
             selectionCamera.SetHome(view.position, view.rotation);
             floorParts = null;
-            if (coreGlitch) coreGlitch.SetModel((first ? stageOneMap : workshopMap).GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "CodeBase"));
+            CoreModel = (first ? stageOneMap : workshopMap).GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "CodeBase");
+            if (coreGlitch) coreGlitch.SetModel(CoreModel);
         }
         // The ground of the map, one square per floor or road cell (cells are centred on CellPosition).
         static IEnumerable<PlacementObstacle> MapTiles(CodingGame.Art.MapPainter.ModularMapRoot map)

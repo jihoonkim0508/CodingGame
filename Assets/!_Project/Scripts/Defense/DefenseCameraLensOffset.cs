@@ -9,8 +9,11 @@ namespace CodingGame.Defense
         Camera target;
         public void Configure(Vector2 value) { centerOffset=value; }
         void Awake() => target=GetComponent<Camera>();
-        void LateUpdate()
+        void LateUpdate() => Apply();
+        // Also for the editor, which places screen UI over the world with this lens (the core bar).
+        public void Apply()
         {
+            if (!target) target = GetComponent<Camera>();
             target.ResetProjectionMatrix();
             var projection=target.projectionMatrix;
             projection.m02-=centerOffset.x*2;

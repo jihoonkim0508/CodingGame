@@ -103,7 +103,12 @@ namespace CodingGame.Defense.Editor
         [MenuItem("Tools/Optimize/128 Bake Battle UI")]
         public static void BattleUI128() => EditScene(DefenseScene, scene =>
         {
-            // The core bar is PR #21's: a graphic built in the scene that draws its own cells, nothing to bake.
+            // The core bar is PR #21's graphic, drawn by itself; it is placed over the scene's core for the scene's camera.
+            var lens = Camera.main.GetComponent<DefenseCameraLensOffset>();
+            if (lens) lens.Apply();
+            var core = All<Transform>(scene).First(t => t.name == "CodeBase" && t.parent && t.parent.name == "Stage01_Workshop_Art");
+            foreach (var bar in All<DefenseCoreHealthBar>(scene)) bar.Place(Camera.main, core);
+            Camera.main.ResetProjectionMatrix();
             var battle = All<DefenseBattle>(scene).First();
             foreach (var hud in All<DefensePlayerHUD>(scene)) hud.Bake(battle.EditorCampaign.robots);
             foreach (var dock in All<DefensePlacementDock>(scene)) dock.Layout();
