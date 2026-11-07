@@ -18,7 +18,27 @@ namespace CodingGame.Defense.Editor
         const int Left = -1, Right = 12, Bottom = -3, Top = 1, Road = -1, Start = 0, Base = 11;
 
         [MenuItem("Tools/Develop/1스테이지 일자 맵 만들기")]
-        public static void Build()
+        public static void Build() => Make(Name, View, Enumerable.Range(Start, Base - Start + 1).Select(x => new GridCell(x, Road)).ToList(), Top, true);
+
+        // The straight road with an upward ㄷ detour in the middle: right from the gate, up, right along the top, down, right to
+        // the core (the same gate and core cells as Stage 1's). Built beside the others, switched off and not given to any
+        // stage yet; TestResults/Editor/detour-map.png shows it from its own camera spot.
+        const string DetourName = "DetourMap", DetourView = "DetourView";
+        const int DetourUp = 3, DetourLeft = 3, DetourRight = 8;
+        [MenuItem("Tools/Develop/ㄷ자 맵 만들기")]
+        public static void BuildDetour()
+        {
+            var road = Enumerable.Range(Start, DetourLeft - Start).Select(x => new GridCell(x, Road))
+                .Concat(Enumerable.Range(Road, DetourUp - Road).Select(z => new GridCell(DetourLeft, z)))
+                .Concat(Enumerable.Range(DetourLeft, DetourRight - DetourLeft).Select(x => new GridCell(x, DetourUp)))
+                .Concat(Enumerable.Range(Road + 1, DetourUp - Road).Select(z => new GridCell(DetourRight, z)))
+                .Concat(Enumerable.Range(DetourRight, Base - DetourRight + 1).Select(x => new GridCell(x, Road))).ToList();
+            Make(DetourName, DetourView, road, DetourUp + 2, false);
+        }
+
+        // One map beside the workshop's: floor from Left..Right and Bottom..top, the road cells, the workshop's look and props.
+        // stageOne wires it to DefenseBattle as Stage 1's map.
+        static void Make(string name, string viewName, System.Collections.Generic.List<GridCell> road, int top, bool stageOne)
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new System.InvalidOperationException("Play 종료 후 실행하세요.");
             // Opening the scene alone drops unsaved edits in the open scenes, so refuse then and reopen them afterwards.
@@ -28,10 +48,10 @@ namespace CodingGame.Defense.Editor
             var scene = EditorSceneManager.OpenScene(Scene, OpenSceneMode.Single);
             var workshop = scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<ModularMapRoot>(true)).First(m => m.name == "Map");
             var world = workshop.transform.parent;
-            var old = world.Find(Name); if (old) Object.DestroyImmediate(old.gameObject);
+            var old = world.Find(name); if (old) Object.DestroyImmediate(old.gameObject);
 
             var map = MapPainterEditing.CreateRoot(scene, workshop.palette, false);
-            map.name = Name; map.transform.SetParent(world, false);
+            map.name = name; map.transform.SetParent(world, false);
             map.transform.localPosition = workshop.transform.localPosition; map.transform.localRotation = workshop.transform.localRotation;
             map.transform.localScale = workshop.transform.localScale;
             // The workshop's look (colours, shading, backdrop); the cells, groups and routes are this map's own.
@@ -43,25 +63,27 @@ namespace CodingGame.Defense.Editor
             map.blueprintLines = workshop.blueprintLines; map.blueprintSpacing = workshop.blueprintSpacing; map.blueprintLineWidth = workshop.blueprintLineWidth;
             map.blueprintMinorOpacity = workshop.blueprintMinorOpacity; map.blueprintMajorOpacity = workshop.blueprintMajorOpacity; map.blueprintMajorEvery = workshop.blueprintMajorEvery;
 
-            var floor = from x in Enumerable.Range(Left, Right - Left + 1) from z in Enumerable.Range(Bottom, Top - Bottom + 1) select new GridCell(x, z);
+            var floor = from x in Enumerable.Range(Left, Right - Left + 1) from z in Enumerable.Range(Bottom, top - Bottom + 1) select new GridCell(x, z);
             MapPainterEditing.Paint(map, floor.ToList(), false, false, false);
-            MapPainterEditing.Paint(map, Enumerable.Range(Start, Base - Start + 1).Select(x => new GridCell(x, Road)).ToList(), true, false, false);
+            MapPainterEditing.Paint(map, road, true, false, false);
             MapRouteEditing.SetBase(map, new GridCell(Base, Road));
             int route = MapRouteEditing.AddStart(map, new GridCell(Start, Road));
-            if (route < 0 || !MapRouteEditing.AutoRoute(map, map.routes[route])) throw new System.InvalidOperationException("일자 길의 경로를 만들 수 없습니다.");
+            if (route < 0 || !MapRouteEditing.AutoRoute(map, map.routes[route])) throw new System.InvalidOperationException(name + ": 길의 경로를 만들 수 없습니다.");
             map.roadWidthScale = workshop.roadWidthScale;
             WideRoadAssets.Apply(map, false);
             // The painter's tiles come with its plain surface material; the workshop's desk wood and cream road are on its renderers.
             Restyle(map.floorGroup, workshop.floorGroup); Restyle(map.roadGroup, workshop.roadGroup);
 
             // The gate at the start, the core model at the base, and the workshop props that stand on these cells off the road.
-            var art = new GameObject("Stage1_Art").transform; art.SetParent(map.transform, false);
+            var art = new GameObject(stageOne ? "Stage1_Art" : name + "_Art").transform; art.SetParent(map.transform, false);
             var source = workshop.transform.Find("Stage01_Workshop_Art");
             var cells = new System.Collections.Generic.HashSet<GridCell>(map.floorCells);
+            // Off the road: Stage 1 keeps its whole road row clear (as built before), the others the road cells.
+            var clear = new System.Collections.Generic.HashSet<GridCell>(stageOne ? map.floorCells.Concat(road).Where(c => c.z == Road) : road);
             foreach (Transform prop in source)
             {
                 var cell = workshop.WorldToCell(prop.position);
-                bool keep = prop.name == "CodeBase" || cells.Contains(cell) && cell.z != Road;
+                bool keep = prop.name == "CodeBase" || cells.Contains(cell) && !clear.Contains(cell);
                 if (prop.name == "ErrorGate") keep = true;
                 if (!keep) continue;
                 // A plain copy: the props are nested in the workshop map prefab, and instantiating their source spawned that
@@ -78,8 +100,15 @@ namespace CodingGame.Defense.Editor
             // The battle camera's angle and lens, placed so each map with its props fits the part of a 16:9 screen the HUD leaves
             // free (play feedback: the workshop's monitor went under the top bar and the core's health bar touched the edge).
             // The scene's camera pose is the workshop's view (DefenseBattle keeps it for Stages 2 and 3).
-            var view = world.Find(View) ?? new GameObject(View).transform; view.SetParent(world, true);
+            var view = world.Find(viewName) ?? new GameObject(viewName).transform; view.SetParent(world, true);
             view.SetPositionAndRotation(Fit(camera, Visible(map)), camera.transform.rotation);
+            if (!stageOne)
+            {
+                workshop.gameObject.SetActive(false); Photo(camera, view, "TestResults/Editor/" + (name == DetourName ? "detour-map" : name) + ".png");
+                workshop.gameObject.SetActive(true); map.gameObject.SetActive(false);
+                Save(scene, setup, $"[StageOneMap] {name}: {map.floorCells.Count} floor cells, road {map.roadCells.Count}, props {art.childCount}, view {view.position}");
+                return;
+            }
             camera.transform.position = Fit(camera, Visible(workshop));
 
             var battle = Object.FindFirstObjectByType<DefenseBattle>(FindObjectsInactive.Include);
@@ -89,11 +118,28 @@ namespace CodingGame.Defense.Editor
             wiring.FindProperty("stageOneView").objectReferenceValue = view;
             wiring.ApplyModifiedPropertiesWithoutUndo();
             map.gameObject.SetActive(false); // DefenseBattle turns it on for Stage 1
+            Save(scene, setup, $"[StageOneMap] {map.floorCells.Count} floor cells, road {map.roadCells.Count}, props {art.childCount}, Stage 1 view {view.position}, workshop view {camera.transform.position}");
+        }
+        static void Save(UnityEngine.SceneManagement.Scene scene, SceneSetup[] setup, string report)
+        {
             // Layout groups lay out their children only on a canvas update; saving right after opening wrote them as zeros.
             Canvas.ForceUpdateCanvases();
             EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene);
-            Debug.Log($"[StageOneMap] {map.floorCells.Count} floor cells, road {map.roadCells.Count}, props {art.childCount}, Stage 1 view {view.position}, workshop view {camera.transform.position}");
+            Debug.Log(report);
             if (setup.Length > 0) EditorSceneManager.RestoreSceneManagerSetup(setup);
+        }
+        // The camera at the view spot, rendered whole-screen to a PNG (the scene's own camera pose and viewport are put back).
+        static void Photo(Camera camera, Transform view, string path)
+        {
+            var pose = (camera.transform.position, camera.transform.rotation); var rect = camera.rect;
+            camera.transform.SetPositionAndRotation(view.position, view.rotation); camera.rect = new Rect(0, 0, 1, 1);
+            var target = RenderTexture.GetTemporary(1920, 1080, 24);
+            camera.targetTexture = target; camera.Render(); RenderTexture.active = target;
+            var image = new Texture2D(1920, 1080, TextureFormat.RGB24, false); image.ReadPixels(new Rect(0, 0, 1920, 1080), 0, 0); image.Apply();
+            RenderTexture.active = null; camera.targetTexture = null; RenderTexture.ReleaseTemporary(target);
+            camera.transform.SetPositionAndRotation(pose.Item1, pose.Item2); camera.rect = rect;
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
+            System.IO.File.WriteAllBytes(path, image.EncodeToPNG()); Object.DestroyImmediate(image);
         }
 
         // The box corners of every renderer of the map but the blueprint backdrop (far larger than the map). Per renderer, not one
