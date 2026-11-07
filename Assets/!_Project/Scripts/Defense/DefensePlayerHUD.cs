@@ -72,7 +72,38 @@ namespace CodingGame.Defense
             cardCounts = new int[enemyCards.Length];
             shownCardCounts = Enumerable.Repeat(-1, enemyCards.Length).ToArray();
             upperRobotButtons = new[] { upgradeRobotButton, developRobotButton };
+            // Parts baked in the scene (BakeParts) get their listeners and pools here.
+            foreach (var label in floaterLabels) floaters.Add(new Floater { label = label });
+            foreach (var button in bakedPlayButtons) AddPlayButton(button);
+            claimAnchorMax = ((RectTransform)claimButton.transform).anchorMax;
+            if (restartStageButton) restartStageButton.onClick.AddListener(battle.Restart);
+            if (menu) WireMenu();
         }
+#if UNITY_EDITOR
+        // The parts the battle used to build the first time it needed them (the wave call, combat numbers, the leak glow, Play
+        // buttons and robot tags, the result banner, 디버's corner, the stars, debrief cards, the Esc menu, the stage-restart
+        // button), built once in the editor and saved with the scene (13차); the glow and the Play triangle are textures in
+        // Resources/LearningSkins instead of made at load. Rerunnable: what is there stays.
+        public void BakeParts(Sprite glow, Sprite triangle)
+        {
+            edgeGlow = glow; playIcon = triangle;
+            if (!waveCall) BuildWaveCall();
+            if (!floaterLayer) BuildFloaterLayer();
+            while (floaterLabels.Count < MaxFloaters) MakeFloaterLabel();
+            if (!leakFlash) BuildLeakFlash();
+            if (!statusLayer) BuildStatusLayer();
+            while (statusLabels.Count < 6) statusLabels.Add(BuildStatusTag());
+            while (bakedPlayButtons.Count < 6) bakedPlayButtons.Add(BuildPlayButton());
+            if (!banner) BuildBanner();
+            if (!guideCorner) BuildGuide();
+            if (!starRow) BuildStars();
+            if (!menu) BuildMenu();
+            if (!debriefRoot) BuildDebrief();
+            while (debriefCards.Count < 6) MakeDebriefCard();
+            if (!restartStageButton) BuildRestartStage();
+        }
+        public bool PartsBaked => waveCall && floaterLayer && leakFlash && statusLayer && banner && guideCorner && starRow && menu && debriefRoot && restartStageButton;
+#endif
         // The look the battle used to give these on start (status line, next-wave label, goal banner, robot photos on the cards),
         // built once in the editor and saved with the scene (13차: the scene showed the old look until Play). Start builds it
         // only in a scene that was never baked.
@@ -327,7 +358,7 @@ namespace CodingGame.Defense
         // selected robot's tag hides while its action menu is open over its head.
         // The wave's start: its number large over the map for a moment, with a horn, so each fight has a beginning.
         // Only Ready → Running counts; resuming from a pause does not call the wave again.
-        TextMeshProUGUI waveCall;
+        [SerializeField, HideInInspector] TextMeshProUGUI waveCall;
         float waveCallAt = -100;
         BattlePhase lastPhase;
         const float WaveCallSeconds = 1.4f;
@@ -335,17 +366,7 @@ namespace CodingGame.Defense
         {
             if (sim.Phase == BattlePhase.Running && lastPhase == BattlePhase.Ready)
             {
-                if (!waveCall)
-                {
-                    waveCall = new GameObject("Wave call", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
-                    waveCall.rectTransform.SetParent(canvasRoot.transform, false); OwnCanvas(waveCall.gameObject, false);
-                    waveCall.rectTransform.anchorMin = waveCall.rectTransform.anchorMax = new Vector2(.5f, .5f);
-                    waveCall.rectTransform.sizeDelta = new Vector2(1400, 260); waveCall.rectTransform.anchoredPosition = new Vector2(0, 110);
-                    // Regular weight: TMP's bold adds spacing per letter, which at this size pulls the Korean line apart.
-                    waveCall.font = UITheme.Display ? UITheme.Display : rewardItems.font; waveCall.fontSize = 110; waveCall.characterSpacing = -2;
-                    waveCall.alignment = TextAlignmentOptions.Center; waveCall.raycastTarget = false;
-                    if (UITheme.Banner) waveCall.fontSharedMaterial = UITheme.Banner;
-                }
+                if (!waveCall) BuildWaveCall();
                 bool last = sim.WaveIndex + 1 == sim.Setup.Waves.Length;
                 waveCall.text = (last ? "마지막 웨이브" : $"WAVE {sim.WaveIndex + 1}") + $"\n<size=36%>오류 코드 {sim.RemainingEnemies}마리 접근!</size>";
                 waveCall.color = last ? UITheme.Coral : UITheme.Sunny;
@@ -360,12 +381,25 @@ namespace CodingGame.Defense
             waveCall.rectTransform.localScale = Vector3.one * (t < .2f ? Mathf.Lerp(1.6f, 1, Mathf.SmoothStep(0, 1, t / .2f)) : 1 + .02f * (t - .2f));
             waveCall.alpha = t < .2f ? t / .2f : t > WaveCallSeconds - .45f ? (WaveCallSeconds - t) / .45f : 1;
         }
+        void BuildWaveCall()
+        {
+            waveCall = new GameObject("Wave call", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+            waveCall.rectTransform.SetParent(canvasRoot.transform, false); OwnCanvas(waveCall.gameObject, false);
+            waveCall.rectTransform.anchorMin = waveCall.rectTransform.anchorMax = new Vector2(.5f, .5f);
+            waveCall.rectTransform.sizeDelta = new Vector2(1400, 260); waveCall.rectTransform.anchoredPosition = new Vector2(0, 110);
+            // Regular weight: TMP's bold adds spacing per letter, which at this size pulls the Korean line apart.
+            waveCall.font = UITheme.Display ? UITheme.Display : rewardItems.font; waveCall.fontSize = 110; waveCall.characterSpacing = -2;
+            waveCall.alignment = TextAlignmentOptions.Center; waveCall.raycastTarget = false;
+            if (UITheme.Banner) waveCall.fontSharedMaterial = UITheme.Banner;
+            waveCall.gameObject.SetActive(false);
+        }
 
         // The damage a hit did, over the enemy, and "+n 코인" over a kill: rising and fading, so every attack the code makes
         // shows its result. A small pool is reused oldest first, so a burst of hits never piles up labels.
         sealed class Floater { public TextMeshProUGUI label; public Vector3 world; public float born, life, rise; }
         readonly System.Collections.Generic.List<Floater> floaters = new System.Collections.Generic.List<Floater>();
-        RectTransform floaterLayer;
+        [SerializeField, HideInInspector] RectTransform floaterLayer;
+        [SerializeField, HideInInspector] System.Collections.Generic.List<TextMeshProUGUI> floaterLabels = new System.Collections.Generic.List<TextMeshProUGUI>();
         const int MaxFloaters = 24;
         const float EnemyHeadHeight = 1.8f;
         public void ShowCombatText(CombatEvent evt)
@@ -379,28 +413,38 @@ namespace CodingGame.Defense
         }
         void Float(System.Numerics.Vector2 position, string text, Color color, float size, float life, float rise)
         {
-            if (!floaterLayer)
+            if (!floaterLayer) BuildFloaterLayer();
+            // A resting label, else a new one up to the pool's size, else the oldest (a loop, not a query per hit).
+            Floater floater = null, oldest = null;
+            foreach (var f in floaters)
             {
-                floaterLayer = new GameObject("Combat text", typeof(RectTransform)).GetComponent<RectTransform>();
-                floaterLayer.SetParent(canvasRoot.transform, false); floaterLayer.SetSiblingIndex(0); OwnCanvas(floaterLayer.gameObject, false);
-                floaterLayer.anchorMin = Vector2.zero; floaterLayer.anchorMax = Vector2.one; floaterLayer.sizeDelta = Vector2.zero;
+                if (!f.label.gameObject.activeSelf) { floater = f; break; }
+                if (oldest == null || f.born < oldest.born) oldest = f;
             }
-            var floater = floaters.FirstOrDefault(f => !f.label.gameObject.activeSelf);
-            if (floater == null && floaters.Count < MaxFloaters)
-            {
-                var label = new GameObject("Floater", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
-                label.rectTransform.SetParent(floaterLayer, false); label.rectTransform.sizeDelta = new Vector2(200, 40);
-                label.alignment = TextAlignmentOptions.Center; label.textWrappingMode = TextWrappingModes.NoWrap; label.raycastTarget = false;
-                // Numbers over the world share Jalnan's thin-outline Label look (one material, not an instance per floater).
-                if (UITheme.Display && UITheme.Label) { label.font = UITheme.Display; label.fontSharedMaterial = UITheme.Label; }
-                else { label.font = rewardItems.font; label.outlineWidth = .32f; label.outlineColor = UITheme.Ink; }
-                floaters.Add(floater = new Floater { label = label });
-            }
-            floater ??= floaters.OrderBy(f => f.born).First();
+            if (floater == null && floaters.Count < MaxFloaters) floaters.Add(floater = new Floater { label = MakeFloaterLabel() });
+            floater ??= oldest;
             floater.world = DefenseViews.World(position, EnemyHeadHeight);
             floater.born = Time.unscaledTime; floater.life = life; floater.rise = rise;
             floater.label.text = text; floater.label.fontSize = size; floater.label.color = color;
             floater.label.gameObject.SetActive(true);
+        }
+        void BuildFloaterLayer()
+        {
+            floaterLayer = new GameObject("Combat text", typeof(RectTransform)).GetComponent<RectTransform>();
+            floaterLayer.SetParent(canvasRoot.transform, false); floaterLayer.SetSiblingIndex(0); OwnCanvas(floaterLayer.gameObject, false);
+            floaterLayer.anchorMin = Vector2.zero; floaterLayer.anchorMax = Vector2.one; floaterLayer.sizeDelta = Vector2.zero;
+        }
+        TextMeshProUGUI MakeFloaterLabel()
+        {
+            var label = new GameObject("Floater", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+            label.rectTransform.SetParent(floaterLayer, false); label.rectTransform.sizeDelta = new Vector2(200, 40);
+            label.alignment = TextAlignmentOptions.Center; label.textWrappingMode = TextWrappingModes.NoWrap; label.raycastTarget = false;
+            // Numbers over the world share Jalnan's thin-outline Label look (one material, not an instance per floater).
+            if (UITheme.Display && UITheme.Label) { label.font = UITheme.Display; label.fontSharedMaterial = UITheme.Label; }
+            else { label.font = rewardItems.font; label.outlineWidth = .32f; label.outlineColor = UITheme.Ink; }
+            label.gameObject.SetActive(false);
+            floaterLabels.Add(label);
+            return label;
         }
         void AnimateFloaters()
         {
@@ -420,27 +464,30 @@ namespace CodingGame.Defense
 
         // When an enemy reaches the core the screen's edges glow red for a moment (the core bar shakes with it), so a leak
         // is felt even while the player is looking at the other end of the road.
-        Image leakFlash;
+        [SerializeField, HideInInspector] Image leakFlash;
+        [SerializeField, HideInInspector] Sprite edgeGlow, playIcon; // Resources/LearningSkins/LeakEdgeGlow, PlayTriangle
         int shownCoreHealth = -1;
         float leakFlashAt = -100;
         const float LeakFlashSeconds = .7f;
         void FlashLeak(DefenseSimulation sim)
         {
-            if (!leakFlash)
-            {
-                leakFlash = new GameObject("Leak flash", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
-                var rect = leakFlash.rectTransform; rect.SetParent(canvasRoot.transform, false); rect.SetSiblingIndex(1);
-                rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.sizeDelta = Vector2.zero;
-                leakFlash.sprite = EdgeGlow(); leakFlash.raycastTarget = false;
-            }
+            if (!leakFlash) BuildLeakFlash();
             if (shownCoreHealth >= 0 && sim.BaseHealth < shownCoreHealth) leakFlashAt = Time.unscaledTime;
             shownCoreHealth = sim.BaseHealth;
             float k = 1 - Mathf.Clamp01((Time.unscaledTime - leakFlashAt) / LeakFlashSeconds);
             leakFlash.color = new Color(1, .16f, .12f, .6f * k * k);
             leakFlash.enabled = k > 0;
         }
-        // Clear in the middle, opaque toward the edges.
-        static Sprite EdgeGlow()
+        void BuildLeakFlash()
+        {
+            leakFlash = new GameObject("Leak flash", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            var rect = leakFlash.rectTransform; rect.SetParent(canvasRoot.transform, false); rect.SetSiblingIndex(1);
+            rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.sizeDelta = Vector2.zero;
+            leakFlash.sprite = edgeGlow ? edgeGlow : Sprite.Create(EdgeGlowTexture(), new Rect(0, 0, 128, 128), new Vector2(.5f, .5f));
+            leakFlash.raycastTarget = false; leakFlash.enabled = false;
+        }
+        // Clear in the middle, opaque toward the edges (saved as Resources/LearningSkins/LeakEdgeGlow by the editor).
+        public static Texture2D EdgeGlowTexture()
         {
             const int size = 128;
             var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
@@ -453,12 +500,13 @@ namespace CodingGame.Defense
                     pixels[y * size + x] = new Color32(255, 255, 255, (byte)(255 * Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.55f, 1, edge))));
                 }
             texture.SetPixels32(pixels); texture.Apply();
-            return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(.5f, .5f));
+            return texture;
         }
 
         // A Play button under each robot with code while a battle is on (play feedback 4, like 'The Farmer Was Replaced'): it
         // calls the robot's function, and reads 실행 중 (locked) until the function ends.
         readonly System.Collections.Generic.List<(Button button, TextMeshProUGUI label, Image icon)> playButtons = new System.Collections.Generic.List<(Button, TextMeshProUGUI, Image)>();
+        [SerializeField, HideInInspector] System.Collections.Generic.List<Button> bakedPlayButtons = new System.Collections.Generic.List<Button>();
         int playShown;
         static Sprite playTriangle;
         void RefreshPlayButtons(DefenseSimulation sim)
@@ -471,7 +519,7 @@ namespace CodingGame.Defense
             {
                 var bot = ordered[index];
                 if (bot.Program == null || bot.Program.IsEmpty || bot.Program.Fault != null) continue;
-                if (shown == playButtons.Count) playButtons.Add(MakePlayButton());
+                if (shown == playButtons.Count) AddPlayButton(BuildPlayButton());
                 var (button, label, icon) = playButtons[shown++];
                 playIds[shown - 1] = bot.Id;
                 bool running = bot.Program.Running;
@@ -488,33 +536,41 @@ namespace CodingGame.Defense
             for (int i = shown; i < playShown; i++) battle.Tutorial?.UnregisterRuntimeTarget(TutorialKeys.Play(i), null);
             playShown = shown;
         }
-        (Button, TextMeshProUGUI, Image) MakePlayButton()
+        // A right-pointing triangle, antialiased (saved as Resources/LearningSkins/PlayTriangle by the editor).
+        public static Texture2D PlayTriangleTexture()
         {
+            var texture = new Texture2D(64, 64, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+            var pixels = new Color32[64 * 64];
+            for (int y = 0; y < 64; y++) for (int x = 0; x < 64; x++)
+            {
+                float u = (x + .5f) / 64, v = (y + .5f) / 64;
+                float inside = Mathf.Min(u - .12f, (.5f - Mathf.Abs(v - .5f)) * 1.6f - (u - .12f) * .8f);
+                pixels[y * 64 + x] = new Color32(255, 255, 255, (byte)(255 * Mathf.Clamp01(inside * 40)));
+            }
+            texture.SetPixels32(pixels); texture.Apply();
+            return texture;
+        }
+        // A Play button's call: the robot in its slot this frame.
+        void AddPlayButton(Button button)
+        {
+            int slot = playIds.Count; playIds.Add(0);
+            button.onClick.AddListener(() => battle.PlayRobot(playIds[slot]));
+            playButtons.Add((button, button.transform.Find("Label").GetComponent<TextMeshProUGUI>(), button.transform.Find("Icon").GetComponent<Image>()));
+        }
+        Button BuildPlayButton()
+        {
+            if (!statusLayer) BuildStatusLayer();
             var made = new GameObject("Play", typeof(RectTransform), typeof(Image), typeof(Button), typeof(HorizontalLayoutGroup), typeof(ContentSizeFitter));
             var rect = (RectTransform)made.transform; rect.SetParent(statusLayer, false);
             rect.anchorMin = rect.anchorMax = ((RectTransform)canvasRoot.transform).pivot; rect.pivot = new Vector2(.5f, 1);
             var back = UITheme.Style(made.GetComponent<Image>(), UITheme.Chip, UITheme.Sunny); back.pixelsPerUnitMultiplier = 1.7f;
             var button = made.GetComponent<Button>();
-            int slot = playIds.Count; playIds.Add(0);
-            button.onClick.AddListener(() => battle.PlayRobot(playIds[slot]));
             var colors = button.colors; colors.disabledColor = new Color(.78f, .78f, .78f, .85f); button.colors = colors;
             var layout = made.GetComponent<HorizontalLayoutGroup>(); layout.padding = new RectOffset(14, 16, 6, 8); layout.spacing = 6;
             layout.childAlignment = TextAnchor.MiddleCenter; layout.childControlWidth = layout.childControlHeight = true; layout.childForceExpandWidth = layout.childForceExpandHeight = false;
             var fit = made.GetComponent<ContentSizeFitter>(); fit.horizontalFit = fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-            if (!playTriangle)
-            {
-                // A right-pointing triangle, antialiased.
-                var texture = new Texture2D(64, 64, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
-                var pixels = new Color32[64 * 64];
-                for (int y = 0; y < 64; y++) for (int x = 0; x < 64; x++)
-                {
-                    float u = (x + .5f) / 64, v = (y + .5f) / 64;
-                    float inside = Mathf.Min(u - .12f, (.5f - Mathf.Abs(v - .5f)) * 1.6f - (u - .12f) * .8f);
-                    pixels[y * 64 + x] = new Color32(255, 255, 255, (byte)(255 * Mathf.Clamp01(inside * 40)));
-                }
-                texture.SetPixels32(pixels); texture.Apply();
-                playTriangle = Sprite.Create(texture, new Rect(0, 0, 64, 64), new Vector2(.5f, .5f));
-            }
+            if (!playTriangle) playTriangle = playIcon;
+            if (!playTriangle) playTriangle = Sprite.Create(PlayTriangleTexture(), new Rect(0, 0, 64, 64), new Vector2(.5f, .5f));
             var icon = new GameObject("Icon", typeof(RectTransform), typeof(Image), typeof(LayoutElement)).GetComponent<Image>();
             icon.rectTransform.SetParent(rect, false); icon.sprite = playTriangle; icon.color = UITheme.Ink; icon.raycastTarget = false;
             var size = icon.GetComponent<LayoutElement>(); size.preferredWidth = size.preferredHeight = 18;
@@ -522,20 +578,16 @@ namespace CodingGame.Defense
             label.rectTransform.SetParent(rect, false);
             label.font = UITheme.Display ? UITheme.Display : rewardItems.font; label.fontSize = 22; label.color = UITheme.Ink;
             label.alignment = TextAlignmentOptions.Center; label.textWrappingMode = TextWrappingModes.NoWrap; label.raycastTarget = false;
-            return (button, label, icon);
+            made.SetActive(false);
+            return button;
         }
-        RectTransform statusLayer;
+        [SerializeField, HideInInspector] RectTransform statusLayer;
         readonly System.Collections.Generic.List<int> playIds = new System.Collections.Generic.List<int>();
-        readonly System.Collections.Generic.List<TextMeshProUGUI> statusLabels = new System.Collections.Generic.List<TextMeshProUGUI>();
+        [SerializeField, HideInInspector] System.Collections.Generic.List<TextMeshProUGUI> statusLabels = new System.Collections.Generic.List<TextMeshProUGUI>();
         void RefreshRobotStatus(DefenseSimulation sim)
         {
             var canvas = (RectTransform)canvasRoot.transform;
-            if (!statusLayer)
-            {
-                statusLayer = new GameObject("Robot status", typeof(RectTransform)).GetComponent<RectTransform>();
-                statusLayer.SetParent(canvas, false); statusLayer.SetSiblingIndex(0); OwnCanvas(statusLayer.gameObject, true);
-                statusLayer.anchorMin = Vector2.zero; statusLayer.anchorMax = Vector2.one; statusLayer.sizeDelta = Vector2.zero; statusLayer.pivot = canvas.pivot;
-            }
+            if (!statusLayer) BuildStatusLayer();
             int shown = 0;
             bool results = sim.Phase == BattlePhase.Reward || sim.Phase == BattlePhase.Victory || sim.Phase == BattlePhase.Defeat;
             foreach (var bot in sim.Robots)
@@ -543,22 +595,7 @@ namespace CodingGame.Defense
                 // With the result up, every robot wears its debrief name so the advice points at a robot on the map.
                 string text = results ? DefenseDebrief.ResultTag(sim, bot, RobotLabel(sim, bot)) : DefenseDebrief.LiveStatus(sim, bot);
                 if (text == null || robotActions.gameObject.activeSelf && bot.Id == battle.SelectedId) continue;
-                if (shown == statusLabels.Count)
-                {
-                    // A dark plate sized to the text behind each tag.
-                    var plate = new GameObject("Status tag", typeof(RectTransform), typeof(Image), typeof(HorizontalLayoutGroup), typeof(ContentSizeFitter));
-                    var rect = (RectTransform)plate.transform; rect.SetParent(statusLayer, false);
-                    rect.anchorMin = rect.anchorMax = canvas.pivot; rect.pivot = new Vector2(.5f, 0);
-                    var back = UITheme.Style(plate.GetComponent<Image>(), UITheme.Chip, UITheme.Paper); back.pixelsPerUnitMultiplier = 1.7f; back.raycastTarget = false;
-                    var layout = plate.GetComponent<HorizontalLayoutGroup>(); layout.padding = new RectOffset(16, 16, 6, 8);
-                    layout.childControlWidth = layout.childControlHeight = true; layout.childForceExpandWidth = layout.childForceExpandHeight = false;
-                    var fit = plate.GetComponent<ContentSizeFitter>(); fit.horizontalFit = fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-                    var made = new GameObject("Status", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
-                    made.rectTransform.SetParent(rect, false);
-                    made.font = rewardItems.font; made.fontSize = 22; made.fontStyle = FontStyles.Bold; made.alignment = TextAlignmentOptions.Center; made.color = UITheme.Ink;
-                    made.textWrappingMode = TextWrappingModes.NoWrap; made.raycastTarget = false;
-                    statusLabels.Add(made);
-                }
+                if (shown == statusLabels.Count) statusLabels.Add(BuildStatusTag());
                 var label = statusLabels[shown++];
                 if (label.text != text) label.text = text;
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, battleCamera.WorldToScreenPoint(DefenseViews.World(bot.Position, DefenseBattle.RobotHeight)), null, out var head);
@@ -568,38 +605,65 @@ namespace CodingGame.Defense
             }
             for (int i = shown; i < statusLabels.Count; i++) statusLabels[i].transform.parent.gameObject.SetActive(false);
         }
+        void BuildStatusLayer()
+        {
+            var canvas = (RectTransform)canvasRoot.transform;
+            statusLayer = new GameObject("Robot status", typeof(RectTransform)).GetComponent<RectTransform>();
+            statusLayer.SetParent(canvas, false); statusLayer.SetSiblingIndex(0); OwnCanvas(statusLayer.gameObject, true);
+            statusLayer.anchorMin = Vector2.zero; statusLayer.anchorMax = Vector2.one; statusLayer.sizeDelta = Vector2.zero; statusLayer.pivot = canvas.pivot;
+        }
+        // A dark plate sized to the text behind each tag.
+        TextMeshProUGUI BuildStatusTag()
+        {
+            if (!statusLayer) BuildStatusLayer();
+            var plate = new GameObject("Status tag", typeof(RectTransform), typeof(Image), typeof(HorizontalLayoutGroup), typeof(ContentSizeFitter));
+            var rect = (RectTransform)plate.transform; rect.SetParent(statusLayer, false);
+            rect.anchorMin = rect.anchorMax = ((RectTransform)canvasRoot.transform).pivot; rect.pivot = new Vector2(.5f, 0);
+            var back = UITheme.Style(plate.GetComponent<Image>(), UITheme.Chip, UITheme.Paper); back.pixelsPerUnitMultiplier = 1.7f; back.raycastTarget = false;
+            var layout = plate.GetComponent<HorizontalLayoutGroup>(); layout.padding = new RectOffset(16, 16, 6, 8);
+            layout.childControlWidth = layout.childControlHeight = true; layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+            var fit = plate.GetComponent<ContentSizeFitter>(); fit.horizontalFit = fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            var made = new GameObject("Status", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+            made.rectTransform.SetParent(rect, false);
+            made.font = rewardItems.font; made.fontSize = 22; made.fontStyle = FontStyles.Bold; made.alignment = TextAlignmentOptions.Center; made.color = UITheme.Ink;
+            made.textWrappingMode = TextWrappingModes.NoWrap; made.raycastTarget = false;
+            plate.SetActive(false);
+            return made;
+        }
         // The wave's result in large letters over the screen; the result panel fades in under it, then the rewarded blocks
         // pop out in turn. Driven from LateUpdate by the time it started, so an interrupted frame never leaves the panel or a
         // block invisible; a later result (the stage, right after the last wave) replaces the banner.
         // The panel waits until the banner has nearly faded, so TIME UP/CLEAR never sits on top of the reward text.
         const float BannerSeconds = 1.4f, PanelFadeFrom = 1.3f, BlocksFrom = 1.6f, BlockStagger = .15f, BlockPop = .3f;
-        TextMeshProUGUI banner;
-        CanvasGroup bannerGroup;
+        [SerializeField, HideInInspector] TextMeshProUGUI banner;
+        [SerializeField, HideInInspector] CanvasGroup bannerGroup;
         CanvasGroup resultGroup;
         float resultShown = -100;
         readonly System.Collections.Generic.List<RectTransform> popping = new System.Collections.Generic.List<RectTransform>();
         void ShowEndBanner(string text, bool lost)
         {
-            if (!banner)
-            {
-                // A dark strip across the screen keeps the letters readable over the bright floor.
-                var strip = new GameObject("Result banner", typeof(RectTransform), typeof(Image), typeof(CanvasGroup)).GetComponent<RectTransform>();
-                strip.SetParent(canvasRoot.transform, false);
-                strip.anchorMin = new Vector2(0, .5f); strip.anchorMax = new Vector2(1, .5f); strip.sizeDelta = new Vector2(0, 200);
-                var shade = strip.GetComponent<Image>(); shade.color = new Color(UITheme.Night.r, UITheme.Night.g, UITheme.Night.b, .8f); shade.raycastTarget = false;
-                bannerGroup = strip.GetComponent<CanvasGroup>(); bannerGroup.blocksRaycasts = false; bannerGroup.interactable = false;
-                banner = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
-                banner.rectTransform.SetParent(strip, false);
-                banner.rectTransform.anchorMin = banner.rectTransform.anchorMax = new Vector2(.5f, .5f); banner.rectTransform.sizeDelta = new Vector2(1600, 220);
-                // The body font in regular weight: bold spreads Korean letters apart at this size (see the wave call).
-                banner.font = UITheme.Display ? UITheme.Display : rewardItems.font; banner.fontSize = 112; banner.characterSpacing = -2; banner.alignment = TextAlignmentOptions.Center; banner.raycastTarget = false;
-                if (UITheme.Banner) banner.fontSharedMaterial = UITheme.Banner;
-            }
+            if (!banner) BuildBanner();
             banner.transform.parent.SetAsLastSibling();
             banner.color = lost ? new Color(1, .35f, .35f) : new Color(.88f, .96f, 1); banner.text = text.Replace("  /  ", "  ");
             resultGroup = rewardPanel.GetComponent<CanvasGroup>();
             if (!resultGroup) resultGroup = rewardPanel.AddComponent<CanvasGroup>();
             resultShown = Time.unscaledTime;
+        }
+        // A dark strip across the screen keeps the letters readable over the bright floor.
+        void BuildBanner()
+        {
+            var strip = new GameObject("Result banner", typeof(RectTransform), typeof(Image), typeof(CanvasGroup)).GetComponent<RectTransform>();
+            strip.SetParent(canvasRoot.transform, false);
+            strip.anchorMin = new Vector2(0, .5f); strip.anchorMax = new Vector2(1, .5f); strip.sizeDelta = new Vector2(0, 200);
+            var shade = strip.GetComponent<Image>(); shade.color = new Color(UITheme.Night.r, UITheme.Night.g, UITheme.Night.b, .8f); shade.raycastTarget = false;
+            bannerGroup = strip.GetComponent<CanvasGroup>(); bannerGroup.blocksRaycasts = false; bannerGroup.interactable = false;
+            banner = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+            banner.rectTransform.SetParent(strip, false);
+            banner.rectTransform.anchorMin = banner.rectTransform.anchorMax = new Vector2(.5f, .5f); banner.rectTransform.sizeDelta = new Vector2(1600, 220);
+            // The body font in regular weight: bold spreads Korean letters apart at this size (see the wave call).
+            banner.font = UITheme.Display ? UITheme.Display : rewardItems.font; banner.fontSize = 112; banner.characterSpacing = -2; banner.alignment = TextAlignmentOptions.Center; banner.raycastTarget = false;
+            if (UITheme.Banner) banner.fontSharedMaterial = UITheme.Banner;
+            strip.gameObject.SetActive(false);
         }
         void AnimateResult()
         {
@@ -631,24 +695,39 @@ namespace CodingGame.Defense
 
         // The rewarded blocks as they look in the editor (planner: an image, not a name), in a row above the reward text.
         RectTransform rewardBlocks;
+        // A block's picture and count are made the first time that block is a reward and kept for the next (each result
+        // destroyed and rebuilt them all).
+        readonly System.Collections.Generic.Dictionary<CodingGame.BlockCoding.BlockKind, (RectTransform copy, TextMeshProUGUI count)> rewardShown =
+            new System.Collections.Generic.Dictionary<CodingGame.BlockCoding.BlockKind, (RectTransform, TextMeshProUGUI)>();
         void ShowRewardBlocks(System.Collections.Generic.IReadOnlyList<CodingGame.BlockCoding.BlockKind> drops)
         {
-            if (rewardBlocks) Destroy(rewardBlocks.gameObject);
-            rewardBlocks = null; rewardItems.margin = new Vector4(8,8,8,12);
+            rewardItems.margin = new Vector4(8,8,8,12);
+            if (rewardBlocks) foreach (Transform child in rewardBlocks) child.gameObject.SetActive(false);
+            popping.Clear();
             var panel = battle.CodeEditor ? battle.CodeEditor.Panel : null;
             if (drops == null || drops.Count == 0) return;
-            rewardBlocks = new GameObject("Reward blocks", typeof(RectTransform)).GetComponent<RectTransform>();
-            rewardBlocks.SetParent(rewardItems.transform, false);
-            // RewardTop clear of the list's top edge, which clipped the blocks as they popped to 1.15x (play feedback 4).
-            rewardBlocks.anchorMin = rewardBlocks.anchorMax = rewardBlocks.pivot = new Vector2(0, 1); rewardBlocks.anchoredPosition = new Vector2(RewardInset, -RewardTop);
+            if (!rewardBlocks)
+            {
+                rewardBlocks = new GameObject("Reward blocks", typeof(RectTransform)).GetComponent<RectTransform>();
+                rewardBlocks.SetParent(rewardItems.transform, false);
+                // RewardTop clear of the list's top edge, which clipped the blocks as they popped to 1.15x (play feedback 4).
+                rewardBlocks.anchorMin = rewardBlocks.anchorMax = rewardBlocks.pivot = new Vector2(0, 1); rewardBlocks.anchoredPosition = new Vector2(RewardInset, -RewardTop);
+            }
             float x = 0, y = 0, rowHeight = 0, width = ((RectTransform)rewardItems.transform).rect.width - 2 * RewardInset;
-            popping.Clear();
             foreach (var group in drops.GroupBy(k => k).OrderBy(g => g.Key))
             {
-                var view = panel == null ? null : group.Key == CodingGame.BlockCoding.BlockKind.Variable ? panel.VariableTemplate : panel.Palette.FirstOrDefault(p => p.view.BaseKind == group.Key).view;
-                // A block with no palette item yet keeps its name, so no reward goes unseen.
-                if (!view) { rewardItems.text = DefenseProgression.Label(group.Key) + "   x" + group.Count() + "\n" + rewardItems.text; continue; }
-                var copy = DefenseViews.GraphicCopy(view.Rect, rewardBlocks);
+                if (!rewardShown.TryGetValue(group.Key, out var made))
+                {
+                    var view = panel == null ? null : group.Key == CodingGame.BlockCoding.BlockKind.Variable ? panel.VariableTemplate : panel.Palette.FirstOrDefault(p => p.view.BaseKind == group.Key).view;
+                    // A block with no palette item yet keeps its name, so no reward goes unseen.
+                    if (!view) { rewardItems.text = DefenseProgression.Label(group.Key) + "   x" + group.Count() + "\n" + rewardItems.text; continue; }
+                    var newCount = new GameObject("Count", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                    newCount.rectTransform.SetParent(rewardBlocks, false); newCount.rectTransform.anchorMin = newCount.rectTransform.anchorMax = new Vector2(0, 1); newCount.rectTransform.pivot = new Vector2(.5f, .5f);
+                    newCount.font = rewardItems.font; newCount.fontSize = 26; newCount.alignment = TextAlignmentOptions.MidlineLeft; newCount.raycastTarget = false;
+                    newCount.color = new Color(.81f, .87f, .91f);
+                    rewardShown[group.Key] = made = (DefenseViews.GraphicCopy(view.Rect, rewardBlocks), newCount);
+                }
+                var copy = made.copy;
                 copy.gameObject.SetActive(true);
                 var preview=copy.GetComponentInChildren<CodingGame.BlockCoding.CommandBlockView>();
                 LayoutRebuilder.ForceRebuildLayoutImmediate(preview.Rect);
@@ -657,11 +736,9 @@ namespace CodingGame.Defense
                 // Centred pivots, so the pop grows from the middle.
                 copy.anchorMin = copy.anchorMax = new Vector2(0, 1); copy.pivot = new Vector2(.5f, .5f); copy.sizeDelta = new Vector2(w, h); copy.anchoredPosition = new Vector2(x + w * .5f, -y - h * .5f);
                 LayoutRebuilder.ForceRebuildLayoutImmediate(preview.Rect);
-                var count = new GameObject("Count", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
-                count.rectTransform.SetParent(rewardBlocks, false); count.rectTransform.anchorMin = count.rectTransform.anchorMax = new Vector2(0, 1); count.rectTransform.pivot = new Vector2(.5f, .5f);
+                var count = made.count; count.gameObject.SetActive(true);
                 count.rectTransform.anchoredPosition = new Vector2(x + w + 30, -y - h * .5f); count.rectTransform.sizeDelta = new Vector2(48, h);
-                count.font = rewardItems.font; count.fontSize = 26; count.alignment = TextAlignmentOptions.MidlineLeft; count.text = "x" + group.Count(); count.raycastTarget = false;
-                count.color = new Color(.81f, .87f, .91f);
+                count.text = "x" + group.Count();
                 x += w + 60; rowHeight = Mathf.Max(rowHeight, h);
                 popping.Add(copy); popping.Add(count.rectTransform);
             }
@@ -671,15 +748,21 @@ namespace CodingGame.Defense
         // The stage's stars, the core left and what the next star needs, so a clear invites a better run.
         // 디버 to the left of the result card (the title's parent; the reward panel itself is the full-screen shade), so it
         // fades in with the panel: face and one line for this result.
-        RectTransform guideCorner;
-        Image guidePortrait;
-        TextMeshProUGUI guideLine;
+        [SerializeField, HideInInspector] RectTransform guideCorner;
+        [SerializeField, HideInInspector] Image guidePortrait;
+        [SerializeField, HideInInspector] TextMeshProUGUI guideLine;
         Sprite[] guideFaces;
         void ShowGuide(DefenseSimulation sim)
         {
-            if (!guideCorner)
+            if (!guideCorner) BuildGuide();
+            guideFaces ??= Enum.GetNames(typeof(GuideMood)).Select(m => Resources.Load<Sprite>("Guide/Guide_" + m.ToLowerInvariant())).ToArray();
+            var (mood, line) = DefenseDebrief.GuideSays(sim);
+            guidePortrait.sprite = guideFaces[(int)mood]; guidePortrait.enabled = guidePortrait.sprite;
+            guideLine.text = $"<color={UITheme.CalmHex}><b>디버</b></color>\n{line}";
+        }
+        void BuildGuide()
+        {
             {
-                guideFaces = Enum.GetNames(typeof(GuideMood)).Select(m => Resources.Load<Sprite>("Guide/Guide_" + m.ToLowerInvariant())).ToArray();
                 guideCorner = new GameObject("Guide", typeof(RectTransform)).GetComponent<RectTransform>();
                 guideCorner.SetParent(rewardTitle.transform.parent, false);
                 guideCorner.anchorMin = guideCorner.anchorMax = new Vector2(0, 1); guideCorner.pivot = new Vector2(1, 1);
@@ -698,9 +781,6 @@ namespace CodingGame.Defense
                 guideLine.rectTransform.anchorMin = Vector2.zero; guideLine.rectTransform.anchorMax = Vector2.one;
                 guideLine.rectTransform.sizeDelta = new Vector2(-28, -20); guideLine.enableAutoSizing = true; guideLine.fontSizeMin = 17; guideLine.fontSizeMax = 24;
             }
-            var (mood, line) = DefenseDebrief.GuideSays(sim);
-            guidePortrait.sprite = guideFaces[(int)mood]; guidePortrait.enabled = guidePortrait.sprite;
-            guideLine.text = $"<color={UITheme.CalmHex}><b>디버</b></color>\n{line}";
         }
 
         // Under the big stars: a new record or the best one, and what the next star asks for.
@@ -713,14 +793,26 @@ namespace CodingGame.Defense
             return line;
         }
         // Three large stars in the reward text's top margin (stage clear has no reward blocks there), gold when earned.
-        readonly System.Collections.Generic.List<TextMeshProUGUI> stars = new System.Collections.Generic.List<TextMeshProUGUI>();
-        RectTransform starRow;
+        [SerializeField, HideInInspector] System.Collections.Generic.List<TextMeshProUGUI> stars = new System.Collections.Generic.List<TextMeshProUGUI>();
+        [SerializeField, HideInInspector] RectTransform starRow;
         int starsEarned, starsRung;
         const float StarsFrom = 1.7f, StarStagger = .4f, StarPop = .35f, StarRowHeight = 110;
         void ShowStars(DefenseSimulation sim)
         {
             bool show = sim.Phase == BattlePhase.Victory;
-            if (!starRow && show)
+            if (!starRow && show) BuildStars();
+            if (starRow) starRow.gameObject.SetActive(show);
+            if (!show) return;
+            starsEarned = sim.StageStars; starsRung = 0;
+            for (int i = 0; i < stars.Count; i++)
+            {
+                stars[i].color = i < starsEarned ? UITheme.Sunny : UITheme.PaperDeep;
+                stars[i].rectTransform.localScale = Vector3.zero;
+            }
+            var margin = rewardItems.margin; margin.y = StarRowHeight + 8; rewardItems.margin = margin;
+        }
+        void BuildStars()
+        {
             {
                 starRow = new GameObject("Stars", typeof(RectTransform)).GetComponent<RectTransform>();
                 starRow.SetParent(rewardItems.transform, false);
@@ -738,27 +830,20 @@ namespace CodingGame.Defense
                     else { star.outlineWidth = .2f; star.outlineColor = UITheme.Ink; }
                     stars.Add(star);
                 }
+                starRow.gameObject.SetActive(false);
             }
-            if (starRow) starRow.gameObject.SetActive(show);
-            if (!show) return;
-            starsEarned = sim.StageStars; starsRung = 0;
-            for (int i = 0; i < stars.Count; i++)
-            {
-                stars[i].color = i < starsEarned ? UITheme.Sunny : UITheme.PaperDeep;
-                stars[i].rectTransform.localScale = Vector3.zero;
-            }
-            var margin = rewardItems.margin; margin.y = StarRowHeight + 8; rewardItems.margin = margin;
         }
         // Esc: a menu over the battle (and over a lesson) to resume, set the sound and voice volume, restart the stage or leave
         // for the stage map. A running wave pauses while it is open and resumes when it closes; a lesson waits.
-        GameObject menu;
-        Slider soundSlider, voiceSlider;
-        Button restartButton;
+        [SerializeField, HideInInspector] GameObject menu;
+        [SerializeField, HideInInspector] Slider soundSlider, voiceSlider;
+        [SerializeField, HideInInspector] Button restartButton, resumeButton, leaveButton;
+        [SerializeField, HideInInspector] TMP_Text soundPercent, voicePercent;
         bool pausedByMenu;
         public bool MenuOpen => menu && menu.activeSelf;
         public void ToggleMenu()
         {
-            if (!menu) BuildMenu();
+            if (!menu) { BuildMenu(); WireMenu(); }
             bool open = !menu.activeSelf;
             menu.SetActive(open); menu.transform.SetAsLastSibling();
             var sim = battle.Simulation;
@@ -790,20 +875,20 @@ namespace CodingGame.Defense
                 label.color = UITheme.Ink; label.textWrappingMode = TextWrappingModes.Normal;
                 return label;
             }
-            TMP_Text Add(string text, float y, Color fill, Action click)
+            Button Add(string text, float y, Color fill)
             {
                 var button = Instantiate(claimButton, card);
                 var r = (RectTransform)button.transform;
                 r.anchorMin = r.anchorMax = new Vector2(.5f, .5f); r.sizeDelta = new Vector2(380, 66); r.anchoredPosition = new Vector2(0, y);
-                button.interactable = true; button.onClick.AddListener(() => click());
+                button.interactable = true;
                 UITheme.Style((Image)button.targetGraphic, UITheme.Button, fill);
                 var label = button.GetComponentInChildren<TMP_Text>(); label.text = text; label.color = UITheme.Ink;
-                return label;
+                return button;
             }
             var title = Text("일시정지", 250, 46);
             if (UITheme.Display) title.font = UITheme.Display;
             // A label, a slider and its percent on one row.
-            Slider Volume(string name, float y, Action<float> changed)
+            Slider Volume(string name, float y, out TMP_Text shown)
             {
                 var label = Text(name, y, 24); label.rectTransform.sizeDelta = new Vector2(150, 60); label.rectTransform.anchoredPosition = new Vector2(-150, y);
                 label.alignment = TextAlignmentOptions.MidlineLeft;
@@ -829,40 +914,50 @@ namespace CodingGame.Defense
                 slider.fillRect = fill; slider.handleRect = handle; slider.targetGraphic = handle.GetComponent<Image>();
                 slider.direction = Slider.Direction.LeftToRight; slider.minValue = 0; slider.maxValue = 1;
                 // Starts at 0 with "0%"; opening the menu moves it to the saved volume (the percent follows any change).
-                percent.text = "0%";
-                slider.onValueChanged.AddListener(v => { changed(v); percent.text = Mathf.RoundToInt(v * 100) + "%"; });
+                percent.text = "0%"; shown = percent;
                 return slider;
             }
-            Add("계속하기", 160, UITheme.Primary, ToggleMenu);
-            soundSlider = Volume("소리", 80, v => DefenseSounds.Volume = v);
-            voiceSlider = Volume("디버 목소리", 0, v => TutorialDialogueView.VoiceVolume = v);
-            restartButton = Add("이 스테이지 처음부터", -80, UITheme.PaperDeep, () => { ToggleMenu(); battle.Restart(); }).GetComponentInParent<Button>();
-            Add(battle.FromStageMap ? "스테이지 맵으로" : "타이틀로", -160, UITheme.Coral, () => GameFlow.LoadScene(battle.FromStageMap ? GameFlow.StageScene : GameFlow.TitleScene));
+            resumeButton = Add("계속하기", 160, UITheme.Primary);
+            soundSlider = Volume("소리", 80, out soundPercent);
+            voiceSlider = Volume("디버 목소리", 0, out voicePercent);
+            restartButton = Add("이 스테이지 처음부터", -80, UITheme.PaperDeep);
+            leaveButton = Add("타이틀로", -160, UITheme.Coral);
             Text("스테이지 도중에 나가면 이 스테이지 진행은 저장되지 않아요.", -250, 19).color = UITheme.Muted;
             menu.SetActive(false); // built closed, so the first Esc opens it
         }
+        // The menu's calls, added at run time (a baked menu keeps none); from the stage map the last button goes back there.
+        void WireMenu()
+        {
+            resumeButton.onClick.AddListener(ToggleMenu);
+            restartButton.onClick.AddListener(() => { ToggleMenu(); battle.Restart(); });
+            leaveButton.GetComponentInChildren<TMP_Text>().text = battle.FromStageMap ? "스테이지 맵으로" : "타이틀로";
+            leaveButton.onClick.AddListener(() => GameFlow.LoadScene(battle.FromStageMap ? GameFlow.StageScene : GameFlow.TitleScene));
+            soundSlider.onValueChanged.AddListener(v => { DefenseSounds.Volume = v; soundPercent.text = Mathf.RoundToInt(v * 100) + "%"; });
+            voiceSlider.onValueChanged.AddListener(v => { TutorialDialogueView.VoiceVolume = v; voicePercent.text = Mathf.RoundToInt(v * 100) + "%"; });
+        }
         // On a defeat that can go back one wave, the result button retries the wave and a copy beside it restarts the stage
         // (a wave that began with little core health may be better started over).
-        Button restartStageButton;
+        [SerializeField, HideInInspector] Button restartStageButton;
         Vector2 claimAnchorMax;
         void SplitDefeatButtons(bool split)
         {
             var claim = (RectTransform)claimButton.transform;
-            if (split && !restartStageButton)
-            {
-                claimAnchorMax = claim.anchorMax;
-                restartStageButton = Instantiate(claimButton, claim.parent);
-                restartStageButton.name = "RestartStage";
-                restartStageButton.onClick.AddListener(battle.Restart);
-                ((Image)restartStageButton.targetGraphic).color = UITheme.Paper; // the retry beside it stays the one yellow button
-                var label = restartStageButton.GetComponentInChildren<TMP_Text>();
-                label.text = "스테이지 처음부터"; label.fontSize = claimLabel.fontSize * .85f;
-                var r = (RectTransform)restartStageButton.transform;
-                r.anchorMin = new Vector2(.64f, claim.anchorMin.y); r.anchorMax = claimAnchorMax;
-            }
+            if (split && !restartStageButton) { BuildRestartStage(); restartStageButton.onClick.AddListener(battle.Restart); }
             if (!restartStageButton) return;
             restartStageButton.gameObject.SetActive(split);
             claim.anchorMax = new Vector2(split ? .62f : claimAnchorMax.x, claimAnchorMax.y);
+        }
+        void BuildRestartStage()
+        {
+            var claim = (RectTransform)claimButton.transform;
+            restartStageButton = Instantiate(claimButton, claim.parent);
+            restartStageButton.name = "RestartStage";
+            ((Image)restartStageButton.targetGraphic).color = UITheme.Paper; // the retry beside it stays the one yellow button
+            var label = restartStageButton.GetComponentInChildren<TMP_Text>();
+            label.text = "스테이지 처음부터"; label.fontSize = claimLabel.fontSize * .85f;
+            var r = (RectTransform)restartStageButton.transform;
+            r.anchorMin = new Vector2(.64f, claim.anchorMin.y); r.anchorMax = claim.anchorMax;
+            restartStageButton.gameObject.SetActive(false);
         }
         // Robots of one kind are numbered in placement order; the same name heads the debrief line and the robot's tag.
         string RobotLabel(DefenseSimulation sim, RobotState bot)
@@ -873,15 +968,20 @@ namespace CodingGame.Defense
         // The debrief under the reward text: the headline, then a card per robot with a stripe in its state's colour
         // (green MVP, yellow advice, blue fine), its numbers, a bar for its share of the wave's damage and its own advice.
         // The cards sit in the reward text's bottom margin so the tutorial's reward focus above them is unchanged.
-        sealed class DebriefCard { public RectTransform root; public Image stripe, share; public TextMeshProUGUI title, advice; }
-        readonly System.Collections.Generic.List<DebriefCard> debriefCards = new System.Collections.Generic.List<DebriefCard>();
-        RectTransform debriefRoot;
-        TextMeshProUGUI debriefHeadline;
+        [Serializable] sealed class DebriefCard { public RectTransform root; public Image stripe, share; public TextMeshProUGUI title, advice; }
+        [SerializeField, HideInInspector] System.Collections.Generic.List<DebriefCard> debriefCards = new System.Collections.Generic.List<DebriefCard>();
+        [SerializeField, HideInInspector] RectTransform debriefRoot;
+        [SerializeField, HideInInspector] TextMeshProUGUI debriefHeadline;
         static readonly Color MvpColor = UITheme.Hex(0x40C057), AdviceColor = UITheme.Hex(0xFD7E14), FineColor = UITheme.Hex(0x4DABF7);
         void ShowDebrief(DefenseSimulation sim)
         {
             var (headline, lines) = DefenseDebrief.Summary(sim, bot => RobotLabel(sim, bot));
-            if (!debriefRoot)
+            if (!debriefRoot) BuildDebrief();
+            debriefHeadline.text = headline;
+            ShowDebriefCards(lines);
+        }
+        void BuildDebrief()
+        {
             {
                 debriefRoot = new GameObject("Debrief", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter)).GetComponent<RectTransform>();
                 debriefRoot.SetParent(rewardItems.transform, false);
@@ -891,8 +991,11 @@ namespace CodingGame.Defense
                 column.childControlWidth = column.childControlHeight = true; column.childForceExpandWidth = true; column.childForceExpandHeight = false;
                 debriefRoot.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
                 debriefHeadline = Text(debriefRoot, rewardItems.fontSize * .85f);
+                debriefRoot.gameObject.SetActive(false);
             }
-            debriefHeadline.text = headline;
+        }
+        void ShowDebriefCards(DefenseDebrief.Line[] lines)
+        {
             float most = Mathf.Max(1, lines.Length == 0 ? 0 : lines.Max(l => l.Bot.DamageThisWave));
             for (int i = 0; i < lines.Length; i++)
             {
@@ -945,6 +1048,7 @@ namespace CodingGame.Defense
             var advice = Text(root, rewardItems.fontSize * .76f); advice.color = UITheme.Hex(0x7A4E0C);
             var card = new DebriefCard { root = root, stripe = stripe, share = share, title = title, advice = advice };
             debriefCards.Add(card);
+            root.gameObject.SetActive(false);
             return card;
         }
         // The tutorial's reward focus (1-1 E06a) ends just under the reward text, so the dialogue box below does not cover it.

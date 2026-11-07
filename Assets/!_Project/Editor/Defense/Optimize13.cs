@@ -111,6 +111,11 @@ namespace CodingGame.Defense.Editor
             Camera.main.ResetProjectionMatrix();
             var battle = All<DefenseBattle>(scene).First();
             foreach (var hud in All<DefensePlayerHUD>(scene)) hud.Bake(battle.EditorCampaign.robots);
+            // What the HUD built the first time it needed it (the wave call, combat numbers, the leak glow, Play buttons and tags,
+            // the result banner and stars, 디버's corner, debrief cards, the Esc menu, the stage-restart button).
+            var glow = SaveSprite("LeakEdgeGlow", DefensePlayerHUD.EdgeGlowTexture());
+            var triangle = SaveSprite("PlayTriangle", DefensePlayerHUD.PlayTriangleTexture());
+            foreach (var hud in All<DefensePlayerHUD>(scene)) { hud.BakeParts(glow, triangle); EditorUtility.SetDirty(hud); }
             foreach (var dock in All<DefensePlacementDock>(scene)) dock.Layout();
             foreach (var editor in All<DefenseCodeEditor>(scene)) editor.Bake();
             foreach (var preview in All<DefenseAttackPreview>(scene)) preview.Bake();
@@ -187,6 +192,18 @@ namespace CodingGame.Defense.Editor
             var so = new SerializedObject(target); so.FindProperty(field).objectReferenceValue = value; so.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        // A texture the game used to draw at load, saved once as a sprite in Resources/LearningSkins.
+        static Sprite SaveSprite(string name, Texture2D texture)
+        {
+            string path = "Assets/!_Project/Resources/LearningSkins/" + name + ".png";
+            File.WriteAllBytes(path, texture.EncodeToPNG()); Object.DestroyImmediate(texture);
+            AssetDatabase.ImportAsset(path);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.textureType = TextureImporterType.Sprite; importer.spriteImportMode = SpriteImportMode.Single; importer.mipmapEnabled = false;
+            importer.wrapMode = TextureWrapMode.Clamp; importer.alphaIsTransparency = true; importer.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
+
         // A camera that needs neither the depth nor the opaque texture nor shadows (no shader samples them).
         static void Lean(Camera camera)
         {
@@ -239,7 +256,7 @@ namespace CodingGame.Defense.Editor
                 Check(left.Length == 0, $"126 the battle's body texts are saved in Pretendard Bold ({left.Length} left)");
                 Check(!File.ReadAllText("Assets/!_Project/Scripts/Defense/DefenseBattle.cs").Contains("UITheme.BoldBody"), "126 no body-font pass when the battle starts");
                 Check(GoalBanner(defense).GetComponent<Canvas>(), "132 the goal banner has its own canvas");
-                var unbaked = All<DefensePlayerHUD>(defense).Where(c => !c.Baked).Select(c => c.name)
+                var unbaked = All<DefensePlayerHUD>(defense).Where(c => !c.Baked || !c.PartsBaked).Select(c => c.name)
                     .Concat(All<DefenseCodeEditor>(defense).Where(c => !c.Baked).Select(c => c.name))
                     .Concat(All<DefenseAttackPreview>(defense).Where(c => !c.Baked).Select(c => c.name))
                     .Concat(All<TutorialPointer>(defense).Where(c => !c.Baked).Select(c => c.name)).ToArray();
