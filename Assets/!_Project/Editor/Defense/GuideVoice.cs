@@ -43,6 +43,24 @@ namespace CodingGame.Defense.Editor
             SessionState.SetBool("GuideVoice.TypecastStarted", false);
         }
 
+        // Stage 1's lines only (1-1 to 1-5), in the Typecast voice; other stages keep their clips. Like the full run, a run cut
+        // short records only what is still missing when repeated.
+        [MenuItem("Tools/Develop/디버 음성 만들기 (타입캐스트 시우, 1스테이지)")]
+        public static void BuildTypecastStageOne()
+        {
+            if (string.IsNullOrEmpty(TypecastKey))
+                throw new System.InvalidOperationException("[GuideVoice] TYPECAST_API_KEY가 없습니다. 프로젝트 폴더의 .env에 TYPECAST_API_KEY=키 를 적어 주세요.");
+            var lines = Lines(1);
+            if (!SessionState.GetBool("GuideVoice.TypecastStageOne", false))
+            {
+                foreach (var key in lines.Where(t => t.speaker != TutorialSignals.SystemSpeaker).Select(t => GuideSpeech.Key(t.text)))
+                    AssetDatabase.DeleteAsset($"{Folder}/{key}.ogg");
+                SessionState.SetBool("GuideVoice.TypecastStageOne", true);
+            }
+            Build("typecast", lines);
+            SessionState.SetBool("GuideVoice.TypecastStageOne", false);
+        }
+
         // Unity's own environment is fixed when it starts; a key set later with setx is in the user's variables.
         // The project's .env (git-ignored) comes first, then the environment.
         static string TypecastKey => DotEnv("TYPECAST_API_KEY") is string fromFile && fromFile.Length > 0 ? fromFile :
@@ -51,15 +69,16 @@ namespace CodingGame.Defense.Editor
         static string DotEnv(string name) => File.Exists(".env") ? File.ReadAllLines(".env").Select(line => line.Trim())
             .Where(line => line.StartsWith(name + "=")).Select(line => line.Substring(name.Length + 1).Trim().Trim('"')).FirstOrDefault() : null;
 
-        static List<TutorialText> Lines() => AssetDatabase.FindAssets("t:TutorialSequence").Select(AssetDatabase.GUIDToAssetPath)
-            .Select(AssetDatabase.LoadAssetAtPath<TutorialSequence>).Where(s => s && s.enabled)
+        static List<TutorialText> Lines(int stage = 0) => AssetDatabase.FindAssets("t:TutorialSequence").Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<TutorialSequence>).Where(s => s && s.enabled && (stage == 0 || s.stage == stage))
             .SelectMany(s => s.steps).SelectMany(step => step.texts)
             .Where(t => !string.IsNullOrWhiteSpace(t.text) && GuideSpeech.Speakable(t.text).Length > 0)
             .GroupBy(t => GuideSpeech.Key(t.text)).Select(g => g.First()).ToList();
 
-        static void Build(string engine)
+        // only: record just these lines and leave every other clip alone; null records all lines and removes unused clips.
+        static void Build(string engine, List<TutorialText> only = null)
         {
-            var lines = Lines();
+            var lines = only ?? Lines();
             Directory.CreateDirectory(Folder);
             string jobs = Path.Combine(Path.GetTempPath(), "guide_voice_jobs.txt");
             File.WriteAllLines(jobs, lines.Select(t => GuideSpeech.Key(t.text) + "\t" + (t.speaker == TutorialSignals.SystemSpeaker ? "system" : "guide") + "\t" + GuideSpeech.Speakable(t.text)),
@@ -74,7 +93,7 @@ namespace CodingGame.Defense.Editor
 
             var keep = new HashSet<string>(lines.Select(t => GuideSpeech.Key(t.text)));
             int removed = 0;
-            foreach (var old in Directory.GetFiles(Folder, "*.ogg").Where(f => !keep.Contains(Path.GetFileNameWithoutExtension(f))))
+            foreach (var old in Directory.GetFiles(Folder, "*.ogg").Where(f => only == null && !keep.Contains(Path.GetFileNameWithoutExtension(f))))
             { AssetDatabase.DeleteAsset(old.Replace('\\', '/')); removed++; }
             AssetDatabase.Refresh();
             foreach (var path in Directory.GetFiles(Folder, "*.ogg").Select(p => p.Replace('\\', '/')))
