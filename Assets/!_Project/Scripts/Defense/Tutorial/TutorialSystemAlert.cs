@@ -9,7 +9,9 @@ namespace CodingGame.Defense
 {
     // Lines spoken by "시스템" show here: a red alarm banner (outlined message on a hazard-striped bar over a pulsing red
     // vignette) that plays the warning sound and fades out after a fixed time. With cards (1-1 A01) three warning cards
-    // slam in above the bar first, each with the sound. The visuals are built at run time inside the scene's boot overlay (panel + CanvasGroup).
+    // slam in above the bar first, each with the sound. The visuals are built once in the editor inside the scene's boot
+    // overlay (panel + CanvasGroup) and saved with it (13차 127, Tools/Optimize/128 Bake Battle UI); only a scene that was
+    // never baked builds them at load.
     public sealed class TutorialSystemAlert : MonoBehaviour
     {
         [SerializeField] GameObject panel;
@@ -28,16 +30,23 @@ namespace CodingGame.Defense
         float clock, duration;
         bool withCards;
         int sounded;
-        RectTransform bar, stripes, shake;
-        Image vignette;
+        [SerializeField, HideInInspector] RectTransform bar, stripes, shake;
+        [SerializeField, HideInInspector] Image vignette;
+        [SerializeField, HideInInspector] List<RectTransform> cardRects = new List<RectTransform>();
+        [SerializeField, HideInInspector] List<CanvasGroup> cardGroups = new List<CanvasGroup>();
         readonly List<(RectTransform rect, CanvasGroup group)> cards = new List<(RectTransform, CanvasGroup)>();
-        Material glow;
+        // The alarm's look: the letters' glow material and the disc, triangle and vignette (Resources/LearningSkins, UI).
+        [SerializeField, HideInInspector] Material glow;
+        [SerializeField, HideInInspector] Sprite circleSprite, triangleSprite, vignetteSprite;
+        [SerializeField, HideInInspector] bool baked;
+        public bool Baked => baked;
         public bool IsShowing => panel.activeSelf;
 
         void Awake()
         {
             if (!panel || !fade || !message || !warning) throw new InvalidOperationException(name + ": 시스템 경고 UI 참조 누락");
-            Build();
+            if (!baked) Build();
+            for (int i = 0; i < cardRects.Count; i++) cards.Add((cardRects[i], cardGroups[i]));
             panel.SetActive(false);
         }
 
@@ -101,27 +110,28 @@ namespace CodingGame.Defense
         const float Beat = .5f;
         static float Land(int panel) => .1f + panel * Beat;
 
-        // ---- run-time visuals ----
+#if UNITY_EDITOR
+        public void Bake(Sprite circle, Sprite triangle, Sprite vignetteGlow, Material glowMaterial)
+        {
+            if (baked) return;
+            circleSprite = circle; triangleSprite = triangle; vignetteSprite = vignetteGlow; glow = glowMaterial;
+            Build();
+            baked = true;
+        }
+#endif
+        // ---- the visuals ----
         void Build()
         {
             var root = (RectTransform)panel.transform;
             if (panel.TryGetComponent<Image>(out var background)) background.color = Color.black;
-            vignette = NewImage("Alarm vignette", root, Vignette(), Color.clear); Stretch(vignette);
+            vignette = NewImage("Alarm vignette", root, vignetteSprite ? vignetteSprite : Vignette(), Color.clear); Stretch(vignette);
             shake = Stretch(New("Alarm content", root));
             // Jalnan like every other heading, so the alarm reads as part of the game rather than a terminal (play feedback:
             // the square red frames looked stiff). Panels and stripes are rounded a little (ui_fill), framed thicker, on a shadow.
             if (UITheme.Display) message.font = UITheme.Display;
             // Light letters with a dark maroon outline and a hard dark drop, the banner look in the alarm's colours (Jalnan's
             // material has no glow pass; the glow stays for a font that has one).
-            glow = new Material(message.fontSharedMaterial);
-            glow.EnableKeyword(ShaderUtilities.Keyword_Glow);
-            glow.SetColor(ShaderUtilities.ID_GlowColor, new Color(1, .05f, .1f, .8f));
-            glow.SetFloat(ShaderUtilities.ID_GlowOuter, .55f); glow.SetFloat(ShaderUtilities.ID_GlowPower, .75f);
-            glow.EnableKeyword(ShaderUtilities.Keyword_Outline);
-            glow.SetFloat(ShaderUtilities.ID_OutlineWidth, .25f); glow.SetColor(ShaderUtilities.ID_OutlineColor, new Color(.12f, 0, .02f));
-            glow.EnableKeyword(ShaderUtilities.Keyword_Underlay);
-            glow.SetColor(ShaderUtilities.ID_UnderlayColor, new Color(.08f, 0, .01f, .9f)); glow.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -.45f);
-            glow.SetFloat(ShaderUtilities.ID_UnderlayDilate, .25f); glow.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0);
+            if (!glow) { glow = new Material(message.fontSharedMaterial); Glow(glow); }
 
             bar = New("Alarm bar", shake); bar.sizeDelta = new Vector2(1560, 92);
             Panel(bar, 40, 16, new Color(.36f, 0, .04f, .92f));
@@ -142,9 +152,9 @@ namespace CodingGame.Defense
             message.textWrappingMode = TextWrappingModes.NoWrap; message.alignment = TextAlignmentOptions.Center;
             message.fontSize = 42; message.fontStyle = UITheme.Display ? FontStyles.Normal : FontStyles.Bold; message.color = Color.white;
             message.enableAutoSizing = true; message.fontSizeMax = 42; message.fontSizeMin = 30; // longer lines stay inside the stripes
-            message.fontMaterial = glow;
+            message.fontSharedMaterial = glow;
 
-            var circle = Circle(); var triangle = Triangle();
+            var circle = circleSprite ? circleSprite : Circle(); var triangle = triangleSprite ? triangleSprite : Triangle();
             for (int i = 0; i < Cards.Length; i++)
             {
                 var card = New("Warning card", shake); card.sizeDelta = new Vector2(350, 182);
@@ -160,8 +170,20 @@ namespace CodingGame.Defense
                 // Sentences in Pretendard Bold without the glow (the glow material is Jalnan's).
                 var body = Label(card, Cards[i].body, 21, new Color(1, .76f, .76f), new Vector2(0, -48), new Vector2(330, 64));
                 if (UITheme.Bold) { body.font = UITheme.Bold; body.fontSharedMaterial = UITheme.Bold.material; }
-                cards.Add((card, group));
+                cardRects.Add(card); cardGroups.Add(group);
             }
+        }
+        // The banner's letters: a red glow, a dark maroon outline and a hard dark drop over the heading font's material.
+        public static void Glow(Material glow)
+        {
+            glow.EnableKeyword(ShaderUtilities.Keyword_Glow);
+            glow.SetColor(ShaderUtilities.ID_GlowColor, new Color(1, .05f, .1f, .8f));
+            glow.SetFloat(ShaderUtilities.ID_GlowOuter, .55f); glow.SetFloat(ShaderUtilities.ID_GlowPower, .75f);
+            glow.EnableKeyword(ShaderUtilities.Keyword_Outline);
+            glow.SetFloat(ShaderUtilities.ID_OutlineWidth, .25f); glow.SetColor(ShaderUtilities.ID_OutlineColor, new Color(.12f, 0, .02f));
+            glow.EnableKeyword(ShaderUtilities.Keyword_Underlay);
+            glow.SetColor(ShaderUtilities.ID_UnderlayColor, new Color(.08f, 0, .01f, .9f)); glow.SetFloat(ShaderUtilities.ID_UnderlayOffsetY, -.45f);
+            glow.SetFloat(ShaderUtilities.ID_UnderlayDilate, .25f); glow.SetFloat(ShaderUtilities.ID_UnderlaySoftness, 0);
         }
 
         TMP_Text Label(RectTransform parent, string text, float size, Color color, Vector2 position, Vector2 box)
@@ -208,17 +230,28 @@ namespace CodingGame.Defense
         }
         static Sprite Draw(int size, Func<float, float, float> alpha)
         {
+            var texture = DrawTexture(size, alpha);
+            return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(.5f, .5f));
+        }
+        static Texture2D DrawTexture(int size, Func<float, float, float> alpha)
+        {
             var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
             var pixels = new Color32[size * size];
             for (int y = 0; y < size; y++)
                 for (int x = 0; x < size; x++)
                     pixels[y * size + x] = new Color32(255, 255, 255, (byte)(255 * Mathf.Clamp01(alpha((x + .5f) / size, (y + .5f) / size))));
             texture.SetPixels32(pixels); texture.Apply();
-            return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(.5f, .5f));
+            return texture;
         }
-        // Antialiased disc, triangle and a dark-centred red edge glow.
-        static Sprite Circle() => Draw(128, (u, v) => (.5f - new Vector2(u - .5f, v - .5f).magnitude) * 128);
-        static Sprite Triangle() => Draw(128, (u, v) => Mathf.Min(Mathf.Min(v - .08f, (.92f - v) * .5f - Mathf.Abs(u - .5f) + .02f), 1) * 128);
-        static Sprite Vignette() => Draw(128, (u, v) => Mathf.Pow(Mathf.Clamp01(new Vector2((u - .5f) * 1.25f, v - .5f).magnitude * 1.6f - .35f), 1.6f));
+        // Antialiased disc, triangle and a dark-centred red edge glow (saved as Resources/LearningSkins/Alert* by the editor).
+        static readonly Func<float, float, float> CircleAlpha = (u, v) => (.5f - new Vector2(u - .5f, v - .5f).magnitude) * 128,
+            TriangleAlpha = (u, v) => Mathf.Min(Mathf.Min(v - .08f, (.92f - v) * .5f - Mathf.Abs(u - .5f) + .02f), 1) * 128,
+            VignetteAlpha = (u, v) => Mathf.Pow(Mathf.Clamp01(new Vector2((u - .5f) * 1.25f, v - .5f).magnitude * 1.6f - .35f), 1.6f);
+        static Sprite Circle() => Draw(128, CircleAlpha);
+        static Sprite Triangle() => Draw(128, TriangleAlpha);
+        static Sprite Vignette() => Draw(128, VignetteAlpha);
+        public static Texture2D CircleTexture() => DrawTexture(128, CircleAlpha);
+        public static Texture2D TriangleTexture() => DrawTexture(128, TriangleAlpha);
+        public static Texture2D VignetteTexture() => DrawTexture(128, VignetteAlpha);
     }
 }

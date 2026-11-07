@@ -116,6 +116,22 @@ namespace CodingGame.Defense.Editor
             var glow = SaveSprite("LeakEdgeGlow", DefensePlayerHUD.EdgeGlowTexture());
             var triangle = SaveSprite("PlayTriangle", DefensePlayerHUD.PlayTriangleTexture());
             foreach (var hud in All<DefensePlayerHUD>(scene)) { hud.BakeParts(glow, triangle); EditorUtility.SetDirty(hud); }
+            // 127: the system alarm (1-1's boot alert) and the boss warning, with their textures and the alarm's letter
+            // material as assets.
+            var alarmGlow = AlarmGlow();
+            var circle = SaveSprite("AlertCircle", TutorialSystemAlert.CircleTexture());
+            var sign = SaveSprite("AlertTriangle", TutorialSystemAlert.TriangleTexture());
+            var vignette = SaveSprite("AlertVignette", TutorialSystemAlert.VignetteTexture());
+            foreach (var alert in All<TutorialSystemAlert>(scene)) { alert.Bake(circle, sign, vignette, alarmGlow); EditorUtility.SetDirty(alert); }
+            var warning = All<DefenseBossWarning>(scene).FirstOrDefault();
+            if (!warning)
+            {
+                warning = new GameObject("BossWarning").AddComponent<DefenseBossWarning>();
+                SceneManager.MoveGameObjectToScene(warning.gameObject, scene);
+            }
+            warning.Bake(SaveTexture("BossHazard", DefenseBossWarning.HazardTexture()));
+            EditorUtility.SetDirty(warning);
+            Wire(battle, "bossWarning", warning);
             foreach (var dock in All<DefensePlacementDock>(scene)) dock.Layout();
             foreach (var editor in All<DefenseCodeEditor>(scene)) editor.Bake();
             foreach (var preview in All<DefenseAttackPreview>(scene)) preview.Bake();
@@ -192,6 +208,26 @@ namespace CodingGame.Defense.Editor
             var so = new SerializedObject(target); so.FindProperty(field).objectReferenceValue = value; so.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        // The alarm banner's letters: the heading font's material with a red glow, outline and drop.
+        static Material AlarmGlow()
+        {
+            const string path = "Assets/!_Project/Resources/UI/AlarmGlow.mat";
+            var glow = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (!glow) { glow = new Material(UITheme.Display.material); AssetDatabase.CreateAsset(glow, path); }
+            TutorialSystemAlert.Glow(glow); EditorUtility.SetDirty(glow);
+            return glow;
+        }
+        // A tiling texture (the boss warning's hazard stripes scroll over it), saved once in Resources/LearningSkins.
+        static Texture2D SaveTexture(string name, Texture2D texture)
+        {
+            string path = "Assets/!_Project/Resources/LearningSkins/" + name + ".png";
+            File.WriteAllBytes(path, texture.EncodeToPNG());
+            AssetDatabase.ImportAsset(path);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.textureType = TextureImporterType.Default; importer.mipmapEnabled = false; importer.wrapMode = TextureWrapMode.Repeat;
+            importer.filterMode = FilterMode.Bilinear; importer.textureCompression = TextureImporterCompression.Uncompressed; importer.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
         // A texture the game used to draw at load, saved once as a sprite in Resources/LearningSkins.
         static Sprite SaveSprite(string name, Texture2D texture)
         {
@@ -259,7 +295,9 @@ namespace CodingGame.Defense.Editor
                 var unbaked = All<DefensePlayerHUD>(defense).Where(c => !c.Baked || !c.PartsBaked).Select(c => c.name)
                     .Concat(All<DefenseCodeEditor>(defense).Where(c => !c.Baked).Select(c => c.name))
                     .Concat(All<DefenseAttackPreview>(defense).Where(c => !c.Baked).Select(c => c.name))
-                    .Concat(All<TutorialPointer>(defense).Where(c => !c.Baked).Select(c => c.name)).ToArray();
+                    .Concat(All<TutorialPointer>(defense).Where(c => !c.Baked).Select(c => c.name))
+                    .Concat(All<TutorialSystemAlert>(defense).Where(c => !c.Baked).Select(c => c.name))
+                    .Concat(All<DefenseBossWarning>(defense).Where(c => !c.Baked).Select(c => c.name)).ToArray();
                 Check(unbaked.Length == 0, "128 the battle's start-up UI is saved in the scene" + (unbaked.Length > 0 ? " (not: " + string.Join(", ", unbaked) + ")" : ""));
                 var hudCode = File.ReadAllText("Assets/!_Project/Scripts/Defense/DefensePlayerHUD.cs");
                 Check(!hudCode.Contains("button.onClick.RemoveAllListeners(); button.onClick.AddListener(() => battle.PlayRobot(id))"), "132 Play listeners wired once, not every frame");

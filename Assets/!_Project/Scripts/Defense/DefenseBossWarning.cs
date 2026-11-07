@@ -6,7 +6,8 @@ using UnityEngine.UI;
 namespace CodingGame.Defense
 {
     // The boss's entrance warning (12차 120), shown over the map while the camera holds on the boss. Five drafts to choose
-    // from; Style picks the one the game plays. Built at run time on its own overlay canvas, under the tutorial's (80).
+    // from; Style picks the one the game plays. On its own overlay canvas, under the tutorial's (80); the played draft is
+    // built once in the editor and saved in the scene (13차, Tools/Optimize/128 Bake Battle UI), the others when previewed.
     public sealed class DefenseBossWarning : MonoBehaviour
     {
         public static readonly string[] Drafts = { "hazard_bands", "glitch_title", "terminal_window", "boss_reticle", "comic_burst" };
@@ -15,7 +16,9 @@ namespace CodingGame.Defense
         public const float Seconds = 2.9f;
 
         static readonly Color Red = new Color(1, .18f, .22f), Yellow = new Color(1, .82f, .18f), Ink = new Color(.06f, .07f, .1f);
-        RectTransform root;
+        [SerializeField, HideInInspector] RectTransform root;
+        [SerializeField, HideInInspector] int bakedStyle = -1;
+        [SerializeField, HideInInspector] Texture2D hazardTexture; // Resources/LearningSkins/BossHazard
         Action<float> animate;
         float startedAt = -1;
         TMP_FontAsset font;
@@ -23,8 +26,13 @@ namespace CodingGame.Defense
         public void Play(int style)
         {
             if (!root) Build();
-            foreach (Transform child in root) Destroy(child.gameObject);
-            animate = style switch { 1 => Glitch(), 2 => Terminal(), 3 => Reticle(), 4 => Burst(), _ => Bands() };
+            if (style == bakedStyle && style == 0) animate = BindBands();
+            else
+            {
+                foreach (Transform child in root) Destroy(child.gameObject);
+                bakedStyle = -1;
+                animate = style switch { 1 => Glitch(), 2 => Terminal(), 3 => Reticle(), 4 => Burst(), _ => Bands() };
+            }
             startedAt = Time.unscaledTime;
             root.gameObject.SetActive(true);
             animate(0);
@@ -42,6 +50,18 @@ namespace CodingGame.Defense
             root.GetComponent<CanvasGroup>().alpha = Mathf.Clamp01((Seconds - t) / .3f);
         }
 
+        public bool Baked => root && bakedStyle == Style;
+#if UNITY_EDITOR
+        public void Bake(Texture2D hazard)
+        {
+            hazardTexture = hazard;
+            if (!root) Build();
+            for (int i = root.childCount - 1; i >= 0; i--) DestroyImmediate(root.GetChild(i).gameObject);
+            font = UITheme.Display;
+            Bands(); bakedStyle = 0;
+            root.gameObject.SetActive(false);
+        }
+#endif
         void Build()
         {
             var canvasObject = new GameObject("BossWarningCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(CanvasGroup));
@@ -64,6 +84,17 @@ namespace CodingGame.Defense
             var band = Box("MiddleBand", new Color(.55f, .02f, .05f, .82f), Vector2.zero, new Vector2(1920, 190));
             var title = Label("Warning", band, "WARNING", 104, Yellow, new Vector2(0, 22));
             Label("Sub", band, "거대한 오류 코드 출현!", 40, Color.white, new Vector2(0, -52));
+            return BandsMotion(top, bottom, band, title);
+        }
+        // The baked bands, found by name.
+        Action<float> BindBands()
+        {
+            var top = (RectTransform)root.Find("TopBand"); var bottom = (RectTransform)root.Find("BottomBand");
+            var band = (RectTransform)root.Find("MiddleBand");
+            return BandsMotion((top, top.GetComponent<RawImage>()), (bottom, bottom.GetComponent<RawImage>()), band, band.Find("Warning").GetComponent<TMP_Text>());
+        }
+        static Action<float> BandsMotion((RectTransform rect, RawImage raw) top, (RectTransform rect, RawImage raw) bottom, RectTransform band, TMP_Text title)
+        {
             return t =>
             {
                 float slide = Ease(t / .3f);
@@ -188,7 +219,7 @@ namespace CodingGame.Defense
             var raw = new GameObject(name, typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
             raw.rectTransform.SetParent(root, false);
             raw.rectTransform.anchorMin = anchor; raw.rectTransform.anchorMax = new Vector2(1, anchor.y); raw.rectTransform.pivot = anchor;
-            raw.rectTransform.sizeDelta = new Vector2(0, height); raw.texture = HazardTexture(); raw.raycastTarget = false;
+            raw.rectTransform.sizeDelta = new Vector2(0, height); raw.texture = hazardTexture ? hazardTexture : HazardTexture(); raw.raycastTarget = false;
             return (raw.rectTransform, raw);
         }
 
@@ -201,7 +232,7 @@ namespace CodingGame.Defense
         }
 
         static Texture2D hazard, ring;
-        static Texture2D HazardTexture()
+        public static Texture2D HazardTexture()
         {
             if (hazard) return hazard;
             hazard = new Texture2D(64, 64) { wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Bilinear };

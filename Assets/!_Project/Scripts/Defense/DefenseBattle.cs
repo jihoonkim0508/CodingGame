@@ -87,7 +87,7 @@ namespace CodingGame.Defense
         bool bossEntranceStarted, bossCameraRestored;
         readonly HashSet<int> liveIds = new HashSet<int>();
         readonly List<int> goneIds = new List<int>();
-        DefenseBossWarning bossWarning;
+        [SerializeField, HideInInspector] DefenseBossWarning bossWarning; // baked in the scene (Tools/Optimize/128 Bake Battle UI)
         DefenseBossWarning BossWarning => bossWarning ? bossWarning : bossWarning = new GameObject("BossWarning").AddComponent<DefenseBossWarning>();
         float bossEntranceUntil, bossCameraRestoreAt;
         public bool DeveloperMode { get; private set; }
