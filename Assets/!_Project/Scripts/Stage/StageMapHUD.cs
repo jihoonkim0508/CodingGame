@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using CodingGame.Art.StageSelection;
 using TMPro;
 using UnityEngine;
@@ -16,33 +17,59 @@ namespace CodingGame.StageMap
         public static readonly Color OpenColor = new Color(1f,.72f,.30f);
         public static readonly Color PurifiedColor = new Color(.35f,1f,.67f);
         static readonly Color PanelColor = new Color(.025f, .055f, .09f, .96f);
-        sealed class IslandCard
+        // One island's card, lock badge and purified seal, saved in Stage.unity (13차 125) and matched to its node by stage.
+        [Serializable] public sealed class IslandCard
         {
+            public int stage;
             public RectTransform root, badge, shackle, purifiedSeal;
             public CanvasGroup badgeGroup;
             public CanvasGroup purifiedGroup;
-            public float purifiedShownAt;
+            [NonSerialized] public float purifiedShownAt;
             public Image border, glow, body, leftShackle, rightShackle, topShackle;
             public TMP_Text title, number, state;
             public Button button;
         }
-        Canvas canvas;
+        // Built by Build() in the editor (Tools/Optimize/125 Stage Map) and saved with the scene: no UI is made at load.
+        [SerializeField] Canvas canvas;
+        [SerializeField] IslandCard[] cards = Array.Empty<IslandCard>();
+        [SerializeField] RectTransform hint;
+        [SerializeField] TMP_Text hintLabel;
+        [SerializeField] GameObject devLine, guideDialogue;
+        public GameObject GuideDialogue => guideDialogue;
+        public bool Baked => canvas && cards.Length > 0 && hint && hintLabel;
         RectTransform canvasRect;
         Camera mapCamera;
         StageCameraController cameraMotion;
         StageNode[] nodes;
-        IslandCard[] cards;
         StageNode recommended, unlockTarget;
         bool cinematic, entering;
         bool HideSelectionUI => cinematic || entering || (cameraMotion && cameraMotion.IsMoving);
-        // StageMapController draws the pointer ("<title> · 여기야!" over a down arrow) over the recommended island when this is true.
+        // The pointer ("<title> · 여기야!" over a down arrow) shows over the recommended island when this is true.
         public bool IsHintVisible => recommended && !HideSelectionUI;
         public CanvasScaler Scaler { get; private set; }
 
-        public void Configure(StageNode[] stageNodes, Camera camera, Action<StageNode> select)
+        public void Configure(StageNode[] stageNodes, Camera camera, StageCameraController motion, Action<StageNode> select)
         {
-            nodes = stageNodes; mapCamera = camera;
-            cameraMotion = GetComponent<StageCameraController>();
+            nodes = stageNodes; mapCamera = camera; cameraMotion = motion;
+            if (!Baked || nodes.Any(node => cards.All(card => card.stage != node.Number))) Build(nodes.Select(Island).ToArray());
+            // The cards in node order (the scene saves them by stage number).
+            cards = nodes.Select(node => cards.First(card => card.stage == node.Number)).ToArray();
+            canvasRect = (RectTransform)canvas.transform;
+            Scaler = canvas.GetComponent<CanvasScaler>();
+            for (int i = 0; i < nodes.Length; i++) { var node = nodes[i]; cards[i].button.onClick.AddListener(() => select(node)); }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            devLine.SetActive(true);
+#else
+            devLine.SetActive(false);
+#endif
+        }
+
+        // The whole map UI, once: in the editor to save it with Stage.unity, or at load if a scene has none.
+        public static (int number, string title) Island(StageNode node) =>
+            (node.Number, node.GetComponent<StageIslandView>() is StageIslandView view && view ? view.stageTitle : $"스테이지 {node.Number}");
+        public void Build((int number, string title)[] islands)
+        {
+            if (canvas) DestroyImmediate(canvas.gameObject);
             var root = new GameObject("StageMapCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             root.transform.SetParent(transform, false);
             canvas = root.GetComponent<Canvas>();
@@ -54,25 +81,49 @@ namespace CodingGame.StageMap
             Scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             Scaler.matchWidthOrHeight = .5f;
 
-            cards = new IslandCard[nodes.Length];
-            for (int i = 0; i < nodes.Length; i++)
+            cards = new IslandCard[islands.Length];
+            for (int i = 0; i < islands.Length; i++)
             {
-                var node = nodes[i];
-                var card = cards[i] = new IslandCard();
-                card.root = Panel("Stage " + node.Number + " card", canvasRect, new Vector2(400,132), PanelColor);
+                var (number, title) = islands[i];
+                var card = cards[i] = new IslandCard { stage = number };
+                card.root = Panel("Stage " + number + " card", canvasRect, new Vector2(400,132), PanelColor);
                 card.root.anchorMin = card.root.anchorMax = new Vector2(.5f,.5f); card.root.pivot = new Vector2(.5f,1);
                 card.button = card.root.gameObject.AddComponent<Button>();
                 card.button.targetGraphic = card.root.GetComponent<Image>();
                 card.root.GetComponent<Image>().raycastTarget = true;
-                card.button.onClick.AddListener(() => select(node));
                 card.border = Image("Status accent", card.root, new Vector2(0,-2), new Vector2(400,2), LockColor);
-                card.number = Text("Stage number", card.root, $"STAGE {node.Number:00}", 19, LockColor, new Vector2(0,-10), new Vector2(400,25), true);
-                var island = node.GetComponent<StageIslandView>();
-                card.title = Text("Island title", card.root, island ? island.stageTitle : $"스테이지 {node.Number}", 27, Color.white, new Vector2(0,-39), new Vector2(400,36), true);
+                card.number = Text("Stage number", card.root, $"STAGE {number:00}", 19, LockColor, new Vector2(0,-10), new Vector2(400,25), true);
+                card.title = Text("Island title", card.root, title, 27, Color.white, new Vector2(0,-39), new Vector2(400,36), true);
                 card.state = Text("Availability", card.root, "", 28, LockColor, new Vector2(0,-82), new Vector2(400,38), true);
-                BuildLock(card, node.Number);
-                BuildPurifiedSeal(card,node.Number);
+                BuildLock(card, number);
+                BuildPurifiedSeal(card, number);
             }
+            BuildHint();
+            var dev = Text("DEV keys", canvasRect, "DEV  Z: 임시 클리어    Q: 초기화", 18, new Color(1, 1, 1, .6f), Vector2.zero, new Vector2(420, 28), false);
+            dev.rectTransform.anchorMin = dev.rectTransform.anchorMax = dev.rectTransform.pivot = Vector2.zero;
+            dev.rectTransform.anchoredPosition = new Vector2(18, 10); dev.fontStyle = FontStyles.Normal;
+            devLine = dev.gameObject;
+            var guide = Resources.Load<GameObject>(StageMapController.GuideDialogue);
+            if (guide && !guideDialogue) { guideDialogue = Instantiate(guide, transform); guideDialogue.name = "GuideDialogue"; }
+        }
+
+        // "<title> · 여기야!" on a Primary pill over a bouncing down arrow, as the old IMGUI pointer drew it (1080p pixels).
+        void BuildHint()
+        {
+            hint = Panel("Enter hint", canvasRect, new Vector2(400, 111), Color.clear);
+            hint.anchorMin = hint.anchorMax = new Vector2(.5f, .5f); hint.pivot = new Vector2(.5f, 0);
+            var arrow = Image("Arrow", hint, Vector2.zero, new Vector2(60, 63), UITheme.Primary);
+            arrow.rectTransform.anchorMin = arrow.rectTransform.anchorMax = arrow.rectTransform.pivot = new Vector2(.5f, 0);
+            arrow.sprite = Resources.Load<Sprite>("UI/ui_arrow"); arrow.preserveAspect = true;
+            var plate = Image("Plate", hint, new Vector2(0, 61), new Vector2(0, 50), UITheme.Primary);
+            plate.rectTransform.anchorMin = new Vector2(0, 0); plate.rectTransform.anchorMax = new Vector2(1, 0); plate.rectTransform.pivot = new Vector2(.5f, 0);
+            plate.sprite = UITheme.Pill; plate.type = UnityEngine.UI.Image.Type.Sliced;
+            hintLabel = Text("Label", plate.rectTransform, "", 22, UITheme.Ink, Vector2.zero, Vector2.zero, true);
+            hintLabel.rectTransform.anchorMin = Vector2.zero; hintLabel.rectTransform.anchorMax = Vector2.one;
+            hintLabel.rectTransform.offsetMin = new Vector2(0, 5); hintLabel.rectTransform.offsetMax = Vector2.zero;
+            if (UITheme.Display) hintLabel.font = UITheme.Display;
+            hintLabel.fontStyle = FontStyles.Normal; hintLabel.alignment = TextAlignmentOptions.Center;
+            hint.gameObject.SetActive(false);
         }
 
         void BuildPurifiedSeal(IslandCard card,int number)
@@ -116,6 +167,11 @@ namespace CodingGame.StageMap
         public void Refresh(StageNode next)
         {
             recommended = next;
+            if (next)
+            {
+                hintLabel.text = $"{StageProgress.Title(next.Number)} · 여기야!";
+                hint.sizeDelta = new Vector2(hintLabel.GetPreferredValues(hintLabel.text).x + 48, hint.sizeDelta.y);
+            }
             for (int i = 0; i < nodes.Length; i++)
             {
                 var node = nodes[i]; var card = cards[i];
@@ -138,9 +194,18 @@ namespace CodingGame.StageMap
 
         void LateUpdate()
         {
-            if (!mapCamera || cards == null) return;
+            if (!mapCamera || canvasRect == null) return;
             bool quiet=HideSelectionUI;
             var size = canvasRect.rect.size;
+            // The pointer over the recommended island, bouncing.
+            Vector3 top = recommended ? mapCamera.WorldToScreenPoint(recommended.VisualBounds.center + Vector3.up * recommended.VisualBounds.extents.y) : Vector3.zero;
+            bool pointing = IsHintVisible && top.z > 0;
+            if (hint.gameObject.activeSelf != pointing) hint.gameObject.SetActive(pointing);
+            if (pointing)
+            {
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, top, null, out var at);
+                hint.anchoredPosition = at + new Vector2(0, 15 + 12 + Mathf.Abs(Mathf.Sin(Time.unscaledTime * 4)) * 16);
+            }
             for (int i = 0; i < nodes.Length; i++)
             {
                 var node = nodes[i]; var card = cards[i];

@@ -43,6 +43,30 @@ namespace CodingGame.Defense.Editor
             foreach (var camera in All<Camera>(scene)) Lean(camera);
         });
 
+        // 125: the stage map's UI (island cards, locks, seals, the "여기야!" pointer, the DEV line and 디버's box) saved in
+        // Stage.unity instead of built at load; the islands are the active renderers named "Stage", left to right, as at run time.
+        const string StageScene = "Assets/!_Project/Scenes/Stage.unity";
+        [MenuItem("Tools/Optimize/125 Stage Map")]
+        public static void StageMap125() => EditScene(StageScene, scene =>
+        {
+            foreach (var old in All<StageMap.StageMapHUD>(scene).ToArray()) Object.DestroyImmediate(old.gameObject);
+            var islands = All<Renderer>(scene).Where(r => r.gameObject.name == "Stage" && r.gameObject.activeInHierarchy).OrderBy(r => r.transform.position.x)
+                .Select((r, i) => (i + 1, r.GetComponent<Art.StageSelection.StageIslandView>() is var view && view ? view.stageTitle : $"스테이지 {i + 1}")).ToArray();
+            if (islands.Length == 0) throw new InvalidOperationException("Stage.unity has no renderer named Stage");
+            var host = new GameObject("StageMapUI");
+            SceneManager.MoveGameObjectToScene(host, scene);
+            var hud = host.AddComponent<StageMap.StageMapHUD>();
+            hud.Build(islands);
+            // 디버's box as a link to its prefab, not a copy.
+            var so = new SerializedObject(hud);
+            var copy = (GameObject)so.FindProperty("guideDialogue").objectReferenceValue;
+            if (copy) Object.DestroyImmediate(copy);
+            var guide = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/!_Project/Resources/UI/GuideDialogue.prefab"), host.transform);
+            guide.name = "GuideDialogue";
+            so.FindProperty("guideDialogue").objectReferenceValue = guide;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        });
+
         // A camera that needs neither the depth nor the opaque texture nor shadows (no shader samples them).
         static void Lean(Camera camera)
         {
@@ -70,6 +94,21 @@ namespace CodingGame.Defense.Editor
                     "124 no font loop when the title opens (the scene is saved in Jalnan)");
             }
             finally { if (SceneManager.sceneCount > 1) EditorSceneManager.CloseScene(title, true); }
+
+            var stage = EditorSceneManager.OpenScene(StageScene, OpenSceneMode.Additive);
+            try
+            {
+                var huds = All<StageMap.StageMapHUD>(stage).ToArray();
+                Check(huds.Length == 1 && huds[0].Baked, "125 Stage.unity saves the map UI (canvas, cards, pointer)");
+                var hud = huds.FirstOrDefault();
+                var so = hud ? new SerializedObject(hud) : null;
+                int islands = All<Renderer>(stage).Count(r => r.gameObject.name == "Stage" && r.gameObject.activeInHierarchy);
+                Check(so != null && so.FindProperty("cards").arraySize == islands && islands > 0, $"125 one saved card per island ({islands})");
+                var guide = so?.FindProperty("guideDialogue").objectReferenceValue as GameObject;
+                Check(guide && PrefabUtility.IsPartOfPrefabInstance(guide) && guide.scene == stage, "125 디버's box is a GuideDialogue prefab instance in the scene");
+                Check(!File.ReadAllText("Assets/!_Project/Scripts/Stage/StageMapController.cs").Contains("OnGUI"), "125 no IMGUI on the stage map");
+            }
+            finally { if (SceneManager.sceneCount > 1) EditorSceneManager.CloseScene(stage, true); }
 
             Directory.CreateDirectory(Path.GetDirectoryName(Log));
             string result = (failed.Count == 0 ? "PASS " : "FAIL ") + passed + " passed" + string.Concat(failed.Select(f => "\n  failed: " + f));

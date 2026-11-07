@@ -16,7 +16,6 @@ namespace CodingGame.StageMap
         Camera mapCamera;
         StageCameraController cameraController;
         StageMapHUD hud;
-        GUIStyle bodyStyle;
         // 디버 talks in the battle's dialogue box (11차 116), copied by UIRequests9.BuildGuideDialogue.
         public const string GuideDialogue = "UI/GuideDialogue", GuideSpeaker = "디버";
         CanvasGroup guideGroup;
@@ -36,22 +35,23 @@ namespace CodingGame.StageMap
         {
             nodes = stageNodes; mapCamera = camera;
             islands = nodes.Select(node => node.GetComponent<StageIslandView>()).ToArray();
-            var dialogue = Resources.Load<GameObject>(GuideDialogue);
-            if (dialogue)
-            {
-                var guide = Instantiate(dialogue); guide.name = "GuideDialogue";
-                guideGroup = guide.GetComponent<CanvasGroup>();
-                guideLine = guide.transform.Find("DialoguePanel/Dialogue").GetComponent<TMP_Text>();
-                guide.transform.Find("DialoguePanel/SpeakerName").GetComponent<TMP_Text>().text = GuideSpeaker;
-            }
             var cameraData=camera.GetUniversalAdditionalCameraData();
             cameraData.antialiasing=AntialiasingMode.SubpixelMorphologicalAntiAliasing;
             cameraData.antialiasingQuality=AntialiasingQuality.High;
             cameraData.renderPostProcessing=true;
             cameraController = gameObject.AddComponent<StageCameraController>();
             cameraController.Configure(camera, nodes);
-            hud = gameObject.AddComponent<StageMapHUD>();
-            hud.Configure(nodes, camera, Enter);
+            // The map UI is saved in Stage.unity (13차 125); a scene without it gets one built here.
+            hud = FindFirstObjectByType<StageMapHUD>(FindObjectsInactive.Include);
+            if (!hud) hud = gameObject.AddComponent<StageMapHUD>();
+            hud.Configure(nodes, camera, cameraController, Enter);
+            var guide = hud.GuideDialogue;
+            if (guide)
+            {
+                guideGroup = guide.GetComponent<CanvasGroup>();
+                guideLine = guide.transform.Find("DialoguePanel/Dialogue").GetComponent<TMP_Text>();
+                guide.transform.Find("DialoguePanel/SpeakerName").GetComponent<TMP_Text>().text = GuideSpeaker;
+            }
             RefreshNodes();
             PlayPendingUnlock();
         }
@@ -208,83 +208,5 @@ namespace CodingGame.StageMap
 
         // Kept in screen coordinates for input/viewport probes.
         Rect CardRect(int index) => hud.CardScreenRect(index);
-
-        // The toy-workshop look from the battle (UITheme): paper cards and pills with an ink outline, Jalnan for names.
-        // The island cards, locks and seals are StageMapHUD's (uGUI), 디버 is GuideDialogue's; IMGUI here draws only the "여기야!" pointer.
-        Texture2D card, pill, arrow;
-        GUIStyle sticker, displayStyle, devStyle, hintStyle;
-        void EnsureStyles()
-        {
-            if (bodyStyle != null) return;
-            Font font = Font.CreateDynamicFontFromOSFont(new[] { "Malgun Gothic", "Apple SD Gothic Neo", "Arial" }, 28);
-            Font display = UITheme.Display && UITheme.Display.sourceFontFile ? UITheme.Display.sourceFontFile : font;
-            card = Resources.Load<Texture2D>("UI/ui_card"); pill = Resources.Load<Texture2D>("UI/ui_pill"); arrow = Resources.Load<Texture2D>("UI/ui_arrow");
-            sticker = new GUIStyle { normal = { background = card } };
-            bodyStyle = new GUIStyle(GUI.skin.label) { font = font, fontSize = 18, wordWrap = true, normal = { textColor = UITheme.Ink } };
-            displayStyle = new GUIStyle(bodyStyle) { font = display, wordWrap = false };
-            devStyle = new GUIStyle(bodyStyle) { normal = { textColor = new Color(1, 1, 1, .6f) } };
-            hintStyle = new GUIStyle(displayStyle) { fontSize = 22, alignment = TextAnchor.MiddleCenter };
-        }
-        // Sliced sticker art (borders as ui_sprites.py draws them) in a fill colour.
-        void Sticker(Rect rect, Texture2D texture, Color fill)
-        {
-            if (!texture) { DrawRect(rect, fill); return; }
-            sticker.normal.background = texture;
-            sticker.border = texture == pill ? new RectOffset(27, 27, 27, 31) : new RectOffset(24, 24, 24, 30);
-            // Shorter than its slice borders the corners overlap (the island's STAGE pill looked cut on top): draw it at
-            // the borders' height and scale it down.
-            float k = Mathf.Min(1, rect.height / sticker.border.vertical);
-            var matrix = GUI.matrix;
-            if (k < 1)
-            {
-                GUIUtility.ScaleAroundPivot(Vector2.one * k, rect.center);
-                rect = new Rect(rect.center.x - rect.width / k * .5f, rect.center.y - sticker.border.vertical * .5f, rect.width / k, sticker.border.vertical);
-            }
-            var old = GUI.backgroundColor; GUI.backgroundColor = fill;
-            GUI.Box(rect, GUIContent.none, sticker);
-            GUI.backgroundColor = old; GUI.matrix = matrix;
-        }
-
-        void OnGUI()
-        {
-            // Absolute-position labels have no input/layout work; draw once per repaint.
-            if (Event.current.type != EventType.Repaint) return;
-            EnsureStyles();
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            Text(new Rect(18f, Screen.height - 38f, 420f, 28f), "DEV  Z: 임시 클리어    Q: 초기화", devStyle);
-#endif
-            DrawEnterHint();
-        }
-
-        // A bouncing arrow over the first stage that can be entered, with its name on a sunny pill, so the player knows where to click.
-        // The HUD decides when it shows (hidden while the camera moves, during the unlock cinematic and after a stage is chosen).
-        void DrawEnterHint()
-        {
-            var node = RecommendedStage;
-            if (!node || !mapCamera || !hud.IsHintVisible) return;
-            var bounds = node.VisualBounds;
-            Vector3 top = mapCamera.WorldToScreenPoint(bounds.center + Vector3.up * bounds.extents.y);
-            if (top.z <= 0) return;
-            float bounce = Mathf.Abs(Mathf.Sin(Time.unscaledTime * 4)) * 16;
-            const float hintLift = 12;
-            string hint = $"{StageProgress.Title(node.Number)} · 여기야!";
-            float width = hintStyle.CalcSize(new GUIContent(hint)).x + 48;
-            if (arrow) { var tint = GUI.color; GUI.color = UITheme.Primary; GUI.DrawTexture(new Rect(top.x - 30, Screen.height - top.y - 78 - bounce - hintLift, 60, 63), arrow, ScaleMode.ScaleToFit); GUI.color = tint; }
-            var plate = new Rect(top.x - width / 2, Screen.height - top.y - 126 - bounce - hintLift, width, 50);
-            Sticker(plate, pill, UITheme.Primary);
-            Text(new Rect(plate.x, plate.y, plate.width, plate.height - 5), hint, hintStyle);
-        }
-
-        // A label that never takes its hover look: IMGUI labels under the mouse switch to the skin's near-white hover
-        // text colour, which washed out whichever island card the cursor rested on.
-        static void Text(Rect rect, string text, GUIStyle style) => style.Draw(rect, new GUIContent(text), false, false, false, false);
-
-        static void DrawRect(Rect rect, Color color)
-        {
-            Color previous = GUI.color;
-            GUI.color = color;
-            GUI.DrawTexture(rect, Texture2D.whiteTexture);
-            GUI.color = previous;
-        }
     }
 }
