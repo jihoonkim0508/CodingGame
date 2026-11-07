@@ -31,28 +31,33 @@ namespace CodingGame.Defense
         {
             source = gameObject.AddComponent<AudioSource>();
             source.playOnAwake = false; source.spatialBlend = 0;
-            clips["hit"] = clips["projectile-hit"] = Sweep("hit", .03f, 1400, 900, volume: .1f);
-            clips["slash"] = Sweep("slash", .09f, 900, 250, noise: .7f, volume: .22f);
-            clips["shot"] = clips["launch"] = Sweep("shot", .06f, 1000, 700, volume: .15f);
-            clips["killed"] = Sweep("killed", .09f, 500, 950, volume: .25f);
-            clips["stun"] = Sweep("stun", .12f, 140, 90, square: .5f, volume: .28f);
-            clips["buff"] = Notes("buff", .06f, .14f, 660, 990);
-            clips["blast"] = Sweep("blast", .2f, 180, 60, noise: .8f, volume: .3f);
-            clips["leaked"] = Sweep("leaked", .25f, 170, 150, square: .8f, volume: .3f);
-            clips["rush"] = Sweep("rush", .5f, 160, 70, square: .8f, noise: .2f, volume: .4f);
-            clips["tank-destroyed"] = Sweep("tank-destroyed", .3f, 320, 90, square: .4f, volume: .3f);
-            clips["place"] = Sweep("place", .05f, 700, 900, volume: .2f);
-            clips["deny"] = Notes("deny", .07f, .2f, 220, 180);
-            clips["clear"] = Notes("clear", .1f, .28f, 523.25f, 659.25f, 783.99f);
-            clips["timeup"] = Notes("timeup", .12f, .25f, 523.25f, 392f);
-            clips["victory"] = Notes("victory", .12f, .3f, 523.25f, 659.25f, 783.99f, 1046.5f);
-            clips["defeat"] = Notes("defeat", .16f, .3f, 392f, 329.63f, 261.63f);
-            // Each stage-clear star rings a step higher than the one before.
-            clips["star1"] = Notes("star1", .16f, .3f, 1318.5f, 1975.5f);
-            clips["star2"] = Notes("star2", .16f, .3f, 1568f, 2349.3f);
-            clips["star3"] = Notes("star3", .16f, .34f, 2093f, 3136f);
-            clips["wave-start"] = Sweep("wave-start", .35f, 220, 440, square: .6f, volume: .3f);
             foreach (var clip in Resources.LoadAll<AudioClip>("Sounds")) clips[clip.name] = clip;
+            // A tone made in code only for a kind with no sound file (13차: all of them were made at every battle load, then
+            // replaced by the files).
+            void Tone(string kind, Func<AudioClip> make) { if (!clips.ContainsKey(kind)) clips[kind] = make(); }
+            Tone("hit", () => Sweep("hit", .03f, 1400, 900, volume: .1f));
+            Tone("projectile-hit", () => clips["hit"]);
+            Tone("slash", () => Sweep("slash", .09f, 900, 250, noise: .7f, volume: .22f));
+            Tone("shot", () => Sweep("shot", .06f, 1000, 700, volume: .15f));
+            Tone("launch", () => clips["shot"]);
+            Tone("killed", () => Sweep("killed", .09f, 500, 950, volume: .25f));
+            Tone("stun", () => Sweep("stun", .12f, 140, 90, square: .5f, volume: .28f));
+            Tone("buff", () => Notes("buff", .06f, .14f, 660, 990));
+            Tone("blast", () => Sweep("blast", .2f, 180, 60, noise: .8f, volume: .3f));
+            Tone("leaked", () => Sweep("leaked", .25f, 170, 150, square: .8f, volume: .3f));
+            Tone("rush", () => Sweep("rush", .5f, 160, 70, square: .8f, noise: .2f, volume: .4f));
+            Tone("tank-destroyed", () => Sweep("tank-destroyed", .3f, 320, 90, square: .4f, volume: .3f));
+            Tone("place", () => Sweep("place", .05f, 700, 900, volume: .2f));
+            Tone("deny", () => Notes("deny", .07f, .2f, 220, 180));
+            Tone("clear", () => Notes("clear", .1f, .28f, 523.25f, 659.25f, 783.99f));
+            Tone("timeup", () => Notes("timeup", .12f, .25f, 523.25f, 392f));
+            Tone("victory", () => Notes("victory", .12f, .3f, 523.25f, 659.25f, 783.99f, 1046.5f));
+            Tone("defeat", () => Notes("defeat", .16f, .3f, 392f, 329.63f, 261.63f));
+            // Each stage-clear star rings a step higher than the one before.
+            Tone("star1", () => Notes("star1", .16f, .3f, 1318.5f, 1975.5f));
+            Tone("star2", () => Notes("star2", .16f, .3f, 1568f, 2349.3f));
+            Tone("star3", () => Notes("star3", .16f, .34f, 2093f, 3136f));
+            Tone("wave-start", () => Sweep("wave-start", .35f, 220, 440, square: .6f, volume: .3f));
         }
 
         // Hits and kills can pile up in one frame; one of each kind per short gap is enough to hear.
