@@ -263,9 +263,22 @@ PR #19(Goldpurple2812) 학습 UI를 들인 뒤 받은 요청. 검사: Unity `Too
 
 | 순서 | 항목 | 내용 | 검사 | 상태 |
 |---|---|---|---|---|
-| 115 | 호버 소리 후보 | 들어 보고 고를 수 있게 `HoverSounds/`에 합성 후보 14개(현재 소리 포함). 고르면 `Resources/Sounds/hover.ogg`를 바꿈 | 사용자가 들어 봄 | 들어 보는 중 |
+| 115 | 호버 소리 후보 | 들어 보고 고를 수 있게 `HoverSounds/`에 합성 후보 14개(현재 소리 포함). 고르면 `Resources/Sounds/hover.ogg`를 바꿈 | 사용자가 들어 봄 | 다시(123: 모두 음이 높음) |
 | 116 | 스테이지 맵 디버 대화창 | 위쪽 종이 카드(IMGUI)를 전투 대화창(말풍선, 디버 그림, 에이투지체 대사)으로 바꿈. 전투 장면의 DialoguePanel을 `Resources/UI/GuideDialogue` 프리팹으로 복사, 넘김 화살표·안내 문구 없이 | UIRequestChecks, 화면 | 완료 |
 | 117 | 화자 이름 | 스테이지 맵 대화창의 화자는 '디버'로 고정(잘난체) | UIRequestChecks | 완료 |
+
+## 12차: 경고음·보스 경고·while True·툴팁 오류·낮은 호버 (2026-11-07)
+
+검사: Unity `Tools/Develop/Verify UI Requests (9차)`에 118~123 항목, 헤드리스 `Tests/TutorialLessons`, Unity 레슨 1-1~1-5와 Stage 2.
+
+| 순서 | 항목 | 내용 | 검사 | 상태 |
+|---|---|---|---|---|
+| 118 | 경고음 짧게 | alarm.ogg(1.77초, 두 번 '징')가 카드 세 장의 0.5초 간격보다 길어 겹침 → 0.45초 한 번으로 자름 | UIRequestChecks(길이 ≤ 0.5초) | 진행 |
+| 119 | 경고는 1-1만 | '시스템' 경고(빨간 띠, 카드, 경고음)는 1-1에서만. 다른 레슨(1-3, 1-4, 1-5, 2-1, 3-1)의 경고 줄은 보이지 않고 넘어감 | UIRequestChecks(디렉터 동작), 레슨 | 진행 |
+| 120 | 보스 경고 시안 | 보스 등장 경고 시안 5개를 만들고 장면에서 찍어 `BossWarning/`에 저장 | 사진 | 진행 |
+| 121 | for 삭제, while True | 플레이어가 쓰는 블록에서 for를 빼고(지급·보상·도감), 튜토리얼은 `while True:`로 반복 | TutorialLessons, 레슨 1-1~1-5, Stage 2 | 진행 |
+| 122 | 툴팁 참조 오류 | 덱 로봇 카드 6장의 DefenseHoverInfo가 툴팁·기준 위치를 잃어 Awake 예외(9차 카드 되돌리기 때 끊김) → 다시 연결 | UIRequestChecks(모든 DefenseHoverInfo 연결) | 진행 |
+| 123 | 낮은 호버 후보 | 115 후보가 모두 높음 → 낮은 음(150~500 Hz) 후보로 다시 | 사용자가 들어 봄 | 진행 |
 
 ## 반복 기록
 

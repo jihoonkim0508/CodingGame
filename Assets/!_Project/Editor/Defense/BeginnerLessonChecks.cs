@@ -137,7 +137,7 @@ namespace CodingGame.Defense.Editor
                 director.EditorStop();
                 battle.SelectRobot(TutorialWatcher.TeachingRobot(DevTest.Sim).Id); battle.DevelopSelected();
                 battle.CodeEditor.Panel.LoadProgram("condition_example", TutorialAnswers.Parse(
-                    "for i in range(10):\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:"));
+                    "while True:\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:"));
                 director.EditorRun(sequence, Array.FindIndex(sequence.steps, s => s.stepId == "D02"));
             }
             if (!SessionState.GetBool(Running, false)) return;
@@ -412,7 +412,7 @@ namespace CodingGame.Defense.Editor
             // Two shooters: 2-1 gives the variable blocks for two copies of its code.
             if (sim.RobotAvailable(RobotRole.Shooter) > 0 && sim.Robots.Count(r => r.Spec.role == RobotRole.Shooter) < 2) { battle.ChooseRobot(shooter); PlaceBest(battle, shooter); }
             foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Shooter && (r.Program == null || r.Program.IsEmpty)).ToArray())
-                sim.ApplyProgram(bot.Id, "free_" + bot.Id, TutorialAnswers.Parse("for i in range(10):\n    enemy = get_nearest_enemy()\n    attack(enemy)"));
+                sim.ApplyProgram(bot.Id, "free_" + bot.Id, TutorialAnswers.Parse("while True:\n    enemy = get_nearest_enemy()\n    attack(enemy)"));
         }
 
         static void FreePlayFour(DefenseBattle battle)
@@ -426,7 +426,7 @@ namespace CodingGame.Defense.Editor
             Require(learner.Spec.role == RobotRole.Shooter, "1-4's new robot is not a shooter");
             battle.SelectRobot(learner.Id); battle.DevelopSelected();
             battle.CodeEditor.Panel.LoadProgram("condition_practice", TutorialAnswers.Parse(
-                "for i in range(10):\n    attack(get_nearest_enemy())"));
+                "while True:\n    attack(get_nearest_enemy())"));
             Require(battle.CodeEditor.Panel.IsApplied, "1-4 shooter code was not applied: " +
                 Field<TMP_Text>(battle.CodeEditor.Panel, "status").text);
             battle.CodeEditor.Close();
@@ -443,7 +443,7 @@ namespace CodingGame.Defense.Editor
                 groups[0].DefinitionIndex == groups[1].DefinitionIndex &&
                 groups[1].Enemy.health >= 80 && groups[1].Enemy.health > groups[0].Enemy.health * 3,
                 "1-5 boss must strengthen the existing basic enemy only");
-            foreach (var kind in new[] { BlockKind.For, BlockKind.Number, BlockKind.Slash })
+            foreach (var kind in new[] { BlockKind.While, BlockKind.Slash })
                 Require(sim.Available(kind) > 0, "1-5 has no spare " + kind + " block");
             Require(sim.Available(BlockKind.DeclareVariable) == 0 && sim.Available(BlockKind.If) == 0, "Variables and conditions open in Stage 2, not 1-5");
             battle.StartBattle();

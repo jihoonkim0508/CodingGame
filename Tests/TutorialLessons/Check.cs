@@ -129,11 +129,9 @@ static class Check
         Require(Attacks(">") == 0, "False condition must skip the attack even when the enemy is in attack range");
         Require(TutorialWatcher.Matches(new DefenseProgram("renamed", Program("<=", "target", "distance")), answer), "Consistent custom variable names should be accepted");
         Require(!TutorialWatcher.Matches(new DefenseProgram("wrong", Program(">")), answer), "Wrong comparison must not finish the guided lesson");
-        // 1-3 C08 (play feedback 3, 17): a player who typed another count into the new loop (range(100)) has still built the
-        // lesson's loop, and must not be stuck on it.
-        const string swing = "for i in range(10):\n    slash()";
-        var hundred = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "100")); hundred.Body.Add(new CodeBlock(BlockKind.Slash));
-        Require(TutorialWatcher.Matches(new DefenseProgram("hundred", new[] { hundred }), swing), "A loop count other than 10 must still finish 1-3's loop lesson");
+        // 1-3 C08 (12차 121: no for for the player): while True with slash() inside finishes the loop lesson; an empty loop does not.
+        const string swing = "while True:\n    slash()";
+        Require(TutorialWatcher.Matches(new DefenseProgram("swing", new[] { Loop(new CodeBlock(BlockKind.Slash)) }), swing), "while True: slash() must finish 1-3's loop lesson");
         Require(!TutorialWatcher.Matches(new DefenseProgram("empty", new[] { Loop() }), swing), "A loop without slash() must not finish 1-3's loop lesson");
         // The conditional shooter (2-3 to come): 1.8 off the road like the preview's, 2.6 like a battle shooter.
         foreach (float y in new[] { 1.8f, 2.6f })

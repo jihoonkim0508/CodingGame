@@ -185,9 +185,8 @@ MonoBehaviour:
     - textId: t1
       speaker: "\uB514\uBC84"
       text: "\uC0C8\uB85C \uBC1B\uC740 \uBE14\uB85D\uC73C\uB85C \uBC18\uBCF5\uC744
-        \uB354 \uAE38\uAC8C \uC9DC \uBD10.\n\uD568\uC218\uAC00 \uB05D\uB098\uBA74
-        <b>\u2018\uC2E4\uD589\u2019</b>\uC73C\uB85C \uB2E4\uC2DC \uBD80\uB974\uB294
-        \uAC83\uB3C4 \uC78A\uC9C0 \uB9C8!"
+        \uC9DC \uBD10.\n`while True`\uBA74 <b>\u2018\uC2E4\uD589\u2019</b> \uD55C
+        \uBC88\uC73C\uB85C \uACC4\uC18D \uC2F8\uC6CC!"
       focusKeys: []
       highlightKeys: []
     - textId: t2

@@ -322,10 +322,10 @@ namespace CodingGame.Defense.Editor
             yield return OpenEditor();
             yield return Jump(1, "C08");
             ClearProgram();
-            Program.PlaceFree(Palette(BlockKind.For), Vector2.zero);
+            Program.PlaceFree(Palette(BlockKind.While), Vector2.zero);
             Program.PlaceFree(Palette(BlockKind.Slash), new Vector2(300, -260));
             yield return .3f;
-            Check(Program.StartChain().Count == 1 && Program.LooseRoots().Count() == 1, "시작 위치에 for, slash()는 따로");
+            Check(Program.StartChain().Count == 1 && Program.LooseRoots().Count() == 1, "시작 위치에 while, slash()는 따로");
             Check(StepId == "C08", "연결 전에는 C08에 머묾 (" + StepId + ")");
             var loop = Program.StartChain()[0];
             var pressed = Drag(ScreenPoint(Program.LooseRoots().First().Rect), ScreenPoint(loop.Body.Rect, .2f));
@@ -375,7 +375,7 @@ namespace CodingGame.Defense.Editor
             Load("slash()");
             yield return .3f;
             Check(StepId == "C08", "반복 없이 베기만 놓으면 C08을 통과하지 않음");
-            Load("for i in range(10):\n    slash()");
+            Load("while True:\n    slash()");
             yield return Wait(() => StepId == "C09", "C08 → C09", 3);
             Check(StepId == "C09", "반복 안에 베기를 넣으면 다음 대사: " + StepId);
         }
@@ -543,7 +543,7 @@ namespace CodingGame.Defense.Editor
             DevTest.PlaceTeachingRobot(Battle, RobotRole.Shooter);
             foreach (var bot in sim.Robots)
                 sim.ApplyProgram(bot.Id, "robot_" + bot.Id, bot.Spec.role == RobotRole.Warrior
-                    ? TutorialAnswers.Parse("for i in range(10):\n    slash()")
+                    ? TutorialAnswers.Parse("while True:\n    slash()")
                     : new[] { new CodeBlock(BlockKind.Shot, "0", new CodeBlock(BlockKind.NearestEnemy)) });
             yield return .5f;
             var robots = Field<IDictionary>(Battle, "robotViews");
@@ -605,7 +605,7 @@ namespace CodingGame.Defense.Editor
             yield return Wait(() => DevTest.Ready && !Battle.Tutorial.IsActive && Battle.Simulation.Robots.Count == 0, "튜토리얼 없는 1-1", 10);
             DevTest.PlaceTeachingRobot(Battle, RobotRole.Warrior);
             var bot = Battle.Simulation.Robots[0];
-            Battle.Simulation.ApplyProgram(bot.Id, "robot_" + bot.Id, TutorialAnswers.Parse("for i in range(10):\n    slash()"));
+            Battle.Simulation.ApplyProgram(bot.Id, "robot_" + bot.Id, TutorialAnswers.Parse("while True:\n    slash()"));
             DevTest.StartWave(); Time.timeScale = 3;
             // Real time from just before the first enemy comes in range, so the frames between effect and strike are seen.
             yield return Wait(() => Battle.Simulation.Enemies.Any(e => System.Numerics.Vector2.Distance(e.Position, bot.Position) < bot.Range + 1), "적 접근", 60);

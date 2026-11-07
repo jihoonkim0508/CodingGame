@@ -88,7 +88,7 @@ namespace CodingGame.Defense.Editor
                 try
                 {
                     sim.ApplyProgram(bot.Id, "robot_" + bot.Id, TutorialAnswers.Parse(bot.Spec.NativeAction == RobotAction.Attack ?
-                        "for i in range(10):\n    enemy = get_nearest_enemy()\n    attack(enemy)" : "for i in range(10):\n    slash()"));
+                        "while True:\n    enemy = get_nearest_enemy()\n    attack(enemy)" : "while True:\n    slash()"));
                 }
                 catch (System.Exception error) { Debug.LogWarning("[ScreenTour] " + bot.Spec.role + ": " + error.Message); }
         }

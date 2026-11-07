@@ -1104,7 +1104,7 @@ MonoBehaviour:
     highlightPadding: 10
     trigger: 
     skipIf: 
-    expectedCode: "for i in range(10):\n    enemy = get_nearest_enemy()\n    enemy_distance
+    expectedCode: "while True:\n    enemy = get_nearest_enemy()\n    enemy_distance
       = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:\n        attack(enemy)"
     pointerKey: Editor.Code.Name.1/3/1.0
     autoSelectSlot: 
@@ -1404,8 +1404,8 @@ MonoBehaviour:
     expectedCode: 
     pointerKey: 
     autoSelectSlot: 
-    hintCode: "for i in range(10):\n    enemy = get_nearest_enemy()\n    enemy_distance
-      = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:\n        attack(enemy)"
+    hintCode: "while True:\n    enemy = get_nearest_enemy()\n    enemy_distance =
+      enemy.distance(get_my_pos())\n    if enemy_distance <= 3:\n        attack(enemy)"
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0

@@ -259,11 +259,11 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uBA3C\uC800 <b>\uBC18\uBCF5</b>\uBD80\uD130 \uB193\uC790.\n<b>\u2018`for`\u2019</b>
-        \uBE14\uB85D\uC744 \uC624\uB978\uCABD \uCCAB \uC790\uB9AC\uC5D0 \uB193\uC544
-        \uC918!"
+      text: "\uBA3C\uC800 <b>\uBC18\uBCF5</b>\uBD80\uD130 \uB193\uC790.\n<b>\u2018`while
+        True`\u2019</b> \uBE14\uB85D\uC744 \uC624\uB978\uCABD \uCCAB \uC790\uB9AC\uC5D0
+        \uB193\uC544 \uC918!"
       focusKeys:
-      - Editor.Palette.For
+      - Editor.Palette.While
       - Editor.Code.Start
       highlightKeys: []
     targetKeys:
@@ -284,8 +284,8 @@ MonoBehaviour:
     highlightPadding: 10
     trigger: 
     skipIf: 
-    expectedCode: 1:For
-    pointerKey: Editor.Palette.For
+    expectedCode: 1:While
+    pointerKey: Editor.Palette.While
     autoSelectSlot: 
     hintCode: 
     pointerDelay: 0
@@ -299,7 +299,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: Editor.Palette.For>Editor.Code.Start
+    dragDemo: Editor.Palette.While>Editor.Code.Start
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -312,7 +312,7 @@ MonoBehaviour:
       speaker: "\uB514\uBC84"
       text: "\uC774\uBC88\uC5D4 \uC774\uB984 \uBD99\uC740 <b>\uC0C1\uC790</b>\uB97C
         \uD558\uB098 \uB9CC\uB4E4 \uAC70\uC57C.\n\uAC12 \uD0ED\uC758 <b>\u2018`enemy`
-        = value\u2019</b> \uBE14\uB85D\uC744 `for` \uC548\uCABD\uC5D0 \uB123\uC5B4
+        = value\u2019</b> \uBE14\uB85D\uC744 `while` \uC548\uCABD\uC5D0 \uB123\uC5B4
         \uC918!"
       focusKeys:
       - Editor.Palette.DeclareVariable
@@ -593,7 +593,7 @@ MonoBehaviour:
     highlightPadding: 10
     trigger: 
     skipIf: 
-    expectedCode: "for i in range(10):\n    enemy = get_nearest_enemy()\n    attack(enemy)"
+    expectedCode: "while True:\n    enemy = get_nearest_enemy()\n    attack(enemy)"
     pointerKey: Editor.Code.Name.1/2.0
     autoSelectSlot: 
     hintCode: 
@@ -831,7 +831,7 @@ MonoBehaviour:
     expectedCode: 
     pointerKey: 
     autoSelectSlot: 
-    hintCode: "for i in range(10):\n    enemy = get_nearest_enemy()\n    attack(enemy)"
+    hintCode: "while True:\n    enemy = get_nearest_enemy()\n    attack(enemy)"
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0

@@ -58,14 +58,15 @@ namespace CodingGame.Defense.Editor
         static readonly string Unit0 = TutorialKeys.Unit(0), Range0 = TutorialKeys.Range(0), Range1 = TutorialKeys.Range(1);
 
         // The function runs when called: battle start calls it once, the robot's Play button again (play feedback 4).
-        // 1-1: one swing a call; 1-3: the loop (a new loop comes with range(10)) swings ten times a call; 1-4: the shooter's loop.
+        // 1-1: one swing a call; 1-3: the loop, while True, swings on and on from one call; 1-4: the shooter's loop. No for for
+        // the player (12차 121): every loop is while True.
         const string Code11 = "slash()";
-        const string Code13 = "for i in range(10):\n    slash()";
-        const string Code14 = "for i in range(10):\n    attack(get_nearest_enemy())";
+        const string Code13 = "while True:\n    slash()";
+        const string Code14 = "while True:\n    attack(get_nearest_enemy())";
         // 2-1: the found enemy kept in a variable; 2-3: the shooter waits until the enemy is within 3, where one shot fells it
         // (32 x 7/distance, at most 3x), instead of firing on entry at 7 and reloading 6 s while the enemy walks past.
-        const string Code21 = "for i in range(10):\n    enemy = get_nearest_enemy()\n    attack(enemy)";
-        const string Code23 = "for i in range(10):\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:\n        attack(enemy)";
+        const string Code21 = "while True:\n    enemy = get_nearest_enemy()\n    attack(enemy)";
+        const string Code23 = "while True:\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:\n        attack(enemy)";
         const string StagesFolder = "Assets/!_Project/Defense/Tutorial/Stages23";
 
         sealed class Line { public string Speaker, Text; }
@@ -163,17 +164,17 @@ namespace CodingGame.Defense.Editor
             };
         }
 
-        // 1-3: the loop lesson moved from 1-1. The warrior from 1-1 gets a for with the swing inside; the code is cleared first.
+        // 1-3: the loop lesson moved from 1-1. The warrior from 1-1 gets a while True with the swing inside; the code is cleared first.
         static List<S> OneThree() => new List<S> {
             L("1-3.A01"), L("1-3.A02"),
             L("1-3.A03", Click(Unit0, s => s.Pointer = Unit0)),
             L("1-3.A04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
             L("1-3.C01", With(Ed, s => s.ClearProgram = true, Focus(Drop))),
             L("1-3.C05", Signal(TutorialSignals.CodeLinePlaced, new[] { Drop, Palette }, With(
-                s => { s.Expected = "1:For"; s.Pointer = "Editor.Palette.For"; s.Preview = true;
-                    s.Demo = "Editor.Palette.For>Editor.Code.Start"; },
-                Focus("Editor.Palette.For", "Editor.Code.Start")))),
-            L("1-3.C06", With(Ed, Focus("Editor.Code.Arg.1.0"))),
+                s => { s.Expected = "1:While"; s.Pointer = "Editor.Palette.While"; s.Preview = true;
+                    s.Demo = "Editor.Palette.While>Editor.Code.Start"; },
+                Focus("Editor.Palette.While", "Editor.Code.Start")))),
+            L("1-3.C06", With(Ed, Focus("Editor.Code.Line.1"))),
             L("1-3.C08", Code(Code13, With(
                 s => { s.Pointer = "Editor.Palette.Slash"; s.AutoSlot = "Editor.Code.Body.1";
                     s.Demo = "Editor.Palette.Slash>Editor.Code.Body.1"; },
@@ -200,14 +201,14 @@ namespace CodingGame.Defense.Editor
                 }
             }, Focus(focus)));
 
-        // 2-1 (play feedback 4: variables open in Stage 2): a shooter stood by the road; for, then enemy = get_nearest_enemy()
+        // 2-1 (play feedback 4: variables open in Stage 2): a shooter stood by the road; while True, then enemy = get_nearest_enemy()
         // inside it, then attack(enemy) under that.
         static List<S> TwoOne() => new List<S> {
             L("2-1.A01", s => s.Cards = true), L("2-1.A02"),
             L("2-1.A03", s => s.PlaceShooter = true),
             L("2-1.A04", Click(Unit0, s => s.Pointer = Unit0)),
             L("2-1.A05", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
-            L("2-1.B01", EditSignal(TutorialSignals.CodeLinePlaced, "1:For", "Editor.Palette.For", "Editor.Palette.For", "Editor.Code.Start")),
+            L("2-1.B01", EditSignal(TutorialSignals.CodeLinePlaced, "1:While", "Editor.Palette.While", "Editor.Palette.While", "Editor.Code.Start")),
             L("2-1.B02", With(EditSignal(TutorialSignals.CodeLinePlaced, "1/1:DeclareVariable", "Editor.Palette.DeclareVariable", "Editor.Palette.DeclareVariable", "Editor.Code.Body.1"),
                 s => s.AutoSlot = "Editor.Code.Body.1")),
             L("2-1.B03", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/1.0", "Editor.Palette.NearestEnemy", "Editor.Palette.NearestEnemy", "Editor.Code.Arg.1/1.0"),
@@ -280,7 +281,7 @@ namespace CodingGame.Defense.Editor
         // Script code names in the code colour (1-4 already has backticks).
         static readonly Regex CodeNames = new Regex(@"(?<![A-Za-z0-9_.`])(" + string.Join("|", new[] {
             "enemy.distance(get_my_pos())", ".distance(get_my_pos())", "enemy.distance()", "get_nearest_enemy()", "get_my_pos()", "my_attack_range()",
-            "enemy_distance", "for i in range(10)", "range(10)", "slash()", "attack()", ".hp", "enemy", "for", "if", "<=" }.Select(Regex.Escape)) + @")(?![A-Za-z0-9_(`])");
+            "enemy_distance", "while True", "slash()", "attack()", ".hp", "enemy", "while", "if", "<=" }.Select(Regex.Escape)) + @")(?![A-Za-z0-9_(`])");
 
         static Dictionary<string, List<Line>> ParseScript(string path)
         {
@@ -361,10 +362,9 @@ namespace CodingGame.Defense.Editor
             // the boss; variables open at 2-1 and conditions at 2-3.
             Lesson(1, "베기와 실행 버튼", 1, (BlockKind.Slash, 1));
             Lesson(2, "베기 자유 플레이", 1, (BlockKind.Slash, 2));
-            Lesson(3, "반복문", 0, (BlockKind.For, 2), (BlockKind.Number, 2));
+            Lesson(3, "반복문", 0, (BlockKind.While, 2));
             SetupIntroEncounter(so);
-            // 1-3: eight basic enemies 1.2 s apart, two swings each: the two warriors' loops (ten swings a call) and a Play
-            // press or two between them hold the road.
+            // 1-3: eight basic enemies 1.2 s apart, two swings each: the two warriors' while True loops hold the road.
             var practiceGroup = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves").GetArrayElementAtIndex(2)
                 .FindPropertyRelative("groups").GetArrayElementAtIndex(0);
             practiceGroup.FindPropertyRelative("count").intValue = 8;
@@ -376,10 +376,10 @@ namespace CodingGame.Defense.Editor
                 so.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(campaign);
                 return "campaign: lessons 1-1 to 1-3 only";
             }
-            RoleLesson(4, "반복 자유 플레이(원거리)", RobotRole.Shooter, 1, (BlockKind.For, 1), (BlockKind.Number, 1), (BlockKind.Shot, 1), (BlockKind.NearestEnemy, 1));
-            Lesson(5, "반복 보스 실습", 0, (BlockKind.For, 1), (BlockKind.Number, 1), (BlockKind.Slash, 1));
+            RoleLesson(4, "반복 자유 플레이(원거리)", RobotRole.Shooter, 1, (BlockKind.While, 1), (BlockKind.Shot, 1), (BlockKind.NearestEnemy, 1));
+            Lesson(5, "반복 보스 실습", 0, (BlockKind.While, 1), (BlockKind.Slash, 1));
             // Stage 2: variables at 2-1 (two shooters), conditions at 2-3 (with the utility robot's slow() to use them on).
-            StageLesson(2, 1, "변수: 찾은 적을 상자에 담기(원거리)", RobotRole.Shooter, 2, (BlockKind.For, 2), (BlockKind.Number, 2), (BlockKind.Shot, 2),
+            StageLesson(2, 1, "변수: 찾은 적을 상자에 담기(원거리)", RobotRole.Shooter, 2, (BlockKind.While, 2), (BlockKind.Shot, 2),
                 (BlockKind.DeclareVariable, 2), (BlockKind.Variable, 2), (BlockKind.NearestEnemy, 2));
             StageLesson(2, 3, "조건문: 쏠 때 고르기", RobotRole.Utility, 1, (BlockKind.If, 2), (BlockKind.Comparison, 2), (BlockKind.Number, 2),
                 (BlockKind.MyPos, 2), (BlockKind.DeclareVariable, 2), (BlockKind.Variable, 3), (BlockKind.MyAttackRange, 1), (BlockKind.Slow, 1));

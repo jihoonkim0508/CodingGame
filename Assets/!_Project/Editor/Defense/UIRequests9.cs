@@ -42,6 +42,7 @@ namespace CodingGame.Defense.Editor
             restore();
             Dialogue(Canvas("TutorialOverlay"), jalnan, a2z);
             TopBar(Canvas("PlayerCanvas"));
+            DeckTooltips(Canvas("PlayerCanvas"));
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene()); EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
             var prefab = PrefabUtility.LoadPrefabContents(Overlay);
             try { Dialogue(prefab.transform, jalnan, a2z); PrefabUtility.SaveAsPrefabAsset(prefab, Overlay); }
@@ -61,6 +62,30 @@ namespace CodingGame.Defense.Editor
             TopBar(Canvas("PlayerCanvas"));
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene()); EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
             Debug.Log("[UIRequests10] applied");
+        }
+
+        [MenuItem("Tools/Learning UI/Apply 12차 Requests")]
+        public static void Apply12()
+        {
+            if (SceneManager.GetActiveScene().path != Scene) EditorSceneManager.OpenScene(Scene);
+            DeckTooltips(Canvas("PlayerCanvas"));
+            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene()); EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
+            Debug.Log("[UIRequests12] applied");
+        }
+
+        // 122: the robot cards under the map name their robot when hovered, from the scene's one tooltip, next to the card
+        // itself, as before PR #19. Restoring the cards over PR #19's builders (Preserve) loses these two references.
+        static void DeckTooltips(Transform canvas)
+        {
+            var tooltip = Object.FindFirstObjectByType<DefenseTooltip>(FindObjectsInactive.Include); // on DefenseBattle, not the canvas
+            foreach (var hover in canvas.Find("Deck/Robots").GetComponentsInChildren<DefenseHoverInfo>(true))
+            {
+                var so = new SerializedObject(hover);
+                so.FindProperty("tooltip").objectReferenceValue = tooltip;
+                so.FindProperty("descriptionAnchor").objectReferenceValue = hover.transform;
+                so.FindProperty("rightOfAnchor").boolValue = false;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
         }
 
         // 112: no 'This is Coding' logo, the stage line starts at the bar's left. 113: the i sits just under the bar at its right
@@ -307,6 +332,31 @@ namespace CodingGame.Defense.Editor
             var guideSpeaker = guidePanel ? guidePanel.Find("SpeakerName").GetComponent<TMP_Text>() : null;
             Check(guideSpeaker && guideSpeaker.text == "디버" && StageMap.StageMapController.GuideSpeaker == "디버" && guideSpeaker.font == jalnan,
                 "117 speaker fixed to 디버 in Jalnan (prefab and the map's code)");
+            // 122: every hover card knows its tooltip, where to show it and what it describes (Awake throws otherwise).
+            var hovers = Object.FindObjectsByType<DefenseHoverInfo>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var unwired = hovers.Where(h => { var so = new SerializedObject(h); return !so.FindProperty("tooltip").objectReferenceValue ||
+                !so.FindProperty("descriptionAnchor").objectReferenceValue || !so.FindProperty("robot").objectReferenceValue && !so.FindProperty("enemy").objectReferenceValue; })
+                .Select(h => h.transform.parent.name + "/" + h.name).ToArray();
+            Check(hovers.Length > 0 && unwired.Length == 0, "122 every DefenseHoverInfo wired" + (unwired.Length > 0 ? " (missing: " + string.Join(", ", unwired) + ")" : ""));
+
+            // 118: the alarm is one short pulse, shorter than the .5 s between warning cards.
+            var alarm = Resources.Load<AudioClip>("Sounds/alarm");
+            Check(alarm && alarm.length <= .5f, $"118 alarm.ogg is short ({(alarm ? alarm.length : 0):0.00} s)");
+            // 119: the director raises the alarm in 1-1 only.
+            var host = new GameObject("AlarmLessonProbe"); host.SetActive(false);
+            try
+            {
+                var director = host.AddComponent<TutorialDirector>();
+                var activeField = typeof(TutorialDirector).GetField("active", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                var alarmLesson = typeof(TutorialDirector).GetProperty("AlarmLesson", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                bool Alarm(int stage, int wave)
+                {
+                    var sequence = ScriptableObject.CreateInstance<TutorialSequence>(); sequence.stage = stage; sequence.wave = wave;
+                    activeField.SetValue(director, sequence); bool on = (bool)alarmLesson.GetValue(director); Object.DestroyImmediate(sequence); return on;
+                }
+                Check(Alarm(1, 1) && !Alarm(1, 3) && !Alarm(1, 4) && !Alarm(1, 5) && !Alarm(2, 1) && !Alarm(3, 1), "119 the alarm shows in 1-1 only");
+            }
+            finally { Object.DestroyImmediate(host); }
             Check(typeof(DefenseBattle).GetMethod("SetPlacementTint", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance) == null,
                 "108, 114 placing a robot leaves the map's colours alone (no white floor, red road)");
 

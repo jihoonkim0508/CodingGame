@@ -370,7 +370,10 @@ namespace CodingGame.Defense
             string voice = animate || !firstVisit ? text.text : null;
             if (system)
             {
-                view.Hide(); alert.Show(text.text, step.alertCards, view.Speak(voice)); bannerUp = true;
+                // The alarm (red banner, cards, sound) belongs to 1-1 only (12차 119); elsewhere the line passes unseen, and
+                // Update moves on next frame because no banner is showing.
+                view.Hide(); bannerUp = true;
+                if (AlarmLesson) alert.Show(text.text, step.alertCards, view.Speak(voice));
                 return;
             }
             bannerUp = false;
@@ -403,6 +406,7 @@ namespace CodingGame.Defense
         bool Waiting => active && viewedStep == progressStep && progressStep < active.steps.Length &&
             active.steps[progressStep].kind == TutorialStepKind.ActionGuide && !completedStep.Contains(active.steps[progressStep].stepId);
         bool IsAlert(TutorialText text) => alert && text.speaker == TutorialSignals.SystemSpeaker;
+        bool AlarmLesson => active && active.stage == 1 && active.wave == 1;
         bool HasPreviousText()
         {
             for (int s = viewedStep; s >= 0; s--)

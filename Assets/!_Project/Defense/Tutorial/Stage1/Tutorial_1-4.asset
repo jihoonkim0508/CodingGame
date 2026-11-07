@@ -268,7 +268,7 @@ MonoBehaviour:
     expectedCode: 
     pointerKey: 
     autoSelectSlot: 
-    hintCode: "for i in range(10):\n    attack(get_nearest_enemy())"
+    hintCode: "while True:\n    attack(get_nearest_enemy())"
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0

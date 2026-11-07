@@ -1,4 +1,4 @@
-"""Synthesizes alarm.ogg (low 'jing... jing...' warning) and hover.ogg (soft UI tick). make_sounds.py <out folder>"""
+"""Synthesizes alarm.ogg (one short low 'jing' warning) and hover.ogg (soft UI tick). make_sounds.py <out folder>"""
 import sys, os, subprocess, wave
 import numpy as np
 
@@ -42,6 +42,8 @@ for start in (0, gap):
     i = int(start * SR); alarm[i:i + len(p)] += p
 # short room tail
 d = int(.06 * SR); alarm[d:] += .22 * alarm[:-d]
+# 12차 118: three warning cards land .5 s apart, so the alarm is the first pulse cut at .45 s (the whole 1.77 s overlapped).
+cut = int(.45 * SR); alarm = alarm[:cut] * np.clip((cut - np.arange(cut)) / (.12 * SR), 0, 1)
 write("alarm", alarm)
 
 # hover: a short soft wooden tick, 1.6 kHz falling to 1.1 kHz over 40 ms with a quick decay plus a tiny click on top.

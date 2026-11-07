@@ -29,7 +29,7 @@ namespace CodingGame.Defense
             new BlockDrop { kind = BlockKind.Shot, weight = 2 }, new BlockDrop { kind = BlockKind.Slash },
             new BlockDrop { kind = BlockKind.If }, new BlockDrop { kind = BlockKind.Else },
             new BlockDrop { kind = BlockKind.Buff, weight = 2 }, new BlockDrop { kind = BlockKind.Block },
-            new BlockDrop { kind = BlockKind.For, firstWave = 2 }, new BlockDrop { kind = BlockKind.While, firstWave = 3 },
+            new BlockDrop { kind = BlockKind.While, firstWave = 3 },
             new BlockDrop { kind = BlockKind.Elif, firstWave = 3 }, new BlockDrop { kind = BlockKind.Break, firstWave = 3 },
             new BlockDrop { kind = BlockKind.Continue, firstWave = 3 }
         };

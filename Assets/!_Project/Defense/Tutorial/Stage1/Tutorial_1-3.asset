@@ -261,10 +261,10 @@ MonoBehaviour:
     - textId: t1
       speaker: "\uB514\uBC84"
       text: "<b>\uBC18\uBCF5</b>\uC744 \uB193\uC744 \uAC70\uC57C. \uAC00\uC6B4\uB370\uC758
-        <b>\u2018`for`\u2019</b> \uBE14\uB85D\uC744\n\uC624\uB978\uCABD\uC5D0 \uD45C\uC2DC\uB41C
-        \uCCAB \uC790\uB9AC\uC5D0 \uB193\uC544 \uC918!"
+        <b>\u2018`while True`\u2019</b> \uBE14\uB85D\uC744\n\uC624\uB978\uCABD\uC5D0
+        \uD45C\uC2DC\uB41C \uCCAB \uC790\uB9AC\uC5D0 \uB193\uC544 \uC918!"
       focusKeys:
-      - Editor.Palette.For
+      - Editor.Palette.While
       - Editor.Code.Start
       highlightKeys: []
     targetKeys:
@@ -285,8 +285,8 @@ MonoBehaviour:
     highlightPadding: 10
     trigger: 
     skipIf: 
-    expectedCode: 1:For
-    pointerKey: Editor.Palette.For
+    expectedCode: 1:While
+    pointerKey: Editor.Palette.While
     autoSelectSlot: 
     hintCode: 
     pointerDelay: 0
@@ -300,7 +300,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: Editor.Palette.For>Editor.Code.Start
+    dragDemo: Editor.Palette.While>Editor.Code.Start
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -311,11 +311,11 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uBD99\uC5C8\uB2E4! \uAD04\uD638 \uC548\uC758 \uC22B\uC790 <b>10</b>
-        \uBCF4\uC774\uC9C0?\n\uC548\uCABD\uC5D0 \uB123\uC740 \uBA85\uB839\uC744 \uBA87
-        \uBC88 \uB418\uD480\uC774\uD560\uC9C0 \uC815\uD558\uB294 \uC22B\uC790\uC57C."
+      text: "\uBD99\uC5C8\uB2E4! <b>True</b>\uB294 \u2018\uC5B8\uC81C\uB098 \uB9DE\uC544\u2019\uB77C\uB294
+        \uB73B\uC774\uC57C.\n\uADF8\uB798\uC11C \uC548\uCABD \uBA85\uB839\uC744 \uBA48\uCD94\uC9C0
+        \uC54A\uACE0 \uACC4\uC18D \uB418\uD480\uC774\uD574."
       focusKeys:
-      - Editor.Code.Arg.1.0
+      - Editor.Code.Line.1
       highlightKeys: []
     targetKeys: []
     dim: 0
@@ -360,7 +360,7 @@ MonoBehaviour:
     - textId: t1
       speaker: "\uB514\uBC84"
       text: "\uC774\uC81C \uB418\uD480\uC774\uD560 \uBA85\uB839\uC744 \uB123\uC790.\n<b>\u2018`slash()`\u2019</b>\uB97C
-        <b>`for` \uC548\uCABD</b> \uBE48\uC790\uB9AC\uC5D0 \uB123\uC5B4 \uC918!"
+        <b>`while` \uC548\uCABD</b> \uBE48\uC790\uB9AC\uC5D0 \uB123\uC5B4 \uC918!"
       focusKeys:
       - Editor.Palette.Slash
       - Editor.Code.Body.1
@@ -383,7 +383,7 @@ MonoBehaviour:
     highlightPadding: 10
     trigger: 
     skipIf: 
-    expectedCode: "for i in range(10):\n    slash()"
+    expectedCode: "while True:\n    slash()"
     pointerKey: Editor.Palette.Slash
     autoSelectSlot: Editor.Code.Body.1
     hintCode: 
@@ -409,9 +409,9 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "`for` \uC548\uCABD \uBA85\uB839\uC740 \uAD04\uD638 \uC548 \uC22B\uC790\uB9CC\uD07C
-        \uB418\uD480\uC774\uB3FC.\n\uADF8\uB7EC\uB2C8\uAE4C \u2018\uC2E4\uD589\u2019
-        \uD55C \uBC88\uC5D0 \uBCA0\uAE30\uB97C <b>\uC5F4 \uBC88</b>!"
+      text: "`while True` \uC548\uCABD \uBA85\uB839\uC740 \uB05D\uC5C6\uC774 \uB418\uD480\uC774\uB3FC.\n\uADF8\uB7EC\uB2C8\uAE4C
+        \u2018\uC2E4\uD589\u2019 \uD55C \uBC88\uC774\uBA74 <b>\uACC4\uC18D</b> \uBCA0\uB294
+        \uAC70\uC57C!"
       focusKeys:
       - Editor.Code.Line.1
       highlightKeys: []
@@ -464,9 +464,8 @@ MonoBehaviour:
       highlightKeys: []
     - textId: t2
       speaker: "\uB514\uBC84"
-      text: "\uC5F4 \uBC88 \uBCA0\uB77C\uACE0 \uC5F4 \uC904\uC744 \uC4F8 \uD544\uC694\uAC00
-        \uC5C6\uC5B4.\n\uBC18\uBCF5 \uD55C \uC904\uC5D0 \uBCA0\uAE30 \uD55C \uC904\uC774\uBA74
-        \uB05D!"
+      text: "\uBCA0\uAE30\uB97C \uBA87 \uC904\uC529 \uC4F8 \uD544\uC694\uAC00 \uC5C6\uC5B4.\n\uBC18\uBCF5
+        \uD55C \uC904\uC5D0 \uBCA0\uAE30 \uD55C \uC904\uC774\uBA74 \uB05D!"
       focusKeys:
       - Editor.Code.Line.1
       highlightKeys: []
@@ -512,9 +511,9 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uC5F4 \uBC88\uC744 \uB2E4 \uBCA0\uBA74 \uD568\uC218\uAC00 \uB05D\uB098.\n\uADF8\uB54C
-        \uC801\uC774 \uB0A8\uC544 \uC788\uC73C\uBA74 \uB610 <b>\u2018\uC2E4\uD589\u2019</b>\uC744
-        \uB20C\uB7EC \uC918!"
+      text: "\uC774 \uD568\uC218\uB294 \uB05D\uB098\uC9C0 \uC54A\uC544.\n\uC804\uD22C\uAC00
+        \uC2DC\uC791\uB418\uBA74 \uC804\uC0AC\uAC00 \uC26C\uC9C0 \uC54A\uACE0 \uACC4\uC18D
+        \uBCA8 \uAC70\uC57C!"
       focusKeys:
       - Editor.Code.Line.1
       - Editor.Preview
@@ -676,7 +675,7 @@ MonoBehaviour:
     expectedCode: 
     pointerKey: 
     autoSelectSlot: 
-    hintCode: "for i in range(10):\n    slash()"
+    hintCode: "while True:\n    slash()"
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0

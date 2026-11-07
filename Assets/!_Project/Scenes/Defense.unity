@@ -5630,15 +5630,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6397853815647270699, guid: 989b28038fb46c84fadfc80fe5564cc2, type: 3}
       propertyPath: m_LocalScale.x
-      value: 65.93404
+      value: 83.61891
       objectReference: {fileID: 0}
     - target: {fileID: 6397853815647270699, guid: 989b28038fb46c84fadfc80fe5564cc2, type: 3}
       propertyPath: m_LocalScale.y
-      value: 34.597336
+      value: 50.876442
       objectReference: {fileID: 0}
     - target: {fileID: 6397853815647270699, guid: 989b28038fb46c84fadfc80fe5564cc2, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.9999919
+      value: 2.6732516
       objectReference: {fileID: 0}
     - target: {fileID: 6397853815647270699, guid: 989b28038fb46c84fadfc80fe5564cc2, type: 3}
       propertyPath: m_LocalPosition.y
@@ -5646,7 +5646,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6397853815647270699, guid: 989b28038fb46c84fadfc80fe5564cc2, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 3.8448372
+      value: 11.540672
       objectReference: {fileID: 0}
     - target: {fileID: 7153723802678677831, guid: 989b28038fb46c84fadfc80fe5564cc2, type: 3}
       propertyPath: m_LocalScale.x
@@ -28519,10 +28519,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5803f3f5267881b4da703496b4a78105, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.DefenseHoverInfo
-  tooltip: {fileID: 0}
+  tooltip: {fileID: 420160343}
   robot: {fileID: 11400000, guid: 19709a862c354394c8b90f01ab956b39, type: 2}
   enemy: {fileID: 0}
-  descriptionAnchor: {fileID: 0}
+  descriptionAnchor: {fileID: 818853098}
   rightOfAnchor: 0
 --- !u!114 &818853104
 MonoBehaviour:
@@ -38719,10 +38719,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5803f3f5267881b4da703496b4a78105, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.DefenseHoverInfo
-  tooltip: {fileID: 0}
+  tooltip: {fileID: 420160343}
   robot: {fileID: 11400000, guid: b76e43feb9140fb4c990f1a9cccda0c1, type: 2}
   enemy: {fileID: 0}
-  descriptionAnchor: {fileID: 0}
+  descriptionAnchor: {fileID: 1114536208}
   rightOfAnchor: 0
 --- !u!114 &1114536214
 MonoBehaviour:
@@ -50234,10 +50234,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5803f3f5267881b4da703496b4a78105, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.DefenseHoverInfo
-  tooltip: {fileID: 0}
+  tooltip: {fileID: 420160343}
   robot: {fileID: 11400000, guid: 555b893354686a048b947ce173a1fe96, type: 2}
   enemy: {fileID: 0}
-  descriptionAnchor: {fileID: 0}
+  descriptionAnchor: {fileID: 1492510111}
   rightOfAnchor: 0
 --- !u!114 &1492510117
 MonoBehaviour:
@@ -54040,10 +54040,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5803f3f5267881b4da703496b4a78105, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.DefenseHoverInfo
-  tooltip: {fileID: 0}
+  tooltip: {fileID: 420160343}
   robot: {fileID: 11400000, guid: 184c96b05a09845438c3febe6291b714, type: 2}
   enemy: {fileID: 0}
-  descriptionAnchor: {fileID: 0}
+  descriptionAnchor: {fileID: 1572529776}
   rightOfAnchor: 0
 --- !u!114 &1572529782
 MonoBehaviour:
@@ -65364,10 +65364,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5803f3f5267881b4da703496b4a78105, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.DefenseHoverInfo
-  tooltip: {fileID: 0}
+  tooltip: {fileID: 420160343}
   robot: {fileID: 11400000, guid: 37b268531f66c7a49bd06e8896797a6f, type: 2}
   enemy: {fileID: 0}
-  descriptionAnchor: {fileID: 0}
+  descriptionAnchor: {fileID: 1870418210}
   rightOfAnchor: 0
 --- !u!114 &1870418216
 MonoBehaviour:
@@ -66345,10 +66345,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5803f3f5267881b4da703496b4a78105, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.DefenseHoverInfo
-  tooltip: {fileID: 0}
+  tooltip: {fileID: 420160343}
   robot: {fileID: 11400000, guid: ac61e62d468bbeb418f909499837bff1, type: 2}
   enemy: {fileID: 0}
-  descriptionAnchor: {fileID: 0}
+  descriptionAnchor: {fileID: 1882000896}
   rightOfAnchor: 0
 --- !u!114 &1882000902
 MonoBehaviour:

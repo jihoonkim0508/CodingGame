@@ -167,7 +167,7 @@ namespace CodingGame.Defense
         }
         static CodeBlock Loop(params CodeBlock[] body)
         {
-            var loop = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "10"));
+            var loop = new CodeBlock(BlockKind.While); // while True (no for for the player, 12차 121)
             loop.Body.AddRange(body);
             return loop;
         }

@@ -230,7 +230,7 @@ namespace CodingGame.Defense.Editor
         {
             var editor = b.CodeEditor;
             Button close = Field<Button>(editor, "closeButton"), clear = Field<Button>(editor, "automaticButton"), hint = Field<Button>(editor, "hintButton");
-            editor.SetHint("for i in range(10):\n    slash()"); yield return null;
+            editor.SetHint("while True:\n    slash()"); yield return null;
             yield return Shot("editor_hint");
             Rect c = OnScreen((RectTransform)close.transform), e = OnScreen((RectTransform)clear.transform), h = OnScreen((RectTransform)hint.transform);
             float gap = c.xMin - e.xMax, hintGap = e.xMin - h.xMax;

@@ -84,9 +84,7 @@ MonoBehaviour:
       goal: 
       robots: []
       blocks:
-      - kind: 16
-        count: 2
-      - kind: 10
+      - kind: 2
         count: 2
       rewards:
       - kind: 11
@@ -99,9 +97,7 @@ MonoBehaviour:
       - role: 4
         count: 1
       blocks:
-      - kind: 16
-        count: 1
-      - kind: 10
+      - kind: 2
         count: 1
       - kind: 22
         count: 1
@@ -116,9 +112,7 @@ MonoBehaviour:
       goal: 
       robots: []
       blocks:
-      - kind: 16
-        count: 1
-      - kind: 10
+      - kind: 2
         count: 1
       - kind: 19
         count: 1
@@ -128,15 +122,13 @@ MonoBehaviour:
     - stage: 2
       wave: 1
       topic: "\uBCC0\uC218: \uCC3E\uC740 \uC801\uC744 \uC0C1\uC790\uC5D0 \uB2F4\uAE30(\uC6D0\uAC70\uB9AC)"
-      goal: "for \uC548\uC5D0\uC11C \uAC00\uC7A5 \uAC00\uAE4C\uC6B4 \uC801\uC744
+      goal: "while True \uC548\uC5D0\uC11C \uAC00\uC7A5 \uAC00\uAE4C\uC6B4 \uC801\uC744
         \uCC3E\uC544 \uACF5\uACA9\uD558\uAE30"
       robots:
       - role: 4
         count: 2
       blocks:
-      - kind: 16
-        count: 2
-      - kind: 10
+      - kind: 2
         count: 2
       - kind: 22
         count: 2
@@ -147,7 +139,7 @@ MonoBehaviour:
       - kind: 6
         count: 2
       rewards:
-      - kind: 16
+      - kind: 2
         count: 1
     - stage: 2
       wave: 2
@@ -230,7 +222,7 @@ MonoBehaviour:
       - role: 2
         count: 1
       blocks:
-      - kind: 16
+      - kind: 2
         count: 2
       - kind: 10
         count: 3
@@ -243,7 +235,7 @@ MonoBehaviour:
       - kind: 15
         count: 2
       rewards:
-      - kind: 16
+      - kind: 2
         count: 1
     - stage: 3
       wave: 2
@@ -263,7 +255,7 @@ MonoBehaviour:
       robots: []
       blocks: []
       rewards:
-      - kind: 16
+      - kind: 2
         count: 1
     - stage: 3
       wave: 4
@@ -289,7 +281,7 @@ MonoBehaviour:
       robots: []
       blocks: []
       rewards:
-      - kind: 16
+      - kind: 2
         count: 1
     robots: []
     initial: []
@@ -318,7 +310,7 @@ MonoBehaviour:
     - kind: 20
       firstWave: 1
       weight: 1
-    - kind: 16
+    - kind: 2
       firstWave: 2
       weight: 1
     - kind: 2
