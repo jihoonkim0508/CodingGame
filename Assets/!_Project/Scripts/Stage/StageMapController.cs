@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Linq;
 using CodingGame.Art.StageSelection;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -15,8 +16,11 @@ namespace CodingGame.StageMap
         Camera mapCamera;
         StageCameraController cameraController;
         StageMapHUD hud;
-        GUIStyle bodyStyle, guideTitleStyle, guideBodyStyle;
-        Texture2D guideFace; // 디버, the tutorial's guide robot, so the map talks in the same voice
+        GUIStyle bodyStyle;
+        // 디버 talks in the battle's dialogue box (11차 116), copied by UIRequests9.BuildGuideDialogue.
+        public const string GuideDialogue = "UI/GuideDialogue", GuideSpeaker = "디버";
+        CanvasGroup guideGroup;
+        TMP_Text guideLine;
         bool entering, unlocking; // entering: a stage was chosen, the camera flies there and the scene fades
         float enteredAt;
         const float GuideFadeSeconds = .35f;
@@ -32,7 +36,14 @@ namespace CodingGame.StageMap
         {
             nodes = stageNodes; mapCamera = camera;
             islands = nodes.Select(node => node.GetComponent<StageIslandView>()).ToArray();
-            guideFace = Resources.Load<Texture2D>("Guide/Guide_normal");
+            var dialogue = Resources.Load<GameObject>(GuideDialogue);
+            if (dialogue)
+            {
+                var guide = Instantiate(dialogue); guide.name = "GuideDialogue";
+                guideGroup = guide.GetComponent<CanvasGroup>();
+                guideLine = guide.transform.Find("DialoguePanel/Dialogue").GetComponent<TMP_Text>();
+                guide.transform.Find("DialoguePanel/SpeakerName").GetComponent<TMP_Text>().text = GuideSpeaker;
+            }
             var cameraData=camera.GetUniversalAdditionalCameraData();
             cameraData.antialiasing=AntialiasingMode.SubpixelMorphologicalAntiAliasing;
             cameraData.antialiasingQuality=AntialiasingQuality.High;
@@ -47,6 +58,12 @@ namespace CodingGame.StageMap
 
         void Update()
         {
+            // 디버's box fades out once a stage is chosen, while the camera flies there, and sits out the unlock cinematic.
+            if (guideGroup)
+            {
+                guideGroup.alpha = entering ? 1 - Mathf.Clamp01((Time.unscaledTime - enteredAt) / GuideFadeSeconds) : unlocking ? 0 : 1;
+                if (guideLine.text != guideMessage) guideLine.text = guideMessage;
+            }
             bool busy = entering || unlocking || cameraController.IsMoving;
             Mouse mouse = Mouse.current;
             StageNode over = null;
@@ -193,21 +210,18 @@ namespace CodingGame.StageMap
         Rect CardRect(int index) => hud.CardScreenRect(index);
 
         // The toy-workshop look from the battle (UITheme): paper cards and pills with an ink outline, Jalnan for names.
-        // The island cards, locks and seals are StageMapHUD's (uGUI); IMGUI here draws only 디버's card and the "여기야!" pointer.
-        Texture2D card, pill, badge, arrow;
+        // The island cards, locks and seals are StageMapHUD's (uGUI), 디버 is GuideDialogue's; IMGUI here draws only the "여기야!" pointer.
+        Texture2D card, pill, arrow;
         GUIStyle sticker, displayStyle, devStyle, hintStyle;
         void EnsureStyles()
         {
             if (bodyStyle != null) return;
             Font font = Font.CreateDynamicFontFromOSFont(new[] { "Malgun Gothic", "Apple SD Gothic Neo", "Arial" }, 28);
             Font display = UITheme.Display && UITheme.Display.sourceFontFile ? UITheme.Display.sourceFontFile : font;
-            Font bold = UITheme.Bold && UITheme.Bold.sourceFontFile ? UITheme.Bold.sourceFontFile : font;
-            card = Resources.Load<Texture2D>("UI/ui_card"); pill = Resources.Load<Texture2D>("UI/ui_pill"); badge = Resources.Load<Texture2D>("UI/ui_circle"); arrow = Resources.Load<Texture2D>("UI/ui_arrow");
+            card = Resources.Load<Texture2D>("UI/ui_card"); pill = Resources.Load<Texture2D>("UI/ui_pill"); arrow = Resources.Load<Texture2D>("UI/ui_arrow");
             sticker = new GUIStyle { normal = { background = card } };
             bodyStyle = new GUIStyle(GUI.skin.label) { font = font, fontSize = 18, wordWrap = true, normal = { textColor = UITheme.Ink } };
             displayStyle = new GUIStyle(bodyStyle) { font = display, wordWrap = false };
-            guideTitleStyle = new GUIStyle(displayStyle) { normal = { textColor = UITheme.Hex(0x0C8A73) } };
-            guideBodyStyle = new GUIStyle(bodyStyle) { font = bold, fontStyle = bold == font ? FontStyle.Bold : FontStyle.Normal };
             devStyle = new GUIStyle(bodyStyle) { normal = { textColor = new Color(1, 1, 1, .6f) } };
             hintStyle = new GUIStyle(displayStyle) { fontSize = 22, alignment = TextAnchor.MiddleCenter };
         }
@@ -236,31 +250,10 @@ namespace CodingGame.StageMap
             // Absolute-position labels have no input/layout work; draw once per repaint.
             if (Event.current.type != EventType.Repaint) return;
             EnsureStyles();
-            // 디버's card fades out once a stage is chosen, while the camera flies there, and sits out the unlock cinematic.
-            float guide = entering ? 1 - Mathf.Clamp01((Time.unscaledTime - enteredAt) / GuideFadeSeconds) : unlocking ? 0 : 1;
-            if (guide > 0) DrawGuide(guide);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             Text(new Rect(18f, Screen.height - 38f, 420f, 28f), "DEV  Z: 임시 클리어    Q: 초기화", devStyle);
 #endif
             DrawEnterHint();
-        }
-
-        // 디버 on a mint badge, talking from a paper card at the top middle, sized for a 1080p screen.
-        void DrawGuide(float alpha)
-        {
-            var faded = GUI.color; GUI.color = new Color(1, 1, 1, alpha);
-            float s = Screen.height / 1080f, cardWidth = Mathf.Min(1000 * s, Screen.width - 36), cardX = (Screen.width - cardWidth) * .5f, cardY = 18 * s;
-            Sticker(new Rect(cardX, cardY, cardWidth, 138 * s), card, UITheme.Paper);
-            float textX = cardX + 22 * s;
-            if (guideFace)
-            {
-                if (badge) { var tint = GUI.color; GUI.color = tint * UITheme.Mint; GUI.DrawTexture(new Rect(cardX + 14 * s, cardY + 10 * s, 112 * s, 116 * s), badge, ScaleMode.ScaleToFit); GUI.color = tint; }
-                GUI.DrawTexture(new Rect(cardX + 19 * s, cardY + 15 * s, 102 * s, 102 * s), guideFace, ScaleMode.ScaleToFit); textX = cardX + 142 * s;
-            }
-            guideTitleStyle.fontSize = Mathf.RoundToInt(26 * s); guideBodyStyle.fontSize = Mathf.RoundToInt(25 * s);
-            Text(new Rect(textX, cardY + 12 * s, cardWidth, 36 * s), "디버", guideTitleStyle);
-            Text(new Rect(textX, cardY + 50 * s, cardX + cardWidth - textX - 20 * s, 76 * s), GuideMessage, guideBodyStyle);
-            GUI.color = faded;
         }
 
         // A bouncing arrow over the first stage that can be entered, with its name on a sunny pill, so the player knows where to click.

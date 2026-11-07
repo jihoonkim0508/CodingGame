@@ -83,6 +83,51 @@ namespace CodingGame.Defense.Editor
             foreach (var changed in new Object[] { counters, info, controls }) EditorUtility.SetDirty(changed);
         }
 
+        // 11차 116, 117: the stage map's 디버 talks in the battle's dialogue box. A copy of the Defense scene's DialoguePanel (the
+        // speech bubble, 디버's picture, Jalnan name, A2Z line) on its own overlay canvas at the top middle, without the battle's
+        // view script, page arrows or hint; nothing on it takes clicks, so the map under it still does.
+        const string GuidePrefab = "Assets/!_Project/Resources/UI/GuideDialogue.prefab";
+        [MenuItem("Tools/Learning UI/Build Stage Guide Dialogue")]
+        public static void BuildGuideDialogue()
+        {
+            var defense = SceneManager.GetSceneByPath(Scene);
+            bool opened = !defense.isLoaded;
+            if (opened) defense = EditorSceneManager.OpenScene(Scene, OpenSceneMode.Additive);
+            try
+            {
+                var overlay = defense.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<Canvas>(true)).First(c => c.name == "TutorialOverlay");
+                var source = overlay.GetComponentsInChildren<RectTransform>(true).First(t => t.name == "DialoguePanel");
+                var preview = EditorSceneManager.NewPreviewScene();
+                try
+                {
+                    var root = new GameObject("GuideDialogue", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(CanvasGroup));
+                    SceneManager.MoveGameObjectToScene(root, preview);
+                    var canvas = root.GetComponent<Canvas>(); canvas.renderMode = RenderMode.ScreenSpaceOverlay; canvas.sortingOrder = 25;
+                    EditorUtility.CopySerialized(overlay.GetComponent<CanvasScaler>(), root.GetComponent<CanvasScaler>());
+                    var group = root.GetComponent<CanvasGroup>(); group.interactable = false; group.blocksRaycasts = false;
+                    var panel = (RectTransform)Object.Instantiate(source.gameObject, root.transform).transform;
+                    panel.name = "DialoguePanel"; panel.gameObject.SetActive(true);
+                    foreach (var name in new[] { "Accent", "StageWave", "PreviousText", "NextText", "AdvanceHint" })
+                    { var extra = panel.Find(name); if (extra) Object.DestroyImmediate(extra.gameObject); }
+                    foreach (var behaviour in panel.GetComponentsInChildren<MonoBehaviour>(true).Where(b => !(b is Graphic)).ToArray())
+                        Object.DestroyImmediate(behaviour);
+                    foreach (var graphic in panel.GetComponentsInChildren<Graphic>(true)) graphic.raycastTarget = false;
+                    // At the top middle, as wide as in the battle.
+                    panel.anchorMin = new Vector2(source.anchorMin.x, 1); panel.anchorMax = new Vector2(source.anchorMax.x, 1);
+                    panel.pivot = new Vector2(.5f, 1); panel.anchoredPosition = new Vector2(0, -GuideTop); panel.sizeDelta = new Vector2(0, source.rect.height);
+                    var jalnan = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(Jalnan);
+                    var speaker = panel.Find("SpeakerName").GetComponent<TMP_Text>();
+                    speaker.text = StageMap.StageMapController.GuideSpeaker; speaker.font = jalnan; speaker.fontSharedMaterial = jalnan.material; speaker.fontStyle = FontStyles.Normal;
+                    panel.Find("Dialogue").GetComponent<TMP_Text>().text = "오류 코드가 몰려오고 있어! 빛나는 섬을 눌러 줘!";
+                    PrefabUtility.SaveAsPrefabAsset(root, GuidePrefab);
+                }
+                finally { EditorSceneManager.ClosePreviewScene(preview); }
+            }
+            finally { if (opened) EditorSceneManager.CloseScene(defense, true); }
+            Debug.Log("[UIRequests11] " + GuidePrefab);
+        }
+        const float GuideTop = 16;
+
         // Where a rect sits on its canvas, in canvas units.
         static Rect Box(RectTransform rect, RectTransform canvas)
         {
@@ -247,6 +292,21 @@ namespace CodingGame.Defense.Editor
             Check(info.yMax < topBar.yMin && topBar.yMin - info.yMax <= 30, $"113 i just under the top bar ({topBar.yMin - info.yMax:0} below)");
             Check(player.rect.xMax - info.xMax <= 30 && info.xMin > player.rect.center.x, $"113 i at the right end ({player.rect.xMax - info.xMax:0} from the edge)");
             Check(!info.Overlaps(controls) && !info.Overlaps(topBar), "113 i clear of the pause and speed buttons and of the bar");
+            // 116, 117: the stage map's 디버 in the battle's dialogue box, speaker 디버.
+            var guide = AssetDatabase.LoadAssetAtPath<GameObject>(GuidePrefab);
+            var guidePanel = guide ? guide.transform.Find("DialoguePanel") : null;
+            Check(guidePanel && guidePanel.GetComponent<Image>().sprite && guidePanel.GetComponent<Image>().sprite.name == "DialogueCard" &&
+                guidePanel.Find("RobotPortrait").GetComponent<Image>().sprite?.name == "GuideRobot" &&
+                guidePanel.Find("Dialogue").GetComponent<TMP_Text>().font == a2z, "116 GuideDialogue is the battle's box: speech bubble, 디버's picture, A2Z line");
+            Check(guidePanel && !guide.GetComponentInChildren<TutorialDialogueView>(true) && !guide.GetComponentInChildren<Selectable>(true) &&
+                guide.GetComponentsInChildren<Graphic>(true).All(g => !g.raycastTarget) && !guidePanel.Find("NextText") && !guidePanel.Find("AdvanceHint"),
+                "116 no page arrows, hint or clickable parts on the map's box");
+            Check(guidePanel && ((RectTransform)guidePanel).anchorMin.y == 1 && ((RectTransform)guidePanel).pivot.y == 1, "116 the box hangs from the top of the screen");
+            Check(typeof(StageMap.StageMapController).GetMethod("DrawGuide", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance) == null,
+                "116 the old paper card (IMGUI) is gone");
+            var guideSpeaker = guidePanel ? guidePanel.Find("SpeakerName").GetComponent<TMP_Text>() : null;
+            Check(guideSpeaker && guideSpeaker.text == "디버" && StageMap.StageMapController.GuideSpeaker == "디버" && guideSpeaker.font == jalnan,
+                "117 speaker fixed to 디버 in Jalnan (prefab and the map's code)");
             Check(typeof(DefenseBattle).GetMethod("SetPlacementTint", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance) == null,
                 "108, 114 placing a robot leaves the map's colours alone (no white floor, red road)");
 
