@@ -252,10 +252,11 @@ namespace CodingGame.Defense
         public bool SawEnemyThisWave;
         public readonly List<BuffState> Buffs = new List<BuffState>();
         public DefenseProgram Program;
-        public float Range => Spec.range * Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Range));
-        public float DamageMultiplier => Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Damage)) * LevelMultiplier;
+        // Read per enemy per tick: plain loops, no LINQ enumerators or closures (13차 129).
+        public float Range { get { float v = 1; for (int i = 0; i < Buffs.Count; i++) v = Math.Max(v, Buffs[i].Range); return Spec.range * v; } }
+        public float DamageMultiplier { get { float v = 1; for (int i = 0; i < Buffs.Count; i++) v = Math.Max(v, Buffs[i].Damage); return v * LevelMultiplier; } }
         public float Damage => Spec.damage * DamageMultiplier;
-        public float Interval => Spec.interval * Buffs.Aggregate(1f, (v, b) => Math.Min(v, b.Interval));
+        public float Interval { get { float v = 1; for (int i = 0; i < Buffs.Count; i++) v = Math.Min(v, Buffs[i].Interval); return Spec.interval * v; } }
     }
     public sealed class EnemyState
     {
@@ -267,8 +268,13 @@ namespace CodingGame.Defense
         public double NextAttack;
         public bool Active = true;
         public readonly List<MovementEffect> Effects = new List<MovementEffect>();
-        public bool Stunned(double time) => Effects.Any(e => e.StunUntil > time);
-        public float Speed(double time) => Spec.speed * Effects.Where(e => e.SlowUntil > time).Aggregate(1f, (v, e) => Math.Min(v, e.Multiplier));
+        public bool Stunned(double time) { for (int i = 0; i < Effects.Count; i++) if (Effects[i].StunUntil > time) return true; return false; }
+        public float Speed(double time)
+        {
+            float v = 1;
+            for (int i = 0; i < Effects.Count; i++) if (Effects[i].SlowUntil > time) v = Math.Min(v, Effects[i].Multiplier);
+            return Spec.speed * v;
+        }
     }
     // How a wave stood when it started, so a lost wave can be tried again with the same robots, code and coins.
     public sealed class WaveCheckpoint

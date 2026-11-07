@@ -13,11 +13,14 @@ namespace CodingGame.Defense
         public const double TickDuration = 1.0 / 60;
         public readonly BattleSetup Setup;
         public readonly List<RobotState> Robots = new List<RobotState>();
+        readonly List<RobotState> tickRobots = new List<RobotState>();
+        readonly List<ProjectileState> due = new List<ProjectileState>();
         public readonly List<EnemyState> Enemies = new List<EnemyState>();
         public readonly List<ProjectileState> Projectiles = new List<ProjectileState>();
         // 근접 베기: 휘두른 검이 정면을 지날 때(공격 간격의 40% 뒤) 피해를 줍니다(기획: 이펙트·애니메이션과 같은 순간).
         const double StrikeShare = .4;
         readonly List<(double at, RobotState bot, EnemyState[] targets, float damage)> strikes = new List<(double, RobotState, EnemyState[], float)>();
+        readonly List<(double at, RobotState bot, EnemyState[] targets, float damage)> dueStrikes = new List<(double, RobotState, EnemyState[], float)>();
         public readonly List<CombatEvent> Events = new List<CombatEvent>();
         public BattlePhase Phase { get; private set; } = BattlePhase.Ready;
         public double Time { get; private set; }
@@ -51,7 +54,17 @@ namespace CodingGame.Defense
                 return remaining <= 1e-8 ? 0 : remaining;
             }
         }
-        public int RemainingEnemies => Enemies.Count(e => e.Active) + currentWave.Select((g, i) => g.Count - groupCounts[i]).Sum();
+        // Read every tick: plain loops, no LINQ (13차 129).
+        public int RemainingEnemies
+        {
+            get
+            {
+                int left = 0;
+                for (int i = 0; i < Enemies.Count; i++) if (Enemies[i].Active) left++;
+                for (int i = 0; i < currentWave.Length; i++) left += currentWave[i].Count - groupCounts[i];
+                return left;
+            }
+        }
         // The wave being fought, and how many of one enemy type are left in it (on the field plus not spawned yet).
         public IReadOnlyList<SpawnGroup> CurrentWave => currentWave;
         public int RemainingOf(int definition) => Enemies.Count(e => e.Active && e.DefinitionIndex == definition) +
@@ -87,7 +100,17 @@ namespace CodingGame.Defense
             Emit("block-granted",0,(int)kind,Vector2.Zero,count);
         }
         static void AddStock<T>(Dictionary<T, int> stock, T key, int count) { stock.TryGetValue(key, out int old); stock[key] = checked(old + count); }
-        public RobotState FindRobot(int id) => Robots.Find(r => r.Id == id);
+        // Enum.IsDefined boxes its argument; this runs per robot per tick.
+        static readonly bool[] Actions = Enumerable.Range(0, ((RobotAction[])Enum.GetValues(typeof(RobotAction))).Max(a => (int)a) + 1)
+            .Select(i => Enum.IsDefined(typeof(RobotAction), i)).ToArray();
+        static bool IsAction(RobotAction action) => (int)action >= 0 && (int)action < Actions.Length && Actions[(int)action];
+        public RobotState FindRobot(int id) { for (int i = 0; i < Robots.Count; i++) if (Robots[i].Id == id) return Robots[i]; return null; }
+        bool AnyEnemyWithin(Vector2 at, float range)
+        {
+            float r2 = range * range;
+            for (int i = 0; i < Enemies.Count; i++) if (Enemies[i].Active && Vector2.DistanceSquared(Enemies[i].Position, at) <= r2) return true;
+            return false;
+        }
         public int Owned(BlockKind kind) => Inventory.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0;
         public readonly List<BlockKind> PendingDrops = new List<BlockKind>();
         public bool CanPrepare => Phase == BattlePhase.Ready;
@@ -401,7 +424,7 @@ namespace CodingGame.Defense
         public ActionResult RequestAction(int robotId, RobotAction action, int targetId = 0)
         {
             var bot = FindRobot(robotId);
-            if (bot == null || Phase != BattlePhase.Running || !Enum.IsDefined(typeof(RobotAction), action)) return ActionResult.Unavailable;
+            if (bot == null || Phase != BattlePhase.Running || !IsAction(action)) return ActionResult.Unavailable;
             var compatibility = Compatibility(bot, action);
             if (compatibility == ActionCompatibility.Ineffective) return bot.LastResult = ActionResult.Ineffective;
             if (compatibility == ActionCompatibility.Undecided) return bot.LastResult = ActionResult.Undecided;
@@ -476,7 +499,9 @@ namespace CodingGame.Defense
         // A robot recalled before its sword gets there does not hit.
         void ResolveStrikes()
         {
-            foreach (var strike in strikes.Where(s => Time + 1e-8 >= s.at).ToArray())
+            dueStrikes.Clear();
+            for (int i = 0; i < strikes.Count; i++) if (Time + 1e-8 >= strikes[i].at) dueStrikes.Add(strikes[i]);
+            foreach (var strike in dueStrikes)
             {
                 strikes.Remove(strike);
                 if (Robots.Contains(strike.bot)) foreach (var enemy in strike.targets) Hit(enemy, strike.damage, strike.bot.Id, meleeSource: strike.bot);
@@ -557,7 +582,9 @@ namespace CodingGame.Defense
         }
         void ResolveProjectiles()
         {
-            foreach (var shot in Projectiles.Where(p => Time + 1e-8 >= p.ImpactAt).ToArray())
+            due.Clear();
+            for (int i = 0; i < Projectiles.Count; i++) if (Time + 1e-8 >= Projectiles[i].ImpactAt) due.Add(Projectiles[i]);
+            foreach (var shot in due)
             {
                 Projectiles.Remove(shot);
                 if (shot.Target != 0)
@@ -576,16 +603,19 @@ namespace CodingGame.Defense
             const float dt = (float)TickDuration;
             Time += TickDuration;
             if (Options.enemySpawn) { spawnElapsed += TickDuration; Spawn(); }
-            foreach (var bot in Robots) bot.Buffs.RemoveAll(b => b.Until <= Time);
+            foreach (var bot in Robots)
+                for (int i = bot.Buffs.Count - 1; i >= 0; i--) if (bot.Buffs[i].Until <= Time) bot.Buffs.RemoveAt(i);
             foreach (var e in Enemies)
             {
-                e.Effects.RemoveAll(f => f.SlowUntil <= Time && f.StunUntil <= Time);
-                if (e.BlockedBy != 0 && !Robots.Any(r => r.Id == e.BlockedBy)) e.BlockedBy = 0;
+                for (int i = e.Effects.Count - 1; i >= 0; i--) if (e.Effects[i].SlowUntil <= Time && e.Effects[i].StunUntil <= Time) e.Effects.RemoveAt(i);
+                if (e.BlockedBy != 0 && FindRobot(e.BlockedBy) == null) e.BlockedBy = 0;
                 if (e.Active && e.BlockedBy == 0) TryBlock(e, e.Position, e.Position, out _);
             }
             foreach (var bot in Robots)
-                if (!bot.SawEnemyThisWave) bot.SawEnemyThisWave = Enemies.Any(e => e.Active && Vector2.DistanceSquared(e.Position, bot.Position) <= bot.Range * bot.Range);
-            if (Options.robotCode) foreach (var bot in Robots.ToArray())
+                if (!bot.SawEnemyThisWave) bot.SawEnemyThisWave = AnyEnemyWithin(bot.Position, bot.Range);
+            // A copy, as before: a robot's code may recall robots. Reused, so no array per tick.
+            tickRobots.Clear(); tickRobots.AddRange(Robots);
+            if (Options.robotCode) foreach (var bot in tickRobots)
                 if (bot.Program != null) bot.Program.Tick(this, bot);
                 else if (bot.AutoExecute) RequestAction(bot.Id, bot.Action);
             foreach (var e in Enemies)
