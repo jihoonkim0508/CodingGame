@@ -23,6 +23,33 @@ namespace CodingGame.Defense
         readonly List<(ParticleSystem effect, float remaining)> slashes = new List<(ParticleSystem, float)>();
         readonly List<(DefenseRangeRing ring, float remaining)> hitRanges = new List<(DefenseRangeRing, float)>();
         public DefenseTestOptions Options { get; set; } = new DefenseTestOptions();
+        // Effects are made per hit, slash and shot; a finished one waits switched off for the next of its kind (13차 133).
+        readonly Dictionary<ParticleSystem, Stack<ParticleSystem>> pools = new Dictionary<ParticleSystem, Stack<ParticleSystem>>();
+        readonly Dictionary<ParticleSystem, ParticleSystem> made = new Dictionary<ParticleSystem, ParticleSystem>();
+        ParticleSystem Take(ParticleSystem effectPrefab, Vector3 position, Quaternion rotation, Transform parent)
+        {
+            ParticleSystem effect = null;
+            if (pools.TryGetValue(effectPrefab, out var pool))
+                while (pool.Count > 0 && !effect) effect = pool.Pop();   // one destroyed with its old parent is skipped
+            if (effect)
+            {
+                effect.transform.SetParent(parent, false);
+                effect.transform.SetPositionAndRotation(position, rotation);
+                effect.transform.localScale = effectPrefab.transform.localScale;
+                effect.gameObject.SetActive(true);
+            }
+            else { effect = UnityEngine.Object.Instantiate(effectPrefab, position, rotation, parent); made[effect] = effectPrefab; }
+            effect.Simulate(0, true, true, false);
+            return effect;
+        }
+        void Return(ParticleSystem effect)
+        {
+            if (!effect) return;
+            if (!made.TryGetValue(effect, out var origin)) { UnityEngine.Object.Destroy(effect.gameObject); return; }
+            effect.Clear(true); effect.gameObject.SetActive(false);
+            if (!pools.TryGetValue(origin, out var pool)) pools[origin] = pool = new Stack<ParticleSystem>();
+            pool.Push(effect);
+        }
         bool showHitRanges;
         DefenseRangeRing areaRing;
         float areaSeconds;
@@ -79,13 +106,12 @@ namespace CodingGame.Defense
             for (int half = 0; half < 2 && Options.slashEffects; half++)
             {
                 var turned = facing * Quaternion.Euler(0, 180 * half, 0);
-                var slash = UnityEngine.Object.Instantiate(slashPrefab, origin, turned, parent);
+                var slash = Take(slashPrefab, origin, turned, parent);
                 float scale = evt.Radius / 2.3f;
                 slash.transform.localScale *= scale;
                 // The prefab draws its arc 2 units above its origin (at a character's chest); lowered so the arc sweeps
                 // around the robot's lower body, .45 above the ground point (planner).
                 slash.transform.position += Vector3.up * (.45f - 2f * scale) - turned * Vector3.forward * (1.3f * scale);
-                slash.Simulate(0, true, true, false);
                 slashes.Add((slash, slash.main.duration));
             }
             if (showHitRanges)
@@ -103,15 +129,12 @@ namespace CodingGame.Defense
             var from = source.Muzzle;
             var facing = Quaternion.LookRotation(target - from);
             Play(active, shotFlarePrefab, from, facing, parent);
-            var flying = UnityEngine.Object.Instantiate(shotPrefab, from, facing, parent);
-            flying.Simulate(0, true, true, false);
+            var flying = Take(shotPrefab, from, facing, parent);
             shots.Add((flying, target, Vector3.Distance(from, target) / Mathf.Max(seconds, .01f), rotation));
         }
         void Play(List<(ParticleSystem, float)> list, ParticleSystem effectPrefab, Vector3 position, Quaternion rotation, Transform parent)
         {
-            var effect = UnityEngine.Object.Instantiate(effectPrefab, position, rotation, parent);
-            effect.Simulate(0, true, true, false);
-            list.Add((effect, lifetime));
+            list.Add((Take(effectPrefab, position, rotation, parent), lifetime));
         }
 
         public void Tick(float elapsed)
@@ -132,7 +155,7 @@ namespace CodingGame.Defense
                 flying.Simulate(elapsed, true, false, false);
                 if (flying.transform.position != target) continue;
                 if (Options.hitEffects) Play(active, shotImpactPrefab, target, rotation, flying.transform.parent);
-                UnityEngine.Object.Destroy(flying.gameObject);
+                Return(flying);
                 shots.RemoveAt(i);
             }
             areaSeconds -= elapsed;
@@ -140,16 +163,17 @@ namespace CodingGame.Defense
             // Simulate leaves systems paused, so IsAlive remains true after their last particle; expire by time instead.
             foreach (var (effect, _) in active) effect.Simulate(elapsed, true, false, false);
             foreach (var (effect, _) in slashes) effect.Simulate(elapsed, true, false, false);
-            Expire(active, elapsed); Expire(slashes, elapsed); Expire(hitRanges, elapsed);
+            Expire(active, elapsed, Return); Expire(slashes, elapsed, Return);
+            Expire(hitRanges, elapsed, ring => UnityEngine.Object.Destroy(ring.gameObject)); // debug rings only
         }
-        static void Expire<T>(List<(T, float)> items, float elapsed) where T : Component
+        static void Expire<T>(List<(T, float)> items, float elapsed, Action<T> done) where T : Component
         {
             for (int i = items.Count - 1; i >= 0; i--)
             {
                 var (item, remaining) = items[i];
                 remaining -= elapsed;
                 if (remaining > 0) { items[i] = (item, remaining); continue; }
-                UnityEngine.Object.Destroy(item.gameObject);
+                done(item);
                 items.RemoveAt(i);
             }
         }
@@ -159,11 +183,11 @@ namespace CodingGame.Defense
             areaSeconds = 0;
             delayed.Clear();
             if (areaRing) areaRing.Hide();
-            foreach (var (effect, _) in active) DefenseViews.Discard(effect);
+            foreach (var (effect, _) in active) Return(effect);
             active.Clear();
-            foreach (var (effect, _) in slashes) DefenseViews.Discard(effect);
+            foreach (var (effect, _) in slashes) Return(effect);
             slashes.Clear();
-            foreach (var (flying, _, _, _) in shots) DefenseViews.Discard(flying);
+            foreach (var (flying, _, _, _) in shots) Return(flying);
             shots.Clear();
             ClearRanges();
         }

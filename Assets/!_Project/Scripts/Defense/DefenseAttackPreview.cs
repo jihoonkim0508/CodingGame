@@ -144,10 +144,19 @@ namespace CodingGame.Defense
         void AddView(int id, DefenseActorView prefab) => views.Add(id, Instantiate(prefab, arena));
         Vector3 World(Point p) => arena.position + DefenseViews.World(p);
         // Floating "-N" over the hit enemy so the code's damage value is visible, not just inferred from a health bar.
+        // A number that has faded waits switched off for the next hit (13차 133); only the first few are ever made.
+        readonly Stack<TextMeshPro> spareDamage = new Stack<TextMeshPro>();
         void PopDamage(CombatEvent e)
         {
-            var text = new GameObject("Damage", typeof(TextMeshPro)).GetComponent<TextMeshPro>();
-            text.gameObject.layer = arena.gameObject.layer; text.transform.SetParent(arena, true);
+            TextMeshPro text = null;
+            while (spareDamage.Count > 0 && !text) text = spareDamage.Pop();
+            if (text) text.gameObject.SetActive(true);
+            else
+            {
+                text = new GameObject("Damage", typeof(TextMeshPro)).GetComponent<TextMeshPro>();
+                text.gameObject.layer = arena.gameObject.layer; text.transform.SetParent(arena, true);
+            }
+            text.alpha = 1; text.transform.localScale = Vector3.one;
             text.text = "-" + e.Amount.ToString("0.#"); text.fontSize = 7;
             text.alignment = TextAlignmentOptions.Center; text.color = new Color(1, .82f, .3f);
             // The battle's floating numbers' look: Jalnan with the shared thin ink outline.
@@ -162,7 +171,7 @@ namespace CodingGame.Defense
             for (int i = damagePopups.Count - 1; i >= 0; i--)
             {
                 var (text, age) = damagePopups[i]; age += dt;
-                if (!text || age >= PopupSeconds) { if (text) Destroy(text.gameObject); damagePopups.RemoveAt(i); continue; }
+                if (!text || age >= PopupSeconds) { Spare(text); damagePopups.RemoveAt(i); continue; }
                 float t = age / PopupSeconds;
                 text.transform.position += Vector3.up * dt * 1.4f;
                 text.transform.localScale = Vector3.one * (t < .15f ? Mathf.Lerp(1.6f, 1, t / .15f) : 1);
@@ -170,7 +179,8 @@ namespace CodingGame.Defense
                 damagePopups[i] = (text, age);
             }
         }
-        void ClearDamage() { foreach (var (text, _) in damagePopups) if (text) Destroy(text.gameObject); damagePopups.Clear(); }
+        void ClearDamage() { foreach (var (text, _) in damagePopups) Spare(text); damagePopups.Clear(); }
+        void Spare(TextMeshPro text) { if (text) { text.gameObject.SetActive(false); spareDamage.Push(text); } }
         void AdvancePreview(float dt)
         {
             if (sourceLevel != selected.Level) ResetPreview();
