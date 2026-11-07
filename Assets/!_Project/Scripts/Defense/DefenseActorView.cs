@@ -83,6 +83,8 @@ namespace CodingGame.Defense
         readonly DefenseHealthTrail trail = new DefenseHealthTrail();
         Transform healthTrail;
         public const float HealthLift = .3f;
+        static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        Color shownTint = new Color(-1, -1, -1, -1);
         void Awake()
         {
             if (!head || !body || !healthRoot || !healthFill || !beam || !beam.sharedMaterial)
@@ -124,7 +126,9 @@ namespace CodingGame.Defense
                 healthTrail.localScale = new Vector3(fullHealthScale.x * trail.Step(ratio, Time.unscaledDeltaTime), fullHealthScale.y, fullHealthScale.z);
             }
             Color tint = stunned ? new Color(.8f,.4f,1) : slowed ? new Color(.2f,.8f,1) : buffed ? Color.Lerp(baseColor, Color.white, .35f) : baseColor;
-            colors.SetColor("_BaseColor", tint); body.SetPropertyBlock(colors);
+            // Set only when it changes (13차 134): this ran for every actor every frame.
+            if (tint == shownTint) return;
+            shownTint = tint; colors.SetColor(BaseColorId, tint); body.SetPropertyBlock(colors);
         }
         // Called on every attack (slash, launch, ranged shot); strikeSeconds: a slash's time until its damage lands.
         public void AimAt(Vector3 target, float strikeSeconds = 0)

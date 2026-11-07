@@ -83,6 +83,8 @@ namespace CodingGame.Defense
         readonly List<Transform> dropViews = new List<Transform>();
         readonly DefenseProjectileVisuals projectileViews = new DefenseProjectileVisuals();
         bool bossEntranceStarted, bossCameraRestored;
+        readonly HashSet<int> liveIds = new HashSet<int>();
+        readonly List<int> goneIds = new List<int>();
         DefenseBossWarning bossWarning;
         DefenseBossWarning BossWarning => bossWarning ? bossWarning : bossWarning = new GameObject("BossWarning").AddComponent<DefenseBossWarning>();
         float bossEntranceUntil, bossCameraRestoreAt;
@@ -732,10 +734,13 @@ namespace CodingGame.Defense
             if (coreGlitch) coreGlitch.Show(Simulation.BaseHealth, Simulation.Phase == BattlePhase.Defeat);
             if (Simulation.Options.projectiles) projectileViews.Sync(Simulation, projectilePrefab, actorsRoot, Vector3.zero);
             else projectileViews.Clear();
-            foreach (var id in robotViews.Keys.Where(id => !Simulation.Robots.Any(r => r.Id == id)).ToArray())
-            { DefenseViews.Discard(robotViews[id]); robotViews.Remove(id); }
-            foreach (var id in enemyViews.Keys.Where(id => !Simulation.Enemies.Any(e => e.Id == id)).ToArray())
-            { DefenseViews.Discard(enemyViews[id]); enemyViews.Remove(id); }
+            // Views of robots and enemies that are gone, found with a set instead of a search per view (13차 134).
+            liveIds.Clear(); foreach (var r in Simulation.Robots) liveIds.Add(r.Id);
+            goneIds.Clear(); foreach (var id in robotViews.Keys) if (!liveIds.Contains(id)) goneIds.Add(id);
+            foreach (var id in goneIds) { DefenseViews.Discard(robotViews[id]); robotViews.Remove(id); }
+            liveIds.Clear(); foreach (var e in Simulation.Enemies) liveIds.Add(e.Id);
+            goneIds.Clear(); foreach (var id in enemyViews.Keys) if (!liveIds.Contains(id)) goneIds.Add(id);
+            foreach (var id in goneIds) { DefenseViews.Discard(enemyViews[id]); enemyViews.Remove(id); }
             // Animations follow the battle: still while paused (or held by the tutorial), faster at 2x/3x, normal outside a wave.
             float pace = Simulation.Phase == BattlePhase.Paused ? 0 : Simulation.Phase == BattlePhase.Running
                 ? BattleSpeed * (tutorial ? tutorial.BattlePace : 1f) : 1;
