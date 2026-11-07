@@ -165,7 +165,7 @@ namespace CodingGame.Defense
                 buttons[i].gameObject.SetActive(sim.RobotUnlocked(role));
                 buttons[i].interactable = sim.CanPrepare && count > 0;
                 if(buttons[i].TryGetComponent<LearningRobotBadge>(out var badge)) {
-                    labels[i].text = count.ToString(); badge.Refresh(count,battle.IsPlacing&&battle.PlacingDefinition==i);
+                    labels[i].text = count.ToString(); badge.Refresh(count,battle.IsPlacing&&battle.PlacingDefinition==i,buttons[i].interactable);
                 } else labels[i].text = battle.DefinitionName(i) + separator + count;
             }
         }

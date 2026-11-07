@@ -40,7 +40,7 @@ namespace CodingGame.Defense.Editor
                 var portrait=panel.Find("RobotPortrait").GetComponent<Image>();
                 foreach(Transform child in portrait.transform) child.gameObject.SetActive(false);
                 portrait.sprite=guide; portrait.color=Color.white; portrait.type=Image.Type.Simple; portrait.preserveAspect=true; portrait.raycastTarget=false;
-                Fixed(portrait.rectTransform,new Vector2(0,.5f),new Vector2(106,0),new Vector2(190,204));
+                Fixed(portrait.rectTransform,new Vector2(0,.5f),new Vector2(107,-2),new Vector2(160,176));
                 var view=panel.GetComponent<TutorialDialogueView>();
                 if(!view) view=prefab.GetComponentInChildren<TutorialDialogueView>(true);
                 var so=new SerializedObject(view);
@@ -157,19 +157,17 @@ namespace CodingGame.Defense.Editor
         static void Decorate(Transform canvas) {
             Card(canvas.Find("Header").GetComponent<Image>(),Hex("1D303D"),0,0,false);
             Card(canvas.Find("Deck").GetComponent<Image>(),Hex("20333F"),0,0,false);
-            var header=canvas.Find("Header");var info=(RectTransform)header.Find("Info");Fixed(info,new Vector2(0,.5f),new Vector2(260,0),new Vector2(42,42));
-            var state=header.Find("Counters").GetComponent<TMP_Text>();Fixed(state.rectTransform,new Vector2(0,.5f),new Vector2(320,0),new Vector2(500,56),new Vector2(0,.5f));state.alignment=TextAlignmentOptions.Left;
+            var header = (RectTransform)canvas.Find("Header");
             var hud=new SerializedObject(Object.FindFirstObjectByType<DefensePlayerHUD>());
-            var glyphs=new[]{LearningGlyph.Wave,LearningGlyph.Bug,LearningGlyph.Clock,LearningGlyph.Coin};
             var names=new[]{"waveCounter","enemyCounter","timeCounter","coinCounter"};var titles=new[]{"웨이브","남은 적","시간","코인"};
             for(int i=0;i<4;i++) {
                 var r=New(header,"Stat"+i);Fixed(r,new Vector2(1,.5f),new Vector2(-672+i*184,0),new Vector2(172,64));
                 var im=r.GetComponent<Image>();if(!im)im=r.gameObject.AddComponent<Image>();Card(im,Paper,14,1,false);im.raycastTarget=false;
-                Symbol(r,glyphs[i],new Vector2(30,0),38,i==3?Yellow:Blue);
                 var caption=Label(r,"Caption",titles[i],15,Hex("9CB1C0"));Fixed(caption.rectTransform,new Vector2(0,1),new Vector2(60,-7),new Vector2(108,20),new Vector2(0,1));
                 var number=Label(r,"Value","0",25,Ink);Fixed(number.rectTransform,new Vector2(0,0),new Vector2(60,7),new Vector2(108,31),new Vector2(0,0));hud.FindProperty(names[i]).objectReferenceValue=number;
             }
             hud.ApplyModifiedPropertiesWithoutUndo();
+            GeneratedUISkinBuilder.LayoutStatusHeader(header);
             var glyphByName=new System.Collections.Generic.Dictionary<string,LearningGlyph>{{"Warrior",LearningGlyph.Sword},{"Tank",LearningGlyph.Shield},{"Shooter",LearningGlyph.Target},{"Bomber",LearningGlyph.Bomb},{"Buffer",LearningGlyph.Support},{"Utility",LearningGlyph.Signal}};
             var colors=new[]{Hex("8DD1CD"),Hex("E8BD79"),Hex("91BCEC"),Hex("D9A2B6"),Hex("B7ACDB"),Hex("A8CDAB")};int n=0;
             var deck=canvas.Find("Deck/Robots");
@@ -182,16 +180,6 @@ namespace CodingGame.Defense.Editor
                 var label=b.transform.Find("Label").GetComponent<TMP_Text>();Fixed(label.rectTransform,new Vector2(1,.5f),new Vector2(-27,8),new Vector2(42,36));label.fontSize=30;label.alignment=TextAlignmentOptions.Center;
                 var title=Label(b.transform,"RoleName", b.name=="Warrior"?"전사":b.name=="Tank"?"탱커":b.name=="Shooter"?"원거리":b.name=="Bomber"?"폭탄":b.name=="Buffer"?"지원":"유틸",16,Hex("A9BFCD"));
                 Fixed(title.rectTransform,new Vector2(.5f,0),new Vector2(0,7),new Vector2(140,22),new Vector2(.5f,0));title.alignment=TextAlignmentOptions.Center;
-            }
-            // The existing world-space bar keeps its tutorial target and damage-trail behavior.
-            var health=Object.FindFirstObjectByType<DefenseCoreHealthBar>();
-            if(health) {
-                var so=new SerializedObject(health);var fill=(RectTransform)so.FindProperty("fill").objectReferenceValue;var text=(TMP_Text)so.FindProperty("label").objectReferenceValue;
-                var bg=fill.parent.GetComponent<Image>();if(bg)Card(bg,Hex("203B50"),8,1.5f,false);
-                var f=fill.GetComponent<Image>();if(f) {f.color=Hex("429DAD");f.sprite=null;}
-                text.color=Hex("E0EBF0");text.fontStyle=FontStyles.Bold;
-                var shield=New(text.transform.parent,"BaseShield");Fixed(shield,new Vector2(0,.5f),new Vector2(-17,0),new Vector2(28,28));
-                var icon=shield.GetComponent<LearningSymbol>();if(!icon)icon=shield.gameObject.AddComponent<LearningSymbol>();icon.Set(LearningGlyph.Shield,Blue);
             }
         }
     }

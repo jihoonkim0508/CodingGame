@@ -271,7 +271,7 @@ namespace CodingGame.Defense
                 if (!binding.uiTarget.gameObject.activeInHierarchy) return 0;
                 // Scroll content (the code area) is drawn as the viewport the player sees, not its content size.
                 var scroll = binding.uiTarget.GetComponentInParent<ScrollRect>();
-                // A world-space canvas (e.g. the core health bar) projects through the battle camera.
+                // World-space targets project through the battle camera.
                 var owner = binding.uiTarget.GetComponentInParent<Canvas>();
                 var camera = owner && owner.renderMode == RenderMode.WorldSpace ? worldCamera : CanvasCamera;
                 // A bare holder of cards (no graphic of its own, e.g. the next-wave cards) is drawn around the children it shows.

@@ -8,7 +8,7 @@ namespace CodingGame.Defense.Editor {
  public static partial class GeneratedUISkinBuilder {
   static void RoundedControl(Image image,Color color,float radius=7){Plain(image,color);var shape=image.gameObject.AddComponent<LearningCardShape>();shape.Configure(radius,1,new Color(.27f,.46f,.59f),false);}
   static void RefineEditor(Transform root){
-   var title=root.Find("Title").GetComponent<TMP_Text>();Stretch(title.rectTransform,new Vector2(0,1),new Vector2(.25f,1),new Vector2(18,-44),new Vector2(-12,-12));title.fontSize=22;title.alignment=TextAlignmentOptions.MidlineLeft;title.margin=Vector4.zero;
+   var title=root.Find("Title").GetComponent<TMP_Text>();Stretch(title.rectTransform,new Vector2(0,1),new Vector2(.25f,1),new Vector2(24,-44),new Vector2(-12,-12));title.fontSize=22;title.alignment=TextAlignmentOptions.MidlineLeft;title.margin=Vector4.zero;
    var subtitle=root.Find("Subtitle").GetComponent<TMP_Text>();SetRect(subtitle.rectTransform,new Vector2(.25f,1),new Vector2(16,-12),new Vector2(310,32),new Vector2(0,1));subtitle.fontSize=22;subtitle.alignment=TextAlignmentOptions.MidlineLeft;subtitle.margin=Vector4.zero;
    string[] names={"CloseEditor","Automatic","Hint","Info","RightToggle","LeftToggle"};float[] widths={88,104,96,112,100,100};string[] labels={"닫기","비우기","예제 힌트","블록 도감","우측 미리보기","좌측 미리보기"};
    var buttons=new System.Collections.Generic.List<Button>();
@@ -19,22 +19,60 @@ namespace CodingGame.Defense.Editor {
    var toolbar=root.GetComponent<DefenseEditorToolbar>();if(!toolbar)toolbar=root.gameObject.AddComponent<DefenseEditorToolbar>();toolbar.Configure(buttons.ToArray());EditorUtility.SetDirty(toolbar);if(PrefabUtility.IsPartOfPrefabInstance(toolbar))PrefabUtility.RecordPrefabInstancePropertyModifications(toolbar);
    var preview=root.Find("CodePreview");if(preview){foreach(var raw in preview.GetComponentsInChildren<RawImage>(true))Stretch(raw.rectTransform,Vector2.zero,Vector2.one,new Vector2(14,44),new Vector2(-14,-58));
     var status=preview.Find("Status")?.GetComponent<TMP_Text>();if(status){Stretch(status.rectTransform,new Vector2(0,0),new Vector2(1,0),new Vector2(18,8),new Vector2(-18,30));status.fontSize=15;status.alignment=TextAlignmentOptions.MidlineLeft;status.margin=Vector4.zero;}
-    var hint=preview.Find("PreviewHint")?.GetComponent<TMP_Text>();if(hint){Stretch(hint.rectTransform,new Vector2(0,1),Vector2.one,new Vector2(14,-38),new Vector2(-14,-12));hint.fontSize=14;hint.color=new Color(.09f,.23f,.36f);hint.alignment=TextAlignmentOptions.Center;hint.margin=Vector4.zero;}
+    var hint=preview.Find("PreviewHint")?.GetComponent<TMP_Text>();if(hint){Stretch(hint.rectTransform,new Vector2(0,1),Vector2.one,new Vector2(14,-38),new Vector2(-14,-12));hint.fontSize=14;hint.alignment=TextAlignmentOptions.Center;hint.margin=Vector4.zero;}
    }
+   RefineStudioPanels(root);
    AlignCategoryTabs(root);
-   for(int i=0;i<4;i++){var name=root.Find("RobotStats/StatName"+i)?.GetComponent<TMP_Text>();var value=root.Find("RobotStats/StatValue"+i)?.GetComponent<TMP_Text>();if(name){name.alignment=TextAlignmentOptions.MidlineLeft;name.margin=Vector4.zero;}if(value){value.alignment=TextAlignmentOptions.MidlineRight;value.fontSize=19;value.margin=Vector4.zero;}var icon=root.Find("RobotStats/StatIcon"+i) as RectTransform;if(icon)icon.anchoredPosition=new Vector2(36,-96-i*42);}
+   for(int i=0;i<4;i++){var name=root.Find("RobotStats/StatName"+i)?.GetComponent<TMP_Text>();var value=root.Find("RobotStats/StatValue"+i)?.GetComponent<TMP_Text>();if(name){name.alignment=TextAlignmentOptions.MidlineLeft;name.margin=Vector4.zero;}if(value){value.alignment=TextAlignmentOptions.MidlineRight;value.fontSize=19;value.margin=Vector4.zero;}}
    var coins=root.Find("RobotStats/StatCoins")?.GetComponent<TMP_Text>();if(coins){coins.fontSize=19;coins.alignment=TextAlignmentOptions.MidlineLeft;coins.margin=Vector4.zero;}
    var marker=root.Find("DragLayer/SnapMarker")?.GetComponent<Image>();if(marker){Plain(marker,new Color(.18f,.94f,.78f,.08f));var shape=marker.gameObject.AddComponent<LearningCardShape>();shape.Configure(7,1.5f,new Color(.36f,1,.84f,.9f),false,false);marker.raycastTarget=false;}
   }
+  internal static void RefineStudioPanels(Transform root)
+  {
+   var backdrop = new Color(.075f, .105f, .15f);
+   Plain(root.GetComponent<Image>(), backdrop);
+   Plain(root.Find("Background").GetComponent<Image>(), backdrop);
+   foreach (string path in new[] { "Library", "CodePreview", "Editor/PreviewPanel", "RobotStats" })
+   {
+    var panel = root.Find(path);
+    if (!panel || !panel.TryGetComponent<Image>(out var image)) continue;
+    image.sprite = null;
+    image.type = Image.Type.Simple;
+    image.color = new Color(.106f, .164f, .23f);
+    var shape = image.GetComponent<LearningCardShape>();
+    if (!shape) shape = image.gameObject.AddComponent<LearningCardShape>();
+    shape.Configure(12, 1, new Color(.24f, .36f, .47f), false);
+    var hint = panel.Find("PreviewHint")?.GetComponent<TMP_Text>();
+    if (hint) hint.color = new Color(.74f, .85f, .92f);
+   }
+
+   SetStudioSideInsets(root.Find("CodePreview") as RectTransform, 24, -8);
+   SetStudioSideInsets(root.Find("LeftPreview") as RectTransform, 24, -8);
+   var stats = root.Find("RobotStats") as RectTransform;
+   SetStudioSideInsets(stats, 24, -8);
+   var library = root.Find("Library") as RectTransform;
+   if (stats && library) stats.offsetMin = new Vector2(stats.offsetMin.x, library.offsetMin.y);
+   SetStudioSideInsets(root.Find("Editor") as RectTransform, 338, -26);
+   SetStudioSideInsets(root.Find("Title") as RectTransform, 24, -12);
+   var python = (RectTransform)root.Find("Python");
+   python.anchoredPosition = new Vector2(-26, python.anchoredPosition.y);
+  }
+
+  static void SetStudioSideInsets(RectTransform rect, float left, float right)
+  {
+   if (!rect) return;
+   rect.offsetMin = new Vector2(left, rect.offsetMin.y);
+   rect.offsetMax = new Vector2(right, rect.offsetMax.y);
+  }
   static void RefineHelp(Transform card){
-   var list=card.Find("BlockList");var viewport=(RectTransform)list.Find("Viewport");Stretch(viewport,Vector2.zero,Vector2.one,new Vector2(18,18),new Vector2(-44,-60));
-   var caption=TextLabel(list,"ListCaption","보유 블록",18,new Color(.86f,.91f,1));SetRect(caption.rectTransform,new Vector2(0,1),new Vector2(24,-6),new Vector2(280,26),new Vector2(0,1));caption.alignment=TextAlignmentOptions.MidlineLeft;caption.margin=Vector4.zero;
+   var list=card.Find("BlockList");var viewport=(RectTransform)list.Find("Viewport");Stretch(viewport,Vector2.zero,Vector2.one,new Vector2(18,18),new Vector2(-44,-68));
+   var caption=TextLabel(list,"ListCaption","보유 블록",18,new Color(.86f,.91f,1));SetRect(caption.rectTransform,new Vector2(0,1),new Vector2(24,-6),new Vector2(280,34),new Vector2(0,1));caption.alignment=TextAlignmentOptions.MidlineLeft;caption.margin=Vector4.zero;
    var content=viewport.Find("Content");var layout=content.GetComponent<VerticalLayoutGroup>();layout.padding=new RectOffset(0,0,8,8);layout.spacing=8;layout.childControlWidth=true;layout.childForceExpandWidth=true;layout.childControlHeight=true;layout.childForceExpandHeight=false;layout.childAlignment=TextAnchor.UpperLeft;
    foreach(var b in content.GetComponentsInChildren<Button>(true)){RoundedControl(b.GetComponent<Image>(),new Color(.15f,.25f,.34f),8);var le=b.GetComponent<LayoutElement>();if(!le)le=b.gameObject.AddComponent<LayoutElement>();le.minWidth=0;le.flexibleWidth=1;le.minHeight=le.preferredHeight=50;var text=b.GetComponentInChildren<TMP_Text>(true);Stretch(text.rectTransform,Vector2.zero,Vector2.one,new Vector2(14,4),new Vector2(-12,-4));text.margin=Vector4.zero;text.alignment=TextAlignmentOptions.MidlineLeft;}
    var close=card.Find("Close")?.GetComponent<Image>();if(close)RoundedControl(close,new Color(.1f,.22f,.31f),7);
-   InsetScrollbar(list.GetComponent<ScrollRect>(),60,18);
+   InsetScrollbar(list.GetComponent<ScrollRect>(),68,18);
    var detail=card.Find("Detail");
-   var name=detail.Find("Name").GetComponent<TMP_Text>();Stretch(name.rectTransform,new Vector2(0,1),Vector2.one,new Vector2(28,-36),new Vector2(-28,-2));name.margin=Vector4.zero;name.fontSize=24;
+   var name=detail.Find("Name").GetComponent<TMP_Text>();Stretch(name.rectTransform,new Vector2(0,1),Vector2.one,new Vector2(28,-44),new Vector2(-28,-2));name.margin=Vector4.zero;name.fontSize=24;
    var stock=detail.Find("Stock").GetComponent<TMP_Text>();Stretch(stock.rectTransform,new Vector2(0,1),Vector2.one,new Vector2(28,-98),new Vector2(-28,-68));stock.margin=Vector4.zero;
    var description=detail.Find("Description").GetComponent<TMP_Text>();description.rectTransform.offsetMax=new Vector2(-28,-124);description.margin=Vector4.zero;
   }

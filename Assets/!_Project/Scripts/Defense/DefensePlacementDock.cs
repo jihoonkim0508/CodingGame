@@ -7,6 +7,9 @@ namespace CodingGame.Defense
     [DefaultExecutionOrder(200)]
     public sealed class DefensePlacementDock : MonoBehaviour
     {
+        const float PreferredCardWidth = 152;
+        const float CardGap = 12;
+
         [SerializeField] RectTransform roster, action, divider;
         [SerializeField] Button[] robots;
         [SerializeField] TMP_Text notice;
@@ -28,19 +31,20 @@ namespace CodingGame.Defense
             if (previousMask == mask && Mathf.Approximately(previousWidth, available)) return;
             previousMask = mask; previousWidth = available;
             var root = (RectTransform)transform;
-            float width = Mathf.Min(available, Mathf.Max(760, count * 136 - 10 + 292));
+            float gapWidth = Mathf.Max(0, count - 1) * CardGap;
+            float width = Mathf.Min(available, Mathf.Max(760, count * PreferredCardWidth + gapWidth + 292));
             root.anchorMin = root.anchorMax = root.pivot = new Vector2(.5f, 0);
             root.anchoredPosition = new Vector2(0, 16); root.sizeDelta = new Vector2(width, 164);
             float actionWidth = Mathf.Min(220, width * .29f), rosterWidth = width - actionWidth - 72;
             Place(roster, 24, 14, rosterWidth, 78);
             Place(action, width - 24 - actionWidth, 14, actionWidth, 78);
             Place(divider, width - 37 - actionWidth, 20, 1, 66);
-            float cardWidth = count > 0 ? Mathf.Min(126, (rosterWidth - (count - 1) * 10) / count) : 126;
-            float x = Mathf.Max(0, (rosterWidth - (count * cardWidth + Mathf.Max(0, count - 1) * 10)) / 2);
+            float cardWidth = count > 0 ? Mathf.Min(PreferredCardWidth, (rosterWidth - gapWidth) / count) : PreferredCardWidth;
+            float x = Mathf.Max(0, (rosterWidth - (count * cardWidth + gapWidth)) / 2);
             foreach (var button in robots) if (button && button.gameObject.activeSelf)
             {
                 Place((RectTransform)button.transform, x, 0, cardWidth, 78);
-                x += cardWidth + 10;
+                x += cardWidth + CardGap;
             }
             if (notice) { notice.enableAutoSizing = true; notice.fontSizeMin = 12; notice.fontSizeMax = 15; }
         }

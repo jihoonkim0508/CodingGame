@@ -28,29 +28,28 @@ namespace CodingGame.BlockCoding
         public CommandCodingPanel Panel { get; private set; }
         public CommandBlockView ParentBlock { get; private set; }
         public IReadOnlyList<CommandBlockView> Blocks => blocks;
-        bool IsControlBody
+        public float minWidth => preferredWidth;
+        public float preferredWidth
         {
             get
             {
-                // Read-only reward copies retain their hierarchy without a live panel binding.
-                var owner=ParentBlock;
-                if(!owner&&transform.parent)owner=transform.parent.GetComponent<CommandBlockView>();
-                return owner&&owner.Body==this;
+                if (blocks.Count == 0) return minimumWidth;
+                if (!freePlacement) return blocks.Max(block => block.preferredWidth);
+                return Mathf.Max(minimumWidth, blocks.Max(block => block.preferredWidth + block.Rect.anchoredPosition.x) + 8);
             }
         }
-        public float minWidth => preferredWidth;
-        public float preferredWidth => Mathf.Max(minimumWidth, blocks.Count == 0 ? 0 : blocks.Max(b => b.preferredWidth + (freePlacement ? b.Rect.anchoredPosition.x : 0)) + (IsControlBody ? 4 : 8));
         public float flexibleWidth => 0;
         public float minHeight => preferredHeight;
         public float preferredHeight
         {
             get
             {
-                if (slot != BlockSlotKind.Statement) return minimumHeight;
+                if (slot != BlockSlotKind.Statement) return blocks.Count == 0 ? minimumHeight : CommandBlockView.ExpressionHeight;
                 if (freePlacement) return Mathf.Max(minimumHeight, blocks.Count == 0 ? 0 : blocks.Max(b => -b.Rect.anchoredPosition.y + b.preferredHeight) + 32);
-                float height = 8;
+                if (blocks.Count == 0) return minimumHeight;
+                float height = 0;
                 for (int i = 0; i < blocks.Count; i++) height += blocks[i].preferredHeight - (i > 0 ? Overlap(i) : 0);
-                return Mathf.Max(minimumHeight, height);
+                return height;
             }
         }
         public float flexibleHeight => 0;
@@ -80,6 +79,7 @@ namespace CodingGame.BlockCoding
             Panel = panel;
             panel.RegisterZone(this);
             ParentBlock = parent;
+            if (!freePlacement && slot != BlockSlotKind.Statement) hint.alignment = TextAlignmentOptions.Center;
             // An if's body takes clicks: placed, it is selected (1-3 D01); in the palette, OnPointerClick hands the click to the block.
             if (parent && parent.Body == this) background.raycastTarget = true;
             foreach (var block in blocks) block.Bind(panel, this);
@@ -339,8 +339,8 @@ namespace CodingGame.BlockCoding
             }
             int index = PointerIndex(e);
             if (!FitsStatements(source, moved, index, out _)) return false;
-            float y = index < blocks.Count ? blocks[index].Rect.anchoredPosition.y : blocks.Count == 0 ? -4 : blocks.Last().Rect.anchoredPosition.y - blocks.Last().preferredHeight;
-            preview = new Rect(IsControlBody?0:4, y + 3, Mathf.Max(source.preferredWidth, rect.rect.width - (IsControlBody?4:8)), 6); return true;
+            float y = index < blocks.Count ? blocks[index].Rect.anchoredPosition.y : blocks.Count == 0 ? 0 : blocks.Last().Rect.anchoredPosition.y - blocks.Last().preferredHeight;
+            preview = new Rect(0, y + 3, Mathf.Max(source.preferredWidth, rect.rect.width), 6); return true;
         }
         int PointerIndex(PointerEventData e)
         {
@@ -366,6 +366,7 @@ namespace CodingGame.BlockCoding
         public void Refresh()
         {
             if (hint) hint.gameObject.SetActive(blocks.Count == 0);
+            if (background && slot != BlockSlotKind.Statement) background.enabled = blocks.Count == 0;
             for (int i = 0; i < blocks.Count; i++) blocks[i].JoinNext(freePlacement ?
                 next.TryGetValue(blocks[i], out var following) && IsBranch(following) : i + 1 < blocks.Count && IsBranch(blocks[i + 1]));
             LayoutRebuilder.MarkLayoutForRebuild(rect);
@@ -388,12 +389,12 @@ namespace CodingGame.BlockCoding
                 }
                 return;
             }
-            float y = slot == BlockSlotKind.Statement ? 4 : 0;
+            float y = 0;
             for (int i = 0; i < blocks.Count; i++)
             {
                 if (i > 0) y -= Overlap(i);
                 var block = blocks[i];
-                CommandBlockView.Place(block.Rect, IsControlBody?0:4, y, BranchWidth(blocks, i), slot == BlockSlotKind.Statement ? block.preferredHeight : minimumHeight);
+                CommandBlockView.Place(block.Rect, 0, y, BranchWidth(blocks, i), block.preferredHeight);
                 y += block.preferredHeight;
             }
         }

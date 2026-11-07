@@ -111,12 +111,6 @@ namespace CodingGame.Defense.Editor {
    SetRect(image.rectTransform,new Vector2(0,.5f),pos,size,new Vector2(.5f,.5f));
   }
   static void DecorateHUD(Transform canvas){
-   int[] iconOrder={2,3,0,1};for(int i=0;i<4;i++){
-    var stat=canvas.Find("Header/Stat"+i);
-    // Icon, caption and value sit directly on the shared header; no individual frames.
-    stat.GetComponent<Image>().enabled=false;
-    Picture(stat,hud[iconOrder[i]],new Vector2(30,0),new Vector2(46,46));
-   }
    var deck=canvas.Find("Deck");
    // Reserve distinct rows for instruction, capacity and cards; no rectangle overlaps.
    var notice=(RectTransform)deck.Find("Notice");notice.anchorMin=new Vector2(0,.78f);notice.anchorMax=new Vector2(.66f,1);notice.offsetMin=new Vector2(24,0);notice.offsetMax=new Vector2(0,-4);
