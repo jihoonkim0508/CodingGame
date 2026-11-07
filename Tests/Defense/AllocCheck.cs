@@ -9,8 +9,8 @@ using CodingGame.Defense;
 static class AllocCheck
 {
     // ponytail: budgets, not zero. The simulation's own share (robots acting without code: 58.6 KB per tick with code before
-    // 129, 3.2 KB of it the simulation's after); the code interpreter's share is 130's.
-    public const long MaxSimBytesPerTick = 4096;
+    // 129, 3.2 KB of it the simulation's after); with code 53.4 KB before 130's struct values and cached parsing, 2.4 KB after.
+    public const long MaxSimBytesPerTick = 4096, MaxCodeBytesPerTick = 4096;
     static CodeBlock B(BlockKind kind, string value = "0", params CodeBlock[] arguments) => new CodeBlock(kind, value, arguments);
     static CodeBlock With(CodeBlock block, params CodeBlock[] body) { block.Body.AddRange(body); return block; }
 
@@ -51,5 +51,6 @@ static class AllocCheck
         long simOnly = BytesPerTick(false), withCode = BytesPerTick();
         Console.WriteLine($"Simulation garbage per tick: {simOnly} bytes without code, {withCode} with while True code ({withCode * 180 / 1024} KB/s at 3x)");
         if (simOnly > MaxSimBytesPerTick) throw new Exception($"AllocCheck: the simulation makes {simOnly} bytes per tick, budget {MaxSimBytesPerTick}");
+        if (withCode > MaxCodeBytesPerTick) throw new Exception($"AllocCheck: robots running code make {withCode} bytes per tick, budget {MaxCodeBytesPerTick}");
     }
 }
