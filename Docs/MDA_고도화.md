@@ -305,6 +305,7 @@ J3으로 대체 |
 | 140 | 프레임 제한 | vSync 0, targetFrameRate 없음 → 상한 없이 돎(배경에서도) → vSync 1 | 사용자 확인(ProjectSettings는 사용자 미커밋 변경과 같은 파일) | 대기 |
 | 141 | 레이캐스트 대상 | 누를 수 없는 Image 약 50개의 raycastTarget 끔 | 레슨, UI 검사 | 대기 |
 | 142 | 인벤토리 참조 오류 | TAB 인벤토리 칸이 25개, 블록 종류가 27개(8차의 is_dead()·계산 칸 없음) → DefenseInventoryUI.Start가 전투마다 예외. 마지막 칸을 격자 다음 칸에 복사해 두 종류 추가(Tools/Learning UI/Fix Inventory Slots) | UIRequestChecks 142 | 완료 |
+| 143 | 몬스터 모델 | 팀 모델(탱커형·이속형, 정적 메시 + 텍스처)을 Heavy·Runner 적에 적용. 기본 도형(구·투구·바이저)은 끄고 바닥 원판 위에 세움, 기절·감속 색은 새 모델에. 적 아이콘 다시 찍음(Tools/Develop/Apply Monster Models) | UIRequestChecks 100(체력바 높이), 아이콘, 화면 | 완료 |
 
 ## 반복 기록
 
