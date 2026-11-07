@@ -218,6 +218,24 @@
 | 96 | 진행 순서 | 1-1 slash, 1-2 자유, 1-3 반복문, 1-4 자유, 1-5 보스, 2-1 변수, 2-2 자유, 2-3 조건문, 2-4 자유, 2-5 보스 | Unity 레슨 1-1~1-5, Stage 2 레슨 2-1~2-3 | 완료(2-5 보스는 기존 그대로) |
 | 97 | 원거리 피해 | 사거리 1/3 안에서 최대(3배), 가장자리 1배(전에는 가까울수록 끝없이 커짐) | WhileTrueCheck | 완료 |
 
+## 9차: PR #19 UI 뒤 요청 (2026-11-07)
+
+PR #19(Goldpurple2812) 학습 UI를 들인 뒤 받은 요청. 검사: Unity `Tools/Develop/Verify UI Requests (9차)`(`UIRequestChecks`, 장면·프리팹 상태), 헤드리스 `Tests/Defense` `PlacementCheck`(설치 판정), Unity 레슨 1-1~1-5, 화면 캡처 투어.
+
+| 순서 | 항목 | 내용 | 검사 | 상태 |
+|---|---|---|---|---|
+| 98 | 블록 UI | 블록 모양·질감은 Goldpurple의 PR 것으로(빈 반복문 접기 포함), 이 브랜치의 블록 기능(is_dead·계산·내용 크기·튜토리얼 드롭 자리)은 유지 | UIRequestChecks(블록 질감), 레슨 1-1~1-5 | 진행 |
+| 99 | 로봇 선택 버튼 | 아래 로봇 편성 카드는 PR 이전 것(로봇 사진·이름·개수)으로 | UIRequestChecks(PR 배지·역할 아이콘·개수 상자 없음) | 진행 |
+| 100 | 체력바 위치 | 적 머리와 코어 위에 붙은 체력바를 띄움 | UIRequestChecks(높이), 화면 | 진행 |
+| 101 | 사진 1의 네모 | 어두운 판 위의 빈 하늘색 네모 제거 | 화면 | 진행 |
+| 102 | 설치 판정 | 조금 널널하게: 길 가장자리·다른 로봇·맵 끝·장애물에 조금 더 붙여 설치 | PlacementCheck | 진행 |
+| 103 | 스테이지 선택 | develop의 조민지(ajswl) 스테이지 선택 작업(PR #16: 잠금·정화·해금 효과, 카메라 이동)을 가져오고, 맵의 '○○ · 여기야!' 화살표 안내는 유지 | Tests/Unity Stage 검사, 화면 | 진행 |
+| 104 | 제목 폰트 | 화면 제목은 잘난체, 굵게 빼기 | UIRequestChecks | 진행 |
+| 105 | 대사 폰트 | 대사 본문은 에이투지체(A2Z, SIL OFL, noonnu 1778) | UIRequestChecks | 진행 |
+| 106 | 화자 이름 | 화자 이름은 잘난체 고정 | UIRequestChecks | 진행 |
+| 107 | 초상 배지 | PortraitBadge(초상 뒤 원) 삭제, RobotPortrait를 자리 정중앙에 | UIRequestChecks | 진행 |
+| 108 | 배치 중 맵 색 | 로봇을 고르는 동안 바닥이 흰색, 길이 빨간색으로 바뀌던 것 없앰(맵 색 그대로) | UIRequestChecks | 진행 |
+
 ## 작업 규칙
 
 - **2차부터 반복마다 플레이어가 알아챌 수 있는 변화**를 하나 이상 만든다. 고치기 전후를 `ScreenTour`(Tools/Develop/화면 캡처 투어, 창 모드 에디터 `-executeMethod`)로 찍어 눈으로 확인한다. 결과는 `TestResults/Editor/tour/`(커밋하지 않음).

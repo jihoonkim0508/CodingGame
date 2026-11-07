@@ -281,18 +281,20 @@ namespace CodingGame.Defense
             return null;
         }
         // The road is drawn past its walking half-width (border, round corners): others keep this much further off it.
-        const float PathClearance = .25f;
+        const float PathClearance = .25f, PlacementLean = .6f;
         public string PlacementError(RobotSpec spec, Vector2 point)
         {
             string error = DeploymentError(spec.role);
             if (error != null) return error;
-            float r = spec.radius;
+            // Checked with most of the body, not all of it (9차 102: placing felt strict): a robot may lean a little past the
+            // map's edge, a neighbour, an obstacle or, a tank, the road's edge.
+            float r = spec.radius * PlacementLean;
             if (float.IsNaN(point.X) || float.IsNaN(point.Y) || point.X - r < Setup.Min.X || point.X + r > Setup.Max.X ||
                 point.Y - r < Setup.Min.Y || point.Y + r > Setup.Max.Y) return "설치 허용 영역 밖입니다.";
             // The map is not a rectangle: the centre and the body's four edges must all be over a floor or road tile.
             if (Setup.Floor.Length > 0 && new[] { Vector2.Zero, new Vector2(r, 0), new Vector2(-r, 0), new Vector2(0, r), new Vector2(0, -r) }
                 .Any(offset => !Setup.Floor.Any(tile => tile.Contains(point + offset)))) return "맵 밖에는 설치할 수 없습니다.";
-            if (Robots.Any(bot => Vector2.Distance(bot.Position, point) < bot.Spec.radius + r + .12f)) return "다른 로봇과 겹칩니다.";
+            if (Robots.Any(bot => Vector2.Distance(bot.Position, point) < (bot.Spec.radius + spec.radius) * .9f)) return "다른 로봇과 겹칩니다.";
             if (Setup.Obstacles.Any(area => area.Overlaps(point, r))) return "장애물 또는 목표 시설과 겹칩니다.";
             bool pathFits = Setup.Routes.Any(route => route.Distance(point) + r <= route.HalfWidth);
             // Others keep their whole body off the drawn road (radius is the model's half-width, Defense/Data).

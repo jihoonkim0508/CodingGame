@@ -82,12 +82,14 @@ namespace CodingGame.Defense
         const float TrailDepth = .015f; // behind the fill, still in front of the backdrop
         readonly DefenseHealthTrail trail = new DefenseHealthTrail();
         Transform healthTrail;
+        public const float HealthLift = .3f;
         void Awake()
         {
             if (!head || !body || !healthRoot || !healthFill || !beam || !beam.sharedMaterial)
                 throw new InvalidOperationException(name + ": ActorView Inspector 참조 누락");
             colors = new MaterialPropertyBlock(); baseColor = body.sharedMaterial.GetColor("_BaseColor");
             fullHealthScale = healthFill.localScale;
+            healthRoot.position += Vector3.up * HealthLift; // clear of the head (9차 100: the bar sat on it)
             healthTrail = Instantiate(healthFill, healthFill.parent); healthTrail.name = "Trail";
             healthTrail.localPosition = healthFill.localPosition + Vector3.forward * TrailDepth;
             var trailColors = new MaterialPropertyBlock(); trailColors.SetColor("_BaseColor", TrailColor); trailColors.SetColor("_Color", TrailColor);

@@ -14,6 +14,7 @@ namespace CodingGame.Defense
         [SerializeField] TMP_Text label;
         [SerializeField] Color trailColor = new Color(1, .93f, .8f, .9f), hitColor = new Color(1, .3f, .3f);
         const float FlashSeconds = .4f, ShakeSeconds = .45f;
+        public const float Lift = .6f; // world units above where the scene puts it, clear of the core's top (9차 100)
         readonly DefenseHealthTrail trail = new DefenseHealthTrail();
         RectTransform trailBar, frame;
         Image fillImage, trailImage;
@@ -25,6 +26,7 @@ namespace CodingGame.Defense
         {
             if (!battle || !battleCamera || !fill || !background || !label)
                 throw new InvalidOperationException("DefenseCoreHealthBar Inspector 참조를 연결하세요.");
+            transform.position += Vector3.up * Lift;
             ((RectTransform)transform).sizeDelta=new Vector2(220,50);
             var container=fill.parent as RectTransform;
             var oldBackground=container.Find("Background")?.GetComponent<Image>() ?? container.GetComponent<Image>();

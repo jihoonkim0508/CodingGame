@@ -656,6 +656,7 @@ namespace CodingGame.Defense
                 bubble.rectTransform.sizeDelta = new Vector2(0, 150); bubble.rectTransform.anchoredPosition = new Vector2(0, -162);
                 UITheme.Style(bubble, UITheme.Card, UITheme.Paper);
                 guideLine = Text(bubble.transform, 24); guideLine.alignment = TextAlignmentOptions.Center; guideLine.color = UITheme.Ink;
+                if (UITheme.Lines) guideLine.font = UITheme.Lines; // 디버's lines are A2Z (9차 105)
                 guideLine.rectTransform.anchorMin = Vector2.zero; guideLine.rectTransform.anchorMax = Vector2.one;
                 guideLine.rectTransform.sizeDelta = new Vector2(-28, -20); guideLine.enableAutoSizing = true; guideLine.fontSizeMin = 17; guideLine.fontSizeMax = 24;
             }

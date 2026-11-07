@@ -974,7 +974,7 @@ GameObject:
   - component: {fileID: 6850259349017301949}
   - component: {fileID: 2141393965486087379}
   - component: {fileID: 1991781199640635072}
-  - component: {fileID: 4061993262979999811}
+  - component: {fileID: 1671873072470898774}
   m_Layer: 0
   m_Name: Template
   m_TagString: Untagged
@@ -1070,7 +1070,7 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &4061993262979999811
+--- !u!114 &1671873072470898774
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1224,7 +1224,7 @@ GameObject:
   - component: {fileID: 896951313820592986}
   - component: {fileID: 475767121851531310}
   - component: {fileID: 3264251858737352525}
-  - component: {fileID: 1390974170479814478}
+  - component: {fileID: 3490098021595344472}
   m_Layer: 0
   m_Name: Item
   m_TagString: Untagged
@@ -1339,7 +1339,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_IsOn: 0
---- !u!114 &1390974170479814478
+--- !u!114 &3490098021595344472
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1369,7 +1369,7 @@ GameObject:
   - component: {fileID: 2192256775444005756}
   - component: {fileID: 6090438827484212548}
   - component: {fileID: 3120908178494854149}
-  - component: {fileID: 7539760330672843358}
+  - component: {fileID: 8866230483743475000}
   m_Layer: 0
   m_Name: Method
   m_TagString: Untagged
@@ -1518,7 +1518,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_AlphaFadeSpeed: 0.15
---- !u!114 &7539760330672843358
+--- !u!114 &8866230483743475000
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

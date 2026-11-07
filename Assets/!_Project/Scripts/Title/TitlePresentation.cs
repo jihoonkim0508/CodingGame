@@ -59,6 +59,10 @@ namespace CodingGame.TitleScreen
             idleTime = 0;
             readyFrame = -1;
             IsReady = false;
+            // The title's words are Jalnan, never bold, whatever font the scene was saved with (9차 104).
+            if (UITheme.Display)
+                foreach (var text in canvasRect.GetComponentsInChildren<TMPro.TMP_Text>(true))
+                { text.font = UITheme.Display; text.fontSharedMaterial = UITheme.Display.material; text.fontStyle &= ~TMPro.FontStyles.Bold; }
             var backdrop = canvasRect.Find("Black Backdrop");
             if (backdrop && backdrop.TryGetComponent<Image>(out var black)) black.color = Color.black;
             ConfigureMouseOnlyMenu();

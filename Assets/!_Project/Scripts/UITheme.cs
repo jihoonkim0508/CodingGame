@@ -38,6 +38,9 @@ namespace CodingGame
         static TMP_FontAsset bold;
         // Pretendard Bold for body text that has to read clearly (Resources/UI/Pretendard Bold SDF, made by UIRestyle).
         public static TMP_FontAsset Bold => bold ? bold : bold = Resources.Load<TMP_FontAsset>("UI/Pretendard Bold SDF");
+        static TMP_FontAsset lines;
+        // 에이투지체 (A2Z, SIL OFL) for 디버's lines (9차 105; Resources/UI/A2Z SDF, made by UIRequests9).
+        public static TMP_FontAsset Lines => lines ? lines : lines = Resources.Load<TMP_FontAsset>("UI/A2Z SDF");
         // Jalnan looks shared by every text that uses them (one material, not an instance per text; play feedback on text,
         // Docs/References/비주얼_레퍼런스.md 2): Banner for big words over the world (wave call, banners, stars), a thick ink
         // outline and a hard ink drop below; Label for small words over the world, a thin ink outline so white reads on the
@@ -56,7 +59,7 @@ namespace CodingGame
         {
             if (!Bold || !root) return;
             foreach (var text in root.GetComponentsInChildren<TMP_Text>(true))
-                if (text.font && text.font != Bold && text.font != Display && text.fontSharedMaterial == text.font.material)
+                if (text.font && text.font != Bold && text.font != Display && text.font != Lines && text.fontSharedMaterial == text.font.material)
                 { text.font = Bold; text.fontStyle &= ~FontStyles.Bold; }
         }
         static Material Outlined(TMP_FontAsset font, float width, bool drop)

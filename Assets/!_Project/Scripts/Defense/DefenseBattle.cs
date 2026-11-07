@@ -545,7 +545,6 @@ namespace CodingGame.Defense
         void Update()
         {
             if (Simulation == null || HelpOpen) return;
-            SetPlacementTint(palette >= 0);
             bool dialogueInput = tutorial && tutorial.DialogueInputCaptured;
             var mouse = dialogueInput ? null : Mouse.current; var keyboard = dialogueInput ? null : Keyboard.current;
             bool tutorialActive = TutorialBlocksInput;
@@ -661,28 +660,6 @@ namespace CodingGame.Defense
         // The robot models at scale 1.15 (CharacterAnimation): about 2.5-2.6 tall and 1.9 wide, standing on a .24 plate.
         public const float RobotHeight = 2.7f;
         const float RobotWidth = 2f, RobotClickHeight = RobotHeight;
-        // While a robot is being placed the map shows where it may go: floor white, road red. Restored when placing ends.
-        bool placementTint;
-        (Color upper, Color inner, Color border, bool floors, bool roads) mapColors;
-        void SetPlacementTint(bool on)
-        {
-            var map = routes.Length > 0 ? routes[0].Map : null;
-            if (on == placementTint || !map) return;
-            placementTint = on;
-            if (on)
-            {
-                mapColors = (map.upperColor, map.roadInnerColor, map.roadBorderColor, map.useFloorColors, map.useRoadColors);
-                map.upperColor = Color.white; map.roadInnerColor = new Color(.95f, .27f, .27f); map.roadBorderColor = new Color(.7f, .12f, .12f);
-                map.useFloorColors = map.useRoadColors = true;
-            }
-            else
-            {
-                map.upperColor = mapColors.upper; map.roadInnerColor = mapColors.inner; map.roadBorderColor = mapColors.border;
-                map.useFloorColors = mapColors.floors; map.useRoadColors = mapColors.roads;
-            }
-            map.ApplyFloorColors();
-        }
-        void OnDisable() => SetPlacementTint(false);
         // The route's points with the last one pulled back one cell: the walk ends on the core, the painted road a cell before.
         static Point[] RoadPoints(Route path)
         {

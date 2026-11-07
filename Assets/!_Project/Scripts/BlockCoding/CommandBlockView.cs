@@ -44,21 +44,28 @@ namespace CodingGame.BlockCoding
         public string RetainedName { get; private set; }
         public bool TextInputFocused => input && input.isFocused;
         bool initialized;
-        // Value and condition blocks are as tall as what they hold plus a small margin, at least ExpressionHeight, and as wide as
-        // their contents (play feedback 3: a 122x32 number filled a line's header); a line is 46 high unless it holds a taller one.
-        // A value block holding another keeps NestPad above and below it, so the two outlines do not run together (play feedback 4:
-        // get_my_pos() inside distance( touched its holder's edge).
-        public const float ExpressionHeight = 28, ExpressionPad = 3, NestPad = 6, FieldHeight = ExpressionHeight - 2 * ExpressionPad;
+        bool readOnlyPreview;
+        bool previewBody;
+        float bodyReveal;
+        CanvasGroup bodyVisibility;
+        public bool BodyExpanded => body && !IsPalette && (previewBody || body.Blocks.Count > 0);
+        public float HeaderHeight => headHeight;
+        internal float FooterOverlap => 24 * BodyReveal;
+        float BodyReveal => !body || IsPalette ? 0 : body.Blocks.Count > 0 ? 1 : bodyReveal;
+        // Value and condition blocks are as tall as what they hold plus a margin, at least ExpressionHeight (PR #19's 38), and as
+        // wide as their contents (play feedback 3); a line is 52 high (PR #19) unless it holds a taller one. A value block holding
+        // another keeps NestPad above and below it, so the two do not run together (play feedback 4).
+        public const float ExpressionHeight = 38, ExpressionPad = 6, NestPad = 7, FieldHeight = ExpressionHeight - 2 * ExpressionPad;
         bool IsStatement => PythonTreeCompiler.OutputSlot(Kind) == BlockSlotKind.Statement;
-        float headHeight => IsStatement ? Mathf.Max(46, LayoutUtility.GetPreferredHeight(header) + 12) : ExpressionHead(LayoutUtility.GetPreferredHeight(header));
+        float headHeight => IsStatement ? Mathf.Max(52, LayoutUtility.GetPreferredHeight(header) + 12) : ExpressionHead(LayoutUtility.GetPreferredHeight(header));
         static float ExpressionHead(float content) => Mathf.Max(ExpressionHeight, content + 2 * (content > FieldHeight + .5f ? NestPad : ExpressionPad));
         // Room left and right of the header: a number's digits sit close in their pill; a condition clears its pointed ends.
         float Margin => IsStatement ? 14 : kind == BlockKind.Number ? 8 : PythonTreeCompiler.OutputSlot(Kind) == BlockSlotKind.Condition ? 14 : 10;
         public float minWidth => preferredWidth;
-        public float preferredWidth => Mathf.Max(IsStatement ? 100 : 36, Mathf.Max(LayoutUtility.GetPreferredWidth(header) + 2 * Margin, body ? body.preferredWidth + 32 : 0));
+        public float preferredWidth => Mathf.Max(IsStatement ? 100 : 36, Mathf.Max(LayoutUtility.GetPreferredWidth(header) + 2 * Margin, BodyReveal > 0 ? body.preferredWidth + 36 : 0));
         public float flexibleWidth => 0;
         public float minHeight => preferredHeight;
-        public float preferredHeight => headHeight + (body ? body.preferredHeight + 18 : 0);
+        public float preferredHeight => headHeight + (body ? (body.preferredHeight + 24) * BodyReveal : 0);
         public float flexibleHeight => 0;
         public int layoutPriority => 1;
         public void CalculateLayoutInputHorizontal() { }
@@ -74,6 +81,8 @@ namespace CodingGame.BlockCoding
             Panel = panel;
             Owner = owner;
             IsPalette = palette;
+            previewBody = false; bodyReveal = 0;
+            EnsureBodyVisibility();
             if (stockLabel) stockLabel.gameObject.SetActive(palette && panel.Remaining != null);
             // Disable the handlers too so palette inputs forward drag/click events to the block.
             if (input) { input.interactable = !palette; input.enabled = !palette; }
@@ -181,8 +190,37 @@ namespace CodingGame.BlockCoding
             FitInput(input, MinField); FitDropdown(dropdown);
             if (methodArguments) methodArguments.SetActive(Kind == BlockKind.Distance);
             shape.Configure(PythonTreeCompiler.OutputSlot(Kind), body);
+            var slot=PythonTreeCompiler.OutputSlot(Kind);
+            shape.color=body?new Color(.27f,.72f,.9f):slot==BlockSlotKind.Condition?new Color(.73f,.53f,.94f):
+                slot==BlockSlotKind.Value?new Color(1f,.76f,.3f):new Color(.97f,.43f,.57f);
         }
         public void SetText(string value) { input.text = value; }
+        // Reward/tutorial previews share the editor's geometry and layout, without editing callbacks.
+        public void PreparePreview()
+        {
+            readOnlyPreview=true; IsPalette=false; Panel=null; Owner=null;
+            if(stockLabel)stockLabel.gameObject.SetActive(false);
+            if(input){input.interactable=false;input.enabled=false;}
+            if(dropdown){dropdown.interactable=false;dropdown.enabled=false;}
+            canvasGroup.alpha=1;canvasGroup.interactable=false;canvasGroup.blocksRaycasts=false;
+            previewBody=false;bodyReveal=0;
+            EnsureBodyVisibility();
+            RefreshShape();shape.HeaderHeight=headHeight;
+        }
+        internal void PreviewBody(bool value)
+        {
+            if (!body || IsPalette || readOnlyPreview || previewBody == value) return;
+            previewBody = value;
+            // Make the target available on the first drag event, before its opening animation finishes.
+            if(value)bodyReveal=Mathf.Max(.01f,bodyReveal);
+            LayoutRebuilder.MarkLayoutForRebuild(rect);
+        }
+        void EnsureBodyVisibility()
+        {
+            if(!body || bodyVisibility)return;
+            bodyVisibility=body.GetComponent<CanvasGroup>();
+            if(!bodyVisibility)bodyVisibility=body.gameObject.AddComponent<CanvasGroup>();
+        }
         public void SetStock(int count)
         {
             if (!stockLabel) return;
@@ -192,59 +230,13 @@ namespace CodingGame.BlockCoding
             // Out-of-stock palette blocks stay visible (so players learn they exist) but read as unavailable.
             if (counted) SetFaded(count <= 0);
         }
-        // The look of the block's palette tab (UITheme.BlockCategories): the face in its colour with white Pretendard Bold labels, and
-        // value holes, inputs and the loop's mouth in paper with ink text, so they read as places to fill (play feedback: the dark
-        // holes looked disabled). Placed blocks are copies of palette blocks and keep it.
-        internal void Style(Color face)
-        {
-            // A number is a literal: a paper pill with its digits in ink, not an orange block round a white field.
-            bool literal = kind == BlockKind.Number;
-            shape.color = literal ? UITheme.Paper : face;
-            foreach (var graphic in GetComponentsInChildren<Graphic>(true))
-            {
-                var list = graphic.GetComponentInParent<ScrollRect>(true);
-                if (graphic == shape || graphic == stockLabel || graphic.GetComponentInParent<CommandBlockView>(true) != this ||
-                    list && list.transform.IsChildOf(transform)) continue; // a dropdown's option list keeps its own look
-                if (graphic is TMP_Text text)
-                {
-                    if (UITheme.Bold) text.font = UITheme.Bold;
-                    if (text.name == "Hint") text.color = UITheme.Muted;
-                    else if (text.name == "Arrow") text.color = UITheme.Ink;
-                }
-                // The loop's mouth is see-through, so the C reads as one shape round the code it holds (play feedback: its paper
-                // panel and outline looked broken, with a white bar over the foot).
-                else if (graphic.name == "Body") graphic.color = Color.clear;
-                else if (graphic is CommandBlockShape) graphic.color = UITheme.Paper;
-            }
-            // The fields' colour tints multiply the paper; their dark tints made the inputs look like holes. Rounded (7 px) so two fields
-            // side by side (enemy. and distance( in a condition) read as two places to fill, not one white bar; a palette block's
-            // fields are not interactable, and the disabled tint turned them grey.
-            foreach (var field in new Selectable[] { input, dropdown })
-            {
-                if (!field) continue;
-                if (field.targetGraphic is Image box && UITheme.Fill)
-                { box.sprite = UITheme.Fill; box.type = Image.Type.Sliced; box.pixelsPerUnitMultiplier = 16f / 7; }
-                if (field.targetGraphic) field.targetGraphic.color = UITheme.Paper;
-                field.colors = new ColorBlock { normalColor = Color.white, highlightedColor = new Color(.96f, .96f, .96f), pressedColor = new Color(.86f, .86f, .86f),
-                    selectedColor = Color.white, disabledColor = Color.white, colorMultiplier = 1, fadeDuration = .08f };
-            }
-            if (literal && input && input.targetGraphic) input.targetGraphic.color = Color.clear;
-            if (input && input.textComponent)
-            {
-                input.textComponent.color = UITheme.Ink;
-                if (literal) input.textComponent.alignment = TextAlignmentOptions.Center;
-            }
-            if (stockLabel)
-            {
-                if (UITheme.Bold) stockLabel.font = UITheme.Bold;
-                stockLabel.fontStyle &= ~FontStyles.Bold; stockLabel.alignment = TextAlignmentOptions.Center; stockLabel.color = UITheme.Ink;
-                stockLabel.rectTransform.pivot = new Vector2(.5f, .5f); stockLabel.rectTransform.sizeDelta = new Vector2(40, 28);
-            }
-            if (input && input.placeholder is Graphic placeholder) placeholder.color = UITheme.Muted;
-            if (dropdown && dropdown.captionText) dropdown.captionText.color = UITheme.Ink;
-        }
         void LateUpdate()
         {
+            if(body){
+                float target=BodyExpanded?1:0;
+                float reveal=Mathf.MoveTowards(bodyReveal,target,Time.unscaledDeltaTime/ .13f);
+                if(!Mathf.Approximately(reveal,bodyReveal)){bodyReveal=reveal;LayoutRebuilder.MarkLayoutForRebuild(rect);}
+            }
             if (!IsPalette || !stockLabel || !stockLabel.gameObject.activeSelf) return;
             // One count column at the palette's right edge for every block, each count centred in it and on its block's first line.
             var edge = rect.InverseTransformPoint(stockColumn.TransformPoint(new Vector3(stockColumn.rect.xMax - 8, 0, 0)));
@@ -311,15 +303,6 @@ namespace CodingGame.BlockCoding
         }
         // The block left behind while dragged fades; the copy under the cursor is the block lifted, a little larger on a
         // deeper shadow (비주얼_레퍼런스.md 4).
-        // A copy in a robot's code tooltip (DefenseActorView, PR #19): read-only, no stock count, no panel or palette.
-        public void PreparePreview()
-        {
-            IsPalette = false; Panel = null; Owner = null;
-            if (stockLabel) stockLabel.gameObject.SetActive(false);
-            if (input) { input.interactable = false; input.enabled = false; }
-            if (dropdown) { dropdown.interactable = false; dropdown.enabled = false; }
-            canvasGroup.alpha = 1; canvasGroup.interactable = false; canvasGroup.blocksRaycasts = false;
-        }
         public void SetDragAppearance(bool dragged)
         {
             SetFaded(dragged);
@@ -346,7 +329,13 @@ namespace CodingGame.BlockCoding
         {
             float inset = IsStatement ? 6 : ExpressionPad;
             Place(header, Margin, inset, rect.rect.width - 2 * Margin, headHeight - 2 * inset);
-            if (body) Place(body.Rect, 24, headHeight, rect.rect.width - 32, body.preferredHeight);
+            if (body) {
+                float reveal=BodyReveal;
+                // The collapsed strip remains a tutorial/click target at the bottom of the header.
+                Place(body.Rect,reveal>0?28:24,reveal>0?headHeight:headHeight-8,rect.rect.width-(reveal>0?36:32),reveal>0?body.preferredHeight*reveal:8);
+                if(bodyVisibility){bodyVisibility.alpha=reveal;bodyVisibility.blocksRaycasts=!IsPalette&&!readOnlyPreview;}
+                shape.Configure(PythonTreeCompiler.OutputSlot(Kind),reveal>0,true);
+            }
         }
         public void SetLayoutVertical()
         {
@@ -368,14 +357,15 @@ namespace CodingGame.BlockCoding
             outer.Owner?.BringToFront(outer);
         }
         public void OnPointerDown(PointerEventData e) => BringToFront();
-        public void OnBeginDrag(PointerEventData e) { if (e.button == PointerEventData.InputButton.Left) { BringToFront(); Panel.BeginDrag(this, e); } }
-        public void OnDrag(PointerEventData e) => Panel.MoveDrag(e);
+        public void OnBeginDrag(PointerEventData e) { if (!readOnlyPreview && e.button == PointerEventData.InputButton.Left) { BringToFront(); Panel.BeginDrag(this, e); } }
+        public void OnDrag(PointerEventData e) { if(!readOnlyPreview)Panel.MoveDrag(e); }
         public void OnEndDrag(PointerEventData e)
         {
-            if (Panel.Dragged == this) Panel.FinishDrag(e);
+            if (!readOnlyPreview && Panel.Dragged == this) Panel.FinishDrag(e);
         }
         public void OnPointerClick(PointerEventData e)
         {
+            if(readOnlyPreview)return;
             if (e.button == PointerEventData.InputButton.Left && IsPalette) Panel.AddFromPalette(this);
             else if (e.button == PointerEventData.InputButton.Right && !IsPalette) Panel.DeleteOne(this);
             e.Use();

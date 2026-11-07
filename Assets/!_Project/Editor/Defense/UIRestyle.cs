@@ -103,7 +103,6 @@ namespace CodingGame.Defense.Editor
             {
                 var root = PrefabUtility.LoadPrefabContents(path);
                 changed += Restyle(new[] { root }, display, bold);
-                if (path == Overlay) PortraitBadge(root);
                 PrefabUtility.SaveAsPrefabAsset(root, path);
                 PrefabUtility.UnloadPrefabContents(root);
             }
@@ -186,19 +185,6 @@ namespace CodingGame.Defense.Editor
             return null;
         }
         static string PathOf(Transform t) => t.parent ? PathOf(t.parent) + "/" + t.name : t.name;
-
-        // 디버's face sits on a round mint badge (a sibling behind the portrait, which shows the face sprite itself).
-        static void PortraitBadge(GameObject root)
-        {
-            var portrait = root.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "RobotPortrait") as RectTransform;
-            if (!portrait || portrait.parent.Find("PortraitBadge")) return;
-            var badge = new GameObject("PortraitBadge", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
-            badge.SetParent(portrait.parent, false); badge.SetSiblingIndex(portrait.GetSiblingIndex());
-            badge.anchorMin = portrait.anchorMin; badge.anchorMax = portrait.anchorMax; badge.pivot = portrait.pivot;
-            badge.anchoredPosition = portrait.anchoredPosition; badge.sizeDelta = portrait.sizeDelta + new Vector2(16, 16);
-            var image = badge.GetComponent<Image>();
-            image.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(Folder + "/ui_circle.png"); image.color = UITheme.Mint; image.raycastTarget = false; image.preserveAspect = true;
-        }
 
         static void ImportSprites()
         {

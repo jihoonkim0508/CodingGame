@@ -23,18 +23,26 @@ namespace CodingGame.BlockCoding
         static readonly Vector2 FirstPosition = new Vector2(24, -24);
         const float SnapDistance = 30;
         static readonly Color EmptyHint = new Color(1f, .45f, .4f, .9f);
-        // elif/else rows tuck under the block above by this much.
-        const float BranchOverlap = 18;
         // A loop's or if's body keeps its lines this far in from the C's arm, header and foot (play feedback 3: with 4 px their
         // outlines touched and the blocks read as overlapping). An empty body is one line high.
         public static readonly Vector2 Inset = new Vector2(8, 10);
-        const float StatementHeight = 46;
+        const float StatementHeight = 52; // PR #19's line height
         public bool FreePlacement => freePlacement;
         public RectTransform Rect => rect;
         public BlockSlotKind Slot => slot;
         public CommandCodingPanel Panel { get; private set; }
         public CommandBlockView ParentBlock { get; private set; }
         public IReadOnlyList<CommandBlockView> Blocks => blocks;
+        bool IsControlBody
+        {
+            get
+            {
+                // Read-only reward copies retain their hierarchy without a live panel binding.
+                var owner=ParentBlock;
+                if(!owner&&transform.parent)owner=transform.parent.GetComponent<CommandBlockView>();
+                return owner&&owner.Body==this;
+            }
+        }
         public float minWidth => preferredWidth;
         public float preferredWidth => slot != BlockSlotKind.Statement ? (blocks.Count == 0 ? EmptyWidth : blocks[0].preferredWidth) :
             Mathf.Max(minimumWidth, blocks.Count == 0 ? 0 : blocks.Max(b => b.preferredWidth + (freePlacement ? b.Rect.anchoredPosition.x : 0)) + (freePlacement ? 8 : 2 * Inset.x));
@@ -58,7 +66,8 @@ namespace CodingGame.BlockCoding
         public void CalculateLayoutInputHorizontal() { }
         public void CalculateLayoutInputVertical() { }
         static bool IsBranch(CommandBlockView block) => PythonTreeCompiler.IsBranch(block.Kind);
-        float Overlap(int index) => slot == BlockSlotKind.Statement && IsBranch(blocks[index]) ? BranchOverlap : 0;
+        static float BranchOverlap(CommandBlockView before,CommandBlockView after)=>IsBranch(after)?before.FooterOverlap:0;
+        float Overlap(int index) => slot == BlockSlotKind.Statement ? BranchOverlap(blocks[index-1],blocks[index]) : 0;
         static Vector2 ClampToWorkspace(Vector2 p) => new Vector2(Mathf.Max(4, p.x), Mathf.Min(-4, p.y));
         // A palette source moves alone; a placed block brings its chain (and if/elif/else group).
         internal static List<CommandBlockView> Moving(CommandBlockView source) => source.IsPalette ? new List<CommandBlockView> { source } : source.Owner.Group(source);
@@ -296,14 +305,15 @@ namespace CodingGame.BlockCoding
                         var rest = Group(root).Where(b => !placed.Contains(b)).ToList();
                         int at = rest.IndexOf(target) + 1;
                         var chain = rest.Take(at).Concat(placed).Concat(rest.Skip(at)).ToList();
-                        var edge = target.Rect.anchoredPosition + new Vector2(0, -target.preferredHeight + (IsBranch(first) ? BranchOverlap : 0));
+                        var edge = target.Rect.anchoredPosition + new Vector2(0, -target.preferredHeight + BranchOverlap(target,first));
                         float distance = Gap(position, edge, Mathf.Max(target.preferredWidth, first.preferredWidth));
                         if (distance < nearest && ValidChain(chain)) { nearest = distance; attachAfter = target; attachBefore = null; }
                     }
                     if (!next.Any(pair => pair.Value == target && !placed.Contains(pair.Key)))
                     {
-                        float height = placed.Sum(b => b.preferredHeight) - placed.Skip(1).Count(IsBranch) * BranchOverlap;
-                        var edge = position + new Vector2(0, -height + (IsBranch(target) ? BranchOverlap : 0));
+                        float height = placed.Sum(b => b.preferredHeight);
+                        for(int i=1;i<placed.Count;i++)height-=BranchOverlap(placed[i-1],placed[i]);
+                        var edge = position + new Vector2(0, -height + BranchOverlap(placed.Last(),target));
                         float width = Mathf.Max(target.preferredWidth, first.preferredWidth);
                         float distance = Mathf.Min(Gap(edge, target.Rect.anchoredPosition, width), Gap(position, target.Rect.anchoredPosition, width));
                         if (distance < nearest && ValidChain(placed.Concat(Group(target)).ToList())) { nearest = distance; attachBefore = target; attachAfter = null; }
@@ -329,8 +339,8 @@ namespace CodingGame.BlockCoding
                 FindSnap(moved, position, out var after, out var before);
                 var target = after ? after : before;
                 if (!target) return false;
-                var edge = target.Rect.anchoredPosition + (after ? new Vector2(0, -target.preferredHeight + (IsBranch(source) ? BranchOverlap : 0)) : Vector2.zero);
-                preview = new Rect(edge.x, edge.y + 4, Mathf.Max(target.preferredWidth, source.preferredWidth), 8);
+                var edge = target.Rect.anchoredPosition + (after ? new Vector2(0, -target.preferredHeight + BranchOverlap(target,source)) : Vector2.zero);
+                preview = new Rect(edge.x, edge.y + 3, Mathf.Max(target.preferredWidth, source.preferredWidth), 6);
                 return true;
             }
             if (slot != BlockSlotKind.Statement)
@@ -385,7 +395,7 @@ namespace CodingGame.BlockCoding
                     for (int i = 0; i < chain.Count; i++)
                     {
                         var block = chain[i];
-                        if (i > 0 && IsBranch(block)) position.y += BranchOverlap;
+                        if (i > 0) position.y += BranchOverlap(chain[i-1],block);
                         CommandBlockView.Place(block.Rect, position.x, -position.y, BranchWidth(chain, i), block.preferredHeight);
                         position.y -= block.preferredHeight;
                     }

@@ -51,7 +51,8 @@ namespace CodingGame.TitleScreen.Editor
                 if (!AssetDatabase.IsValidFolder(Root + "/Fonts")) AssetDatabase.CreateFolder(Root, "Fonts");
                 AssetDatabase.CopyAsset("Assets/TextMesh Pro/Fonts/PretendardVariable SDF.asset", fontPath);
             }
-            font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(fontPath);
+            // The title's words are Jalnan, not bold (9차 104); TitleMenu SDF stays for anything else that names it.
+            font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>("Assets/!_Project/Resources/UI/Jalnan2 SDF.asset");
             if (!font) throw new Exception("Project Korean font is missing.");
 
             var root = Rect("Title Presentation", null, new Vector2(1920, 1080), Vector2.zero);
@@ -441,7 +442,6 @@ namespace CodingGame.TitleScreen.Editor
             colors.pressedColor = new Color(.84f, .88f, .94f, 1); colors.disabledColor = Color.white;
             button.colors = colors;
             var text = Text("Label", image.transform, label, fontSize, ink, new Vector2(size.x * .65f, size.y * .75f), new Vector2(power ? 24 : 0, 0));
-            text.fontStyle = FontStyles.Bold;
             if (power)
             {
                 var iconRect = Rect("Icon", image.transform, new Vector2(fontSize, fontSize), new Vector2(-size.x * .255f, 0));
