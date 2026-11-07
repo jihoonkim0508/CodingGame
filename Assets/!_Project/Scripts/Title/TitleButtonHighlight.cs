@@ -43,6 +43,17 @@ namespace CodingGame.TitleScreen
             Ring(vh, points, normals, 5, WithAlpha(cyan, .20f));
             Ring(vh, points, normals, 2.4f, WithAlpha(cyan, .95f));
             }
+            // A filled cyan play triangle left of the hovered button, sliding in toward it (back after a8efe91 took it away).
+            Vector2 center = new Vector2(r.xMin - 39 - 8 * (1 - Visibility), r.center.y);
+            Triangle(vh, center, 20, cyan);
+        }
+        static void Triangle(VertexHelper vh, Vector2 center, float radius, Color color)
+        {
+            int first = vh.currentVertCount;
+            vh.AddVert(center + new Vector2(-radius * .65f, -radius), color, Vector2.zero);
+            vh.AddVert(center + new Vector2(-radius * .65f, radius), color, Vector2.zero);
+            vh.AddVert(center + new Vector2(radius, 0), color, Vector2.zero);
+            vh.AddTriangle(first, first + 1, first + 2);
         }
         void Ring(VertexHelper vh, Vector2[] points, Vector2[] normals, float width, Color color)
         {

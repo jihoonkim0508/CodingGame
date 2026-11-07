@@ -91,35 +91,6 @@ namespace CodingGame.Defense.Editor
         // 142: the inventory window (TAB) has one slot per block kind; is_dead() and calculations (play feedback 4) never got
         // theirs, so DefenseInventoryUI.Start threw "인벤토리 Inspector 참조를 연결하세요" on every battle. Each missing kind gets a
         // copy of the last slot in the grid's next cell (three columns, rows going down); the label is filled from the kind.
-        // The title's hover arrow: a8efe91 took the drawn cyan triangle away; it comes back as the stage map's arrow (ui_arrow,
-        // turned to point at the button), saved in Title.unity, shown by TitleButtonMotion on hover.
-        [MenuItem("Tools/Learning UI/Title Hover Arrows")]
-        public static void TitleArrows()
-        {
-            var scene = SceneManager.GetSceneByPath(TitleScene);
-            bool opened = !scene.isLoaded;
-            if (opened) scene = EditorSceneManager.OpenScene(TitleScene, OpenSceneMode.Additive);
-            else if (scene.isDirty) throw new InvalidOperationException(TitleScene + "에 저장하지 않은 변경이 있습니다.");
-            try
-            {
-                var sprite = Resources.Load<Sprite>("UI/ui_arrow");
-                if (!sprite) throw new InvalidOperationException("Resources/UI/ui_arrow 스프라이트가 없습니다.");
-                foreach (var motion in scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<CodingGame.TitleScreen.TitleButtonMotion>(true)))
-                {
-                    var old = motion.transform.Find("Hover arrow"); if (old) Object.DestroyImmediate(old.gameObject);
-                    var arrow = new GameObject("Hover arrow", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
-                    var rect = arrow.rectTransform; rect.SetParent(motion.transform, false);
-                    rect.anchorMin = rect.anchorMax = new Vector2(0, .5f); rect.sizeDelta = new Vector2(60, 63); rect.anchoredPosition = new Vector2(-46, 0); // the stage map's size; turned below
-                    rect.localEulerAngles = new Vector3(0, 0, 90); // the stage map's arrow points down; this one points right, at the button
-                    arrow.sprite = sprite; arrow.preserveAspect = true; arrow.raycastTarget = false;
-                    arrow.color = new Color(.1f, .92f, 1, 0); arrow.enabled = false; // the old triangle's cyan
-                    motion.arrow = arrow; EditorUtility.SetDirty(motion);
-                }
-                EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene);
-            }
-            finally { if (opened) EditorSceneManager.CloseScene(scene, true); }
-        }
-
         [MenuItem("Tools/Learning UI/Fix Inventory Slots")]
         public static void InventorySlots()
         {
