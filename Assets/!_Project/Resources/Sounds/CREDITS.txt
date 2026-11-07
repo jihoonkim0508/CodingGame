@@ -7,4 +7,4 @@ Sound effects: Kenney (www.kenney.nl), CC0 1.0 Universal (public domain), downlo
 Each <kind>.ogg here is one of those files trimmed, faded and levelled (some pitched: the three stage-clear stars).
 The game plays a file by its name (DefenseSounds, UISound), so renaming one changes which sound plays where.
 alarm.ogg, hover.ogg: made in this project, not from a pack (Editor/UI~/make_sounds.py): the alarm is one short low 98 Hz buzzing
-pulse ("징", .45 s), the hover a 70 ms soft tick.
+pulse ("징", .45 s), the hover a soft 160 ms G4 marimba tap (picked from HoverSounds/ candidates).

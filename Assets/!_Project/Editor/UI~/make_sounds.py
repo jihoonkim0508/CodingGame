@@ -1,4 +1,4 @@
-"""Synthesizes alarm.ogg (one short low 'jing' warning) and hover.ogg (soft UI tick). make_sounds.py <out folder>"""
+"""Synthesizes alarm.ogg (one short low 'jing' warning) and hover.ogg (soft low marimba tap). make_sounds.py <out folder>"""
 import sys, os, subprocess, wave
 import numpy as np
 
@@ -46,11 +46,13 @@ d = int(.06 * SR); alarm[d:] += .22 * alarm[:-d]
 cut = int(.45 * SR); alarm = alarm[:cut] * np.clip((cut - np.arange(cut)) / (.12 * SR), 0, 1)
 write("alarm", alarm)
 
-# hover: a short soft wooden tick, 1.6 kHz falling to 1.1 kHz over 40 ms with a quick decay plus a tiny click on top.
-t = np.arange(int(.07 * SR)) / SR
-f = 1100 + 500 * np.exp(-t / .012)
-tick = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / .018)
-tick += .25 * np.sin(2 * np.pi * 3300 * t) * np.exp(-t / .004)
+# hover (12차 123, candidate 03 "felt marimba" picked from HoverSounds/): G4 (392 Hz) with a soft 4x partial, 160 ms,
+# low-passed at 3 kHz so it has no bright edge.
+t = np.arange(int(.16 * SR)) / SR
+tick = np.sin(2 * np.pi * 392 * t) * np.exp(-t / .05) + .15 * np.sin(2 * np.pi * 1568 * t) * np.exp(-t / .01)
 tick *= np.clip(t / .002, 0, 1)
+a = np.exp(-2 * np.pi * 3000 / SR); acc = 0.
+for i, v in enumerate(tick): acc = (1 - a) * v + a * acc; tick[i] = acc
+tick = np.concatenate([tick / np.abs(tick).max() * .7 / .89, np.zeros(int(.03 * SR))])
 write("hover", tick)
 print("ok")
