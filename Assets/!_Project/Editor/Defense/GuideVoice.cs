@@ -20,8 +20,9 @@ namespace CodingGame.Defense.Editor
         const string Folder = "Assets/!_Project/Resources/Voice";
         const string Script = "Assets/!_Project/Editor/Defense/Voice~/make_voice.ps1";
 
-        // The English name: Korean in the PowerShell command line arrives garbled and matched no voice ("시우" is Siwoo).
-        const string TypecastVoice = "Siwoo";
+        // Siwoo (시우). Windows PowerShell 5.1 does not read Typecast's voice list (its ConvertFrom-Json leaves the entries
+        // empty), so the voice goes by id; the name stays for the script's own lookup when no id is given.
+        const string TypecastVoice = "Siwoo", TypecastVoiceId = "tc_6699eb3849dfac016c29444c";
 
         [MenuItem("Tools/Develop/디버 음성 만들기")]
         public static void Build() => Build("windows");
@@ -86,7 +87,7 @@ namespace CodingGame.Defense.Editor
                 new System.Text.UTF8Encoding(false));
             var start = new ProcessStartInfo("powershell.exe", $"-NoProfile -ExecutionPolicy Bypass -File \"{Path.GetFullPath(Script)}\" -Jobs \"{jobs}\" -Out \"{Path.GetFullPath(Folder)}\" -Engine {engine} -VoiceName {TypecastVoice}")
                 { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
-            if (engine == "typecast") start.EnvironmentVariables["TYPECAST_API_KEY"] = TypecastKey;
+            if (engine == "typecast") { start.EnvironmentVariables["TYPECAST_API_KEY"] = TypecastKey; start.EnvironmentVariables["TYPECAST_VOICE_ID"] = TypecastVoiceId; }
             var run = Process.Start(start);
             string output = run.StandardOutput.ReadToEnd(), errors = run.StandardError.ReadToEnd();
             run.WaitForExit();
