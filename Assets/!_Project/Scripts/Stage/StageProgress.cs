@@ -14,24 +14,42 @@ namespace CodingGame.StageMap
         // The islands' names (the map's StageIslandView titles), for the battle HUD.
         static readonly string[] Titles = { "개발자의 작업실", "데이터 분기 구역", "자동화 생산 공장" };
         public static string Title(int number) => number >= 1 && number <= Titles.Length ? Titles[number - 1] : "";
-        // What each island teaches, for its label on the map.
-        static readonly string[] Lessons = { "for 반복 · 변수 · if 조건문", "if / elif / else", "반복 횟수 · while True" };
-        public static string Lesson(int number) => number >= 1 && number <= Lessons.Length ? Lessons[number - 1] : "";
+        public static int PendingUnlock { get; private set; }
+        public static int PendingPurification { get; private set; }
+
+        public static int ConsumePendingPurification()
+        {
+            int stage=PendingPurification;PendingPurification=0;return stage;
+        }
+
+        public static int ConsumePendingUnlock()
+        {
+            int stage = PendingUnlock; PendingUnlock = 0; return stage;
+        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetSession()
         {
             SelectedStage = 0;
+            PendingUnlock = 0;
+            PendingPurification = 0;
             previewClears.Clear();
         }
 
         static bool IsCleared(int number) => previewClears.Contains(number) || PlayerPrefs.GetInt(Prefix + number, 0) == 1;
 
         // Developer previews unlock stages for this Play session without changing the save.
-        public static void MarkClearedForPreview(int number) => previewClears.Add(number);
+        public static void MarkClearedForPreview(int number)
+        {
+            if(!IsCleared(number)) PendingPurification=number;
+            if(!IsCleared(number) && GetState(number+1)==StageState.Locked) PendingUnlock = number+1;
+            previewClears.Add(number);
+        }
 
         public static void MarkCleared(int number)
         {
+            if(!IsCleared(number)) PendingPurification=number;
+            if(!IsCleared(number) && GetState(number+1)==StageState.Locked) PendingUnlock = number+1;
             if (previewClears.Count > 0)
             {
                 previewClears.Add(number);
@@ -55,6 +73,8 @@ namespace CodingGame.StageMap
         {
             previewClears.Clear();
             SelectedStage = 0;
+            PendingUnlock = 0;
+            PendingPurification = 0;
             for (int number = 1; number <= count; number++) { PlayerPrefs.DeleteKey(Prefix + number); PlayerPrefs.DeleteKey(StarsPrefix + number); }
             PlayerPrefs.Save();
         }

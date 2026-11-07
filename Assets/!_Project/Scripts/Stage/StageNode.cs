@@ -9,6 +9,10 @@ namespace CodingGame.StageMap
         Renderer targetRenderer;
         Material availableMaterial, lockedMaterial, clearedMaterial;
         StageIslandView island;
+        StageLockVisual lockVisual;
+        StagePurificationVisual purificationVisual;
+        public StageLockVisual LockVisual => lockVisual;
+        public StagePurificationVisual PurificationVisual => purificationVisual;
 
         public int Number { get; private set; }
         public StageState State { get; private set; }
@@ -24,11 +28,19 @@ namespace CodingGame.StageMap
             lockedMaterial = palette && palette.LockedMaterial ? palette.LockedMaterial : original;
             clearedMaterial = palette ? palette.GetClearedMaterial(number - 1, original) : original;
             if (!TryGetComponent<Collider>(out _)) gameObject.AddComponent<BoxCollider>();
+            var effect = new GameObject("Stage lock barrier");
+            effect.transform.SetParent(transform, false);
+            lockVisual = effect.AddComponent<StageLockVisual>();
+            lockVisual.Configure(VisualBounds, number);
+            var purification=new GameObject("Stage purification");purification.transform.SetParent(transform,false);
+            purificationVisual=purification.AddComponent<StagePurificationVisual>();purificationVisual.Configure(VisualBounds);
         }
 
         public void Refresh()
         {
             State = StageProgress.GetState(Number);
+            lockVisual.SetLocked(State == StageState.Locked);
+            purificationVisual.SetCleared(State == StageState.Cleared);
             if(island){island.RefreshState(State);return;}
             targetRenderer.sharedMaterial = State switch
             {
