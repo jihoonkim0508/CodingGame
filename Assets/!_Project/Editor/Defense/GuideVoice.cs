@@ -20,7 +20,8 @@ namespace CodingGame.Defense.Editor
         const string Folder = "Assets/!_Project/Resources/Voice";
         const string Script = "Assets/!_Project/Editor/Defense/Voice~/make_voice.ps1";
 
-        const string TypecastVoice = "시우";
+        // The English name: Korean in the PowerShell command line arrives garbled and matched no voice ("시우" is Siwoo).
+        const string TypecastVoice = "Siwoo";
 
         [MenuItem("Tools/Develop/디버 음성 만들기")]
         public static void Build() => Build("windows");
