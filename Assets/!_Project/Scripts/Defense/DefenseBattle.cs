@@ -132,7 +132,7 @@ namespace CodingGame.Defense
             if (!campaign) throw new InvalidOperationException("DefenseBattle에 캠페인 asset을 연결하세요.");
             campaign.ValidateContent(); robots = campaign.robots; enemies = campaign.enemies;
             ValidateReferences();
-            foreach (var root in gameObject.scene.GetRootGameObjects()) UITheme.BoldBody(root.transform);
+            // Body texts are saved in Pretendard Bold (Tools/Optimize/126); no font pass at load.
             sounds = gameObject.AddComponent<DefenseSounds>();
             developerRoot.SetActive(false);
             developerHint.SetActive(false); // PR #19's header puts the coin stat in this corner; F1/F2 still work

@@ -67,6 +67,23 @@ namespace CodingGame.Defense.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
         });
 
+        // 126: the battle turned about 195 body texts into Pretendard Bold when it started (UITheme.BoldBody over the scene);
+        // the scene now saves them that way and the battle no longer re-meshes them at load.
+        const string DefenseScene = "Assets/!_Project/Scenes/Defense.unity";
+        [MenuItem("Tools/Optimize/126 Battle Body Font")]
+        public static void BodyFont126() => EditScene(DefenseScene, scene =>
+        {
+            foreach (var text in ToBold(scene))
+            {
+                text.font = UITheme.Bold; text.fontStyle &= ~TMPro.FontStyles.Bold;
+                EditorUtility.SetDirty(text);
+                if (PrefabUtility.IsPartOfPrefabInstance(text)) PrefabUtility.RecordPrefabInstancePropertyModifications(text);
+            }
+        });
+        // The texts UITheme.BoldBody would change.
+        static TMPro.TMP_Text[] ToBold(Scene scene) => All<TMPro.TMP_Text>(scene).Where(text => text.font && text.font != UITheme.Bold &&
+            text.font != UITheme.Display && text.font != UITheme.Lines && text.fontSharedMaterial == text.font.material).ToArray();
+
         // A camera that needs neither the depth nor the opaque texture nor shadows (no shader samples them).
         static void Lean(Camera camera)
         {
@@ -109,6 +126,17 @@ namespace CodingGame.Defense.Editor
                 Check(!File.ReadAllText("Assets/!_Project/Scripts/Stage/StageMapController.cs").Contains("OnGUI"), "125 no IMGUI on the stage map");
             }
             finally { if (SceneManager.sceneCount > 1) EditorSceneManager.CloseScene(stage, true); }
+
+            var defense = SceneManager.GetSceneByPath(DefenseScene);
+            bool openedDefense = !defense.isLoaded;
+            if (openedDefense) defense = EditorSceneManager.OpenScene(DefenseScene, OpenSceneMode.Additive);
+            try
+            {
+                var left = ToBold(defense);
+                Check(left.Length == 0, $"126 the battle's body texts are saved in Pretendard Bold ({left.Length} left)");
+                Check(!File.ReadAllText("Assets/!_Project/Scripts/Defense/DefenseBattle.cs").Contains("UITheme.BoldBody"), "126 no body-font pass when the battle starts");
+            }
+            finally { if (openedDefense && SceneManager.sceneCount > 1) EditorSceneManager.CloseScene(defense, true); }
 
             Directory.CreateDirectory(Path.GetDirectoryName(Log));
             string result = (failed.Count == 0 ? "PASS " : "FAIL ") + passed + " passed" + string.Concat(failed.Select(f => "\n  failed: " + f));
