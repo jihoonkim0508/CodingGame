@@ -12,6 +12,8 @@ namespace CodingGame.Defense
     {
         public int stage, wave;
         public string topic;
+        // One line telling the player what this wave asks of their code; shown as the wave goal outside the Stage 1 tutorial.
+        public string goal = "";
         public RobotStock[] robots = Array.Empty<RobotStock>();
         public BlockStock[] blocks = Array.Empty<BlockStock>();
         public BlockStock[] rewards = Array.Empty<BlockStock>();
@@ -36,7 +38,7 @@ namespace CodingGame.Defense
             robots = robots.Select(r => new RobotStock {role=r.role,count=r.count}).ToArray(),
             initial = initial.Select(b => new BlockStock {kind=b.kind,count=b.count}).ToArray(),
             drops = drops.Select(d => new BlockDrop {kind=d.kind,firstWave=d.firstWave,weight=d.weight}).ToArray(),
-            lessons = lessons.Select(l => new WaveLesson {stage=l.stage,wave=l.wave,topic=l.topic,
+            lessons = lessons.Select(l => new WaveLesson {stage=l.stage,wave=l.wave,topic=l.topic,goal=l.goal,
                 robots=l.robots.Select(r=>new RobotStock {role=r.role,count=r.count}).ToArray(),
                 blocks=l.blocks.Select(b=>new BlockStock {kind=b.kind,count=b.count}).ToArray(),
                 rewards=l.rewards.Select(b=>new BlockStock {kind=b.kind,count=b.count}).ToArray()}).ToArray()
@@ -88,15 +90,16 @@ namespace CodingGame.Defense
         {
             switch (Canonical(kind))
             {
-                case BlockKind.Shot: return "attack(enemy)"; case BlockKind.Slash: return "slash(enemy)";
-                case BlockKind.Block: return "block(enemy)"; case BlockKind.Boom: return "boom(enemy)";
-                case BlockKind.Slow: return "slow(enemy)"; case BlockKind.Buff: return "buff()";
+                case BlockKind.Shot: return "attack(Enemy)"; case BlockKind.Slash: return "slash()";
+                case BlockKind.Block: return "block(Enemy)"; case BlockKind.Boom: return "boom(Enemy)";
+                case BlockKind.Slow: return "slow(Enemy)"; case BlockKind.Buff: return "buff()";
                 case BlockKind.Wait: return "wait()"; case BlockKind.Number: return "0";
                 case BlockKind.Comparison: return "<"; case BlockKind.DeclareVariable: return "variable =";
                 case BlockKind.Variable: return "variable"; case BlockKind.NearestEnemy: return "get_nearest_enemy()";
                 case BlockKind.PositionX: return "get_pos_x()"; case BlockKind.PositionY: return "get_pos_y()";
                 case BlockKind.MyAttackRange: return "my_attack_range()"; case BlockKind.MyPos: return "get_my_pos()";
                 case BlockKind.True: return "True"; case BlockKind.False: return "False";
+                case BlockKind.IsDead: return "is_dead()"; case BlockKind.Arithmetic: return "+ - * /";
                 default: return kind.ToString().ToLowerInvariant();
             }
         }

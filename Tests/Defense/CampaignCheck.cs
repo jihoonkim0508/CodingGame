@@ -17,7 +17,8 @@ static class CampaignCheck
     // Shots land within one .1 s interval, so five program runs kill five enemies (real shooters fire every 1.2 s).
     static RobotSpec Spec(RobotRole role) => new RobotSpec{role=role,damage=100,range=8,interval=.1f,projectileSpeed=200};
     static RobotState Place(DefenseSimulation sim, RobotRole role, float x=-8) => sim.Place(Spec(role),(int)role,new Vector2(x,role==RobotRole.Tank?0:2),out _);
-    static void RunWave(DefenseSimulation sim) { for(int i=0;i<6000&&sim.Phase==BattlePhase.Running;i++)sim.Advance(1.0/60); }
+    // A player who presses each robot's Play whenever its function has ended (play feedback 4).
+    static void RunWave(DefenseSimulation sim) { for(int i=0;i<6000&&sim.Phase==BattlePhase.Running;i++){foreach(var r in sim.Robots)sim.Invoke(r.Id);sim.Advance(1.0/60);} }
     static void Reject(Action action,string label) { bool rejected=false;try{action();}catch(FormatException){rejected=true;}Assert(rejected,label); }
     static void CheckHealthTrail()
     {
@@ -31,31 +32,31 @@ static class CampaignCheck
     }
     static void CheckTutorialWatcher()
     {
-        const string answer="enemy = get_nearest_enemy()\nslash(enemy)";
+        const string answer="enemy = get_nearest_enemy()\nslash()";
         var code=new[]{new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)),
-            new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"enemy"))};
+            new CodeBlock(BlockKind.Slash)};
         var program=new DefenseProgram("robot",code);
-        Assert(TutorialWatcher.Matches(program,answer)&&TutorialWatcher.Matches(program,string.Join("", "  enemy = get_nearest_enemy()", Environment.NewLine, Environment.NewLine, "    slash(enemy)  ")),"program match ignores header, indent and blank lines");
+        Assert(TutorialWatcher.Matches(program,answer)&&TutorialWatcher.Matches(program,string.Join("", "  enemy = get_nearest_enemy()", Environment.NewLine, Environment.NewLine, "    slash()  ")),"program match ignores header, indent and blank lines");
         Assert(!TutorialWatcher.Matches(program,"enemy = get_nearest_enemy()")&&!TutorialWatcher.Matches(null,answer),"partial or missing program does not match");
         var renamed=new DefenseProgram("robot",new[]{new CodeBlock(BlockKind.DeclareVariable,"target",new CodeBlock(BlockKind.NearestEnemy)),
-            new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"target"))});
+            new CodeBlock(BlockKind.Slash)});
         Assert(TutorialWatcher.Matches(renamed,answer),"any variable name holding the enemy matches");
         var korean=new DefenseProgram("robot",new[]{new CodeBlock(BlockKind.DeclareVariable,"적",new CodeBlock(BlockKind.NearestEnemy)),
-            new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"적"))});
+            new CodeBlock(BlockKind.Slash)});
         Assert(TutorialWatcher.Matches(korean,answer),"a Korean variable name matches too");
         var later=new DefenseProgram("robot",new[]{new CodeBlock(BlockKind.DeclareVariable,"e",new CodeBlock(BlockKind.NearestEnemy)),
-            new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"e")),
+            new CodeBlock(BlockKind.Slash),
             new CodeBlock(BlockKind.DeclareVariable,"d",new CodeBlock(BlockKind.Distance,"0",new CodeBlock(BlockKind.Variable,"e"),new CodeBlock(BlockKind.MyPos)))});
-        Assert(TutorialWatcher.Matches(later,"enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nslash(enemy)"),"distance line set below the attack still matches");
-        const string taught="enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nslash(enemy)";
+        Assert(TutorialWatcher.Matches(later,"enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nslash()"),"distance line set below the attack still matches");
+        const string taught="enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nslash()";
         Assert(TutorialWatcher.ConditionMatches("d <= my_attack_range()",later,"enemy_distance <= my_attack_range()",taught)&&
             !TutorialWatcher.ConditionMatches("e <= my_attack_range()",later,"enemy_distance <= my_attack_range()",taught)&&
             !TutorialWatcher.ConditionMatches("d < my_attack_range()",later,"enemy_distance <= my_attack_range()",taught),
             "loose condition matches with the player's own distance variable, not another variable or operator");
         var wrong=new DefenseProgram("robot",new[]{new CodeBlock(BlockKind.DeclareVariable,"e",new CodeBlock(BlockKind.NearestEnemy)),
-            new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"e")),
+            new CodeBlock(BlockKind.Slash),
             new CodeBlock(BlockKind.DeclareVariable,"d",new CodeBlock(BlockKind.Hp,"0",new CodeBlock(BlockKind.Variable,"e")))});
-        Assert(!TutorialWatcher.Matches(wrong,"enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nslash(enemy)"),"a different value still does not match");
+        Assert(!TutorialWatcher.Matches(wrong,"enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nslash()"),"a different value still does not match");
 
         var sim=new DefenseSimulation(Setup());var teacher=Place(sim,RobotRole.Warrior);var second=Place(sim,RobotRole.Warrior,-5);
         Assert(TutorialWatcher.TeachingRobot(sim)==teacher&&TutorialWatcher.Robot(sim,1)==second&&TutorialWatcher.Robot(sim,2)==null,"robot index counts warriors in placement order");
@@ -90,6 +91,14 @@ static class CampaignCheck
             sim.RemoveRobot(bot.Id);
             Assert(sim.Coins==100&&Place(sim,role).Level==1,"recall refunds upgrade and returns level one item "+role);
         }
+        // The campaign allows level 3: each level costs more (50, then 100) and recall refunds both.
+        var tallSetup=Setup();tallSetup.RulesConfig.maxLevel=3;
+        var tall=new DefenseSimulation(tallSetup);tall.SetCoins(140);var grown=Place(tall,RobotRole.Warrior);
+        Assert(tall.UpgradeCostFor(grown)==50&&tall.UpgradeRobot(grown.Id)&&tall.UpgradeCostFor(grown)==100&&tall.Coins==90,"second level costs double");
+        Assert(tall.UpgradeError(grown.Id)=="코인이 부족합니다."&&!tall.UpgradeRobot(grown.Id)&&tall.Coins==90,"cannot afford the dearer level");
+        tall.SetCoins(100);Assert(tall.UpgradeRobot(grown.Id)&&grown.Level==3&&grown.IsMaxLevel&&tall.Coins==0,"level 3 bought");
+        Assert(Math.Abs(grown.LevelMultiplier-1.44f)<.001f,"level 3 multiplier");
+        tall.RemoveRobot(grown.Id);Assert(tall.Coins==150,"recall refunds every level paid");
         var early=Setup();early.Stage=1;var first=new DefenseSimulation(early);var firstBot=Place(first,RobotRole.Warrior);
         Assert(!first.UpgradeUnlocked&&first.UpgradeError(firstBot.Id)!=null&&!first.UpgradeRobot(firstBot.Id)&&first.Coins==100,"level-up locked in 1-1");
         early=Setup();early.Stage=1;early.InitialWave=1;first=new DefenseSimulation(early);firstBot=Place(first,RobotRole.Warrior);
@@ -182,11 +191,14 @@ static class CampaignCheck
         needed.ApplyProgram(neededBot.Id,"fire",new[]{new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy))});needed.Start();RunWave(needed);
         Assert(needed.PendingDrops.Take(4).SequenceEqual(new[]{BlockKind.Boom,BlockKind.Buff,BlockKind.Block,BlockKind.Boom}),
             "drops fill missing native actions before surplus blocks");
-        var runs=new DefenseSimulation(Setup());
-        Assert(runs.FunctionRepeatLimit==5,"function runs 5 times per wave before loops");
-        runs.GrantBlock(BlockKind.For,1);Assert(runs.FunctionRepeatLimit==1,"function runs once after loops unlock");
-        // The reward flow below needs every wave cleared, not the per-wave run limit.
-        var flow=Setup();flow.FunctionRepeatLimit=int.MaxValue;
+        // Play (play feedback 4): battle start calls each function once; Play calls it again, never while it runs.
+        var runs=new DefenseSimulation(Setup());var caller=Place(runs,RobotRole.Warrior);
+        runs.ApplyProgram(caller.Id,"swing",new[]{new CodeBlock(BlockKind.Slash)});
+        Assert(!runs.CanInvoke(caller.Id),"Play waits for the battle");
+        runs.Start();Assert(caller.Program.Running&&!runs.Invoke(caller.Id),"battle start calls the function; Play is locked while it runs");
+        for(int i=0;i<60&&caller.Program.Running;i++)runs.Advance(1.0/60);
+        Assert(!caller.Program.Running&&caller.Program.CompletedRuns==1&&runs.Invoke(caller.Id)&&caller.Program.Running,"after it ends Play calls it again");
+        var flow=Setup();
         var sim=new DefenseSimulation(flow); sim.Start();Assert(sim.Phase==BattlePhase.Ready,"no robots start rejected");
         var bot=Place(sim,RobotRole.Shooter);
         Assert(bot.Program==null&&!bot.AutoExecute&&!bot.BlockingEnabled,"placed robot is empty");
@@ -200,6 +212,11 @@ static class CampaignCheck
         var second=Place(sim,RobotRole.Warrior,-5);sim.ApplyProgram(second.Id,"copy",new[]{new CodeBlock(BlockKind.Attack,"0",new CodeBlock(BlockKind.NearestEnemy))});
         Assert(sim.Available(BlockKind.Shot)==1,"legacy attack shares inventory");
         sim.RemoveRobot(second.Id);Assert(sim.Available(BlockKind.Shot)==2,"remove releases reservation");
+        // A syntax error empties the applied code, but the blocks left in that robot's editor are still its own.
+        sim.ApplyProgram(bot.Id,"broken",Array.Empty<CodeBlock>());sim.SetDraft(bot.Id,new[]{BlockKind.Shot,BlockKind.NearestEnemy});
+        Assert(sim.Available(BlockKind.Shot)==2&&sim.Available(BlockKind.Shot,bot.Id)==3,"unfinished editor blocks stay reserved");
+        Reject(()=>sim.ApplyProgram(Place(sim,RobotRole.Warrior,-5).Id,"take",Enumerable.Range(0,3).Select(i=>new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy))).ToArray()),"another robot cannot take a draft's blocks");
+        sim.SetDraft(bot.Id,Array.Empty<BlockKind>());sim.RemoveRobot(sim.Robots.Last().Id);sim.ApplyProgram(bot.Id,"fire",saved.CopyBlocks());
         // This fixture tests rewards and reservation, without randomly unlocking loop execution rules.
         sim.Setup.Progression.drops = sim.Setup.Progression.drops.Where(d => d.kind != BlockKind.For && d.kind != BlockKind.While).ToArray();
         for(int wave=0;wave<5;wave++)

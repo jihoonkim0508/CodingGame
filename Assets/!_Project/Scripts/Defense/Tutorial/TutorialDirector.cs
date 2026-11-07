@@ -25,6 +25,7 @@ namespace CodingGame.Defense
         readonly HashSet<string> completedStep = new HashSet<string>();
         // Signals seen during the current wave; Poll and ReportSuccess say each one once, trigger steps may come later.
         readonly HashSet<string> signals = new HashSet<string>();
+        readonly Dictionary<string, float> signalAt = new Dictionary<string, float>();
         int signalWave = -1;
         TutorialSequence active;
         DefenseSimulation session;
@@ -38,6 +39,7 @@ namespace CodingGame.Defense
         TutorialStep held;
         // Free coding (1-2 C06, 1-4 D04): the player pressed next, so the guide is gone until the step is done.
         bool guideDismissed;
+        bool pendingAutoSlot;
         string[] highlight = Array.Empty<string>(), focused = Array.Empty<string>();
         readonly List<Vector2> pathPoints = new List<Vector2>();
         bool targetsSeen;
@@ -114,7 +116,7 @@ namespace CodingGame.Defense
                 Finish(); session = battle.Simulation; launched.Clear(); rejected.Clear(); duplicateEntries.Clear(); visitedText.Clear(); completedStep.Clear();
             }
             if (session == null) return;
-            if (session.WaveIndex != signalWave) { signals.Clear(); signalWave = session.WaveIndex; }
+            if (session.WaveIndex != signalWave) { signals.Clear(); signalAt.Clear(); signalWave = session.WaveIndex; }
             var step = Current;
             foreach (var signal in watcher.Poll(session, step != null && step.completionSignal == TutorialSignals.ProgramMatches ? step.expectedCode : null, step?.robotIndex ?? 0))
                 Signal(signal);
@@ -137,6 +139,10 @@ namespace CodingGame.Defense
         {
             var step = Current;
             if (step == null) return;
+            // A disconnected line can be reattached while the guide stays open.
+            // Retry only until the slot is available, so later clicks keep their selection.
+            if (pendingAutoSlot && viewedStep == progressStep && Editor)
+                pendingAutoSlot = !Editor.SelectTutorialSlot(step.autoSelectSlot);
             if (step.completionSignal == TutorialSignals.ConditionBuilt && Editor &&
                 Editor.LooseExpressions().Any(text => Same(text, step.expectedCode))) Signal(TutorialSignals.ConditionBuilt);
             if (step.completionSignal == TutorialSignals.SlotFilled && Editor && Editor.SlotFilled(step.expectedCode)) Signal(TutorialSignals.SlotFilled);
@@ -183,12 +189,14 @@ namespace CodingGame.Defense
         }
 
         static bool Same(string a, string b) => Regex.Replace(a ?? "", @"\s", "") == Regex.Replace(b ?? "", @"\s", "");
-        bool Triggered(TutorialStep step) => string.IsNullOrWhiteSpace(step.trigger) || signals.Contains(step.trigger);
+        bool Triggered(TutorialStep step) => string.IsNullOrWhiteSpace(step.trigger) ||
+            signals.Contains(step.trigger) && Time.unscaledTime - signalAt[step.trigger] >= step.triggerDelay;
+        void Remember(string signal) { if (signals.Add(signal)) signalAt[signal] = Time.unscaledTime; }
 
         // A signal from the game or the watcher: remember it for trigger steps and complete an action step waiting on it.
         void Signal(string signal)
         {
-            signals.Add(signal);
+            Remember(signal);
             var step = Current;
             if (step != null && step.kind == TutorialStepKind.ActionGuide && step.completionMode == TutorialCompletionMode.ExternalSignal &&
                 step.completionSignal == signal && viewedStep == progressStep && Triggered(step)) CompleteAction(step);
@@ -200,8 +208,10 @@ namespace CodingGame.Defense
             Rect area = default; string chosen = null;
             bool show = viewedStep == progressStep && !completedStep.Contains(step.stepId) && !string.IsNullOrWhiteSpace(step.pointerKey) && !(Editor && Editor.HintOpen) &&
                 Time.unscaledTime - stepEntered >= step.pointerDelay && bridge.TryGetArea(step.pointerKey, out area, out chosen);
-            // Slots under or inside a code line are pointed at from below; from above the arrow would cover the line above.
-            if (show) pointer.Show(area, chosen.Contains(".After.") || chosen.Contains(".Arg.") || chosen.Contains(".Name.") || chosen.Contains(".Option.") || chosen.Contains(".Body")); else pointer.HideArrow();
+            // Slots under or inside a code line are pointed at from below; from above the arrow would cover the line above. So are
+            // palette blocks: from above the arrow sat on the category tabs and read as pointing at a tab (play test).
+            if (show) pointer.Show(view ? view.Portrait : null, area, chosen.Contains(".After.") || chosen.Contains(".Arg.") || chosen.Contains(".Name.") || chosen.Contains(".Option.") || chosen.Contains(".Body") ||
+                chosen.StartsWith(TutorialKeys.PalettePrefix, StringComparison.Ordinal)); else pointer.HideArrow();
             UpdateDragDemo(step);
             UpdateRoutePath();
             // Once the arrow moves to an empty argument slot, open the values tab, where the variables to drop in are.
@@ -240,6 +250,7 @@ namespace CodingGame.Defense
         // The first "palette>slot" pair with both ends on screen plays as a drag demo until the step is done.
         void UpdateDragDemo(TutorialStep step)
         {
+            if (Editor) Editor.TutorialDemo = step.dragDemo;
             if (viewedStep == progressStep && !completedStep.Contains(step.stepId) && !string.IsNullOrWhiteSpace(step.dragDemo) && Editor)
                 foreach (var pair in step.dragDemo.Split('|'))
                 {
@@ -309,6 +320,7 @@ namespace CodingGame.Defense
             if (step.completionSignal == TutorialSignals.PreviewSingleHit || step.completionSignal == TutorialSignals.PreviewMultiHit)
                 signals.Remove(step.completionSignal);
             held = null; heldUntil = step.holdSeconds > 0 ? float.MaxValue : 0;
+            pendingAutoSlot = false;
             ApplyEntry(step);
             // ShowText / Hide set the bridge step.
             if (Triggered(step)) ShowText(true); else Hide();
@@ -318,6 +330,7 @@ namespace CodingGame.Defense
         {
             if (!Editor) return;
             var robot = TutorialWatcher.Robot(session, step.robotIndex);
+            if (step.placeShooter) battle.PlaceLessonShooter();
             if (step.closeEditor) Editor.Close(false);
             if (step.clearProgram && robot != null) Editor.ClearRobotProgram(robot.Id);
             if (step.openEditor && robot != null) { Editor.Close(false); Editor.Open(robot.Id); }
@@ -325,7 +338,10 @@ namespace CodingGame.Defense
             if (step.prepareDistanceExample) Editor.PrepareDistanceExample();
             if (step.restartPreview) Editor.RestartPreview();
             if (!string.IsNullOrEmpty(step.autoSelectSlot) && !Editor.SelectTutorialSlot(step.autoSelectSlot))
-                throw new InvalidOperationException("튜토리얼 자동 선택 슬롯을 찾지 못했습니다: " + step.autoSelectSlot);
+            {
+                pendingAutoSlot = true;
+                Editor.Panel.ShowMessage("안내할 값 칸을 찾을 수 없습니다. 필요한 블록을 시작 위치에 연결하고 값 칸을 확인해 주세요.");
+            }
             Editor.SetHint(step.hintCode);
         }
 
@@ -350,13 +366,15 @@ namespace CodingGame.Defense
             bridge.SetFocus(focus);
             highlight = text.highlightKeys ?? Array.Empty<string>(); focused = focus;
             bool system = IsAlert(text);
+            // Spoken when it first appears or when the player pages back to it, not when a line only repeats.
+            string voice = animate || !firstVisit ? text.text : null;
             if (system)
             {
-                view.Hide(); alert.Show(text.text, step.alertCards); bannerUp = true;
+                view.Hide(); alert.Show(text.text, step.alertCards, view.Speak(voice)); bannerUp = true;
                 return;
             }
             bannerUp = false;
-            view.Show(active, step.dialoguePosition, Code(text.text), animate, text.speaker);
+            view.Show(active, step.dialoguePosition, Code(text.text), animate, text.speaker, voice);
             view.SetDebugId(active.sequenceId + " " + step.stepId);
             // Lines that only explain (no action, nothing to look at) sit in the middle while preparing; battle and
             // reward screens, the code editor and a selected robot's range circle (1-1 B05 "이 원") keep the bottom.
@@ -428,6 +446,7 @@ namespace CodingGame.Defense
         void CompleteAction(TutorialStep step)
         {
             if (!active || progressStep >= active.steps.Length || active.steps[progressStep] != step) return;
+            if (!string.IsNullOrEmpty(step.requiredSlotBlock) && (!Editor || !Editor.SlotFilled(step.requiredSlotBlock))) return;
             if (step.holdSeconds > 0 && Time.unscaledTime < heldUntil) { held = step; return; }
             if (!completedStep.Add(step.stepId)) return;
             if ((step.completionSignal == TutorialSignals.ProgramMatches || step.completionSignal == TutorialSignals.DraftValueMatches) && Editor) Editor.FinishTutorialInput();
@@ -435,13 +454,20 @@ namespace CodingGame.Defense
         }
 
         public bool CanPerformAction(string key) => Unrestricted || bridge.CanPerformAction(key, null);
+        // The player pressed something this step does not take yet (play test: 전투 시작 'did nothing' while a line waited).
+        public void NudgeBlocked()
+        {
+            if (!IsActive) return;
+            UISound.Play("deny");
+            if (view.IsVisible) view.Nudge();
+        }
         public bool AllowsWorldPoint(Vector3 point) => Unrestricted || bridge.AllowsWorldPoint(point);
         public bool AllowsRobotChoice(int index) => Unrestricted || bridge.AllowsRobotChoice(index);
         public void ReportSuccess(string key, string signal, GameObject target = null)
         {
             if (!initialized) return;
             // Game signals count for trigger steps even when the bridge ignores the click itself.
-            if (signal != TutorialSignals.TargetClicked) signals.Add(signal);
+            if (signal != TutorialSignals.TargetClicked) Remember(signal);
             bridge.ReportSuccess(key, signal, target);
         }
         public void ReportWorldSuccess(Vector3 point,string signal) { if (initialized) bridge.ReportWorldSuccess(point,signal); }
@@ -450,6 +476,7 @@ namespace CodingGame.Defense
         public void RegisterWorldTarget(string key, GameObject owner, Bounds[] parts, bool round = false, bool box = false)
         { if (initialized && bridge.HasRuntimeTarget(key)) bridge.RegisterWorldTarget(key,owner,parts,round,box); }
         public void UnregisterRuntimeTarget(string key, GameObject owner) { if (initialized) bridge.UnregisterRuntimeTarget(key,owner); }
+        public void RegisterUITarget(string key, RectTransform target) { if (initialized && bridge.HasRuntimeTarget(key)) bridge.RegisterUITarget(key, target); }
 
         void Finish()
         {

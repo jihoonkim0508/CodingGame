@@ -11,22 +11,12 @@ namespace CodingGame.Defense
     {
         DefenseSimulation session;
         int wave = -1, killsAtWaveStart, leaks;
-        bool firstKill, firstAttack, cleared;
+        bool firstKill, firstAttack, cleared, ended, near;
         readonly List<string> signals = new List<string>();
 
-        // In 1-3, Robot.Unit.0 is whichever deployed robot is closest to the current wave's entrance.
-        // Elsewhere the stable installation order keeps the existing tutorial targets unchanged.
-        public static IReadOnlyList<RobotState> OrderedRobots(DefenseSimulation sim)
-        {
-            if (sim == null) return Array.Empty<RobotState>();
-            var robots = sim.Robots.OrderBy(robot => robot.Id);
-            if (!sim.Setup.PlayerFlow || sim.Setup.Stage != 1 || sim.WaveIndex != 2 ||
-                sim.Setup.Waves.Length <= 2 || sim.Setup.Waves[2].Length == 0) return robots.ToArray();
-            int route = sim.Setup.Waves[2].OrderBy(group => group.Delay).First().RouteIndex;
-            var entrance = sim.Setup.Routes[route].Points[0];
-            return robots.OrderBy(robot => System.Numerics.Vector2.DistanceSquared(robot.Position, entrance))
-                .ThenBy(robot => robot.Id).ToArray();
-        }
+        // Installation order: Robot.Unit.0 is the first robot placed (1-3's loop lesson teaches the warrior from 1-1).
+        public static IReadOnlyList<RobotState> OrderedRobots(DefenseSimulation sim) =>
+            sim == null ? Array.Empty<RobotState>() : sim.Robots.OrderBy(robot => robot.Id).ToArray();
         public static RobotState Robot(DefenseSimulation sim, int index) => OrderedRobots(sim).ElementAtOrDefault(index);
         public static int RobotIndex(DefenseSimulation sim, int id) =>
             OrderedRobots(sim).Select((robot, index) => (robot, index)).Where(entry => entry.robot.Id == id)
@@ -36,11 +26,13 @@ namespace CodingGame.Defense
         // Generated Python body equals the expected lines, ignoring the def header, indentation, blank lines and the names the
         // player gave variables (any name holding the enemy object works, not only `enemy`). The same lines in another order
         // also count: the program only runs once it compiles, so a line that uses a variable before it is set never gets here.
+        // Any loop count of one or more counts as the lesson's (play feedback 3: a player who typed range(100) into 1-1's new
+        // loop was stuck on the next step).
         public static bool Matches(DefenseProgram program, string expected)
         {
             if (program == null) return false;
-            var actual = Canonical(Lines(string.Join("\n", program.Source.Replace("\r", "").Split('\n').Skip(1))));
-            var wanted = Canonical(Lines(expected));
+            var actual = Canonical(Lines(string.Join("\n", program.Source.Replace("\r", "").Split('\n').Skip(1)))).Select(AnyCount).ToList();
+            var wanted = Canonical(Lines(expected)).Select(AnyCount).ToList();
             return actual.SequenceEqual(wanted) || actual.OrderBy(l => l).SequenceEqual(wanted.OrderBy(l => l));
         }
         public static bool ConditionMatches(string condition, DefenseProgram program, string expected, string reference)
@@ -51,6 +43,7 @@ namespace CodingGame.Defense
             var wanted = Canonical(Lines(reference).Append("if " + expected).ToList());
             return Bare(actual.Last()) == Bare(wanted.Last());
         }
+        static string AnyCount(string line) => Regex.Replace(line, @"\brange\([1-9]\d*\)", "range(n)");
         static List<string> Lines(string text) =>
             (text ?? "").Replace("\r", "").Split('\n').Select(line => line.Trim()).Where(line => line.Length > 0).ToList();
         static readonly Regex Assignment = new Regex(@"^([^\W\d]\w*)\s*=(?!=)"); // any Python name, Korean included
@@ -71,11 +64,19 @@ namespace CodingGame.Defense
             if (sim == null) return signals;
             if (sim != session || sim.WaveIndex != wave)
             {
-                session = sim; wave = sim.WaveIndex; killsAtWaveStart = sim.Kills; leaks = sim.Leaks; firstKill = firstAttack = cleared = false;
+                session = sim; wave = sim.WaveIndex; killsAtWaveStart = sim.Kills; leaks = sim.Leaks; firstKill = firstAttack = cleared = ended = near = false;
             }
             if (!firstKill && sim.Kills > killsAtWaveStart) { firstKill = true; signals.Add(TutorialSignals.FirstKill); }
-            if (!firstAttack && sim.Robots.Any(r => r.AttacksThisWave > 0)) { firstAttack = true; signals.Add(TutorialSignals.FirstAttack); }
+            // 1-3 waits for the lesson's shooter, not a warrior from 1-1 or 1-2 swinging first.
+            bool lesson = sim.Setup.PlayerFlow && sim.Setup.Stage == 1 && sim.WaveIndex == 2;
+            if (!firstAttack && (lesson ? TeachingRobot(sim)?.AttacksThisWave > 0 : sim.Robots.Any(r => r.AttacksThisWave > 0)))
+            { firstAttack = true; signals.Add(TutorialSignals.FirstAttack); }
             if (sim.Leaks > leaks) { leaks = sim.Leaks; signals.Add(TutorialSignals.Leak); }
+            var teacher = TeachingRobot(sim);
+            if (!ended && teacher?.Program != null && teacher.Program.CompletedRuns > 0) { ended = true; signals.Add(TutorialSignals.FunctionEnded); }
+            if (!near && teacher != null && sim.Phase == BattlePhase.Running && sim.Enemies.Any(e => e.Active &&
+                System.Numerics.Vector2.DistanceSquared(e.Position, teacher.Position) <= teacher.Range * teacher.Range))
+            { near = true; signals.Add(TutorialSignals.EnemyInRange); }
             if (!cleared && sim.BaseHealth > 0 && (sim.Phase == BattlePhase.Reward || sim.Phase == BattlePhase.Victory))
             { cleared = true; signals.Add(TutorialSignals.WaveCleared); }
             if (!string.IsNullOrWhiteSpace(expectedCode) && Matches(Robot(sim, robotIndex)?.Program, expectedCode)) signals.Add(TutorialSignals.ProgramMatches);

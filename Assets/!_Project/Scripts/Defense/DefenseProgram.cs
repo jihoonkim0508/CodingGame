@@ -8,6 +8,9 @@ using CodingGame.BlockCoding;
 namespace CodingGame.Defense
 {
     /// <summary>검증된 블록 코드를 전투 시간에 맞춰 실행하며, 틱당 명령 수를 제한합니다.</summary>
+    // Synchronous, like the farm in 'The Farmer Was Replaced' (play feedback 4): the function runs only when called (battle
+    // start calls every robot's once, the robot's Play button calls it again), one statement after another, and a call made
+    // while it runs is refused, not queued. An attack waits only for its cooldown; a slash with nobody in range still swings.
     public sealed class DefenseProgram
     {
         enum Op { Statement, Condition, Jump, ForInit, ForTest, ForNext }
@@ -20,8 +23,6 @@ namespace CodingGame.Defense
         readonly Dictionary<string, object> variables = new Dictionary<string, object>();
         readonly Dictionary<int, LoopState> loops = new Dictionary<int, LoopState>();
         int pc, nextLoop;
-        bool invocationStarted;
-        bool actedThisInvocation;
         double wakeTime;
         public string Name { get; }
         public string Source { get; }
@@ -29,11 +30,17 @@ namespace CodingGame.Defense
         public int StepsLastTick { get; private set; }
         public bool IsEmpty => blocks.Count == 0;
         public int CompletedRuns { get; private set; }
-        public bool Completed(DefenseSimulation sim) => CompletedRuns >= sim.FunctionRepeatLimit;
+        public bool Running { get; private set; }
         public int BlockCount(BlockKind kind) => blockCounts.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0;
         public double WaitRemaining(double time) => Math.Max(0, wakeTime - time);
         public IReadOnlyList<CodeBlock> CopyBlocks() => blocks.Select(Clone).ToList();
-        void EndInvocation() { pc = 0; invocationStarted = actedThisInvocation = false; variables.Clear(); loops.Clear(); }
+        void EndInvocation() { pc = 0; Running = false; variables.Clear(); loops.Clear(); }
+        // A call while the function runs (or after it faulted) is refused: Play stays locked until it ends.
+        public bool Invoke()
+        {
+            if (Running || Fault != null || IsEmpty) return false;
+            EndInvocation(); Running = true; return true;
+        }
         public const int InstructionBudget = 64;
 
         public DefenseProgram(string name, IReadOnlyList<CodeBlock> program)
@@ -79,7 +86,7 @@ namespace CodingGame.Defense
                         var innerBreaks = new List<int>(); var innerContinues = new List<int>();
                         EmitSuite(b.Body, innerBreaks, innerContinues);
                         int step = code.Count;
-                        if (counted) Emit(Op.ForNext, loop: loop);
+                        if (counted) Emit(Op.ForNext, jump: test, loop: loop);
                         Emit(Op.Jump, jump: start);
                         if (test >= 0) code[test].Jump = code.Count;
                         foreach (var exit in innerBreaks) code[exit].Jump = code.Count;
@@ -94,32 +101,20 @@ namespace CodingGame.Defense
         public void Tick(DefenseSimulation sim, RobotState robot)
         {
             StepsLastTick = 0;
-            if (Fault != null || Completed(sim) || sim.Phase != BattlePhase.Running || sim.Time + 1e-9 < wakeTime) return;
-            // A program that targets enemies starts a run only once one is in range, so idle runs don't use up the repeat limit.
-            if (!invocationStarted)
-            {
-                if (blocks.Any(TargetsEnemies) && !sim.Enemies.Any(e => e.Active &&
-                    Vector2.DistanceSquared(e.Position, robot.Position) <= robot.Range * robot.Range)) return;
-                invocationStarted = true;
-            }
+            if (!Running || Fault != null || sim.Phase != BattlePhase.Running || sim.Time + 1e-9 < wakeTime) return;
             try
             {
                 // 무한 반복문도 한 틱을 독점하지 못하도록 실행 예산을 나눕니다.
                 while (StepsLastTick++ < InstructionBudget)
                 {
-                    if (pc == code.Count)
-                    {
-                        // A false condition has not used an action. It must be retried after enemies move,
-                        // without spending one of the wave's limited successful program runs.
-                        if (actedThisInvocation) CompletedRuns++;
-                        else wakeTime = Math.Max(wakeTime, sim.Time + .25);
-                        EndInvocation(); return;
-                    }
+                    if (pc == code.Count) { CompletedRuns++; EndInvocation(); return; }
                     var instruction = code[pc];
                     switch (instruction.Op)
                     {
                         case Op.Jump: pc = instruction.Jump; break;
-                        case Op.Condition: pc = Truth(Value(instruction.Block, sim, robot)) ? pc + 1 : instruction.Jump; break;
+                        case Op.Condition:
+                            pc = Truth(Value(instruction.Block, sim, robot)) ? pc + 1 : instruction.Jump;
+                            break;
                         case Op.ForInit:
                             double count = Number(Value(instruction.Block, sim, robot));
                             if (count != Math.Truncate(count) || Math.Abs(count) > 1000000000) throw new FormatException("range 횟수는 절댓값 10억 이하 정수여야 합니다.");
@@ -129,7 +124,8 @@ namespace CodingGame.Defense
                             if (state.Index >= state.Count) pc = instruction.Jump;
                             else { variables["i"] = state.Index; pc++; }
                             break;
-                        case Op.ForNext: loops[instruction.Loop].Index++; pc++; break;
+                        case Op.ForNext:
+                            loops[instruction.Loop].Index++; robot.LoopTurnsThisWave++; pc++; break;
                         default:
                             var block = instruction.Block;
                             if (block.Kind == BlockKind.DeclareVariable)
@@ -150,16 +146,15 @@ namespace CodingGame.Defense
                             if (PythonTreeCompiler.HasEnemyArgument(block.Kind))
                             {
                                 var enemy = Value(block.Arguments[0], sim, robot) as EnemyValue;
-                                if (enemy == null) throw new FormatException("공격 대상에는 enemy 객체가 필요합니다.");
+                                if (enemy == null) throw new FormatException("공격 대상에는 Enemy 객체가 필요합니다.");
                                 target = enemy.Id;
                                 // 지정한 적이 사라져도 다른 적으로 자동 교체하지 않습니다.
                                 if (target == 0 || !sim.Enemies.Any(e => e.Id == target && e.Active))
                                 { robot.LastResult = ActionResult.NoTarget; pc++; return; }
                             }
-                            var result = sim.RequestAction(robot.Id, action, target);
-                            if (result == ActionResult.Executed) actedThisInvocation = true;
-                            // 재사용 대기 중에는 같은 명령에서 기다리고, 실행 결과가 나오면 다음으로 이동합니다.
-                            if (result != ActionResult.CoolingDown) pc++;
+                            // 재사용 대기 중에는 같은 명령에서 기다리고, 실행 결과가 나오면 다음으로 이동합니다. A target out of
+                            // range is a miss (NoTarget): the next statement runs, nothing waits for it to come closer.
+                            if (sim.RequestAction(robot.Id, action, target) != ActionResult.CoolingDown) pc++;
                             return;
                     }
                 }
@@ -167,8 +162,6 @@ namespace CodingGame.Defense
             }
             catch (FormatException error) { Fault = error.Message; }
         }
-        static bool TargetsEnemies(CodeBlock block) => block != null && (PythonTreeCompiler.HasEnemyArgument(block.Kind) ||
-            block.Kind == BlockKind.NearestEnemy || block.Arguments.Any(TargetsEnemies) || block.Body.Any(TargetsEnemies));
         static RobotAction Action(BlockKind kind)
         {
             switch (kind)
@@ -207,6 +200,20 @@ namespace CodingGame.Defense
                     int id = ((EnemyValue)Arg(0)).Id; var enemy = sim.Enemies.Find(e => e.Id == id && e.Active);
                     if (!(Arg(1) is Vector2 from)) throw new FormatException("distance에는 위치(Vector2)가 필요합니다.");
                     return enemy == null ? double.PositiveInfinity : (double)Vector2.Distance(enemy.Position, from);
+                case BlockKind.IsDead:
+                    // An enemy variable not assigned yet is no enemy, and no enemy is dead (see PythonTreeCompiler).
+                    var receiver = block.Arguments[0];
+                    if (receiver.Kind == BlockKind.Variable && !variables.ContainsKey(PythonTreeCompiler.NormalizeIdentifier(receiver.Value))) return true;
+                    int watched = ((EnemyValue)Arg(0)).Id;
+                    return watched == 0 || !sim.Enemies.Any(e => e.Id == watched && e.Active);
+                case BlockKind.Arithmetic:
+                    double x = Number(Arg(0)), y = Number(Arg(1));
+                    switch (block.Value)
+                    {
+                        case "+": return x + y; case "-": return x - y; case "*": return x * y;
+                        case "/": if (y == 0) throw new FormatException("0으로 나눌 수 없습니다."); return x / y;
+                    }
+                    break;
                 case BlockKind.Hp:
                     int target = ((EnemyValue)Arg(0)).Id;
                     return (double)(sim.Enemies.Find(e => e.Id == target && e.Active)?.Health ?? 0); // a defeated enemy reads as 0 hp

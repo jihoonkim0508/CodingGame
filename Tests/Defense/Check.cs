@@ -29,6 +29,10 @@ static class Check
         Assert(warrior.Health == null, "ordinary robot has no health");
         Assert(sim.Place(Spec(RobotRole.Warrior), 1, warrior.Position, out _) == null, "overlap rejected");
         Assert(sim.Place(Spec(RobotRole.Tank), 2, new Vector2(0, 2), out _) == null, "tank sample policy is path-only");
+        // The road is drawn past its walking half-width and a warrior's model is wider than its radius: just outside the
+        // old line (half-width + radius) the body still stood on the drawn road (play test).
+        Assert(sim.PlacementError(Spec(RobotRole.Warrior), new Vector2(-5, 1.5f)) == "적 경로에는 탱커만 설치할 수 있습니다.", "robot body on the drawn road edge rejected");
+        Assert(sim.PlacementError(Spec(RobotRole.Warrior), new Vector2(-5, 2.05f)) == null, "robot clear of the drawn road allowed");
         Place(sim, RobotRole.Buffer, 0, 3);
         Assert(sim.Place(Spec(RobotRole.Buffer), 0, new Vector2(5, 3), out _) == null, "one buffer limit");
         var tank = Place(sim, RobotRole.Tank, -7, 0); tank.AutoExecute = false;
@@ -192,5 +196,12 @@ static class Check
         Console.WriteLine($"Defense checks passed: {checks}");
         ProgramCheck.Run();
         CampaignCheck.Run();
+        DebriefCheck.Run();
+        RetryCheck.Run();
+        GuideMoodCheck.Run();
+        GuideSpeechCheck.Run();
+        MeleeCheck.Run();
+        WhileTrueCheck.Run();
+        PlacementCheck.Run();
     }
 }

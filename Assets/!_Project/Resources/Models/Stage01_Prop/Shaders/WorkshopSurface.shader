@@ -11,6 +11,9 @@ Shader "CodingGame/Art/Workshop Surface"
   _MapTopY("Top",Float)=0
   _MapHeight("Height",Float)=1
   _BuildGlow("Build Glow",Float)=0
+  _PurifyAmount("Purified",Range(0,1))=0
+  _PurifyScanY("Purification height",Float)=0
+  _PurifyFlash("Purification sweep",Range(0,1))=0
   [HideInInspector] _BaseMap("Base",2D)="white"{}
   [HideInInspector] _BumpMap("Normal",2D)="bump"{}
   [HideInInspector] _Cutoff("Cutoff",Float)=.5
@@ -32,6 +35,7 @@ Shader "CodingGame/Art/Workshop Surface"
    CBUFFER_START(UnityPerMaterial)
    half4 _BaseColor;
    float _GrainStrength,_LightSoftness,_ShadowStrength,_GradientStrength,_BevelHighlight,_MapTopY,_MapHeight,_BuildGlow;
+   float _PurifyAmount,_PurifyScanY,_PurifyFlash;
    CBUFFER_END
    struct A {float4 p:POSITION;float3 n:NORMAL;};
    struct V {float4 p:SV_POSITION;float3 w:TEXCOORD0;half3 n:TEXCOORD1;half fog:TEXCOORD2;};
@@ -58,7 +62,12 @@ Shader "CodingGame/Art/Workshop Surface"
     half edge=saturate(n.y)*saturate(1-n.y)*4;
     c+=_BaseColor.rgb*edge*_BevelHighlight;
     c*=1-_GradientStrength*saturate((_MapTopY-i.w.y)/max(.01,_MapHeight))*(1-saturate(n.y));
-    c=lerp(c,half3(.65,.95,1),saturate(_BuildGlow));return half4(MixFog(c,i.fog),1);
+    c=lerp(c,half3(.65,.95,1),saturate(_BuildGlow));
+    half rim=pow(1-saturate(dot(n,normalize(GetCameraPositionWS()-i.w))),3);
+    c+=half3(.14,.72,.44)*rim*_PurifyAmount*.25;
+    half sweep=pow(saturate(1-abs(i.w.y-_PurifyScanY)*3.5),2)*_PurifyFlash;
+    c+=half3(.36,1,.68)*sweep*1.2;
+    return half4(MixFog(c,i.fog),1);
    }
    float3 _LightDirection;
    float3 _LightPosition;

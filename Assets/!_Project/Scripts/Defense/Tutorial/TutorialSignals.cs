@@ -10,6 +10,8 @@ namespace CodingGame.Defense
             PreviewSingleHit = "PreviewSingleHit", PreviewMultiHit = "PreviewMultiHit";
         // Produced by TutorialWatcher from the live simulation.
         public const string FirstKill = "FirstKill", FirstAttack = "FirstAttack", Leak = "Leak", WaveCleared = "WaveCleared", ProgramMatches = "ProgramMatches";
+        // The teaching robot's function has run to its end once this wave; an enemy has come into its range (1-1's Play lesson).
+        public const string FunctionEnded = "FunctionEnded", EnemyInRange = "EnemyInRange";
         // Produced by TutorialDirector: a loose condition block in the editor reads as the step's expectedCode.
         public const string ConditionBuilt = "ConditionBuilt";
         // Produced by TutorialDirector: the editor slot named by the step's expectedCode (an Editor.Code.Arg.* key) holds a block,
@@ -30,16 +32,18 @@ namespace CodingGame.Defense
             Hint = "Editor.Hint", Preview = "Editor.Preview", CoreHealth = "Battle.CoreHealth", Route = "Battle.Route", RewardPanel = "Battle.RewardPanel", NextWave = "Battle.NextWave",
             Floor = "Battle.Floor";
         public const string CodePrefix = "Editor.Code.", PalettePrefix = "Editor.Palette.";
-        const string UnitPrefix = "Robot.Unit.", RangePrefix = "Robot.Range.";
+        const string UnitPrefix = "Robot.Unit.", RangePrefix = "Robot.Range.", PlayPrefix = "Robot.Play.";
         public const string RobotButtonPrefix = "Battle.Robot.";
         public static string RobotButton(int index) => RobotButtonPrefix + index;
         // The index-th placed robot (by id, from 0, any role) and its attack range circle; DefenseBattle registers them.
         // TutorialStep.robotIndex counts warriors only; the two agree while Stage 1 has only warriors.
         public static string Unit(int index) => UnitPrefix + index;
         public static string Range(int index) => RangePrefix + index;
+        // The index-th robot's Play button under it (the HUD registers it while it shows).
+        public static string Play(int index) => PlayPrefix + index;
         public static bool IsRange(string key) => key != null && key.StartsWith(RangePrefix, System.StringComparison.Ordinal);
         // World targets the game registers at run time; they need no scene binding.
-        public static bool IsRuntime(string key) => key != null && (key == Route || key == Floor || key.StartsWith(UnitPrefix) || key.StartsWith(RangePrefix));
+        public static bool IsRuntime(string key) => key != null && (key == Route || key == Floor || key.StartsWith(UnitPrefix) || key.StartsWith(RangePrefix) || key.StartsWith(PlayPrefix));
         // Positions inside the code editor (Editor.Code.*, Editor.Palette.*), resolved by DefenseCodeEditor each frame.
         public static bool IsEditorArea(string key) => key != null && (key.StartsWith(CodePrefix) || key.StartsWith(PalettePrefix));
     }

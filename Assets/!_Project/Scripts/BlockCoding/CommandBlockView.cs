@@ -37,13 +37,13 @@ namespace CodingGame.BlockCoding
         // Tutorial targets: the name field and the comparison picker, and what they hold before the line compiles.
         public RectTransform InputRect => input ? input.transform as RectTransform : null;
         public RectTransform OptionRect => dropdown ? dropdown.transform as RectTransform : null;
-        public string DraftValue => kind == BlockKind.Comparison ? PythonTreeCompiler.Comparisons[dropdown.value] : input ? input.text : null;
+        public string DraftValue => kind == BlockKind.Comparison ? PythonTreeCompiler.Comparisons[dropdown.value] :
+            kind == BlockKind.Arithmetic ? PythonTreeCompiler.Operators[dropdown.value] : input ? input.text : null;
         public string VariableName => kind == BlockKind.DeclareVariable ? input.text :
             kind == BlockKind.Variable ? (HasDot ? input.text.Substring(0, input.text.Length - 1) : input.text) : variableName;
         public string RetainedName { get; private set; }
         public bool TextInputFocused => input && input.isFocused;
         bool initialized;
-        LayoutElement inputLayout;
         bool readOnlyPreview;
         bool previewBody;
         float bodyReveal;
@@ -52,13 +52,17 @@ namespace CodingGame.BlockCoding
         public float HeaderHeight => headHeight;
         internal float FooterOverlap => CommandBlockShape.ControlFooterHeight * BodyReveal;
         float BodyReveal => !body || IsPalette ? 0 : body.Blocks.Count > 0 ? 1 : bodyReveal;
-        const float StatementHeight = 52;
-        internal const float ExpressionHeight = 38;
-        float headHeight => PythonTreeCompiler.OutputSlot(Kind) == BlockSlotKind.Statement ? StatementHeight : ExpressionHeight;
-        float HeaderInset => headHeight == StatementHeight ? 14 : 10;
+        // Value and condition blocks are as tall as what they hold plus a margin, at least ExpressionHeight (PR #19's 38), and as
+        // wide as their contents (play feedback 3); a line is 52 high (PR #19) unless it holds a taller one. A value block holding
+        // another keeps NestPad above and below it, so the two do not run together (play feedback 4).
+        public const float ExpressionHeight = 38, ExpressionPad = 6, NestPad = 7, FieldHeight = ExpressionHeight - 2 * ExpressionPad;
+        bool IsStatement => PythonTreeCompiler.OutputSlot(Kind) == BlockSlotKind.Statement;
+        float headHeight => IsStatement ? Mathf.Max(52, LayoutUtility.GetPreferredHeight(header) + 12) : ExpressionHead(LayoutUtility.GetPreferredHeight(header));
+        static float ExpressionHead(float content) => Mathf.Max(ExpressionHeight, content + 2 * (content > FieldHeight + .5f ? NestPad : ExpressionPad));
+        // Room left and right of the header: a number's digits sit close in their pill; a condition clears its pointed ends.
+        float Margin => IsStatement ? 14 : kind == BlockKind.Number ? 8 : PythonTreeCompiler.OutputSlot(Kind) == BlockSlotKind.Condition ? 14 : 10;
         public float minWidth => preferredWidth;
-        public float preferredWidth => Mathf.Max(LayoutUtility.GetPreferredWidth(header) + HeaderInset * 2,
-            BodyReveal > 0 ? body.preferredWidth + CommandBlockShape.ControlSpineWidth : 0);
+        public float preferredWidth => Mathf.Max(IsStatement ? 100 : 36, Mathf.Max(LayoutUtility.GetPreferredWidth(header) + 2 * Margin, BodyReveal > 0 ? body.preferredWidth + CommandBlockShape.ControlSpineWidth : 0));
         public float flexibleWidth => 0;
         public float minHeight => preferredHeight;
         public float preferredHeight => headHeight + (body ? body.preferredHeight * BodyReveal + FooterOverlap : 0);
@@ -71,7 +75,7 @@ namespace CodingGame.BlockCoding
         {
             if (!rect || !header || !canvasGroup || !shape ||
                 ((kind == BlockKind.Number || kind == BlockKind.DeclareVariable || kind == BlockKind.Variable) && !input) ||
-                ((kind == BlockKind.Variable || kind == BlockKind.Comparison) && !dropdown) ||
+                ((kind == BlockKind.Variable || kind == BlockKind.Comparison || kind == BlockKind.Arithmetic) && !dropdown) ||
                 (PythonTreeCompiler.HasBody(kind) && !body) || (stockLabel && !stockColumn))
                 throw new InvalidOperationException(name + ": Inspector 참조가 누락되었습니다.");
             Panel = panel;
@@ -90,7 +94,18 @@ namespace CodingGame.BlockCoding
                 if (input) input.onValueChanged.AddListener(InputChanged);
                 // Only a Python name can be typed (a name like "123" left the code unapplied without a word).
                 if (input && kind == BlockKind.DeclareVariable) input.onValidateInput = (text, index, c) => c == '_' || char.IsLetter(c) || (char.IsDigit(c) && index > 0) ? c : '\0';
+                if (input && !IsStatement && input.TryGetComponent<LayoutElement>(out var field))
+                {
+                    // A field in a value block fits its 28 px pill; its text area has no vertical inset, so 17 px text is not clipped.
+                    field.minHeight = field.preferredHeight = FieldHeight;
+                    if (input.textViewport) input.textViewport.sizeDelta = new Vector2(kind == BlockKind.Number ? -4 : -12, 0);
+                }
                 if (dropdown) dropdown.onValueChanged.AddListener(SelectionChanged);
+                // The calculation block is a copy of the comparison's (two holes and a picker) with the operators in its picker.
+                if (kind == BlockKind.Arithmetic)
+                { dropdown.ClearOptions(); dropdown.AddOptions(new List<string>(PythonTreeCompiler.Operators)); dropdown.SetValueWithoutNotify(0); dropdown.RefreshShownValue(); }
+                // Pieces of a value block (enemy., distance(, a held block) 8 apart, not touching (play feedback 4).
+                if (!IsStatement && header.TryGetComponent<HorizontalLayoutGroup>(out var row)) row.spacing = 8;
             }
             foreach (var argument in arguments) argument.Bind(panel, this);
             if (body) body.Bind(panel, this);
@@ -105,7 +120,7 @@ namespace CodingGame.BlockCoding
 
         void InputChanged(string value)
         {
-            FitInput();
+            FitInput(input, MinField);
             if (kind == BlockKind.Variable) RefreshVariableOptions();
             if (kind == BlockKind.DeclareVariable)
             {
@@ -122,6 +137,7 @@ namespace CodingGame.BlockCoding
         void SelectionChanged(int value)
         {
             if (kind == BlockKind.Variable) RefreshVariableOptions();
+            FitDropdown(dropdown);
             if (!IsPalette) Panel.Changed();
             LayoutRebuilder.MarkLayoutForRebuild(rect);
         }
@@ -130,8 +146,7 @@ namespace CodingGame.BlockCoding
             variableName = value;
             if (kind == BlockKind.Variable)
             {
-                input.SetTextWithoutNotify(value + (HasDot ? "." : ""));
-                FitInput();
+                input.SetTextWithoutNotify(value + (HasDot ? "." : "")); FitInput(input, MinField);
                 RefreshVariableOptions();
             }
         }
@@ -149,8 +164,31 @@ namespace CodingGame.BlockCoding
             RefreshShape();
             LayoutRebuilder.MarkLayoutForRebuild(rect);
         }
+        float MinField => kind == BlockKind.Number ? 16 : 40;
+        // A typed field as wide as its text (or its placeholder) plus its text area's insets and the caret, at least min (play
+        // feedback 3: fields kept their authored widths, a lone 0 in a 94 px box and long names cut off).
+        public static void FitInput(TMP_InputField field, float min)
+        {
+            if (!field || !field.textComponent || !field.TryGetComponent<LayoutElement>(out var layout)) return;
+            string shown = field.text.Length > 0 ? field.text : field.placeholder is TMP_Text hint ? hint.text : "";
+            float inset = field.textViewport ? -field.textViewport.sizeDelta.x : 0;
+            float width = Mathf.Ceil(Mathf.Max(min, field.textComponent.GetPreferredValues(shown).x + inset + 4));
+            if (Mathf.Approximately(layout.preferredWidth, width)) return;
+            layout.minWidth = layout.preferredWidth = width;
+            LayoutRebuilder.MarkLayoutForRebuild((RectTransform)field.transform);
+        }
+        // A picker (<=, distance() as wide as its choice plus its arrow, like the typed fields.
+        static void FitDropdown(TMP_Dropdown list)
+        {
+            if (!list || !list.captionText || !list.TryGetComponent<LayoutElement>(out var layout)) return;
+            float width = Mathf.Ceil(list.captionText.GetPreferredValues(list.captionText.text).x - list.captionText.rectTransform.sizeDelta.x + 4);
+            if (Mathf.Approximately(layout.preferredWidth, width)) return;
+            layout.minWidth = layout.preferredWidth = width;
+            LayoutRebuilder.MarkLayoutForRebuild((RectTransform)list.transform);
+        }
         void RefreshShape()
         {
+            FitInput(input, MinField); FitDropdown(dropdown);
             if (methodArguments) methodArguments.SetActive(Kind == BlockKind.Distance);
             shape.Configure(PythonTreeCompiler.OutputSlot(Kind), body);
             var slot=PythonTreeCompiler.OutputSlot(Kind);
@@ -170,10 +208,6 @@ namespace CodingGame.BlockCoding
                 CommandParenthesis.ReplaceIn(label);
             }
             if (!input) return;
-            inputLayout = input.GetComponent<LayoutElement>();
-            if (!inputLayout) inputLayout = input.gameObject.AddComponent<LayoutElement>();
-            inputLayout.layoutPriority = 2;
-            inputLayout.minWidth = 36;
             input.textComponent.alignment = TextAlignmentOptions.Center;
             input.textComponent.margin = Vector4.zero;
             if (input.placeholder is TMP_Text placeholder)
@@ -181,20 +215,7 @@ namespace CodingGame.BlockCoding
                 placeholder.alignment = TextAlignmentOptions.Center;
                 placeholder.margin = Vector4.zero;
             }
-            FitInput();
-        }
-
-        void FitInput()
-        {
-            if (!inputLayout) return;
-            var placeholder = input.placeholder as TMP_Text;
-            float textWidth = input.text.Length == 0 && placeholder
-                ? placeholder.GetPreferredValues(placeholder.text).x
-                : input.textComponent.GetPreferredValues(input.text).x;
-            var viewport = input.textViewport;
-            float horizontalInset = viewport ? viewport.offsetMin.x - viewport.offsetMax.x : 0;
-            inputLayout.preferredWidth = Mathf.Ceil(textWidth + horizontalInset + 4);
-            LayoutRebuilder.MarkLayoutForRebuild(rect);
+            FitInput(input, MinField);
         }
 
         // Reward/tutorial previews share the editor's geometry and layout, without editing callbacks.
@@ -231,7 +252,7 @@ namespace CodingGame.BlockCoding
             stockLabel.text = count >= int.MaxValue / 2 ? "∞" : "×" + count; // unlimited stock minus blocks in use is still unlimited
             stockLabel.gameObject.SetActive(counted);
             // Out-of-stock palette blocks stay visible (so players learn they exist) but read as unavailable.
-            if (counted) canvasGroup.alpha = count > 0 ? 1 : .4f;
+            if (counted) SetFaded(count <= 0);
         }
         void LateUpdate()
         {
@@ -241,30 +262,30 @@ namespace CodingGame.BlockCoding
                 if(!Mathf.Approximately(reveal,bodyReveal)){bodyReveal=reveal;LayoutRebuilder.MarkLayoutForRebuild(rect);}
             }
             if (!IsPalette || !stockLabel || !stockLabel.gameObject.activeSelf) return;
-            // Keep differently sized block silhouettes while sharing one right-aligned count column.
+            // One count column at the palette's right edge for every block, each count centred in it and on its block's first line.
             var edge = rect.InverseTransformPoint(stockColumn.TransformPoint(new Vector3(stockColumn.rect.xMax - 8, 0, 0)));
             var label = stockLabel.rectTransform;
-            label.anchoredPosition = new Vector2(edge.x - rect.rect.xMax, -3);
+            label.anchoredPosition = new Vector2(edge.x - rect.rect.xMax - label.rect.width * .5f, -Mathf.Min(rect.rect.height, headHeight) * .5f);
         }
         public void SelectOption(int value) { dropdown.value = value; }
         internal void LoadData(CodeBlock data)
         {
-            if (kind == BlockKind.Number || kind == BlockKind.DeclareVariable) input.SetTextWithoutNotify(data.Value);
+            if (kind == BlockKind.Number || kind == BlockKind.DeclareVariable) { input.SetTextWithoutNotify(data.Value); FitInput(input, MinField); }
             if (kind == BlockKind.DeclareVariable) RetainedName = data.Value;
-            if (kind == BlockKind.Comparison) dropdown.SetValueWithoutNotify(Array.IndexOf(PythonTreeCompiler.Comparisons, data.Value));
+            if (kind == BlockKind.Comparison) { dropdown.SetValueWithoutNotify(Array.IndexOf(PythonTreeCompiler.Comparisons, data.Value)); FitDropdown(dropdown); }
+            if (kind == BlockKind.Arithmetic) { dropdown.SetValueWithoutNotify(Array.IndexOf(PythonTreeCompiler.Operators, data.Value)); FitDropdown(dropdown); }
             int skip = 0;
             if (kind == BlockKind.Variable)
             {
                 bool member = data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp;
                 variableName = member ? data.Arguments[0].Value : data.Value;
-                input.SetTextWithoutNotify(variableName + (member ? "." : ""));
+                input.SetTextWithoutNotify(variableName + (member ? "." : "")); FitInput(input, MinField);
                 dropdown.ClearOptions(); dropdown.AddOptions(new List<string> { "메서드 선택" }); dropdown.AddOptions(new List<string>(Methods));
                 dropdown.SetValueWithoutNotify(data.Kind == BlockKind.Distance ? 1 : data.Kind == BlockKind.Hp ? 2 : 0);
                 RefreshVariableOptions();
-                if (data.Kind == BlockKind.Variable) { FitInput(); return; }
+                if (data.Kind == BlockKind.Variable) return;
                 skip = 1;
             }
-            FitInput();
             for (int i = 0; i < data.Arguments.Count - skip; i++)
                 arguments[i].Load(data.Arguments[i + skip] == null ? Array.Empty<CodeBlock>() : new[] { data.Arguments[i + skip] });
             if (body) body.Load(data.Body);
@@ -275,6 +296,7 @@ namespace CodingGame.BlockCoding
             var block = new CodeBlock(Kind);
             if (kind == BlockKind.Number || kind == BlockKind.DeclareVariable) block.Value = input.text;
             if (kind == BlockKind.Comparison) block.Value = PythonTreeCompiler.Comparisons[dropdown.value];
+            if (kind == BlockKind.Arithmetic) block.Value = PythonTreeCompiler.Operators[dropdown.value];
             if (kind == BlockKind.Variable)
             {
                 if (Kind == BlockKind.Variable) { block.Value = input.text; return block; }
@@ -303,22 +325,40 @@ namespace CodingGame.BlockCoding
             LayoutRebuilder.ForceRebuildLayoutImmediate(copy.Rect);
             return copy;
         }
+        // The block left behind while dragged fades; the copy under the cursor is the block lifted, a little larger on a
+        // deeper shadow (비주얼_레퍼런스.md 4).
         public void SetDragAppearance(bool dragged)
         {
-            canvasGroup.alpha = dragged ? 0.55f : 1;
+            SetFaded(dragged);
             canvasGroup.blocksRaycasts = !dragged;
+        }
+        // Shapes mix towards the paper (CommandBlockShape.Fade, opaque); texts and fields dim through their renderers.
+        void SetFaded(bool faded)
+        {
+            foreach (var graphic in GetComponentsInChildren<Graphic>(true))
+            {
+                if (graphic.GetComponentInParent<CommandBlockView>(true) != this) continue;
+                if (graphic is CommandBlockShape part) { part.Fade = faded ? .65f : 0; part.SetVerticesDirty(); }
+                else graphic.canvasRenderer.SetAlpha(faded ? .45f : 1);
+            }
+        }
+        public void SetGhostAppearance()
+        {
+            canvasGroup.alpha = 1; canvasGroup.blocksRaycasts = false;
+            rect.localScale = Vector3.one * 1.05f;
+            shape.Lifted = true; shape.SetVerticesDirty();
         }
         public void JoinNext(bool joined) { shape.JoinNext = joined; shape.SetVerticesDirty(); }
         public void SetLayoutHorizontal()
         {
-            float verticalInset = headHeight == StatementHeight ? 6 : 0;
-            Place(header, HeaderInset, verticalInset, rect.rect.width - HeaderInset * 2, headHeight - verticalInset * 2);
+            float inset = IsStatement ? 6 : ExpressionPad;
+            Place(header, Margin, inset, rect.rect.width - 2 * Margin, headHeight - 2 * inset);
             if (body) {
                 float reveal=BodyReveal;
                 // The collapsed strip remains a tutorial/click target at the bottom of the header.
-                float inset = reveal > 0 ? CommandBlockShape.ControlSpineWidth : 24;
-                Place(body.Rect, inset, reveal > 0 ? headHeight : headHeight - 8,
-                    rect.rect.width - inset - (reveal > 0 ? 0 : 8), reveal > 0 ? body.preferredHeight * reveal : 8);
+                float bodyInset = reveal > 0 ? CommandBlockShape.ControlSpineWidth : 24;
+                Place(body.Rect, bodyInset, reveal > 0 ? headHeight : headHeight - 8,
+                    rect.rect.width - bodyInset - (reveal > 0 ? 0 : 8), reveal > 0 ? body.preferredHeight * reveal : 8);
                 if(bodyVisibility){bodyVisibility.alpha=reveal;bodyVisibility.blocksRaycasts=!IsPalette&&!readOnlyPreview;}
                 shape.Configure(PythonTreeCompiler.OutputSlot(Kind),reveal>0,true);
             }

@@ -30,6 +30,7 @@ namespace CodingGame.BlockCoding
         readonly List<CommandBlockView> ghosts = new List<CommandBlockView>();
         readonly List<Vector2> ghostOffsets = new List<Vector2>();
         readonly Vector3[] dragCorners = new Vector3[4];
+        readonly List<Image> tabDots = new List<Image>();
         CommandDropZone selected;
         CommandDropZone snapTarget;
         CommandBlockView openingBody;
@@ -57,6 +58,8 @@ namespace CodingGame.BlockCoding
         public Func<BlockKind, bool> IsAvailable { get; set; }
         public Func<BlockKind, int> Remaining { get; set; }
         public event Action<BlockKind, RectTransform, RectTransform> BlockDropped;
+        // "block-pick" when a drag takes a block, "block-delete" when blocks leave the program; the host plays a sound.
+        public event Action<string> Feedback;
         readonly HashSet<CommandDropZone> zones = new HashSet<CommandDropZone>();
         internal void RegisterZone(CommandDropZone zone) => zones.Add(zone);
         internal bool CanTake(CommandBlockView source) => !source.IsPalette || (Remaining?.Invoke(source.Kind) ?? int.MaxValue) > 0;
@@ -88,7 +91,9 @@ namespace CodingGame.BlockCoding
             initialized = true;
             if (string.IsNullOrWhiteSpace(functionName.text)) functionName.SetTextWithoutNotify("f" + nextName++);
             pythonPreview.richText = false;
-            functionName.onValueChanged.AddListener(_ => Changed());
+            // The def name's box follows what is typed, like the blocks' fields.
+            functionName.onValueChanged.AddListener(_ => { CommandBlockView.FitInput(functionName, 80); Changed(); });
+            CommandBlockView.FitInput(functionName, 80);
             program.Bind(this, null);
             foreach (var item in palette) item.view.Bind(this, null, true);
             variablePrefab.Bind(this, null, true);
@@ -96,10 +101,47 @@ namespace CodingGame.BlockCoding
             {
                 int category = i;
                 categoryButtons[i].onClick.AddListener(() => ShowCategory(category));
+                // Tab names in Jalnan like the other labels, and on a paper tab a dot of its blocks' colour (비주얼_레퍼런스.md 3).
+                var label = categoryButtons[i].GetComponentInChildren<TMP_Text>(true);
+                if (label && UITheme.Display) { label.font = UITheme.Display; label.fontStyle &= ~FontStyles.Bold; label.fontSize = 16; label.margin = new Vector4(14, 0, 0, 0); }
+                var dot = new GameObject("Dot", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+                dot.rectTransform.SetParent(categoryButtons[i].transform, false);
+                dot.rectTransform.anchorMin = dot.rectTransform.anchorMax = new Vector2(0, .5f);
+                dot.rectTransform.sizeDelta = new Vector2(9, 9); dot.rectTransform.anchoredPosition = new Vector2(14, 0);
+                dot.sprite = UITheme.Circle; dot.color = UITheme.BlockCategories[Mathf.Min(i, UITheme.BlockCategories.Length - 1)]; dot.raycastTarget = false;
+                tabDots.Add(dot);
             }
+            Breathe();
+            // The shortcut line sits on the blue backdrop: bold, outlined and 18 px at least (3.7:1 bare white).
+            if (UITheme.Bold && UITheme.Caption) { status.font = UITheme.Bold; status.fontSharedMaterial = UITheme.Caption; status.fontSize = Mathf.Max(18, status.fontSize); }
             selected = program;
             ShowCategory(0);
             Changed();
+        }
+        // Room to breathe (play feedback: no padding looked cramped; the palette's edge also clipped the blocks' outlines, which
+        // are drawn 3 px outside them): tabs squarer than pills and a little apart, the palette inset from its card with a
+        // margin round its blocks and one column the width of the card, and the code area plain paper without the grid.
+        void Breathe()
+        {
+            const float Inset = 12;
+            var tabs = categoryButtons.Length > 0 && categoryButtons[0] ? categoryButtons[0].transform.parent as RectTransform : null;
+            if (tabs)
+            {
+                tabs.sizeDelta = new Vector2(-2 * Inset, tabs.sizeDelta.y);
+                if (tabs.TryGetComponent<HorizontalLayoutGroup>(out var row)) row.spacing = 6;
+            }
+            var content = palette.Length > 0 && palette[0].view ? palette[0].view.transform.parent as RectTransform : null;
+            if (content && content.parent is RectTransform viewport)
+            {
+                viewport.sizeDelta = new Vector2(-2 * Inset, viewport.sizeDelta.y);
+                content.anchorMin = new Vector2(0, 1); content.anchorMax = new Vector2(1, 1);
+                content.sizeDelta = new Vector2(0, content.sizeDelta.y);
+                // Left and top room for the outlines and shadows; the counts take the right edge (CommandBlockView.LateUpdate).
+                if (content.TryGetComponent<VerticalLayoutGroup>(out var column)) { column.padding = new RectOffset(8, 0, 10, 24); column.spacing = 14; }
+            }
+            // Where a dragged block will land: a rounded sky bar between lines, or the block's own outline in an empty place.
+            if (snapMarker && snapMarker.TryGetComponent<Image>(out var mark) && UITheme.Fill)
+            { mark.sprite = UITheme.Fill; mark.type = Image.Type.Sliced; mark.color = new Color(UITheme.Sky.r, UITheme.Sky.g, UITheme.Sky.b, .6f); }
         }
         public void ShowCategory(int category)
         {
@@ -112,8 +154,17 @@ namespace CodingGame.BlockCoding
             variablePrefab.SetStock(Remaining?.Invoke(BlockKind.Variable) ?? 0);
             variablePrefab.gameObject.SetActive(IsAvailable?.Invoke(BlockKind.Variable) ?? true);
             variablePalette.gameObject.SetActive(category == 2);
+            // The chosen tab is filled with its blocks' colour, white text and a little larger; the others are paper with muted
+            // text (play feedback: a beige tab on the beige panel did not read as chosen).
             for (int i = 0; i < categoryButtons.Length; i++)
-                categoryButtons[i].targetGraphic.color = i == category ? new Color(0.15f, 0.45f, 0.65f) : new Color(0.13f, 0.17f, 0.24f);
+            {
+                bool chosen = i == category;
+                categoryButtons[i].targetGraphic.color = chosen ? new Color(0.15f, 0.45f, 0.65f) : new Color(0.13f, 0.17f, 0.24f);
+                var label = categoryButtons[i].GetComponentInChildren<TMP_Text>(true);
+                if (label) label.color = chosen ? Color.white : new Color(.72f, .8f, .86f);
+                if (i < tabDots.Count) tabDots[i].enabled = !chosen;
+                categoryButtons[i].transform.localScale = Vector3.one * (chosen ? 1.06f : 1);
+            }
         }
         internal void Select(CommandDropZone zone)
         {
@@ -223,7 +274,7 @@ namespace CodingGame.BlockCoding
             try
             {
                 var draft = History.states[History.index];
-                functionName.SetTextWithoutNotify(draft.name);
+                functionName.SetTextWithoutNotify(draft.name); CommandBlockView.FitInput(functionName, 80);
                 selected = program;
                 program.RestoreDraft(draft.groups);
                 updating = false;
@@ -275,7 +326,7 @@ namespace CodingGame.BlockCoding
             try
             {
                 Initialize(); EndDrag(); updating = true;
-                functionName.SetTextWithoutNotify(name); selected = program; program.Load(blocks);
+                functionName.SetTextWithoutNotify(name); CommandBlockView.FitInput(functionName, 80); selected = program; program.Load(blocks);
             }
             finally { updating = false; loading = false; }
             Changed();
@@ -293,7 +344,7 @@ namespace CodingGame.BlockCoding
         public void BeginDrag(CommandBlockView source, PointerEventData e)
         {
             if (Dragged || !CanTake(source)) return;
-            Dragged = source;
+            Dragged = source; Feedback?.Invoke("block-pick");
             dropAccepted = false;
             dragging = CommandDropZone.Moving(source);
             RectTransformUtility.ScreenPointToLocalPointInRectangle(program.Rect, e.pressPosition, e.pressEventCamera, out var programPress);
@@ -306,7 +357,7 @@ namespace CodingGame.BlockCoding
             {
                 ghostOffsets.Add(TopLeft(dragLayer, block.Rect) - sourceDragTopLeft);
                 var copy = block.Copy(dragLayer);
-                copy.SetDragAppearance(true);
+                copy.SetGhostAppearance();
                 copy.Rect.anchorMin = copy.Rect.anchorMax = copy.Rect.pivot = new Vector2(0, 1);
                 copy.Rect.sizeDelta = new Vector2(copy.preferredWidth, copy.preferredHeight);
                 LayoutRebuilder.ForceRebuildLayoutImmediate(copy.Rect);
@@ -388,6 +439,7 @@ namespace CodingGame.BlockCoding
                 target.Rect.rect.yMax + targetPreview.y, 0));
             var scale = target.Rect.lossyScale.x / snapMarker.parent.lossyScale.x;
             snapMarker.sizeDelta = new Vector2(targetPreview.width, targetPreview.height) * scale;
+            if (snapMarker.TryGetComponent<Image>(out var mark)) mark.pixelsPerUnitMultiplier = 16f / Mathf.Clamp(snapMarker.sizeDelta.y * .5f, 1, 8);
             snapMarker.gameObject.SetActive(true); snapMarker.SetAsLastSibling();
         }
         Rect DraggedBounds(RectTransform target)
@@ -449,12 +501,12 @@ namespace CodingGame.BlockCoding
             if (!block || block.IsPalette || block.Owner == null) return;
             EndDrag();
             foreach (var member in block.Owner.Group(block)) RemoveSingle(member);
-            Changed();
+            Changed(); Feedback?.Invoke("block-delete");
         }
         public void DeleteOne(CommandBlockView block)
         {
             if (!block || block.IsPalette || block.Owner == null) return;
-            EndDrag(); RemoveSingle(block, true); Changed();
+            EndDrag(); RemoveSingle(block, true); Changed(); Feedback?.Invoke("block-delete");
         }
         void RemoveSingle(CommandBlockView block, bool reconnect = false)
         {

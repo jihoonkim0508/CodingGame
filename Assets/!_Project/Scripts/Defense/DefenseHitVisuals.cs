@@ -47,7 +47,7 @@ namespace CodingGame.Defense
             if (source && Options.launchEffects)
             {
                 if (evt.Kind == "launch") source.AimAt(position);
-                else if (evt.Kind == "slash") source.AimAt(position, evt.Seconds);
+                else if (evt.Kind == "slash") source.Spin(position, evt.Seconds);
                 else if (evt.Kind == "shot") Fire(source, position + Vector3.up * .45f, evt.Seconds, rotation, parent);
                 else if (!evt.Melee && (evt.Kind == "hit" || evt.Kind == "buff" || evt.Kind == "stun")) source.FireAt(position);
             }
@@ -75,21 +75,23 @@ namespace CodingGame.Defense
             // At scale 1 SwordSlash_3's arc is a ring of radius 2.3 centred 1.3 ahead of the prefab origin (top-down render);
             // moved back so the ring is centred on the robot, and radius / 2.3 makes it reach the attack range (planner).
             var facing = (direction.sqrMagnitude > .0001f ? Quaternion.LookRotation(direction) : Quaternion.identity) * Quaternion.Euler(0, -SlashCentre, 0);
-            var slash = Options.slashEffects ? UnityEngine.Object.Instantiate(slashPrefab, origin, facing, parent) : null;
-            if (slash)
+            // slash() cuts all the way round: the arc forwards and the same arc turned to the back make the full circle.
+            for (int half = 0; half < 2 && Options.slashEffects; half++)
             {
+                var turned = facing * Quaternion.Euler(0, 180 * half, 0);
+                var slash = UnityEngine.Object.Instantiate(slashPrefab, origin, turned, parent);
                 float scale = evt.Radius / 2.3f;
                 slash.transform.localScale *= scale;
                 // The prefab draws its arc 2 units above its origin (at a character's chest); lowered so the arc sweeps
                 // around the robot's lower body, .45 above the ground point (planner).
-                slash.transform.position += Vector3.up * (.45f - 2f * scale) - facing * Vector3.forward * (1.3f * scale);
+                slash.transform.position += Vector3.up * (.45f - 2f * scale) - turned * Vector3.forward * (1.3f * scale);
                 slash.Simulate(0, true, true, false);
                 slashes.Add((slash, slash.main.duration));
             }
             if (showHitRanges)
             {
                 var ring = UnityEngine.Object.Instantiate(hitRangePrefab, parent);
-                ring.ShowSemicircle(origin + Vector3.up * .005f, direction, evt.Radius, Color.cyan);
+                ring.Show(origin + Vector3.up * .005f, evt.Radius, Color.cyan);
                 hitRanges.Add((ring, .6f));
             }
         }

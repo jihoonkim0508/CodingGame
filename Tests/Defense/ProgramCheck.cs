@@ -31,7 +31,8 @@ static class ProgramCheck
         });
         RobotState Tank(DefenseSimulation simulation, float x, int capacity)
         {
-            var bot = simulation.Place(new RobotSpec{role=RobotRole.Tank,interval=3,blockRadius=1.25f,blockCapacity=capacity},2,new Vector2(x,0),out _);
+            // A near-zero stun: robots are ready at battle start, so a stun lands first; only the body block is under test.
+            var bot = simulation.Place(new RobotSpec{role=RobotRole.Tank,interval=3,duration=.01f,blockRadius=1.25f,blockCapacity=capacity},2,new Vector2(x,0),out _);
             simulation.ApplyProgram(bot.Id,"guard",new[]{new CodeBlock(BlockKind.Block,"0",new CodeBlock(BlockKind.NearestEnemy))});
             return bot;
         }
@@ -44,7 +45,7 @@ static class ProgramCheck
         Assert(!tank.BlockingEnabled&&sim.Enemies.All(e=>e.BlockedBy==0),"clearing code immediately releases held enemies");
         Tick(sim,1);
         Assert(sim.Enemies.All(e=>e.Position.X<0),"released enemies resume moving");
-        sim.ApplyProgram(tank.Id,"guard",new[]{new CodeBlock(BlockKind.Block,"0",new CodeBlock(BlockKind.NearestEnemy))}); Tick(sim,1);
+        sim.ApplyProgram(tank.Id,"guard",new[]{new CodeBlock(BlockKind.Block,"0",new CodeBlock(BlockKind.NearestEnemy))}); sim.Invoke(tank.Id); Tick(sim,1);
         Assert(sim.Enemies.All(e=>e.BlockedBy==tank.Id),"reaching block again catches enemies still inside radius");
         Assert(sim.DamageRobot(tank.Id,tank.Spec.health)&&sim.Robots.Count==0&&sim.Enemies.All(e=>e.BlockedBy==0),"destroying tank releases all occupied slots");
         Tick(sim,15);
@@ -79,13 +80,11 @@ static class ProgramCheck
         blocking.ApplyProgram(tank.Id,"guard",new[]{new CodeBlock(BlockKind.Block,"0",new CodeBlock(BlockKind.NearestEnemy))});
         Assert(!tank.BlockingEnabled,"adding code alone does not activate blocking");
         blocking.Start(); Tick(blocking,1);
-        Assert(tank.BlockingEnabled&&tank.Executions==0,"block stance starts before first attack cooldown");
+        Assert(tank.BlockingEnabled&&tank.Executions==1&&blocking.Enemies.Single().Stunned(blocking.Time),"block stance and the stun start with the battle");
         Tick(blocking,149);
         Assert(blocking.Enemies.Count==3&&blocking.Enemies.All(e=>e.BlockedBy==tank.Id&&e.Position.X>0),"all preview enemies stop in front of tank");
-        Assert(blocking.Enemies.All(e=>e.Health==100&&!e.Stunned(blocking.Time)),"stance does not bypass stun or damage cooldown");
-        Tick(blocking,30);
-        Assert(tank.Executions==1&&blocking.Enemies.All(e=>e.Stunned(blocking.Time)),"stun executes after original cooldown");
-        Tick(blocking,75);
+        Assert(tank.Executions==1&&blocking.Enemies.All(e=>!e.Stunned(blocking.Time)),"the one block() run stuns once and the stance keeps holding");
+        Tick(blocking,105);
         Assert(blocking.Enemies.All(e=>e.BlockedBy==tank.Id&&!e.Stunned(blocking.Time)),"body blocking persists after stun expires");
         var delayed = new DefenseSimulation(tankSetup);
         var delayedTank = delayed.Place(tank.Spec.Copy(),2,Vector2.Zero,out _);
@@ -131,13 +130,13 @@ static class ProgramCheck
         Assert(rejected&&robot.Program==previous,"invalid replacement keeps previous applied code");
 
         sim=Make();robot=Bot(sim);
-        sim.ApplyProgram(robot.Id,"wait_then_fire",new[]{new CodeBlock(BlockKind.Wait,"0",N("0.5")),new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.NearestEnemy))});
+        sim.ApplyProgram(robot.Id,"wait_then_fire",new[]{new CodeBlock(BlockKind.Wait,"0",N("0.5")),new CodeBlock(BlockKind.Slash)});
         sim.Start();Tick(sim,20);Assert(robot.Executions==0,"wait blocks subsequent action");
         sim.TogglePause();var time=sim.Time;sim.Advance(10);Assert(sim.Time==time,"program wait freezes during pause");sim.TogglePause();Tick(sim,13);
         Assert(robot.Executions==1,"wait resumes on battle time");
 
         sim=Make();robot=Bot(sim);
-        var loop=new CodeBlock(BlockKind.For,"0",N("3"));loop.Body.Add(new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.NearestEnemy)));
+        var loop=new CodeBlock(BlockKind.For,"0",N("3"));loop.Body.Add(new CodeBlock(BlockKind.Slash));
         sim.ApplyProgram(robot.Id,"loop",new[]{loop,new CodeBlock(BlockKind.Wait,"0",N("100"))});sim.Start();Tick(sim,60);
         Assert(robot.Executions==3,"for executes exactly three attacks and respects cooldown");
 
@@ -148,13 +147,13 @@ static class ProgramCheck
 
         sim=Make();robot=Bot(sim);
         var condition=new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.False));condition.Body.Add(new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy)));
-        var otherwise=new CodeBlock(BlockKind.Else);otherwise.Body.Add(new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.NearestEnemy)));
+        var otherwise=new CodeBlock(BlockKind.Else);otherwise.Body.Add(new CodeBlock(BlockKind.Slash));
         sim.ApplyProgram(robot.Id,"branch",new[]{condition,otherwise,new CodeBlock(BlockKind.Wait,"0",N("100"))});sim.Start();Tick(sim,10);
         Assert(robot.Executions==1&&sim.Enemies.Single().Health==9980,"else branch selected");
 
         sim=Make();robot=Bot(sim);
         loop=new CodeBlock(BlockKind.For,"0",N("5"));var skip=new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,"<",new CodeBlock(BlockKind.Variable,"i"),N("2")));skip.Body.Add(new CodeBlock(BlockKind.Continue));
-        loop.Body.Add(skip);loop.Body.Add(new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.NearestEnemy)));loop.Body.Add(new CodeBlock(BlockKind.Break));
+        loop.Body.Add(skip);loop.Body.Add(new CodeBlock(BlockKind.Slash));loop.Body.Add(new CodeBlock(BlockKind.Break));
         sim.ApplyProgram(robot.Id,"loop_control",new[]{loop,new CodeBlock(BlockKind.Wait,"0",N("100"))});sim.Start();Tick(sim,10);
         Assert(robot.Executions==1,"continue and break preserve loop control");
 
@@ -174,16 +173,16 @@ static class ProgramCheck
 
         var hpSim=Make();var hpBot=Bot(hpSim);
         var healthy=new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,">",new CodeBlock(BlockKind.Hp,"0",new CodeBlock(BlockKind.Variable,"enemy")),N("9999")));
-        healthy.Body.Add(new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"enemy")));
+        healthy.Body.Add(new CodeBlock(BlockKind.Slash));
         hpSim.ApplyProgram(hpBot.Id,"hp",new[]{new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)),healthy,new CodeBlock(BlockKind.Wait,"0",N("100"))});hpSim.Start();Tick(hpSim,10);
         Assert(hpBot.Executions==1&&hpBot.Program.Fault==null&&hpBot.Program.Source.Contains("enemy.hp > 9999"),"enemy.hp reads the live target health");
         var rangeSim=Make();var rangeBot=Bot(rangeSim);
         // Equal to the robot's own range: true, so the attack runs. One above: false.
         CodeBlock InRange(string op)=>new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,op,new CodeBlock(BlockKind.MyAttackRange),N(rangeBot.Range.ToString(System.Globalization.CultureInfo.InvariantCulture))));
-        var inRange=InRange("==");inRange.Body.Add(new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.NearestEnemy)));
+        var inRange=InRange("==");inRange.Body.Add(new CodeBlock(BlockKind.Slash));
         rangeSim.ApplyProgram(rangeBot.Id,"range",new[]{inRange,new CodeBlock(BlockKind.Wait,"0",N("100"))});rangeSim.Start();Tick(rangeSim,10);
         Assert(rangeBot.Executions==1&&rangeBot.Program.Fault==null&&rangeBot.Program.Source.Contains("my_attack_range() == ")&&rangeSim.Enemies.Single().Health<10000,"my_attack_range() reads the robot's range");
-        sim.ApplyProgram(robot.Id,"invalid_wait",new[]{new CodeBlock(BlockKind.Wait,"0",N("-1"))});Tick(sim,1);
+        sim.ApplyProgram(robot.Id,"invalid_wait",new[]{new CodeBlock(BlockKind.Wait,"0",N("-1"))});sim.Invoke(robot.Id);Tick(sim,1);
         Assert(robot.Program.Fault!=null&&sim.Phase==BattlePhase.Running,"runtime diagnostic stops only offending program");
         sim.RestoreAutomatic(robot.Id);Assert(robot.Program==null&&robot.AutoExecute&&robot.Action==RobotAction.Slash,"restore native automatic mode");
         var before=robot.Executions;Tick(sim,10);Assert(robot.Executions>before,"native automatic mode resumes");

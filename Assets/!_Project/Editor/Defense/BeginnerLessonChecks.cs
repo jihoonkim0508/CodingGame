@@ -21,8 +21,8 @@ namespace CodingGame.Defense.Editor
         static double bodyReadyAt;
         static string last;
         static double since, next;
-        static bool practiced, previewLogged, practicedFour, practicedFive, bossVisualSeen;
-        static int coreAtThirdWave, killsAtFifthWave;
+        static bool practiced, practicedFour, practicedFive, bossVisualSeen;
+        static int coreAtThirdWave, killsAtThirdWave, leaksAtThirdWave, killsAtFifthWave;
         static BeginnerLessonChecks()
         {
             EditorApplication.update += Tick;
@@ -55,7 +55,7 @@ namespace CodingGame.Defense.Editor
             TutorialSequenceBuilder.ApplyFirstThree();
             Directory.CreateDirectory(Path.GetDirectoryName(LogPath));
             File.WriteAllText(LogPath, "START beginner lessons integration check\n");
-            last = null; practiced = false; previewLogged = false; coreAtThirdWave = -1; next = 0;
+            last = null; practiced = false; coreAtThirdWave = -1; next = 0;
             SessionState.SetBool(Running, true);
             SessionState.SetBool("CodingGame.BeginnerLessons.AllFive", false);
             DevTest.PlayDefense(1, 1, true, false);
@@ -67,7 +67,7 @@ namespace CodingGame.Defense.Editor
             TutorialSequenceBuilder.ApplyFirstThree();
             Directory.CreateDirectory(Path.GetDirectoryName(LogPath));
             File.WriteAllText(LogPath, "START beginner lesson 1-3 integration check\n");
-            last = null; practiced = false; previewLogged = false; coreAtThirdWave = -1; next = 0;
+            last = null; practiced = false; coreAtThirdWave = -1; next = 0;
             SessionState.SetBool(Running, true);
             SessionState.SetBool("CodingGame.BeginnerLessons.AllFive", false);
             DevTest.PlayDefense(1, 3, true, true);
@@ -79,11 +79,25 @@ namespace CodingGame.Defense.Editor
             TutorialSequenceBuilder.ApplyAllFive();
             Directory.CreateDirectory(Path.GetDirectoryName(LogPath));
             File.WriteAllText(LogPath, "START beginner lessons 1-1 to 1-5 integration check\n");
-            last = null; practiced = practicedFour = practicedFive = bossVisualSeen = previewLogged = false;
+            last = null; practiced = practicedFour = practicedFive = bossVisualSeen = false;
             coreAtThirdWave = -1; next = 0;
             SessionState.SetBool(Running, true);
             SessionState.SetBool("CodingGame.BeginnerLessons.AllFive", true);
             DevTest.PlayDefense(1, 1, true, false);
+        }
+
+        // Stage 2's lessons (play feedback 4): 2-1 variables, 2-2 free, 2-3 conditions; ends when 2-4 begins.
+        [MenuItem("Tools/Develop/Verify Stage 2 Lessons 2-1 to 2-3")]
+        public static void RunStageTwo()
+        {
+            TutorialSequenceBuilder.ApplyAllFive();
+            Directory.CreateDirectory(Path.GetDirectoryName(LogPath));
+            File.WriteAllText(LogPath, "START stage 2 lessons 2-1 to 2-3 integration check\n");
+            last = null; practiced = practicedFour = practicedFive = bossVisualSeen = false;
+            coreAtThirdWave = -1; next = 0;
+            SessionState.SetBool(Running, true);
+            SessionState.SetBool("CodingGame.BeginnerLessons.AllFive", false);
+            DevTest.PlayDefense(2, 1, true, true);
         }
 
         [MenuItem("Tools/Develop/Verify Beginner Lessons 1-4 and 1-5")]
@@ -92,7 +106,7 @@ namespace CodingGame.Defense.Editor
             TutorialSequenceBuilder.ApplyAllFive();
             Directory.CreateDirectory(Path.GetDirectoryName(LogPath));
             File.WriteAllText(LogPath, "START beginner lessons 1-4 and 1-5 integration check\n");
-            last = null; practiced = practicedFour = practicedFive = bossVisualSeen = previewLogged = false;
+            last = null; practiced = practicedFour = practicedFive = bossVisualSeen = false;
             next = 0;
             SessionState.SetBool(Running, true);
             SessionState.SetBool("CodingGame.BeginnerLessons.AllFive", true);
@@ -123,8 +137,8 @@ namespace CodingGame.Defense.Editor
                 director.EditorStop();
                 battle.SelectRobot(TutorialWatcher.TeachingRobot(DevTest.Sim).Id); battle.DevelopSelected();
                 battle.CodeEditor.Panel.LoadProgram("condition_example", TutorialAnswers.Parse(
-                    "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= my_attack_range():"));
-                director.EditorRun(sequence, Array.FindIndex(sequence.steps, s => s.stepId == "D01"));
+                    "for i in range(10):\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:"));
+                director.EditorRun(sequence, Array.FindIndex(sequence.steps, s => s.stepId == "D02"));
             }
             if (!SessionState.GetBool(Running, false)) return;
             try { Advance(); }
@@ -134,6 +148,8 @@ namespace CodingGame.Defense.Editor
         {
             Log(result); SessionState.SetBool(Running, false); Time.timeScale = 1;
             if (result.StartsWith("FAIL")) Debug.LogError(result); else Debug.Log(result);
+            // A batchmode run (a worktree without the open editor) ends with the result.
+            if (Application.isBatchMode) EditorApplication.Exit(result.StartsWith("FAIL") ? 1 : 0);
         }
 
         static void Advance()
@@ -144,7 +160,27 @@ namespace CodingGame.Defense.Editor
             next = now + .4;
             var battle = DevTest.Battle; var sim = DevTest.Sim; var director = battle.Tutorial;
             if (!director.EditorSynced) return;
+            if (sim.Phase == BattlePhase.Running && !Field<TutorialDialogueView>(director, "view").IsVisible)
+                foreach (var robot in sim.Robots.ToArray())
+                    if (robot.Program != null && !robot.Program.Running &&
+                        sim.Enemies.Any(e => e.Active && System.Numerics.Vector2.Distance(e.Position, robot.Position) <= robot.Range))
+                        battle.PlayRobot(robot.Id);
             bool allFive = SessionState.GetBool("CodingGame.BeginnerLessons.AllFive", false);
+            if (battle.Stage == 2)
+            {
+                if (sim.WaveIndex >= 3) { End("PASS 2-1 to 2-3 completed: variables lesson, free 2-2, conditions lesson; core=" + sim.BaseHealth); return; }
+                if (sim.Phase == BattlePhase.Defeat) { End("FAIL stage 2 wave " + (sim.WaveIndex + 1) + " lost; kills=" + sim.Kills + " leaks=" + sim.Leaks); return; }
+                // 2-2 has no lesson to claim its reward, so the checker does.
+                if (sim.Phase == BattlePhase.Reward && !director.IsActive)
+                {
+                    Log("CLEAR wave=" + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills +
+                        " leaks=" + sim.Leaks + " survivors=" + sim.LastSurvivors + " timedOut=" + sim.LastWaveTimedOut);
+                    battle.ClaimRewards(); return;
+                }
+                // Free time (after 2-1's lesson, all of 2-2): a second shooter with 2-1's code, then the battle.
+                if (sim.Phase == BattlePhase.Ready && !director.IsActive && (sim.WaveIndex == 1 || director.EditorStep?.stepId == "E01"))
+                { StageTwoFree(battle); battle.StartBattle(); Log("START " + (sim.WaveIndex + 1) + " robots=" + sim.Robots.Count); return; }
+            }
             if (!allFive && sim.WaveIndex >= 3) { End("PASS waves 1-1, 1-2, 1-3 completed; reached 1-4 without changing it"); return; }
             if (allFive && sim.Phase == BattlePhase.Victory)
             {
@@ -173,20 +209,22 @@ namespace CodingGame.Defense.Editor
             }
             var step = director.EditorStep;
             if (step == null) return;
-            string key = (sim.WaveIndex + 1) + "/" + step.stepId;
+            string key = (battle.Stage > 1 ? battle.Stage + ":" : "") + (sim.WaveIndex + 1) + "/" + step.stepId;
             if (key != last)
             {
                 last = key; since = now;
                 if (key == "1/A01")
                 {
                     var groups = sim.UpcomingWave.ToArray();
-                    Require(groups.Length == 2 && groups[0].DefinitionIndex == groups[1].DefinitionIndex &&
-                        groups[0].Count == 2 && groups[1].Count == 1 &&
-                        groups[1].Enemy.health > groups[0].Enemy.health * 10 &&
-                        groups[1].Enemy.speed > groups[0].Enemy.speed,
-                        "1-1 must use basic enemy visuals for all three spawns and strengthen only the last one");
+                    // Two basic enemies, the crowd that walks in while pace and pause are explained, and one strong enemy in
+                    // the tank's body (play feedback 4).
+                    Require(groups.Length == 3 && groups[0].DefinitionIndex == groups[1].DefinitionIndex &&
+                        groups[0].Count == 2 && groups[1].Count == 4 && groups[2].Count == 1 &&
+                        groups[2].DefinitionIndex != groups[0].DefinitionIndex && groups[2].Enemy.type == EnemyType.Tank &&
+                        groups[2].Enemy.health > groups[0].Enemy.health * 10,
+                        "1-1 must send two basic enemies, a crowd of four and one tank-bodied strong enemy");
                 }
-                if (key == "3/A01") coreAtThirdWave = sim.BaseHealth;
+                if (key == "3/A01") { coreAtThirdWave = sim.BaseHealth; killsAtThirdWave = sim.Kills; leaksAtThirdWave = sim.Leaks; }
                 if (key == "5/A01") killsAtFifthWave = sim.Kills;
                 Log("STEP " + key + " " + step.completionSignal + " " + step.trigger);
                 return; // Wait for layout and target registration.
@@ -194,32 +232,15 @@ namespace CodingGame.Defense.Editor
             Require(now - since < 85, "Stalled at " + key + " phase=" + sim.Phase + " time=" + sim.Time.ToString("0.0") +
                 " enemies=" + string.Join(",", sim.Enemies.Select(e => (e.Boss ? "boss" : "minion") + ":" + e.Health.ToString("0.0"))) +
                 " runs=" + string.Join(",", sim.Robots.Select(r => r.Program?.CompletedRuns.ToString() ?? "none")));
-            if (key == "3/A03")
-            {
-                var entrance = sim.Setup.Routes[sim.Setup.Waves[2].OrderBy(group => group.Delay).First().RouteIndex].Points[0];
-                var nearest = sim.Robots.OrderBy(robot => System.Numerics.Vector2.DistanceSquared(robot.Position, entrance))
-                    .ThenBy(robot => robot.Id).First();
-                Require(TutorialWatcher.TeachingRobot(sim)?.Id == nearest.Id,
-                    "1-3 did not select the robot closest to the enemy entrance");
-                var views = Field<System.Collections.Generic.Dictionary<int, DefenseActorView>>(battle, "robotViews");
-                Require(Field<TutorialInputBridge>(director, "bridge").CanPerformAction(TutorialKeys.Unit(0), views[nearest.Id].gameObject),
-                    "1-3 tutorial arrow points at a different robot");
-            }
             if (key == "1/B05")
             {
                 var bridge = Field<TutorialInputBridge>(director, "bridge");
-                Require(Field<System.Collections.Generic.List<Rect>>(bridge, "roundAreas").Count > 0 &&
-                    Field<System.Collections.Generic.List<Rect>>(bridge, "outlinedAreas").Count == 0,
-                    "The tutorial draws a duplicate outline over the robot's range ring");
+                // The 3D range ring, tinted inside, is the highlight: no screen hole or outline that would not line up with it.
+                Require(Field<System.Collections.Generic.List<Rect>>(bridge, "roundAreas").Count == 0 &&
+                    Field<System.Collections.Generic.List<Rect>>(bridge, "outlinedAreas").Count == 0 && director.Highlighted(TutorialKeys.Range(0)),
+                    "1-1 B05 must highlight the range ring itself, without a spotlight hole or outline over it");
             }
-            if (key == "3/A05" && now - since > 5 && !previewLogged)
-            {
-                previewLogged = true;
-                var preview = Field<DefenseAttackPreview>(battle, "attackPreview");
-                Log("PREVIEW A05 firstHits=" + Field<int>(preview, "firstHitCount") +
-                    " signals=" + string.Join(",", Field<System.Collections.Generic.HashSet<string>>(director, "signals")));
-            }
-            if (sim.WaveIndex == 1 && !director.IsActive && sim.Phase == BattlePhase.Ready && !practiced)
+            if (battle.Stage == 1 && sim.WaveIndex == 1 && !director.IsActive && sim.Phase == BattlePhase.Ready && !practiced)
             {
                 FreePlay(battle); practiced = true; return;
             }
@@ -227,10 +248,12 @@ namespace CodingGame.Defense.Editor
             { FreePlayFour(battle); practicedFour = true; return; }
             if (allFive && sim.WaveIndex == 4 && !director.IsActive && sim.Phase == BattlePhase.Ready && !practicedFive)
             { FreePlayFive(battle); practicedFive = true; return; }
+            // 1-3 leaves the battle start to the player after the loop lesson.
+            if (battle.Stage == 1 && sim.WaveIndex == 2 && !director.IsActive && sim.Phase == BattlePhase.Ready) { battle.StartBattle(); return; }
             if (!director.IsActive) { Time.timeScale = 3; return; }
             var view = Field<TutorialDialogueView>(director, "view");
             if (!view.IsVisible) return; // System banner.
-            if (key == "1/C05" || key == "1/C08" || key == "1/D01" || key == "1/D03" || key == "1/D04")
+            if (key == "1/C05" || key == "1/C08")
                 Require(!battle.TutorialBlocksPreview && Field<DefenseAttackPreview>(battle, "attackPreview").IsShowing,
                     "1-1 preview stopped while placing blocks at " + key);
             if (!string.IsNullOrWhiteSpace(step.dragDemo))
@@ -263,11 +286,22 @@ namespace CodingGame.Defense.Editor
             {
                 Log("CLEAR wave=" + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills +
                     " leaks=" + sim.Leaks + " survivors=" + sim.LastSurvivors + " timedOut=" + sim.LastWaveTimedOut);
-                if (sim.WaveIndex == 0) Require(sim.BaseHealth == 11 && sim.Kills == 2 && sim.Leaks == 1,
-                    "1-1 did not teach exactly one strong-enemy leak; core=" + sim.BaseHealth + " kills=" + sim.Kills + " leaks=" + sim.Leaks);
-                if (sim.WaveIndex == 2) Require(sim.BaseHealth == coreAtThirdWave && sim.Kills >= 2,
-                    "1-3's condition did not defend both enemies; core=" + sim.BaseHealth + " kills=" + sim.Kills);
+                // 1-1: the Play presses fell the basic enemies (one swing each); the tank-bodied one still gets through.
+                if (battle.Stage == 1 && sim.WaveIndex == 0) Require(sim.Kills >= 4 && sim.Leaks >= 1 && sim.BaseHealth >= 8,
+                    "1-1's Play lesson did not hold the road; core=" + sim.BaseHealth + " kills=" + sim.Kills + " leaks=" + sim.Leaks);
+                // 1-3: two warriors' ten-swing loops (and Play between calls) hold eight enemies.
+                if (battle.Stage == 1 && sim.WaveIndex == 2) Require(sim.Leaks - leaksAtThirdWave <= 1 && sim.Kills - killsAtThirdWave >= 7,
+                    "1-3's loops did not hold the road; leaks=" + (sim.Leaks - leaksAtThirdWave) + " kills=" + (sim.Kills - killsAtThirdWave));
                 battle.ClaimRewards(); return;
+            }
+            if (step.targetKeys.Contains(TutorialKeys.Play(0)))
+            {
+                var teacher = TutorialWatcher.TeachingRobot(sim);
+                Require(battle.TutorialAllows(TutorialKeys.Play(0)) && director.EditorBridge.TryGetArea(TutorialKeys.Play(0), out _),
+                    "The robot's Play button is not offered at " + key);
+                battle.PlayRobot(teacher.Id);
+                Require(teacher.Program.Running, "Play did not call the robot's function at " + key);
+                return;
             }
             if (step.targetKeys.Contains(TutorialKeys.Pause))
             {
@@ -317,9 +351,9 @@ namespace CodingGame.Defense.Editor
             { Add(panel, (BlockKind)Enum.Parse(typeof(BlockKind), step.expectedCode.Split(':')[1])); return; }
             if (step.completionSignal == TutorialSignals.DraftValueMatches)
             {
-                var pair = step.expectedCode.Split('|'); var path = pair[0].Split('.').Select(int.Parse).ToArray();
-                var block = panel.Program.StartChain()[path[0] - 1];
-                foreach (int arg in path.Skip(1)) block = block.Arguments[arg].Blocks[0];
+                var pair = step.expectedCode.Split('|'); var path = pair[0].Split('.');
+                var block = editor.Line(path[0]); // "1/3" is the third line inside line 1
+                foreach (int arg in path.Skip(1).Select(int.Parse)) block = block.Arguments[arg].Blocks[0];
                 if (block.BaseKind == BlockKind.Comparison) block.SelectOption(Array.IndexOf(PythonTreeCompiler.Comparisons, pair[1]));
                 else block.SetText(pair[1]);
                 return;
@@ -328,7 +362,10 @@ namespace CodingGame.Defense.Editor
             { Add(panel, (BlockKind)Enum.Parse(typeof(BlockKind), step.pointerKey.Substring(TutorialKeys.PalettePrefix.Length))); return; }
             if (step.completionSignal == TutorialSignals.ProgramMatches)
             {
-                if (sim.WaveIndex == 0 && step.stepId == "C08") { Add(panel, BlockKind.NearestEnemy); return; }
+                // A step that points at a palette block finishes by adding it (1-1 C08 and 1-3 D02: slash()); otherwise
+                // the last variable still needs its name.
+                if (step.pointerKey != null && step.pointerKey.StartsWith(TutorialKeys.PalettePrefix))
+                { Add(panel, (BlockKind)Enum.Parse(typeof(BlockKind), step.pointerKey.Substring(TutorialKeys.PalettePrefix.Length))); return; }
                 var variable = panel.Program.AllBlocks().Last(b => b.BaseKind == BlockKind.Variable && b.Kind == BlockKind.Variable);
                 variable.SetText("enemy");
                 return;
@@ -340,52 +377,62 @@ namespace CodingGame.Defense.Editor
         {
             var sim = battle.Simulation; var first = TutorialWatcher.TeachingRobot(sim);
             var goal = Field<TMP_Text>(Field<DefensePlayerHUD>(battle, "playerHUD"), "guide");
-            Require(goal.transform.parent.gameObject.activeSelf && goal.text.Contains("새 전사를 배치하고 변수로 적을 찾아 공격"),
+            Require(goal.transform.parent.gameObject.activeSelf && goal.text.Contains("새 전사를 배치하고 '실행'으로 베기"),
                 "1-2 free-play goal is not visible at the top of the HUD");
-            Require(sim.StartError()?.Contains("새 전사") == true, "1-2 starts without placing the new robot");
-            battle.StartBattle();
-            Require(sim.Phase == BattlePhase.Ready, "1-2 auto-started with only the original robot");
+            Require(sim.StartError() == null, "1-2 free play must start with only the original robot: " + sim.StartError());
             string preserved = first.Program.Source;
             Require(battle.TutorialAllows(TutorialKeys.Start) && battle.TutorialAllows(TutorialKeys.Close), "Free play still restricts input");
             battle.ChooseRobot(1); PlaceBest(battle, 1);
             var second = sim.Robots.OrderBy(r => r.Id).Last();
             Require(second.Id != first.Id, "Practice warrior was not granted");
-            Require(sim.StartError()?.Contains("코드") == true, "1-2 starts with an uncoded new robot");
+            Require(sim.StartError() == null, "1-2 free play must start with an uncoded new robot: " + sim.StartError());
             battle.SelectRobot(second.Id); battle.DevelopSelected();
             var panel = battle.CodeEditor.Panel;
-            panel.LoadProgram("practice", TutorialAnswers.Parse("target = get_nearest_enemy()\nslash(target)"));
-            Require(panel.IsApplied, "Custom variable name did not compile");
+            panel.LoadProgram("practice", TutorialAnswers.Parse("slash()\nslash()"));
+            Require(panel.IsApplied, "Two swings a call did not compile");
             var hint = Field<Button>(battle.CodeEditor, "hintButton");
             Require(hint.gameObject.activeSelf, "Optional hint unavailable"); hint.onClick.Invoke();
             Require(battle.CodeEditor.HintOpen, "Hint did not open"); hint.onClick.Invoke();
-            panel.LoadProgram("practice", new[] { new CodeBlock(BlockKind.Slash) });
+            panel.LoadProgram("practice", new[] { new CodeBlock(BlockKind.Shot) }); // no target
             Require(!panel.IsApplied, "Incomplete draft unexpectedly applied");
             battle.CodeEditor.Close(); Require(!battle.CodeEditor.IsOpen, "Incomplete draft cannot close in free play");
             battle.DevelopSelected();
             Require(!panel.IsApplied, "Incomplete draft not preserved on reopen");
-            panel.LoadProgram("practice", TutorialAnswers.Parse("target = get_nearest_enemy()\nslash(target)"));
+            panel.LoadProgram("practice", TutorialAnswers.Parse("slash()\nslash()"));
             Require(panel.IsApplied && first.Program.Source == preserved, "Free practice changed the original robot");
             battle.CodeEditor.Close(); battle.StartBattle();
             Require(sim.Phase == BattlePhase.Running, "Free play cannot start battle");
-            Log("PASS free play: custom names, extra warrior, optional hint, close/reopen unfinished draft, original code retained, battle start");
+            Log("PASS free play: two swings a call, extra warrior, optional hint, close/reopen unfinished draft, original code retained, battle start");
+        }
+
+        static void StageTwoFree(DefenseBattle battle)
+        {
+            var sim = battle.Simulation;
+            int shooter = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => battle.DefinitionRole(i) == RobotRole.Shooter);
+            // Two shooters: 2-1 gives the variable blocks for two copies of its code.
+            if (sim.RobotAvailable(RobotRole.Shooter) > 0 && sim.Robots.Count(r => r.Spec.role == RobotRole.Shooter) < 2) { battle.ChooseRobot(shooter); PlaceBest(battle, shooter); }
+            foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Shooter && (r.Program == null || r.Program.IsEmpty)).ToArray())
+                sim.ApplyProgram(bot.Id, "free_" + bot.Id, TutorialAnswers.Parse("for i in range(10):\n    enemy = get_nearest_enemy()\n    attack(enemy)"));
         }
 
         static void FreePlayFour(DefenseBattle battle)
         {
             var sim = battle.Simulation;
-            if (sim.Robots.Count < 2) { battle.ChooseRobot(1); PlaceBest(battle, 1); }
-            Require(sim.StartError()?.Contains("두 전사") == true, "1-4 allows battle without two conditional warriors");
-            var learner = sim.Robots.OrderBy(r => r.Id).First(r => r.Program == null || !r.Program.Source.Contains("if "));
+            Require(sim.RobotAvailable(RobotRole.Shooter) >= 1, "1-4 must bring a new shooter");
+            Require(sim.StartError() == null, "1-4 free play must start without new code: " + sim.StartError());
+            int shooter = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => battle.DefinitionRole(i) == RobotRole.Shooter);
+            battle.ChooseRobot(shooter); PlaceBest(battle, shooter);
+            var learner = sim.Robots.OrderBy(r => r.Id).Last();
+            Require(learner.Spec.role == RobotRole.Shooter, "1-4's new robot is not a shooter");
             battle.SelectRobot(learner.Id); battle.DevelopSelected();
             battle.CodeEditor.Panel.LoadProgram("condition_practice", TutorialAnswers.Parse(
-                "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= my_attack_range():\n    slash(enemy)"));
-            Require(battle.CodeEditor.Panel.IsApplied, "1-4 conditional code was not applied: " +
+                "for i in range(10):\n    attack(get_nearest_enemy())"));
+            Require(battle.CodeEditor.Panel.IsApplied, "1-4 shooter code was not applied: " +
                 Field<TMP_Text>(battle.CodeEditor.Panel, "status").text);
             battle.CodeEditor.Close();
-            Require(sim.StartError() == null, "1-4 remains blocked after two warriors use conditions: " + sim.StartError());
             battle.StartBattle();
             Require(sim.Phase == BattlePhase.Running, "1-4 battle did not start");
-            Log("PASS 1-4: no-condition start blocked, two distance conditions allowed");
+            Log("PASS 1-4: free play starts without new code, new shooter loops attack(get_nearest_enemy())");
         }
 
         static void FreePlayFive(DefenseBattle battle)
@@ -396,16 +443,9 @@ namespace CodingGame.Defense.Editor
                 groups[0].DefinitionIndex == groups[1].DefinitionIndex &&
                 groups[1].Enemy.health >= 80 && groups[1].Enemy.health > groups[0].Enemy.health * 3,
                 "1-5 boss must strengthen the existing basic enemy only");
-            foreach (var kind in new[] { BlockKind.DeclareVariable, BlockKind.Variable, BlockKind.If,
-                BlockKind.Comparison, BlockKind.MyAttackRange })
+            foreach (var kind in new[] { BlockKind.For, BlockKind.Number, BlockKind.Slash })
                 Require(sim.Available(kind) > 0, "1-5 has no spare " + kind + " block");
-            var second = sim.Robots.OrderBy(r => r.Id).Skip(1).First();
-            var original = second.Program.CopyBlocks();
-            sim.ApplyProgram(second.Id, "range_practice", TutorialAnswers.Parse(
-                "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nattack_range = my_attack_range()\nif enemy_distance <= attack_range:\n    slash(enemy)"));
-            Require(second.Program.Source.Contains("attack_range = my_attack_range()"),
-                "my_attack_range() could not be used with a variable and condition in 1-5");
-            sim.ApplyProgram(second.Id, "condition_practice", original);
+            Require(sim.Available(BlockKind.DeclareVariable) == 0 && sim.Available(BlockKind.If) == 0, "Variables and conditions open in Stage 2, not 1-5");
             battle.StartBattle();
             Require(battle.Simulation.Phase == BattlePhase.Running, "1-5 battle did not start");
         }
@@ -440,7 +480,11 @@ namespace CodingGame.Defense.Editor
         static void PlaceBest(DefenseBattle battle, int robot)
         {
             var sim = battle.Simulation; var spec = battle.RobotDefinition(robot).stats;
-            var samples = sim.Setup.Routes.SelectMany(r => r.Points).ToArray();
+            // Points every half unit along the roads: the corners alone are just the two ends on Stage 1's straight road.
+            var samples = sim.Setup.Routes.SelectMany(r => r.Points.Zip(r.Points.Skip(1), (a, b) => (a, b)))
+                .SelectMany(s => Enumerable.Range(0, Mathf.CeilToInt(System.Numerics.Vector2.Distance(s.a, s.b) * 2) + 1)
+                    .Select(i => System.Numerics.Vector2.Lerp(s.a, s.b, Mathf.Clamp01(i / Mathf.Max(1, System.Numerics.Vector2.Distance(s.a, s.b) * 2)))))
+                .ToArray();
             var candidates = new System.Collections.Generic.List<System.Numerics.Vector2>();
             for (float x = sim.Setup.Min.X + .5f; x < sim.Setup.Max.X; x += 1)
                 for (float z = sim.Setup.Min.Y + .5f; z < sim.Setup.Max.Y; z += 1)

@@ -13,16 +13,14 @@ MonoBehaviour:
   m_Name: Shooter
   m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.RobotDefinition
   displayName: "\uC6D0\uAC70\uB9AC"
-  description: "\uAC00\uAE4C\uC6B4 \uC801\uC77C\uC218\uB85D \uAC15\uD55C \uD53C\uD574\uB97C
-    \uC90D\uB2C8\uB2E4. \uD53C\uD574\uB294 \uC2E4\uC81C \uAC70\uB9AC\uC640 \uBC18\uBE44\uB840\uD558\uBA70
-    1m \uC774\uD558\uC5D0\uC11C\uB294 \uCD5C\uB300 \uD53C\uD574\uB85C \uC81C\uD55C\uB429\uB2C8\uB2E4."
+  description: "\uC0AC\uAC70\uB9AC\uAC00 \uAE38\uC9C0\uB9CC \uD55C \uBC88 \uC3D8\uBA74 \uB2E4\uC2DC \uC3D8\uAE30\uAE4C\uC9C0 \uC624\uB798 \uAC78\uB9BD\uB2C8\uB2E4. \uAC00\uAE4C\uC6B4 \uC801\uC77C\uC218\uB85D \uAC15\uD55C \uD53C\uD574\uB97C \uC90D\uB2C8\uB2E4. \uD53C\uD574\uB294 \uC2E4\uC81C \uAC70\uB9AC\uC640 \uBC18\uBE44\uB840\uD558\uBA70 1m \uC774\uD558\uC5D0\uC11C\uB294 \uCD5C\uB300 \uD53C\uD574\uB85C \uC81C\uD55C\uB429\uB2C8\uB2E4."
   color: {r: 0.92, g: 0.44, b: 0.61, a: 1}
   stats:
     role: 4
-    range: 5.5
-    damage: 22
-    interval: 1.2
-    radius: 0.45
+    range: 7
+    damage: 32
+    interval: 6
+    radius: 0.75
     health: 100
     blockRadius: 1.1
     blockCapacity: 3
@@ -34,3 +32,4 @@ MonoBehaviour:
     buffRange: 1.15
     buffInterval: 0.8
   prefab: {fileID: 5992403662320935603, guid: 808dcdc95cea6514bbf5d98f481e6655, type: 3}
+  icon: {fileID: 21300000, guid: c5d91575c3716a141b33d9a4d0e36039, type: 3}

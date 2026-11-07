@@ -98,7 +98,7 @@ namespace CodingGame.Art.StageSelection.Editor
         }
         public static void Frame(Camera camera,GameObject world)
         {
-            camera.orthographic=false;camera.fieldOfView=40;camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=StageSelectionModels.Hex("0D2033");
+            camera.orthographic=false;camera.fieldOfView=40;camera.clearFlags=CameraClearFlags.SolidColor;camera.backgroundColor=StageSelectionModels.Hex("4B8BBE");
             camera.nearClipPlane=.1f;camera.farClipPlane=100;camera.rect=new Rect(0,0,1,1);
             var views=world.GetComponentsInChildren<StageIslandView>();var bounds=views[0].VisualBounds;foreach(var view in views)bounds.Encapsulate(view.VisualBounds);
             var rotation=Quaternion.Euler(42,0,0);camera.transform.SetPositionAndRotation(bounds.center-rotation*Vector3.forward*StageCameraController.FrameDistance(camera,bounds,rotation),rotation);

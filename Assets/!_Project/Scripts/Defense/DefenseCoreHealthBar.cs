@@ -10,6 +10,7 @@ namespace CodingGame.Defense
         [SerializeField] Texture2D fillTexture;
 
         const int PreviewHealth = 12;
+        const float ShakeSeconds = .45f;
         static readonly Color EmptyColor = new Color(.18f, .28f, .37f);
         static readonly Color TrailColor = new Color(.63f, .8f, .91f);
         static readonly Color SeparatorShade = new Color(.67f, .78f, .74f);
@@ -17,6 +18,9 @@ namespace CodingGame.Defense
         int maxHealth = PreviewHealth;
         int health = PreviewHealth;
         float trailHealth = PreviewHealth;
+        Vector2 restPosition;
+        Vector3 restScale;
+        float shake;
 
         public RectTransform BarRect => (RectTransform)transform.parent;
         public override Texture mainTexture => fillTexture ? fillTexture : base.mainTexture;
@@ -28,11 +32,42 @@ namespace CodingGame.Defense
             int maximum = sim.Setup.BaseHealth;
             int current = Mathf.Clamp(sim.BaseHealth, 0, maximum);
             float fading = trail.Step((float)current / maximum, Time.unscaledDeltaTime) * maximum;
+            UpdateHitAnimation();
             if (maxHealth == maximum && health == current && trailHealth == fading) return;
             maxHealth = maximum;
             health = current;
             trailHealth = fading;
             SetVerticesDirty();
+        }
+
+        void UpdateHitAnimation()
+        {
+            var frame = BarRect;
+            if (trail.JustHit)
+            {
+                if (shake <= 0)
+                {
+                    restPosition = frame.anchoredPosition;
+                    restScale = frame.localScale;
+                }
+                shake = ShakeSeconds;
+            }
+            if (shake <= 0) return;
+            shake = Mathf.Max(0, shake - Time.unscaledDeltaTime);
+            float fade = shake / ShakeSeconds;
+            frame.anchoredPosition = restPosition + Vector2.right * (Mathf.Sin(shake * 70) * 9 * fade);
+            frame.localScale = restScale * (1 + .14f * fade * fade);
+        }
+
+        protected override void OnDisable()
+        {
+            if (shake > 0 && BarRect)
+            {
+                BarRect.anchoredPosition = restPosition;
+                BarRect.localScale = restScale;
+                shake = 0;
+            }
+            base.OnDisable();
         }
 
         protected override void OnPopulateMesh(VertexHelper mesh)

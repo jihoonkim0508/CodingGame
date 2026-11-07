@@ -26,6 +26,11 @@ namespace CodingGame.Defense
         [SerializeField] DefenseCampaignDefinition campaign;
         [Header("Authored scene references")]
         [SerializeField] Camera battleCamera;
+        [SerializeField, Tooltip("Stage 1 전용 일자 맵과 그 카메라 자리(Tools/Develop/1스테이지 일자 맵 만들기). 비우면 모든 스테이지가 작업실 맵")]
+        CodingGame.Art.MapPainter.ModularMapRoot stageOneMap;
+        [SerializeField] CodingGame.Art.MapPainter.ModularMapRoot workshopMap;
+        [SerializeField] Transform stageOneView;
+        Pose workshopView; bool workshopViewKnown;
         [SerializeField] EventSystem eventSystem;
         [SerializeField] DefenseCodeEditor codeEditor;
         [SerializeField] BoxCollider deploymentArea;
@@ -35,7 +40,7 @@ namespace CodingGame.Defense
         [Tooltip("Moved onto the painted map's base cell when the routes come from a map.")]
         [SerializeField] Transform core;
         DefenseCoreGlitch coreGlitch;
-        static readonly Color RangeColor = new Color(.35f, .9f, 1); // attack ranges: a MOBA-like cyan rim; the tutorial highlight pulses red (DefenseRangeRing)
+        static readonly Color RangeColor = new Color(.35f, .9f, 1); // attack ranges: a MOBA-like cyan rim; the tutorial highlight pulses blue and fills (DefenseRangeRing)
         Bounds[] floorParts;
         [SerializeField] RobotDefinition[] robots = Array.Empty<RobotDefinition>();
         [SerializeField] EnemyDefinition[] enemies = Array.Empty<EnemyDefinition>();
@@ -46,6 +51,7 @@ namespace CodingGame.Defense
         [SerializeField] Transform projectilePrefab;
         [SerializeField] DefenseHitVisuals hitEffects = new DefenseHitVisuals();
         [SerializeField] GameObject developerRoot;
+        [SerializeField, Tooltip("상단 바의 'F1/F2 개발자' 안내. 에디터·개발 빌드에서만 보인다.")] GameObject developerHint;
         [SerializeField] TutorialDirector tutorial;
         [SerializeField] Button hitRangeButton;
         [SerializeField] TMP_Text hitRangeLabel;
@@ -71,12 +77,16 @@ namespace CodingGame.Defense
         [SerializeField] TMP_Text[] developerRobotLabels = Array.Empty<TMP_Text>();
 
         readonly Dictionary<int, DefenseActorView> robotViews = new Dictionary<int, DefenseActorView>();
+        DefenseSounds sounds;
+        public void PlaySound(string kind) => sounds.Play(kind);
         readonly Dictionary<int, DefenseActorView> enemyViews = new Dictionary<int, DefenseActorView>();
         readonly List<Transform> dropViews = new List<Transform>();
         readonly DefenseProjectileVisuals projectileViews = new DefenseProjectileVisuals();
         bool bossEntranceStarted, bossCameraRestored;
         float bossEntranceUntil, bossCameraRestoreAt;
         public bool DeveloperMode { get; private set; }
+        // The developer panel (F1/F2) is for the team: the Editor and development builds, not a player's release build.
+        public static bool DeveloperTools => Application.isEditor || Debug.isDebugBuild;
         public bool ShowHitRanges { get; private set; }
         public bool HelpOpen { get; internal set; }
         public bool HasDialogueBlockingWindow => HelpOpen || (inventoryUI && inventoryUI.IsOpen) || (codeEditor && codeEditor.HintOpen);
@@ -120,7 +130,10 @@ namespace CodingGame.Defense
             if (!campaign) throw new InvalidOperationException("DefenseBattle에 캠페인 asset을 연결하세요.");
             campaign.ValidateContent(); robots = campaign.robots; enemies = campaign.enemies;
             ValidateReferences();
+            foreach (var root in gameObject.scene.GetRootGameObjects()) UITheme.BoldBody(root.transform);
+            sounds = gameObject.AddComponent<DefenseSounds>();
             developerRoot.SetActive(false);
+            developerHint.SetActive(false); // PR #19's header puts the coin stat in this corner; F1/F2 still work
             startButton.onClick.AddListener(StartBattle);
             pauseButton.onClick.AddListener(TogglePause);
             speedButton.onClick.AddListener(ToggleSpeed);
@@ -137,7 +150,7 @@ namespace CodingGame.Defense
         {
             if (!hitEffects.IsConfigured) throw new InvalidOperationException("피격 이펙트 프리팹을 Inspector에 연결하세요.");
             if (!selectionCamera || !inventoryUI || !attackPreview) throw new InvalidOperationException("선택 카메라·인벤토리·미리보기 참조를 연결하세요.");
-            if (!hitRangeButton || !hitRangeLabel || !projectilePrefab || !blockDropPrefab || !developerRoot || !playerHUD || !battleCamera || !eventSystem || !codeEditor || !deploymentArea || !actorsRoot || !rangeRing || !effectRing || !placementMarker ||
+            if (!hitRangeButton || !hitRangeLabel || !projectilePrefab || !blockDropPrefab || !developerRoot || !developerHint || !playerHUD || !battleCamera || !eventSystem || !codeEditor || !deploymentArea || !actorsRoot || !rangeRing || !effectRing || !placementMarker ||
                 !header || !selectionText || !message || !stateText || !resultText || !resultPanel || !startButton || !pauseButton ||
                 !speedButton || !resetButton || !removeButton || !pauseLabel || !speedLabel)
                 throw new InvalidOperationException("DefenseBattle의 필수 Inspector 참조가 누락되었습니다.");
@@ -154,6 +167,7 @@ namespace CodingGame.Defense
         {
             content.ValidateContent();
             if (selectedStage < 1 || selectedStage > content.stages.Length) throw new ArgumentException("스테이지 범위 오류");
+            UseStageMap(selectedStage);
             var bounds=deploymentArea.bounds;
             var map=routes[0].Map;
             if(map&&map.hasBase&&core)core.position=map.CellPosition(map.baseCell);
@@ -172,6 +186,20 @@ namespace CodingGame.Defense
                 CampaignWaves=Enumerable.Range(1,content.stages.Length).Select(content.ReadWaves).ToArray(),
                 CampaignSeconds=content.stages.Select(s=>s.waveSeconds).ToArray()
             };
+        }
+        // Stage 1 plays on a short straight road and Stages 2·3 on the workshop (play feedback: the workshop was too big for the
+        // first lessons). Only one map is active, so routes, tiles and props (DefenseRoute.Map) come from it; the camera and the
+        // core's glitch follow.
+        void UseStageMap(int selectedStage)
+        {
+            if (!stageOneMap || !workshopMap || !stageOneView) return;
+            if (!workshopViewKnown) { workshopView = new Pose(battleCamera.transform.position, battleCamera.transform.rotation); workshopViewKnown = true; }
+            bool first = selectedStage == 1;
+            stageOneMap.gameObject.SetActive(first); workshopMap.gameObject.SetActive(!first);
+            var view = first ? new Pose(stageOneView.position, stageOneView.rotation) : workshopView;
+            selectionCamera.SetHome(view.position, view.rotation);
+            floorParts = null;
+            if (coreGlitch) coreGlitch.SetModel((first ? stageOneMap : workshopMap).GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "CodeBase"));
         }
         // The ground of the map, one square per floor or road cell (cells are centred on CellPosition).
         static IEnumerable<PlacementObstacle> MapTiles(CodingGame.Art.MapPainter.ModularMapRoot map)
@@ -212,6 +240,31 @@ namespace CodingGame.Defense
 #endif
             ResetSession(setup);
         }
+        // A lost wave starts over as it began (robots, code, levels, coins, core health), so a defeat costs one wave, not the
+        // stage. The new session replays the wave's tutorial sequence, so only one that just talks before the battle allows
+        // it (1-2, 1-4, 1-5); 1-1 and 1-3 would ask for placing and coding again.
+        public bool CanRetryWave => Simulation != null && Simulation.Phase == BattlePhase.Defeat && Simulation.Checkpoint != null &&
+            !(tutorial && tutorial.Sequences.Any(s => s && s.enabled && s.stage == stage && s.wave == Simulation.Checkpoint.Wave + 1 && !s.OnlyTalksBeforeBattle));
+        public void RetryWave()
+        {
+            if (!CanRetryWave || !TutorialAllows("Battle.ContinueCampaign")) return;
+            var checkpoint = Simulation.Checkpoint;
+            var setup = MakeSetup(campaign, stage);
+            setup.InitialWave = checkpoint.Wave; setup.PreviousStageRewards = true;
+#if UNITY_EDITOR
+            setup.TestOptions=EditorOptions;
+#endif
+            ResetSession(setup);
+            try { Simulation.Restore(checkpoint); }
+            catch (Exception error) when (error is ArgumentException || error is FormatException)
+            {
+                Trace("retry-failed " + error.Message);
+                Restart(); Tell("웨이브를 되돌리지 못해 스테이지를 처음부터 시작합니다."); return;
+            }
+            foreach (var bot in Simulation.Robots) SpawnRobotView(bot);
+            Tell($"WAVE {checkpoint.Wave + 1} 다시 도전 · 배치와 코드를 고친 뒤 전투를 시작하세요.");
+            SyncViews(0); RefreshHUD();
+        }
         void ResetSession(BattleSetup setup)
         {
             setup.Validate();
@@ -234,12 +287,15 @@ namespace CodingGame.Defense
         }
         public void StartBattle()
         {
-            if (!TutorialAllows("Battle.Start")) return;
+            if (!TutorialAllows("Battle.Start")) { if (tutorial) tutorial.NudgeBlocked(); return; }
             string error = Simulation.StartError();
             if (error != null) { Tell(error); return; }
             HidePlacement();
             Trace("wave-start " + string.Join(", ", Simulation.UpcomingWave.Select(g => $"{enemies[g.DefinitionIndex].name} x{g.Count} HP={g.Enemy.health:0.0} speed={g.Enemy.speed:0.00}")));
-            Simulation.Start(); Tell("전투 중 · 웨이브 종료 후 지정 보상을 수령하세요."); RefreshHUD();
+            Trace(InventoryLine());
+            Simulation.Start();
+            Tell(Simulation.FinalRush ? "마지막 웨이브 · 시간이 끝나면 남은 적이 모두 코어로 돌진합니다." : "전투 중 · 웨이브 종료 후 지정 보상을 수령하세요.");
+            RefreshHUD();
             ReportTutorialAction("Battle.Start", "TargetClicked", "BattleStarted");
         }
         public void ClaimRewards()
@@ -247,10 +303,12 @@ namespace CodingGame.Defense
             if (!TutorialAllows("Battle.ClaimRewards") && !(Simulation.Phase == BattlePhase.Reward && TutorialAllows("Battle.ContinueCampaign"))) return;
             if (Simulation.Phase == BattlePhase.Reward) Trace($"wave-end kills={Simulation.Kills} leaks={Simulation.Leaks} survivors={Simulation.LastSurvivors} rewards={Simulation.PendingDrops.Count}");
             if (!Simulation.ClaimRewards()) return;
+            UISound.Play("reward"); UISound.Play("coin", .7f);
             selected = 0; rangeRing.Hide(); ClearCombatVisuals();
             ClearDrops(); Tell(Simulation.Phase == BattlePhase.Victory ? Simulation.CanAdvanceStage ?
                 "스테이지 완료 · 다음 스테이지로 진행하세요." : "모든 스테이지를 완료했습니다." :
                 "보상을 수령했습니다. 로봇과 코드를 정비하고 다음 전투를 시작하세요."); RefreshHUD();
+            Trace(InventoryLine());
             ReportTutorialAction("Battle.ClaimRewards", "TargetClicked", "RewardsClaimed");
             ReportTutorialAction("Battle.ContinueCampaign", "TargetClicked", "RewardsClaimed");
         }
@@ -258,12 +316,22 @@ namespace CodingGame.Defense
         public void ContinueCampaign()
         {
             if (Simulation.Phase == BattlePhase.Reward) { ClaimRewards(); return; }
-            if (Simulation.Phase == BattlePhase.Defeat) { Restart(); return; }
+            if (Simulation.Phase == BattlePhase.Defeat) { if (CanRetryWave) RetryWave(); else Restart(); return; }
             if (!TutorialAllows("Battle.ContinueCampaign")) return;
             if (FromStageMap)
             {
+                StageMap.StageProgress.RecordStars(stage, Simulation.StageStars);
                 StageMap.StageProgress.MarkCleared(stage);
                 GameFlow.LoadScene(GameFlow.StageScene);
+                return;
+            }
+            if (Simulation.CanAdvanceStage && stageOneMap && stage == 1)
+            {
+                // Stage 2 is on another map, so it starts as a new session with Stage 1's rewards (as from the stage map).
+                codeEditor.Close(false); inventoryUI.Close();
+                stage = 2; var next = MakeSetup(campaign, stage); next.PreviousStageRewards = true;
+                ResetSession(next);
+                ReportTutorialAction("Battle.ContinueCampaign", "TargetClicked", "StageAdvanced");
                 return;
             }
             if (Simulation.CanAdvanceStage)
@@ -278,9 +346,20 @@ namespace CodingGame.Defense
         public void NotifyCodeApplied(int id, bool empty)
         {
             Tell(RobotName(id) + (empty ? " · 코드 없음" : " · 적용 완료"));
+            // Autosave applies on every edit; log the inventory only when the reservation actually changed.
+            string inventory = InventoryLine();
+            if (inventory != lastInventory) Trace(lastInventory = inventory);
             ReportTutorialAction("Editor.ApplyProgram", "TargetClicked", "ProgramApplied");
         }
         public bool TutorialAllows(string key) => !tutorial || tutorial.CanPerformAction(key);
+        // The robot's Play button (play feedback 4): calls its function again once it has ended; a press while it runs does
+        // nothing. The tutorial knows the button by the robot's place in id order, like Robot.Unit.
+        public void PlayRobot(int id)
+        {
+            string key = TutorialKeys.Play(TutorialWatcher.RobotIndex(Simulation, id));
+            if (!TutorialAllows(key) || !Simulation.Invoke(id)) return;
+            UISound.Play("click"); ReportTutorialAction(key, TutorialSignals.TargetClicked);
+        }
         public void ReportTutorialAction(string key, params string[] signals) { if (tutorial) foreach (var signal in signals) tutorial.ReportSuccess(key, signal); }
         public void ReportTutorialDrop(RectTransform source, RectTransform destination, string signal) => tutorial?.ReportDrop(source, destination, signal);
         public void ToggleDeveloper()
@@ -323,6 +402,10 @@ namespace CodingGame.Defense
             string error = Simulation.DeploymentError(robots[index].stats.role);
             if (error != null) { palette = -1; RejectPlacement(index, error); return; }
             palette = index; selected = 0;
+            // The marker under the cursor is the robot's body as the placement rules see it (play feedback 3: a 0.9 disc under a
+            // 1.5 body made it hard to judge what fits).
+            float body = robots[index].stats.radius * 2;
+            placementMarker.localScale = new Vector3(body, placementMarker.localScale.y, body);
             Tell(robots[index].displayName + " 배치 · 허용 위치 클릭 / 우클릭 또는 ESC 취소");
             RefreshHUD();
             ReportTutorialAction(tutorialKey, "TargetClicked");
@@ -344,15 +427,59 @@ namespace CodingGame.Defense
             // A short drag ending on the button is still a robot selection. Keep it armed for a map click.
             placementMarker.gameObject.SetActive(false); rangeRing.Hide();
         }
+        DefenseActorView SpawnRobotView(RobotState bot)
+        {
+            var view = Instantiate(robots[bot.DefinitionIndex].prefab, DefenseViews.World(bot.Position), Quaternion.identity, actorsRoot);
+            view.Face(battleCamera.transform.position); // face shown to the player when placed
+            robotViews.Add(bot.Id, view);
+            return view;
+        }
+        // 1-3: the tutorial stands the lesson's shooter by the road, far enough past the entrance (8) that the enemies walk into
+        // its range (7) and close enough to the road that they pass within 3 of it (the lesson's condition); out on the open
+        // floor that condition might never come true.
+        public void PlaceLessonShooter()
+        {
+            int index = Array.FindIndex(robots, r => r.stats.role == RobotRole.Shooter);
+            var sim = Simulation;
+            if (index < 0 || sim == null || !sim.CanEdit || sim.Robots.Any(r => r.Spec.role == RobotRole.Shooter)) return;
+            var groups = sim.Setup.Waves[sim.WaveIndex];
+            var road = sim.Setup.Routes[groups.Length > 0 ? groups[0].RouteIndex : 0].Points;
+            for (float along = 8; along < 20; along += .5f)
+                for (float off = 2; off <= 2.81f; off += .2f)
+                    foreach (float side in new[] { 1f, -1f })
+                    {
+                        var (point, normal) = Along(road, along);
+                        var spot = point + normal * off * side;
+                        if (sim.PlacementError(robots[index].stats, spot) != null) continue;
+                        SpawnRobotView(sim.Place(robots[index].stats, index, spot, out _));
+                        sounds.Play("place"); SyncViews(0); RefreshHUD();
+                        return;
+                    }
+            throw new InvalidOperationException("1-3 원거리 로봇을 세울 길 옆 자리가 없습니다.");
+        }
+        // The point at distance s along a polyline and the unit normal to its left there.
+        static (Point point, Point normal) Along(Point[] points, float s)
+        {
+            for (int i = 1; i < points.Length; i++)
+            {
+                var segment = points[i] - points[i - 1]; float length = segment.Length();
+                if (s <= length || i == points.Length - 1)
+                {
+                    var dir = length > 0 ? segment / length : new Point(1, 0);
+                    return (points[i - 1] + dir * Math.Min(s, length), new Point(-dir.Y, dir.X));
+                }
+                s -= length;
+            }
+            return (points[0], new Point(0, 1));
+        }
         public bool PlaceRobot(int index, Vector3 position)
         {
             if (index < 0 || index >= robots.Length ||
                 tutorial && (!tutorial.AllowsWorldPoint(position) || !tutorial.AllowsRobotChoice(index))) return false;
             var bot = Simulation.Place(robots[index].stats, index, new Point(position.x, position.z), out var error);
             if (bot == null) { RejectPlacement(index, error); return false; }
-            var view = Instantiate(robots[index].prefab, DefenseViews.World(bot.Position), Quaternion.identity, actorsRoot);
-            view.Face(battleCamera.transform.position); // face shown to the player when placed
-            robotViews.Add(bot.Id, view);
+            var view = SpawnRobotView(bot);
+            sounds.Play("place");
             // The tutorial asks the player to click the new robot next, so its range and menu stay hidden until then.
             selected = TutorialBlocksInput ? 0 : bot.Id; HidePlacement();
             RegisterSelectedRobot(bot, view);
@@ -379,12 +506,14 @@ namespace CodingGame.Defense
         {
             if (tutorial) tutorial.RegisterWorldTarget(TutorialKeys.SelectedRobot, view.gameObject, RobotBounds(robot));
         }
-        // A robot's clickable body as a tutorial target.
+        // A robot's clickable body as a tutorial target, tall enough to take the status tag over its head too (play feedback 3:
+        // the focus box ran along the '코드 없음' tag's top edge).
         static Bounds RobotBounds(RobotState robot)
         {
-            float width = Mathf.Max(robot.Spec.radius * 2.5f, RobotWidth);
-            return new Bounds(DefenseViews.World(robot.Position, RobotHeight / 2), new Vector3(width, RobotHeight, width));
+            float width = Mathf.Max(robot.Spec.radius * 2.5f, RobotWidth), height = RobotHeight + RobotTagHeight;
+            return new Bounds(DefenseViews.World(robot.Position, height / 2), new Vector3(width, height, width));
         }
+        const float RobotTagHeight = .35f;
         public void DevelopSelected()
         {
             if (!TutorialAllows("Battle.Develop")) return;
@@ -395,10 +524,10 @@ namespace CodingGame.Defense
         {
             if (!TutorialAllows("Battle.Upgrade")) return;
             string error = Simulation.UpgradeError(selected);
-            if (error != null) { Tell(error); return; }
+            if (error != null) { Tell(error); UISound.Play("error"); return; }
             if (Simulation.UpgradeRobot(selected))
             {
-                Tell(RobotName(selected) + " · 레벨업 완료");
+                Tell(RobotName(selected) + " · 레벨업 완료"); UISound.Play("upgrade");
                 ReportTutorialAction("Battle.Upgrade", "TargetClicked", "RobotUpgraded");
             }
         }
@@ -416,12 +545,11 @@ namespace CodingGame.Defense
         void Update()
         {
             if (Simulation == null || HelpOpen) return;
-            SetPlacementTint(palette >= 0);
             bool dialogueInput = tutorial && tutorial.DialogueInputCaptured;
             var mouse = dialogueInput ? null : Mouse.current; var keyboard = dialogueInput ? null : Keyboard.current;
             bool tutorialActive = TutorialBlocksInput;
             // Keep F1 and offer F2 when a recording overlay intercepts the help key.
-            if (!tutorialActive && keyboard != null && (keyboard.f1Key.wasPressedThisFrame || keyboard.f2Key.wasPressedThisFrame)) ToggleDeveloper();
+            if (DeveloperTools && !tutorialActive && keyboard != null && (keyboard.f1Key.wasPressedThisFrame || keyboard.f2Key.wasPressedThisFrame)) ToggleDeveloper();
             if (!tutorialActive && keyboard != null && keyboard.tabKey.wasPressedThisFrame && !codeEditor.IsOpen)
             {
                 if (DeveloperMode) ToggleDeveloper();
@@ -429,8 +557,9 @@ namespace CodingGame.Defense
             }
             if (!tutorialActive && keyboard != null && !DeveloperMode && !codeEditor.IsOpen && !inventoryUI.IsOpen)
             {
-                if (keyboard.spaceKey.wasPressedThisFrame) { if (Simulation.Phase == BattlePhase.Ready) StartBattle(); else TogglePause(); }
-                if (keyboard.escapeKey.wasPressedThisFrame) CancelPlacement();
+                if (keyboard.spaceKey.wasPressedThisFrame && !playerHUD.MenuOpen) { if (Simulation.Phase == BattlePhase.Ready) StartBattle(); else TogglePause(); }
+                // Esc first drops a robot being placed; otherwise it opens or closes the menu.
+                if (keyboard.escapeKey.wasPressedThisFrame) { if (palette >= 0 || draggingRobot) CancelPlacement(); else playerHUD.ToggleMenu(); }
             }
             if (keyboard != null && keyboard.fKey.wasPressedThisFrame && SpeedUnlocked && !DeveloperMode &&
                 !codeEditor.IsOpen && !inventoryUI.IsOpen) ToggleSpeed();
@@ -477,9 +606,12 @@ namespace CodingGame.Defense
                 EditorObserve("Battle",Simulation,evt);
 #endif
                 hitEffects.Show(evt, actorsRoot, Vector3.zero, battleCamera.transform.rotation, source, effectRing);
+                sounds.Play(evt.Kind);
+                playerHUD.ShowCombatText(evt);
                 if (evt.Kind == "drop") dropViews.Add(Instantiate(blockDropPrefab, DefenseViews.World(evt.Position, .35f), Quaternion.Euler(0, 45, 0), actorsRoot));
             }
             Simulation.Events.Clear();
+            sounds.Follow(Simulation);
             if (Simulation.Phase != BattlePhase.Running && Simulation.Phase != BattlePhase.Paused) ClearCombatVisuals();
             var current = Simulation.FindRobot(selected);
             // A tutorial highlight (Robot.Range.N) shows that robot's range glowing, selected or not.
@@ -528,28 +660,6 @@ namespace CodingGame.Defense
         // The robot models at scale 1.15 (CharacterAnimation): about 2.5-2.6 tall and 1.9 wide, standing on a .24 plate.
         public const float RobotHeight = 2.7f;
         const float RobotWidth = 2f, RobotClickHeight = RobotHeight;
-        // While a robot is being placed the map shows where it may go: floor white, road red. Restored when placing ends.
-        bool placementTint;
-        (Color upper, Color inner, Color border, bool floors, bool roads) mapColors;
-        void SetPlacementTint(bool on)
-        {
-            var map = routes.Length > 0 ? routes[0].Map : null;
-            if (on == placementTint || !map) return;
-            placementTint = on;
-            if (on)
-            {
-                mapColors = (map.upperColor, map.roadInnerColor, map.roadBorderColor, map.useFloorColors, map.useRoadColors);
-                map.upperColor = Color.white; map.roadInnerColor = new Color(.95f, .27f, .27f); map.roadBorderColor = new Color(.7f, .12f, .12f);
-                map.useFloorColors = map.useRoadColors = true;
-            }
-            else
-            {
-                map.upperColor = mapColors.upper; map.roadInnerColor = mapColors.inner; map.roadBorderColor = mapColors.border;
-                map.useFloorColors = mapColors.floors; map.useRoadColors = mapColors.roads;
-            }
-            map.ApplyFloorColors();
-        }
-        void OnDisable() => SetPlacementTint(false);
         // The route's points with the last one pulled back one cell: the walk ends on the core, the painted road a cell before.
         static Point[] RoadPoints(Route path)
         {
@@ -629,7 +739,8 @@ namespace CodingGame.Defense
                 ? BattleSpeed * (tutorial ? tutorial.BattlePace : 1f) : 1;
             foreach (var bot in Simulation.Robots)
             {
-                var view = robotViews[bot.Id];
+                // A robot placed straight into the simulation (dev tools, tests) has no view; skip it instead of throwing every frame.
+                if (!robotViews.TryGetValue(bot.Id, out var view)) continue;
                 view.SyncRobot(bot, DefenseViews.World(bot.Position), battleCamera.transform.rotation); view.TickVisual(elapsed); view.SetPace(pace);
             }
             foreach (var enemy in Simulation.Enemies)
@@ -689,7 +800,7 @@ namespace CodingGame.Defense
             {
                 string health = bot.Health.HasValue ? $"HP {bot.Health:0}/{bot.MaxHealth:0} · 저지 {Simulation.Enemies.Count(e => e.BlockedBy == bot.Id)}/{bot.Spec.blockCapacity}" : "체력 없음 · 적 피해 대상 제외";
                 string control = bot.Program == null || bot.Program.IsEmpty ? "빈 로봇 · 코드 필요" : bot.Program.Fault == null ? "코드: " + bot.Program.Name : "코드 중지: " + bot.Program.Fault;
-                if (bot.Program != null && !bot.Program.IsEmpty) control += $" · 함수 {bot.Program.CompletedRuns}/{Simulation.FunctionRepeatLimit}회";
+                if (bot.Program != null && !bot.Program.IsEmpty) control += bot.Program.Running ? " · 실행 중" : $" · 실행 {bot.Program.CompletedRuns}번 끝";
                 string attacks = $"공격 {bot.AttacksThisWave}회";
                 selectionText.text = $"{robots[bot.DefinitionIndex].displayName}  #{bot.Id}\n\n{health}\n사거리 {bot.Range:0.00}    피해 {Simulation.ActionDamage(bot, bot.Action):0.0}\n공격 간격 {Simulation.ActionInterval(bot, bot.Action):0.00}s\n\n{ActionName(bot.Action)}\n{CompatibilityText(bot)}\n{control}\n실행 {bot.Executions}회 · {attacks} · 버프 {bot.Buffs.Count}개";
             }
@@ -708,10 +819,16 @@ namespace CodingGame.Defense
         {
             Tell($"{robots[index].displayName} · {error}");
             playerHUD.ShowPlacementError(error);
+            sounds.Play("deny");
         }
         [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
         void Trace(string text) => Debug.Log($"[Defense] S{stage} W{Simulation.WaveIndex + 1} {Simulation.Phase} robots={Simulation.Robots.Count}/{Simulation.Setup.RobotLimit} core={Simulation.BaseHealth} | {text}", this);
         void Tell(string text) { StatusMessage = text; message.text = text; Trace(text); }
+        // One shared block inventory: "Slash 2 (free 1 · robot3 1)" = owned, left for a new robot, held by each robot.
+        string lastInventory;
+        string InventoryLine() => "inventory " + string.Join(", ", Simulation.Inventory.OrderBy(p => p.Key).Select(p =>
+            $"{p.Key} {p.Value} (free {Simulation.Available(p.Key)}" + string.Concat(Simulation.Robots.Select(r => (r, n: Simulation.Reserved(r, p.Key)))
+                .Where(x => x.n > 0).Select(x => $" · robot{x.r.Id} {x.n}")) + ")"));
         static string ActionName(RobotAction action) => DefenseProgression.Label(DefenseProgression.ActionBlock(action));
     }
 }

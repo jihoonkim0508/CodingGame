@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -20,11 +21,17 @@ namespace CodingGame.Defense
         TMP_Text advanceHint;
         [SerializeField, Tooltip("Top position keeps this gap so the HUD header stays readable.")] float topInset = 96;
         [SerializeField, Tooltip("Bottom position sits this much higher than authored, clear of the HUD's bottom bar.")] float bottomLift = 170;
+        [SerializeField, Tooltip("안내 로봇 디버의 표정, GuideMood 순서(Normal, Blink, Happy, Surprised, Worried, Determined). 비우면 시퀀스 초상화를 쓴다.")]
+        Sprite[] guideFaces = Array.Empty<Sprite>();
+        GuideMood mood;
+        float nextBlink;
         Coroutine typing, entrance;
         RectTransform panelRect;
         Vector2 bottomAnchorMin, bottomAnchorMax, bottomPosition, bottomPivot;
         public bool IsTyping => typing != null;
         public bool IsVisible => panel && panel.activeSelf;
+        // Where 디버's face is, for the pointer to fly out from.
+        public RectTransform Portrait => portrait && IsVisible ? portrait.rectTransform : null;
         public bool CanAdvance => nextText && nextText.gameObject.activeInHierarchy && nextText.interactable;
 
         public void Initialize(Action onPrevious, Action onNext)
@@ -45,13 +52,22 @@ namespace CodingGame.Defense
             Hide();
         }
 
-        public void Show(TutorialSequence sequence, TutorialDialoguePosition position, string text, bool animate, string speakerName)
+        // voiceLine: the script line as written, to find its recording (GuideSpeech); null keeps quiet.
+        public void Show(TutorialSequence sequence, TutorialDialoguePosition position, string text, bool animate, string speakerName, string voiceLine = null)
         {
             StopTyping();
+            float spoken = Speak(voiceLine);
             Place(position);
             panel.SetActive(true);
-            bool surprised = text != null && (text.Contains("뭐야") || text.Contains("위험해") || text.Contains("갑자기"));
-            portrait.sprite = sequence.speakerPortrait ? sequence.speakerPortrait :
+            // The PR's guide art (default and surprised) when assigned; otherwise 디버's mood faces.
+            mood = GuideMoods.For(text);
+            bool surprised = mood == GuideMood.Surprised || mood == GuideMood.Worried;
+            if (HasGuideFaces)
+            {
+                foreach (Transform shape in portrait.transform) shape.gameObject.SetActive(false);
+                portrait.type = Image.Type.Simple; portrait.preserveAspect = true; portrait.color = Color.white;
+            }
+            portrait.sprite = HasGuideFaces ? guideFaces[(int)mood] : sequence.speakerPortrait ? sequence.speakerPortrait :
                 surprised && surprisedPortrait ? surprisedPortrait : defaultPortrait;
             portrait.enabled = portrait.sprite;
             speaker.text = string.IsNullOrWhiteSpace(speakerName) || speakerName.StartsWith("안내", StringComparison.Ordinal) || speakerName == "도우미 로봇" ? "디버" : speakerName;
@@ -61,8 +77,45 @@ namespace CodingGame.Defense
             dialogue.ForceMeshUpdate();
             int characterCount = dialogue.textInfo.characterCount;
             dialogue.maxVisibleCharacters = animate ? 0 : int.MaxValue;
-            if (animate && characterCount > 0) typing = StartCoroutine(Type(sequence.typeSpeed, characterCount));
+            // With a voice the letters keep pace with it (finishing a little before it does) instead of racing ahead.
+            float speed = spoken > 0 ? Mathf.Clamp(characterCount / (spoken * .85f), 12, sequence.typeSpeed) : sequence.typeSpeed;
+            if (animate && characterCount > 0) typing = StartCoroutine(Type(speed, characterCount));
         }
+
+        // The player's voice switch (Esc menu), kept across sessions.
+        const string VoiceKey = "CodingGame.Voice.On";
+        public static bool VoiceOn { get => PlayerPrefs.GetInt(VoiceKey, 1) == 1; set { PlayerPrefs.SetInt(VoiceKey, value ? 1 : 0); PlayerPrefs.Save(); } }
+        AudioSource voice;
+        // Plays the line's recording, if it has one, and returns its length in seconds; anything already speaking stops.
+        // The source is its own scene object: the panel is off while a 시스템 banner speaks (1-1 A01 stayed silent).
+        public float Speak(string line)
+        {
+            if (!voice) { voice = new GameObject("Guide voice").AddComponent<AudioSource>(); voice.playOnAwake = false; voice.spatialBlend = 0; }
+            voice.Stop();
+            var clip = VoiceOn && !string.IsNullOrEmpty(line) ? Resources.Load<AudioClip>("Voice/" + GuideSpeech.Key(line)) : null;
+            if (!clip) return 0;
+            voice.clip = clip; voice.Play();
+            return clip.length;
+        }
+        public void StopVoice() { if (voice) voice.Stop(); }
+
+        bool HasGuideFaces => !defaultPortrait && guideFaces.Length == Enum.GetValues(typeof(GuideMood)).Length && guideFaces.All(face => face);
+        // A calm face blinks now and then; every face bobs while its line types out. Once a line is fully shown and a
+        // click moves on, the next button breathes so the player knows the game waits for them.
+        void Update()
+        {
+            if (!IsVisible) return;
+            float now = Time.unscaledTime;
+            bool waiting = typing == null && nextText.interactable;
+            float nudge = Mathf.Sin(Mathf.Clamp01(1 - (now - nudgedAt) / .45f) * Mathf.PI) * .35f;
+            nextText.transform.localScale = Vector3.one * ((waiting ? 1 + .07f * (.5f + .5f * Mathf.Sin(now * 5)) : 1) + nudge);
+            if (!HasGuideFaces) return;
+            if (now > nextBlink + BlinkSeconds) nextBlink = now + UnityEngine.Random.Range(2.5f, 4.5f);
+            bool blink = mood == GuideMood.Normal && now >= nextBlink;
+            portrait.sprite = guideFaces[(int)(blink ? GuideMood.Blink : mood)];
+            portrait.rectTransform.anchoredPosition = new Vector2(0, typing != null ? Mathf.Abs(Mathf.Sin(now * 14)) * 5 : 0);
+        }
+        const float BlinkSeconds = .12f;
 
         public RectTransform Panel => panelRect;
         public bool IsCentered => centered;
@@ -115,6 +168,10 @@ namespace CodingGame.Defense
 #endif
         }
 
+        float nudgedAt = -10;
+        // A click the tutorial turned away (전투 시작 while a line still waits): the next button jumps to show what to press.
+        public void Nudge() => nudgedAt = Time.unscaledTime;
+
         public void SetNavigation(bool canPrevious, bool canNext, bool action = false, bool dismissable = false, bool automatic = false)
         {
             previousText.interactable = canPrevious; nextText.interactable = canNext;
@@ -127,7 +184,7 @@ namespace CodingGame.Defense
 
         public void Hide()
         {
-            StopTyping(); StopEntrance();
+            StopTyping(); StopEntrance(); StopVoice();
             if (panel) panel.SetActive(false);
         }
 

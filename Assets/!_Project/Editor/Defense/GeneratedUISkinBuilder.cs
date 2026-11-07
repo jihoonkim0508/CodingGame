@@ -50,6 +50,8 @@ namespace CodingGame.Defense.Editor {
    EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());AssetDatabase.SaveAssets();
    Debug.Log("Generated sprites applied: HUD, deck, dialogue, developer tool, blocks. Backup "+backup);
   }
+  // The mda-upgrade branch's UITheme panels (UIRestyle) are replaced like the old panel_glass; icons and fills are kept.
+  internal static bool ThemePanel(Sprite s)=>s.name.StartsWith("panel_glass")||new[]{"ui_card","ui_card_flat","ui_button","ui_pill","ui_bar_top","ui_bar_bottom","ui_chip","ui_tab"}.Contains(s.name);
   static Sprite Single(string name,Vector4 border){
    var path=Root+name+".png";AssetDatabase.ImportAsset(path);var importer=(TextureImporter)AssetImporter.GetAtPath(path);
    importer.textureType=TextureImporterType.Sprite;importer.spriteImportMode=SpriteImportMode.Single;importer.spriteBorder=border;importer.npotScale=TextureImporterNPOTScale.None;
@@ -79,7 +81,7 @@ namespace CodingGame.Defense.Editor {
   static void Style(Transform root){
    foreach(var image in root.GetComponentsInChildren<Image>(true)){
     if(image.name=="RobotPortrait"||image.name=="Symbol"||image.name=="BaseShield"||image.name=="Icon"||image.name=="Core shield")continue;
-    if(image.sprite && !image.sprite.name.StartsWith("panel_glass")&&!image.GetComponent<LearningCardShape>() && image.sprite!=panel && image.sprite!=button&&image.sprite!=surface&&image.sprite!=primaryButton)continue;
+    if(image.sprite && !ThemePanel(image.sprite)&&!image.GetComponent<LearningCardShape>() && image.sprite!=panel && image.sprite!=button&&image.sprite!=surface&&image.sprite!=primaryButton)continue;
     if(image.name=="Reward"||image.name=="Inventory"||image.name=="SystemBoot")continue;
     var zone=image.GetComponent<CommandDropZone>();
     if(zone&&zone.FreePlacement){image.sprite=null;image.color=Color.clear;continue;}

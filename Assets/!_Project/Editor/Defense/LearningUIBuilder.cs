@@ -67,7 +67,7 @@ namespace CodingGame.Defense.Editor
             {
                 if(image.name=="Icon") { image.color=Blue; continue; }
                 if(image.name=="Reward" || image.name=="Inventory") continue; // retain modal dimmers
-                if(image.sprite && !image.sprite.name.StartsWith("panel_glass")) continue; // preserve content images
+                if(image.sprite && !GeneratedUISkinBuilder.ThemePanel(image.sprite)) continue; // preserve content images
                 Card(image, image.name=="Header"?Sky:Paper, image.name=="Header"||image.name=="Deck"?0:14,1.5f);
             }
             foreach(var text in canvas.GetComponentsInChildren<TMP_Text>(true)) text.color=Ink;

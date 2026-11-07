@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using UnityEngine;
 
 namespace CodingGame.Defense
@@ -39,6 +40,8 @@ namespace CodingGame.Defense
         public bool outline = true;
         public TutorialCompletionMode completionMode;
         public string completionSignal;
+        [Tooltip("완료 시 필요한 슬롯 블록. 'Editor.Code.Arg.2.0:Variable'처럼 슬롯 키:블록 종류로 지정합니다.")]
+        public string requiredSlotBlock;
         public string sourceKey, destinationKey;
         public bool pauseBattle = true, slowBattle, allowPreview;
         [Min(0)] public float highlightPadding = 10;
@@ -63,6 +66,7 @@ namespace CodingGame.Defense
         [Min(0)] public int robotIndex;
         [Tooltip("1-3 조건문 소개용으로 적 찾기·거리 저장 두 줄을 준비합니다. 다른 로봇의 코드는 유지합니다.")]
         public bool prepareDistanceExample;
+        [Tooltip("단계 진입 시 원거리 로봇을 입구 근처 길 옆에 세웁니다(1-3).")] public bool placeShooter;
         public bool prepareBaselineExample;
         public bool restartPreview;
         [Tooltip("흑백 화면 가운데에 대화창을 크게 띄웁니다. 이어지는 단계도 켜 두면 가운데에 남고, 꺼진 단계로 넘어갈 때 원래 자리로 줄어들며 이동합니다.")] public bool introEntrance;
@@ -73,6 +77,8 @@ namespace CodingGame.Defense
         [Tooltip("행동을 기다리는 단계에서 다음 버튼을 누르면 강조(어둡게·테두리)를 걷습니다. 예: 직접 코드를 짜는 단계.")] public bool dismissable;
         [Tooltip("0보다 크면 행동이 일찍 와도 글자가 다 나오고 이 시간(초)이 지난 뒤에 다음 단계로 넘어갑니다(1-1 D06: 미리보기가 바로 적중해도 대사를 읽게).")]
         [Min(0)] public float holdSeconds;
+        [Tooltip("trigger 신호가 온 뒤 이 시간(초)이 지나야 대사가 나옵니다(1-3 E03: 첫 베기를 눈으로 본 뒤 '베었다!').")]
+        [Min(0)] public float triggerDelay;
     }
 
     [CreateAssetMenu(menuName = "CodingGame/Tutorial/Sequence")]
@@ -86,5 +92,8 @@ namespace CodingGame.Defense
         [Range(1f, 40f), Tooltip("초당 글자 수")]
         public float typeSpeed = 3f;
         public TutorialStep[] steps = Array.Empty<TutorialStep>();
+        // Only lines until its first waiting step (no placing or coding asked): safe to replay over a wave that was retried
+        // with its robots and code put back (the free-play waves 1-2, 1-4, 1-5; 1-1 and 1-3 guide placing and coding).
+        public bool OnlyTalksBeforeBattle => steps.TakeWhile(s => string.IsNullOrEmpty(s.trigger)).All(s => s.kind == TutorialStepKind.Dialogue);
     }
 }

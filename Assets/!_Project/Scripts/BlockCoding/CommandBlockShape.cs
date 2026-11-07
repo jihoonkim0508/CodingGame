@@ -15,6 +15,10 @@ namespace CodingGame.BlockCoding
         internal const float ControlFooterHeight = 24;
         public float HeaderHeight { get; set; } = 48;
         public bool JoinNext { get; set; }
+        // Out of stock or left behind while dragged: the face mixes towards the dark workspace. Lifted marks the dragged copy.
+        public float Fade { get; set; }
+        public bool Lifted { get; set; }
+        Color Tint => Fade > 0 ? Color.Lerp(color, new Color(.12f, .18f, .25f, color.a), Fade) : color;
         readonly List<UIVertex> hitTriangles = new List<UIVertex>();
         Texture2D generatedSurface;
         Texture2D openSurface;
@@ -106,10 +110,10 @@ namespace CodingGame.BlockCoding
             for(int row=0;row<3;row++)for(int column=0;column<3;column++){
                 if(JoinNext && row==0 && column>0)continue;
                 int start=vh.currentVertCount;
-                vh.AddVert(new Vector3(x[column],y[row]),color,new Vector2(u[column],v[row]));
-                vh.AddVert(new Vector3(x[column],y[row+1]),color,new Vector2(u[column],v[row+1]));
-                vh.AddVert(new Vector3(x[column+1],y[row+1]),color,new Vector2(u[column+1],v[row+1]));
-                vh.AddVert(new Vector3(x[column+1],y[row]),color,new Vector2(u[column+1],v[row]));
+                vh.AddVert(new Vector3(x[column],y[row]),Tint,new Vector2(u[column],v[row]));
+                vh.AddVert(new Vector3(x[column],y[row+1]),Tint,new Vector2(u[column],v[row+1]));
+                vh.AddVert(new Vector3(x[column+1],y[row+1]),Tint,new Vector2(u[column+1],v[row+1]));
+                vh.AddVert(new Vector3(x[column+1],y[row]),Tint,new Vector2(u[column+1],v[row]));
                 vh.AddTriangle(start,start+1,start+2);vh.AddTriangle(start,start+2,start+3);
             }
         }
@@ -142,7 +146,7 @@ namespace CodingGame.BlockCoding
             Vector2 min=points[0],max=points[0];
             foreach(var p in points){min=Vector2.Min(min,p);max=Vector2.Max(max,p);}
             Vector2 size=max-min;
-            foreach (var p in points) vh.AddVert(new Vector3(r.xMin + p.x, r.yMax - p.y), color,
+            foreach (var p in points) vh.AddVert(new Vector3(r.xMin + p.x, r.yMax - p.y), Tint,
                 new Vector2(Mathf.Lerp(.14f,.86f,(p.x-min.x)/Mathf.Max(.001f,size.x)),
                     Mathf.Lerp(controlFamily && !control ? .94f : .84f,controlFamily && !control ? .62f : .16f,(p.y-min.y)/Mathf.Max(.001f,size.y))));
             for (int i = 1; i < points.Length - 1; i++) vh.AddTriangle(start, start + i, start + i + 1);
