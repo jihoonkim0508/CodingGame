@@ -208,6 +208,62 @@ namespace CodingGame.Defense.Editor
             var so = new SerializedObject(target); so.FindProperty(field).objectReferenceValue = value; so.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        // The stage map's lock barriers and purification fields (meshes and materials made per island at load) saved in
+        // Stage.unity with their meshes and materials in one asset; the boss's violet aura (motes, light, halo) as a prefab
+        // copied onto the boss. Rerunnable.
+        const string StageEffects = "Assets/!_Project/Resources/ArtScripts/StageSelection/StageEffects.asset", BossAura = "Assets/!_Project/Resources/Effects/BossAura.prefab";
+        [MenuItem("Tools/Optimize/Stage Visuals")]
+        public static void StageVisuals()
+        {
+            EditScene(StageScene, scene =>
+            {
+                var islands = All<Renderer>(scene).Where(r => r.gameObject.activeInHierarchy && r.gameObject.name == "Stage").OrderBy(r => r.transform.position.x).ToArray();
+                foreach (var island in islands)
+                {
+                    foreach (var old in island.GetComponentsInChildren<CodingGame.StageMap.StageLockVisual>(true)) Object.DestroyImmediate(old.gameObject);
+                    foreach (var old in island.GetComponentsInChildren<CodingGame.StageMap.StagePurificationVisual>(true)) Object.DestroyImmediate(old.gameObject);
+                }
+                AssetDatabase.DeleteAsset(StageEffects);
+                var palette = Resources.Load<CodingGame.StageMap.StageMaterialPalette>("StageMaterialPalette");
+                Object container = null;
+                void Keep(Object made, string name)
+                {
+                    made.name = name;
+                    if (!container) { AssetDatabase.CreateAsset(made, StageEffects); container = made; }
+                    else AssetDatabase.AddObjectToAsset(made, container);
+                }
+                for (int i = 0; i < islands.Length; i++)
+                {
+                    var node = NodeOf(islands[i]);
+                    node.Configure(i + 1, palette);
+                    var barrier = node.GetComponentInChildren<CodingGame.StageMap.StageLockVisual>(true);
+                    var field = node.GetComponentInChildren<CodingGame.StageMap.StagePurificationVisual>(true);
+                    var b = new SerializedObject(barrier); var f = new SerializedObject(field);
+                    Keep(b.FindProperty("wallMesh").objectReferenceValue, $"Stage {i + 1} lock wall");
+                    Keep(b.FindProperty("barrierMaterial").objectReferenceValue, $"Stage {i + 1} lock hologram");
+                    Keep(b.FindProperty("lineMaterial").objectReferenceValue, $"Stage {i + 1} lock outline");
+                    Keep(f.FindProperty("field").objectReferenceValue, $"Stage {i + 1} purified field");
+                    Keep(f.FindProperty("material").objectReferenceValue, $"Stage {i + 1} purified mint");
+                    barrier.MarkBaked(); field.MarkBaked();
+                    EditorUtility.SetDirty(barrier); EditorUtility.SetDirty(field);
+                }
+                static CodingGame.StageMap.StageNode NodeOf(Renderer r) => r.GetComponent<CodingGame.StageMap.StageNode>() ?? r.gameObject.AddComponent<CodingGame.StageMap.StageNode>();
+                AssetDatabase.SaveAssets();
+            });
+            if (!AssetDatabase.IsValidFolder("Assets/!_Project/Resources/Effects")) AssetDatabase.CreateFolder("Assets/!_Project/Resources", "Effects");
+            var root = new GameObject("BossAura");
+            try
+            {
+                DefenseBossAura.Build(root.transform, out _, out var halo, out var haloMaterial);
+                const string haloPath = "Assets/!_Project/Resources/Effects/BossAuraHalo.mat";
+                AssetDatabase.DeleteAsset(haloPath); AssetDatabase.CreateAsset(haloMaterial, haloPath);
+                halo.sharedMaterial = haloMaterial;
+                PrefabUtility.SaveAsPrefabAsset(root, BossAura);
+            }
+            finally { Object.DestroyImmediate(root); }
+            Debug.Log("[Optimize13] stage visuals and boss aura saved");
+        }
+
         // The alarm banner's letters: the heading font's material with a red glow, outline and drop.
         static Material AlarmGlow()
         {
@@ -271,6 +327,9 @@ namespace CodingGame.Defense.Editor
             var stage = EditorSceneManager.OpenScene(StageScene, OpenSceneMode.Additive);
             try
             {
+                var barriers = All<StageMap.StageLockVisual>(stage).ToArray(); var fields = All<StageMap.StagePurificationVisual>(stage).ToArray();
+                Check(barriers.Length > 0 && barriers.All(v => v.Baked) && fields.Length == barriers.Length && fields.All(v => v.Baked),
+                    $"the stage map's lock barriers and purification fields are saved ({barriers.Length} islands)");
                 var huds = All<StageMap.StageMapHUD>(stage).ToArray();
                 Check(huds.Length == 1 && huds[0].Baked, "125 Stage.unity saves the map UI (canvas, cards, pointer)");
                 var hud = huds.FirstOrDefault();
@@ -298,6 +357,7 @@ namespace CodingGame.Defense.Editor
                     .Concat(All<TutorialPointer>(defense).Where(c => !c.Baked).Select(c => c.name))
                     .Concat(All<TutorialSystemAlert>(defense).Where(c => !c.Baked).Select(c => c.name))
                     .Concat(All<DefenseBossWarning>(defense).Where(c => !c.Baked).Select(c => c.name)).ToArray();
+                Check(AssetDatabase.LoadAssetAtPath<GameObject>(BossAura), "the boss aura is a saved prefab");
                 Check(unbaked.Length == 0, "128 the battle's start-up UI is saved in the scene" + (unbaked.Length > 0 ? " (not: " + string.Join(", ", unbaked) + ")" : ""));
                 var hudCode = File.ReadAllText("Assets/!_Project/Scripts/Defense/DefensePlayerHUD.cs");
                 Check(!hudCode.Contains("button.onClick.RemoveAllListeners(); button.onClick.AddListener(() => battle.PlayRobot(id))"), "132 Play listeners wired once, not every frame");

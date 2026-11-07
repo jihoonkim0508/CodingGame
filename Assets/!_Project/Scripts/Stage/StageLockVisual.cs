@@ -8,9 +8,17 @@ namespace CodingGame.StageMap
     [DisallowMultipleComponent]
     public sealed class StageLockVisual : MonoBehaviour
     {
-        Material barrierMaterial, lineMaterial;
-        Mesh wallMesh;
-        LineRenderer lowerRing, upperRing;
+        // Built once in the editor and saved (Tools/Optimize/Stage Visuals: the mesh and materials as assets); the barrier's
+        // pulse, rejection and release go through a property block, so its saved material is never changed.
+        [SerializeField, HideInInspector] Material barrierMaterial, lineMaterial;
+        [SerializeField, HideInInspector] Mesh wallMesh;
+        [SerializeField, HideInInspector] LineRenderer lowerRing, upperRing;
+        [SerializeField, HideInInspector] MeshRenderer wall;
+        [SerializeField, HideInInspector] bool baked;
+        public bool Baked => baked;
+        MaterialPropertyBlock propertyBlock;
+        MaterialPropertyBlock block => propertyBlock ??= new MaterialPropertyBlock();
+        static readonly int ReleaseId = Shader.PropertyToID("_Release"), PulseId = Shader.PropertyToID("_Pulse"), RejectId = Shader.PropertyToID("_Reject");
         float rejectedAt = -10f;
         int stageNumber;
         Camera presentationCamera;
@@ -24,6 +32,7 @@ namespace CodingGame.StageMap
         {
             stageNumber = number;
             presentationCamera=Camera.main;
+            if (wall) return;
             var center = transform.InverseTransformPoint(bounds.center);
             var size = bounds.size;
             float x = size.x * .52f, z = size.z * .52f;
@@ -58,7 +67,7 @@ namespace CodingGame.StageMap
             wallMesh = new Mesh { name = "Rounded stage quarantine" };
             wallMesh.vertices = vertices; wallMesh.uv = uv; wallMesh.triangles = triangles; wallMesh.RecalculateBounds();
             gameObject.AddComponent<MeshFilter>().sharedMesh = wallMesh;
-            var renderer = gameObject.AddComponent<MeshRenderer>();
+            var renderer = wall = gameObject.AddComponent<MeshRenderer>();
             renderer.sharedMaterial = barrierMaterial;
             renderer.shadowCastingMode = ShadowCastingMode.Off; renderer.receiveShadows = false;
             lowerRing = Ring("Sealed perimeter", lower, .065f);
@@ -80,14 +89,14 @@ namespace CodingGame.StageMap
         {
             IsReleasing = false; ReleaseProgress = 0;
             IsLocked = locked;
-            if(barrierMaterial) barrierMaterial.SetFloat("_Release",0);
+            if (wall) { block.SetFloat(ReleaseId, 0); wall.SetPropertyBlock(block); }
             gameObject.SetActive(locked);
         }
 
         public void Release(float progress)
         {
             IsReleasing = true; ReleaseProgress = Mathf.Clamp01(progress);
-            barrierMaterial.SetFloat("_Release",ReleaseProgress);
+            block.SetFloat(ReleaseId, ReleaseProgress); wall.SetPropertyBlock(block);
         }
 
         public void Reject() => rejectedAt = Time.unscaledTime;
@@ -100,8 +109,7 @@ namespace CodingGame.StageMap
             color.a = 1-ReleaseProgress;
             lowerRing.startColor = lowerRing.endColor = color * (pulse + Rejection);
             upperRing.startColor = upperRing.endColor = new Color(color.r, color.g, color.b, (.65f + .35f * Rejection)*(1-ReleaseProgress));
-            barrierMaterial.SetFloat("_Pulse", pulse);
-            barrierMaterial.SetFloat("_Reject", Rejection);
+            block.SetFloat(PulseId, pulse); block.SetFloat(RejectId, Rejection); wall.SetPropertyBlock(block);
             if(presentationCamera)
             {
                 float depth=Vector3.Dot(upperRing.bounds.center-presentationCamera.transform.position,presentationCamera.transform.forward);
@@ -111,8 +119,12 @@ namespace CodingGame.StageMap
             }
         }
 
+#if UNITY_EDITOR
+        public void MarkBaked() => baked = true;
+#endif
         void OnDestroy()
         {
+            if (baked) return; // saved assets
             if (wallMesh) Destroy(wallMesh);
             if (barrierMaterial) Destroy(barrierMaterial);
             if (lineMaterial) Destroy(lineMaterial);

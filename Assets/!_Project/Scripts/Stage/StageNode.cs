@@ -28,12 +28,23 @@ namespace CodingGame.StageMap
             lockedMaterial = palette && palette.LockedMaterial ? palette.LockedMaterial : original;
             clearedMaterial = palette ? palette.GetClearedMaterial(number - 1, original) : original;
             if (!TryGetComponent<Collider>(out _)) gameObject.AddComponent<BoxCollider>();
-            var effect = new GameObject("Stage lock barrier");
-            effect.transform.SetParent(transform, false);
-            lockVisual = effect.AddComponent<StageLockVisual>();
+            // The lock barrier and the purification field are built once in the editor and saved with the scene (13차,
+            // Tools/Optimize/Stage Visuals); a scene that never had them builds them here.
+            lockVisual = GetComponentInChildren<StageLockVisual>(true);
+            if (!lockVisual)
+            {
+                var effect = new GameObject("Stage lock barrier");
+                effect.transform.SetParent(transform, false);
+                lockVisual = effect.AddComponent<StageLockVisual>();
+            }
             lockVisual.Configure(VisualBounds, number);
-            var purification=new GameObject("Stage purification");purification.transform.SetParent(transform,false);
-            purificationVisual=purification.AddComponent<StagePurificationVisual>();purificationVisual.Configure(VisualBounds);
+            purificationVisual = GetComponentInChildren<StagePurificationVisual>(true);
+            if (!purificationVisual)
+            {
+                var purification = new GameObject("Stage purification"); purification.transform.SetParent(transform, false);
+                purificationVisual = purification.AddComponent<StagePurificationVisual>();
+            }
+            purificationVisual.Configure(VisualBounds);
         }
 
         public void Refresh()

@@ -6,20 +6,24 @@ namespace CodingGame.StageMap
     // The green field and slow motes remain after clearing; the rising scan only plays once.
     public sealed class StagePurificationVisual : MonoBehaviour
     {
-        Material material;
-        Mesh field;
-        MeshRenderer fill;
-        LineRenderer perimeter, scan;
-        ParticleSystem motes;
+        // Built once in the editor and saved (Tools/Optimize/Stage Visuals: the mesh and material as assets).
+        [SerializeField, HideInInspector] Material material;
+        [SerializeField, HideInInspector] Mesh field;
+        [SerializeField, HideInInspector] MeshRenderer fill;
+        [SerializeField, HideInInspector] LineRenderer perimeter, scan;
+        [SerializeField, HideInInspector] ParticleSystem motes;
+        [SerializeField, HideInInspector] bool baked;
+        public bool Baked => baked;
         readonly Vector3[] points=new Vector3[65];
-        Vector3 center;
-        float radiusX,radiusZ,minY,height;
+        [SerializeField, HideInInspector] Vector3 center;
+        [SerializeField, HideInInspector] float radiusX,radiusZ,minY,height;
         bool burst;
         public float Progress { get; private set; }
         public bool IsPurifying { get; private set; }
 
         public void Configure(Bounds bounds)
         {
+            if (fill) { SetCleared(false); return; }
             center=transform.InverseTransformPoint(bounds.center); center.y=.18f;
             radiusX=bounds.extents.x*1.10f; radiusZ=bounds.extents.z*1.10f;
             minY=transform.InverseTransformPoint(bounds.min).y; height=bounds.size.y;
@@ -94,6 +98,9 @@ namespace CodingGame.StageMap
             if(Progress>.72f&&!burst){burst=true;motes.Emit(45);}
             if(Progress>=1)SetCleared(true);
         }
-        void OnDestroy(){if(material)Destroy(material);if(field)Destroy(field);}
+#if UNITY_EDITOR
+        public void MarkBaked() => baked = true;
+#endif
+        void OnDestroy(){if(baked)return;if(material)Destroy(material);if(field)Destroy(field);}
     }
 }

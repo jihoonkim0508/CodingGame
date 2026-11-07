@@ -2,12 +2,16 @@ using UnityEngine;
 
 namespace CodingGame.Defense
 {
-    // Uses the ordinary enemy model; only the marked boss receives this visual treatment.
+    // Uses the ordinary enemy model; only the marked boss receives this visual treatment. The violet motes, light and halo
+    // are a prefab (Resources/Effects/BossAura, Tools/Optimize/Stage Visuals) copied onto the boss; only without it are
+    // they built here.
     public sealed class DefenseBossAura : MonoBehaviour
     {
         Light glow;
         LineRenderer halo;
         Material haloMaterial;
+        static GameObject visual;
+        static bool looked;
         Vector3 fullScale;
         float appearedAt;
         void Awake()
@@ -15,9 +19,20 @@ namespace CodingGame.Defense
             fullScale = transform.localScale * 1.65f;
             transform.localScale = fullScale * .08f;
             appearedAt = Time.unscaledTime;
-
+            if (!looked) { visual = Resources.Load<GameObject>("Effects/BossAura"); looked = true; }
+            if (visual)
+            {
+                var made = Instantiate(visual, transform, false); made.name = "Boss aura";
+                glow = made.GetComponentInChildren<Light>(); halo = made.GetComponentInChildren<LineRenderer>();
+                return;
+            }
+            Build(transform, out glow, out halo, out haloMaterial);
+        }
+        // The visuals under parent (the boss, or the prefab's root when the editor saves them).
+        public static void Build(Transform parent, out Light glow, out LineRenderer halo, out Material haloMaterial)
+        {
             var aura = new GameObject("Boss violet aura");
-            aura.transform.SetParent(transform, false);
+            aura.transform.SetParent(parent, false);
             aura.transform.localPosition = Vector3.up * .08f;
             var particles = aura.AddComponent<ParticleSystem>();
             particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
@@ -53,7 +68,7 @@ namespace CodingGame.Defense
 
             haloMaterial = new Material(Shader.Find("Sprites/Default"));
             var ring = new GameObject("Boss violet halo");
-            ring.transform.SetParent(transform, false);
+            ring.transform.SetParent(parent, false);
             ring.transform.localPosition = Vector3.up * .55f;
             halo = ring.AddComponent<LineRenderer>();
             halo.sharedMaterial = haloMaterial;

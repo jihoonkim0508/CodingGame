@@ -38,6 +38,7 @@ namespace CodingGame.Defense
         public bool Baked => baked;
         public void Bake()
         {
+            while (chevrons.Count < PathPack) MakeChevron(); // the path arrows too (13차; rerunnable)
             if (baked) return;
             if (arrow.TryGetComponent<Graphic>(out var glyph)) glyph.enabled = false;
             arrow.sizeDelta = new Vector2(PointerSize, PointerSize);
@@ -89,21 +90,13 @@ namespace CodingGame.Defense
         const int PathPack = 10;
         const float PathSpacing = 70, PathSpeed = 800, PathSize = 56, PathIn = 70, PathOut = 90, PathRest = .2f, PathTurn = 20;
         static readonly Color PathColor = new Color(.34f, .72f, 1); // sky #56B8FF; the outline carries the contrast on the cream road
-        readonly List<RectTransform> chevrons = new List<RectTransform>();
+        [SerializeField, HideInInspector] List<RectTransform> chevrons = new List<RectTransform>();
         Sprite chevronSprite;
         public void ShowPath(IReadOnlyList<Vector2> points)
         {
             float total = 0;
             for (int i = 1; i < points.Count; i++) total += Vector2.Distance(points[i - 1], points[i]);
-            if (!chevronSprite) chevronSprite = Resources.Load<Sprite>("UI/ui_chevron");
-            while (chevrons.Count < PathPack)
-            {
-                var image = new GameObject("Path arrow", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
-                image.rectTransform.SetParent(transform, false);
-                image.sprite = chevronSprite; image.preserveAspect = true; image.raycastTarget = false;
-                image.rectTransform.sizeDelta = new Vector2(PathSize, PathSize * 102 / 96f);
-                chevrons.Add(image.rectTransform);
-            }
+            while (chevrons.Count < PathPack) MakeChevron();
             float lead = PathLead(Time.unscaledTime, total);
             for (int k = 0; k < chevrons.Count; k++)
             {
@@ -120,6 +113,16 @@ namespace CodingGame.Defense
                 var graphic = chevron.GetComponent<Graphic>();
                 if (graphic) graphic.color = new Color(PathColor.r, PathColor.g, PathColor.b, Mathf.Min(grow, shrink));
             }
+        }
+        void MakeChevron()
+        {
+            if (!chevronSprite) chevronSprite = Resources.Load<Sprite>("UI/ui_chevron");
+            var image = new GameObject("Path arrow", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            image.rectTransform.SetParent(transform, false);
+            image.sprite = chevronSprite; image.preserveAspect = true; image.raycastTarget = false;
+            image.rectTransform.sizeDelta = new Vector2(PathSize, PathSize * 102 / 96f);
+            image.gameObject.SetActive(false);
+            chevrons.Add(image.rectTransform);
         }
         // The lead arrow's distance along a path of length total at time t: it runs past the end until the whole pack is off,
         // rests, and restarts. Each run eases in and out (play feedback 3: slow off the start, fast in the middle, slowing into
