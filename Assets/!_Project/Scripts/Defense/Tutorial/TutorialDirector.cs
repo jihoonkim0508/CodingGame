@@ -54,6 +54,8 @@ namespace CodingGame.Defense
         public void AdvanceDialogueShortcut() { if (CanUseDialogueShortcut) NextText(); }
         // Waiting for a trigger hides the dialogue and leaves the game free; a system banner still holds input.
         public bool IsActive => active && view && (view.IsVisible || bannerUp || guideDismissed);
+        // A lesson is loaded, shown or not (its hidden free-play steps still point at robots and the road).
+        public bool HasSequence => active;
         public bool ShowFreePlayGoal => active &&
             (active.sequenceId == "1-2" || active.sequenceId == "1-4" || active.sequenceId == "1-5") &&
             Current?.stepId == "B01" && !view.IsVisible;

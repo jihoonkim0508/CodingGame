@@ -687,7 +687,9 @@ namespace CodingGame.Defense
         }
         void SyncTutorialTargets()
         {
-            if (!tutorial) return;
+            // Nothing points at robots, ranges, the road or the floor without a lesson (13차 135): this sorted the robots, built
+            // road bounds and key strings every frame in every stage. A lesson that starts registers them on its first frame.
+            if (!tutorial || !tutorial.HasSequence) return;
             var bots = TutorialWatcher.OrderedRobots(Simulation);
             for (int i = 0; i < bots.Count; i++)
             {
