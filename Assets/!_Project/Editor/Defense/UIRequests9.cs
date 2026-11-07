@@ -254,14 +254,7 @@ namespace CodingGame.Defense.Editor
             Check(titleButtons.Length >= 2 && titleButtons.All(b => b.GetComponentsInChildren<TMP_Text>(true).Length > 0 &&
                 b.GetComponentsInChildren<TMP_Text>(true).All(t => t.font == jalnan && t.fontSharedMaterial == jalnan.material)),
                 "109 title buttons (게임 시작, 게임 종료) labelled in Jalnan");
-            // Saved with another font, the title still opens in Jalnan (TitlePresentation.Awake).
-            var presentation = Object.FindFirstObjectByType<TitleScreen.TitlePresentation>(FindObjectsInactive.Include);
-            var pretendard = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(Pretendard);
-            foreach (var t in titles) t.font = pretendard;
-            typeof(TitleScreen.TitlePresentation).GetMethod("Awake", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(presentation, null);
-            var shown = presentation.canvasRect.GetComponentsInChildren<TMP_Text>(true);
-            Check(UITheme.Display == jalnan && shown.Length >= 3 && shown.All(t => t.font == jalnan), "109 the title sets Jalnan again when it opens, whatever the scene was saved with");
-            EditorSceneManager.OpenScene(TitleScene); // drop the test's changes
+            // 13차 124: no font pass when the title opens; the shown texts are saved in Jalnan (104, 109 above).
 
             // 110: a clear and its stars count for this run only; nothing is written to PlayerPrefs.
             const string ClearKey = "CodingGame.StageMap.Cleared.stage-1", StarsKey = "CodingGame.StageMap.Stars.stage-1";
