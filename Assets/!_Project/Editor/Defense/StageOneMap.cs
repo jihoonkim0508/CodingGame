@@ -7,38 +7,33 @@ using UnityEngine;
 
 namespace CodingGame.Defense.Editor
 {
-    // Stage 1's own map: one short straight road from the error gate to the core (play feedback: the workshop map was too big
-    // for the first lessons). Built next to the workshop map in the Defense scene with its tiles, colours and wide road, the
+    // Stage 1's own map: a short road from the error gate to the core that bends up in a ㄷ in the middle (play feedback: the
+    // workshop map was too big for the first lessons; then the straight road of 55376a0 became this ㄷ). Built next to the workshop map in the Defense scene with its tiles, colours and wide road, the
     // gate, the core model and the workshop props that stand on its cells; DefenseBattle shows it for Stage 1 only and moves
     // the camera to Stage1View. Rerunnable.
     public static class StageOneMap
     {
         const string Scene = "Assets/!_Project/Scenes/Defense.unity", Name = "Stage1Map", View = "Stage1View";
         // Cells. The base is the workshop's (11, -1), so the core and its health bar stay where they are.
-        const int Left = -1, Right = 12, Bottom = -3, Top = 1, Road = -1, Start = 0, Base = 11;
+        const int Left = -1, Right = 12, Bottom = -3, Road = -1, Start = 0, Base = 11;
 
-        [MenuItem("Tools/Develop/1스테이지 일자 맵 만들기")]
-        public static void Build() => Make(Name, View, Enumerable.Range(Start, Base - Start + 1).Select(x => new GridCell(x, Road)).ToList(), Top, true);
-
-        // The straight road with an upward ㄷ detour in the middle: right from the gate, up, right along the top, down, right to
-        // the core (the same gate and core cells as Stage 1's). Built beside the others, switched off and not given to any
-        // stage yet; TestResults/Editor/detour-map.png shows it from its own camera spot.
-        const string DetourName = "DetourMap", DetourView = "DetourView";
-        const int DetourUp = 3, DetourLeft = 3, DetourRight = 8;
-        [MenuItem("Tools/Develop/ㄷ자 맵 만들기")]
-        public static void BuildDetour()
+        // The ㄷ: right from the gate, up, right along the top, down, right to the core. TestResults/Editor/stage1-map.png shows
+        // it from Stage1View.
+        const int Up = 3, BendLeft = 3, BendRight = 8;
+        [MenuItem("Tools/Develop/1스테이지 맵 만들기 (ㄷ자)")]
+        public static void Build()
         {
-            var road = Enumerable.Range(Start, DetourLeft - Start).Select(x => new GridCell(x, Road))
-                .Concat(Enumerable.Range(Road, DetourUp - Road).Select(z => new GridCell(DetourLeft, z)))
-                .Concat(Enumerable.Range(DetourLeft, DetourRight - DetourLeft).Select(x => new GridCell(x, DetourUp)))
-                .Concat(Enumerable.Range(Road + 1, DetourUp - Road).Select(z => new GridCell(DetourRight, z)))
-                .Concat(Enumerable.Range(DetourRight, Base - DetourRight + 1).Select(x => new GridCell(x, Road))).ToList();
-            Make(DetourName, DetourView, road, DetourUp + 2, false);
+            var road = Enumerable.Range(Start, BendLeft - Start).Select(x => new GridCell(x, Road))
+                .Concat(Enumerable.Range(Road, Up - Road).Select(z => new GridCell(BendLeft, z)))
+                .Concat(Enumerable.Range(BendLeft, BendRight - BendLeft).Select(x => new GridCell(x, Up)))
+                .Concat(Enumerable.Range(Road + 1, Up - Road).Select(z => new GridCell(BendRight, z)))
+                .Concat(Enumerable.Range(BendRight, Base - BendRight + 1).Select(x => new GridCell(x, Road))).ToList();
+            Make(Name, View, road, Up + 2);
         }
 
-        // One map beside the workshop's: floor from Left..Right and Bottom..top, the road cells, the workshop's look and props.
-        // stageOne wires it to DefenseBattle as Stage 1's map.
-        static void Make(string name, string viewName, System.Collections.Generic.List<GridCell> road, int top, bool stageOne)
+        // One map beside the workshop's: floor from Left..Right and Bottom..top, the road cells, the workshop's look and props,
+        // wired to DefenseBattle as Stage 1's map.
+        static void Make(string name, string viewName, System.Collections.Generic.List<GridCell> road, int top)
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new System.InvalidOperationException("Play 종료 후 실행하세요.");
             // Opening the scene alone drops unsaved edits in the open scenes, so refuse then and reopen them afterwards.
@@ -75,11 +70,10 @@ namespace CodingGame.Defense.Editor
             Restyle(map.floorGroup, workshop.floorGroup); Restyle(map.roadGroup, workshop.roadGroup);
 
             // The gate at the start, the core model at the base, and the workshop props that stand on these cells off the road.
-            var art = new GameObject(stageOne ? "Stage1_Art" : name + "_Art").transform; art.SetParent(map.transform, false);
+            var art = new GameObject("Stage1_Art").transform; art.SetParent(map.transform, false);
             var source = workshop.transform.Find("Stage01_Workshop_Art");
             var cells = new System.Collections.Generic.HashSet<GridCell>(map.floorCells);
-            // Off the road: Stage 1 keeps its whole road row clear (as built before), the others the road cells.
-            var clear = new System.Collections.Generic.HashSet<GridCell>(stageOne ? map.floorCells.Concat(road).Where(c => c.z == Road) : road);
+            var clear = new System.Collections.Generic.HashSet<GridCell>(road);
             foreach (Transform prop in source)
             {
                 var cell = workshop.WorldToCell(prop.position);
@@ -102,13 +96,7 @@ namespace CodingGame.Defense.Editor
             // The scene's camera pose is the workshop's view (DefenseBattle keeps it for Stages 2 and 3).
             var view = world.Find(viewName) ?? new GameObject(viewName).transform; view.SetParent(world, true);
             view.SetPositionAndRotation(Fit(camera, Visible(map)), camera.transform.rotation);
-            if (!stageOne)
-            {
-                workshop.gameObject.SetActive(false); Photo(camera, view, "TestResults/Editor/" + (name == DetourName ? "detour-map" : name) + ".png");
-                workshop.gameObject.SetActive(true); map.gameObject.SetActive(false);
-                Save(scene, setup, $"[StageOneMap] {name}: {map.floorCells.Count} floor cells, road {map.roadCells.Count}, props {art.childCount}, view {view.position}");
-                return;
-            }
+            workshop.gameObject.SetActive(false); Photo(camera, view, "TestResults/Editor/stage1-map.png"); workshop.gameObject.SetActive(true);
             camera.transform.position = Fit(camera, Visible(workshop));
 
             var battle = Object.FindFirstObjectByType<DefenseBattle>(FindObjectsInactive.Include);

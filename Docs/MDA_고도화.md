@@ -306,7 +306,7 @@ J3으로 대체 |
 | 141 | 레이캐스트 대상 | 누를 수 없는 Image 약 50개의 raycastTarget 끔 | 레슨, UI 검사 | 대기 |
 | 142 | 인벤토리 참조 오류 | TAB 인벤토리 칸이 25개, 블록 종류가 27개(8차의 is_dead()·계산 칸 없음) → DefenseInventoryUI.Start가 전투마다 예외. 마지막 칸을 격자 다음 칸에 복사해 두 종류 추가(Tools/Learning UI/Fix Inventory Slots) | UIRequestChecks 142 | 완료 |
 | 143 | 몬스터 모델 | 팀 모델(탱커형·이속형, 정적 메시 + 텍스처)을 Heavy·Runner 적에 적용. 기본 도형(구·투구·바이저)은 끄고 바닥 원판 위에 세움, 기절·감속 색은 새 모델에. 적 아이콘 다시 찍음(Tools/Develop/Apply Monster Models) | UIRequestChecks 100(체력바 높이), 아이콘, 화면 | 완료 |
-| 144 | ㄷ자 맵 | 일자 맵(Stage 1)에서 가운데가 위로 ㄷ자로 꺾이는 맵: 게이트에서 오른쪽, 위, 위쪽 따라 오른쪽, 아래, 오른쪽으로 코어(게이트·코어 칸은 Stage 1과 같음). 바닥 14×9칸, 길 20칸, ㄷ 안쪽 4×4칸은 배치 자리. `Tools/Develop/ㄷ자 맵 만들기`가 Defense 장면에 DetourMap·DetourView를 꺼진 채로 만들고 사진을 찍음. 어느 스테이지에 쓸지는 사용자 결정 대기 | TestResults/Editor/detour-map.png, 경로 자동 생성 | 맵 완료, 스테이지 연결 대기 |
+| 144 | ㄷ자 맵 | 일자 맵(Stage 1)에서 가운데가 위로 ㄷ자로 꺾이는 맵: 게이트에서 오른쪽, 위, 위쪽 따라 오른쪽, 아래, 오른쪽으로 코어(게이트·코어 칸은 Stage 1과 같음). 바닥 14×9칸, 길 20칸, ㄷ 안쪽 4×4칸은 배치 자리. 1스테이지 맵(사용자 결정): `Tools/Develop/1스테이지 맵 만들기 (ㄷ자)`가 Stage1Map을 ㄷ자로 다시 만들고(일자 길은 55376a0 이전 기록) 사진을 찍음, 안 쓰는 일자 길 메시 삭제 | TestResults/Editor/stage1-map.png, 레슨 1-1~1-5(새 길에서 CLEAR), 투어 | 완료 |
 | 145 | 이속형 발 불꽃 | 이속형 모델의 두 발(몸 아래 좌우 팔각 노즐, 바깥·아래 약 40°)에서 불꽃이 뿜어지고 몸이 원판 위로 떠서(0.5, 체력바도 같이) 위아래로 천천히 흔들림. 노즐 위치·방향은 메시에서 찾음. 불꽃은 늘인 파티클 2개(흰 노랑 → 주황 → 빨강), 타격 이펙트의 점 텍스처를 알파 블렌드로(가산은 밝은 책상·길에서 안 보임). 일시정지·배속은 전투 시계를 따름. `Tools/Develop/Runner Thrusters` | 미리보기 사진(TestResults/Editor/monsters/runner_thrusters_*.png), 레슨 1-1~1-5, 투어 | 완료 |
 
 ## 반복 기록
