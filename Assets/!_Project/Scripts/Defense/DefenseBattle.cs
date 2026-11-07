@@ -791,6 +791,9 @@ namespace CodingGame.Defense
             if (Simulation == null) return;
             bool ended = Simulation.Phase == BattlePhase.Victory || Simulation.Phase == BattlePhase.Defeat;
             if (ended) BattleSpeed = 1;
+            for (int i = 0; i < routes.Length; i++) routes[i].ShowVisual(Simulation.RouteInUse(i));
+            // The developer panel (F1) is hidden in play; its dozen formatted texts were built every frame anyway (13차 136).
+            if (!DeveloperMode) { resultPanel.SetActive(ended); if (ended) HidePlacement(); return; }
             string phase = Simulation.Phase == BattlePhase.Ready ? "준비" : Simulation.Phase == BattlePhase.Running ? "전투 중" :
                 Simulation.Phase == BattlePhase.Paused ? "일시정지" : Simulation.Phase == BattlePhase.Reward ? "보상 수령 대기 · F1/F2 사용자 화면" : Simulation.Phase == BattlePhase.Victory ? "방어 성공" : "방어 실패";
             header.text = $"WAVE {Simulation.WaveIndex + 1:00} / {Simulation.Setup.Waves.Length:00}    |    CORE {Simulation.BaseHealth:00}    |    KILL {Simulation.Kills:00}  LEAK {Simulation.Leaks:00}";
@@ -801,7 +804,6 @@ namespace CodingGame.Defense
             pauseButton.interactable = Simulation.Phase == BattlePhase.Running || Simulation.Phase == BattlePhase.Paused;
             speedButton.interactable = SpeedUnlocked &&
                 (Simulation.Phase == BattlePhase.Running || Simulation.Phase == BattlePhase.Paused);
-            for (int i = 0; i < routes.Length; i++) routes[i].ShowVisual(Simulation.RouteInUse(i));
             for (int i = 0; i < robotButtons.Length; i++)
                 developerRobotLabels[i].text = robots[i].displayName + "   ×" + Simulation.RobotAvailable(robots[i].stats.role);
             var bot = Simulation.FindRobot(selected);
