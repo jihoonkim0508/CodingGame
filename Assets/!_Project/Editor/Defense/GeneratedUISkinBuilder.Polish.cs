@@ -32,7 +32,7 @@ namespace CodingGame.Defense.Editor {
   static void PolishBlockHelp(Transform canvas){
    var window=canvas.Find("BlockHelpWindow");if(!window)return;Plain(window.GetComponent<Image>(),new Color(.015f,.025f,.045f,.82f));
    Specific(window,"Card","CodeWorkspace",Color.white,4);
-   var card=window.Find("Card");Specific(card,"BlockList","DictionaryListPanel",Color.white,4);Specific(card,"Detail","EnemyInfoCard",new Color(.8f,.87f,.94f),4);Specific(card,"Detail/ExampleBox","CodeWorkspace",Color.white,4);
+   var card=window.Find("Card");Specific(card,"BlockList","DictionaryListPanel",Color.white,3.25f);Specific(card,"Detail","EnemyInfoCard",new Color(.8f,.87f,.94f),3.25f);Specific(card,"Detail/ExampleBox","CodeWorkspace",Color.white,4);
    var title=card.Find("Title").GetComponent<TMP_Text>();title.color=new Color(.7f,.94f,1);title.fontSize=29;Stretch(title.rectTransform,new Vector2(0,1),Vector2.one,new Vector2(78,-76),new Vector2(-90,-20));
    Icon(card,"BookIcon",hud[5],new Vector2(0,1),new Vector2(42,-48),34);
    var list=card.Find("BlockList");var viewport=list.Find("Viewport");var mask=viewport.GetComponent<Mask>();var image=viewport.GetComponent<Image>();if(image){image.sprite=null;image.color=mask?Color.white:Color.clear;}if(mask)mask.showMaskGraphic=false;

@@ -104,7 +104,8 @@ namespace CodingGame.Defense
             for (int i = 0; i < robotButtons.Length && i < definitions.Count; i++)
             {
                 var sprite = definitions[i] ? definitions[i].icon : null;
-                if (!sprite) continue;
+                // PR #21's deck card (LearningRobotBadge) has its own role emblem and stock box.
+                if (!sprite || robotButtons[i].GetComponent<LearningRobotBadge>()) continue;
                 var icon = robotIcons[i] = new GameObject("Icon", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
                 icon.rectTransform.SetParent(robotButtons[i].transform, false);
                 icon.rectTransform.anchorMin = Vector2.zero; icon.rectTransform.anchorMax = new Vector2(0, 1); icon.rectTransform.pivot = new Vector2(0, .5f);
@@ -244,7 +245,7 @@ namespace CodingGame.Defense
                 buttons[i].gameObject.SetActive(sim.RobotUnlocked(role));
                 buttons[i].interactable = sim.CanPrepare && count > 0;
                 if(buttons[i].TryGetComponent<LearningRobotBadge>(out var badge)) {
-                    labels[i].text = count.ToString(); badge.Refresh(count,battle.IsPlacing&&battle.PlacingDefinition==i);
+                    labels[i].text = count.ToString(); badge.Refresh(count,battle.IsPlacing&&battle.PlacingDefinition==i,buttons[i].interactable);
                 } else labels[i].text = battle.DefinitionName(i) + separator + count;
             }
         }

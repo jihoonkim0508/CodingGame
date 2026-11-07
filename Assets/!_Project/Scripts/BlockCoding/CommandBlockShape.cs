@@ -11,6 +11,8 @@ namespace CodingGame.BlockCoding
         [SerializeField] BlockSlotKind slot;
         [SerializeField] bool control;
         bool controlFamily;
+        internal const float ControlSpineWidth = 28;
+        internal const float ControlFooterHeight = 24;
         public float HeaderHeight { get; set; } = 48;
         public bool JoinNext { get; set; }
         // Out of stock or left behind while dragged: the face mixes towards the dark workspace. Lifted marks the dragged copy.
@@ -85,8 +87,8 @@ namespace CodingGame.BlockCoding
                 RoundedQuad(vh, r, 0, 0, w, header, controlFamily?8:12);
                 if (control)
                 {
-                    RoundedQuad(vh, r, 0, header-8, 28, h-header+8, 7);
-                    if (!JoinNext) RoundedQuad(vh, r, 0, h - 24, w, 24, 7);
+                    RoundedQuad(vh, r, 0, header-8, ControlSpineWidth, h-header+8, 7);
+                    if (!JoinNext) RoundedQuad(vh, r, 0, h - ControlFooterHeight, w, ControlFooterHeight, 7);
                 }
             }
             vh.GetUIVertexStream(hitTriangles);
@@ -99,10 +101,12 @@ namespace CodingGame.BlockCoding
         // Stretch the transparent cavity, preserving the generated rounded joins and surface.
         void OpenFrame(VertexHelper vh,Rect r)
         {
-            float top=Mathf.Min(HeaderHeight+6,r.height*.67f),bottom=Mathf.Min(28,r.height-top);
-            float[] x={r.xMin,r.xMin+36,r.xMax-14,r.xMax};
+            float top = Mathf.Min(HeaderHeight, r.height);
+            float bottom = Mathf.Min(ControlFooterHeight, r.height - top);
+            float[] x={r.xMin,r.xMin+ControlSpineWidth,r.xMax-14,r.xMax};
             float[] y={r.yMin,r.yMin+bottom,r.yMax-top,r.yMax};
-            float[] u={.012f,.14f,.91f,.988f},v={.04f,.205f,.59f,.95f};
+            // Match the texture's transparent cutout to the same edges as the body slot.
+            float[] u={.012f,.1055f,.91f,.988f},v={.04f,.191f,.603f,.95f};
             for(int row=0;row<3;row++)for(int column=0;column<3;column++){
                 if(JoinNext && row==0 && column>0)continue;
                 int start=vh.currentVertCount;

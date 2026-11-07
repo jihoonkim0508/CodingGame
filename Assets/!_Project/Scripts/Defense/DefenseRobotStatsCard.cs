@@ -1,20 +1,16 @@
 using System;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 namespace CodingGame.Defense {
  public sealed class DefenseRobotStatsCard:MonoBehaviour {
   [SerializeField] TMP_Text title,damage,range,interval,health,extra,coins;
-  [SerializeField] Image roleIcon;
-  [SerializeField] Sprite[] roleSprites;
+  const float SideInset = 24;
   Vector2 laidOutSize;
   bool layoutValid;
   float laidOutExtraHeight;
   public void Configure(TMP_Text t,TMP_Text d,TMP_Text r,TMP_Text i,TMP_Text h,TMP_Text e,TMP_Text c){title=t;damage=d;range=r;interval=i;health=h;extra=e;coins=c;}
-  public void SetIcons(Image image,Sprite[] sprites){roleIcon=image;roleSprites=sprites;}
   public void Show(DefenseBattle battle,RobotState bot){
    var spec=bot.Spec;float next=(float)Math.Pow(bot.UpgradeFactor,bot.Level);
-   if(roleIcon&&roleSprites!=null&&roleSprites.Length==6)roleIcon.sprite=roleSprites[spec.role==RobotRole.Warrior?0:spec.role==RobotRole.Tank?1:spec.role==RobotRole.Shooter?2:spec.role==RobotRole.Bomber?3:spec.role==RobotRole.Buffer?4:5];
    string Upgrade(float current,float upgraded)=>bot.IsMaxLevel||Mathf.Approximately(current,upgraded)?$"{current:0.##}":$"{current:0.##} <color=#98E6C6>→ {upgraded:0.##}</color>";
    title.text=$"{battle.RobotName(bot.Id)}  Lv.{bot.Level}"+(bot.IsMaxLevel?"":" → Lv."+(bot.Level+1));
    damage.text=spec.role==RobotRole.Buffer?"지원형":Upgrade(bot.Damage,bot.Damage/bot.LevelMultiplier*next);
@@ -33,21 +29,22 @@ namespace CodingGame.Defense {
    float extraHeight=string.IsNullOrEmpty(extra.text)?0:extra.text.Contains("\n")?60:26;
    if(!force&&layoutValid&&size==laidOutSize&&extraHeight==laidOutExtraHeight)return;
    layoutValid=true;laidOutSize=size;laidOutExtraHeight=extraHeight;
-   float top=62,footer=size.y-48,rowHeight=Mathf.Clamp((footer-12-top-extraHeight-(extraHeight>0?8:0))/4,32,48);
+   float top=50,footer=size.y-44,rowHeight=Mathf.Clamp((footer-12-top-extraHeight-(extraHeight>0?8:0))/4,22,48);
    var values=new[]{damage,range,interval,health};
-   Position(title.rectTransform,58,8,size.x-80,34);title.enableAutoSizing=true;title.fontSizeMin=14;title.fontSizeMax=19;
+   float contentWidth = size.x - 2 * SideInset;
+   const float valueStart = 140;
+   Position(title.rectTransform,SideInset,8,contentWidth,34);title.enableAutoSizing=true;title.fontSizeMin=14;title.fontSizeMax=19;
    for(int i=0;i<4;i++){
     float y=top+i*rowHeight;
     var label=transform.Find("StatName"+i) as RectTransform;
-    if(label)Position(label,62,y,106,rowHeight);
-    Position(values[i].rectTransform,180,y,Mathf.Max(80,size.x-204),rowHeight);
+    if(label)Position(label,SideInset,y,106,rowHeight);
+    Position(values[i].rectTransform,valueStart,y,Mathf.Max(80,size.x-valueStart-SideInset),rowHeight);
     values[i].alignment=TextAlignmentOptions.MidlineRight;values[i].enableAutoSizing=true;values[i].fontSizeMin=15;values[i].fontSizeMax=19;
-    var icon=transform.Find("StatIcon"+i) as RectTransform;if(icon)Position(icon,24,y+(rowHeight-25)/2,25,25);
-    var line=transform.Find("StatDivider"+i) as RectTransform;if(line)Position(line,26,y+rowHeight-1,size.x-50,1);
+    var line=transform.Find("StatDivider"+i) as RectTransform;if(line)Position(line,SideInset,y+rowHeight-1,contentWidth,1);
    }
    float extraTop=top+4*rowHeight+8;
-   Position(extra.rectTransform,30,extraTop,size.x-54,Mathf.Max(0,footer-extraTop-8));extra.fontSize=15;extra.alignment=TextAlignmentOptions.TopLeft;extra.margin=Vector4.zero;
-   coins.rectTransform.anchorMin=coins.rectTransform.anchorMax=new Vector2(0,0);coins.rectTransform.pivot=Vector2.zero;coins.rectTransform.anchoredPosition=new Vector2(62,11);coins.rectTransform.sizeDelta=new Vector2(size.x-84,30);
+   Position(extra.rectTransform,SideInset,extraTop,contentWidth,Mathf.Max(0,footer-extraTop-8));extra.fontSize=15;extra.alignment=TextAlignmentOptions.TopLeft;extra.margin=Vector4.zero;
+   coins.rectTransform.anchorMin=coins.rectTransform.anchorMax=new Vector2(0,0);coins.rectTransform.pivot=Vector2.zero;coins.rectTransform.anchoredPosition=new Vector2(SideInset,11);coins.rectTransform.sizeDelta=new Vector2(contentWidth,30);
   }
   static void Position(RectTransform r,float x,float y,float width,float height){r.anchorMin=r.anchorMax=r.pivot=new Vector2(0,1);r.anchoredPosition=new Vector2(x,-y);r.sizeDelta=new Vector2(width,height);}
  }

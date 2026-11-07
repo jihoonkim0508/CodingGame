@@ -43,12 +43,23 @@ namespace CodingGame.Defense.Editor
 
         static void RefineWaveNotice(Transform canvas)
         {
-            var tab=canvas.Find("UpcomingTab") as RectTransform;if(!tab)return;
-            Specific(canvas,"UpcomingTab","WaveNoticeBanner",Color.white,4);
-            SetRect(tab,new Vector2(0,1),new Vector2(24,-94),new Vector2(218,42),new Vector2(0,1));
-            var icon=tab.Find("WaveIcon") as RectTransform;if(icon)SetRect(icon,new Vector2(0,.5f),new Vector2(26,0),new Vector2(27,27),new Vector2(.5f,.5f));
-            var text=canvas.Find("Upcoming").GetComponent<TMP_Text>();
-            SetRect(text.rectTransform,new Vector2(0,1),new Vector2(72,-94),new Vector2(150,42),new Vector2(0,1));text.fontSize=20;text.alignment=TextAlignmentOptions.MidlineLeft;text.margin=Vector4.zero;text.color=new Color(.065f,.18f,.28f);text.enableAutoSizing=true;text.fontSizeMin=16;text.fontSizeMax=20;
+            var tab = canvas.Find("UpcomingTab") as RectTransform;
+            if (!tab) return;
+            Specific(canvas, "UpcomingTab", "WaveHeadingBlue", Color.white, 10);
+            tab.GetComponent<Image>().raycastTarget = false;
+            SetRect(tab, new Vector2(0, 1), new Vector2(24, -94), new Vector2(194, 44), new Vector2(0, 1));
+            var icon = tab.Find("WaveIcon");
+            if (icon) icon.gameObject.SetActive(false);
+
+            var text = canvas.Find("Upcoming").GetComponent<TMP_Text>();
+            SetRect(text.rectTransform, new Vector2(0, 1), new Vector2(36, -94), new Vector2(170, 44), new Vector2(0, 1));
+            text.fontSize = 20;
+            text.alignment = TextAlignmentOptions.Midline;
+            text.margin = Vector4.zero;
+            text.color = new Color(.065f, .18f, .28f);
+            text.enableAutoSizing = true;
+            text.fontSizeMin = 16;
+            text.fontSizeMax = 20;
         }
     }
 }

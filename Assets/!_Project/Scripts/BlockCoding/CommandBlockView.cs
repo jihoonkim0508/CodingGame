@@ -50,7 +50,7 @@ namespace CodingGame.BlockCoding
         CanvasGroup bodyVisibility;
         public bool BodyExpanded => body && !IsPalette && (previewBody || body.Blocks.Count > 0);
         public float HeaderHeight => headHeight;
-        internal float FooterOverlap => 24 * BodyReveal;
+        internal float FooterOverlap => CommandBlockShape.ControlFooterHeight * BodyReveal;
         float BodyReveal => !body || IsPalette ? 0 : body.Blocks.Count > 0 ? 1 : bodyReveal;
         // Value and condition blocks are as tall as what they hold plus a margin, at least ExpressionHeight (PR #19's 38), and as
         // wide as their contents (play feedback 3); a line is 52 high (PR #19) unless it holds a taller one. A value block holding
@@ -62,10 +62,10 @@ namespace CodingGame.BlockCoding
         // Room left and right of the header: a number's digits sit close in their pill; a condition clears its pointed ends.
         float Margin => IsStatement ? 14 : kind == BlockKind.Number ? 8 : PythonTreeCompiler.OutputSlot(Kind) == BlockSlotKind.Condition ? 14 : 10;
         public float minWidth => preferredWidth;
-        public float preferredWidth => Mathf.Max(IsStatement ? 100 : 36, Mathf.Max(LayoutUtility.GetPreferredWidth(header) + 2 * Margin, BodyReveal > 0 ? body.preferredWidth + 36 : 0));
+        public float preferredWidth => Mathf.Max(IsStatement ? 100 : 36, Mathf.Max(LayoutUtility.GetPreferredWidth(header) + 2 * Margin, BodyReveal > 0 ? body.preferredWidth + CommandBlockShape.ControlSpineWidth : 0));
         public float flexibleWidth => 0;
         public float minHeight => preferredHeight;
-        public float preferredHeight => headHeight + (body ? (body.preferredHeight + 24) * BodyReveal : 0);
+        public float preferredHeight => headHeight + (body ? body.preferredHeight * BodyReveal + FooterOverlap : 0);
         public float flexibleHeight => 0;
         public int layoutPriority => 1;
         public void CalculateLayoutInputHorizontal() { }
@@ -90,6 +90,7 @@ namespace CodingGame.BlockCoding
             if (!initialized)
             {
                 initialized = true;
+                PrepareHeader();
                 if (input) input.onValueChanged.AddListener(InputChanged);
                 // Only a Python name can be typed (a name like "123" left the code unapplied without a word).
                 if (input && kind == BlockKind.DeclareVariable) input.onValidateInput = (text, index, c) => c == '_' || char.IsLetter(c) || (char.IsDigit(c) && index > 0) ? c : '\0';
@@ -195,10 +196,33 @@ namespace CodingGame.BlockCoding
                 slot==BlockSlotKind.Value?new Color(1f,.76f,.3f):new Color(.97f,.43f,.57f);
         }
         public void SetText(string value) { input.text = value; }
+
+        void PrepareHeader()
+        {
+            header.GetComponent<HorizontalLayoutGroup>().childAlignment = kind is BlockKind.For or BlockKind.While
+                ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter;
+            foreach (var label in header.GetComponentsInChildren<TMP_Text>(true))
+            {
+                if (label.transform.parent != header || !label.gameObject.activeSelf) continue;
+                label.alignment = TextAlignmentOptions.Center;
+                CommandParenthesis.ReplaceIn(label);
+            }
+            if (!input) return;
+            input.textComponent.alignment = TextAlignmentOptions.Center;
+            input.textComponent.margin = Vector4.zero;
+            if (input.placeholder is TMP_Text placeholder)
+            {
+                placeholder.alignment = TextAlignmentOptions.Center;
+                placeholder.margin = Vector4.zero;
+            }
+            FitInput(input, MinField);
+        }
+
         // Reward/tutorial previews share the editor's geometry and layout, without editing callbacks.
         public void PreparePreview()
         {
             readOnlyPreview=true; IsPalette=false; Panel=null; Owner=null;
+            PrepareHeader();
             if(stockLabel)stockLabel.gameObject.SetActive(false);
             if(input){input.interactable=false;input.enabled=false;}
             if(dropdown){dropdown.interactable=false;dropdown.enabled=false;}
@@ -332,7 +356,9 @@ namespace CodingGame.BlockCoding
             if (body) {
                 float reveal=BodyReveal;
                 // The collapsed strip remains a tutorial/click target at the bottom of the header.
-                Place(body.Rect,reveal>0?28:24,reveal>0?headHeight:headHeight-8,rect.rect.width-(reveal>0?36:32),reveal>0?body.preferredHeight*reveal:8);
+                float bodyInset = reveal > 0 ? CommandBlockShape.ControlSpineWidth : 24;
+                Place(body.Rect, bodyInset, reveal > 0 ? headHeight : headHeight - 8,
+                    rect.rect.width - bodyInset - (reveal > 0 ? 0 : 8), reveal > 0 ? body.preferredHeight * reveal : 8);
                 if(bodyVisibility){bodyVisibility.alpha=reveal;bodyVisibility.blocksRaycasts=!IsPalette&&!readOnlyPreview;}
                 shape.Configure(PythonTreeCompiler.OutputSlot(Kind),reveal>0,true);
             }

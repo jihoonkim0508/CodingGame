@@ -70,7 +70,7 @@ namespace CodingGame.Defense
             portrait.sprite = HasGuideFaces ? guideFaces[(int)mood] : sequence.speakerPortrait ? sequence.speakerPortrait :
                 surprised && surprisedPortrait ? surprisedPortrait : defaultPortrait;
             portrait.enabled = portrait.sprite;
-            speaker.text = string.IsNullOrWhiteSpace(speakerName) || speakerName.StartsWith("안내", StringComparison.Ordinal) || speakerName == "도우미 로봇" ? "코디" : speakerName;
+            speaker.text = string.IsNullOrWhiteSpace(speakerName) || speakerName.StartsWith("안내", StringComparison.Ordinal) || speakerName == "도우미 로봇" ? "디버" : speakerName;
             stageWave.text = "";
             stageWave.gameObject.SetActive(false);
             dialogue.text = text ?? string.Empty;

@@ -103,7 +103,7 @@ namespace CodingGame.Defense.Editor
         [MenuItem("Tools/Optimize/128 Bake Battle UI")]
         public static void BattleUI128() => EditScene(DefenseScene, scene =>
         {
-            foreach (var bar in All<DefenseCoreHealthBar>(scene)) bar.Bake();
+            // The core bar is PR #21's: a graphic built in the scene that draws its own cells, nothing to bake.
             var battle = All<DefenseBattle>(scene).First();
             foreach (var hud in All<DefensePlayerHUD>(scene)) hud.Bake(battle.EditorCampaign.robots);
             foreach (var dock in All<DefensePlacementDock>(scene)) dock.Layout();
@@ -167,8 +167,7 @@ namespace CodingGame.Defense.Editor
                 Check(left.Length == 0, $"126 the battle's body texts are saved in Pretendard Bold ({left.Length} left)");
                 Check(!File.ReadAllText("Assets/!_Project/Scripts/Defense/DefenseBattle.cs").Contains("UITheme.BoldBody"), "126 no body-font pass when the battle starts");
                 Check(GoalBanner(defense).GetComponent<Canvas>(), "132 the goal banner has its own canvas");
-                var unbaked = All<DefenseCoreHealthBar>(defense).Where(c => !c.Baked).Select(c => c.name)
-                    .Concat(All<DefensePlayerHUD>(defense).Where(c => !c.Baked).Select(c => c.name))
+                var unbaked = All<DefensePlayerHUD>(defense).Where(c => !c.Baked).Select(c => c.name)
                     .Concat(All<DefenseCodeEditor>(defense).Where(c => !c.Baked).Select(c => c.name))
                     .Concat(All<DefenseAttackPreview>(defense).Where(c => !c.Baked).Select(c => c.name))
                     .Concat(All<TutorialPointer>(defense).Where(c => !c.Baked).Select(c => c.name)).ToArray();
