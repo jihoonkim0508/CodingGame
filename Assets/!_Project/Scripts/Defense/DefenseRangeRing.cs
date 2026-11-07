@@ -15,6 +15,16 @@ namespace CodingGame.Defense
         Mesh fillMesh;
         MeshRenderer fillRenderer;
         float lineWidth, glow;
+        // Shown every frame while a robot is chosen or placed (13차 131): the same ring is not rebuilt, and the fill's arrays
+        // are made once per point count.
+        (Vector3 center, Vector3 forward, float radius, Color color, float glow, Vector3 at) last;
+        Vector3[] fillVertices; Color[] fillColors; int[] fillTriangles;
+        bool Unchanged(Vector3 center, Vector3 forward, float radius, Color color)
+        {
+            var now = (center, forward, radius, color, glow, transform.position);
+            if (line.enabled && now.Equals(last)) return true;
+            last = now; return false;
+        }
         void Awake()
         {
             if (!line || !line.sharedMaterial) throw new InvalidOperationException(name + ": 사거리 LineRenderer/Material 참조 누락");
@@ -42,6 +52,7 @@ namespace CodingGame.Defense
         public void Show(Vector3 center, float radius, Color color)
         {
             if (glow == 0) line.widthMultiplier = lineWidth;
+            if (Unchanged(center, Vector3.zero, radius, color)) return;
             for (int i = 0; i < points.Length; i++)
             {
                 float a = i * Mathf.PI * 2 / (points.Length - 1);
@@ -55,6 +66,7 @@ namespace CodingGame.Defense
         {
             forward.y = 0;
             forward.Normalize();
+            if (Unchanged(center, forward, radius, color)) return;
             var right = Vector3.Cross(Vector3.up, forward);
             for (int i = 0; i < points.Length - 1; i++)
             {
@@ -76,7 +88,9 @@ namespace CodingGame.Defense
         void Fill(Vector3 center, int count, Color color)
         {
             if (!fillRenderer) return;
-            var vertices = new Vector3[1 + 2 * count]; var colors = new Color[vertices.Length]; var triangles = new int[(count - 1) * 9];
+            bool resized = fillVertices == null || fillVertices.Length != 1 + 2 * count;
+            if (resized) { fillVertices = new Vector3[1 + 2 * count]; fillColors = new Color[fillVertices.Length]; fillTriangles = new int[(count - 1) * 9]; }
+            var vertices = fillVertices; var colors = fillColors; var triangles = fillTriangles;
             Color Tint(float alpha) => new Color(color.r, color.g, color.b, alpha);
             float rim = Mathf.Lerp(fillAlpha, .78f, glow);
             vertices[0] = transform.InverseTransformPoint(center); colors[0] = Tint(rim * Mathf.Lerp(.12f, .8f, glow));
@@ -91,7 +105,10 @@ namespace CodingGame.Defense
                 triangles[t + 3] = inner; triangles[t + 4] = inner + 1; triangles[t + 5] = outer + 1;
                 triangles[t + 6] = inner; triangles[t + 7] = outer + 1; triangles[t + 8] = outer;
             }
-            fillMesh.Clear(); fillMesh.vertices = vertices; fillMesh.colors = colors; fillMesh.triangles = triangles; fillMesh.RecalculateBounds();
+            // Same point count: the triangles stay, only positions and colours change.
+            if (resized) { fillMesh.Clear(); fillMesh.vertices = vertices; fillMesh.colors = colors; fillMesh.triangles = triangles; }
+            else { fillMesh.vertices = vertices; fillMesh.colors = colors; }
+            fillMesh.RecalculateBounds();
             fillRenderer.enabled = true;
         }
         void OnDestroy() { if (fillMesh) Destroy(fillMesh); }
