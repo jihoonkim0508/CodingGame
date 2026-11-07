@@ -9,7 +9,7 @@ using Point = System.Numerics.Vector2;
 namespace CodingGame.Defense
 {
     // 선택한 코드의 복사본을 시연합니다. 실제 전투의 인벤토리·보상·상태와 분리합니다.
-    public sealed class DefenseAttackPreview : MonoBehaviour
+    public sealed partial class DefenseAttackPreview : MonoBehaviour
     {
         [SerializeField] DefenseBattle battle;
         [SerializeField] Transform arena;
@@ -53,7 +53,7 @@ namespace CodingGame.Defense
             projectileViews.Clear();hitEffects.Clear();foreach(var view in views.Values)view.ClearVisuals();RefreshStats();
         }
 #endif
-        EnemySpec HarmlessEnemy() { var enemy = battle.PreviewEnemy.stats.Copy(); enemy.damage = 0; return enemy; }
+        EnemySpec HarmlessEnemy() { var enemy = battle.PreviewEnemy.stats.Copy(); enemy.damage = 0; if (observing) { enemy.health = 10000; enemy.speed = .05f; } return enemy; }
         // The preview runs the live battle's balance so the demo matches what the robot will do.
         void CopyRules(BattleSetup setup)
         {
@@ -90,6 +90,7 @@ namespace CodingGame.Defense
         }
         void HidePreview()
         {
+            observing = observationRunning = false;
             ClearActors(); simulation = null; source = null; if (rangeRing) rangeRing.Hide();
             previewPanel.SetActive(false); previewCamera.enabled = false;
         }
@@ -102,6 +103,7 @@ namespace CodingGame.Defense
         }
         void ResetPreview()
         {
+            PreviewShotSeen = PreviewImpactSeen = false; observationRunning = false; settleUntil = 0;
             ClearActors(); source = selected.Program; emptyElapsed = 0; firstHitReported = false; firstHitCount = 0;
             sourceLevel = selected.Level;
             var setup = new BattleSetup {
@@ -122,6 +124,7 @@ namespace CodingGame.Defense
             bot.Level = selected.Level;
             if (bot.Health.HasValue) bot.Health = bot.MaxHealth;
             if (source != null) simulation.ApplyProgram(bot.Id, source.Name, source.CopyBlocks());
+            if (bot.Program != null) bot.Program.ObserveSingleInvocation = observing;
             AddView(bot.Id, battle.RobotDefinition(bot.DefinitionIndex).prefab);
             views[bot.Id].Face(previewCamera.transform.position);
             rangeRing.Show(World(bot.Position), bot.Range, battle.RobotDefinition(bot.DefinitionIndex).color);
@@ -161,6 +164,7 @@ namespace CodingGame.Defense
             if (sourceLevel != selected.Level) ResetPreview();
             else if (source != selected.Program)
             {
+                if (observing) { ResetPreview(); return; }
                 source = selected.Program;
                 var bot = simulation.Robots.FirstOrDefault();
                 if (bot != null)
@@ -171,6 +175,7 @@ namespace CodingGame.Defense
             }
             bool wasOver = DemoOver;
             simulation.Advance(dt);
+            if (observing) return;
             if (!DemoOver) { emptyElapsed = 0; return; }
             // 때릴 수 있는 적이 없어진 뒤 실제 시간으로 1초를 기다립니다. 전투 시계가 멈춰도 재시작합니다.
             if (wasOver) emptyElapsed += dt;
@@ -198,6 +203,7 @@ namespace CodingGame.Defense
             var rect = previewImage.rectTransform.rect;
             if (rect.width > 0 && rect.height > 0) previewCamera.aspect = rect.width / rect.height;
             float dt = battle.Simulation.Options.preview ? Time.unscaledDeltaTime : 0;
+            TickObservation(ref dt);
             AdvancePreview(dt);
             hitEffects.Tick(dt);
             if (simulation.Options.projectiles) projectileViews.Sync(simulation, projectilePrefab, arena, arena.position); else projectileViews.Clear();
@@ -213,6 +219,8 @@ namespace CodingGame.Defense
             foreach (var view in views.Values) view.TickVisual(dt);
             foreach (var e in simulation.Events)
             {
+                if (e.Kind == "shot") PreviewShotSeen = true;
+                if (e.Kind == "projectile-hit" && e.AppliedAmount > 0) PreviewImpactSeen = true;
                 views.TryGetValue(e.Source, out var view);
                 #if UNITY_EDITOR
                 battle.EditorObserve("Preview",simulation,e);
@@ -238,6 +246,7 @@ namespace CodingGame.Defense
         }
         void RefreshStatus()
         {
+            if (observing) { RefreshObservation(); return; }
             if (DemoOver) { status.text = $"시연 완료 · {Math.Max(0,1-emptyElapsed):0.0}s 후 다시 시작"; return; }
             var bot = simulation.Robots.FirstOrDefault();
             if (bot == null) { status.text = "시연 종료"; return; }

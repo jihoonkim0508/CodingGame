@@ -36,6 +36,11 @@ public static class CampaignFiveStagesCheck
     static void Program(DefenseSimulation sim, RobotState bot)
     {
         sim.ApplyProgram(bot.Id,"robot_"+bot.Id,Array.Empty<CodeBlock>());
+        // Stage 1 starts 1-2 only with a warrior that finds an enemy into a variable and slashes it, and 1-4 only with two
+        // warriors that slash inside a distance check; use the richest of those the shared stock still allows.
+        if(sim.Setup.Stage==1 && bot.Spec.role==RobotRole.Warrior)
+            foreach(var form in Stage1Warrior())
+                try{sim.ApplyProgram(bot.Id,"robot_"+bot.Id,form);return;}catch(FormatException){}
         var body=new System.Collections.Generic.List<CodeBlock>();
         var kind=Action(bot.Spec.role);
         // Attacks need an explicit target: the nearest enemy, or the declared `enemy` inside the distance check.
@@ -58,6 +63,12 @@ public static class CampaignFiveStagesCheck
         { var loop=new CodeBlock(BlockKind.For,"0",new CodeBlock(BlockKind.Number,"50"));loop.Body.AddRange(body);body=new System.Collections.Generic.List<CodeBlock>{loop}; }
         sim.ApplyProgram(bot.Id,"robot_"+bot.Id,body.ToArray());
     }
+    static CodeBlock Enemy()=>new CodeBlock(BlockKind.Variable,"enemy");
+    static CodeBlock[][] Stage1Warrior()=>new[]{
+        new[]{new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)),
+            new CodeBlock(BlockKind.DeclareVariable,"enemy_distance",new CodeBlock(BlockKind.Distance,"0",Enemy(),new CodeBlock(BlockKind.MyPos))),
+            new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,"<=",new CodeBlock(BlockKind.Variable,"enemy_distance"),new CodeBlock(BlockKind.MyAttackRange))){Body={new CodeBlock(BlockKind.Slash,"0",Enemy())}}},
+        new[]{new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)),new CodeBlock(BlockKind.Slash,"0",Enemy())}};
     public static string Main()
     {
         var lines = new System.Collections.Generic.List<string>();

@@ -24,6 +24,18 @@ static class LearningCheck
         Require(Math.Abs(sim.ActionDamage(bot,RobotAction.Attack,2)-2*sim.ActionDamage(bot,RobotAction.Attack,4))<.001f,"Distance double, damage half");
         Require(sim.ActionDamage(bot,RobotAction.Attack,0)==sim.ActionDamage(bot,RobotAction.Attack,1),"Near-distance damage capped");
         sim.ApplyProgram(bot.Id,"fire",new[]{new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy))});
+        // Stage 1 starts 1-2 and 1-4 only with two warriors whose code finds an enemy and slashes it when the distance check passes.
+        sim.Options.unlockAll=true; sim.Options.inventoryLimit=false;
+        foreach(var x in new[]{-6f,6f})
+        {
+            var warrior=sim.Place(profiles[(int)RobotRole.Warrior],1,new Vector2(x,3),out _);
+            Require(warrior!=null,"Warrior placed for the 1-2 and 1-4 start goals");
+            sim.ApplyProgram(warrior.Id,"guard",new[]{
+                new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)),
+                new CodeBlock(BlockKind.DeclareVariable,"enemy_distance",new CodeBlock(BlockKind.Distance,"0",new CodeBlock(BlockKind.Variable,"enemy"),new CodeBlock(BlockKind.MyPos))),
+                new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,"<=",new CodeBlock(BlockKind.Variable,"enemy_distance"),new CodeBlock(BlockKind.MyAttackRange))) { Body={ new CodeBlock(BlockKind.Slash,"0",new CodeBlock(BlockKind.Variable,"enemy")) } } });
+        }
+        sim.Options.unlockAll=false; sim.Options.inventoryLimit=true;
         RobotState tank=null;
         for(int stage=1;stage<=3;stage++)
         {
@@ -32,16 +44,29 @@ static class LearningCheck
             for(int wave=1;wave<=5;wave++)
             {
                 Require(sim.WaveIndex==wave-1 && sim.Lesson.stage==stage && sim.Lesson.wave==wave,"Correct lesson");
+                if (stage == 2 && wave < 5)
+                {
+                    var role = wave < 3 ? RobotRole.Warrior : RobotRole.Shooter;
+                    var learner = sim.Place(profiles[(int)role], (int)role, new Vector2(-9 + (wave - 1) * 3, 2), out var error);
+                    Require(learner != null, "Stage 2 practice robot: " + error);
+                    sim.ApplyProgram(learner.Id, "loop", new[] { StageTwoLearning.Loop(role, 3) });
+                }
                 var expected=sim.Lesson.rewards.SelectMany(s=>Enumerable.Repeat(s.kind,s.count)).ToArray();
-                sim.Start();for(int i=0;i<20 && sim.Phase==BattlePhase.Running;i++)sim.Advance(.05);
+                sim.Start();for(int i=0;i<3000 && sim.Phase==BattlePhase.Running;i++)sim.Advance(.05);
                 Require(sim.Phase==BattlePhase.Reward && sim.PendingDrops.SequenceEqual(expected),"Fixed rewards independent of kills");
                 Require(sim.ClaimRewards() && !sim.ClaimRewards(),"Claim exactly once");
                 if(tank!=null)Require(tank.Health==37,"Tank health survives transitions");
             }
             Require(sim.Phase==BattlePhase.Victory,"Stage clear");
             int stock=sim.Inventory[BlockKind.Shot];
+            if (stage == 1)
+            {
+                setup.WaveSeconds = 120;
+                for (int i = 0; i < 5; i++) { setup.Waves[i][0].Enemy.health = 1; setup.Waves[i][0].Enemy.speed = .05f; setup.Waves[i][0].Boss = i == 4; }
+            }
             Require(sim.AdvanceStage()==(stage<3),"Campaign ends at 3");
-            Require(sim.Inventory[BlockKind.Shot]>=stock && sim.Robots.Contains(bot) && bot.Program!=null,"Inventory, placement and code persist");
+            Require(sim.Inventory[BlockKind.Shot]>=stock, "Inventory persists across stages");
+            if (stage == 1) Require(sim.Robots.Count == 0, "Stage 2 starts without Stage 1 placements or code");
         }
         setup.Stage=0; setup.PlayerFlow=false;
         var combat=new DefenseSimulation(setup);

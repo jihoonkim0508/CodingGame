@@ -37,6 +37,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -55,10 +56,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 1
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -80,6 +88,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -98,10 +107,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 1
     introEntrance: 1
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -123,6 +139,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -141,10 +158,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 1
     introEntrance: 1
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -166,6 +190,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -184,10 +209,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 1
     introEntrance: 1
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -210,6 +242,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -228,10 +261,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -254,6 +294,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -272,10 +313,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -298,6 +346,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -316,10 +365,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -341,6 +397,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -359,10 +416,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -384,6 +448,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -402,10 +467,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -427,6 +499,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 1
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -445,10 +518,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -473,6 +553,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 3
     completionSignal: RobotPlaced
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -491,10 +572,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -517,6 +605,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 1
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -535,10 +624,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -561,6 +657,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -579,10 +676,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -606,6 +710,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -624,10 +729,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -650,6 +762,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 3
     completionSignal: EditorOpened
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -668,10 +781,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -694,6 +814,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -712,10 +833,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -739,6 +867,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -757,10 +886,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -782,6 +918,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -800,10 +937,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -830,6 +974,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 3
     completionSignal: CodeLinePlaced
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -848,10 +993,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo: Editor.Palette.DeclareVariable>Editor.Code.Start
     autoAdvance: 0
     dismissable: 0
@@ -875,6 +1027,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -893,10 +1046,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -923,6 +1083,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 3
     completionSignal: ProgramMatches
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -941,10 +1102,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo: Editor.Palette.NearestEnemy>Editor.Code.Arg.1.0
     autoAdvance: 0
     dismissable: 0
@@ -967,6 +1135,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -985,10 +1154,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -1011,6 +1187,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -1029,10 +1206,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -1055,6 +1239,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -1073,10 +1258,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -1103,6 +1295,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 3
     completionSignal: CodeLinePlaced
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -1121,10 +1314,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo: Editor.Palette.Slash>Editor.Code.After.1
     autoAdvance: 0
     dismissable: 0
@@ -1151,6 +1351,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 3
     completionSignal: SlotFilled
+    requiredSlotBlock: Editor.Code.Arg.2.0:Variable
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -1169,10 +1370,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo: Editor.Palette.Variable>Editor.Code.Arg.2.0
     autoAdvance: 0
     dismissable: 0
@@ -1198,6 +1406,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 3
     completionSignal: ProgramMatches
+    requiredSlotBlock: Editor.Code.Arg.2.0:Variable
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -1218,10 +1427,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -1246,6 +1462,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -1264,10 +1481,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -1291,6 +1515,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -1309,10 +1534,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -1335,6 +1567,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -1353,10 +1586,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -1381,6 +1621,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 3
     completionSignal: PreviewHit
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -1399,10 +1640,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -1426,6 +1674,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -1444,10 +1693,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -1469,6 +1725,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -1487,10 +1744,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -1513,6 +1777,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -1531,10 +1796,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -1557,6 +1829,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 3
     completionSignal: BattleStarted
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -1575,10 +1848,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -1601,6 +1881,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 0
@@ -1619,10 +1900,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -1646,6 +1934,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 1
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 0
@@ -1664,10 +1953,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -1691,6 +1987,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 1
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 1
@@ -1709,10 +2006,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -1737,6 +2041,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 1
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 0
@@ -1755,10 +2060,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -1783,6 +2095,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 0
@@ -1801,10 +2114,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -1827,6 +2147,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 0
@@ -1845,10 +2166,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -1871,6 +2199,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 0
@@ -1889,10 +2218,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -1914,6 +2250,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 0
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 0
@@ -1932,10 +2269,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0
@@ -1958,6 +2302,7 @@ MonoBehaviour:
     outline: 1
     completionMode: 1
     completionSignal:
+    requiredSlotBlock:
     sourceKey:
     destinationKey:
     pauseBattle: 0
@@ -1976,10 +2321,17 @@ MonoBehaviour:
     openEditor: 0
     robotIndex: 0
     prepareDistanceExample: 0
+    stageTwoExample: 0
+    observePreview: 0
+    previewIteration: 0
+    stageTwoRestartOnly: 0
     prepareBaselineExample: 0
     restartPreview: 0
+    attentionEntrance: 0
     introEntrance: 0
     alertCards: 0
+    systemTone: 0
+    systemTitle:
     dragDemo:
     autoAdvance: 0
     dismissable: 0

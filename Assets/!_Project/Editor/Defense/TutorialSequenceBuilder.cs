@@ -70,7 +70,7 @@ namespace CodingGame.Defense.Editor
             public TutorialStepKind Kind = TutorialStepKind.Dialogue;
             public string[] Targets = Array.Empty<string>(), Focus = Array.Empty<string>();
             public TutorialCompletionMode Mode;
-            public string Signal, Trigger, Expected, Pointer, HintCode, AutoSlot;
+            public string Signal, Trigger, Expected, Pointer, HintCode, AutoSlot, RequiredSlotBlock;
             public float PointerDelay;
             public bool Dim, CloseEditor, ClearProgram, OpenEditor, Preview, Battle, HoldBattle, SlowBattle;
             public int Robot;
@@ -129,9 +129,11 @@ namespace CodingGame.Defense.Editor
                 Focus("Editor.Palette.Slash", "Editor.Code.After.1")))),
             L("1-1.D03", Signal(TutorialSignals.SlotFilled, new[] { Drop, Palette }, With(
                 s => { s.Expected = "Editor.Code.Arg.2.0"; s.AutoSlot = s.Expected; s.Pointer = "Editor.Palette.Variable";
+                    s.RequiredSlotBlock = "Editor.Code.Arg.2.0:Variable";
                     s.Demo = "Editor.Palette.Variable>Editor.Code.Arg.2.0"; },
                 Focus("Editor.Palette.Variable", "Editor.Code.Arg.2.0")))),
-            L("1-1.D04", Code(Code11, With(s => s.Pointer = "Editor.Code.Name.2.0", Focus("Editor.Code.Name.2.0")))),
+            L("1-1.D04", Code(Code11, With(s => { s.Pointer = "Editor.Code.Name.2.0";
+                s.RequiredSlotBlock = "Editor.Code.Arg.2.0:Variable"; }, Focus("Editor.Code.Name.2.0")))),
             L("1-1.D05", Focus("Editor.Code.Name.1", "Editor.Code.Name.2.0")),
             L("1-1.D06", Focus("Editor.Code.Line.1")), L("1-1.D07", Focus("Editor.Code.Line.2")),
             L("1-1.D08", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(
@@ -255,6 +257,7 @@ namespace CodingGame.Defense.Editor
                     texts = new[] { new TutorialText { textId = "t1", speaker = s.Speaker, text = s.Text, focusKeys = s.Focus, highlightKeys = s.Highlight } },
                     targetKeys = s.Targets, dim = s.Dim, blockInput = true, outline = true,
                     completionMode = s.Kind == TutorialStepKind.ActionGuide ? s.Mode : TutorialCompletionMode.Unconfigured, completionSignal = s.Signal,
+                    requiredSlotBlock = s.RequiredSlotBlock,
                     skipIf = s.SkipIf, pauseBattle = s.HoldBattle || !battle, slowBattle = s.SlowBattle,
                     allowPreview = s.Preview || id == "1-1" &&
                         ((s.Id.StartsWith("C", StringComparison.Ordinal) || s.Id.StartsWith("D", StringComparison.Ordinal)) && s.Id != "D10"),
@@ -262,7 +265,7 @@ namespace CodingGame.Defense.Editor
                     pointerKey = s.Pointer, autoSelectSlot = s.AutoSlot, hintCode = s.HintCode, pointerDelay = s.PointerDelay,
                     closeEditor = s.CloseEditor, clearProgram = s.ClearProgram, openEditor = s.OpenEditor, robotIndex = s.Robot,
                     prepareDistanceExample = s.DistanceExample, prepareBaselineExample = s.BaselineExample, restartPreview = s.RestartPreview,
-                    introEntrance = s.Intro, undimmed = s.Undimmed, alertCards = s.Cards, autoAdvance = s.Auto, dismissable = s.Dismissable, holdSeconds = s.Hold, dragDemo = s.Demo };
+                    introEntrance = s.Intro, attentionEntrance = s.Intro, undimmed = s.Undimmed, alertCards = s.Cards, autoAdvance = s.Auto, dismissable = s.Dismissable, holdSeconds = s.Hold, dragDemo = s.Demo };
             }).ToArray();
             EditorUtility.SetDirty(sequence);
             return sequence;
@@ -377,8 +380,11 @@ namespace CodingGame.Defense.Editor
             var director = UnityEngine.Object.FindObjectsByType<TutorialDirector>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single();
             var so = new SerializedObject(director);
             var list = so.FindProperty("sequences");
-            list.arraySize = sequences.Length;
-            for (int i = 0; i < sequences.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = sequences[i];
+            var kept = Enumerable.Range(0, list.arraySize).Select(i => list.GetArrayElementAtIndex(i).objectReferenceValue as TutorialSequence)
+                .Where(s => s && s.stage != 1).ToArray();
+            var combined = sequences.Concat(kept).ToArray();
+            list.arraySize = combined.Length;
+            for (int i = 0; i < combined.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = combined[i];
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorSceneManager.MarkSceneDirty(director.gameObject.scene);
             log.AppendLine("scene saved " + EditorSceneManager.SaveScene(director.gameObject.scene));

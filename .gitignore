@@ -122,3 +122,7 @@ InitTestScene*.unity*
 
 # Hand-authored verification projects are not generated Unity project files
 !/Tests/**/*.csproj
+
+# Unity crash-recovery scene copies
+/[Aa]ssets/_Recovery/
+/[Aa]ssets/_Recovery.meta

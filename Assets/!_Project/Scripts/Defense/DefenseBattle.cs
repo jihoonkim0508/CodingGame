@@ -92,6 +92,8 @@ namespace CodingGame.Defense
         public string StatusMessage { get; private set; }
         public TutorialDirector Tutorial => tutorial;
         public DefenseCodeEditor CodeEditor => codeEditor;
+        public DefenseAttackPreview AttackPreview => attackPreview;
+        public bool StageTwoRestarted { get; private set; }
         int tutorialUnits;
         public bool TutorialBlocksInput => tutorial && tutorial.BlocksGameplayInput;
         public bool TutorialBlocksPreview => tutorial && tutorial.BlocksPreview;
@@ -205,16 +207,21 @@ namespace CodingGame.Defense
         public void Restart()
         {
             if (!TutorialAllows("Battle.Restart") && !(Simulation != null && Simulation.Phase == BattlePhase.Defeat && TutorialAllows("Battle.ContinueCampaign"))) return;
+            bool stageTwoRetry = stage == 2 && Simulation != null && Simulation.Phase == BattlePhase.Defeat && Simulation.WaveIndex == 4;
             var setup = MakeSetup(campaign, stage);
             setup.PreviousStageRewards = FromStageMap;
 #if UNITY_EDITOR
             setup.TestOptions=EditorOptions;
 #endif
             ResetSession(setup);
+            StageTwoRestarted = stageTwoRetry;
         }
         void ResetSession(BattleSetup setup)
+            => ResetSession(new DefenseSimulation(setup));
+        void ResetSession(DefenseSimulation simulation)
         {
-            setup.Validate();
+            StageTwoRestarted = false;
+            simulation.Setup.Validate();
             inventoryUI.Close();
             codeEditor.Close(false);
             tutorial?.UnregisterRuntimeTarget(TutorialKeys.SelectedRobot, null);
@@ -223,7 +230,7 @@ namespace CodingGame.Defense
             ClearDrops();
             projectileViews.Clear();
             hitEffects.Clear();
-            Simulation = new DefenseSimulation(setup);
+            Simulation = simulation;
             bossEntranceStarted = bossCameraRestored = false;
             bossEntranceUntil = bossCameraRestoreAt = 0;
             selectionCamera.Restore();
@@ -239,6 +246,7 @@ namespace CodingGame.Defense
             if (error != null) { Tell(error); return; }
             HidePlacement();
             Trace("wave-start " + string.Join(", ", Simulation.UpcomingWave.Select(g => $"{enemies[g.DefinitionIndex].name} x{g.Count} HP={g.Enemy.health:0.0} speed={g.Enemy.speed:0.00}")));
+            Trace(InventoryLine());
             Simulation.Start(); Tell("전투 중 · 웨이브 종료 후 지정 보상을 수령하세요."); RefreshHUD();
             ReportTutorialAction("Battle.Start", "TargetClicked", "BattleStarted");
         }
@@ -251,12 +259,15 @@ namespace CodingGame.Defense
             ClearDrops(); Tell(Simulation.Phase == BattlePhase.Victory ? Simulation.CanAdvanceStage ?
                 "스테이지 완료 · 다음 스테이지로 진행하세요." : "모든 스테이지를 완료했습니다." :
                 "보상을 수령했습니다. 로봇과 코드를 정비하고 다음 전투를 시작하세요."); RefreshHUD();
+            Trace(InventoryLine());
             ReportTutorialAction("Battle.ClaimRewards", "TargetClicked", "RewardsClaimed");
             ReportTutorialAction("Battle.ContinueCampaign", "TargetClicked", "RewardsClaimed");
         }
         void ClearDrops() { foreach (var drop in dropViews) if (drop) Destroy(drop.gameObject); dropViews.Clear(); }
         public void ContinueCampaign()
         {
+            if (stage == 2 && Simulation.Phase == BattlePhase.Defeat && Simulation.WaveIndex < 4)
+            { var retry = Simulation.RetryPreparation(); if (retry != null) ResetSession(retry); return; }
             if (Simulation.Phase == BattlePhase.Reward) { ClaimRewards(); return; }
             if (Simulation.Phase == BattlePhase.Defeat) { Restart(); return; }
             if (!TutorialAllows("Battle.ContinueCampaign")) return;
@@ -278,6 +289,9 @@ namespace CodingGame.Defense
         public void NotifyCodeApplied(int id, bool empty)
         {
             Tell(RobotName(id) + (empty ? " · 코드 없음" : " · 적용 완료"));
+            // Autosave applies on every edit; log the inventory only when the reservation actually changed.
+            string inventory = InventoryLine();
+            if (inventory != lastInventory) Trace(lastInventory = inventory);
             ReportTutorialAction("Editor.ApplyProgram", "TargetClicked", "ProgramApplied");
         }
         public bool TutorialAllows(string key) => !tutorial || tutorial.CanPerformAction(key);
@@ -366,6 +380,7 @@ namespace CodingGame.Defense
         {
             if (!robotViews.TryGetValue(id, out var view) || !view) return;
             string unit = TutorialKeys.Unit(TutorialWatcher.RobotIndex(Simulation, id));
+            if (stage == 2 && tutorial && tutorial.StageTwoRobot?.Id == id && TutorialAllows(TutorialDirector.TeachingUnit)) unit = TutorialDirector.TeachingUnit;
             string key = TutorialAllows(unit) ? unit : TutorialAllows(TutorialKeys.SelectedRobot) ? TutorialKeys.SelectedRobot : "Battle.SelectRobot";
             if (!TutorialAllows(key)) return;
             var robot = Simulation.FindRobot(id);
@@ -586,6 +601,14 @@ namespace CodingGame.Defense
             for (int i = bots.Count; i < tutorialUnits; i++)
             { tutorial.UnregisterRuntimeTarget(TutorialKeys.Unit(i), null); tutorial.UnregisterRuntimeTarget(TutorialKeys.Range(i), null); }
             tutorialUnits = bots.Count;
+            var teaching = stage == 2 ? tutorial.StageTwoRobot : null;
+            if (teaching != null && robotViews.TryGetValue(teaching.Id, out var teachingView))
+            {
+                tutorial.RegisterWorldTarget(TutorialDirector.TeachingUnit, teachingView.gameObject, RobotBounds(teaching));
+                tutorial.RegisterWorldTarget(TutorialDirector.TeachingRange, teachingView.gameObject,
+                    new Bounds(DefenseViews.World(teaching.Position), new Vector3(teaching.Range * 2, .1f, teaching.Range * 2)), true);
+            }
+            else { tutorial.UnregisterRuntimeTarget(TutorialDirector.TeachingUnit, null); tutorial.UnregisterRuntimeTarget(TutorialDirector.TeachingRange, null); }
             var route = new List<Bounds>();
             // Clipped to the map, in case a route starts off it.
             var min = DefenseViews.World(Simulation.Setup.Min); var max = DefenseViews.World(Simulation.Setup.Max);
@@ -629,7 +652,8 @@ namespace CodingGame.Defense
                 ? BattleSpeed * (tutorial ? tutorial.BattlePace : 1f) : 1;
             foreach (var bot in Simulation.Robots)
             {
-                var view = robotViews[bot.Id];
+                // A robot placed straight into the simulation (dev tools, tests) has no view; skip it instead of throwing every frame.
+                if (!robotViews.TryGetValue(bot.Id, out var view)) continue;
                 view.SyncRobot(bot, DefenseViews.World(bot.Position), battleCamera.transform.rotation); view.TickVisual(elapsed); view.SetPace(pace);
             }
             foreach (var enemy in Simulation.Enemies)
@@ -712,6 +736,11 @@ namespace CodingGame.Defense
         [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
         void Trace(string text) => Debug.Log($"[Defense] S{stage} W{Simulation.WaveIndex + 1} {Simulation.Phase} robots={Simulation.Robots.Count}/{Simulation.Setup.RobotLimit} core={Simulation.BaseHealth} | {text}", this);
         void Tell(string text) { StatusMessage = text; message.text = text; Trace(text); }
+        // One shared block inventory: "Slash 2 (free 1 · robot3 1)" = owned, left for a new robot, held by each robot.
+        string lastInventory;
+        string InventoryLine() => "inventory " + string.Join(", ", Simulation.Inventory.OrderBy(p => p.Key).Select(p =>
+            $"{p.Key} {p.Value} (free {Simulation.Available(p.Key)}" + string.Concat(Simulation.Robots.Select(r => (r, n: Simulation.Reserved(r, p.Key)))
+                .Where(x => x.n > 0).Select(x => $" · robot{x.r.Id} {x.n}")) + ")"));
         static string ActionName(RobotAction action) => DefenseProgression.Label(DefenseProgression.ActionBlock(action));
     }
 }

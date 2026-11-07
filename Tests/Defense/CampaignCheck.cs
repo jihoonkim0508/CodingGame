@@ -200,6 +200,11 @@ static class CampaignCheck
         var second=Place(sim,RobotRole.Warrior,-5);sim.ApplyProgram(second.Id,"copy",new[]{new CodeBlock(BlockKind.Attack,"0",new CodeBlock(BlockKind.NearestEnemy))});
         Assert(sim.Available(BlockKind.Shot)==1,"legacy attack shares inventory");
         sim.RemoveRobot(second.Id);Assert(sim.Available(BlockKind.Shot)==2,"remove releases reservation");
+        // A syntax error empties the applied code, but the blocks left in that robot's editor are still its own.
+        sim.ApplyProgram(bot.Id,"broken",Array.Empty<CodeBlock>());sim.SetDraft(bot.Id,new[]{BlockKind.Shot,BlockKind.NearestEnemy});
+        Assert(sim.Available(BlockKind.Shot)==2&&sim.Available(BlockKind.Shot,bot.Id)==3,"unfinished editor blocks stay reserved");
+        Reject(()=>sim.ApplyProgram(Place(sim,RobotRole.Warrior,-5).Id,"take",Enumerable.Range(0,3).Select(i=>new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy))).ToArray()),"another robot cannot take a draft's blocks");
+        sim.SetDraft(bot.Id,Array.Empty<BlockKind>());sim.RemoveRobot(sim.Robots.Last().Id);sim.ApplyProgram(bot.Id,"fire",saved.CopyBlocks());
         // This fixture tests rewards and reservation, without randomly unlocking loop execution rules.
         sim.Setup.Progression.drops = sim.Setup.Progression.drops.Where(d => d.kind != BlockKind.For && d.kind != BlockKind.While).ToArray();
         for(int wave=0;wave<5;wave++)

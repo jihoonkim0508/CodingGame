@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 namespace CodingGame.Defense
 {
-    public sealed class DefensePlayerHUD : MonoBehaviour
+    public sealed partial class DefensePlayerHUD : MonoBehaviour
     {
         [SerializeField] DefenseBattle battle;
         [SerializeField] GameObject canvasRoot, rewardPanel;
@@ -98,6 +98,7 @@ namespace CodingGame.Defense
         {
             var sim = battle.Simulation;
             if (sim == null) return;
+            RefreshStageTwoFailure(sim);
             AnimateResult();
             bool ready = sim.CanPrepare, reward = sim.Phase == BattlePhase.Reward;
             bool ended = sim.Phase == BattlePhase.Victory || sim.Phase == BattlePhase.Defeat;
@@ -105,7 +106,7 @@ namespace CodingGame.Defense
             string state = ended ? "작전 종료" : fighting ? "전투 중" : "정비 중";
             counters.text = $"{battle.Stage} 스테이지  ·  {state}";
             if(waveCounter) waveCounter.text=$"{sim.WaveIndex+1} / {sim.Setup.Waves.Length}";
-            if(enemyCounter) enemyCounter.text=sim.RemainingEnemies.ToString();
+            if(enemyCounter) enemyCounter.text=(reward ? sim.LastSurvivors : sim.RemainingEnemies).ToString();
             if(timeCounter) timeCounter.text=$"{Math.Ceiling(sim.WaveRemaining):00}초";
             if(coinCounter) coinCounter.text=sim.Coins.ToString("N0");
             combatControls.SetActive(fighting);
@@ -115,7 +116,9 @@ namespace CodingGame.Defense
             guide.transform.parent.gameObject.SetActive(freePlayGoal);
             if (freePlayGoal)
             {
-                guide.text = sim.WaveIndex == 1 ? "새 전사를 배치하고 변수로 적을 찾아 공격하기" :
+                guide.text = battle.Stage == 2 ? sim.WaveIndex == 1 ? "새 전사를 배치하고 반복문으로 적을 찾아 공격하기" :
+                    sim.WaveIndex == 3 ? "새 원거리를 배치하고 반복문으로 적을 찾아 공격하기" : "전사와 원거리의 반복 코드로 보스를 상대하기" :
+                    sim.WaveIndex == 1 ? "새 전사를 배치하고 변수로 적을 찾아 공격하기" :
                     sim.WaveIndex == 3 ? "두 전사의 조건문으로 몰려오는 적 막기" :
                     "my_attack_range()와 조건문으로 잡몹과 보스 막기";
                 AnimateGoal();
@@ -142,6 +145,9 @@ namespace CodingGame.Defense
             else resultShown = -100; // a restart right after the result clears its banner too, not only after BannerSeconds
             shownRewardPhase = sim.Phase; shownRewardWave = sim.WaveIndex; shownRewardStage = battle.Stage;
         }
+#if UNITY_EDITOR
+        public void EditorRefresh() => LateUpdate();
+#endif
         void AnimateGoal()
         {
             // Unscaled time keeps the gentle motion consistent while the player pauses or changes battle speed.
@@ -245,7 +251,8 @@ namespace CodingGame.Defense
         // The wave's result in large letters over the screen; the result panel fades in under it, then the rewarded blocks
         // pop out in turn. Driven from LateUpdate by the time it started, so an interrupted frame never leaves the panel or a
         // block invisible; a later result (the stage, right after the last wave) replaces the banner.
-        const float BannerSeconds = 1.4f, PanelFadeFrom = .8f, BlocksFrom = 1.1f, BlockStagger = .15f, BlockPop = .3f;
+        // The panel waits until the banner has nearly faded, so TIME UP/CLEAR never sits on top of the reward text.
+        const float BannerSeconds = 1.4f, PanelFadeFrom = 1.3f, BlocksFrom = 1.6f, BlockStagger = .15f, BlockPop = .3f;
         TextMeshProUGUI banner;
         CanvasGroup bannerGroup;
         CanvasGroup resultGroup;

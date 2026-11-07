@@ -88,9 +88,9 @@ namespace CodingGame.Defense
         {
             switch (Canonical(kind))
             {
-                case BlockKind.Shot: return "attack(enemy)"; case BlockKind.Slash: return "slash(enemy)";
-                case BlockKind.Block: return "block(enemy)"; case BlockKind.Boom: return "boom(enemy)";
-                case BlockKind.Slow: return "slow(enemy)"; case BlockKind.Buff: return "buff()";
+                case BlockKind.Shot: return "attack(Enemy)"; case BlockKind.Slash: return "slash(Enemy)";
+                case BlockKind.Block: return "block(Enemy)"; case BlockKind.Boom: return "boom(Enemy)";
+                case BlockKind.Slow: return "slow(Enemy)"; case BlockKind.Buff: return "buff()";
                 case BlockKind.Wait: return "wait()"; case BlockKind.Number: return "0";
                 case BlockKind.Comparison: return "<"; case BlockKind.DeclareVariable: return "variable =";
                 case BlockKind.Variable: return "variable"; case BlockKind.NearestEnemy: return "get_nearest_enemy()";

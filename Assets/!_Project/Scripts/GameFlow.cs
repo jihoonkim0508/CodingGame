@@ -35,6 +35,10 @@ namespace CodingGame
             var canvas = gameObject.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = short.MaxValue;
+            var scaler = gameObject.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920,1080);
+            scaler.matchWidthOrHeight = .5f;
             gameObject.AddComponent<GraphicRaycaster>();
 
             fade = new GameObject("Fade", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image)).GetComponent<Image>();
@@ -69,6 +73,9 @@ namespace CodingGame
             {
                 if (button.name == "GameStartBtn") button.onClick.AddListener(() => LoadScene(StageScene));
                 else if (button.name == "GameQuitBtn") button.onClick.AddListener(QuitGame);
+                else continue;
+                // The art title animates its own buttons; the text highlight is only for plain buttons.
+                if (!button.TryGetComponent<TitleMenuButton>(out _) && !button.TryGetComponent<TitleScreen.TitleButtonMotion>(out _)) button.gameObject.AddComponent<TitleMenuButton>();
             }
         }
 
@@ -118,7 +125,7 @@ namespace CodingGame
             instance.StartCoroutine(instance.ChangeScene(sceneName, delay));
         }
 
-        static void QuitGame()
+        public static void QuitGame()
         {
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;

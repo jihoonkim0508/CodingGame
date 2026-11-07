@@ -269,6 +269,10 @@ namespace CodingGame.Defense
             if (byKey.TryGetValue(key, out var binding) && binding.uiTarget)
             {
                 if (!binding.uiTarget.gameObject.activeInHierarchy) return 0;
+                // The preview holder also includes labels outside the rendered view.
+                // Point at the image the player watches, with no title/status overlap.
+                var preview = key == TutorialKeys.Preview ? binding.uiTarget.GetComponentInChildren<RawImage>() : null;
+                if (preview) { preview.rectTransform.GetWorldCorners(corners); return AddCorners(CanvasCamera) ? 1 : 0; }
                 // Scroll content (the code area) is drawn as the viewport the player sees, not its content size.
                 var scroll = binding.uiTarget.GetComponentInParent<ScrollRect>();
                 // A world-space canvas (e.g. the core health bar) projects through the battle camera.

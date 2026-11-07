@@ -20,8 +20,8 @@ namespace CodingGame.Defense
         const int RoundSegments = 64; // a multiple of 8, so the rect corners (45°) are sampled exactly
         const int RoundSlices = 4;
         bool dim = true;
-        // Motion: a new target opens wide and closes in on it, the dark fades in, outlines breathe.
-        const float IntroSeconds = .35f, IntroGrow = 48, DimSeconds = .25f;
+        // Fade and stroke animation keep the target geometry fixed from the first frame.
+        const float IntroSeconds = .35f, DimSeconds = .25f;
         float introStart = -10, dimStart = -10;
         public void Pulse() => introStart = Time.unscaledTime;
         float Intro => Mathf.Clamp01((Time.unscaledTime - introStart) / IntroSeconds);
@@ -64,16 +64,9 @@ namespace CodingGame.Defense
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear();
-            float k = Intro, grow = (1 - k) * (1 - k) * IntroGrow;
-            // Grown for this frame only (the stored rects stay as set), so the hole closes in on its target.
-            if (grow > .01f) { Grow(holes, grow); Grow(outlines, grow); Grow(rounds, grow); }
+            float k = Intro;
             var color = this.color; color.a *= Mathf.SmoothStep(0, 1, (Time.unscaledTime - dimStart) / DimSeconds);
-            try { Populate(vh, color, k); }
-            finally { if (grow > .01f) { Grow(holes, -grow); Grow(outlines, -grow); Grow(rounds, -grow); } }
-        }
-        static void Grow(List<Rect> rects, float by)
-        {
-            for (int i = 0; i < rects.Count; i++) { var r = rects[i]; rects[i] = Rect.MinMaxRect(r.xMin - by, r.yMin - by, r.xMax + by, r.yMax + by); }
+            Populate(vh, color, k);
         }
 
         void Populate(VertexHelper vh, Color color, float intro)

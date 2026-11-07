@@ -21,14 +21,34 @@ namespace CodingGame.Defense
         [SerializeField, Tooltip("'비우기' 오른쪽 힌트 버튼. 튜토리얼이 힌트를 줄 때만 보입니다.")] Button hintButton;
         [SerializeField] GameObject hintPopup;
         [SerializeField] TMP_Text hintText;
+        string currentHint;
         int editingId;
         DefenseSimulation editingSession;
         DefenseSimulation draftSession;
+        CommandDropZone tutorialInsertion;
+        public void ShowTutorialInsertion(string key)
+        {
+            var zone = key != null && key.StartsWith(TutorialKeys.CodePrefix + "BodyEnd.", StringComparison.Ordinal) ? TutorialSlot(key) : null;
+            if (tutorialInsertion == zone) return;
+            if (tutorialInsertion) tutorialInsertion.ShowTutorialAppend(false);
+            tutorialInsertion = zone;
+            if (zone)
+            {
+                zone.ShowTutorialAppend(true);
+                LayoutRebuilder.ForceRebuildLayoutImmediate(panel.Program.Rect);
+            }
+        }
         readonly Dictionary<int, CommandCodingPanel.EditHistory> drafts = new Dictionary<int, CommandCodingPanel.EditHistory>();
         public bool IsOpen => editorRoot && editorRoot.activeSelf;
         public bool HintOpen => IsOpen && hintPopup && hintPopup.activeSelf;
         public int EditingId => editingId;
         public CommandCodingPanel Panel => panel;
+        public void PrepareStageTwoCode(bool ranged)
+        {
+            if (!IsOpen || !HasCurrentSession) return;
+            if (ranged) panel.LoadProgram(panel.FunctionName, new[] { StageTwoLearning.Loop(RobotRole.Shooter, 3, attack: false) });
+            else PrepareBaselineExample();
+        }
         bool HasCurrentSession => editingSession != null && editingSession == battle.Simulation;
         void Start()
         {
@@ -40,7 +60,14 @@ namespace CodingGame.Defense
             panel.Remaining = kind => editingSession == null ? 0 : Math.Max(0, editingSession.Available(kind, editingId) - panel.Program.AllBlocks().Count(b => DefenseProgression.Canonical(b.Kind) == DefenseProgression.Canonical(kind)));
             closeButton.onClick.AddListener(() => Close());
             automaticButton.onClick.AddListener(RestoreAutomatic);
-            if (hintButton) hintButton.onClick.AddListener(ToggleHint);
+            if (hintButton)
+            {
+                hintButton.onClick.AddListener(ToggleHint);
+                var hintRect = (RectTransform)hintButton.transform;
+                float extra = Mathf.Max(0, 124 - hintRect.sizeDelta.x);
+                hintRect.sizeDelta += new Vector2(extra, 0);
+                automaticButton.GetComponent<RectTransform>().anchoredPosition -= new Vector2(extra, 0);
+            }
             SetHint(null);
             inventory.text = "블록 인벤토리";
             editorRoot.SetActive(false);
@@ -60,12 +87,16 @@ namespace CodingGame.Defense
             if (drafts.TryGetValue(id, out var history)) panel.LoadHistory(history);
             else panel.LoadProgram(robot.Program?.Name ?? "robot_" + id, robot.Program?.CopyBlocks() ?? Array.Empty<CodeBlock>());
             panel.ShowCategory(1); panel.RefreshPalette();
+            SetHint(currentHint);
             if (panel.IsApplied) panel.ShowMessage("자동 적용됨 · Ctrl+Z 실행 취소 · Ctrl+Y 다시 실행");
         }
         string Apply(string name, IReadOnlyList<CodeBlock> blocks)
         {
             if (!IsOpen || !HasCurrentSession) throw new FormatException("로봇을 다시 선택하세요.");
-            editingSession.ApplyProgram(editingId, name, blocks); panel.RefreshPalette();
+            editingSession.ApplyProgram(editingId, name, blocks);
+            // The blocks in the editor stay this robot's even when the code is unfinished and nothing was applied.
+            editingSession.SetDraft(editingId, panel.Program.AllBlocks().Select(b => b.Kind));
+            panel.RefreshPalette();
             battle.NotifyCodeApplied(editingId, blocks.Count == 0);
             return blocks.Count == 0 ? "코드 없음 · 행동하지 않음" : "자동 적용됨";
         }
@@ -73,12 +104,15 @@ namespace CodingGame.Defense
             => battle.ReportTutorialDrop(source, destination, "BlockDropped:" + DefenseProgression.Canonical(kind));
         public void Close(bool resume = true)
         {
+            ShowTutorialInsertion(null);
             if (resume && !battle.TutorialAllows("Editor.Close")) return;
             bool wasOpen = IsOpen;
             if (IsOpen && HasCurrentSession && editingSession.Robots.Exists(r => r.Id == editingId))
                 drafts[editingId] = panel.History;
             if (IsOpen) battle.EndCodeView();
             if (editorRoot) editorRoot.SetActive(false);
+            if (hintPopup) hintPopup.SetActive(false);
+            RefreshHintLabel();
             editingId = 0; editingSession = null;
             if (resume && wasOpen) battle.ReportTutorialAction("Editor.Close", "TargetClicked", "EditorClosed");
         }
@@ -86,14 +120,37 @@ namespace CodingGame.Defense
         public void SetHint(string code)
         {
             if (!hintButton) return;
+            if (!string.IsNullOrWhiteSpace(code) && HasCurrentSession && editingSession.Setup.Stage == 2 && editingSession.WaveIndex == 4)
+                code = StageTwoLearning.HintCode(editingSession.FindRobot(editingId).Spec.role);
+            bool changed = currentHint != code;
+            currentHint = code;
             hintButton.gameObject.SetActive(!string.IsNullOrWhiteSpace(code));
-            if (hintText) hintText.text = code ?? "";
-            if (hintPopup) hintPopup.SetActive(false);
+            if (hintText)
+            {
+                hintText.text = code ?? "";
+                hintText.raycastTarget = false;
+                hintText.textWrappingMode = TextWrappingModes.NoWrap;
+                if (hintPopup && !string.IsNullOrWhiteSpace(code))
+                {
+                    var rect = (RectTransform)hintPopup.transform;
+                    var parent = (RectTransform)rect.parent;
+                    var preferred = hintText.GetPreferredValues(code);
+                    rect.sizeDelta = new Vector2(Mathf.Min(Mathf.Max(380, preferred.x + 32), Mathf.Max(100, parent.rect.width - 32)), Mathf.Max(190, preferred.y + 32));
+                }
+            }
+            if (hintPopup && (changed || string.IsNullOrWhiteSpace(code))) hintPopup.SetActive(false);
+            RefreshHintLabel();
+        }
+        void RefreshHintLabel()
+        {
+            var label = hintButton ? hintButton.GetComponentInChildren<TMP_Text>(true) : null;
+            if (label) label.text = hintPopup && hintPopup.activeSelf ? "힌트 닫기" : "힌트";
         }
         void ToggleHint()
         {
-            if (!battle.TutorialAllows(TutorialKeys.Hint) || !hintPopup) return;
+            if (!hintPopup || !HintOpen && !battle.TutorialAllows(TutorialKeys.Hint)) return;
             hintPopup.SetActive(!hintPopup.activeSelf);
+            RefreshHintLabel();
             battle.ReportTutorialAction(TutorialKeys.Hint, TutorialSignals.TargetClicked);
         }
         // Empties a robot's code (blocks go back to the inventory); through the editor when it is open on that robot.
@@ -102,7 +159,7 @@ namespace CodingGame.Defense
             drafts.Remove(id);
             if (IsOpen && editingId == id) { panel.ClearProgram(); panel.RefreshPalette(); return; }
             var sim = battle.Simulation; var robot = sim?.FindRobot(id);
-            if (robot != null && sim.CanEdit) sim.ApplyProgram(id, robot.Program?.Name ?? "robot_" + id, Array.Empty<CodeBlock>());
+            if (robot != null && sim.CanEdit) { sim.ApplyProgram(id, robot.Program?.Name ?? "robot_" + id, Array.Empty<CodeBlock>()); sim.SetDraft(id, Array.Empty<BlockKind>()); }
         }
 
         public void PrepareDistanceExample()
@@ -130,7 +187,8 @@ namespace CodingGame.Defense
         public IEnumerable<string> LooseExpressions() => !IsOpen ? Enumerable.Empty<string>() : panel.Program.LooseRoots()
             .Where(root => PythonTreeCompiler.OutputSlot(root.Kind) != BlockSlotKind.Statement)
             .Select(root => PythonTreeCompiler.ExpressionText(root.Read()));
-        // Tutorial targets inside the editor (TutorialKeys.IsEditorArea): Editor.Code.Start | Loose | Line.N | After.N | Body.N | Arg.N.i[.j…],
+        // Tutorial targets: Editor.Code.Start | Loose | Line.N | After.N | Body.N | BodyEnd.N | Arg.N.i[.j…],
+        // BodyEnd reserves and targets one append row below the existing body, while its guide is active.
         // with N counted from 1 along the start chain, and Editor.Palette.<BlockKind>. False when not on screen.
         public bool TryGetTutorialCorners(string key, Vector3[] corners)
         {
@@ -155,6 +213,9 @@ namespace CodingGame.Defense
             var block = chain[line - 1];
             switch (parts[0])
             {
+                case "BodyLine":
+                    if (parts.Length != 3 || !block.Body || !int.TryParse(parts[2], out int bodyIndex) || bodyIndex < 0 || bodyIndex >= block.Body.Blocks.Count) return false;
+                    return Corners(block.Body.Blocks[bodyIndex].Rect, null, corners);
                 case "Name":
                 case "Option":
                     for (int i = 2; i < parts.Length; i++)
@@ -169,13 +230,15 @@ namespace CodingGame.Defense
                     return Corners(parts[0] == "BodyArg" ? bodySlot?.Rect : bodySlot?.Blocks.FirstOrDefault()?.InputRect, null, corners);
                 case "Line": return Corners(block.Rect, null, corners);
                 // The slot where the next block snaps: one line high, right under line N.
-                case "After": var r = block.Rect.rect; return Corners(block.Rect, new Rect(r.xMin, r.yMin - r.height, r.width, r.height), corners);
+                case "After": var r = block.Rect.rect; return Corners(block.Rect, new Rect(r.xMin, r.yMin - 46, r.width, 46), corners);
+                case "BodyEnd":
+                    return block.Body && Corners(block.Body.Rect, block.Body.TutorialAppendArea, corners);
                 case "Body":
                     if (!block.Body) return false;
                     // Point at the beginning of an empty body, where the first action is inserted.
                     var bodyRect = block.Body.Rect.rect;
                     return Corners(block.Body.Rect, block.Body.Blocks.Count == 0
-                        ? new Rect(bodyRect.xMin, bodyRect.yMin, Mathf.Min(32, bodyRect.width), bodyRect.height) : (Rect?)null, corners);
+                        ? new Rect(bodyRect.xMin + 4, bodyRect.yMin + 4, Mathf.Max(64, bodyRect.width - 8), Mathf.Max(32, bodyRect.height - 8)) : (Rect?)null, corners);
                 case "Arg":
                     CommandDropZone slot = null;
                     for (int i = 2; i < parts.Length; i++)
@@ -190,7 +253,15 @@ namespace CodingGame.Defense
         }
         // An Editor.Code.Arg.N.i[.j…] slot that holds a block (the slot exists, empty, as soon as its line does).
         public bool SlotFilled(string key)
-            => TutorialSlot(key) is CommandDropZone slot && slot.Blocks.Count > 0;
+        {
+            if (string.IsNullOrEmpty(key)) return false;
+            // Optional ':BlockKind' makes teaching steps check what was placed, not just occupancy.
+            var parts = key.Split(':');
+            var slot = TutorialSlot(parts[0]);
+            if (slot == null || slot.Blocks.Count == 0) return false;
+            return parts.Length == 1 || parts.Length == 2 &&
+                Enum.TryParse(parts[1], out BlockKind kind) && slot.Blocks[0].BaseKind == kind;
+        }
 
         public bool SlotSelected(string key)
             => TutorialSlot(key) is CommandDropZone slot && (panel.SelectedZone == slot || slot.Blocks.Count > 0);
@@ -198,7 +269,10 @@ namespace CodingGame.Defense
         public bool SelectTutorialSlot(string key)
         {
             var slot = TutorialSlot(key);
-            if (slot == null || slot.Blocks.Count > 0) return false;
+            if (slot == null) return false;
+            // A player may have filled the slot before this guide started. Keep their work;
+            // the tutorial's normal completion checks decide whether it is correct.
+            if (slot.Blocks.Count > 0 && slot.Slot != BlockSlotKind.Statement) return true;
             panel.Select(slot);
             return true;
         }
@@ -261,7 +335,7 @@ namespace CodingGame.Defense
             var chain = panel.Program.StartChain();
             if (parts.Length < 2 || !int.TryParse(parts[1], out int line) || line < 1 || line > chain.Count) return null;
             var block = chain[line - 1];
-            if (parts[0] == "Body") return block.Body;
+            if (parts[0] == "Body" || parts[0] == "BodyEnd") return block.Body;
             if (parts[0] != "Arg" || parts.Length < 3) return null;
             CommandDropZone slot = null;
             for (int i = 2; i < parts.Length; i++)
@@ -295,6 +369,21 @@ namespace CodingGame.Defense
             var r = local ?? target.rect;
             corners[0] = target.TransformPoint(new Vector3(r.xMin, r.yMin)); corners[1] = target.TransformPoint(new Vector3(r.xMin, r.yMax));
             corners[2] = target.TransformPoint(new Vector3(r.xMax, r.yMax)); corners[3] = target.TransformPoint(new Vector3(r.xMax, r.yMin));
+            // Code and palette contents scroll independently. Only the visible portion can be highlighted.
+            foreach (var mask in target.GetComponentsInParent<Behaviour>().Where(c => c is RectMask2D || c is Mask))
+            {
+                if (!mask.isActiveAndEnabled) continue;
+                var viewport = (RectTransform)mask.transform;
+                var a = viewport.InverseTransformPoint(corners[0]);
+                var b = viewport.InverseTransformPoint(corners[2]);
+                var clipped = Rect.MinMaxRect(Mathf.Max(a.x, viewport.rect.xMin), Mathf.Max(a.y, viewport.rect.yMin),
+                    Mathf.Min(b.x, viewport.rect.xMax), Mathf.Min(b.y, viewport.rect.yMax));
+                if (clipped.width <= 0 || clipped.height <= 0) return false;
+                corners[0] = viewport.TransformPoint(new Vector3(clipped.xMin, clipped.yMin));
+                corners[1] = viewport.TransformPoint(new Vector3(clipped.xMin, clipped.yMax));
+                corners[2] = viewport.TransformPoint(new Vector3(clipped.xMax, clipped.yMax));
+                corners[3] = viewport.TransformPoint(new Vector3(clipped.xMax, clipped.yMin));
+            }
             return true;
         }
         // Switches the palette to the category holding an Editor.Palette.<BlockKind> target so its outline can show.
@@ -335,7 +424,7 @@ namespace CodingGame.Defense
             if (!HasCurrentSession || !sim.CanEdit || !sim.Robots.Exists(r => r.Id == editingId)) { Close(false); return; }
             var keyboard = Keyboard.current;
             if (keyboard == null) return;
-            if (keyboard.escapeKey.wasPressedThisFrame) { Close(); return; }
+            if (keyboard.escapeKey.wasPressedThisFrame) { if (HintOpen) ToggleHint(); else Close(); return; }
             if (battle.TutorialBlocksInput) return;
             // 텍스트 입력 중에는 입력창 단축키를 유지하고, 그 밖에서만 블록 실행 취소를 처리합니다.
             if (panel.TextInputFocused || keyboard.altKey.isPressed || keyboard.leftMetaKey.isPressed || keyboard.rightMetaKey.isPressed) return;
