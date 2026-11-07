@@ -7,7 +7,9 @@ namespace CodingGame.StageMap
 
     public static class StageProgress
     {
-        const string Prefix = "CodingGame.StageMap.Cleared.stage-";
+        // No save file (10차 110): clears and stars last while the game runs, and a new launch starts from stage 1.
+        static readonly HashSet<int> cleared = new HashSet<int>();
+        static readonly Dictionary<int, int> stars = new Dictionary<int, int>();
         static readonly HashSet<int> previewClears = new HashSet<int>();
         // Stage number the map handed to the Defense scene; 0 when Defense was opened directly.
         public static int SelectedStage;
@@ -34,11 +36,13 @@ namespace CodingGame.StageMap
             PendingUnlock = 0;
             PendingPurification = 0;
             previewClears.Clear();
+            cleared.Clear();
+            stars.Clear();
         }
 
-        static bool IsCleared(int number) => previewClears.Contains(number) || PlayerPrefs.GetInt(Prefix + number, 0) == 1;
+        static bool IsCleared(int number) => previewClears.Contains(number) || cleared.Contains(number);
 
-        // Developer previews unlock stages for this Play session without changing the save.
+        // Developer previews unlock stages without counting as a real clear (no stars recorded).
         public static void MarkClearedForPreview(int number)
         {
             if(!IsCleared(number)) PendingPurification=number;
@@ -55,18 +59,15 @@ namespace CodingGame.StageMap
                 previewClears.Add(number);
                 return;
             }
-            PlayerPrefs.SetInt(Prefix + number, 1);
-            PlayerPrefs.Save();
+            cleared.Add(number);
         }
 
-        // Best star result per stage (0: none yet). Developer previews leave the save alone.
-        const string StarsPrefix = "CodingGame.StageMap.Stars.stage-";
-        public static int BestStars(int number) => PlayerPrefs.GetInt(StarsPrefix + number, 0);
-        public static void RecordStars(int number, int stars)
+        // Best star result per stage (0: none yet). Developer previews record none.
+        public static int BestStars(int number) => stars.TryGetValue(number, out int best) ? best : 0;
+        public static void RecordStars(int number, int count)
         {
-            if (previewClears.Count > 0 || stars <= BestStars(number)) return;
-            PlayerPrefs.SetInt(StarsPrefix + number, stars);
-            PlayerPrefs.Save();
+            if (previewClears.Count > 0 || count <= BestStars(number)) return;
+            stars[number] = count;
         }
 
         public static void ResetAll(int count)
@@ -75,8 +76,8 @@ namespace CodingGame.StageMap
             SelectedStage = 0;
             PendingUnlock = 0;
             PendingPurification = 0;
-            for (int number = 1; number <= count; number++) { PlayerPrefs.DeleteKey(Prefix + number); PlayerPrefs.DeleteKey(StarsPrefix + number); }
-            PlayerPrefs.Save();
+            cleared.Clear();
+            stars.Clear();
         }
 
         public static StageState GetState(int number) =>

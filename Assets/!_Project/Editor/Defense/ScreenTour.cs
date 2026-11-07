@@ -63,6 +63,7 @@ namespace CodingGame.Defense.Editor
             var host = new GameObject("ScreenTour").AddComponent<Capture>();
             host.path = Path.Combine(Folder, $"{++shot:00}_{name}.png"); host.done = () => saved = true;
             yield return Until(() => saved, 10);
+            if (!saved) Debug.LogWarning("[ScreenTour] no frame captured for " + host.path); // the game view did not render (screen off?)
             if (host) Object.DestroyImmediate(host.gameObject);
         }
         sealed class Capture : MonoBehaviour
@@ -144,6 +145,10 @@ namespace CodingGame.Defense.Editor
             var battle = DevTest.Battle;
             battle.SelectRobot(battle.Simulation.Robots[0].Id); battle.DevelopSelected();
             yield return Seconds(1); yield return Shot("2-1_code");
+            var palette = Object.FindFirstObjectByType<CodingGame.BlockCoding.CommandCodingPanel>();
+            if (palette) { palette.ShowCategory(0); yield return Seconds(.4); yield return Shot("2-1_code_control"); }
+            var help = Object.FindFirstObjectByType<DefenseBlockHelp>(FindObjectsInactive.Include);
+            if (help) { help.Open(); yield return Seconds(.4); yield return Shot("2-1_block_help"); help.Close(); }
             battle.CodeEditor.Close();
             battle.StartBattle();
             yield return Seconds(.4); yield return Shot("2-1_start"); // the moment the wave begins

@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using CodingGame.Art.MapPainter;
 using CodingGame.BlockCoding;
+using CodingGame.StageMap;
 using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -14,8 +16,9 @@ using Object = UnityEngine.Object;
 
 namespace CodingGame.Defense.Editor
 {
-    // The requests after PR #19's UI (Docs/MDA_고도화.md 9차 98~107): the scene re-skinned by PR #19's builders while the robot
-    // cards keep this branch's look, Jalnan for the title and the speaker, A2Z (에이투지체) for 디버's lines, no portrait badge.
+    // The requests after PR #19's UI (Docs/MDA_고도화.md 9차 98~108, 10차 109~114): the scene re-skinned by PR #19's builders while
+    // the robot cards keep this branch's look, Jalnan for the title and the speaker, A2Z (에이투지체) for 디버's lines, no portrait
+    // badge; then no logo in the top bar and the block guide's i under the bar's right end.
     //   Unity.exe -batchmode -projectPath . -executeMethod CodingGame.Defense.Editor.UIRequests9.Apply -quit
     //   Unity.exe -batchmode -projectPath . -executeMethod CodingGame.Defense.Editor.UIRequests9.Verify   (exits 0 or 1)
     public static class UIRequests9
@@ -38,6 +41,7 @@ namespace CodingGame.Defense.Editor
             GeneratedUISkinBuilder.Apply();
             restore();
             Dialogue(Canvas("TutorialOverlay"), jalnan, a2z);
+            TopBar(Canvas("PlayerCanvas"));
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene()); EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
             var prefab = PrefabUtility.LoadPrefabContents(Overlay);
             try { Dialogue(prefab.transform, jalnan, a2z); PrefabUtility.SaveAsPrefabAsset(prefab, Overlay); }
@@ -48,6 +52,43 @@ namespace CodingGame.Defense.Editor
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene()); EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
             AssetDatabase.SaveAssets();
             Debug.Log("[UIRequests9] applied");
+        }
+
+        [MenuItem("Tools/Learning UI/Apply 10차 Requests")]
+        public static void Apply10()
+        {
+            EditorSceneManager.OpenScene(Scene);
+            TopBar(Canvas("PlayerCanvas"));
+            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene()); EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
+            Debug.Log("[UIRequests10] applied");
+        }
+
+        // 112: no 'This is Coding' logo, the stage line starts at the bar's left. 113: the i sits just under the bar at its right
+        // end, as tall as the pause and speed buttons, which move left to make room.
+        const float InfoSize = 46, BarGap = 20, ControlsRight = 24, InfoGap = 10;
+        static void TopBar(Transform canvas)
+        {
+            var header = canvas.Find("Header");
+            var logo = header.Find("TitleLogo");
+            if (logo) Object.DestroyImmediate(logo.gameObject);
+            var counters = (RectTransform)header.Find("Counters");
+            counters.anchoredPosition = new Vector2(24, counters.anchoredPosition.y);
+            var info = (RectTransform)header.Find("Info");
+            info.anchorMin = info.anchorMax = new Vector2(1, 0); info.pivot = new Vector2(1, 1);
+            // The header ends 20 in from the screen's right, the controls 24.
+            info.anchoredPosition = new Vector2(20 - ControlsRight, -BarGap); info.sizeDelta = new Vector2(InfoSize, InfoSize);
+            var hud = Object.FindFirstObjectByType<DefensePlayerHUD>(FindObjectsInactive.Include);
+            var controls = (RectTransform)((GameObject)new SerializedObject(hud).FindProperty("combatControls").objectReferenceValue).transform;
+            controls.anchoredPosition = new Vector2(-(ControlsRight + InfoSize + InfoGap), controls.anchoredPosition.y);
+            foreach (var changed in new Object[] { counters, info, controls }) EditorUtility.SetDirty(changed);
+        }
+
+        // Where a rect sits on its canvas, in canvas units.
+        static Rect Box(RectTransform rect, RectTransform canvas)
+        {
+            var corners = new Vector3[4]; rect.GetWorldCorners(corners);
+            Vector2 min = canvas.InverseTransformPoint(corners[0]), max = canvas.InverseTransformPoint(corners[2]);
+            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
 
         // A dynamic TMP font made from the OFL font file once; 디버's lines fill its atlas as they show.
@@ -139,6 +180,27 @@ namespace CodingGame.Defense.Editor
             EditorSceneManager.OpenScene(TitleScene);
             var titles = Object.FindObjectsByType<TMP_Text>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             Check(titles.Length > 0 && titles.All(t => t.font == jalnan && (t.fontStyle & FontStyles.Bold) == 0), "104 title texts in Jalnan, not bold");
+            var titleButtons = Object.FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            Check(titleButtons.Length >= 2 && titleButtons.All(b => b.GetComponentsInChildren<TMP_Text>(true).Length > 0 &&
+                b.GetComponentsInChildren<TMP_Text>(true).All(t => t.font == jalnan && t.fontSharedMaterial == jalnan.material)),
+                "109 title buttons (게임 시작, 게임 종료) labelled in Jalnan");
+            // Saved with another font, the title still opens in Jalnan (TitlePresentation.Awake).
+            var presentation = Object.FindFirstObjectByType<TitleScreen.TitlePresentation>(FindObjectsInactive.Include);
+            var pretendard = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(Pretendard);
+            foreach (var t in titles) t.font = pretendard;
+            typeof(TitleScreen.TitlePresentation).GetMethod("Awake", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).Invoke(presentation, null);
+            var shown = presentation.canvasRect.GetComponentsInChildren<TMP_Text>(true);
+            Check(UITheme.Display == jalnan && shown.Length >= 3 && shown.All(t => t.font == jalnan), "109 the title sets Jalnan again when it opens, whatever the scene was saved with");
+            EditorSceneManager.OpenScene(TitleScene); // drop the test's changes
+
+            // 110: a clear and its stars count for this run only; nothing is written to PlayerPrefs.
+            const string ClearKey = "CodingGame.StageMap.Cleared.stage-1", StarsKey = "CodingGame.StageMap.Stars.stage-1";
+            PlayerPrefs.DeleteKey(ClearKey); PlayerPrefs.DeleteKey(StarsKey);
+            StageProgress.ResetAll(3); StageProgress.MarkCleared(1); StageProgress.RecordStars(1, 3);
+            Check(StageProgress.GetState(2) == StageState.Available && StageProgress.BestStars(1) == 3 && !PlayerPrefs.HasKey(ClearKey) && !PlayerPrefs.HasKey(StarsKey),
+                "110 a clear opens the next island and keeps its stars without a save file");
+            StageProgress.ResetAll(3);
+            Check(StageProgress.GetState(2) == StageState.Locked && StageProgress.BestStars(1) == 0, "110 a new run starts from stage 1");
 
             EditorSceneManager.OpenScene(Scene);
             var robots = Canvas("PlayerCanvas").Find("Deck/Robots").GetComponentsInChildren<Button>(true);
@@ -163,8 +225,30 @@ namespace CodingGame.Defense.Editor
                 Check(bar.position.y + DefenseActorView.HealthLift - top >= .15f, $"100 {name}'s bar clears its head (bar {bar.position.y + DefenseActorView.HealthLift:0.00}, head {top:0.00})");
             }
             Check(DefenseCoreHealthBar.Lift >= .5f, "100 core bar lifted");
+            // 111: PR #19's (art to develop) battle-map backdrop, navy with its grid showing.
+            bool ArtBackdrop(ModularMapRoot map) => map && map.blueprintBackground && ColorUtility.ToHtmlStringRGB(map.blueprintBlue) == "182F42" &&
+                Mathf.Abs(map.blueprintMinorOpacity - .07f) < .001f && Mathf.Abs(map.blueprintMajorOpacity - .18f) < .001f;
+            var workshop = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/!_Project/Resources/ArtPrefabs/Stage01 Workshop.prefab");
+            Check(ArtBackdrop(workshop ? workshop.GetComponent<ModularMapRoot>() : null), "111 workshop map (stages 2, 3): navy #182F42 with the grid at .07 and .18");
+            var sceneMaps = Object.FindObjectsByType<ModularMapRoot>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            Check(sceneMaps.Length > 0 && sceneMaps.All(ArtBackdrop), "111 stage 1's map in the scene: the same navy and grid");
+            Check(File.ReadAllText("Assets/!_Project/Resources/ArtScripts/WorkshopArt/Editor/WorkshopStage.cs").Contains(
+                "map.blueprintBlue=ColorHex(\"182F42\");map.blueprintMinorOpacity=.07f;map.blueprintMajorOpacity=.18f;"), "111 the workshop builder makes the same backdrop");
+
+            // 112, 113: the top bar.
+            var player = (RectTransform)Canvas("PlayerCanvas");
+            var header = (RectTransform)player.Find("Header");
+            Check(!header.Find("TitleLogo"), "112 no logo at the top left");
+            var topBar = Box(header, player); var counters = Box((RectTransform)header.Find("Counters"), player);
+            Check(counters.xMin - topBar.xMin <= 40, $"112 the stage line starts at the bar's left ({counters.xMin - topBar.xMin:0} in)");
+            var info = Box((RectTransform)header.Find("Info"), player);
+            var hud = Object.FindFirstObjectByType<DefensePlayerHUD>(FindObjectsInactive.Include);
+            var controls = Box((RectTransform)((GameObject)new SerializedObject(hud).FindProperty("combatControls").objectReferenceValue).transform, player);
+            Check(info.yMax < topBar.yMin && topBar.yMin - info.yMax <= 30, $"113 i just under the top bar ({topBar.yMin - info.yMax:0} below)");
+            Check(player.rect.xMax - info.xMax <= 30 && info.xMin > player.rect.center.x, $"113 i at the right end ({player.rect.xMax - info.xMax:0} from the edge)");
+            Check(!info.Overlaps(controls) && !info.Overlaps(topBar), "113 i clear of the pause and speed buttons and of the bar");
             Check(typeof(DefenseBattle).GetMethod("SetPlacementTint", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance) == null,
-                "108 placing a robot leaves the map's colours alone (no white floor, red road)");
+                "108, 114 placing a robot leaves the map's colours alone (no white floor, red road)");
 
             Directory.CreateDirectory(Path.GetDirectoryName(Log));
             string result = (failed.Count == 0 ? "PASS " : "FAIL ") + passed + " passed" + string.Concat(failed.Select(f => "\n  failed: " + f));
