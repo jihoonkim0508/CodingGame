@@ -80,6 +80,11 @@ namespace CodingGame.Defense
         public bool Baked => baked;
         public void Bake(System.Collections.Generic.IReadOnlyList<RobotDefinition> definitions)
         {
+            // Safe to run again on a baked scene: the empty-robot count colour and each enemy card's portrait (blank white in
+            // the editor until the first wave filled them).
+            inventory.color = new Color(.1f, .28f, .36f);
+            for (int i = 0; i < enemyCards.Length; i++)
+                if (enemyCards[i].GetComponentInChildren<RawImage>(true) is RawImage image && battle.EnemyAt(i).icon) ShowEnemy(image, battle.EnemyAt(i).icon);
             if (baked) return;
             // Clear of the deck's ink edge: top-aligned at the very top, the status line touched it.
             notice.alignment = TextAlignmentOptions.MidlineLeft; ((RectTransform)notice.transform).anchoredPosition += new Vector2(0, -8);
@@ -270,17 +275,7 @@ namespace CodingGame.Defense
                 enemyCards[i].SetActive(i < typeCount);
                 if (i >= typeCount) continue;
                 var definition = battle.EnemyAt(cardDefinitions[i]);
-                if (definition.icon && enemyImages[i] && enemyImages[i].texture != definition.icon)
-                {
-                    var image=enemyImages[i];image.texture=definition.icon;
-                    // Existing portraits contain camera padding. Crop only their UVs,
-                    // then preserve the cropped image's aspect ratio inside the card.
-                    image.uvRect=definition.icon.name=="EnemyTemp"?new Rect(.32f,.25f,.36f,.52f):
-                        definition.icon.name=="EnemyPortrait"?new Rect(.18f,.12f,.64f,.76f):new Rect(0,0,1,1);
-                    float aspect=definition.icon.width*image.uvRect.width/(definition.icon.height*image.uvRect.height);
-                    float height=Mathf.Min(78,72/aspect);
-                    image.rectTransform.sizeDelta=new Vector2(height*aspect,height);
-                }
+                if (definition.icon && enemyImages[i] && enemyImages[i].texture != definition.icon) ShowEnemy(enemyImages[i], definition.icon);
                 if (enemyHovers[i]) enemyHovers[i].SetEnemy(definition);
                 int count = fighting ? sim.RemainingOf(cardDefinitions[i]) : cardCounts[i];
                 if (shownCardCounts[i] != count)
@@ -289,6 +284,17 @@ namespace CodingGame.Defense
                     enemyCounts[i].text = "× " + count;
                 }
             }
+        }
+        static void ShowEnemy(RawImage image, Texture icon)
+        {
+            image.texture = icon;
+            // Existing portraits contain camera padding. Crop only their UVs,
+            // then preserve the cropped image's aspect ratio inside the card.
+            image.uvRect = icon.name == "EnemyTemp" ? new Rect(.32f, .25f, .36f, .52f) :
+                icon.name == "EnemyPortrait" ? new Rect(.18f, .12f, .64f, .76f) : new Rect(0, 0, 1, 1);
+            float aspect = icon.width * image.uvRect.width / (icon.height * image.uvRect.height);
+            float height = Mathf.Min(78, 72 / aspect);
+            image.rectTransform.sizeDelta = new Vector2(height * aspect, height);
         }
         const float ButtonGap = 6;
         void RefreshRobotActions(DefenseSimulation sim)
