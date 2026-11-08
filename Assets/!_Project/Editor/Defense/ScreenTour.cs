@@ -28,6 +28,12 @@ namespace CodingGame.Defense.Editor
         [MenuItem("Tools/Develop/보스 경고 시안 찍기")]
         public static void RunBossWarnings() => Start("BossWarning", BossWarnings());
 
+        // Raw footage for the demo video: real play recorded clip by clip (TestResults/Demo/clips/NN_name.mp4, 1920x1080,
+        // 30 fps), cut, titled and scored afterwards. Batchmode like the tour:
+        //   Unity.exe -batchmode -projectPath . -executeMethod CodingGame.Defense.Editor.ScreenTour.RunDemo -logFile demo.log
+        [MenuItem("Tools/Develop/시연 영상 촬영")]
+        public static void RunDemo() => Start("TestResults/Demo/clips", Demo());
+
         static void Start(string into, IEnumerator steps)
         {
             folder = into;
@@ -102,6 +108,84 @@ namespace CodingGame.Defense.Editor
                 File.WriteAllBytes(path, image.EncodeToPNG());
                 Destroy(image); done();
             }
+        }
+
+        static void Begin(string name) => PlayRecorder.Start(Path.Combine(folder, name + ".mp4"), 1920, 30, 14);
+        static void End() => Debug.Log("[ScreenTour] " + PlayRecorder.Stop());
+        static IEnumerator Record(string name, double seconds) { Begin(name); yield return Seconds(seconds); End(); }
+
+        static IEnumerator Demo()
+        {
+            DevTest.PlayTitle();
+            yield return Until(() => EditorApplication.isPlaying);
+            yield return Record("01_title", 11); // the intro, then the menu
+            DevTest.PlayStageMap();
+            yield return Seconds(.6);
+            yield return Record("02_map", 6);
+
+            // 1-1 as a new player meets it: the system alert, then 디버's first line; then two of its lessons.
+            DevTest.PlayDefense(1, 1, true);
+            yield return Until(() => DevTest.Ready);
+            yield return Record("03_tutorial_open", 11);
+            var steps = DevTest.TutorialSections(1);
+            foreach (var (id, clip) in new[] { ("A04a", "04_tutorial_path"), ("B04", "05_tutorial_range") })
+            {
+                DevTest.JumpTutorial(1, System.Array.FindIndex(steps, s => s.Split(' ')[0] == id));
+                yield return Seconds(.3);
+                yield return Record(clip, 6);
+            }
+
+            // 2-1: a robot's blocks, then the wave it plays.
+            DevTest.PlayDefense(2, 1, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy();
+            var battle = DevTest.Battle;
+            battle.SelectRobot(battle.Simulation.Robots[0].Id); battle.DevelopSelected();
+            yield return Seconds(.4);
+            Begin("06_code");
+            yield return Seconds(1.5);
+            var palette = Object.FindFirstObjectByType<CodingGame.BlockCoding.CommandCodingPanel>();
+            for (int category = 0; palette && category < 3; category++) { palette.ShowCategory(category); yield return Seconds(1.4); }
+            End();
+            battle.CodeEditor.Close();
+            yield return Seconds(.3);
+            Begin("07_battle");
+            battle.StartBattle();
+            yield return Seconds(12);
+            End();
+
+            // 3-5 with every robot out: spiders, flying runners and tanks on the road.
+            DevTest.PlayDefense(3, 5, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy(); DevTest.Battle.StartBattle();
+            yield return Seconds(3);
+            yield return Record("08_battle_big", 12);
+
+            // 1-5: the boss's entrance with the game's warning.
+            DevTest.PlayDefense(1, 5, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy(); DevTest.Battle.StartBattle(); DevTest.Speed(4);
+            yield return Until(() => DevTest.Battle.EditorBossEntered, 120);
+            DevTest.Speed(1);
+            yield return Seconds(DefenseBossWarning.Seconds + .5);
+            Begin("09_boss");
+            DevTest.Battle.EditorReplayBossEntrance(DefenseBossWarning.Style);
+            yield return Seconds(DefenseBossWarning.Seconds + 2.5);
+            End();
+
+            // 2-5 won: the last wave's reward, then the stage clear with its stars.
+            DevTest.PlayDefense(2, 5, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy(); DevTest.Battle.StartBattle(); DevTest.RunWave();
+            Begin("10_clear");
+            yield return Seconds(4.5);
+            DevTest.Battle.ContinueCampaign();
+            yield return Seconds(5.5);
+            End();
         }
 
         // DevTest.AutoDeploy gives a shooter attack() with no target, which the compiler now rejects; the tour fills in

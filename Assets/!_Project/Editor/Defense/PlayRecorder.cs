@@ -41,8 +41,9 @@ namespace CodingGame.Defense.Editor
             Start(Path.Combine("Temp/Recordings", DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".mp4"));
         }
 
-        // width: output width in pixels (height follows the Game view's aspect); fps: output frame rate.
-        public static void Start(string path, int width = 1280, int fps = 30)
+        // width: output width in pixels (height follows the Game view's aspect); fps: output frame rate; crf: x264 quality
+        // (lower is better; the demo video's clips use 14).
+        public static void Start(string path, int width = 1280, int fps = 30, int crf = 23)
         {
             if (!EditorApplication.isPlaying) throw new InvalidOperationException("Play 중에만 녹화할 수 있습니다.");
             if (Recording) throw new InvalidOperationException("이미 녹화 중입니다: " + output);
@@ -55,7 +56,7 @@ namespace CodingGame.Defense.Editor
             errors.Clear(); dropped = 0;
             ffmpeg = Process.Start(new ProcessStartInfo(exe,
                 $"-hide_banner -loglevel error -y -f rawvideo -pix_fmt rgba -s {width}x{height} -r {fps} -i - " +
-                $"-an -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -movflags +faststart \"{output}\"")
+                $"-an -c:v libx264 -preset ultrafast -crf {crf} -pix_fmt yuv420p -movflags +faststart \"{output}\"")
             { UseShellExecute = false, RedirectStandardInput = true, RedirectStandardError = true, CreateNoWindow = true });
             ffmpeg.ErrorDataReceived += (_, e) => { if (e.Data != null) lock (errors) errors.AppendLine(e.Data); };
             ffmpeg.BeginErrorReadLine();
