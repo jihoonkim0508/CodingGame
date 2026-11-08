@@ -1,6 +1,7 @@
 using System.Collections;
 using System.IO;
 using System.Linq;
+using CodingGame.BlockCoding;
 using UnityEditor;
 using UnityEngine;
 
@@ -28,11 +29,11 @@ namespace CodingGame.Defense.Editor
         [MenuItem("Tools/Develop/보스 경고 시안 찍기")]
         public static void RunBossWarnings() => Start("BossWarning", BossWarnings());
 
-        // Raw footage for the demo video: real play recorded clip by clip (TestResults/Demo/clips/NN_name.mp4, 1920x1080,
+        // Raw footage for the demo video: real play recorded clip by clip (TestResults/Demo/footage/cNN_name.mp4, 1920x1080,
         // 30 fps), cut, titled and scored afterwards. Batchmode like the tour:
         //   Unity.exe -batchmode -projectPath . -executeMethod CodingGame.Defense.Editor.ScreenTour.RunDemo -logFile demo.log
         [MenuItem("Tools/Develop/시연 영상 촬영")]
-        public static void RunDemo() => Start("TestResults/Demo/clips", Demo());
+        public static void RunDemo() => Start("TestResults/Demo/footage", Demo());
 
         static void Start(string into, IEnumerator steps)
         {
@@ -114,146 +115,123 @@ namespace CodingGame.Defense.Editor
         static void End() => Debug.Log("[ScreenTour] " + PlayRecorder.Stop());
         static IEnumerator Record(string name, double seconds) { Begin(name); yield return Seconds(seconds); End(); }
 
+        // The demo video's scenario, one clip per shot. Every battle clip has each robot on a loop (Loop below) and
+        // logs which robots are still running their code when it ends, since a robot that ran out of code stands still.
         static IEnumerator Demo()
         {
             DevTest.PlayTitle();
             yield return Until(() => EditorApplication.isPlaying);
-            yield return Record("01_title", 11); // the intro, then the menu
+            yield return Record("c01_title", 9); // the intro, then the menu
             DevTest.PlayStageMap();
             yield return Seconds(.6);
-            yield return Record("02_map", 6);
+            yield return Record("c02_map", 4);
 
-            // 1-1 as a new player meets it: the system alert, then 디버's first line; then two of its lessons.
+            // 1-1 as a new player meets it: the system alert and 디버; the road, the range, slash() going into the slot.
             DevTest.PlayDefense(1, 1, true);
             yield return Until(() => DevTest.Ready);
-            yield return Record("03_tutorial_open", 11);
+            yield return Record("c03_alert", 8);
             var steps = DevTest.TutorialSections(1);
-            foreach (var (id, clip) in new[] { ("A04a", "04_tutorial_path"), ("B04", "05_tutorial_range") })
+            int Step(string[] list, string id) => System.Array.FindIndex(list, s => s.Split(' ')[0] == id);
+            foreach (var (id, clip) in new[] { ("A04a", "c04_road"), ("B04", "c05_range") })
             {
-                DevTest.JumpTutorial(1, System.Array.FindIndex(steps, s => s.Split(' ')[0] == id));
+                DevTest.JumpTutorial(1, Step(steps, id));
                 yield return Seconds(.3);
-                yield return Record(clip, 6);
+                yield return Record(clip, 4);
             }
+            // The editor opens first: C05 points at the slash() block in its palette.
+            LessonEditor("C05");
+            yield return Seconds(.3);
+            DevTest.JumpTutorial(1, Step(steps, "C05"));
+            yield return Seconds(.3);
+            Begin("c06_slash");
+            yield return Seconds(2);
+            Program(new CodeBlock(BlockKind.Slash)); // where the drag would put it; 디버 moves on to C09
+            yield return Seconds(3.5);
+            End();
 
-            // 2-1: a robot's blocks, then the wave it plays.
+            // 1-3, the loop lesson: while True goes in, then slash() inside it; then that wave with every robot looping.
+            var loopSteps = DevTest.TutorialSections(3);
+            // 1-3 is loaded on its 개발 line (A04), so its editor can be open before the jump to C05.
+            DevTest.JumpTutorial(3, Step(loopSteps, "A04"));
+            yield return Until(() => DevTest.Ready && DevTest.Sim.WaveIndex == 2, 30);
+            yield return Seconds(.5);
+            LessonEditor("C05");
+            yield return Seconds(.3);
+            DevTest.JumpTutorial(3, Step(loopSteps, "C05"));
+            yield return Seconds(.3);
+            Begin("c07_loop");
+            yield return Seconds(1.8);
+            Program(new CodeBlock(BlockKind.While));
+            yield return Seconds(2.2);
+            DevTest.JumpTutorial(3, Step(loopSteps, "C08"));
+            yield return Seconds(.3);
+            LessonEditor("C08");
+            yield return Seconds(1.2);
+            var loop = new CodeBlock(BlockKind.While); loop.Body.Add(new CodeBlock(BlockKind.Slash));
+            Program(loop);
+            yield return Seconds(3.5);
+            End();
+            // Its wave without the tutorial, whose last line holds 전투 시작 until it is clicked through.
+            DevTest.PlayDefense(1, 3, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy();
+            DevTest.Battle.StartBattle();
+            yield return Engage(1); // of the two warriors only one stands where the enemies pass
+            yield return Battle("c08_first_battle", 8);
+
+            // 2-1: a shooter's program built block by block (the preview runs it), the block help, then the wave.
             DevTest.PlayDefense(2, 1, true, Sandbox);
             yield return Until(() => DevTest.Ready);
             yield return Seconds(.5);
             Deploy();
             var battle = DevTest.Battle;
-            battle.SelectRobot(battle.Simulation.Robots[0].Id); battle.DevelopSelected();
-            yield return Seconds(.4);
-            Begin("06_code");
-            yield return Seconds(1.5);
-            var palette = Object.FindFirstObjectByType<CodingGame.BlockCoding.CommandCodingPanel>();
-            for (int category = 0; palette && category < 3; category++) { palette.ShowCategory(category); yield return Seconds(1.4); }
+            var shooter = battle.Simulation.Robots.FirstOrDefault(r => r.Spec.NativeAction == RobotAction.Attack) ?? battle.Simulation.Robots[0];
+            battle.SelectRobot(shooter.Id); battle.DevelopSelected();
+            yield return Seconds(.6);
+            Begin("c09_code");
+            yield return Seconds(1);
+            // One block per beat; the if goes in with its attack, since an empty if does not compile.
+            string[] lines = { "while True:", "    enemy = get_nearest_enemy()", "    d = enemy.distance(get_my_pos())",
+                "    r = my_attack_range()", "    if d <= r:\n        attack(enemy)" };
+            for (int n = 1; n <= lines.Length; n++)
+            {
+                Program(TutorialAnswers.Parse(string.Join("\n", lines.Take(n))));
+                yield return Seconds(1);
+            }
+            yield return Seconds(2.5);
+            End();
+            var help = Object.FindFirstObjectByType<DefenseBlockHelp>(FindObjectsInactive.Include);
+            Begin("c10_help");
+            yield return Seconds(.5);
+            if (help) help.Open();
+            yield return Seconds(3.5);
+            if (help) help.Close();
             End();
             battle.CodeEditor.Close();
             yield return Seconds(.3);
-            Begin("07_battle");
+            Begin("c11_start"); // the WAVE 1 banner
             battle.StartBattle();
-            yield return Seconds(12);
+            yield return Seconds(3);
             End();
+            yield return Engage(2);
+            yield return Battle("c11_battle", 10);
 
-            // 3-5 with every robot out: spiders, flying runners and tanks on the road.
+            // 3-5 with every robot out: six roles, spiders, flying runners and tanks.
             DevTest.PlayDefense(3, 5, true, Sandbox);
             yield return Until(() => DevTest.Ready);
             yield return Seconds(.5);
             Deploy(); DevTest.Battle.StartBattle();
-            yield return Seconds(3);
-            yield return Record("08_battle_big", 12);
+            yield return Engage(4);
+            yield return Battle("c12_battle_big", 12);
 
-            // 1-5: the boss's entrance with the game's warning.
-            DevTest.PlayDefense(1, 5, true, Sandbox);
+            // 3-2: the bombers and tanks Stage 3 brings in.
+            DevTest.PlayDefense(3, 2, true, Sandbox);
             yield return Until(() => DevTest.Ready);
             yield return Seconds(.5);
-            Deploy(); DevTest.Battle.StartBattle(); DevTest.Speed(4);
-            yield return Until(() => DevTest.Battle.EditorBossEntered, 120);
-            DevTest.Speed(1);
-            yield return Seconds(DefenseBossWarning.Seconds + .5);
-            Begin("09_boss");
-            DevTest.Battle.EditorReplayBossEntrance(DefenseBossWarning.Style);
-            yield return Seconds(DefenseBossWarning.Seconds + 2.5);
-            End();
-
-            // 2-5 won: the last wave's reward, then the stage clear with its stars.
-            DevTest.PlayDefense(2, 5, true, Sandbox);
-            yield return Until(() => DevTest.Ready);
-            yield return Seconds(.5);
-            Deploy(); DevTest.Battle.StartBattle(); DevTest.RunWave();
-            Begin("10_clear");
-            yield return Seconds(4.5);
-            DevTest.Battle.ContinueCampaign();
-            yield return Seconds(5.5);
-            End();
-            yield return DemoMore();
-        }
-
-        // The two-minute cut's extra clips (11 to 18), also recorded on their own:
-        //   Unity.exe -batchmode -projectPath . -executeMethod CodingGame.Defense.Editor.ScreenTour.RunDemoMore -logFile demo.log
-        public static void RunDemoMore() => Start("TestResults/Demo/clips", DemoMore());
-        static IEnumerator DemoMore()
-        {
-            // 1-1's coding lesson in the editor, then its practice wave from the 전투 시작 line.
-            DevTest.PlayDefense(1, 1, true);
-            yield return Until(() => DevTest.Ready);
-            yield return Seconds(1);
-            var steps = DevTest.TutorialSections(1);
-            int Step(string id) => System.Array.FindIndex(steps, s => s.Split(' ')[0] == id);
-            Begin("11_lesson_code");
-            foreach (var id in new[] { "C02", "C04", "C05" })
-            {
-                DevTest.JumpTutorial(1, Step(id));
-                yield return Seconds(.3);
-                LessonEditor(id);
-                yield return Seconds(3.3);
-            }
-            // C05 asks for slash() in the first slot: put there the way the drag would, and 디버 moves on to C09.
-            var editor = DevTest.Battle.CodeEditor;
-            editor.Panel.LoadProgram(editor.Panel.FunctionName, new[] { new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Slash) });
-            yield return Seconds(4.5);
-            End();
-            LessonEditor("E03"); // the editor closed first: E03 points at the 전투 시작 button behind it
-            yield return Seconds(.3);
-            DevTest.JumpTutorial(1, Step("E03"));
-            yield return Seconds(.3);
-            Begin("12_lesson_battle");
-            yield return Seconds(2.5);
-            DevTest.Battle.StartBattle();
-            yield return Seconds(9.5);
-            End();
-
-            // Stage 2 opens on its own alert, then 디버.
-            DevTest.PlayDefense(2, 1, true, new DefenseTestOptions());
-            yield return Until(() => DevTest.Ready);
-            yield return Record("13_stage2_intro", 10);
-
-            // 2-1: the block help over the editor, then the wave's debrief scrolled down to its cards.
-            DevTest.PlayDefense(2, 1, true, Sandbox);
-            yield return Until(() => DevTest.Ready);
-            yield return Seconds(.5);
-            Deploy();
-            var battle = DevTest.Battle;
-            battle.SelectRobot(battle.Simulation.Robots[0].Id); battle.DevelopSelected();
-            yield return Seconds(.6);
-            Begin("14_block_help");
-            yield return Seconds(1);
-            var help = Object.FindFirstObjectByType<DefenseBlockHelp>(FindObjectsInactive.Include);
-            if (help) help.Open();
-            yield return Seconds(4);
-            if (help) help.Close();
-            yield return Seconds(.5);
-            End();
-            battle.CodeEditor.Close();
-            battle.StartBattle(); DevTest.RunWave();
-            Begin("15_result");
-            yield return Seconds(5);
-            var scroll = GameObject.Find("Debrief") ? GameObject.Find("Debrief").GetComponentInParent<UnityEngine.UI.ScrollRect>() : null;
-            for (double t0 = EditorApplication.timeSinceStartup, t = 0; scroll && t < 1; t = (EditorApplication.timeSinceStartup - t0) / 1.5)
-            { scroll.verticalNormalizedPosition = 1 - (float)t; yield return null; }
-            if (scroll) scroll.verticalNormalizedPosition = 0;
-            yield return Seconds(2.5);
-            End();
+            Deploy(); DevTest.Battle.StartBattle();
+            yield return Engage(3);
+            yield return Battle("c12b_stage3", 10);
 
             // 3-5 with one robot: enemies reach the core, then the defeat panel.
             DevTest.PlayDefense(3, 5, true, Sandbox);
@@ -261,16 +239,31 @@ namespace CodingGame.Defense.Editor
             yield return Seconds(.5);
             Deploy();
             var sim = DevTest.Sim;
-            foreach (var extra in sim.Robots.Skip(1).ToArray()) sim.RemoveRobot(extra.Id);
+            var lone = sim.Robots.FirstOrDefault(r => r.Spec.NativeAction == RobotAction.Attack) ?? sim.Robots[0]; // one that fights back
+            foreach (var extra in sim.Robots.Where(r => r != lone).ToArray()) sim.RemoveRobot(extra.Id);
             DevTest.Battle.StartBattle(); DevTest.Speed(4);
             int full = sim.BaseHealth;
             yield return Until(() => sim.BaseHealth < full, 60);
             DevTest.Speed(1);
-            yield return Record("16_leak", 5);
+            yield return Battle("c13_leak", 5);
             DevTest.RunWave();
-            yield return Record("17_defeat", 6);
+            yield return Record("c14_defeat", 6);
 
-            // 1-5 past the boss's entrance: the fight itself.
+            // 2-1 won: the clear banner and 디버's debrief, scrolled down to its cards.
+            DevTest.PlayDefense(2, 1, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy(); DevTest.Battle.StartBattle(); DevTest.RunWave();
+            Begin("c15_result");
+            yield return Seconds(5);
+            var scroll = GameObject.Find("Debrief") ? GameObject.Find("Debrief").GetComponentInParent<UnityEngine.UI.ScrollRect>() : null;
+            for (double t0 = EditorApplication.timeSinceStartup, t = 0; scroll && t < 1; t = (EditorApplication.timeSinceStartup - t0) / 1.5)
+            { scroll.verticalNormalizedPosition = 1 - (float)t; yield return null; }
+            if (scroll) scroll.verticalNormalizedPosition = 0;
+            yield return Seconds(2);
+            End();
+
+            // 1-5: the boss's entrance with the game's warning, then the fight to the wave's end.
             DevTest.PlayDefense(1, 5, true, Sandbox);
             yield return Until(() => DevTest.Ready);
             yield return Seconds(.5);
@@ -278,7 +271,70 @@ namespace CodingGame.Defense.Editor
             yield return Until(() => DevTest.Battle.EditorBossEntered, 120);
             DevTest.Speed(1);
             yield return Seconds(DefenseBossWarning.Seconds + .5);
-            yield return Record("18_boss_fight", 10);
+            Begin("c16_boss");
+            DevTest.Battle.EditorReplayBossEntrance(DefenseBossWarning.Style);
+            yield return Seconds(DefenseBossWarning.Seconds + 2.5);
+            End();
+            yield return Battle("c17_boss_fight", 12);
+
+            // 2-5 won: the last wave's reward, then the stage clear with its stars.
+            DevTest.PlayDefense(2, 5, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy(); DevTest.Battle.StartBattle(); DevTest.RunWave();
+            Begin("c18_clear");
+            yield return Seconds(4.5);
+            DevTest.Battle.ContinueCampaign();
+            yield return Seconds(5.5);
+            End();
+        }
+
+        // Code put in the open editor the way a drag would leave it (applied to the robot, checked by the tutorial).
+        static void Program(params CodeBlock[] blocks)
+        {
+            var editor = DevTest.Battle.CodeEditor;
+            Relaxed(() => editor.Panel.LoadProgram(editor.Panel.FunctionName, blocks));
+        }
+        // Block counts and unlocks off for a moment: the footage's code may use blocks the stage has not handed out yet.
+        static void Relaxed(System.Action action)
+        {
+            var setup = DevTest.Sim.Setup; var options = setup.TestOptions;
+            setup.TestOptions = options.Copy(); setup.TestOptions.unlockAll = true; setup.TestOptions.inventoryLimit = false;
+            try { action(); } finally { setup.TestOptions = options; }
+        }
+        // Every robot on a loop. AutoDeploy gives Stage 1 robots one command (no loop blocks there yet), and a robot that has
+        // run its code once stands still for the rest of the clip; tutorial code (slash() alone) the same.
+        static void Loop()
+        {
+            var sim = DevTest.Sim;
+            Relaxed(() =>
+            {
+                foreach (var bot in sim.Robots.Where(r => r.Program != null && !r.Program.IsEmpty &&
+                    r.Program.BlockCount(BlockKind.While) + r.Program.BlockCount(BlockKind.For) == 0).ToArray())
+                {
+                    var loop = new CodeBlock(BlockKind.While); loop.Body.AddRange(bot.Program.CopyBlocks());
+                    sim.ApplyProgram(bot.Id, bot.Program.Name, new[] { loop });
+                }
+            });
+            foreach (var bot in sim.Robots) Debug.Log($"[ScreenTour] {bot.Spec.role}: {bot.Program?.Source?.Replace("\n", " / ")}");
+        }
+        // Enemies walk a while before they reach the robots: the wave runs at three times speed until that many robots have
+        // acted (hit something, buffed someone), so the clip opens on the fight instead of robots waiting.
+        static IEnumerator Engage(int robots, double seconds = 40)
+        {
+            var sim = DevTest.Sim;
+            DevTest.Speed(3);
+            yield return Until(() => sim.Robots.Count(r => r.ActionsThisWave > 0) >= Mathf.Min(robots, sim.Robots.Count), seconds);
+            DevTest.Speed(1);
+        }
+        // A battle clip, then which robots still run their code and what each did during it: an idle robot shows in the log.
+        static IEnumerator Battle(string name, double seconds)
+        {
+            var sim = DevTest.Sim;
+            var before = sim.Robots.ToDictionary(r => r.Id, r => r.ActionsThisWave);
+            yield return Record(name, seconds);
+            Debug.Log($"[ScreenTour] {name}: " + string.Join(", ", sim.Robots.Select(r => $"{r.Spec.role} " +
+                $"{(r.Program != null && r.Program.Running ? "running" : "IDLE")} {r.ActionsThisWave - (before.TryGetValue(r.Id, out int n) ? n : 0)} actions")));
         }
 
         // The coding lessons (C02 to D09) happen in the code editor, which a tutorial jump does not open. Opened and closed
@@ -296,15 +352,27 @@ namespace CodingGame.Defense.Editor
         // attack(enemy) for any robot left without a program.
         static void Deploy()
         {
+            // AutoDeploy places every robot first, then runs out of blocks part-way through the programs (a later robot was
+            // left with none, or with a stand-in slash() it cannot use): each robot gets its own ability in a loop instead.
             try { DevTest.AutoDeploy(); } catch (System.FormatException) { }
             var sim = DevTest.Sim;
-            foreach (var bot in sim.Robots.Where(r => r.Program == null || r.Program.IsEmpty).ToArray())
-                try
+            Relaxed(() =>
+            {
+                foreach (var bot in sim.Robots)
                 {
-                    sim.ApplyProgram(bot.Id, "robot_" + bot.Id, TutorialAnswers.Parse(bot.Spec.NativeAction == RobotAction.Attack ?
-                        "while True:\n    enemy = get_nearest_enemy()\n    attack(enemy)" : "while True:\n    slash()"));
+                    if (bot.Spec.NativeAction == RobotAction.Slash) // only with an enemy in reach, or it swings at nothing
+                    {
+                        sim.ApplyProgram(bot.Id, "robot_" + bot.Id, TutorialAnswers.Parse("while True:\n    enemy = get_nearest_enemy()\n" +
+                            "    d = enemy.distance(get_my_pos())\n    r = my_attack_range()\n    if d <= r:\n        slash()"));
+                        continue;
+                    }
+                    var kind = DefenseProgression.ActionBlock(bot.Spec.NativeAction);
+                    var loop = new CodeBlock(BlockKind.While);
+                    loop.Body.Add(PythonTreeCompiler.HasEnemyArgument(kind) ? new CodeBlock(kind, "0", new CodeBlock(BlockKind.NearestEnemy)) : new CodeBlock(kind));
+                    sim.ApplyProgram(bot.Id, "robot_" + bot.Id, new[] { loop });
                 }
-                catch (System.Exception error) { Debug.LogWarning("[ScreenTour] " + bot.Spec.role + ": " + error.Message); }
+            });
+            Loop();
         }
 
         static IEnumerator Steps()
