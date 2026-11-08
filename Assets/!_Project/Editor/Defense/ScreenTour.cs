@@ -186,6 +186,110 @@ namespace CodingGame.Defense.Editor
             DevTest.Battle.ContinueCampaign();
             yield return Seconds(5.5);
             End();
+            yield return DemoMore();
+        }
+
+        // The two-minute cut's extra clips (11 to 18), also recorded on their own:
+        //   Unity.exe -batchmode -projectPath . -executeMethod CodingGame.Defense.Editor.ScreenTour.RunDemoMore -logFile demo.log
+        public static void RunDemoMore() => Start("TestResults/Demo/clips", DemoMore());
+        static IEnumerator DemoMore()
+        {
+            // 1-1's coding lesson in the editor, then its practice wave from the 전투 시작 line.
+            DevTest.PlayDefense(1, 1, true);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(1);
+            var steps = DevTest.TutorialSections(1);
+            int Step(string id) => System.Array.FindIndex(steps, s => s.Split(' ')[0] == id);
+            Begin("11_lesson_code");
+            foreach (var id in new[] { "C02", "C04", "C05" })
+            {
+                DevTest.JumpTutorial(1, Step(id));
+                yield return Seconds(.3);
+                LessonEditor(id);
+                yield return Seconds(3.3);
+            }
+            // C05 asks for slash() in the first slot: put there the way the drag would, and 디버 moves on to C09.
+            var editor = DevTest.Battle.CodeEditor;
+            editor.Panel.LoadProgram(editor.Panel.FunctionName, new[] { new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Slash) });
+            yield return Seconds(4.5);
+            End();
+            LessonEditor("E03"); // the editor closed first: E03 points at the 전투 시작 button behind it
+            yield return Seconds(.3);
+            DevTest.JumpTutorial(1, Step("E03"));
+            yield return Seconds(.3);
+            Begin("12_lesson_battle");
+            yield return Seconds(2.5);
+            DevTest.Battle.StartBattle();
+            yield return Seconds(9.5);
+            End();
+
+            // Stage 2 opens on its own alert, then 디버.
+            DevTest.PlayDefense(2, 1, true, new DefenseTestOptions());
+            yield return Until(() => DevTest.Ready);
+            yield return Record("13_stage2_intro", 10);
+
+            // 2-1: the block help over the editor, then the wave's debrief scrolled down to its cards.
+            DevTest.PlayDefense(2, 1, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy();
+            var battle = DevTest.Battle;
+            battle.SelectRobot(battle.Simulation.Robots[0].Id); battle.DevelopSelected();
+            yield return Seconds(.6);
+            Begin("14_block_help");
+            yield return Seconds(1);
+            var help = Object.FindFirstObjectByType<DefenseBlockHelp>(FindObjectsInactive.Include);
+            if (help) help.Open();
+            yield return Seconds(4);
+            if (help) help.Close();
+            yield return Seconds(.5);
+            End();
+            battle.CodeEditor.Close();
+            battle.StartBattle(); DevTest.RunWave();
+            Begin("15_result");
+            yield return Seconds(5);
+            var scroll = GameObject.Find("Debrief") ? GameObject.Find("Debrief").GetComponentInParent<UnityEngine.UI.ScrollRect>() : null;
+            for (double t0 = EditorApplication.timeSinceStartup, t = 0; scroll && t < 1; t = (EditorApplication.timeSinceStartup - t0) / 1.5)
+            { scroll.verticalNormalizedPosition = 1 - (float)t; yield return null; }
+            if (scroll) scroll.verticalNormalizedPosition = 0;
+            yield return Seconds(2.5);
+            End();
+
+            // 3-5 with one robot: enemies reach the core, then the defeat panel.
+            DevTest.PlayDefense(3, 5, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy();
+            var sim = DevTest.Sim;
+            foreach (var extra in sim.Robots.Skip(1).ToArray()) sim.RemoveRobot(extra.Id);
+            DevTest.Battle.StartBattle(); DevTest.Speed(4);
+            int full = sim.BaseHealth;
+            yield return Until(() => sim.BaseHealth < full, 60);
+            DevTest.Speed(1);
+            yield return Record("16_leak", 5);
+            DevTest.RunWave();
+            yield return Record("17_defeat", 6);
+
+            // 1-5 past the boss's entrance: the fight itself.
+            DevTest.PlayDefense(1, 5, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy(); DevTest.Battle.StartBattle(); DevTest.Speed(4);
+            yield return Until(() => DevTest.Battle.EditorBossEntered, 120);
+            DevTest.Speed(1);
+            yield return Seconds(DefenseBossWarning.Seconds + .5);
+            yield return Record("18_boss_fight", 10);
+        }
+
+        // The coding lessons (C02 to D09) happen in the code editor, which a tutorial jump does not open. Opened and closed
+        // directly, the way Playtest does, since the tutorial locks the 개발 button while a line is showing.
+        static void LessonEditor(string id)
+        {
+            var lesson = DevTest.Battle;
+            bool coding = id.StartsWith("C") && id != "C01" || id.StartsWith("D") && id != "D10";
+            if (coding && !lesson.CodeEditor.IsOpen && lesson.Simulation.Robots.Count > 0)
+                lesson.CodeEditor.Open(lesson.Simulation.Robots.OrderBy(r => r.Id).First().Id);
+            else if (!coding && lesson.CodeEditor.IsOpen) lesson.CodeEditor.Close(false);
         }
 
         // DevTest.AutoDeploy gives a shooter attack() with no target, which the compiler now rejects; the tour fills in
@@ -223,14 +327,7 @@ namespace CodingGame.Defense.Editor
                     try { DevTest.JumpTutorial(1, i); }
                     catch (System.InvalidOperationException error) { Debug.LogWarning($"[ScreenTour] 1-1 {steps[i]}: {error.Message}"); continue; }
                     yield return Seconds(.3); // the jump applies on the director's next update
-                    // The coding lessons (C02 to D09) happen in the code editor, which a jump does not open. Opened and closed
-                    // directly, the way Playtest does, since the tutorial locks the 개발 button while a line is showing.
-                    string id = steps[i].Split(' ')[0];
-                    var lesson = DevTest.Battle;
-                    bool coding = id.StartsWith("C") && id != "C01" || id.StartsWith("D") && id != "D10";
-                    if (coding && !lesson.CodeEditor.IsOpen && lesson.Simulation.Robots.Count > 0)
-                        lesson.CodeEditor.Open(lesson.Simulation.Robots.OrderBy(r => r.Id).First().Id);
-                    else if (!coding && lesson.CodeEditor.IsOpen) lesson.CodeEditor.Close(false);
+                    LessonEditor(steps[i].Split(' ')[0]);
                     yield return Seconds(1.7);
                     // The letters keep pace with 디버's voice, so a long line is still typing: show it whole.
                     var talk = Object.FindFirstObjectByType<TutorialDialogueView>(); if (talk) talk.FinishTyping();
