@@ -424,7 +424,8 @@ namespace CodingGame.Defense
         {
             if (!SpeedUnlocked || !TutorialAllows(TutorialKeys.Speed)) return;
             if (Simulation.Phase != BattlePhase.Running && Simulation.Phase != BattlePhase.Paused) return;
-            BattleSpeed = BattleSpeed >= 3 ? 1 : BattleSpeed + 1; RefreshHUD();
+            // 1x, 2x, 3x; developer mode adds 5x (GameFlow.Developer).
+            BattleSpeed = BattleSpeed < 3 ? BattleSpeed + 1 : BattleSpeed == 3 && GameFlow.Developer ? 5 : 1; RefreshHUD();
             ReportTutorialAction(TutorialKeys.Speed, TutorialSignals.TargetClicked);
         }
         public void ChooseRobot(int index)
