@@ -477,6 +477,10 @@ namespace CodingGame.Defense.Editor
                     .Concat(All<DefenseBossWarning>(defense).Where(c => !c.Baked).Select(c => c.name)).ToArray();
                 Check(AssetDatabase.LoadAssetAtPath<GameObject>(BossAura), "the boss aura is a saved prefab");
                 Check(unbaked.Length == 0, "128 the battle's start-up UI is saved in the scene" + (unbaked.Length > 0 ? " (not: " + string.Join(", ", unbaked) + ")" : ""));
+                var battleCard = All<Canvas>(defense).First(c => c.name == "TutorialOverlay").GetComponentsInChildren<RectTransform>(true)
+                    .First(t => t.name == "DialoguePanel").GetComponent<UnityEngine.UI.Image>().sprite;
+                var stageCard = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/!_Project/Resources/UI/GuideDialogue.prefab").transform.Find("DialoguePanel").GetComponent<UnityEngine.UI.Image>().sprite;
+                Check(battleCard && battleCard == stageCard, $"the stage map's 디버 box is the battle's dialogue card ({(stageCard ? stageCard.name : "none")}, battle {(battleCard ? battleCard.name : "none")}; Tools/Learning UI/Build Stage Guide Dialogue)");
                 var maps = All<Art.MapPainter.ModularMapRoot>(defense).ToArray();
                 int casting = maps.Sum(m => m.GetComponentsInChildren<Renderer>(true).Count(r => r.shadowCastingMode != ShadowCastingMode.Off));
                 Check(maps.Length == 2 && casting == 0, $"160 the battle maps cast no shadows ({maps.Length} maps, {casting} renderers still cast)");
