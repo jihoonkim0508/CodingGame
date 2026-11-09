@@ -190,9 +190,14 @@ namespace CodingGame.Defense.Editor
         }
         const float GuideTop = 16;
 
-        // The stage map's lock badges show Kenney's lock icon (Game Icons, CC0) instead of drawn bars; only the badges in
-        // Stage.unity are built again.
-        const string StageScene = "Assets/!_Project/Scenes/Stage.unity", LockIcon = "Assets/ThirdParty/Kenney/Icons/locked.png";
+        // The stage map's lock badges: Kenney's lock, closed and open (Board Game Icons, CC0), on a rounded badge with a soft
+        // glow; only the badges in Stage.unity are built again.
+        const string StageScene = "Assets/!_Project/Scenes/Stage.unity", LockIcons = "Assets/ThirdParty/Kenney/BoardGameIcons/", UISprites = "Assets/!_Project/Resources/UI/";
+        static Sprite LockSprite(string path)
+        {
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            return sprite ? sprite : throw new InvalidOperationException(path + " is not a sprite");
+        }
         [MenuItem("Tools/Learning UI/Stage Lock Icon")]
         public static void StageLockIcon()
         {
@@ -201,10 +206,10 @@ namespace CodingGame.Defense.Editor
             if (opened) scene = EditorSceneManager.OpenScene(StageScene, OpenSceneMode.Additive);
             try
             {
-                var icon = AssetDatabase.LoadAssetAtPath<Sprite>(LockIcon);
-                if (!icon) throw new InvalidOperationException(LockIcon + " is not a sprite");
+                Sprite closed = LockSprite(LockIcons + "lock_closed.png"), open = LockSprite(LockIcons + "lock_open.png");
+                Sprite plate = LockSprite(UISprites + "ui_fill.png"), glow = LockSprite(UISprites + "ui_glow.png");
                 foreach (var hud in scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<StageMapHUD>(true)))
-                { hud.RebuildLocks(icon); EditorUtility.SetDirty(hud); }
+                { hud.RebuildLocks(closed, open, plate, glow); EditorUtility.SetDirty(hud); }
                 EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene);
             }
             finally { if (opened) EditorSceneManager.CloseScene(scene, true); }

@@ -13,7 +13,7 @@ namespace CodingGame.StageMap
     {
         public static readonly Vector2 ReferenceResolution = new Vector2(1920, 1080);
         public static readonly Color LockColor = new Color(1f, .64f, .19f);
-        public static readonly Color LockBackground = new Color(.065f,.095f,.14f,.97f);
+        public static readonly Color LockBackground = new Color(.065f,.095f,.14f); // opaque: 3% of the orange rim under it reads brown in linear blending
         public static readonly Color OpenColor = new Color(1f,.72f,.30f);
         public static readonly Color PurifiedColor = new Color(.35f,1f,.67f);
         static readonly Color PanelColor = new Color(.025f, .055f, .09f, .96f);
@@ -25,7 +25,7 @@ namespace CodingGame.StageMap
             public CanvasGroup badgeGroup;
             public CanvasGroup purifiedGroup;
             [NonSerialized] public float purifiedShownAt;
-            public Image border, glow, body; // body: the lock icon
+            public Image border, glow, body; // glow: the lock badge's soft glow; body: the lock icon
             public TMP_Text title, number, state;
             public Button button;
         }
@@ -35,8 +35,9 @@ namespace CodingGame.StageMap
         [SerializeField] RectTransform hint;
         [SerializeField] TMP_Text hintLabel;
         [SerializeField] GameObject devLine, guideDialogue;
-        // Kenney's lock (Game Icons, CC0: ThirdParty/Kenney/License.txt), set by Tools/Learning UI/Stage Lock Icon.
-        [SerializeField] Sprite lockIcon;
+        // Kenney's lock, closed and open (Board Game Icons, CC0: ThirdParty/Kenney/BoardGameIcons/License.txt), on a rounded
+        // badge (ui_fill) with a soft glow (ui_glow); set by Tools/Learning UI/Stage Lock Icon.
+        [SerializeField] Sprite lockIcon, lockOpenIcon, lockPlate, lockGlow;
         public GameObject GuideDialogue => guideDialogue;
         public bool Baked => canvas && cards.Length > 0 && hint && hintLabel;
         RectTransform canvasRect;
@@ -147,19 +148,25 @@ namespace CodingGame.StageMap
 
         void BuildLock(IslandCard card, int number)
         {
-            card.badge = Panel("Stage " + number + " lock", canvasRect, new Vector2(104,116), LockBackground);
+            card.badge = Panel("Stage " + number + " lock", canvasRect, new Vector2(160,160), LockColor);
             card.badge.anchorMin = card.badge.anchorMax = new Vector2(.5f,.5f); card.badge.pivot = new Vector2(.5f,.5f);
             card.badgeGroup = card.badge.gameObject.AddComponent<CanvasGroup>();
             card.badgeGroup.blocksRaycasts = false; card.badgeGroup.interactable = false;
-            card.glow = Image("Orange lock outline", card.badge, new Vector2(0,-2), new Vector2(104,4), LockColor);
-            card.body = Image("Lock icon", card.badge, new Vector2(0,-12), new Vector2(92,92), LockColor);
+            card.glow = card.badge.GetComponent<Image>(); card.glow.sprite = lockGlow;
+            // A 6 px orange rim round the navy plate: ui_fill is sliced with a 16 px radius, scaled to each corner radius.
+            foreach (var (label, size, radius, color) in new[] { ("Badge rim", 112f, 30f, LockColor), ("Badge", 100f, 24f, LockBackground) })
+            {
+                var plate = Image(label, card.badge, new Vector2(0,-(160-size)/2), new Vector2(size,size), color);
+                plate.sprite = lockPlate; plate.type = UnityEngine.UI.Image.Type.Sliced; plate.pixelsPerUnitMultiplier = 16f/radius;
+            }
+            card.body = Image("Lock icon", card.badge, new Vector2(0,-47), new Vector2(62,62), LockColor);
             card.body.sprite = lockIcon; card.body.preserveAspect = true;
         }
 #if UNITY_EDITOR
-        // The saved badges built again with the lock icon (the rest of the saved map UI stays as it is).
-        public void RebuildLocks(Sprite icon)
+        // The saved badges built again with the lock sprites (the rest of the saved map UI stays as it is).
+        public void RebuildLocks(Sprite closed, Sprite open, Sprite plate, Sprite glow)
         {
-            lockIcon = icon; canvasRect = (RectTransform)canvas.transform;
+            lockIcon = closed; lockOpenIcon = open; lockPlate = plate; lockGlow = glow; canvasRect = (RectTransform)canvas.transform;
             foreach (var card in cards)
             {
                 int order = card.badge ? card.badge.GetSiblingIndex() : canvasRect.childCount;
@@ -168,7 +175,8 @@ namespace CodingGame.StageMap
                 card.badge.SetSiblingIndex(order);
             }
         }
-        public bool LockIconBaked => lockIcon && cards.All(card => card.body && card.body.sprite == lockIcon);
+        public bool LockIconBaked => lockIcon && lockOpenIcon && lockPlate && lockGlow
+            && cards.All(card => card.body && card.body.sprite == lockIcon && card.glow && card.glow.sprite == lockGlow);
 #endif
 
         public void Refresh(StageNode next)
@@ -239,6 +247,8 @@ namespace CodingGame.StageMap
                 Color lockTint = Color.Lerp(LockColor,new Color(1,.74f,.32f),.15f+.1f*Mathf.Sin(Time.unscaledTime*2));
                 if (node.LockVisual.IsReleasing) lockTint = Color.Lerp(lockTint,OpenColor,release);
                 card.body.color = lockTint;
+                card.body.sprite = release > .2f ? lockOpenIcon : lockIcon; // it springs open as the shake starts
+                card.glow.color = new Color(lockTint.r,lockTint.g,lockTint.b,.4f+.15f*Mathf.Sin(Time.unscaledTime*2)+release*.4f);
                 var island=node.GetComponent<StageIslandView>();
                 bool purified=node.State==StageState.Cleared && (!island || island.Purification>.88f);
                 bool showPurified=purified&&!entering&&cinematic&&node==unlockTarget;
