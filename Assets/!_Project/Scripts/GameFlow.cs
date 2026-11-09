@@ -72,6 +72,7 @@ namespace CodingGame
             else if (scene.name == StageScene) StageMap.StageMapBootstrap.Install();
             if (scene.name != TitleScene) music.Stop();
             else if (music.clip && !music.isPlaying) music.Play();
+            blackOnly = BlackOnly(scene.name);
             StartCoroutine(FadeInAfterLoad());
         }
 
@@ -82,6 +83,9 @@ namespace CodingGame
         CanvasGroup loadingCard;
         RectTransform loadingFill;
         float coveredAt;
+        // The title and the stage map load under plain black; only the battle shows the loading card.
+        bool blackOnly;
+        static bool BlackOnly(string scene) => scene == TitleScene || scene == StageScene;
         void BuildLoadingCard()
         {
             var card = new GameObject("Loading", typeof(RectTransform), typeof(CanvasGroup)).GetComponent<RectTransform>();
@@ -106,7 +110,7 @@ namespace CodingGame
         void ShowLoading(float progress)
         {
             if (!loadingCard) BuildLoadingCard();
-            loadingCard.alpha = Mathf.Clamp01((Time.unscaledTime - coveredAt - LoadingShowAfter) / .15f);
+            loadingCard.alpha = blackOnly ? 0 : Mathf.Clamp01((Time.unscaledTime - coveredAt - LoadingShowAfter) / .15f);
             loadingFill.anchorMax = new Vector2(Mathf.Max(loadingFill.anchorMax.x, Mathf.Clamp01(progress)), 1);
         }
 
@@ -207,7 +211,7 @@ namespace CodingGame
             if (delay > 0) yield return new WaitForSecondsRealtime(delay);
             fade.gameObject.SetActive(true);
             yield return FadeTo(1f);
-            Loading = true; coveredAt = Time.unscaledTime;
+            Loading = true; coveredAt = Time.unscaledTime; blackOnly = BlackOnly(sceneName);
             var load = SceneManager.LoadSceneAsync(sceneName);
             while (!load.isDone) { ShowLoading(load.progress); yield return null; } // 0 to .9 while loading
         }
