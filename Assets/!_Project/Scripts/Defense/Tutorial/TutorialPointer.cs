@@ -92,12 +92,16 @@ namespace CodingGame.Defense
         static readonly Color PathColor = new Color(.34f, .72f, 1); // sky #56B8FF; the outline carries the contrast on the cream road
         [SerializeField, HideInInspector] List<RectTransform> chevrons = new List<RectTransform>();
         Sprite chevronSprite;
+        // The run starts when the path appears (the line that shows the road), not on the game's clock, so the pack always
+        // sets off from the entrance.
+        bool pathShowing; float pathShownAt;
         public void ShowPath(IReadOnlyList<Vector2> points)
         {
+            if (!pathShowing) { pathShowing = true; pathShownAt = Time.unscaledTime; }
             float total = 0;
             for (int i = 1; i < points.Count; i++) total += Vector2.Distance(points[i - 1], points[i]);
             while (chevrons.Count < PathPack) MakeChevron();
-            float lead = PathLead(Time.unscaledTime, total);
+            float lead = PathLead(Time.unscaledTime - pathShownAt, total);
             for (int k = 0; k < chevrons.Count; k++)
             {
                 var chevron = chevrons[k];
@@ -144,7 +148,7 @@ namespace CodingGame.Defense
             }
             return points[0];
         }
-        public void HidePath() { foreach (var chevron in chevrons) if (chevron) chevron.gameObject.SetActive(false); }
+        public void HidePath() { pathShowing = false; foreach (var chevron in chevrons) if (chevron) chevron.gameObject.SetActive(false); }
 
         void LateUpdate() { if (IsVisible) Place(); if (ghost) Drag(); }
         void Place()
