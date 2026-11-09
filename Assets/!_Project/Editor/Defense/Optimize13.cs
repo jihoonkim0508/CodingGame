@@ -299,6 +299,34 @@ namespace CodingGame.Defense.Editor
             return AssetDatabase.LoadAssetAtPath<Sprite>(path);
         }
 
+        // 160: the battle maps (floor, road, props) cast no shadows; only robots and enemies do. The shadow map drew about 350
+        // map renderers in every cascade for shadows that mostly fall on the map itself. The modules too, so maps painted later
+        // keep it.
+        const string Modules = "Assets/!_Project/Resources/ArtScripts/MapPainter/Generated/Modules";
+        [MenuItem("Tools/Optimize/160 Map Shadows Off")]
+        public static void MapShadows160()
+        {
+            foreach (var guid in AssetDatabase.FindAssets("t:Prefab", new[] { Modules }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                var root = PrefabUtility.LoadPrefabContents(path);
+                try { if (NoShadows(root.GetComponentsInChildren<Renderer>(true)) > 0) PrefabUtility.SaveAsPrefabAsset(root, path); }
+                finally { PrefabUtility.UnloadPrefabContents(root); }
+            }
+            EditScene(DefenseScene, scene => { foreach (var map in All<Art.MapPainter.ModularMapRoot>(scene)) NoShadows(map.GetComponentsInChildren<Renderer>(true)); });
+        }
+        static int NoShadows(IEnumerable<Renderer> renderers)
+        {
+            int changed = 0;
+            foreach (var renderer in renderers.Where(r => r.shadowCastingMode != ShadowCastingMode.Off))
+            {
+                renderer.shadowCastingMode = ShadowCastingMode.Off; changed++;
+                if (PrefabUtility.IsPartOfPrefabInstance(renderer)) PrefabUtility.RecordPrefabInstancePropertyModifications(renderer);
+                EditorUtility.SetDirty(renderer);
+            }
+            return changed;
+        }
+
         // A camera that needs neither the depth nor the opaque texture nor shadows (no shader samples them).
         static void Lean(Camera camera)
         {
@@ -366,6 +394,11 @@ namespace CodingGame.Defense.Editor
                     .Concat(All<DefenseBossWarning>(defense).Where(c => !c.Baked).Select(c => c.name)).ToArray();
                 Check(AssetDatabase.LoadAssetAtPath<GameObject>(BossAura), "the boss aura is a saved prefab");
                 Check(unbaked.Length == 0, "128 the battle's start-up UI is saved in the scene" + (unbaked.Length > 0 ? " (not: " + string.Join(", ", unbaked) + ")" : ""));
+                var maps = All<Art.MapPainter.ModularMapRoot>(defense).ToArray();
+                int casting = maps.Sum(m => m.GetComponentsInChildren<Renderer>(true).Count(r => r.shadowCastingMode != ShadowCastingMode.Off));
+                Check(maps.Length == 2 && casting == 0, $"160 the battle maps cast no shadows ({maps.Length} maps, {casting} renderers still cast)");
+                Check(AssetDatabase.FindAssets("t:Prefab", new[] { Modules }).Select(g => AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(g)))
+                    .All(m => m.GetComponentsInChildren<Renderer>(true).All(r => r.shadowCastingMode == ShadowCastingMode.Off)), "160 the map modules cast no shadows");
                 var hudCode = File.ReadAllText("Assets/!_Project/Scripts/Defense/DefensePlayerHUD.cs");
                 Check(!hudCode.Contains("button.onClick.RemoveAllListeners(); button.onClick.AddListener(() => battle.PlayRobot(id))"), "132 Play listeners wired once, not every frame");
             }
