@@ -21,11 +21,11 @@ namespace CodingGame.StageMap
         [Serializable] public sealed class IslandCard
         {
             public int stage;
-            public RectTransform root, badge, shackle, purifiedSeal;
+            public RectTransform root, badge, purifiedSeal;
             public CanvasGroup badgeGroup;
             public CanvasGroup purifiedGroup;
             [NonSerialized] public float purifiedShownAt;
-            public Image border, glow, body, leftShackle, rightShackle, topShackle;
+            public Image border, glow, body; // body: the lock icon
             public TMP_Text title, number, state;
             public Button button;
         }
@@ -35,6 +35,8 @@ namespace CodingGame.StageMap
         [SerializeField] RectTransform hint;
         [SerializeField] TMP_Text hintLabel;
         [SerializeField] GameObject devLine, guideDialogue;
+        // Kenney's lock (Game Icons, CC0: ThirdParty/Kenney/License.txt), set by Tools/Learning UI/Stage Lock Icon.
+        [SerializeField] Sprite lockIcon;
         public GameObject GuideDialogue => guideDialogue;
         public bool Baked => canvas && cards.Length > 0 && hint && hintLabel;
         RectTransform canvasRect;
@@ -154,15 +156,24 @@ namespace CodingGame.StageMap
             card.badgeGroup = card.badge.gameObject.AddComponent<CanvasGroup>();
             card.badgeGroup.blocksRaycasts = false; card.badgeGroup.interactable = false;
             card.glow = Image("Orange lock outline", card.badge, new Vector2(0,-2), new Vector2(104,4), LockColor);
-            card.body = Image("Orange lock body", card.badge, new Vector2(24,-55), new Vector2(56,43), LockColor, false);
-            Image("Keyhole", card.body.rectTransform, new Vector2(25,-11), new Vector2(6,20), new Color(.3f,.08f,.025f), false);
-            card.shackle = Panel("Opening shackle", card.badge, new Vector2(38,39), Color.clear);
-            card.shackle.anchorMin = card.shackle.anchorMax = new Vector2(0,1); card.shackle.pivot = new Vector2(1,0);
-            card.shackle.anchoredPosition = new Vector2(71,-59);
-            card.leftShackle = Image("Shackle left", card.shackle, Vector2.zero, new Vector2(8,39), LockColor, false);
-            card.topShackle = Image("Shackle top", card.shackle, Vector2.zero, new Vector2(38,8), LockColor, false);
-            card.rightShackle = Image("Shackle right", card.shackle, new Vector2(30,0), new Vector2(8,39), LockColor, false);
+            card.body = Image("Lock icon", card.badge, new Vector2(0,-12), new Vector2(92,92), LockColor);
+            card.body.sprite = lockIcon; card.body.preserveAspect = true;
         }
+#if UNITY_EDITOR
+        // The saved badges built again with the lock icon (the rest of the saved map UI stays as it is).
+        public void RebuildLocks(Sprite icon)
+        {
+            lockIcon = icon; canvasRect = (RectTransform)canvas.transform;
+            foreach (var card in cards)
+            {
+                int order = card.badge ? card.badge.GetSiblingIndex() : canvasRect.childCount;
+                if (card.badge) DestroyImmediate(card.badge.gameObject);
+                BuildLock(card, card.stage);
+                card.badge.SetSiblingIndex(order);
+            }
+        }
+        public bool LockIconBaked => lockIcon && cards.All(card => card.body && card.body.sprite == lockIcon);
+#endif
 
         public void Refresh(StageNode next)
         {
@@ -228,10 +239,10 @@ namespace CodingGame.StageMap
                 card.badge.anchoredPosition = badgePosition;
                 card.badge.localScale = Vector3.one * ((cinematic && node==unlockTarget?1.75f:1)*(1 + Mathf.Sin(release*Mathf.PI)*.16f));
                 card.badgeGroup.alpha = 1 - Mathf.SmoothStep(0,1,Mathf.InverseLerp(.55f,1,release));
-                card.shackle.localRotation = Quaternion.Euler(0,0,-Mathf.SmoothStep(0,1,release)*38);
+                card.body.rectTransform.localRotation = Quaternion.Euler(0,0,-Mathf.Sin(release*Mathf.PI)*14); // a shake as it opens
                 Color lockTint = Color.Lerp(LockColor,new Color(1,.74f,.32f),.15f+.1f*Mathf.Sin(Time.unscaledTime*2));
                 if (node.LockVisual.IsReleasing) lockTint = Color.Lerp(lockTint,OpenColor,release);
-                card.body.color = card.leftShackle.color = card.rightShackle.color = card.topShackle.color = lockTint;
+                card.body.color = lockTint;
                 var island=node.GetComponent<StageIslandView>();
                 bool purified=node.State==StageState.Cleared && (!island || island.Purification>.88f);
                 bool showPurified=purified&&!entering&&cinematic&&node==unlockTarget;

@@ -450,6 +450,7 @@ namespace CodingGame.Defense.Editor
                     $"the stage map's lock barriers and purification fields are saved ({barriers.Length} islands)");
                 var huds = All<StageMap.StageMapHUD>(stage).ToArray();
                 Check(huds.Length == 1 && huds[0].Baked, "125 Stage.unity saves the map UI (canvas, cards, pointer)");
+                Check(huds.Length == 1 && huds[0].LockIconBaked, "the stage map's lock badges show the lock icon (Tools/Learning UI/Stage Lock Icon)");
                 var hud = huds.FirstOrDefault();
                 var so = hud ? new SerializedObject(hud) : null;
                 int islands = All<Renderer>(stage).Count(r => r.gameObject.name == "Stage" && r.gameObject.activeInHierarchy);

@@ -190,6 +190,26 @@ namespace CodingGame.Defense.Editor
         }
         const float GuideTop = 16;
 
+        // The stage map's lock badges show Kenney's lock icon (Game Icons, CC0) instead of drawn bars; only the badges in
+        // Stage.unity are built again.
+        const string StageScene = "Assets/!_Project/Scenes/Stage.unity", LockIcon = "Assets/ThirdParty/Kenney/Icons/locked.png";
+        [MenuItem("Tools/Learning UI/Stage Lock Icon")]
+        public static void StageLockIcon()
+        {
+            var scene = SceneManager.GetSceneByPath(StageScene);
+            bool opened = !scene.isLoaded;
+            if (opened) scene = EditorSceneManager.OpenScene(StageScene, OpenSceneMode.Additive);
+            try
+            {
+                var icon = AssetDatabase.LoadAssetAtPath<Sprite>(LockIcon);
+                if (!icon) throw new InvalidOperationException(LockIcon + " is not a sprite");
+                foreach (var hud in scene.GetRootGameObjects().SelectMany(g => g.GetComponentsInChildren<StageMapHUD>(true)))
+                { hud.RebuildLocks(icon); EditorUtility.SetDirty(hud); }
+                EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene);
+            }
+            finally { if (opened) EditorSceneManager.CloseScene(scene, true); }
+        }
+
         // Where a rect sits on its canvas, in canvas units.
         static Rect Box(RectTransform rect, RectTransform canvas)
         {
