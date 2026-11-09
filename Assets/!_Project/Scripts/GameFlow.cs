@@ -22,7 +22,7 @@ namespace CodingGame
         static void ResetSession()
         {
             if (instance) SceneManager.sceneLoaded -= instance.OnSceneLoaded;
-            instance = null;
+            instance = null; Loading = false;
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -75,6 +75,41 @@ namespace CodingGame
             StartCoroutine(FadeInAfterLoad());
         }
 
+        // Loading screen: true while the screen is covered for a scene change. Intros that run on their own clock (the map's
+        // build, the title, 디버's typing, the system alert) wait for it, so they start when the scene shows.
+        public static bool Loading { get; private set; }
+        const float LoadingShowAfter = .25f; // a quick load shows no loading card, only the fade
+        CanvasGroup loadingCard;
+        RectTransform loadingFill;
+        float coveredAt;
+        void BuildLoadingCard()
+        {
+            var card = new GameObject("Loading", typeof(RectTransform), typeof(CanvasGroup)).GetComponent<RectTransform>();
+            card.SetParent(transform, false); card.anchorMin = card.anchorMax = new Vector2(.5f, .5f); card.sizeDelta = new Vector2(520, 160);
+            loadingCard = card.GetComponent<CanvasGroup>(); loadingCard.alpha = 0; loadingCard.blocksRaycasts = false;
+            var label = new GameObject("Text", typeof(RectTransform), typeof(TMPro.TextMeshProUGUI)).GetComponent<TMPro.TextMeshProUGUI>();
+            label.rectTransform.SetParent(card, false); label.rectTransform.sizeDelta = new Vector2(520, 70); label.rectTransform.anchoredPosition = new Vector2(0, 30);
+            label.font = UITheme.Display; label.fontSize = 44; label.alignment = TMPro.TextAlignmentOptions.Center; label.color = UITheme.Paper;
+            label.text = "불러오는 중"; label.raycastTarget = false;
+            Image Bar(string name, Transform parent, Color color)
+            {
+                var image = new GameObject(name, typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+                image.rectTransform.SetParent(parent, false); UITheme.Style(image, UITheme.Pill, color); image.raycastTarget = false;
+                return image;
+            }
+            var track = Bar("Track", card, new Color(1, 1, 1, .14f)).rectTransform;
+            track.sizeDelta = new Vector2(420, 16); track.anchoredPosition = new Vector2(0, -36);
+            loadingFill = Bar("Fill", track, UITheme.Primary).rectTransform;
+            loadingFill.anchorMin = Vector2.zero; loadingFill.anchorMax = new Vector2(0, 1); loadingFill.pivot = new Vector2(0, .5f); loadingFill.sizeDelta = Vector2.zero;
+        }
+        // The card shows once the cover has lasted LoadingShowAfter; its bar fills to progress (0 to 1).
+        void ShowLoading(float progress)
+        {
+            if (!loadingCard) BuildLoadingCard();
+            loadingCard.alpha = Mathf.Clamp01((Time.unscaledTime - coveredAt - LoadingShowAfter) / .15f);
+            loadingFill.anchorMax = new Vector2(Mathf.Max(loadingFill.anchorMax.x, Mathf.Clamp01(progress)), 1);
+        }
+
         // Title buttons are wired by name; the scene stores no OnClick calls.
         static void BindTitleButtons()
         {
@@ -86,10 +121,22 @@ namespace CodingGame
             }
         }
 
+        // The new scene renders under the black for a few frames before it shows: its shaders compile and its textures upload
+        // there (the Editor compiles shaders in the background and draws them blank until done), not in sight.
         IEnumerator FadeInAfterLoad()
         {
             fade.gameObject.SetActive(true);
             fade.color = Color.black;
+            if (!Loading) { Loading = true; coveredAt = Time.unscaledTime; } // the first scene, or one loaded without LoadScene
+            for (int frame = 0; frame < 3; frame++) { ShowLoading(.9f + frame * .03f); yield return null; }
+#if UNITY_EDITOR
+            for (float waited = 0; !Application.isBatchMode && UnityEditor.ShaderUtil.anythingCompiling && waited < 15; waited += Time.unscaledDeltaTime)
+            { ShowLoading(.97f); yield return null; }
+#endif
+            ShowLoading(1);
+            if (loadingCard.alpha > 0) yield return new WaitForSecondsRealtime(.15f); // the full bar, briefly
+            loadingCard.alpha = 0; loadingFill.anchorMax = new Vector2(0, 1);
+            Loading = false;
             yield return FadeTo(0f);
             changingScene = false;
             fade.raycastTarget = false;
@@ -123,7 +170,9 @@ namespace CodingGame
             if (delay > 0) yield return new WaitForSecondsRealtime(delay);
             fade.gameObject.SetActive(true);
             yield return FadeTo(1f);
-            SceneManager.LoadScene(sceneName);
+            Loading = true; coveredAt = Time.unscaledTime;
+            var load = SceneManager.LoadSceneAsync(sceneName);
+            while (!load.isDone) { ShowLoading(load.progress); yield return null; } // 0 to .9 while loading
         }
 
         // delay: seconds to wait before the fade starts (the stage map's camera flies to the stage first).

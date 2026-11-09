@@ -72,6 +72,7 @@ namespace CodingGame.TitleScreen
         void Update()
         {
             if (preview) return;
+            if (GameFlow.Loading) return; // the intro starts when the scene shows
             if (!IsReady)
             {
                 bool skip = Keyboard.current != null &&

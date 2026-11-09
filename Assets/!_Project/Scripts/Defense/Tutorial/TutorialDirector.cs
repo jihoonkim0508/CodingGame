@@ -123,7 +123,7 @@ namespace CodingGame.Defense
 
         void Update()
         {
-            if (!initialized || Paused) return;
+            if (!initialized || Paused || GameFlow.Loading) return; // the first line and its voice start when the scene shows
             bridge.SetInputLimited(InputLimited);
             if (battle.Simulation != null && !battle.Simulation.Options.tutorial) { Finish(); return; }
             if (session != battle.Simulation)
