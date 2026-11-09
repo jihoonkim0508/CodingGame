@@ -327,6 +327,20 @@ namespace CodingGame.Defense.Editor
             return changed;
         }
 
+        // 162: how far the battle camera sees the ground of a map: the farthest cell corner from where the camera stands (URP fades
+        // shadows by the distance from the camera, over the last cascadeBorder of the shadow distance).
+        static float GroundReach(Art.MapPainter.ModularMapRoot map, Vector3 eye)
+        {
+            float far = 0, h = map.cellSize * .5f;
+            foreach (var cell in map.floorCells.Concat(map.roadCells))
+                for (int corner = 0; corner < 4; corner++)
+                {
+                    var p = map.transform.TransformPoint(new Vector3(cell.x * map.cellSize + (corner % 2 == 0 ? -h : h), 0, cell.z * map.cellSize + (corner < 2 ? -h : h)));
+                    far = Mathf.Max(far, Vector3.Distance(eye, p));
+                }
+            return far;
+        }
+
         // A camera that needs neither the depth nor the opaque texture nor shadows (no shader samples them).
         static void Lean(Camera camera)
         {
@@ -400,6 +414,13 @@ namespace CodingGame.Defense.Editor
                 Check(maps.Length == 2 && casting == 0, $"160 the battle maps cast no shadows ({maps.Length} maps, {casting} renderers still cast)");
                 Check(AssetDatabase.FindAssets("t:Prefab", new[] { Modules }).Select(g => AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(g)))
                     .All(m => m.GetComponentsInChildren<Renderer>(true).All(r => r.shadowCastingMode == ShadowCastingMode.Off)), "160 the map modules cast no shadows");
+                var battle = new SerializedObject(All<DefenseBattle>(defense).First());
+                var stageOne = (Art.MapPainter.ModularMapRoot)battle.FindProperty("stageOneMap").objectReferenceValue;
+                var workshop = (Art.MapPainter.ModularMapRoot)battle.FindProperty("workshopMap").objectReferenceValue;
+                float reach = Mathf.Max(GroundReach(stageOne, ((Transform)battle.FindProperty("stageOneView").objectReferenceValue).position),
+                    GroundReach(workshop, ((Camera)battle.FindProperty("battleCamera").objectReferenceValue).transform.position));
+                float sharp = pipeline.shadowDistance * (1 - pipeline.cascadeBorder);
+                Check(sharp >= reach && sharp <= reach + 3, $"162 the shadow distance reaches both maps' far edge without fading and little past it (ground {reach:0.0}, unfaded {sharp:0.0}, distance {pipeline.shadowDistance:0.0})");
                 var hudCode = File.ReadAllText("Assets/!_Project/Scripts/Defense/DefensePlayerHUD.cs");
                 Check(!hudCode.Contains("button.onClick.RemoveAllListeners(); button.onClick.AddListener(() => battle.PlayRobot(id))"), "132 Play listeners wired once, not every frame");
             }
