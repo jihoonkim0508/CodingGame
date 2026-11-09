@@ -346,6 +346,7 @@ namespace CodingGame.Defense.Editor
             var rendererData = AssetDatabase.LoadAssetAtPath<UniversalRendererData>("Assets/Settings/PC_Renderer.asset");
             Check(rendererData.rendererFeatures.All(f => !f || f.GetType().Name != "ScreenSpaceAmbientOcclusion" || !f.isActive),
                 "159 no SSAO (the map's shaders never read it; it drew the whole scene once more)");
+            Check(pipeline.shadowCascadeCount == 1, $"161 one shadow cascade ({pipeline.shadowCascadeCount})");
             var title = EditorSceneManager.OpenScene(TitleScene, OpenSceneMode.Additive);
             try
             {
