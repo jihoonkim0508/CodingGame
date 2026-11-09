@@ -424,12 +424,12 @@ namespace CodingGame.Defense.Editor
             firstGroups.GetArrayElementAtIndex(0).FindPropertyRelative("healthOverride").floatValue = 14;
             var tankEnemy = AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"{Folder}/TutorialBoss.asset");
             if (!basicEnemy || !tankEnemy) throw new InvalidOperationException("1-1의 기본·단단한 적 asset이 없습니다.");
-            // While 디버 slows, pauses and resumes the battle (E04 to E04c) a bunched group walks in, so there is something to
-            // watch (play feedback 4): from 4s, 0.6s apart, bunched so one well-timed Play press cuts several.
+            // While 디버 slows, pauses and resumes the battle (E04 to E04c) one more walks in from 4s, so there is something to
+            // watch (play feedback 4); it was a bunch of four, cut to one so basic enemies come one at a time (13차 175).
             var crowd = firstGroups.GetArrayElementAtIndex(1);
             crowd.FindPropertyRelative("enemy").objectReferenceValue = basicEnemy;
             crowd.FindPropertyRelative("route").intValue = 0;
-            crowd.FindPropertyRelative("count").intValue = 4;
+            crowd.FindPropertyRelative("count").intValue = 1;
             crowd.FindPropertyRelative("delay").floatValue = 4;
             crowd.FindPropertyRelative("interval").floatValue = .6f;
             crowd.FindPropertyRelative("healthOverride").floatValue = 14;
