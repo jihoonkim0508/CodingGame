@@ -68,8 +68,8 @@ namespace CodingGame.Defense
             dialogue.ForceMeshUpdate();
             int characterCount = dialogue.textInfo.characterCount;
             dialogue.maxVisibleCharacters = animate ? 0 : int.MaxValue;
-            // With a voice the letters keep pace with it (finishing a little before it does) instead of racing ahead.
-            float speed = spoken > 0 ? Mathf.Clamp(characterCount / (spoken * .85f), 12, sequence.typeSpeed) : sequence.typeSpeed;
+            // With a voice the letters stay ahead of it (all shown by half the line, 20 a second at least) without racing off at once.
+            float speed = spoken > 0 ? Mathf.Clamp(characterCount / (spoken * .5f), 20, sequence.typeSpeed) : sequence.typeSpeed;
             if (animate && characterCount > 0) typing = StartCoroutine(Type(speed, characterCount));
         }
 

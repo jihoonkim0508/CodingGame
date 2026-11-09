@@ -305,7 +305,7 @@ namespace CodingGame.Defense.Editor
             var sequence = AssetDatabase.LoadAssetAtPath<TutorialSequence>(path);
             if (!sequence) { sequence = ScriptableObject.CreateInstance<TutorialSequence>(); AssetDatabase.CreateAsset(sequence, path); }
             sequence.sequenceId = id; sequence.enabled = true; sequence.stage = stage; sequence.wave = wave;
-            sequence.entryPhase = TutorialEntryPhase.Preparation; sequence.typeSpeed = 30;
+            sequence.entryPhase = TutorialEntryPhase.Preparation; sequence.typeSpeed = 40;
             bool battle = false;
             sequence.steps = steps.Select(s =>
             {
