@@ -314,6 +314,10 @@ namespace CodingGame.Defense.Editor
             var failed = new List<string>(); int passed = 0;
             void Check(bool ok, string what) { if (ok) passed++; else failed.Add(what); }
 
+            var pipeline = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>("Assets/Settings/PC_RPAsset.asset");
+            var rendererData = AssetDatabase.LoadAssetAtPath<UniversalRendererData>("Assets/Settings/PC_Renderer.asset");
+            Check(rendererData.rendererFeatures.All(f => !f || f.GetType().Name != "ScreenSpaceAmbientOcclusion" || !f.isActive),
+                "159 no SSAO (the map's shaders never read it; it drew the whole scene once more)");
             var title = EditorSceneManager.OpenScene(TitleScene, OpenSceneMode.Additive);
             try
             {
