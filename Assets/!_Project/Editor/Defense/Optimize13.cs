@@ -421,6 +421,10 @@ namespace CodingGame.Defense.Editor
                     GroundReach(workshop, ((Camera)battle.FindProperty("battleCamera").objectReferenceValue).transform.position));
                 float sharp = pipeline.shadowDistance * (1 - pipeline.cascadeBorder);
                 Check(sharp >= reach && sharp <= reach + 3, $"162 the shadow distance reaches both maps' far edge without fading and little past it (ground {reach:0.0}, unfaded {sharp:0.0}, distance {pipeline.shadowDistance:0.0})");
+                var tileMeshes = maps.SelectMany(m => new[] { m.floorGroup, m.roadGroup }).Where(g => g).SelectMany(g => g.GetComponentsInChildren<MeshFilter>(true))
+                    .Select(f => f.sharedMesh).Distinct().ToArray();
+                Check(tileMeshes.Length > 0 && tileMeshes.All(m => m && m.isReadable),
+                    $"163 the battle maps' tile meshes are readable, so the battle can combine them in a build ({tileMeshes.Count(m => !m || !m.isReadable)} of {tileMeshes.Length} not)");
                 var hudCode = File.ReadAllText("Assets/!_Project/Scripts/Defense/DefensePlayerHUD.cs");
                 Check(!hudCode.Contains("button.onClick.RemoveAllListeners(); button.onClick.AddListener(() => battle.PlayRobot(id))"), "132 Play listeners wired once, not every frame");
             }

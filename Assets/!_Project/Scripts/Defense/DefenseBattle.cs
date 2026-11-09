@@ -210,6 +210,17 @@ namespace CodingGame.Defense
             floorParts = null;
             CoreModel = (first ? stageOneMap : workshopMap).GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "CodeBase");
             if (coreGlitch) coreGlitch.SetModel(CoreModel);
+            StartCoroutine(CombineTiles(first ? stageOneMap : workshopMap));
+        }
+        // 163: the floor and road tiles (about 250 renderers) drawn as a few combined meshes once they stop moving. Not marked
+        // static in the scene, since the map's build animation raises and scales each tile when the map first shows.
+        System.Collections.IEnumerator CombineTiles(CodingGame.Art.MapPainter.ModularMapRoot map)
+        {
+            yield return null; // the build animation starts in the map's Start
+            var build = map.GetComponent<CodingGame.Art.MapPainter.MapBuildSequence>();
+            while (build && build.IsAnimating) yield return null;
+            foreach (var group in new[] { map.floorGroup, map.roadGroup })
+                if (group && !group.GetComponentsInChildren<MeshRenderer>(true).Any(r => r.isPartOfStaticBatch)) StaticBatchingUtility.Combine(group.gameObject);
         }
         // The ground of the map, one square per floor or road cell (cells are centred on CellPosition).
         static IEnumerable<PlacementObstacle> MapTiles(CodingGame.Art.MapPainter.ModularMapRoot map)
