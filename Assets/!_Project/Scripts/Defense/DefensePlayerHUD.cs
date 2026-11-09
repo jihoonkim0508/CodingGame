@@ -97,12 +97,15 @@ namespace CodingGame.Defense
             if (!banner) BuildBanner();
             if (!guideCorner) BuildGuide();
             if (!starRow) BuildStars();
-            if (!menu) BuildMenu();
+            if (!menu || !MenuHasMsaa) RebakeMenu();
             if (!debriefRoot) BuildDebrief();
             while (debriefCards.Count < 6) MakeDebriefCard();
             if (!restartStageButton) BuildRestartStage();
         }
-        public bool PartsBaked => waveCall && floaterLayer && leakFlash && statusLayer && banner && guideCorner && starRow && menu && debriefRoot && restartStageButton;
+        // 164: the saved Esc menu built again (the anti-aliasing row was added to it).
+        public void RebakeMenu() { if (menu) DestroyImmediate(menu); BuildMenu(); }
+        bool MenuHasMsaa => msaaButtons != null && msaaButtons.Length == GraphicsOptions.MsaaLevels.Length && msaaButtons.All(b => b);
+        public bool PartsBaked => waveCall && floaterLayer && leakFlash && statusLayer && banner && guideCorner && starRow && menu && MenuHasMsaa && debriefRoot && restartStageButton;
 #endif
         // The look the battle used to give these on start (status line, next-wave label, goal banner, robot photos on the cards),
         // built once in the editor and saved with the scene (13차: the scene showed the old look until Play). Start builds it
@@ -839,6 +842,7 @@ namespace CodingGame.Defense
         [SerializeField, HideInInspector] Slider soundSlider, voiceSlider;
         [SerializeField, HideInInspector] Button restartButton, resumeButton, leaveButton;
         [SerializeField, HideInInspector] TMP_Text soundPercent, voicePercent;
+        [SerializeField, HideInInspector] Button[] msaaButtons; // 끔, 2x, 4x (GraphicsOptions.MsaaLevels)
         bool pausedByMenu;
         public bool MenuOpen => menu && menu.activeSelf;
         public void ToggleMenu()
@@ -851,7 +855,14 @@ namespace CodingGame.Defense
             battle.MenuOpened(open, pausedByMenu);
             if (!open) pausedByMenu = false;
             soundSlider.value = DefenseSounds.Volume; voiceSlider.value = TutorialDialogueView.VoiceVolume;
+            ShowMsaa();
             restartButton.interactable = battle.CanRestart; // a lesson restarts only where it says so
+        }
+        // The chosen anti-aliasing level filled in, the others plain.
+        void ShowMsaa()
+        {
+            for (int i = 0; i < msaaButtons.Length; i++)
+                UITheme.Style((Image)msaaButtons[i].targetGraphic, UITheme.Button, GraphicsOptions.MsaaLevels[i] == GraphicsOptions.Msaa ? UITheme.Primary : UITheme.PaperDeep);
         }
         // Back on when the scene goes (the menu's 타이틀로 / 스테이지 맵으로 leave with it open).
         void OnDestroy() { if (MenuOpen) AudioListener.pause = false; }
@@ -865,7 +876,7 @@ namespace CodingGame.Defense
             var layer = menu.AddComponent<Canvas>(); layer.overrideSorting = true; layer.sortingOrder = 90; menu.AddComponent<GraphicRaycaster>();
             // A paper card holding the title and buttons.
             var card = new GameObject("Card", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
-            card.SetParent(shade, false); card.anchorMin = card.anchorMax = new Vector2(.5f, .5f); card.sizeDelta = new Vector2(500, 640); card.anchoredPosition = new Vector2(0, 0);
+            card.SetParent(shade, false); card.anchorMin = card.anchorMax = new Vector2(.5f, .5f); card.sizeDelta = new Vector2(500, 720); card.anchoredPosition = new Vector2(0, 0);
             UITheme.Style(card.GetComponent<Image>(), UITheme.Card, UITheme.Paper);
             TMP_Text Text(string text, float y, float size)
             {
@@ -885,7 +896,7 @@ namespace CodingGame.Defense
                 var label = button.GetComponentInChildren<TMP_Text>(); label.text = text; label.color = UITheme.Ink;
                 return button;
             }
-            var title = Text("일시정지", 250, 46);
+            var title = Text("일시정지", 290, 46);
             if (UITheme.Display) title.font = UITheme.Display;
             // A label, a slider and its percent on one row.
             Slider Volume(string name, float y, out TMP_Text shown)
@@ -917,12 +928,22 @@ namespace CodingGame.Defense
                 percent.text = "0%"; shown = percent;
                 return slider;
             }
-            resumeButton = Add("계속하기", 160, UITheme.Primary);
-            soundSlider = Volume("소리", 80, out soundPercent);
-            voiceSlider = Volume("디버 목소리", 0, out voicePercent);
-            restartButton = Add("이 스테이지 처음부터", -80, UITheme.PaperDeep);
-            leaveButton = Add("타이틀로", -160, UITheme.Coral);
-            Text("스테이지 도중에 나가면 이 스테이지 진행은 저장되지 않아요.", -250, 19).color = UITheme.Muted;
+            resumeButton = Add("계속하기", 200, UITheme.Primary);
+            soundSlider = Volume("소리", 120, out soundPercent);
+            voiceSlider = Volume("디버 목소리", 40, out voicePercent);
+            // 164: anti-aliasing, one small button per level; the chosen one is filled in (ShowMsaa).
+            var msaaLabel = Text("안티에일리어싱", -40, 22); msaaLabel.rectTransform.sizeDelta = new Vector2(175, 60);
+            msaaLabel.rectTransform.anchoredPosition = new Vector2(-137, -40); msaaLabel.alignment = TextAlignmentOptions.MidlineLeft;
+            msaaButtons = GraphicsOptions.MsaaLevels.Select((level, i) =>
+            {
+                var button = Add(level == 1 ? "끔" : level + "x", -40, UITheme.PaperDeep);
+                var r = (RectTransform)button.transform; r.sizeDelta = new Vector2(80, 46); r.anchoredPosition = new Vector2(i * 90, -40);
+                var label = button.GetComponentInChildren<TMP_Text>(); label.enableAutoSizing = false; label.fontSize = 22;
+                return button;
+            }).ToArray();
+            restartButton = Add("이 스테이지 처음부터", -120, UITheme.PaperDeep);
+            leaveButton = Add("타이틀로", -200, UITheme.Coral);
+            Text("스테이지 도중에 나가면 이 스테이지 진행은 저장되지 않아요.", -290, 19).color = UITheme.Muted;
             menu.SetActive(false); // built closed, so the first Esc opens it
         }
         // The menu's calls, added at run time (a baked menu keeps none); from the stage map the last button goes back there.
@@ -934,6 +955,11 @@ namespace CodingGame.Defense
             leaveButton.onClick.AddListener(() => GameFlow.LoadScene(battle.FromStageMap ? GameFlow.StageScene : GameFlow.TitleScene));
             soundSlider.onValueChanged.AddListener(v => { DefenseSounds.Volume = v; soundPercent.text = Mathf.RoundToInt(v * 100) + "%"; });
             voiceSlider.onValueChanged.AddListener(v => { TutorialDialogueView.VoiceVolume = v; voicePercent.text = Mathf.RoundToInt(v * 100) + "%"; });
+            for (int i = 0; i < msaaButtons.Length; i++)
+            {
+                int level = GraphicsOptions.MsaaLevels[i];
+                msaaButtons[i].onClick.AddListener(() => { GraphicsOptions.Msaa = level; ShowMsaa(); });
+            }
         }
         // On a defeat that can go back one wave, the result button retries the wave and a copy beside it restarts the stage
         // (a wave that began with little core health may be better started over).

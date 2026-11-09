@@ -383,6 +383,13 @@ namespace CodingGame.Defense.Editor
             Object.DestroyImmediate(source); Object.DestroyImmediate(padded);
         }
 
+        // 164: the Esc menu saved again with its anti-aliasing row.
+        [MenuItem("Tools/Optimize/164 Menu Anti-aliasing")]
+        public static void MenuMsaa164() => EditScene(DefenseScene, scene =>
+        {
+            foreach (var hud in All<DefensePlayerHUD>(scene)) { hud.RebakeMenu(); EditorUtility.SetDirty(hud); }
+        });
+
         // 162: how far the battle camera sees the ground of a map: the farthest cell corner from where the camera stands (URP fades
         // shadows by the distance from the camera, over the last cascadeBorder of the shadow distance).
         static float GroundReach(Art.MapPainter.ModularMapRoot map, Vector3 eye)
