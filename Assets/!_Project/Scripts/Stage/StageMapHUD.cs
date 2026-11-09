@@ -26,7 +26,7 @@ namespace CodingGame.StageMap
             public CanvasGroup purifiedGroup;
             [NonSerialized] public float purifiedShownAt;
             public Image border, glow, body; // glow: the lock badge's soft glow; body: the lock icon
-            public TMP_Text title, number, state;
+            public TMP_Text title, number, state, goal; // goal: what to do there, under the state
             public Button button;
         }
         // Built by Build() in the editor (Tools/Optimize/125 Stage Map) and saved with the scene: no UI is made at load.
@@ -39,7 +39,7 @@ namespace CodingGame.StageMap
         // badge (ui_fill) with a soft glow (ui_glow); set by Tools/Learning UI/Stage Lock Icon.
         [SerializeField] Sprite lockIcon, lockOpenIcon, lockPlate, lockGlow;
         public GameObject GuideDialogue => guideDialogue;
-        public bool Baked => canvas && cards.Length > 0 && hint && hintLabel;
+        public bool Baked => canvas && cards.Length > 0 && cards.All(card => card.goal) && hint && hintLabel;
         RectTransform canvasRect;
         Camera mapCamera;
         StageCameraController cameraMotion;
@@ -85,7 +85,7 @@ namespace CodingGame.StageMap
             {
                 var (number, title) = islands[i];
                 var card = cards[i] = new IslandCard { stage = number };
-                card.root = Panel("Stage " + number + " card", canvasRect, new Vector2(400,132), PanelColor);
+                card.root = Panel("Stage " + number + " card", canvasRect, new Vector2(400,CardHeight), PanelColor);
                 card.root.anchorMin = card.root.anchorMax = new Vector2(.5f,.5f); card.root.pivot = new Vector2(.5f,1);
                 card.button = card.root.gameObject.AddComponent<Button>();
                 card.button.targetGraphic = card.root.GetComponent<Image>();
@@ -94,6 +94,7 @@ namespace CodingGame.StageMap
                 card.number = Text("Stage number", card.root, $"STAGE {number:00}", 19, LockColor, new Vector2(0,-10), new Vector2(400,25), true);
                 card.title = Text("Island title", card.root, title, 27, Color.white, new Vector2(0,-39), new Vector2(400,36), true);
                 card.state = Text("Availability", card.root, "", 28, LockColor, new Vector2(0,-82), new Vector2(400,38), true);
+                card.goal = Text("Unlock condition", card.root, "", 24, GoalColor, new Vector2(0,-124), new Vector2(400,32), true);
                 BuildLock(card, number);
                 BuildPurifiedSeal(card, number);
             }
@@ -140,10 +141,12 @@ namespace CodingGame.StageMap
             var caption=Text("Purified seal caption",card.purifiedSeal,"PURIFIED",15,new Color(.53f,.9f,.73f),new Vector2(0,-172),new Vector2(280,22),true);caption.characterSpacing=5;
         }
 
+        const float CardHeight = 170;
+        static readonly Color GoalColor = new Color(.8f,.9f,.96f), LockedGoalColor = new Color(1,.94f,.76f);
         Vector2 CardPosition(StageNode node,Vector2 size,float width)
         {
             Vector2 p=Project(node.transform.position+new Vector3(0,-.8f,-3.1f));
-            return new Vector2(Mathf.Clamp(p.x,-size.x*.5f+width*.5f+12,size.x*.5f-width*.5f-12),Mathf.Clamp(p.y+18,-size.y*.5f+180,size.y*.5f-165));
+            return new Vector2(Mathf.Clamp(p.x,-size.x*.5f+width*.5f+12,size.x*.5f-width*.5f-12),Mathf.Clamp(p.y+18,-size.y*.5f+48+CardHeight,size.y*.5f-165));
         }
 
         void BuildLock(IslandCard card, int number)
@@ -195,6 +198,8 @@ namespace CodingGame.StageMap
                 card.border.color = card.number.color = card.state.color = tint;
                 card.state.text = locked ? "봉인 중" : node.State == StageState.Cleared ? "정화 완료" : "도전 가능";
                 card.state.fontSize=node.State==StageState.Cleared?32:28;
+                card.goal.text = locked ? $"{node.Number-1}스테이지 정화 후 개방" : node.State == StageState.Cleared ? "오류 제거 완료 · 다시 도전" : "도전해서 오류를 정화하세요";
+                card.goal.color = locked ? LockedGoalColor : GoalColor;
             }
         }
 
@@ -227,9 +232,9 @@ namespace CodingGame.StageMap
                 card.root.gameObject.SetActive(!quiet);
                 card.button.interactable = !quiet;
                 float width = Mathf.Min(400, size.x * .28f);
-                card.root.sizeDelta = new Vector2(width,132);
+                card.root.sizeDelta = new Vector2(width,CardHeight);
                 // Keep text and accents inside the card when the aspect ratio narrows.
-                SetWidth(card.title,width); SetWidth(card.number,width); SetWidth(card.state,width);
+                SetWidth(card.title,width); SetWidth(card.number,width); SetWidth(card.state,width); SetWidth(card.goal,width);
                 card.border.rectTransform.sizeDelta = new Vector2(width,2);
                 card.root.anchoredPosition = CardPosition(node,size,width);
                 bool showLock = !entering && (node.State == StageState.Locked || node.LockVisual.IsLocked || node.LockVisual.IsReleasing);
