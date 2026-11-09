@@ -327,6 +327,62 @@ namespace CodingGame.Defense.Editor
             return changed;
         }
 
+        // 138: the big textures compressed (BC7 on PC, a quarter of RGBA32). Block compression needs sides that are multiples of
+        // 4, so an image that is not is padded first by repeating its edge pixels (a sprite's 9-slice borders move with it; a
+        // sheet pads right and up so its sprite rects stay); a plain texture is scaled to a power of two instead, which keeps a
+        // tiling texture seamless. One wider than its import limit keeps its size. Images under 256 px stay as they are.
+        const int SmallTexture = 256;
+        [MenuItem("Tools/Optimize/138 Texture Compression")]
+        public static void Textures138()
+        {
+            foreach (var path in UnpackedTextures().ToArray())
+            {
+                var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+                importer.GetSourceTextureWidthAndHeight(out int width, out int height);
+                int padX = (4 - width % 4) % 4, padY = (4 - height % 4) % 4;
+                if (importer.textureType != TextureImporterType.Sprite) importer.npotScale = TextureImporterNPOTScale.ToNearest;
+                else if (padX + padY > 0)
+                {
+                    bool sheet = importer.spriteImportMode == SpriteImportMode.Multiple;
+                    int left = sheet ? 0 : padX / 2, bottom = sheet ? 0 : padY / 2;
+                    PadImage(path, width, height, left, bottom, padX, padY);
+                    var border = importer.spriteBorder;
+                    if (!sheet && border != Vector4.zero) importer.spriteBorder = border + new Vector4(left, bottom, padX - left, padY - bottom);
+                    width += padX; height += padY;
+                }
+                if (Mathf.Max(width, height) > importer.maxTextureSize) importer.maxTextureSize = 4096;
+                importer.textureCompression = TextureImporterCompression.CompressedHQ;
+                importer.SaveAndReimport();
+            }
+        }
+        // Those that import uncompressed: set so, or set to compress with sides that are not multiples of 4. Not one with mipmaps
+        // whose sides are not powers of two: Unity keeps those uncompressed (CoreHealthSegmentFrame, 0.4 MB, mipmapped to stay
+        // smooth when drawn small).
+        static IEnumerable<string> UnpackedTextures() => AssetDatabase.FindAssets("t:Texture2D", new[] { "Assets/!_Project" }).Select(AssetDatabase.GUIDToAssetPath)
+            .Where(p => p.EndsWith(".png") && AssetImporter.GetAtPath(p) is TextureImporter i && !i.GetPlatformTextureSettings("Standalone").overridden
+                && SourceSize(i) >= SmallTexture && !(i.mipmapEnabled && !PowerOfTwo(i)) && AssetDatabase.LoadAssetAtPath<Texture2D>(p) is var t && t
+                && !UnityEngine.Experimental.Rendering.GraphicsFormatUtility.IsCompressedFormat(t.format));
+        static bool PowerOfTwo(TextureImporter importer) { importer.GetSourceTextureWidthAndHeight(out int w, out int h); return Mathf.IsPowerOfTwo(w) && Mathf.IsPowerOfTwo(h); }
+        static int SourceSize(TextureImporter importer) { importer.GetSourceTextureWidthAndHeight(out int w, out int h); return Mathf.Max(w, h); }
+        static void PadImage(string path, int width, int height, int left, int bottom, int padX, int padY)
+        {
+            var source = new Texture2D(2, 2, TextureFormat.RGBA32, false, true);
+            source.LoadImage(File.ReadAllBytes(path));
+            if (source.width != width || source.height != height) throw new InvalidOperationException($"{path}: {source.width}x{source.height}, import says {width}x{height}");
+            var from = source.GetPixels32();
+            int w = width + padX, h = height + padY;
+            var to = new Color32[w * h];
+            for (int y = 0; y < h; y++)
+            {
+                int row = Mathf.Clamp(y - bottom, 0, height - 1) * width;
+                for (int x = 0; x < w; x++) to[y * w + x] = from[row + Mathf.Clamp(x - left, 0, width - 1)];
+            }
+            var padded = new Texture2D(w, h, TextureFormat.RGBA32, false, true);
+            padded.SetPixels32(to); padded.Apply();
+            File.WriteAllBytes(path, padded.EncodeToPNG());
+            Object.DestroyImmediate(source); Object.DestroyImmediate(padded);
+        }
+
         // 162: how far the battle camera sees the ground of a map: the farthest cell corner from where the camera stands (URP fades
         // shadows by the distance from the camera, over the last cascadeBorder of the shadow distance).
         static float GroundReach(Art.MapPainter.ModularMapRoot map, Vector3 eye)
@@ -364,6 +420,8 @@ namespace CodingGame.Defense.Editor
             var quality = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/QualitySettings.asset")[0]).FindProperty("m_QualitySettings");
             var pc = Enumerable.Range(0, quality.arraySize).Select(quality.GetArrayElementAtIndex).FirstOrDefault(l => l.FindPropertyRelative("name").stringValue == "PC");
             Check(pc != null && pc.FindPropertyRelative("vSyncCount").intValue == 1, "140 VSync on at the PC quality level (the frame cap is GraphicsOptions)");
+            var unpacked = UnpackedTextures().ToArray();
+            Check(unpacked.Length == 0, $"138 every texture of {SmallTexture} px or more imports compressed ({unpacked.Length} not{(unpacked.Length > 0 ? ": " + string.Join(", ", unpacked.Take(3)) : "")})");
             var title = EditorSceneManager.OpenScene(TitleScene, OpenSceneMode.Additive);
             try
             {
