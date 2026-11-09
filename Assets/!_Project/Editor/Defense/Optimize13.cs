@@ -361,6 +361,9 @@ namespace CodingGame.Defense.Editor
             Check(rendererData.rendererFeatures.All(f => !f || f.GetType().Name != "ScreenSpaceAmbientOcclusion" || !f.isActive),
                 "159 no SSAO (the map's shaders never read it; it drew the whole scene once more)");
             Check(pipeline.shadowCascadeCount == 1, $"161 one shadow cascade ({pipeline.shadowCascadeCount})");
+            var quality = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/QualitySettings.asset")[0]).FindProperty("m_QualitySettings");
+            var pc = Enumerable.Range(0, quality.arraySize).Select(quality.GetArrayElementAtIndex).FirstOrDefault(l => l.FindPropertyRelative("name").stringValue == "PC");
+            Check(pc != null && pc.FindPropertyRelative("vSyncCount").intValue == 1, "140 VSync on at the PC quality level (the frame cap is GraphicsOptions)");
             var title = EditorSceneManager.OpenScene(TitleScene, OpenSceneMode.Additive);
             try
             {
