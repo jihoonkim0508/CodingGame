@@ -59,11 +59,7 @@ namespace CodingGame.StageMap
             canvasRect = (RectTransform)canvas.transform;
             Scaler = canvas.GetComponent<CanvasScaler>();
             for (int i = 0; i < nodes.Length; i++) { var node = nodes[i]; cards[i].button.onClick.AddListener(() => select(node)); }
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            devLine.SetActive(true);
-#else
-            devLine.SetActive(false);
-#endif
+            devLine.SetActive(GameFlow.Developer); // the Z/Q line, developer mode only
         }
 
         // The whole map UI, once: in the editor to save it with Stage.unity, or at load if a scene has none.

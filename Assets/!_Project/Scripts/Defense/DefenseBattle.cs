@@ -52,7 +52,7 @@ namespace CodingGame.Defense
         [SerializeField] Transform projectilePrefab;
         [SerializeField] DefenseHitVisuals hitEffects = new DefenseHitVisuals();
         [SerializeField] GameObject developerRoot;
-        [SerializeField, Tooltip("상단 바의 'F1/F2 개발자' 안내. 에디터·개발 빌드에서만 보인다.")] GameObject developerHint;
+        [SerializeField, Tooltip("상단 바의 'F1 개발자' 안내(PR #19 상단 바 이후 숨김).")] GameObject developerHint;
         [SerializeField] TutorialDirector tutorial;
         [SerializeField] Button hitRangeButton;
         [SerializeField] TMP_Text hitRangeLabel;
@@ -91,8 +91,8 @@ namespace CodingGame.Defense
         DefenseBossWarning BossWarning => bossWarning ? bossWarning : bossWarning = new GameObject("BossWarning").AddComponent<DefenseBossWarning>();
         float bossEntranceUntil, bossCameraRestoreAt;
         public bool DeveloperMode { get; private set; }
-        // The developer panel (F1/F2) is for the team: the Editor and development builds, not a player's release build.
-        public static bool DeveloperTools => Application.isEditor || Debug.isDebugBuild;
+        // The developer panel (F1) is for the team only: developer mode, opened on the title (GameFlow.Developer).
+        public static bool DeveloperTools => GameFlow.Developer;
         public bool ShowHitRanges { get; private set; }
         public bool HelpOpen { get; internal set; }
         public bool HasDialogueBlockingWindow => HelpOpen || (inventoryUI && inventoryUI.IsOpen) || (codeEditor && codeEditor.HintOpen) || (playerHUD && playerHUD.MenuOpen);
@@ -139,7 +139,7 @@ namespace CodingGame.Defense
             // Body texts are saved in Pretendard Bold (Tools/Optimize/126); no font pass at load.
             sounds = gameObject.AddComponent<DefenseSounds>();
             developerRoot.SetActive(false);
-            developerHint.SetActive(false); // PR #19's header puts the coin stat in this corner; F1/F2 still work
+            developerHint.SetActive(false); // PR #19's header puts the coin stat in this corner; F1 still works in developer mode
             startButton.onClick.AddListener(StartBattle);
             pauseButton.onClick.AddListener(TogglePause);
             speedButton.onClick.AddListener(ToggleSpeed);
@@ -581,8 +581,7 @@ namespace CodingGame.Defense
             bool dialogueInput = tutorial && tutorial.DialogueInputCaptured;
             var mouse = dialogueInput ? null : Mouse.current; var keyboard = dialogueInput ? null : Keyboard.current;
             bool tutorialActive = TutorialBlocksInput;
-            // Keep F1 and offer F2 when a recording overlay intercepts the help key.
-            if (DeveloperTools && !tutorialActive && keyboard != null && (keyboard.f1Key.wasPressedThisFrame || keyboard.f2Key.wasPressedThisFrame)) ToggleDeveloper();
+            if (DeveloperTools && !tutorialActive && keyboard != null && keyboard.f1Key.wasPressedThisFrame) ToggleDeveloper();
             if (!tutorialActive && keyboard != null && keyboard.tabKey.wasPressedThisFrame && !codeEditor.IsOpen)
             {
                 if (DeveloperMode) ToggleDeveloper();
@@ -831,7 +830,7 @@ namespace CodingGame.Defense
             // The developer panel (F1) is hidden in play; its dozen formatted texts were built every frame anyway (13차 136).
             if (!DeveloperMode) { resultPanel.SetActive(ended); if (ended) HidePlacement(); return; }
             string phase = Simulation.Phase == BattlePhase.Ready ? "준비" : Simulation.Phase == BattlePhase.Running ? "전투 중" :
-                Simulation.Phase == BattlePhase.Paused ? "일시정지" : Simulation.Phase == BattlePhase.Reward ? "보상 수령 대기 · F1/F2 사용자 화면" : Simulation.Phase == BattlePhase.Victory ? "방어 성공" : "방어 실패";
+                Simulation.Phase == BattlePhase.Paused ? "일시정지" : Simulation.Phase == BattlePhase.Reward ? "보상 수령 대기 · F1 사용자 화면" : Simulation.Phase == BattlePhase.Victory ? "방어 성공" : "방어 실패";
             header.text = $"WAVE {Simulation.WaveIndex + 1:00} / {Simulation.Setup.Waves.Length:00}    |    CORE {Simulation.BaseHealth:00}    |    KILL {Simulation.Kills:00}  LEAK {Simulation.Leaks:00}";
             stateText.text = $"{phase}   ·   {Simulation.Time:0.0}s   ·   적 {Simulation.Enemies.Count}   ·   로봇 {Simulation.Robots.Count}/{Simulation.Setup.RobotLimit}";
             pauseLabel.text = Simulation.Phase == BattlePhase.Paused ? "재개" : "일시정지";

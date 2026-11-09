@@ -22,7 +22,7 @@ namespace CodingGame
         static void ResetSession()
         {
             if (instance) SceneManager.sceneLoaded -= instance.OnSceneLoaded;
-            instance = null; Loading = false;
+            instance = null; Loading = false; Developer = false;
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -108,6 +108,43 @@ namespace CodingGame
             if (!loadingCard) BuildLoadingCard();
             loadingCard.alpha = Mathf.Clamp01((Time.unscaledTime - coveredAt - LoadingShowAfter) / .15f);
             loadingFill.anchorMax = new Vector2(Mathf.Max(loadingFill.anchorMax.x, Mathf.Clamp01(progress)), 1);
+        }
+
+        // Developer mode (the battle's F1 panel and 5x speed, the stage map's Z/Q keys): ten clicks in a row on the title's
+        // top-left corner turn it on, ten more off; it lasts while the game runs (like clears and stars).
+        public static bool Developer { get; private set; }
+        const int DeveloperClicks = 10;
+        const float DeveloperCorner = 120, DeveloperClickGap = 1; // 1080p pixels from the corner; seconds between clicks
+        int cornerClicks; float lastCornerClick;
+        TMPro.TextMeshProUGUI toast; float toastUntil;
+        void Update()
+        {
+            if (toast) toast.alpha = Mathf.Clamp01((toastUntil - Time.unscaledTime) / .4f);
+            var mouse = UnityEngine.InputSystem.Mouse.current;
+            if (mouse != null && mouse.leftButton.wasPressedThisFrame && SceneManager.GetActiveScene().name == TitleScene) TitleClick(mouse.position.ReadValue());
+        }
+        // A click on the title (screen pixels): the tenth in a row on the corner, each within a second, toggles developer mode.
+        void TitleClick(Vector2 at)
+        {
+            float corner = DeveloperCorner * Screen.height / 1080f;
+            bool inCorner = at.x <= corner && at.y >= Screen.height - corner;
+            cornerClicks = !inCorner ? 0 : Time.unscaledTime - lastCornerClick <= DeveloperClickGap ? cornerClicks + 1 : 1;
+            lastCornerClick = Time.unscaledTime;
+            if (cornerClicks < DeveloperClicks) return;
+            cornerClicks = 0; Developer = !Developer;
+            ShowToast(Developer ? "개발자 모드 켜짐" : "개발자 모드 꺼짐");
+        }
+        void ShowToast(string text)
+        {
+            if (!toast)
+            {
+                toast = new GameObject("Toast", typeof(RectTransform), typeof(TMPro.TextMeshProUGUI)).GetComponent<TMPro.TextMeshProUGUI>();
+                var rect = toast.rectTransform; rect.SetParent(transform, false);
+                rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0, 1); rect.anchoredPosition = new Vector2(24, -20); rect.sizeDelta = new Vector2(600, 50);
+                toast.font = UITheme.Display; toast.fontSize = 30; toast.color = UITheme.Primary; toast.raycastTarget = false;
+                toast.outlineWidth = .25f; toast.outlineColor = UITheme.Ink;
+            }
+            toast.text = text; toastUntil = Time.unscaledTime + 2;
         }
 
         // Title buttons are wired by name; the scene stores no OnClick calls.

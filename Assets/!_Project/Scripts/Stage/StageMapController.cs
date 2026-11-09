@@ -78,14 +78,12 @@ namespace CodingGame.StageMap
                 for (int i = 0; i < nodes.Length; i++) if (islands[i]) islands[i].SetHovered(nodes[i] == over);
             }
             if (busy) return;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
             Keyboard keyboard = Keyboard.current;
-            if (keyboard != null)
+            if (GameFlow.Developer && keyboard != null) // developer mode only (opened on the title)
             {
                 if (keyboard.zKey.wasPressedThisFrame) { DeveloperClear(); return; }
                 if (keyboard.qKey.wasPressedThisFrame) { DeveloperReset(); return; }
             }
-#endif
             if (over && mouse.leftButton.wasPressedThisFrame) Enter(over);
         }
 
