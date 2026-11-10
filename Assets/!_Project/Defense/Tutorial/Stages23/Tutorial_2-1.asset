@@ -119,6 +119,13 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
+      text: "\uADF8\uB9AC\uACE0 \uC0C8 \uB85C\uBD07\uC774 \uC654\uC5B4! \uBA40\uB9AC\uC11C
+        \uC3D8\uB294 <b>\uC6D0\uAC70\uB9AC\uD615</b>\uC774\uC57C.\n\uCE7C\uC774 \uB2FF\uC9C0
+        \uC54A\uB294 \uACF3\uC758 \uC801\uB3C4 \uC3E0 \uC218 \uC788\uC9C0."
+      focusKeys: []
+      highlightKeys: []
+    - textId: t2
+      speaker: "\uB514\uBC84"
       text: "\uAE38 \uC606\uC5D0 <b>\uC6D0\uAC70\uB9AC</b> \uB85C\uBD07\uC744 \uC138\uC6CC
         \uB480\uC5B4.\n\uC624\uB298\uC740 \uC774 \uB85C\uBD07\uC774 \uC801\uC744
         <b>\uAE30\uC5B5</b>\uD558\uAC8C \uB9CC\uB4E4 \uAC70\uC57C."

@@ -125,21 +125,14 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uC0C8 <b>\uC6D0\uAC70\uB9AC</b> \uB85C\uBD07\uB3C4 \uD55C \uB300 \uB354
-        \uBC1B\uC558\uC5B4.\n\uAE38 \uC606\uC5D0 \uC138\uC6B0\uACE0 <b>\u2018\uAC1C\uBC1C\u2019</b>\uC5D0\uC11C
+      text: "<b>\uC804\uC0AC\uD615</b> \uB85C\uBD07\uB3C4 \uD55C \uB300 \uB354 \uBC1B\uC558\uC5B4.\n\uAE38
+        \uC606\uC5D0 \uC138\uC6B0\uACE0 <b>\u2018\uAC1C\uBC1C\u2019</b>\uC5D0\uC11C
         \uBA85\uB839\uC744 \uB123\uC5B4 \uC918."
       focusKeys: []
       highlightKeys: []
     - textId: t2
       speaker: "\uB514\uBC84"
-      text: "\uC6D0\uAC70\uB9AC \uB85C\uBD07\uC740 <b>`attack()`</b>\uC73C\uB85C
-        \uC3F4. \uAD04\uD638 \uC548\uC5D0\n<b>`get_nearest_enemy()`</b>\uB97C \uB123\uC73C\uBA74
-        \uAC00\uC7A5 \uAC00\uAE4C\uC6B4 \uC801\uC744 \uC3D8\uC9C0!"
-      focusKeys: []
-      highlightKeys: []
-    - textId: t3
-      speaker: "\uB514\uBC84"
-      text: "\uBC18\uBCF5 \uC548\uC5D0 \uB123\uC73C\uBA74 \uC5EC\uB7EC \uBC88 \uC3E0
+      text: "\uBC18\uBCF5 \uC548\uC5D0 \uB123\uC73C\uBA74 \uC5EC\uB7EC \uBC88 \uBCA8
         \uC218 \uC788\uC5B4.\n\uC900\uBE44\uAC00 \uB2E4 \uC548 \uB3FC\uB3C4 \uC804\uD22C\uB294
         \uC5B8\uC81C\uB4E0 \uC2DC\uC791\uD560 \uC218 \uC788\uC5B4!"
       focusKeys: []
@@ -268,7 +261,7 @@ MonoBehaviour:
     expectedCode: 
     pointerKey: 
     autoSelectSlot: 
-    hintCode: "while True:\n    attack(get_nearest_enemy())"
+    hintCode: "while True:\n    slash()"
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
@@ -291,9 +284,8 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uC6D0\uAC70\uB9AC \uB85C\uBD07\uC740 \uC801\uC774 \uAC00\uAE4C\uC6B8\uC218\uB85D
-        \uB354 \uC138\uAC8C \uC3F4.\n\uC0AC\uAC70\uB9AC\uC758 <b>1/3 \uC548</b>\uC774\uBA74
-        \uAC00\uC7A5 \uC138\uC9C0!"
+      text: "\uB85C\uBD07\uC744 \uAE38\uBAA9 \uC5EC\uAE30\uC800\uAE30\uC5D0 \uB098\uB220
+        \uC138\uC6B0\uBA74\n\uB193\uCE58\uB294 \uC801\uC774 \uD6E8\uC52C \uC904\uC5B4!"
       focusKeys: []
       highlightKeys: []
     targetKeys: []

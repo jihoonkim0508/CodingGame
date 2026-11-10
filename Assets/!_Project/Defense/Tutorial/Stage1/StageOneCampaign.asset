@@ -91,17 +91,15 @@ MonoBehaviour:
         count: 1
     - stage: 1
       wave: 4
-      topic: "\uBC18\uBCF5 \uC790\uC720 \uD50C\uB808\uC774(\uC6D0\uAC70\uB9AC)"
+      topic: "\uBC18\uBCF5 \uC790\uC720 \uD50C\uB808\uC774"
       goal: 
       robots:
-      - role: 4
+      - role: 1
         count: 1
       blocks:
       - kind: 2
         count: 1
-      - kind: 22
-        count: 1
-      - kind: 6
+      - kind: 19
         count: 1
       rewards:
       - kind: 10
@@ -143,9 +141,9 @@ MonoBehaviour:
         count: 1
     - stage: 2
       wave: 2
-      topic: "\uAC70\uB9AC \uAE30\uC900\uAC12 \uC870\uC815"
-      goal: "\uAC00\uAE4C\uC6B8\uC218\uB85D \uC0AC\uACA9\uC774 \uC138\uC694 \xB7
-        \uAC70\uB9AC \uAE30\uC900\uAC12\uC73C\uB85C \uACF5\uACA9 \uC2DC\uC810 \uC815\uD558\uAE30"
+      topic: "\uBCC0\uC218 \uC790\uC720 \uD50C\uB808\uC774"
+      goal: "\uCC3E\uC740 \uC801\uC744 \uBCC0\uC218\uC5D0 \uB2F4\uC544 \uB450 \uC6D0\uAC70\uB9AC\uD615\uC73C\uB85C
+        \uBB34\uB9AC \uB9C9\uAE30"
       robots: []
       blocks: []
       rewards:
@@ -181,31 +179,19 @@ MonoBehaviour:
         count: 1
     - stage: 2
       wave: 4
-      topic: "if / elif / else \uBD84\uAE30"
-      goal: "\uD0F1\uCEE4\uBCD1\uACFC \uC18D\uB3C4\uBCD1\uC774 \uC11E\uC5EC \uC640\uC694
-        \xB7 if / elif / else\uB85C \uB098\uB220 \uB300\uC751\uD558\uAE30"
-      robots:
-      - role: 0
-        count: 1
-      blocks:
-      - kind: 4
-        count: 1
-      - kind: 5
-        count: 1
-      - kind: 24
-        count: 1
-      - kind: 12
-        count: 1
-      - kind: 13
-        count: 1
+      topic: "\uC870\uAC74 \uC790\uC720 \uD50C\uB808\uC774"
+      goal: "\uC801\uC774 \uAC00\uAE4C\uC774 \uC654\uC744 \uB54C \uC3D8\uB294 \uC870\uAC74\uBB38\uC73C\uB85C
+        \uBB34\uB9AC \uB9C9\uAE30"
+      robots: []
+      blocks: []
       rewards:
       - kind: 11
         count: 1
     - stage: 2
       wave: 5
-      topic: "\uAC70\uB9AC \uC870\uAC74\uACFC \uBD84\uAE30 \uC885\uD569"
-      goal: "\uAC70\uB9AC \uC870\uAC74\uACFC \uBD84\uAE30\uB97C \uBAA8\uB450 \uC368\uC11C
-        \uB9C8\uC9C0\uB9C9 \uC6E8\uC774\uBE0C \uB9C9\uAE30"
+      topic: "\uC790\uC720 \uD50C\uB808\uC774"
+      goal: "\uBCC0\uC218\uC640 \uC870\uAC74\uBB38\uC744 \uBAA8\uB450 \uC368\uC11C
+        \uB354 \uD070 \uBB34\uB9AC \uB9C9\uAE30"
       robots: []
       blocks: []
       rewards:
@@ -213,35 +199,25 @@ MonoBehaviour:
         count: 1
     - stage: 3
       wave: 1
-      topic: "for\uB85C \uC815\uD574\uC9C4 \uD69F\uC218 \uBC18\uBCF5"
-      goal: "\uC801\uC774 \uBB49\uCCD0 \uC640\uC694 \xB7 \uD0F1\uCEE4\uB85C \uAE38\uC744
-        \uB9C9\uACE0 boom()\uC73C\uB85C \uD55C\uAEBC\uBC88\uC5D0"
+      topic: "\uD0F1\uCEE4\uD615 \uC18C\uAC1C"
+      goal: "\uD0F1\uCEE4\uD615\uC73C\uB85C \uAE38\uC744 \uB9C9\uACE0 \uB2E4\uB978
+        \uB85C\uBD07\uC73C\uB85C \uACF5\uACA9\uD558\uAE30"
       robots:
-      - role: 3
-        count: 1
       - role: 2
         count: 1
       blocks:
       - kind: 2
-        count: 2
-      - kind: 10
-        count: 3
-      - kind: 21
         count: 1
       - kind: 20
         count: 1
-      - kind: 6
-        count: 2
-      - kind: 15
-        count: 2
       rewards:
       - kind: 2
         count: 1
     - stage: 3
       wave: 2
-      topic: "\uBC18\uBCF5 \uD69F\uC218 \uBCC0\uACBD"
-      goal: "\uC801\uC774 \uB450 \uBC88\uC5D0 \uB098\uB220 \uC640\uC694 \xB7 range()
-        \uD69F\uC218\uB97C \uB298\uB824 \uB05D\uAE4C\uC9C0 \uACF5\uACA9"
+      topic: "\uC790\uC720 \uD50C\uB808\uC774"
+      goal: "\uC801\uC774 \uB450 \uBC88\uC5D0 \uB098\uB220 \uC640\uC694 \xB7 \uD0F1\uCEE4\uD615\uACFC
+        \uD568\uAED8 \uB05D\uAE4C\uC9C0 \uB9C9\uAE30"
       robots: []
       blocks: []
       rewards:
@@ -249,9 +225,9 @@ MonoBehaviour:
         count: 1
     - stage: 3
       wave: 3
-      topic: "\uBC18\uBCF5\uACFC \uACF5\uACA9 \uD6A8\uC728"
+      topic: "\uC790\uC720 \uD50C\uB808\uC774"
       goal: "\uD0F1\uCEE4\uBCD1 \uB4A4\uB85C \uC801\uC774 \uC904\uC9C0\uC5B4 \uC640\uC694
-        \xB7 \uBC18\uBCF5 \uD55C \uBC88\uC5D0 \uB354 \uB9CE\uC774 \uB9DE\uD788\uAE30"
+        \xB7 \uAE38\uC744 \uB9C9\uACE0 \uD55C\uAEBC\uBC88\uC5D0 \uACF5\uACA9\uD558\uAE30"
       robots: []
       blocks: []
       rewards:
@@ -259,30 +235,22 @@ MonoBehaviour:
         count: 1
     - stage: 3
       wave: 4
-      topic: "while\uACFC for\uC758 \uCC28\uC774"
-      goal: "\uC801\uC774 \uB04A\uC784\uC5C6\uC774 \uC640\uC694 \xB7 \uD69F\uC218\uB97C
-        \uBAA8\uB974\uBA74 while True\uB85C \uACC4\uC18D \uACF5\uACA9"
-      robots: []
-      blocks:
-      - kind: 2
-        count: 1
-      - kind: 17
-        count: 1
-      - kind: 18
-        count: 1
-      rewards:
-      - kind: 1
-        count: 1
-    - stage: 3
-      wave: 5
-      topic: "\uBC18\uBCF5\uBB38 \uC120\uD0DD\uACFC \uC751\uC6A9"
-      goal: "\uB9C8\uC9C0\uB9C9 \uC6E8\uC774\uBE0C \xB7 \uC54C\uB9DE\uC740 \uBC18\uBCF5\uBB38\uC744
-        \uACE8\uB77C \uBAA8\uB4E0 \uC801 \uB9C9\uAE30"
+      topic: "\uBCF4\uC2A4"
+      goal: "\uB9C8\uC9C0\uB9C9 \uBCF4\uC2A4 \xB7 \uC791\uC740 \uC801\uC744 \uBAA8\uB450
+        \uB9C9\uACE0 \uBCF4\uC2A4\uB97C \uC4F0\uB7EC\uB728\uB9AC\uAE30"
       robots: []
       blocks: []
       rewards:
-      - kind: 2
+      - kind: 1
         count: 1
+    - stage: 2
+      wave: 6
+      topic: "\uBCF4\uC2A4"
+      goal: "\uBCF4\uC2A4 \uB4F1\uC7A5 \xB7 \uC791\uC740 \uC801\uC744 \uBAA8\uB450
+        \uB9C9\uACE0 \uBCF4\uC2A4\uB97C \uC4F0\uB7EC\uB728\uB9AC\uAE30"
+      robots: []
+      blocks: []
+      rewards: []
     robots: []
     initial: []
     drops:
@@ -493,6 +461,34 @@ MonoBehaviour:
         speedOverride: 0
         leakDamageOverride: 0
         boss: 0
+    - groups:
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 6
+        delay: 0
+        interval: 1.4
+        healthOverride: 0
+        speedOverride: 0
+        leakDamageOverride: 0
+        boss: 0
+      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
+        route: 0
+        count: 4
+        delay: 3
+        interval: 1.4
+        healthOverride: 0
+        speedOverride: 0
+        leakDamageOverride: 0
+        boss: 0
+      - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
+        route: 0
+        count: 1
+        delay: 0
+        interval: 2
+        healthOverride: 200
+        speedOverride: 1.3
+        leakDamageOverride: 12
+        boss: 1
     waveSeconds: 50
   - waves:
     - groups:
@@ -548,43 +544,6 @@ MonoBehaviour:
         route: 0
         count: 4
         delay: 0
-        interval: 1.6
-        healthOverride: 0
-        speedOverride: 0
-        leakDamageOverride: 0
-        boss: 0
-      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
-        route: 0
-        count: 4
-        delay: 8
-        interval: 1.4
-        healthOverride: 0
-        speedOverride: 0
-        leakDamageOverride: 0
-        boss: 0
-      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
-        route: 0
-        count: 4
-        delay: 16
-        interval: 1.6
-        healthOverride: 0
-        speedOverride: 0
-        leakDamageOverride: 0
-        boss: 0
-    - groups:
-      - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
-        route: 0
-        count: 5
-        delay: 0
-        interval: 2.4
-        healthOverride: 0
-        speedOverride: 0
-        leakDamageOverride: 0
-        boss: 0
-      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
-        route: 0
-        count: 7
-        delay: 3
         interval: 1.3
         healthOverride: 0
         speedOverride: 0
@@ -592,11 +551,20 @@ MonoBehaviour:
         boss: 0
       - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
         route: 0
-        count: 6
-        delay: 12
+        count: 5
+        delay: 4
         interval: 1.2
         healthOverride: 0
         speedOverride: 0
         leakDamageOverride: 0
         boss: 0
+      - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
+        route: 0
+        count: 1
+        delay: 0
+        interval: 2
+        healthOverride: 130
+        speedOverride: 1.1
+        leakDamageOverride: 12
+        boss: 1
     waveSeconds: 50

@@ -100,6 +100,20 @@ namespace CodingGame.Defense.Editor
             DevTest.PlayDefense(2, 1, true, true);
         }
 
+        // 3-1 (13차 179): the tank's introduction and placement on the road; ends when 3-2 begins.
+        [MenuItem("Tools/Develop/Verify Stage 3 Lesson 3-1")]
+        public static void RunStageThree()
+        {
+            TutorialSequenceBuilder.ApplyAllFive();
+            Directory.CreateDirectory(Path.GetDirectoryName(LogPath));
+            File.WriteAllText(LogPath, "START stage 3 lesson 3-1 integration check\n");
+            last = null; practiced = practicedFour = practicedFive = bossVisualSeen = false;
+            next = 0;
+            SessionState.SetBool(Running, true);
+            SessionState.SetBool("CodingGame.BeginnerLessons.AllFive", false);
+            DevTest.PlayDefense(3, 1, true, true);
+        }
+
         [MenuItem("Tools/Develop/Verify Beginner Lessons 1-4 and 1-5")]
         public static void RunLastTwo()
         {
@@ -180,6 +194,26 @@ namespace CodingGame.Defense.Editor
                 // Free time (after 2-1's lesson, all of 2-2): a second shooter with 2-1's code, then the battle.
                 if (sim.Phase == BattlePhase.Ready && !director.IsActive && (sim.WaveIndex == 1 || director.EditorStep?.stepId == "E01"))
                 { StageTwoFree(battle); battle.StartBattle(); Log("START " + (sim.WaveIndex + 1) + " robots=" + sim.Robots.Count); return; }
+            }
+            if (battle.Stage == 3)
+            {
+                if (sim.WaveIndex >= 1)
+                {
+                    Require(sim.Kills >= 4 && sim.BaseHealth >= 6, "3-1's wave was not held; kills=" + sim.Kills + " core=" + sim.BaseHealth);
+                    End("PASS 3-1 completed: the tank introduced, stood on the road, the wave held; kills=" + sim.Kills + " core=" + sim.BaseHealth); return;
+                }
+                if (sim.Phase == BattlePhase.Defeat) { End("FAIL 3-1 lost; kills=" + sim.Kills + " leaks=" + sim.Leaks); return; }
+                // The lesson waits for the wave's end (E01): the tank stands on the road, then every robot is placed with a loop.
+                if (sim.Phase == BattlePhase.Ready && director.EditorStep?.stepId == "E01")
+                {
+                    var tank = sim.Robots.SingleOrDefault(r => r.Spec.role == RobotRole.Tank);
+                    Require(tank != null, "3-1 did not place the tank");
+                    try { DevTest.AutoDeploy(); } catch (FormatException) { } // it places them, then stops at a target-less attack()
+                    Loops(sim);
+                    battle.StartBattle();
+                    Log("START 3-1 robots=" + sim.Robots.Count + " tank at " + tank.Position);
+                    return;
+                }
             }
             if (!allFive && sim.WaveIndex >= 3) { End("PASS waves 1-1, 1-2, 1-3 completed; reached 1-4 without changing it"); return; }
             if (allFive && sim.Phase == BattlePhase.Victory)
@@ -326,7 +360,8 @@ namespace CodingGame.Defense.Editor
                 Require(battle.BattleSpeed == 1, "Speed cannot return to 1x after 3x");
                 return;
             }
-            if (step.targetKeys.Contains(TutorialKeys.RobotButton(1))) { battle.ChooseRobot(1); return; }
+            var robotButton = step.targetKeys.FirstOrDefault(k => k.StartsWith(TutorialKeys.RobotButtonPrefix, StringComparison.Ordinal));
+            if (robotButton != null) { battle.ChooseRobot(int.Parse(robotButton.Substring(TutorialKeys.RobotButtonPrefix.Length))); return; }
             if (step.completionSignal == TutorialSignals.RobotPlaced)
             {
                 if (key == "1/B02")
@@ -337,7 +372,7 @@ namespace CodingGame.Defense.Editor
                     Require(Field<int>(battle, "palette") == 1 && sim.Robots.Count == 0,
                         "Releasing a slight drag over the robot button cleared the selected robot");
                 }
-                PlaceBest(battle, 1); return;
+                PlaceBest(battle, Field<int>(battle, "palette")); return;
             }
             if (step.targetKeys.Contains(TutorialKeys.Unit(0))) { battle.SelectRobot(TutorialWatcher.TeachingRobot(sim).Id); return; }
             if (step.completionSignal == TutorialSignals.EditorOpened) { battle.DevelopSelected(); return; }
@@ -418,21 +453,45 @@ namespace CodingGame.Defense.Editor
         static void FreePlayFour(DefenseBattle battle)
         {
             var sim = battle.Simulation;
-            Require(sim.RobotAvailable(RobotRole.Shooter) >= 1, "1-4 must bring a new shooter");
+            // 1-4 brings a third warrior (the shooter waits for 2-1 since 13차 179).
+            Require(sim.RobotAvailable(RobotRole.Warrior) >= 1 && sim.RobotAvailable(RobotRole.Shooter) == 0, "1-4 must bring a new warrior and no shooter");
             Require(sim.StartError() == null, "1-4 free play must start without new code: " + sim.StartError());
-            int shooter = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => battle.DefinitionRole(i) == RobotRole.Shooter);
-            battle.ChooseRobot(shooter); PlaceBest(battle, shooter);
+            int warrior = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => battle.DefinitionRole(i) == RobotRole.Warrior);
+            battle.ChooseRobot(warrior); PlaceBest(battle, warrior);
             var learner = sim.Robots.OrderBy(r => r.Id).Last();
-            Require(learner.Spec.role == RobotRole.Shooter, "1-4's new robot is not a shooter");
+            Require(learner.Spec.role == RobotRole.Warrior, "1-4's new robot is not a warrior");
             battle.SelectRobot(learner.Id); battle.DevelopSelected();
-            battle.CodeEditor.Panel.LoadProgram("condition_practice", TutorialAnswers.Parse(
-                "while True:\n    attack(get_nearest_enemy())"));
-            Require(battle.CodeEditor.Panel.IsApplied, "1-4 shooter code was not applied: " +
+            battle.CodeEditor.Panel.LoadProgram("loop_practice", TutorialAnswers.Parse("while True:\n    slash()"));
+            Require(battle.CodeEditor.Panel.IsApplied, "1-4 warrior code was not applied: " +
                 Field<TMP_Text>(battle.CodeEditor.Panel, "status").text);
             battle.CodeEditor.Close();
             battle.StartBattle();
             Require(sim.Phase == BattlePhase.Running, "1-4 battle did not start");
-            Log("PASS 1-4: free play starts without new code, new shooter loops attack(get_nearest_enemy())");
+            Log("PASS 1-4: free play starts without new code, the new warrior loops slash()");
+        }
+
+        // Every robot without code gets its own action in a loop, on a found enemy where the action needs one (block, attack,
+        // slow, boom); the stock is not counted (test only, as the screen tour does).
+        public static void Loops(DefenseSimulation sim)
+        {
+            var setup = sim.Setup; var options = setup.TestOptions;
+            setup.TestOptions = options.Copy(); setup.TestOptions.inventoryLimit = false;
+            try
+            {
+                foreach (var bot in sim.Robots.Where(r => r.Program == null || r.Program.IsEmpty).ToArray())
+                {
+                    var kind = DefenseProgression.ActionBlock(bot.Spec.NativeAction);
+                    var loop = new CodeBlock(BlockKind.While);
+                    if (PythonTreeCompiler.HasEnemyArgument(kind))
+                    {
+                        loop.Body.Add(new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)));
+                        loop.Body.Add(new CodeBlock(kind, "0", new CodeBlock(BlockKind.Variable, "enemy")));
+                    }
+                    else loop.Body.Add(new CodeBlock(kind));
+                    sim.ApplyProgram(bot.Id, "loop_" + bot.Id, new[] { loop });
+                }
+            }
+            finally { setup.TestOptions = options; }
         }
 
         static void FreePlayFive(DefenseBattle battle)

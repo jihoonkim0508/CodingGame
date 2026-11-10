@@ -1,5 +1,6 @@
-// Builds Stage 1 tutorial sequences from Docs/flow_stage1/tutorial_stage1_대본.md,
-// applies wave settings, and wires the sequences into Defense.unity.
+// Builds the tutorial sequences from Docs/flow_stage1/tutorial_stage1_대본.md, applies the campaign's waves and lessons,
+// and wires the sequences into Defense.unity. Stages (13차 179): 1-1 melee, 1-2 free, 1-3 loops, 1-4 free, 1-5 boss;
+// 2-1 variables and the shooter, 2-2 free, 2-3 conditions, 2-4 and 2-5 free, 2-6 boss; 3-1 the tank, 3-2 and 3-3 free, 3-4 boss.
 // Run from Tools/Develop after editing the script document; Defense.unity must be the open scene.
 using System;
 using System.Collections.Generic;
@@ -58,11 +59,11 @@ namespace CodingGame.Defense.Editor
         static readonly string Unit0 = TutorialKeys.Unit(0), Range0 = TutorialKeys.Range(0), Range1 = TutorialKeys.Range(1);
 
         // The function runs when called: battle start calls it once, the robot's Play button again (play feedback 4).
-        // 1-1: one swing a call; 1-3: the loop, while True, swings on and on from one call; 1-4: the shooter's loop. No for for
-        // the player (12차 121): every loop is while True.
+        // 1-1: one swing a call; 1-3: the loop, while True, swings on and on from one call (1-4 free play, the same with a third
+        // warrior); 3-1: the tank's loop. No for for the player (12차 121): every loop is while True.
         const string Code11 = "slash()";
         const string Code13 = "while True:\n    slash()";
-        const string Code14 = "while True:\n    attack(get_nearest_enemy())";
+        const string Code31 = "while True:\n    enemy = get_nearest_enemy()\n    block(enemy)";
         // 2-1: the found enemy kept in a variable; 2-3: the shooter waits until the enemy is within 3, where one shot fells it
         // (32 x 7/distance, at most 3x), instead of firing on entry at 7 and reloading 6 s while the enemy walks past.
         const string Code21 = "while True:\n    enemy = get_nearest_enemy()\n    attack(enemy)";
@@ -269,9 +270,20 @@ namespace CodingGame.Defense.Editor
 
         static List<S> OneFour() => new List<S> {
             L("1-4.A01", s => s.Cards = true), L("1-4.A02"), L("1-4.A03"), L("1-4.A04"),
-            L("1-4.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code14; s.Battle = true; }),
+            L("1-4.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code13; s.Battle = true; }),
             L("1-4.B02"), L("1-4.B03"),
             L("1-4.B04", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
+        };
+
+        // 3-1 (13차 179): 디버 brings the tank, the player picks it and stands it on the road; its code is the player's (the
+        // hint holds the loop with block(enemy)), then the battle.
+        static List<S> ThreeOne() => new List<S> {
+            L("3-1.A01", s => s.Cards = true), L("3-1.A02"), L("3-1.A03"),
+            L("3-1.B01", Click(TutorialKeys.RobotButton((int)RobotRole.Tank), s => s.Dim = true)),
+            L("3-1.B02", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => s.Dim = true, Focus(Route)))),
+            L("3-1.B03"), L("3-1.B04"),
+            L("3-1.E01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code31; s.Battle = true; }),
+            L("3-1.E02", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
         };
 
         static List<S> OneFive() => new List<S> {
@@ -283,7 +295,7 @@ namespace CodingGame.Defense.Editor
         // Script code names in the code colour (1-4 already has backticks).
         static readonly Regex CodeNames = new Regex(@"(?<![A-Za-z0-9_.`])(" + string.Join("|", new[] {
             "enemy.distance(get_my_pos())", ".distance(get_my_pos())", "enemy.distance()", "get_nearest_enemy()", "get_my_pos()", "my_attack_range()",
-            "enemy_distance", "while True", "slash()", "attack()", ".hp", "enemy", "while", "if", "<=" }.Select(Regex.Escape)) + @")(?![A-Za-z0-9_(`])");
+            "enemy_distance", "while True", "slash()", "block()", "attack()", ".hp", "enemy", "while", "if", "<=" }.Select(Regex.Escape)) + @")(?![A-Za-z0-9_(`])");
 
         static Dictionary<string, List<Line>> ParseScript(string path)
         {
@@ -338,7 +350,6 @@ namespace CodingGame.Defense.Editor
             var so = new SerializedObject(campaign);
             var lessons = so.FindProperty("progression.lessons");
             void Lesson(int wave, string topic, int warriors, params (BlockKind kind, int count)[] blocks) => StageLesson(1, wave, topic, RobotRole.Warrior, warriors, blocks);
-            void RoleLesson(int wave, string topic, RobotRole role, int robotCount, params (BlockKind kind, int count)[] blocks) => StageLesson(1, wave, topic, role, robotCount, blocks);
             void StageLesson(int stage, int wave, string topic, RobotRole role, int robotCount, params (BlockKind kind, int count)[] blocks)
             {
                 for (int i = 0; i < lessons.arraySize; i++)
@@ -358,10 +369,33 @@ namespace CodingGame.Defense.Editor
                     }
                     return;
                 }
-                throw new InvalidOperationException("lesson " + stage + "-" + wave + " not found");
+                // A wave without a lesson yet (2-6): a new entry, no rewards.
+                lessons.arraySize++;
+                var added = lessons.GetArrayElementAtIndex(lessons.arraySize - 1);
+                added.FindPropertyRelative("stage").intValue = stage; added.FindPropertyRelative("wave").intValue = wave;
+                added.FindPropertyRelative("rewards").arraySize = 0; added.FindPropertyRelative("goal").stringValue = "";
+                StageLesson(stage, wave, topic, role, robotCount, blocks);
             }
-            // Play feedback 4's order: 1-1 the swing and the Play button, 1-2 free, 1-3 the loop, 1-4 free with a shooter, 1-5
-            // the boss; variables open at 2-1 and conditions at 2-3.
+            void FreeLesson(int stage, int wave, string topic, string goal) { StageLesson(stage, wave, topic, RobotRole.Warrior, 0); Goal(stage, wave, goal); }
+            void Goal(int stage, int wave, string goal)
+            {
+                for (int i = 0; i < lessons.arraySize; i++)
+                {
+                    var lesson = lessons.GetArrayElementAtIndex(i);
+                    if (lesson.FindPropertyRelative("stage").intValue == stage && lesson.FindPropertyRelative("wave").intValue == wave)
+                        lesson.FindPropertyRelative("goal").stringValue = goal;
+                }
+            }
+            void DropLesson(int stage, int wave)
+            {
+                for (int i = lessons.arraySize - 1; i >= 0; i--)
+                {
+                    var lesson = lessons.GetArrayElementAtIndex(i);
+                    if (lesson.FindPropertyRelative("stage").intValue == stage && lesson.FindPropertyRelative("wave").intValue == wave) lessons.DeleteArrayElementAtIndex(i);
+                }
+            }
+            // 1-1 the swing and the Play button, 1-2 free, 1-3 the loop, 1-4 free with a third warrior, 1-5 the boss; the shooter
+            // and variables open at 2-1, conditions at 2-3, the tank at 3-1 (13차 179).
             Lesson(1, "베기와 실행 버튼", 1, (BlockKind.Slash, 1));
             Lesson(2, "베기 자유 플레이", 1, (BlockKind.Slash, 2));
             Lesson(3, "반복문", 0, (BlockKind.While, 2));
@@ -378,13 +412,55 @@ namespace CodingGame.Defense.Editor
                 so.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(campaign);
                 return "campaign: lessons 1-1 to 1-3 only";
             }
-            RoleLesson(4, "반복 자유 플레이(원거리)", RobotRole.Shooter, 1, (BlockKind.While, 1), (BlockKind.Shot, 1), (BlockKind.NearestEnemy, 1));
+            Lesson(4, "반복 자유 플레이", 1, (BlockKind.While, 1), (BlockKind.Slash, 1));
             Lesson(5, "반복 보스 실습", 0, (BlockKind.While, 1), (BlockKind.Slash, 1));
             // Stage 2: variables at 2-1 (two shooters), conditions at 2-3 (with the utility robot's slow() to use them on).
             StageLesson(2, 1, "변수: 찾은 적을 상자에 담기(원거리)", RobotRole.Shooter, 2, (BlockKind.While, 2), (BlockKind.Shot, 2),
                 (BlockKind.DeclareVariable, 2), (BlockKind.Variable, 2), (BlockKind.NearestEnemy, 2));
             StageLesson(2, 3, "조건문: 쏠 때 고르기", RobotRole.Utility, 1, (BlockKind.If, 2), (BlockKind.Comparison, 2), (BlockKind.Number, 2),
                 (BlockKind.MyPos, 2), (BlockKind.DeclareVariable, 2), (BlockKind.Variable, 3), (BlockKind.MyAttackRange, 1), (BlockKind.Slow, 1));
+            // Free waves bring nothing new: 2-1 and 2-3 already give two of each block their codes use.
+            FreeLesson(2, 2, "변수 자유 플레이", "찾은 적을 변수에 담아 두 원거리형으로 무리 막기");
+            FreeLesson(2, 4, "조건 자유 플레이", "적이 가까이 왔을 때 쏘는 조건문으로 무리 막기");
+            FreeLesson(2, 5, "자유 플레이", "변수와 조건문을 모두 써서 더 큰 무리 막기");
+            FreeLesson(2, 6, "보스", "보스 등장 · 작은 적을 모두 막고 보스를 쓰러뜨리기");
+            StageLesson(3, 1, "탱커형 소개", RobotRole.Tank, 1, (BlockKind.While, 1), (BlockKind.Block, 1));
+            Goal(3, 1, "탱커형으로 길을 막고 다른 로봇으로 공격하기");
+            FreeLesson(3, 2, "자유 플레이", "적이 두 번에 나눠 와요 · 탱커형과 함께 끝까지 막기");
+            FreeLesson(3, 3, "자유 플레이", "탱커병 뒤로 적이 줄지어 와요 · 길을 막고 한꺼번에 공격하기");
+            FreeLesson(3, 4, "보스", "마지막 보스 · 작은 적을 모두 막고 보스를 쓰러뜨리기");
+            DropLesson(3, 5);
+            // Stage 2 gains its boss wave (2-6); Stage 3 ends at its boss (3-4, the old last wave with a boss behind it).
+            var stages = so.FindProperty("stages");
+            EnemyDefinition Data(string name) => AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"Assets/!_Project/Defense/Data/{name}.asset") ??
+                throw new InvalidOperationException(name + " enemy asset not found");
+            void Groups(int stage, int wave, params (string enemy, int count, float delay, float interval, float health, float speed, int leak, bool boss)[] list)
+            {
+                var waveList = stages.GetArrayElementAtIndex(stage - 1).FindPropertyRelative("waves");
+                if (waveList.arraySize < wave) waveList.arraySize = wave;
+                var groups = waveList.GetArrayElementAtIndex(wave - 1).FindPropertyRelative("groups");
+                groups.arraySize = list.Length;
+                for (int i = 0; i < list.Length; i++)
+                {
+                    var g = groups.GetArrayElementAtIndex(i); var x = list[i];
+                    g.FindPropertyRelative("enemy").objectReferenceValue = Data(x.enemy);
+                    g.FindPropertyRelative("route").intValue = 0;
+                    g.FindPropertyRelative("count").intValue = x.count;
+                    g.FindPropertyRelative("delay").floatValue = x.delay;
+                    g.FindPropertyRelative("interval").floatValue = x.interval;
+                    g.FindPropertyRelative("healthOverride").floatValue = x.health;
+                    g.FindPropertyRelative("speedOverride").floatValue = x.speed;
+                    g.FindPropertyRelative("leakDamageOverride").intValue = x.leak;
+                    g.FindPropertyRelative("boss").boolValue = x.boss;
+                }
+            }
+            // A boss is a Heavy about four times as tough as the wave's own (base health before the stage's scaling), coming
+            // once every minion is down; reaching the core ends the stage, as 1-5's does.
+            Groups(2, 6, ("Enemy", 6, 0, 1.4f, 0, 0, 0, false), ("Runner", 4, 3, 1.4f, 0, 0, 0, false), ("Heavy", 1, 0, 2, 200, 1.3f, 12, true));
+            // No tank-bodied minions before the last boss: the boss comes only once they are all down, and with them it came
+            // after Stage 3's 50 s and walked in at the time-up (campaign run, 13차 179).
+            Groups(3, 4, ("Runner", 4, 0, 1.3f, 0, 0, 0, false), ("Enemy", 5, 4, 1.2f, 0, 0, 0, false), ("Heavy", 1, 0, 2, 130, 1.1f, 12, true));
+            stages.GetArrayElementAtIndex(2).FindPropertyRelative("waves").arraySize = 4;
             var waves = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves");
             var fourth = waves.GetArrayElementAtIndex(3).FindPropertyRelative("groups").GetArrayElementAtIndex(0);
             fourth.FindPropertyRelative("count").intValue = 6;
@@ -413,7 +489,7 @@ namespace CodingGame.Defense.Editor
             boss.FindPropertyRelative("boss").boolValue = true;
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(campaign);
-            return "campaign: lessons 1-1 to 1-5, 1-4 swarm, 1-5 basic-enemy boss";
+            return "campaign: lessons for 1-1 to 3-4, 1-4 swarm, bosses at 1-5, 2-6 and 3-4";
         }
 
         static void SetupIntroEncounter(SerializedObject so)
@@ -457,17 +533,16 @@ namespace CodingGame.Defense.Editor
             lines = ParseScript(Path.Combine(Directory.GetCurrentDirectory(), Script));
             log.AppendLine("lines " + lines.Count);
             var sequences = new[] { Write("1-1", 1, OneOne()), Write("1-2", 2, OneTwo()), Write("1-3", 3, OneThree()), Write("1-4", 4, OneFour()), Write("1-5", 5, OneFive()),
-                Write("2-1", 1, TwoOne(), 2), Write("2-3", 3, TwoThree(), 2) };
+                Write("2-1", 1, TwoOne(), 2), Write("2-3", 3, TwoThree(), 2), Write("3-1", 1, ThreeOne(), 3) };
             foreach (var s in sequences) log.AppendLine(s.sequenceId + ": " + s.steps.Length + " steps");
             log.AppendLine(Campaign());
             AssetDatabase.SaveAssets();
             var director = UnityEngine.Object.FindObjectsByType<TutorialDirector>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single();
             var so = new SerializedObject(director);
             var list = so.FindProperty("sequences");
-            // Later stages' intro sequences (Defense/Tutorial/Stages23 Intro_*) are not built from this script: keep them after the
-            // lessons, except where a lesson now covers that wave (2-1, 2-3).
-            var wired = sequences.Concat(director.Sequences.Where(s => s && s.stage != 1 && !sequences.Contains(s) &&
-                !sequences.Any(lesson => lesson.stage == s.stage && lesson.wave == s.wave))).ToArray();
+            // Only these: the old hand-made intros (Stages23 Intro_2-4 if/elif/else, Intro_3-1 for and boom(), Intro_3-4 while True)
+            // taught what the new layout no longer does there (13차 179).
+            var wired = sequences;
             list.arraySize = wired.Length;
             for (int i = 0; i < wired.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = wired[i];
             so.ApplyModifiedPropertiesWithoutUndo();

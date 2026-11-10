@@ -43,9 +43,11 @@ namespace CodingGame.Defense
                 blocks=l.blocks.Select(b=>new BlockStock {kind=b.kind,count=b.count}).ToArray(),
                 rewards=l.rewards.Select(b=>new BlockStock {kind=b.kind,count=b.count}).ToArray()}).ToArray()
         };
+        // The longest stage: Stage 2 has six waves (13차 179).
+        public const int MaxWaves = 6;
         public void Validate()
         {
-            if (lessons == null || lessons.Any(l => l == null || l.stage < 1 || l.stage > DefenseCurriculum.StageCount || l.wave < 1 || l.wave > 5 ||
+            if (lessons == null || lessons.Any(l => l == null || l.stage < 1 || l.stage > DefenseCurriculum.StageCount || l.wave < 1 || l.wave > MaxWaves ||
                 string.IsNullOrWhiteSpace(l.topic) || l.robots == null || l.blocks == null || l.rewards == null ||
                 l.robots.Any(r => r == null || !Enum.IsDefined(typeof(RobotRole), r.role) || r.count < 1) ||
                 l.blocks.Concat(l.rewards).Any(b => b == null || !Consumes(b.kind) || b.count < 1)) ||
