@@ -249,7 +249,8 @@ namespace CodingGame.Defense.Editor
         static void Program(DefenseSimulation sim, RobotState bot)
         {
             sim.ApplyProgram(bot.Id, "robot_" + bot.Id, Array.Empty<CodeBlock>());
-            CodeBlock command = new CodeBlock(DefenseProgression.ActionBlock(bot.Spec.NativeAction));
+            var kind = DefenseProgression.ActionBlock(bot.Spec.NativeAction);
+            CodeBlock command = PythonTreeCompiler.HasEnemyArgument(kind) ? new CodeBlock(kind, "0", new CodeBlock(BlockKind.NearestEnemy)) : new CodeBlock(kind);
             if (sim.Available(BlockKind.While, bot.Id) > 0)
             { var loop = new CodeBlock(BlockKind.While); loop.Body.Add(command); command = loop; } // no condition slot: while True
             else if (sim.Available(BlockKind.For, bot.Id) > 0 && sim.Available(BlockKind.Number, bot.Id) > 0)
