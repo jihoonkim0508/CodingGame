@@ -216,13 +216,13 @@ namespace CodingGame.Defense.Editor
                 if (key == "1/A01")
                 {
                     var groups = sim.UpcomingWave.ToArray();
-                    // Two basic enemies, the crowd that walks in while pace and pause are explained, and one strong enemy in
-                    // the tank's body (play feedback 4).
+                    // Two basic enemies, one more that walks in while pace and pause are explained (a crowd of four until 13차 175),
+                    // and one strong enemy in the tank's body (play feedback 4).
                     Require(groups.Length == 3 && groups[0].DefinitionIndex == groups[1].DefinitionIndex &&
-                        groups[0].Count == 2 && groups[1].Count == 4 && groups[2].Count == 1 &&
+                        groups[0].Count == 2 && groups[1].Count == 1 && groups[2].Count == 1 &&
                         groups[2].DefinitionIndex != groups[0].DefinitionIndex && groups[2].Enemy.type == EnemyType.Tank &&
                         groups[2].Enemy.health > groups[0].Enemy.health * 10,
-                        "1-1 must send two basic enemies, a crowd of four and one tank-bodied strong enemy");
+                        "1-1 must send two basic enemies, then one more, and one tank-bodied strong enemy");
                 }
                 if (key == "3/A01") { coreAtThirdWave = sim.BaseHealth; killsAtThirdWave = sim.Kills; leaksAtThirdWave = sim.Leaks; }
                 if (key == "5/A01") killsAtFifthWave = sim.Kills;
@@ -286,8 +286,8 @@ namespace CodingGame.Defense.Editor
             {
                 Log("CLEAR wave=" + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills +
                     " leaks=" + sim.Leaks + " survivors=" + sim.LastSurvivors + " timedOut=" + sim.LastWaveTimedOut);
-                // 1-1: the Play presses fell the basic enemies (one swing each); the tank-bodied one still gets through.
-                if (battle.Stage == 1 && sim.WaveIndex == 0) Require(sim.Kills >= 4 && sim.Leaks >= 1 && sim.BaseHealth >= 8,
+                // 1-1: the Play presses fell the three basic enemies (one swing each); the tank-bodied one still gets through.
+                if (battle.Stage == 1 && sim.WaveIndex == 0) Require(sim.Kills >= 3 && sim.Leaks >= 1 && sim.BaseHealth >= 8,
                     "1-1's Play lesson did not hold the road; core=" + sim.BaseHealth + " kills=" + sim.Kills + " leaks=" + sim.Leaks);
                 // 1-3: two warriors' ten-swing loops (and Play between calls) hold eight enemies.
                 if (battle.Stage == 1 && sim.WaveIndex == 2) Require(sim.Leaks - leaksAtThirdWave <= 1 && sim.Kills - killsAtThirdWave >= 7,
