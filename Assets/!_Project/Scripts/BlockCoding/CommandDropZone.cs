@@ -22,8 +22,10 @@ namespace CodingGame.BlockCoding
         readonly Dictionary<CommandBlockView, CommandBlockView> next = new Dictionary<CommandBlockView, CommandBlockView>();
         static readonly Vector2 FirstPosition = new Vector2(24, -24);
         const float SnapDistance = 30;
-        // elif/else rows tuck under the block above by this much.
-        const float BranchOverlap = 18;
+        static readonly Color EmptyHint = new Color(1f, .45f, .4f, .9f);
+        // A loop's or if's body keeps its lines this far in from the C's arm, header and foot (play feedback 3: with 4 px their
+        // outlines touched and the blocks read as overlapping). An empty body is one line high.
+        public static readonly Vector2 Inset = Vector2.zero;
         public bool FreePlacement => freePlacement;
         public RectTransform Rect => rect;
         public BlockSlotKind Slot => slot;
@@ -31,18 +33,28 @@ namespace CodingGame.BlockCoding
         public CommandBlockView ParentBlock { get; private set; }
         public IReadOnlyList<CommandBlockView> Blocks => blocks;
         public float minWidth => preferredWidth;
-        public float preferredWidth => Mathf.Max(minimumWidth, blocks.Count == 0 ? 0 : blocks.Max(b => b.preferredWidth + (freePlacement ? b.Rect.anchoredPosition.x : 0)) + 8);
+        public float preferredWidth
+        {
+            get
+            {
+                if (blocks.Count == 0) return slot == BlockSlotKind.Statement ? minimumWidth : EmptyWidth;
+                if (!freePlacement) return blocks.Max(block => block.preferredWidth);
+                return Mathf.Max(minimumWidth, blocks.Max(block => block.preferredWidth + block.Rect.anchoredPosition.x) + 8);
+            }
+        }
+        float EmptyWidth => Mathf.Max(40, hint ? hint.GetPreferredValues(hint.text).x + 20 : minimumWidth);
         public float flexibleWidth => 0;
         public float minHeight => preferredHeight;
         public float preferredHeight
         {
             get
             {
-                if (slot != BlockSlotKind.Statement) return minimumHeight;
+                if (slot != BlockSlotKind.Statement) return blocks.Count == 0 ? CommandBlockView.ExpressionHeight : blocks[0].preferredHeight;
                 if (freePlacement) return Mathf.Max(minimumHeight, blocks.Count == 0 ? 0 : blocks.Max(b => -b.Rect.anchoredPosition.y + b.preferredHeight) + 32);
-                float height = 8;
+                if (blocks.Count == 0) return minimumHeight;
+                float height = 0;
                 for (int i = 0; i < blocks.Count; i++) height += blocks[i].preferredHeight - (i > 0 ? Overlap(i) : 0);
-                return Mathf.Max(minimumHeight, height);
+                return height;
             }
         }
         public float flexibleHeight => 0;
@@ -50,7 +62,8 @@ namespace CodingGame.BlockCoding
         public void CalculateLayoutInputHorizontal() { }
         public void CalculateLayoutInputVertical() { }
         static bool IsBranch(CommandBlockView block) => PythonTreeCompiler.IsBranch(block.Kind);
-        float Overlap(int index) => slot == BlockSlotKind.Statement && IsBranch(blocks[index]) ? BranchOverlap : 0;
+        static float BranchOverlap(CommandBlockView before,CommandBlockView after)=>IsBranch(after)?before.FooterOverlap:0;
+        float Overlap(int index) => slot == BlockSlotKind.Statement ? BranchOverlap(blocks[index-1],blocks[index]) : 0;
         static Vector2 ClampToWorkspace(Vector2 p) => new Vector2(Mathf.Max(4, p.x), Mathf.Min(-4, p.y));
         // A palette source moves alone; a placed block brings its chain (and if/elif/else group).
         internal static List<CommandBlockView> Moving(CommandBlockView source) => source.IsPalette ? new List<CommandBlockView> { source } : source.Owner.Group(source);
@@ -71,6 +84,11 @@ namespace CodingGame.BlockCoding
             Panel = panel;
             panel.RegisterZone(this);
             ParentBlock = parent;
+            if (!freePlacement && slot != BlockSlotKind.Statement) hint.alignment = TextAlignmentOptions.Center;
+            // An if's body takes clicks: placed, it is selected (1-3 D01); in the palette, OnPointerClick hands the click to the block.
+            if (parent && parent.Body == this) background.raycastTarget = true;
+            // A placed block's empty value slot shows its hint as a warning, so "slash(enemy)" is not read as already connected.
+            if (parent && !parent.IsPalette && slot != BlockSlotKind.Statement) { hint.fontStyle = FontStyles.Italic; hint.color = EmptyHint; if (!hint.text.StartsWith("+ ")) hint.text = "+ " + hint.text; }
             foreach (var block in blocks) block.Bind(panel, this);
             Refresh();
         }
@@ -80,6 +98,8 @@ namespace CodingGame.BlockCoding
             var roots = Roots().ToList();
             if (roots.Count == 0) return new List<CodeBlock>();
             if (roots.Count != 1) throw new FormatException("미완성 · 모든 명령 블록을 하나의 흐름으로 연결해 주세요.");
+            // The program starts at the top-left anchor; a chain parked anywhere else does not run.
+            if (!AtStart(roots[0])) throw new FormatException("미완성 · 첫 블록을 왼쪽 위 시작 위치에 붙여 주세요.");
             return Group(roots[0]).Select(b => b.Read()).ToList();
         }
         internal void Load(IReadOnlyList<CodeBlock> source)
@@ -96,6 +116,17 @@ namespace CodingGame.BlockCoding
             Refresh(); SetLayoutHorizontal();
         }
         IEnumerable<CommandBlockView> Roots() => blocks.Where(b => !next.ContainsValue(b));
+        bool AtStart(CommandBlockView root) => root.Rect.anchoredPosition == FirstPosition;
+        // The chain that runs: the one snapped to the top-left start anchor (empty when none is there).
+        public List<CommandBlockView> StartChain()
+        {
+            var root = freePlacement ? Roots().FirstOrDefault(AtStart) : null;
+            return root ? Group(root) : new List<CommandBlockView>();
+        }
+        // Chains placed away from the start anchor; they do not run.
+        public IEnumerable<CommandBlockView> LooseRoots() => freePlacement ? Roots().Where(root => !AtStart(root)) : Enumerable.Empty<CommandBlockView>();
+        // Local rect (in Rect space) where the first block snaps, sized like one statement row.
+        public Rect StartArea => new Rect(rect.rect.xMin + FirstPosition.x, rect.rect.yMax + FirstPosition.y - 40, 180, 40);
         internal void BringToFront(CommandBlockView block)
         {
             if (!freePlacement) return;
@@ -207,6 +238,8 @@ namespace CodingGame.BlockCoding
         public void Detach(CommandBlockView block, bool reconnect = false)
         {
             next.TryGetValue(block, out var following);
+            // Deleting a chain's first block keeps the rest on that start line.
+            if (reconnect && following && !next.ContainsValue(block)) following.Rect.anchoredPosition = block.Rect.anchoredPosition;
             foreach (var previous in next.Where(pair => pair.Value == block).Select(pair => pair.Key).ToArray())
                 if (reconnect && following) next[previous] = following; else next.Remove(previous);
             next.Remove(block);
@@ -227,7 +260,11 @@ namespace CodingGame.BlockCoding
             CommandBlockView.Place(first.Rect, position.x, -position.y, first.preferredWidth, first.preferredHeight);
 
             FindSnap(placed, position, out var attachAfter, out var attachBefore);
-            if (attachAfter) next[attachAfter] = first;
+            if (attachAfter)
+            {
+                if (next.TryGetValue(attachAfter, out var following) && !placed.Contains(following)) next[last] = following;
+                next[attachAfter] = first;
+            }
             else if (attachBefore)
             {
                 // Insert at the visible first row and move its chain down instead of clipping above the workspace.
@@ -242,7 +279,14 @@ namespace CodingGame.BlockCoding
         }
         bool SnapsToFirstPosition(List<CommandBlockView> moved, Vector2 position) =>
             moved.All(block => PythonTreeCompiler.OutputSlot(block.Kind) == BlockSlotKind.Statement) &&
-            !blocks.Any(block => !moved.Contains(block)) && Vector2.Distance(position, FirstPosition) < SnapDistance;
+            !blocks.Any(block => !moved.Contains(block)) && Gap(position, FirstPosition, moved[0].preferredWidth) < SnapDistance;
+        // Distance from a dropped block's top-left to a snap edge; anywhere along the edge's row (left edge to
+        // the right end of the row) counts as on it, so a block let go to the right of the slot still snaps.
+        static float Gap(Vector2 position, Vector2 edge, float width)
+        {
+            float dx = position.x < edge.x ? edge.x - position.x : Mathf.Max(0, position.x - (edge.x + width));
+            return new Vector2(dx, position.y - edge.y).magnitude;
+        }
 
         void FindSnap(List<CommandBlockView> placed, Vector2 position, out CommandBlockView attachAfter, out CommandBlockView attachBefore)
         {
@@ -252,19 +296,23 @@ namespace CodingGame.BlockCoding
             if (placed.All(b => PythonTreeCompiler.OutputSlot(b.Kind) == BlockSlotKind.Statement))
                 foreach (var target in blocks.Where(b => !placed.Contains(b) && PythonTreeCompiler.OutputSlot(b.Kind) == BlockSlotKind.Statement))
                 {
-                    if (!next.TryGetValue(target, out var following) || placed.Contains(following))
+                    // Under target, also between target and the line that follows it (1-4 C04 adds attack_range above the if).
                     {
                         var root = Roots().First(r => Group(r).Contains(target));
-                        var chain = Group(root).Where(b => !placed.Contains(b)).Concat(placed).ToList();
-                        var edge = target.Rect.anchoredPosition + new Vector2(0, -target.preferredHeight + (IsBranch(first) ? BranchOverlap : 0));
-                        float distance = Vector2.Distance(position, edge);
+                        var rest = Group(root).Where(b => !placed.Contains(b)).ToList();
+                        int at = rest.IndexOf(target) + 1;
+                        var chain = rest.Take(at).Concat(placed).Concat(rest.Skip(at)).ToList();
+                        var edge = target.Rect.anchoredPosition + new Vector2(0, -target.preferredHeight + BranchOverlap(target,first));
+                        float distance = Gap(position, edge, Mathf.Max(target.preferredWidth, first.preferredWidth));
                         if (distance < nearest && ValidChain(chain)) { nearest = distance; attachAfter = target; attachBefore = null; }
                     }
                     if (!next.Any(pair => pair.Value == target && !placed.Contains(pair.Key)))
                     {
-                        float height = placed.Sum(b => b.preferredHeight) - placed.Skip(1).Count(IsBranch) * BranchOverlap;
-                        var edge = position + new Vector2(0, -height + (IsBranch(target) ? BranchOverlap : 0));
-                        float distance = Mathf.Min(Vector2.Distance(edge, target.Rect.anchoredPosition), Vector2.Distance(position, target.Rect.anchoredPosition));
+                        float height = placed.Sum(b => b.preferredHeight);
+                        for(int i=1;i<placed.Count;i++)height-=BranchOverlap(placed[i-1],placed[i]);
+                        var edge = position + new Vector2(0, -height + BranchOverlap(placed.Last(),target));
+                        float width = Mathf.Max(target.preferredWidth, first.preferredWidth);
+                        float distance = Mathf.Min(Gap(edge, target.Rect.anchoredPosition, width), Gap(position, target.Rect.anchoredPosition, width));
                         if (distance < nearest && ValidChain(placed.Concat(Group(target)).ToList())) { nearest = distance; attachBefore = target; attachAfter = null; }
                     }
                 }
@@ -279,15 +327,16 @@ namespace CodingGame.BlockCoding
             {
                 var position = ClampToWorkspace(Panel.DropPosition(e));
                 // Share the drop rule: the first-line anchor is a snap target only nearby.
+                // The empty start shows the block's own outline where it lands; a join between lines is a bar.
                 if (SnapsToFirstPosition(moved, position))
                 {
-                    preview = new Rect(FirstPosition.x, FirstPosition.y + 3, source.preferredWidth, 6);
+                    preview = new Rect(FirstPosition.x, FirstPosition.y, source.preferredWidth, source.preferredHeight);
                     return true;
                 }
                 FindSnap(moved, position, out var after, out var before);
                 var target = after ? after : before;
                 if (!target) return false;
-                var edge = target.Rect.anchoredPosition + (after ? new Vector2(0, -target.preferredHeight + (IsBranch(source) ? BranchOverlap : 0)) : Vector2.zero);
+                var edge = target.Rect.anchoredPosition + (after ? new Vector2(0, -target.preferredHeight + BranchOverlap(target,source)) : Vector2.zero);
                 preview = new Rect(edge.x, edge.y + 3, Mathf.Max(target.preferredWidth, source.preferredWidth), 6);
                 return true;
             }
@@ -298,8 +347,9 @@ namespace CodingGame.BlockCoding
             }
             int index = PointerIndex(e);
             if (!FitsStatements(source, moved, index, out _)) return false;
-            float y = index < blocks.Count ? blocks[index].Rect.anchoredPosition.y : blocks.Count == 0 ? -4 : blocks.Last().Rect.anchoredPosition.y - blocks.Last().preferredHeight;
-            preview = new Rect(4, y + 3, Mathf.Max(source.preferredWidth, rect.rect.width - 8), 6); return true;
+            if (blocks.Count == 0) { preview = new Rect(0, 0, source.preferredWidth, source.preferredHeight); return true; }
+            float y = index < blocks.Count ? blocks[index].Rect.anchoredPosition.y : blocks.Last().Rect.anchoredPosition.y - blocks.Last().preferredHeight;
+            preview = new Rect(0, y + 4, Mathf.Max(source.preferredWidth, rect.rect.width), 8); return true;
         }
         int PointerIndex(PointerEventData e)
         {
@@ -325,6 +375,8 @@ namespace CodingGame.BlockCoding
         public void Refresh()
         {
             if (hint) hint.gameObject.SetActive(blocks.Count == 0);
+            // A filled hole is the block in it: the hole's own outline round it read as a double border.
+            if (slot != BlockSlotKind.Statement && background) background.enabled = blocks.Count == 0;
             for (int i = 0; i < blocks.Count; i++) blocks[i].JoinNext(freePlacement ?
                 next.TryGetValue(blocks[i], out var following) && IsBranch(following) : i + 1 < blocks.Count && IsBranch(blocks[i + 1]));
             LayoutRebuilder.MarkLayoutForRebuild(rect);
@@ -340,19 +392,19 @@ namespace CodingGame.BlockCoding
                     for (int i = 0; i < chain.Count; i++)
                     {
                         var block = chain[i];
-                        if (i > 0 && IsBranch(block)) position.y += BranchOverlap;
+                        if (i > 0) position.y += BranchOverlap(chain[i-1],block);
                         CommandBlockView.Place(block.Rect, position.x, -position.y, BranchWidth(chain, i), block.preferredHeight);
                         position.y -= block.preferredHeight;
                     }
                 }
                 return;
             }
-            float y = slot == BlockSlotKind.Statement ? 4 : 0;
+            float y = 0;
             for (int i = 0; i < blocks.Count; i++)
             {
                 if (i > 0) y -= Overlap(i);
                 var block = blocks[i];
-                CommandBlockView.Place(block.Rect, 4, y, BranchWidth(blocks, i), slot == BlockSlotKind.Statement ? block.preferredHeight : minimumHeight);
+                CommandBlockView.Place(block.Rect, 0, y, BranchWidth(blocks, i), block.preferredHeight);
                 y += block.preferredHeight;
             }
         }
@@ -375,6 +427,8 @@ namespace CodingGame.BlockCoding
         {
             if (Panel && e.button == PointerEventData.InputButton.Right && ParentBlock && !ParentBlock.IsPalette) Panel.DeleteOne(ParentBlock);
             else if (Panel && !(ParentBlock && ParentBlock.IsPalette)) Panel.Select(this);
+            // A slot drawn inside a palette block is part of that block: clicking it adds the block, like clicking its name.
+            else if (ParentBlock && ParentBlock.IsPalette) { ParentBlock.OnPointerClick(e); return; }
             e.Use();
         }
     }

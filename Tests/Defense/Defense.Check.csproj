@@ -12,13 +12,25 @@
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseCurriculum.cs" />
     <Compile Include="ProgramCheck.cs" />
     <Compile Include="CampaignCheck.cs" />
-    <Compile Include="StageOneCheck.cs" />
-    <Compile Include="../../Assets/!_Project/Scripts/Defense/Tutorial/StageOneCode.cs" />
+    <Compile Include="DebriefCheck.cs" />
+    <Compile Include="RetryCheck.cs" />
+    <Compile Include="GuideMoodCheck.cs" />
+    <Compile Include="GuideSpeechCheck.cs" />
+    <Compile Include="MeleeCheck.cs" />
+    <Compile Include="WhileTrueCheck.cs" />
+    <Compile Include="AllocCheck.cs" />
+    <Compile Include="PlacementCheck.cs" />
+    <Compile Include="../../Assets/!_Project/Scripts/Defense/Tutorial/GuideSpeech.cs" />
+    <Compile Include="../../Assets/!_Project/Scripts/Defense/Tutorial/GuideMood.cs" />
+    <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseDebrief.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseProgression.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseModels.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseEditorSettings.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseSimulation.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseProgram.cs" />
+    <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseHealthTrail.cs" />
+    <Compile Include="../../Assets/!_Project/Scripts/Defense/Tutorial/TutorialSignals.cs" />
+    <Compile Include="../../Assets/!_Project/Scripts/Defense/Tutorial/TutorialWatcher.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/BlockCoding/BlockProgram.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/BlockCoding/PythonTreeCompiler.cs" />
   </ItemGroup>

@@ -242,6 +242,14 @@ namespace CodingGame.Art.MapPainter.Editor
         private void DrawMapSize()
         {
             EditorGUI.BeginChangeCheck();
+            float roadWidth=Mathf.Clamp(EditorGUILayout.DelayedFloatField(new GUIContent("길 폭 배율 (간격 유지)","1~1.75. 값을 입력하고 Enter를 누르면 연결 메시를 갱신합니다."),map.roadWidthScale),1,1.75f);
+            if(EditorGUI.EndChangeCheck())RunAction("Change road width",()=>
+            {
+                Undo.RecordObject(map,"Change road width"); map.roadWidthScale=roadWidth;
+                WideRoadAssets.Apply(map); map.ApplyFloorColors(); EditorSceneManager.MarkSceneDirty(map.gameObject.scene);
+            });
+            EditorGUILayout.HelpBox("길 폭만 변경합니다. 바닥·칸 간격·이동 중심선·소품 위치는 유지됩니다. 1배는 원본 모델, 1배 초과는 연결부를 합친 확장 메시를 사용합니다.",MessageType.None);
+            EditorGUI.BeginChangeCheck();
             int size=EditorGUILayout.IntSlider("한 칸 크기",map.cellSize,1,8);
             float height=EditorGUILayout.Slider("바닥 두께",map.floorHeight,.1f,3);
             if(EditorGUI.EndChangeCheck())RunAction("Resize map",()=>

@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 8b44f5a9ba9336d43b8ddfaa0160d75a
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 316110
+  packageName: Sword Slash-Stylized vfx
+  packageVersion: 1.0
+  assetPath: Assets/SwordSlashVFxPack/Scripts/TestEffects.cs
+  uploadId: 746030

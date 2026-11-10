@@ -1,0 +1,7 @@
+ArtTestScene live capture.
+Camera: Main Camera; active=True; viewport=(x:0.00, y:0.16, width:1.00, height:0.76)
+Props: 27; material references and shader compilation: PASS
+Blueprint and camera Solid Color: #182F42
+Saved map: Assets/!_Project/Resources/ArtPrefabs/Stage01_Workshop.prefab
+Scene dirty: True
+RESULT: PASS

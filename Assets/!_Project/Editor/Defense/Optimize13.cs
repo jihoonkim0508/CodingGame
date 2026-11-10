@@ -1,0 +1,513 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using CodingGame.TitleScreen;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
+using UnityEngine.SceneManagement;
+using Object = UnityEngine.Object;
+
+namespace CodingGame.Defense.Editor
+{
+    // 13차 optimizations (Docs/MDA_고도화.md 124~141), one commit each. Each Apply bakes its change into scenes, prefabs or
+    // import settings ahead of time (what the Inspector would do); Verify checks every item applied so far.
+    //   Unity.exe -batchmode -projectPath . -executeMethod CodingGame.Defense.Editor.Optimize13.Verify   (exits 0 or 1)
+    public static class Optimize13
+    {
+        const string TitleScene = "Assets/!_Project/Scenes/Title.unity", Log = "TestResults/Editor/optimize.log";
+
+        // Opens a scene beside whatever is open (the user's scene stays as it is), edits it, saves it and closes it again.
+        static void EditScene(string path, Action<Scene> edit)
+        {
+            var scene = SceneManager.GetSceneByPath(path);
+            bool opened = !scene.isLoaded;
+            if (opened) scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Additive);
+            else if (scene.isDirty) throw new InvalidOperationException(path + " has unsaved changes; save or revert them first.");
+            try { edit(scene); EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene); }
+            finally { if (opened) EditorSceneManager.CloseScene(scene, true); }
+        }
+        static IEnumerable<T> All<T>(Scene scene) where T : Component =>
+            scene.GetRootGameObjects().SelectMany(root => root.GetComponentsInChildren<T>(true));
+
+        // 124: the title's embers re-mesh every frame; on their own canvas only they rebuild, not the whole title canvas.
+        // The title draws no meshes, so its camera needs no depth or colour copy and no shadows.
+        [MenuItem("Tools/Optimize/124 Title")]
+        public static void Title124() => EditScene(TitleScene, scene =>
+        {
+            foreach (var embers in All<TitleAtmosphere>(scene))
+                if (!embers.GetComponent<Canvas>()) embers.gameObject.AddComponent<Canvas>();
+            foreach (var camera in All<Camera>(scene)) Lean(camera);
+        });
+
+        // 125: the stage map's UI (island cards, locks, seals, the "여기야!" pointer, the DEV line and 디버's box) saved in
+        // Stage.unity instead of built at load; the islands are the active renderers named "Stage", left to right, as at run time.
+        const string StageScene = "Assets/!_Project/Scenes/Stage.unity";
+        [MenuItem("Tools/Optimize/125 Stage Map")]
+        public static void StageMap125() => EditScene(StageScene, scene =>
+        {
+            foreach (var old in All<StageMap.StageMapHUD>(scene).ToArray()) Object.DestroyImmediate(old.gameObject);
+            var islands = All<Renderer>(scene).Where(r => r.gameObject.name == "Stage" && r.gameObject.activeInHierarchy).OrderBy(r => r.transform.position.x)
+                .Select((r, i) => (i + 1, r.GetComponent<Art.StageSelection.StageIslandView>() is var view && view ? view.stageTitle : $"스테이지 {i + 1}")).ToArray();
+            if (islands.Length == 0) throw new InvalidOperationException("Stage.unity has no renderer named Stage");
+            var host = new GameObject("StageMapUI");
+            SceneManager.MoveGameObjectToScene(host, scene);
+            var hud = host.AddComponent<StageMap.StageMapHUD>();
+            hud.Build(islands);
+            // 디버's box as a link to its prefab, not a copy.
+            var so = new SerializedObject(hud);
+            var copy = (GameObject)so.FindProperty("guideDialogue").objectReferenceValue;
+            if (copy) Object.DestroyImmediate(copy);
+            var guide = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/!_Project/Resources/UI/GuideDialogue.prefab"), host.transform);
+            guide.name = "GuideDialogue";
+            so.FindProperty("guideDialogue").objectReferenceValue = guide;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        });
+
+        // 126: the battle turned about 195 body texts into Pretendard Bold when it started (UITheme.BoldBody over the scene);
+        // the scene now saves them that way and the battle no longer re-meshes them at load.
+        const string DefenseScene = "Assets/!_Project/Scenes/Defense.unity";
+        [MenuItem("Tools/Optimize/126 Battle Body Font")]
+        public static void BodyFont126() => EditScene(DefenseScene, scene =>
+        {
+            foreach (var text in ToBold(scene))
+            {
+                text.font = UITheme.Bold; text.fontStyle &= ~TMPro.FontStyles.Bold;
+                EditorUtility.SetDirty(text);
+                if (PrefabUtility.IsPartOfPrefabInstance(text)) PrefabUtility.RecordPrefabInstancePropertyModifications(text);
+            }
+        });
+        // The texts UITheme.BoldBody would change.
+        static TMPro.TMP_Text[] ToBold(Scene scene) => All<TMPro.TMP_Text>(scene).Where(text => text.font && text.font != UITheme.Bold &&
+            text.font != UITheme.Display && text.font != UITheme.Lines && text.fontSharedMaterial == text.font.material).ToArray();
+
+        // 132: the goal banner bobs every frame (DefensePlayerHUD.AnimateGoal); on its own canvas only it is rebuilt.
+        [MenuItem("Tools/Optimize/132 HUD Canvases")]
+        public static void HudCanvases132() => EditScene(DefenseScene, scene =>
+        {
+            var goal = GoalBanner(scene);
+            if (!goal.GetComponent<Canvas>()) goal.gameObject.AddComponent<Canvas>();
+        });
+        static Transform GoalBanner(Scene scene)
+        {
+            var hud = All<DefensePlayerHUD>(scene).First();
+            return ((Component)new SerializedObject(hud).FindProperty("guide").objectReferenceValue).transform.parent;
+        }
+
+        // 127/128: what the battle built or restyled when it started (UIRuntimeDiff: the core bar, the status line, next-wave label,
+        // goal banner and robot photos, the dock's layout, the code editor's top row, the preview frame, the tutorial pointer)
+        // is built here once and saved with the scene; at run time those components skip it.
+        [MenuItem("Tools/Optimize/128 Bake Battle UI")]
+        public static void BattleUI128() => EditScene(DefenseScene, scene =>
+        {
+            // The core bar is PR #21's graphic, drawn by itself; it is placed over the scene's core for the scene's camera.
+            var lens = Camera.main.GetComponent<DefenseCameraLensOffset>();
+            if (lens) lens.Apply();
+            var core = All<Transform>(scene).First(t => t.name == "CodeBase" && t.parent && t.parent.name == "Stage01_Workshop_Art");
+            foreach (var bar in All<DefenseCoreHealthBar>(scene)) bar.Place(Camera.main, core);
+            Camera.main.ResetProjectionMatrix();
+            var battle = All<DefenseBattle>(scene).First();
+            foreach (var hud in All<DefensePlayerHUD>(scene)) hud.Bake(battle.EditorCampaign.robots);
+            // What the HUD built the first time it needed it (the wave call, combat numbers, the leak glow, Play buttons and tags,
+            // the result banner and stars, 디버's corner, debrief cards, the Esc menu, the stage-restart button).
+            var glow = SaveSprite("LeakEdgeGlow", DefensePlayerHUD.EdgeGlowTexture());
+            var triangle = SaveSprite("PlayTriangle", DefensePlayerHUD.PlayTriangleTexture());
+            // 디버's art (the old square-head faces are gone).
+            var guide = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/!_Project/UI/Learning/GuideRobot.png");
+            var guideSurprised = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/!_Project/UI/Learning/GuideRobotSurprised.png");
+            foreach (var hud in All<DefensePlayerHUD>(scene)) { hud.BakeParts(glow, triangle, guide, guideSurprised); EditorUtility.SetDirty(hud); }
+            // 127: the system alarm (1-1's boot alert) and the boss warning, with their textures and the alarm's letter
+            // material as assets.
+            var alarmGlow = AlarmGlow();
+            var circle = SaveSprite("AlertCircle", TutorialSystemAlert.CircleTexture());
+            var sign = SaveSprite("AlertTriangle", TutorialSystemAlert.TriangleTexture());
+            var vignette = SaveSprite("AlertVignette", TutorialSystemAlert.VignetteTexture());
+            foreach (var alert in All<TutorialSystemAlert>(scene)) { alert.Bake(circle, sign, vignette, alarmGlow); EditorUtility.SetDirty(alert); }
+            var warning = All<DefenseBossWarning>(scene).FirstOrDefault();
+            if (!warning)
+            {
+                warning = new GameObject("BossWarning").AddComponent<DefenseBossWarning>();
+                SceneManager.MoveGameObjectToScene(warning.gameObject, scene);
+            }
+            warning.Bake(SaveTexture("BossHazard", DefenseBossWarning.HazardTexture()), guideSurprised);
+            EditorUtility.SetDirty(warning);
+            Wire(battle, "bossWarning", warning);
+            foreach (var dock in All<DefensePlacementDock>(scene)) dock.Layout();
+            foreach (var editor in All<DefenseCodeEditor>(scene)) editor.Bake();
+            foreach (var preview in All<DefenseAttackPreview>(scene)) preview.Bake();
+            foreach (var pointer in All<TutorialPointer>(scene)) pointer.Bake();
+            // Changes on prefab instances (the code editor, the tutorial overlay) are kept as overrides.
+            foreach (var component in All<Component>(scene).Where(c => c && PrefabUtility.IsPartOfPrefabInstance(c)))
+                PrefabUtility.RecordPrefabInstancePropertyModifications(component);
+        });
+
+        // Robot and enemy health bars as pooled UI (DefenseHealthBars) instead of three cubes per actor: the actors' prefabs keep
+        // only the bar's anchor; the battle's layer (under the HUD) and the code preview's (over its picture) are baked with
+        // their bars. Rerunnable.
+        [MenuItem("Tools/Optimize/Unit Health Bars")]
+        public static void HealthBars()
+        {
+            foreach (var path in AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/!_Project/Defense/Prefabs" }).Select(AssetDatabase.GUIDToAssetPath))
+            {
+                if (!AssetDatabase.LoadAssetAtPath<GameObject>(path).GetComponent<DefenseActorView>()) continue;
+                var root = PrefabUtility.LoadPrefabContents(path);
+                try
+                {
+                    var anchor = (Transform)new SerializedObject(root.GetComponent<DefenseActorView>()).FindProperty("healthRoot").objectReferenceValue;
+                    for (int i = anchor.childCount - 1; i >= 0; i--) Object.DestroyImmediate(anchor.GetChild(i).gameObject);
+                    PrefabUtility.SaveAsPrefabAsset(root, path);
+                }
+                finally { PrefabUtility.UnloadPrefabContents(root); }
+            }
+            EditScene(DefenseScene, scene =>
+            {
+                var hud = All<Canvas>(scene).First(c => c.name == "PlayerCanvas").transform;
+                var battleBars = BarLayer(hud, 32); battleBars.transform.SetAsFirstSibling();
+                Wire(All<DefenseBattle>(scene).First(), "healthBars", battleBars);
+                var preview = All<DefenseAttackPreview>(scene).First();
+                var picture = ((Component)new SerializedObject(preview).FindProperty("previewImage").objectReferenceValue).transform;
+                var previewBars = BarLayer(picture, 6); previewBars.transform.SetAsLastSibling();
+                Wire(preview, "healthBars", previewBars);
+                foreach (var component in All<Component>(scene).Where(c => c && PrefabUtility.IsPartOfPrefabInstance(c)))
+                    PrefabUtility.RecordPrefabInstancePropertyModifications(component);
+            });
+        }
+        static DefenseHealthBars BarLayer(Transform parent, int count)
+        {
+            var old = parent.Find("Health bars"); if (old) Object.DestroyImmediate(old.gameObject);
+            var layer = new GameObject("Health bars", typeof(RectTransform), typeof(Canvas), typeof(DefenseHealthBars)).GetComponent<RectTransform>();
+            layer.SetParent(parent, false); layer.anchorMin = Vector2.zero; layer.anchorMax = Vector2.one; layer.sizeDelta = Vector2.zero;
+            var made = new List<RectTransform>();
+            for (int i = 0; i < count; i++) made.Add(HealthBar(layer));
+            var bars = layer.GetComponent<DefenseHealthBars>(); bars.SetBars(made); EditorUtility.SetDirty(bars);
+            return bars;
+        }
+        // The cubes' colours: a dark track, the teal fill and the pale part lost to the last hit.
+        static readonly Color BarTrack = new Color32(0x1B, 0x34, 0x45, 255), BarFill = new Color32(0x64, 0xE6, 0xDA, 255), BarLag = new Color(1, .93f, .8f);
+        static RectTransform HealthBar(Transform layer)
+        {
+            var bar = new GameObject("Bar", typeof(RectTransform)).GetComponent<RectTransform>();
+            bar.SetParent(layer, false); bar.anchorMin = bar.anchorMax = Vector2.zero; bar.pivot = new Vector2(.5f, 0); bar.sizeDelta = new Vector2(64, 8);
+            RectTransform Part(string name, Transform parent, Color color)
+            {
+                var image = new GameObject(name, typeof(RectTransform), typeof(UnityEngine.UI.Image)).GetComponent<UnityEngine.UI.Image>();
+                var rect = image.rectTransform; rect.SetParent(parent, false); rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.sizeDelta = Vector2.zero;
+                image.sprite = UITheme.Pill; image.type = UnityEngine.UI.Image.Type.Sliced; image.pixelsPerUnitMultiplier = 8;
+                image.color = color; image.raycastTarget = false;
+                return rect;
+            }
+            Part("Track", bar, BarTrack);
+            var well = new GameObject("Well", typeof(RectTransform)).GetComponent<RectTransform>();
+            well.SetParent(bar, false); well.anchorMin = Vector2.zero; well.anchorMax = Vector2.one; well.offsetMin = new Vector2(1.5f, 1.5f); well.offsetMax = new Vector2(-1.5f, -1.5f);
+            Part("Trail", well, BarLag); Part("Fill", well, BarFill);
+            bar.gameObject.SetActive(false);
+            return bar;
+        }
+        static void Wire(Object target, string field, Object value)
+        {
+            var so = new SerializedObject(target); so.FindProperty(field).objectReferenceValue = value; so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // The stage map's lock barriers and purification fields (meshes and materials made per island at load) saved in
+        // Stage.unity with their meshes and materials in one asset; the boss's violet aura (motes, light, halo) as a prefab
+        // copied onto the boss. Rerunnable.
+        const string StageEffects = "Assets/!_Project/Resources/ArtScripts/StageSelection/StageEffects.asset", BossAura = "Assets/!_Project/Resources/Effects/BossAura.prefab";
+        [MenuItem("Tools/Optimize/Stage Visuals")]
+        public static void StageVisuals()
+        {
+            EditScene(StageScene, scene =>
+            {
+                var islands = All<Renderer>(scene).Where(r => r.gameObject.activeInHierarchy && r.gameObject.name == "Stage").OrderBy(r => r.transform.position.x).ToArray();
+                foreach (var island in islands)
+                {
+                    foreach (var old in island.GetComponentsInChildren<CodingGame.StageMap.StageLockVisual>(true)) Object.DestroyImmediate(old.gameObject);
+                    foreach (var old in island.GetComponentsInChildren<CodingGame.StageMap.StagePurificationVisual>(true)) Object.DestroyImmediate(old.gameObject);
+                }
+                AssetDatabase.DeleteAsset(StageEffects);
+                var palette = Resources.Load<CodingGame.StageMap.StageMaterialPalette>("StageMaterialPalette");
+                Object container = null;
+                void Keep(Object made, string name)
+                {
+                    made.name = name;
+                    if (!container) { AssetDatabase.CreateAsset(made, StageEffects); container = made; }
+                    else AssetDatabase.AddObjectToAsset(made, container);
+                }
+                for (int i = 0; i < islands.Length; i++)
+                {
+                    var node = NodeOf(islands[i]);
+                    node.Configure(i + 1, palette);
+                    var barrier = node.GetComponentInChildren<CodingGame.StageMap.StageLockVisual>(true);
+                    var field = node.GetComponentInChildren<CodingGame.StageMap.StagePurificationVisual>(true);
+                    var b = new SerializedObject(barrier); var f = new SerializedObject(field);
+                    Keep(b.FindProperty("wallMesh").objectReferenceValue, $"Stage {i + 1} lock wall");
+                    Keep(b.FindProperty("barrierMaterial").objectReferenceValue, $"Stage {i + 1} lock hologram");
+                    Keep(b.FindProperty("lineMaterial").objectReferenceValue, $"Stage {i + 1} lock outline");
+                    Keep(f.FindProperty("field").objectReferenceValue, $"Stage {i + 1} purified field");
+                    Keep(f.FindProperty("material").objectReferenceValue, $"Stage {i + 1} purified mint");
+                    barrier.MarkBaked(); field.MarkBaked();
+                    EditorUtility.SetDirty(barrier); EditorUtility.SetDirty(field);
+                }
+                static CodingGame.StageMap.StageNode NodeOf(Renderer r) => r.GetComponent<CodingGame.StageMap.StageNode>() ?? r.gameObject.AddComponent<CodingGame.StageMap.StageNode>();
+                AssetDatabase.SaveAssets();
+            });
+            if (!AssetDatabase.IsValidFolder("Assets/!_Project/Resources/Effects")) AssetDatabase.CreateFolder("Assets/!_Project/Resources", "Effects");
+            var root = new GameObject("BossAura");
+            try
+            {
+                DefenseBossAura.Build(root.transform, out _, out var halo, out var haloMaterial);
+                const string haloPath = "Assets/!_Project/Resources/Effects/BossAuraHalo.mat";
+                AssetDatabase.DeleteAsset(haloPath); AssetDatabase.CreateAsset(haloMaterial, haloPath);
+                halo.sharedMaterial = haloMaterial;
+                PrefabUtility.SaveAsPrefabAsset(root, BossAura);
+            }
+            finally { Object.DestroyImmediate(root); }
+            Debug.Log("[Optimize13] stage visuals and boss aura saved");
+        }
+
+        // The alarm banner's letters: the heading font's material with a red glow, outline and drop.
+        static Material AlarmGlow()
+        {
+            const string path = "Assets/!_Project/Resources/UI/AlarmGlow.mat";
+            var glow = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (!glow) { glow = new Material(UITheme.Display.material); AssetDatabase.CreateAsset(glow, path); }
+            TutorialSystemAlert.Glow(glow); EditorUtility.SetDirty(glow);
+            return glow;
+        }
+        // A tiling texture (the boss warning's hazard stripes scroll over it), saved once in Resources/LearningSkins.
+        static Texture2D SaveTexture(string name, Texture2D texture)
+        {
+            string path = "Assets/!_Project/Resources/LearningSkins/" + name + ".png";
+            File.WriteAllBytes(path, texture.EncodeToPNG());
+            AssetDatabase.ImportAsset(path);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.textureType = TextureImporterType.Default; importer.mipmapEnabled = false; importer.wrapMode = TextureWrapMode.Repeat;
+            importer.filterMode = FilterMode.Bilinear; importer.textureCompression = TextureImporterCompression.Uncompressed; importer.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+        // A texture the game used to draw at load, saved once as a sprite in Resources/LearningSkins.
+        static Sprite SaveSprite(string name, Texture2D texture)
+        {
+            string path = "Assets/!_Project/Resources/LearningSkins/" + name + ".png";
+            File.WriteAllBytes(path, texture.EncodeToPNG()); Object.DestroyImmediate(texture);
+            AssetDatabase.ImportAsset(path);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.textureType = TextureImporterType.Sprite; importer.spriteImportMode = SpriteImportMode.Single; importer.mipmapEnabled = false;
+            importer.wrapMode = TextureWrapMode.Clamp; importer.alphaIsTransparency = true; importer.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
+
+        // 160: the battle maps (floor, road, props) cast no shadows; only robots and enemies do. The shadow map drew about 350
+        // map renderers in every cascade for shadows that mostly fall on the map itself. The modules too, so maps painted later
+        // keep it.
+        const string Modules = "Assets/!_Project/Resources/ArtScripts/MapPainter/Generated/Modules";
+        [MenuItem("Tools/Optimize/160 Map Shadows Off")]
+        public static void MapShadows160()
+        {
+            foreach (var guid in AssetDatabase.FindAssets("t:Prefab", new[] { Modules }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                var root = PrefabUtility.LoadPrefabContents(path);
+                try { if (NoShadows(root.GetComponentsInChildren<Renderer>(true)) > 0) PrefabUtility.SaveAsPrefabAsset(root, path); }
+                finally { PrefabUtility.UnloadPrefabContents(root); }
+            }
+            EditScene(DefenseScene, scene => { foreach (var map in All<Art.MapPainter.ModularMapRoot>(scene)) NoShadows(map.GetComponentsInChildren<Renderer>(true)); });
+        }
+        static int NoShadows(IEnumerable<Renderer> renderers)
+        {
+            int changed = 0;
+            foreach (var renderer in renderers.Where(r => r.shadowCastingMode != ShadowCastingMode.Off))
+            {
+                renderer.shadowCastingMode = ShadowCastingMode.Off; changed++;
+                if (PrefabUtility.IsPartOfPrefabInstance(renderer)) PrefabUtility.RecordPrefabInstancePropertyModifications(renderer);
+                EditorUtility.SetDirty(renderer);
+            }
+            return changed;
+        }
+
+        // 138: the big textures compressed (BC7 on PC, a quarter of RGBA32). Block compression needs sides that are multiples of
+        // 4, so an image that is not is padded first by repeating its edge pixels (a sprite's 9-slice borders move with it; a
+        // sheet pads right and up so its sprite rects stay); a plain texture is scaled to a power of two instead, which keeps a
+        // tiling texture seamless. One wider than its import limit keeps its size. Images under 256 px stay as they are.
+        const int SmallTexture = 256;
+        [MenuItem("Tools/Optimize/138 Texture Compression")]
+        public static void Textures138()
+        {
+            foreach (var path in UnpackedTextures().ToArray())
+            {
+                var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+                importer.GetSourceTextureWidthAndHeight(out int width, out int height);
+                int padX = (4 - width % 4) % 4, padY = (4 - height % 4) % 4;
+                if (importer.textureType != TextureImporterType.Sprite) importer.npotScale = TextureImporterNPOTScale.ToNearest;
+                else if (padX + padY > 0)
+                {
+                    bool sheet = importer.spriteImportMode == SpriteImportMode.Multiple;
+                    int left = sheet ? 0 : padX / 2, bottom = sheet ? 0 : padY / 2;
+                    PadImage(path, width, height, left, bottom, padX, padY);
+                    var border = importer.spriteBorder;
+                    if (!sheet && border != Vector4.zero) importer.spriteBorder = border + new Vector4(left, bottom, padX - left, padY - bottom);
+                    width += padX; height += padY;
+                }
+                if (Mathf.Max(width, height) > importer.maxTextureSize) importer.maxTextureSize = 4096;
+                importer.textureCompression = TextureImporterCompression.CompressedHQ;
+                importer.SaveAndReimport();
+            }
+        }
+        // Those that import uncompressed: set so, or set to compress with sides that are not multiples of 4. Not one with mipmaps
+        // whose sides are not powers of two: Unity keeps those uncompressed (CoreHealthSegmentFrame, 0.4 MB, mipmapped to stay
+        // smooth when drawn small).
+        static IEnumerable<string> UnpackedTextures() => AssetDatabase.FindAssets("t:Texture2D", new[] { "Assets/!_Project" }).Select(AssetDatabase.GUIDToAssetPath)
+            .Where(p => p.EndsWith(".png") && AssetImporter.GetAtPath(p) is TextureImporter i && !i.GetPlatformTextureSettings("Standalone").overridden
+                && SourceSize(i) >= SmallTexture && !(i.mipmapEnabled && !PowerOfTwo(i)) && AssetDatabase.LoadAssetAtPath<Texture2D>(p) is var t && t
+                && !UnityEngine.Experimental.Rendering.GraphicsFormatUtility.IsCompressedFormat(t.format));
+        static bool PowerOfTwo(TextureImporter importer) { importer.GetSourceTextureWidthAndHeight(out int w, out int h); return Mathf.IsPowerOfTwo(w) && Mathf.IsPowerOfTwo(h); }
+        static int SourceSize(TextureImporter importer) { importer.GetSourceTextureWidthAndHeight(out int w, out int h); return Mathf.Max(w, h); }
+        static void PadImage(string path, int width, int height, int left, int bottom, int padX, int padY)
+        {
+            var source = new Texture2D(2, 2, TextureFormat.RGBA32, false, true);
+            source.LoadImage(File.ReadAllBytes(path));
+            if (source.width != width || source.height != height) throw new InvalidOperationException($"{path}: {source.width}x{source.height}, import says {width}x{height}");
+            var from = source.GetPixels32();
+            int w = width + padX, h = height + padY;
+            var to = new Color32[w * h];
+            for (int y = 0; y < h; y++)
+            {
+                int row = Mathf.Clamp(y - bottom, 0, height - 1) * width;
+                for (int x = 0; x < w; x++) to[y * w + x] = from[row + Mathf.Clamp(x - left, 0, width - 1)];
+            }
+            var padded = new Texture2D(w, h, TextureFormat.RGBA32, false, true);
+            padded.SetPixels32(to); padded.Apply();
+            File.WriteAllBytes(path, padded.EncodeToPNG());
+            Object.DestroyImmediate(source); Object.DestroyImmediate(padded);
+        }
+
+        // 164: the Esc menu saved again with its anti-aliasing row.
+        [MenuItem("Tools/Optimize/164 Menu Anti-aliasing")]
+        public static void MenuMsaa164() => EditScene(DefenseScene, scene =>
+        {
+            foreach (var hud in All<DefensePlayerHUD>(scene)) { hud.RebakeMenu(); EditorUtility.SetDirty(hud); }
+        });
+
+        // 162: how far the battle camera sees the ground of a map: the farthest cell corner from where the camera stands (URP fades
+        // shadows by the distance from the camera, over the last cascadeBorder of the shadow distance).
+        static float GroundReach(Art.MapPainter.ModularMapRoot map, Vector3 eye)
+        {
+            float far = 0, h = map.cellSize * .5f;
+            foreach (var cell in map.floorCells.Concat(map.roadCells))
+                for (int corner = 0; corner < 4; corner++)
+                {
+                    var p = map.transform.TransformPoint(new Vector3(cell.x * map.cellSize + (corner % 2 == 0 ? -h : h), 0, cell.z * map.cellSize + (corner < 2 ? -h : h)));
+                    far = Mathf.Max(far, Vector3.Distance(eye, p));
+                }
+            return far;
+        }
+
+        // A camera that needs neither the depth nor the opaque texture nor shadows (no shader samples them).
+        static void Lean(Camera camera)
+        {
+            var data = camera.GetUniversalAdditionalCameraData();
+            data.requiresDepthOption = CameraOverrideOption.Off; data.requiresColorOption = CameraOverrideOption.Off;
+            data.renderShadows = false;
+            EditorUtility.SetDirty(data);
+        }
+
+        [MenuItem("Tools/Develop/Verify Optimizations (13차)")]
+        public static void Verify()
+        {
+            var failed = new List<string>(); int passed = 0;
+            void Check(bool ok, string what) { if (ok) passed++; else failed.Add(what); }
+
+            var pipeline = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>("Assets/Settings/PC_RPAsset.asset");
+            var rendererData = AssetDatabase.LoadAssetAtPath<UniversalRendererData>("Assets/Settings/PC_Renderer.asset");
+            Check(rendererData.rendererFeatures.All(f => !f || f.GetType().Name != "ScreenSpaceAmbientOcclusion" || !f.isActive),
+                "159 no SSAO (the map's shaders never read it; it drew the whole scene once more)");
+            Check(pipeline.shadowCascadeCount == 1, $"161 one shadow cascade ({pipeline.shadowCascadeCount})");
+            var quality = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/QualitySettings.asset")[0]).FindProperty("m_QualitySettings");
+            var pc = Enumerable.Range(0, quality.arraySize).Select(quality.GetArrayElementAtIndex).FirstOrDefault(l => l.FindPropertyRelative("name").stringValue == "PC");
+            Check(pc != null && pc.FindPropertyRelative("vSyncCount").intValue == 1, "140 VSync on at the PC quality level (the frame cap is GraphicsOptions)");
+            var unpacked = UnpackedTextures().ToArray();
+            Check(unpacked.Length == 0, $"138 every texture of {SmallTexture} px or more imports compressed ({unpacked.Length} not{(unpacked.Length > 0 ? ": " + string.Join(", ", unpacked.Take(3)) : "")})");
+            var title = EditorSceneManager.OpenScene(TitleScene, OpenSceneMode.Additive);
+            try
+            {
+                var embers = All<TitleAtmosphere>(title).ToArray();
+                Check(embers.Length > 0 && embers.All(e => e.GetComponent<Canvas>()), "124 the title's embers on their own canvas");
+                Check(All<Camera>(title).All(c => { var d = c.GetUniversalAdditionalCameraData();
+                    return d.requiresDepthOption == CameraOverrideOption.Off && d.requiresColorOption == CameraOverrideOption.Off && !d.renderShadows; }),
+                    "124 the title camera makes no depth or colour copy and no shadows");
+                Check(!File.ReadAllText("Assets/!_Project/Scripts/Title/TitlePresentation.cs").Contains("text.font = UITheme.Display"),
+                    "124 no font loop when the title opens (the scene is saved in Jalnan)");
+            }
+            finally { if (SceneManager.sceneCount > 1) EditorSceneManager.CloseScene(title, true); }
+
+            var stage = EditorSceneManager.OpenScene(StageScene, OpenSceneMode.Additive);
+            try
+            {
+                var barriers = All<StageMap.StageLockVisual>(stage).ToArray(); var fields = All<StageMap.StagePurificationVisual>(stage).ToArray();
+                Check(barriers.Length > 0 && barriers.All(v => v.Baked) && fields.Length == barriers.Length && fields.All(v => v.Baked),
+                    $"the stage map's lock barriers and purification fields are saved ({barriers.Length} islands)");
+                var huds = All<StageMap.StageMapHUD>(stage).ToArray();
+                Check(huds.Length == 1 && huds[0].Baked, "125 Stage.unity saves the map UI (canvas, cards, pointer)");
+                Check(huds.Length == 1 && huds[0].LockIconBaked, "the stage map's lock badges show the lock, closed and open, on a glowing rounded badge (Tools/Learning UI/Stage Lock Icon)");
+                var hud = huds.FirstOrDefault();
+                var so = hud ? new SerializedObject(hud) : null;
+                int islands = All<Renderer>(stage).Count(r => r.gameObject.name == "Stage" && r.gameObject.activeInHierarchy);
+                Check(so != null && so.FindProperty("cards").arraySize == islands && islands > 0, $"125 one saved card per island ({islands})");
+                var guide = so?.FindProperty("guideDialogue").objectReferenceValue as GameObject;
+                Check(guide && PrefabUtility.IsPartOfPrefabInstance(guide) && guide.scene == stage, "125 디버's box is a GuideDialogue prefab instance in the scene");
+                Check(!File.ReadAllText("Assets/!_Project/Scripts/Stage/StageMapController.cs").Contains("OnGUI"), "125 no IMGUI on the stage map");
+            }
+            finally { if (SceneManager.sceneCount > 1) EditorSceneManager.CloseScene(stage, true); }
+
+            var defense = SceneManager.GetSceneByPath(DefenseScene);
+            bool openedDefense = !defense.isLoaded;
+            if (openedDefense) defense = EditorSceneManager.OpenScene(DefenseScene, OpenSceneMode.Additive);
+            try
+            {
+                var left = ToBold(defense);
+                Check(left.Length == 0, $"126 the battle's body texts are saved in Pretendard Bold ({left.Length} left)");
+                Check(!File.ReadAllText("Assets/!_Project/Scripts/Defense/DefenseBattle.cs").Contains("UITheme.BoldBody"), "126 no body-font pass when the battle starts");
+                Check(GoalBanner(defense).GetComponent<Canvas>(), "132 the goal banner has its own canvas");
+                var unbaked = All<DefensePlayerHUD>(defense).Where(c => !c.Baked || !c.PartsBaked).Select(c => c.name)
+                    .Concat(All<DefenseCodeEditor>(defense).Where(c => !c.Baked).Select(c => c.name))
+                    .Concat(All<DefenseAttackPreview>(defense).Where(c => !c.Baked).Select(c => c.name))
+                    .Concat(All<TutorialPointer>(defense).Where(c => !c.Baked).Select(c => c.name))
+                    .Concat(All<TutorialSystemAlert>(defense).Where(c => !c.Baked).Select(c => c.name))
+                    .Concat(All<DefenseBossWarning>(defense).Where(c => !c.Baked).Select(c => c.name)).ToArray();
+                Check(AssetDatabase.LoadAssetAtPath<GameObject>(BossAura), "the boss aura is a saved prefab");
+                Check(unbaked.Length == 0, "128 the battle's start-up UI is saved in the scene" + (unbaked.Length > 0 ? " (not: " + string.Join(", ", unbaked) + ")" : ""));
+                var battleCard = All<Canvas>(defense).First(c => c.name == "TutorialOverlay").GetComponentsInChildren<RectTransform>(true)
+                    .First(t => t.name == "DialoguePanel").GetComponent<UnityEngine.UI.Image>().sprite;
+                var stageCard = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/!_Project/Resources/UI/GuideDialogue.prefab").transform.Find("DialoguePanel").GetComponent<UnityEngine.UI.Image>().sprite;
+                Check(battleCard && battleCard == stageCard, $"the stage map's 디버 box is the battle's dialogue card ({(stageCard ? stageCard.name : "none")}, battle {(battleCard ? battleCard.name : "none")}; Tools/Learning UI/Build Stage Guide Dialogue)");
+                var maps = All<Art.MapPainter.ModularMapRoot>(defense).ToArray();
+                int casting = maps.Sum(m => m.GetComponentsInChildren<Renderer>(true).Count(r => r.shadowCastingMode != ShadowCastingMode.Off));
+                Check(maps.Length == 2 && casting == 0, $"160 the battle maps cast no shadows ({maps.Length} maps, {casting} renderers still cast)");
+                Check(AssetDatabase.FindAssets("t:Prefab", new[] { Modules }).Select(g => AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(g)))
+                    .All(m => m.GetComponentsInChildren<Renderer>(true).All(r => r.shadowCastingMode == ShadowCastingMode.Off)), "160 the map modules cast no shadows");
+                var battle = new SerializedObject(All<DefenseBattle>(defense).First());
+                var stageOne = (Art.MapPainter.ModularMapRoot)battle.FindProperty("stageOneMap").objectReferenceValue;
+                var workshop = (Art.MapPainter.ModularMapRoot)battle.FindProperty("workshopMap").objectReferenceValue;
+                float reach = Mathf.Max(GroundReach(stageOne, ((Transform)battle.FindProperty("stageOneView").objectReferenceValue).position),
+                    GroundReach(workshop, ((Camera)battle.FindProperty("battleCamera").objectReferenceValue).transform.position));
+                float sharp = pipeline.shadowDistance * (1 - pipeline.cascadeBorder);
+                Check(sharp >= reach && sharp <= reach + 3, $"162 the shadow distance reaches both maps' far edge without fading and little past it (ground {reach:0.0}, unfaded {sharp:0.0}, distance {pipeline.shadowDistance:0.0})");
+                var tileMeshes = maps.SelectMany(m => new[] { m.floorGroup, m.roadGroup }).Where(g => g).SelectMany(g => g.GetComponentsInChildren<MeshFilter>(true))
+                    .Select(f => f.sharedMesh).Distinct().ToArray();
+                Check(tileMeshes.Length > 0 && tileMeshes.All(m => m && m.isReadable),
+                    $"163 the battle maps' tile meshes are readable, so the battle can combine them in a build ({tileMeshes.Count(m => !m || !m.isReadable)} of {tileMeshes.Length} not)");
+                var hudCode = File.ReadAllText("Assets/!_Project/Scripts/Defense/DefensePlayerHUD.cs");
+                Check(!hudCode.Contains("button.onClick.RemoveAllListeners(); button.onClick.AddListener(() => battle.PlayRobot(id))"), "132 Play listeners wired once, not every frame");
+            }
+            finally { if (openedDefense && SceneManager.sceneCount > 1) EditorSceneManager.CloseScene(defense, true); }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(Log));
+            string result = (failed.Count == 0 ? "PASS " : "FAIL ") + passed + " passed" + string.Concat(failed.Select(f => "\n  failed: " + f));
+            File.WriteAllText(Log, result + "\n");
+            if (failed.Count == 0) Debug.Log("[Optimize13] " + result); else Debug.LogError("[Optimize13] " + result);
+            if (Application.isBatchMode) EditorApplication.Exit(failed.Count == 0 ? 0 : 1);
+        }
+    }
+}

@@ -1,12 +1,15 @@
 // Run through Unity MCP eval_file. Uses the actual compiler and combat simulation.
 var failures = new System.Collections.Generic.List<string>();
 System.Action<bool, string> check = (ok, name) => { if (!ok) failures.Add(name); };
-var kinds = new[] { CodingGame.BlockCoding.BlockKind.Slash, CodingGame.BlockCoding.BlockKind.Block,
+// slash() takes no target (it cuts all round), so it is not in this list.
+var kinds = new[] { CodingGame.BlockCoding.BlockKind.Block,
     CodingGame.BlockCoding.BlockKind.Boom, CodingGame.BlockCoding.BlockKind.Shot, CodingGame.BlockCoding.BlockKind.Slow };
 foreach (var kind in kinds)
 {
-    var source = CodingGame.BlockCoding.PythonTreeCompiler.Compile("robot", new[] { new CodingGame.BlockCoding.CodeBlock(kind) });
-    check(source.Contains("(enemy)"), "Default enemy: " + kind);
+    bool empty = false;
+    try { CodingGame.BlockCoding.PythonTreeCompiler.Compile("robot", new[] { new CodingGame.BlockCoding.CodeBlock(kind) }); }
+    catch (System.FormatException) { empty = true; }
+    check(empty, "Empty target is a compile error: " + kind);
     var explicitSource = CodingGame.BlockCoding.PythonTreeCompiler.Compile("robot", new[] {
         new CodingGame.BlockCoding.CodeBlock(kind, "", new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.NearestEnemy)) });
     check(explicitSource.Contains("get_nearest_enemy()"), "Explicit target: " + kind);
@@ -25,7 +28,7 @@ System.Func<int, CodingGame.Defense.DefenseSimulation> make = limit => {
         Waves = new[] { new[] { new CodingGame.Defense.SpawnGroup { Enemy = new CodingGame.Defense.EnemySpec(), Count = 1, Delay = 100, Interval = 1 } } }
     });
     sim.Robots.Add(new CodingGame.Defense.RobotState { Id = 100, Position = System.Numerics.Vector2.Zero,
-        Spec = new CodingGame.Defense.RobotSpec { role = CodingGame.Defense.RobotRole.Warrior, range = 3, damage = 10, interval = .1f }, RangeSetting = 3 });
+        Spec = new CodingGame.Defense.RobotSpec { role = CodingGame.Defense.RobotRole.Warrior, range = 3, damage = 10, interval = .1f } });
     sim.Start(); return sim;
 };
 var battle = make(5);
@@ -33,9 +36,10 @@ var points = new[] { new System.Numerics.Vector2(2,0), new System.Numerics.Vecto
     new System.Numerics.Vector2(-1,0), new System.Numerics.Vector2(4,0) };
 for (int i=0;i<points.Length;i++) battle.Enemies.Add(new CodingGame.Defense.EnemyState { Id=200+i, Position=points[i], Health=100, Spec=new CodingGame.Defense.EnemySpec() });
 check(battle.RequestAction(100,CodingGame.Defense.RobotAction.Slash,200)==CodingGame.Defense.ActionResult.Executed,"Slash executed");
-check(battle.Enemies.Take(3).All(e=>e.Health==90),"Same damage in front semicircle, including boundary");
-check(battle.Enemies.Skip(3).All(e=>e.Health==100),"Rear and outside range untouched");
-check(battle.Events.Count(e=>e.Kind=="slash")==1 && battle.Events.Count(e=>e.Kind=="hit")==3,"One slash visual, one hit per victim");
+battle.Advance(.1); // the sword lands a moment after the swing starts
+check(battle.Enemies.Take(4).All(e=>e.Health==90),"Same damage all the way round, including the boundary and behind");
+check(battle.Enemies[4].Health==100,"Outside range untouched");
+check(battle.Events.Count(e=>e.Kind=="slash")==1 && battle.Events.Count(e=>e.Kind=="hit")==4,"One slash visual, one hit per victim");
 check(battle.Events.Single(e=>e.Kind=="slash").Origin==System.Numerics.Vector2.Zero,"Robot-centered slash origin");
 foreach (int limit in new[]{5,1})
 {
@@ -58,8 +62,8 @@ check(loopBot.Executions==10 && loopBot.Program.CompletedRuns==1,"User loop runs
 var turned=make(5);turned.Robots[0].Position=new System.Numerics.Vector2(4,5);
 turned.Enemies.Add(new CodingGame.Defense.EnemyState { Id=200,Position=new System.Numerics.Vector2(4,3),Health=100,Spec=new CodingGame.Defense.EnemySpec() });
 turned.Enemies.Add(new CodingGame.Defense.EnemyState { Id=201,Position=new System.Numerics.Vector2(4,7),Health=100,Spec=new CodingGame.Defense.EnemySpec() });
-turned.RequestAction(100,CodingGame.Defense.RobotAction.Slash,200);
-check(turned.Enemies[0].Health==90 && turned.Enemies[1].Health==100,"Semicircle rotates toward designated enemy");
+turned.RequestAction(100,CodingGame.Defense.RobotAction.Slash,200); turned.Advance(.1);
+check(turned.Enemies[0].Health==90 && turned.Enemies[1].Health==90,"The spin cuts enemies on both sides of a moved robot");
 check(turned.Events.Single(e=>e.Kind=="slash").Origin==turned.Robots[0].Position,"Moved robot remains slash pivot");
 if(failures.Count>0)throw new System.Exception(string.Join("; ",failures));
-return "PASS: five target signatures/type checks, 180-degree equal-damage splash, visual event, 5/1 function limits";
+return "PASS: four target signatures/type checks, 360-degree equal-damage spin, visual event, 5/1 function limits";

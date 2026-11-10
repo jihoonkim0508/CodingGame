@@ -18,6 +18,7 @@ namespace CodingGame.Defense.Editor
         [SerializeField] int testStage = 1, testWave = 1, coins = 100, campaignStages = 5;
         [SerializeField] bool previousStageRewards = true, tutorial;
         [SerializeField] int jumpWave = 1, jumpSection;
+        [SerializeField] string scenePath;
         [SerializeField] DefenseTestOptions options = new DefenseTestOptions();
         DefenseCampaignDefinition playContent;
         readonly List<Object> copies = new List<Object>();
@@ -106,8 +107,22 @@ namespace CodingGame.Defense.Editor
             var o = options.Copy(); o.tutorial = o.tutorialInput = tutorial;
             return o;
         }
+        void Scenes()
+        {
+            Heading("씬 이동");
+            var paths = DevTest.ScenePaths;
+            if (paths.Length == 0) { Note("프로젝트에 씬이 없습니다."); return; }
+            if (Array.IndexOf(paths, scenePath) < 0) scenePath = paths[0];
+            var names = paths.Select(p => p.Substring("Assets/".Length, p.Length - "Assets/".Length - ".unity".Length)).ToList();
+            var field = new DropdownField("씬", names, Array.IndexOf(paths, scenePath));
+            field.RegisterValueChangedCallback(e => scenePath = paths[names.IndexOf(e.newValue)]);
+            content.Add(field);
+            Buttons((EditorApplication.isPlaying ? "▶ 이 씬으로 전환" : "▶ 이 씬에서 Play", () => DevTest.PlayScene(scenePath)),
+                ("편집용으로 열기", () => DevTest.OpenScene(scenePath)));
+        }
         void Play()
         {
+            Scenes();
             Heading("시작 조건");
             Integer("스테이지", testStage, v => testStage = v);
             Integer("웨이브", testWave, v => testWave = v);
@@ -153,9 +168,14 @@ namespace CodingGame.Defense.Editor
         void Jumps()
         {
             Heading("바로가기");
-            Buttons(("Title", DevTest.PlayTitle), ("Stage 맵", DevTest.PlayStageMap));
+            Buttons(("Title", DevTest.PlayTitle), ("Stage 맵", DevTest.PlayStageMap), ("저장 데이터 초기화", () =>
+            {
+                if (!EditorUtility.DisplayDialog("저장 데이터 초기화", "클리어한 스테이지 등 저장된 정보를 모두 지우고 처음 설치한 상태로 되돌립니다.", "초기화", "취소")) return;
+                DevTest.ResetSaveData(); feedback.text = "저장 데이터를 초기화했습니다.";
+            }));
             var row = new VisualElement(); row.AddToClassList("row");
-            var waves = new PopupField<int>("Stage 1 튜토리얼", Enumerable.Range(1, 5).ToList(), Mathf.Clamp(jumpWave, 1, 5), w => "1-" + w, w => "1-" + w);
+            jumpWave = Mathf.Clamp(jumpWave, 1, 5);
+            var waves = new PopupField<int>("Stage 1 튜토리얼", Enumerable.Range(1, 5).ToList(), jumpWave - 1, w => "1-" + w, w => "1-" + w);
             var titles = DevTest.TutorialSections(jumpWave).Select((t, i) => $"{i + 1}. {t}").ToList();
             if (titles.Count == 0) titles.Add("(구간 없음)");
             var sections = new PopupField<string>(titles, Mathf.Clamp(jumpSection, 0, titles.Count - 1));
@@ -263,7 +283,7 @@ namespace CodingGame.Defense.Editor
             var labels = new Dictionary<string, string> {
                 ["tutorial"] = "튜토리얼 실행", ["tutorialInput"] = "튜토리얼 입력 제한", ["robotCode"] = "로봇 코드 실행",
                 ["enemyMovement"] = "적 이동", ["enemyAttack"] = "적 공격", ["enemySpawn"] = "적 스폰", ["baseDamage"] = "기지 피해", ["robotDamage"] = "로봇 피해",
-                ["attackDamage"] = "적에게 공격 피해", ["waveTimeout"] = "웨이브 시간 제한", ["attackLimit"] = "공격 횟수 제한", ["deploymentLimit"] = "설치 개수 제한",
+                ["attackDamage"] = "적에게 공격 피해", ["waveTimeout"] = "웨이브 시간 제한", ["deploymentLimit"] = "설치 개수 제한",
                 ["inventoryLimit"] = "인벤토리 제한", ["unlockAll"] = "전체 해금", ["supply"] = "준비 보급", ["rewards"] = "종료 보상", ["drops"] = "처치 드롭",
                 ["ranges"] = "사거리 표시", ["hitRanges"] = "피격 범위", ["launchEffects"] = "발사 이펙트", ["hitEffects"] = "피격 이펙트", ["slashEffects"] = "슬래시 이펙트",
                 ["projectiles"] = "투사체 표시", ["preview"] = "미리보기 실행", ["detailedLog"] = "상세 이벤트 기록 (리포트용)" };

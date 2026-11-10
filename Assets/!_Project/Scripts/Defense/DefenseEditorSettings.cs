@@ -9,7 +9,7 @@ namespace CodingGame.Defense
         public bool tutorial = true, tutorialInput = true, robotCode = true;
         public bool enemyMovement = true, enemyAttack = true, enemySpawn = true;
         public bool baseDamage = true, robotDamage = true, attackDamage = true;
-        public bool waveTimeout = true, attackLimit = true, deploymentLimit = true, inventoryLimit = true;
+        public bool waveTimeout = true, deploymentLimit = true, inventoryLimit = true;
         public bool unlockAll;
         public bool supply = true, rewards = true, drops = true;
         public bool ranges = true, hitRanges, launchEffects = true, hitEffects = true, slashEffects = true;
@@ -20,7 +20,6 @@ namespace CodingGame.Defense
     [Serializable]
     public sealed class DefenseBalanceRules
     {
-        public float attackCountFactor = 5.25f;
         public int maxLevel = 2;
         public float upgradeMultiplier = 1.2f;
         public int[] roleLimits = { 1, 18, 18, 18, 18, 18 };
@@ -30,7 +29,7 @@ namespace CodingGame.Defense
         public float[] waveMultipliers = { .9f, 1f, 1.05f, 1.15f, 1f };
         public void Validate()
         {
-            if (!Rules.Positive(attackCountFactor) || maxLevel < 1 || !Rules.Positive(upgradeMultiplier) ||
+            if (maxLevel < 1 || !Rules.Positive(upgradeMultiplier) ||
                 roleLimits == null || roleLimits.Length != 6 || roleLimits.Any(v => v < 1) ||
                 waveMultipliers == null || waveMultipliers.Length == 0 || waveMultipliers.Any(v => !Rules.Positive(v)) ||
                 new[] { healthLinear, healthQuadratic, speedLinear, speedQuadratic }.Any(v => !Rules.Nonnegative(v)) ||

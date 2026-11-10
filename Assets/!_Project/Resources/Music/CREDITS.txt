@@ -1,0 +1,3 @@
+title.ogg: "A Legend Will Rise (Orchestral)" by CodeManu, CC0 1.0 (public domain, no attribution required),
+from OpenGameArt.org: https://opengameart.org/content/a-legend-will-rise-orchestral
+Trimmed to 68.4 s (the closing silence cut), 0.4 s fade in, 2.5 s fade out, levelled to -16 LUFS. A temporary title track.

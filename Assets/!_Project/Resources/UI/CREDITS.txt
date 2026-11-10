@@ -1,0 +1,5 @@
+ui_arrow.png: Kenney (www.kenney.nl) "Game Icons" arrowDown, CC0 1.0, from https://opengameart.org/content/game-icons,
+redrawn as a sticker (white fill, ink outline, shadow) by Editor/UI~/arrow_sticker.py.
+The other ui_*.png sprites are drawn by Editor/UI~/ui_sprites.py.
+
+A2Z-Regular.ttf: 에이투지체 Regular (A2Z) by Autonomous A2Z X 이주임, SIL Open Font License 1.1, v1.001 from https://github.com/Freesentation/A2Z (noonnu.cc/font_page/1778). Used for 디버's lines.

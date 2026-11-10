@@ -19,6 +19,10 @@ namespace CodingGame.Art.MapPainter
         public ModularMapPalette palette;
         [Min(1)] public int cellSize=1;
         [Min(.05f)] public float floorHeight=1;
+        // Width is independent of grid spacing. The editor bakes a joined surface
+        // into persistent meshes so adjacent widened modules never overlap.
+        [HideInInspector] public float roadWidthScale=1;
+        public float RoadHalfWidth => cellSize*Mathf.Clamp(roadWidthScale,1,1.75f)*.5f*Mathf.Abs(transform.lossyScale.x);
         public bool useFloorColors = true;
         public Color upperColor = new Color(.68f,.72f,.78f,1);
         public Color lowerColor = new Color(.26f,.31f,.39f,1);
@@ -78,7 +82,9 @@ namespace CodingGame.Art.MapPainter
             {
                 if(!IsTile(tile))continue;
                 tile.transform.localPosition=TileLocalPosition(tile.cell,tile.road);
-                if(tile.transform.childCount>0)tile.transform.GetChild(0).localScale=ModuleScale(tile.road);
+                if(tile.road)
+                { foreach(Transform model in tile.transform)model.localScale=ModuleScale(true); }
+                else if(tile.transform.childCount>0)tile.transform.GetChild(0).localScale=ModuleScale(false);
             }
         }
         private void ApplyStyle(MeshRenderer renderer,float top,float height)

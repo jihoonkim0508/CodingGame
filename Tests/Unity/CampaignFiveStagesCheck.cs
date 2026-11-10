@@ -36,17 +36,25 @@ public static class CampaignFiveStagesCheck
     static void Program(DefenseSimulation sim, RobotState bot)
     {
         sim.ApplyProgram(bot.Id,"robot_"+bot.Id,Array.Empty<CodeBlock>());
+        // Stage 1 starts 1-2 only with a warrior that finds an enemy into a variable and slashes it, and 1-4 only with two
+        // warriors that slash inside a distance check; use the richest of those the shared stock still allows.
+        if(sim.Setup.Stage==1 && bot.Spec.role==RobotRole.Warrior)
+            foreach(var form in Stage1Warrior())
+                try{sim.ApplyProgram(bot.Id,"robot_"+bot.Id,form);return;}catch(FormatException){}
         var body=new System.Collections.Generic.List<CodeBlock>();
-        CodeBlock command=new CodeBlock(Action(bot.Spec.role));
+        var kind=Action(bot.Spec.role);
+        // Attacks need an explicit target: the nearest enemy, or the declared `enemy` inside the distance check.
+        CodeBlock command=PythonTreeCompiler.HasEnemyArgument(kind)?new CodeBlock(kind,"0",new CodeBlock(BlockKind.NearestEnemy)):new CodeBlock(kind);
         bool condition = sim.Setup.Stage>=2 && bot.Spec.role!=RobotRole.Buffer &&
-            new[]{BlockKind.If,BlockKind.Comparison,BlockKind.DeclareVariable,BlockKind.Variable,BlockKind.NearestEnemy,BlockKind.PositionX,BlockKind.PositionY}
+            new[]{BlockKind.If,BlockKind.Comparison,BlockKind.DeclareVariable,BlockKind.Variable,BlockKind.NearestEnemy,BlockKind.MyPos}
                 .All(k=>sim.Available(k,bot.Id)>0) && sim.Available(BlockKind.Number,bot.Id)>1;
         if(condition)
         {
             // Declared inside the loop so each pass re-targets; a stale `enemy` stops attacking after the first kill.
             body.Add(new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)));
-            var distance=new CodeBlock(BlockKind.Distance,"0",new CodeBlock(BlockKind.Variable,"enemy"),new CodeBlock(BlockKind.PositionX),new CodeBlock(BlockKind.PositionY));
+            var distance=new CodeBlock(BlockKind.Distance,"0",new CodeBlock(BlockKind.Variable,"enemy"),new CodeBlock(BlockKind.MyPos));
             var branch=new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,"<",distance,new CodeBlock(BlockKind.Number,"10")));
+            if(PythonTreeCompiler.HasEnemyArgument(kind)) command.Arguments[0]=new CodeBlock(BlockKind.Variable,"enemy");
             branch.Body.Add(command);command=branch;
         }
         body.Add(command);
@@ -55,6 +63,12 @@ public static class CampaignFiveStagesCheck
         { var loop=new CodeBlock(BlockKind.For,"0",new CodeBlock(BlockKind.Number,"50"));loop.Body.AddRange(body);body=new System.Collections.Generic.List<CodeBlock>{loop}; }
         sim.ApplyProgram(bot.Id,"robot_"+bot.Id,body.ToArray());
     }
+    static CodeBlock Enemy()=>new CodeBlock(BlockKind.Variable,"enemy");
+    static CodeBlock[][] Stage1Warrior()=>new[]{
+        new[]{new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)),
+            new CodeBlock(BlockKind.DeclareVariable,"enemy_distance",new CodeBlock(BlockKind.Distance,"0",Enemy(),new CodeBlock(BlockKind.MyPos))),
+            new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.Comparison,"<=",new CodeBlock(BlockKind.Variable,"enemy_distance"),new CodeBlock(BlockKind.MyAttackRange))){Body={new CodeBlock(BlockKind.Slash)}}},
+        new[]{new CodeBlock(BlockKind.DeclareVariable,"enemy",new CodeBlock(BlockKind.NearestEnemy)),new CodeBlock(BlockKind.Slash)}};
     public static string Main()
     {
         var lines = new System.Collections.Generic.List<string>();

@@ -71,7 +71,7 @@ namespace CodingGame.Defense
                 var kind = DefenseProgression.Canonical(slot.kind);
                 slot.label.text = DefenseProgression.Label(kind);
                 slot.count.text = sim.Available(kind).ToString();
-                slot.label.color = sim.Owned(kind) > 0 ? new Color(.9f,.95f,1) : new Color(.42f,.48f,.54f);
+                slot.label.color = sim.Owned(kind) > 0 ? new Color(.81f,.87f,.91f) : new Color(.49f,.58f,.64f);
                 slot.count.color = slot.label.color;
             }
         }

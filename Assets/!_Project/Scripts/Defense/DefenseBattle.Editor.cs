@@ -15,6 +15,17 @@ namespace CodingGame.Defense
         public void EditorObserve(string origin, DefenseSimulation sim, CombatEvent evt)
             => EditorCombatEvent?.Invoke(origin, sim, evt);
         public BattleSetup EditorReadSetup() => MakeSetup(campaign, stage);
+        public bool EditorBossEntered => bossEntranceStarted;
+        // The boss's entrance again (camera on the boss, battle held), with a given warning draft: for photographing drafts.
+        public void EditorReplayBossEntrance(int style)
+        {
+            var boss = Simulation.Enemies.FirstOrDefault(e => e.Boss);
+            if (boss == null) return;
+            bossEntranceStarted = true; bossCameraRestored = false;
+            bossCameraRestoreAt = Time.unscaledTime + 2.1f; bossEntranceUntil = Time.unscaledTime + DefenseBossWarning.Seconds;
+            selectionCamera.FocusBoss(DefenseViews.World(boss.Position, 1f));
+            BossWarning.Play(style);
+        }
         public void EditorStartSession(int testStage, int wave, bool previousStageRewards, DefenseTestOptions options,
             DefenseCampaignDefinition overrideCampaign = null)
         {

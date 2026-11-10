@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 4defd6967fddf444aaa7b4084793dc46
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: 625f186215c104763be7675aa2d941aa, type: 3}
+AssetOrigin:
+  serializedVersion: 1
+  productId: 316110
+  packageName: Sword Slash-Stylized vfx
+  packageVersion: 1.0
+  assetPath: Assets/SwordSlashVFxPack/Shaders/Particles_ADD_HDR.shadergraph
+  uploadId: 746030

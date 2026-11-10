@@ -10,7 +10,7 @@ namespace CodingGame.Defense
     public enum EnemyType { Normal, Fast, Tank }
     public enum ActionCompatibility { Native, Reduced, Ineffective, Undecided }
     public enum BattlePhase { Ready, Running, Paused, Victory, Defeat, Reward }
-    public enum ActionResult { Executed, CoolingDown, NoTarget, Ineffective, Undecided, AttackLimitReached, Unavailable }
+    public enum ActionResult { Executed, CoolingDown, NoTarget, Ineffective, Undecided, Unavailable }
 
     [Serializable]
     public sealed class RobotSpec
@@ -71,7 +71,8 @@ namespace CodingGame.Defense
         public static EnemyState Nearest(IEnumerable<EnemyState> enemies, Vector2 from) =>
             enemies.OrderBy(e => Vector2.DistanceSquared(e.Position, from)).ThenBy(e => e.Id).FirstOrDefault();
         public static RobotAction NativeAction(RobotRole role) => (RobotAction)(int)role;
-        public static float RangedDamageFactor(float range, float distance) => range / Math.Max(1f, distance);
+        // Up to 3x inside a third of the range (the most a shot does, play feedback 4), 1x at the edge.
+        public static float RangedDamageFactor(float range, float distance) => range / Math.Max(range / 3f, distance);
         public static ActionCompatibility Compatibility(RobotRole role, RobotAction action, IReadOnlyList<ActionPermission> permissions = null)
         {
             if (NativeAction(role) == action) return ActionCompatibility.Native;
@@ -133,6 +134,7 @@ namespace CodingGame.Defense
         public EnemySpec Enemy;
         public int DefinitionIndex, RouteIndex, Count;
         public float Delay, Interval;
+        public bool Boss;
     }
 
     public sealed class BattleSetup
@@ -143,8 +145,6 @@ namespace CodingGame.Defense
         public float[] CampaignSeconds;
         public int InitialWave;
         public bool PreviousStageRewards = true;
-        public int FunctionRepeatLimit = 5;
-        public int AttackLimitPerRobot = int.MaxValue;
         public Vector2 Min, Max;
         public Route[] Routes;
         public SpawnGroup[][] Waves;
@@ -152,12 +152,13 @@ namespace CodingGame.Defense
         public int Stage;
         public int BaseHealth = 12, RobotLimit = 18;
         public bool PlayerFlow;
-        public bool StageOneLearning;
         public float WaveSeconds;
         public DefenseProgression Progression = new DefenseProgression();
         public ActionPermission[] Permissions = Array.Empty<ActionPermission>();
         public RobotSpec[] ActionProfiles = Array.Empty<RobotSpec>();
         public PlacementObstacle[] Obstacles = Array.Empty<PlacementObstacle>();
+        // The map's floor and road tiles; a robot must stand on them. Empty: only Min/Max applies (tests, preview).
+        public PlacementObstacle[] Floor = Array.Empty<PlacementObstacle>();
         public void Validate()
         {
             RulesConfig.Validate();
@@ -211,6 +212,7 @@ namespace CodingGame.Defense
             var nearest = Vector2.Clamp(position, Min, Max);
             return Vector2.DistanceSquared(position, nearest) <= radius * radius;
         }
+        public bool Contains(Vector2 position) => position.X >= Min.X && position.X <= Max.X && position.Y >= Min.Y && position.Y <= Max.Y;
     }
 
     public sealed class BuffState
@@ -238,36 +240,62 @@ namespace CodingGame.Defense
         public Vector2 Position;
         public RobotSpec Spec;
         public RobotAction Action;
-        public float RangeSetting;
-        public float? DamageSetting;
         public float? Health;
         public double NextAction;
         public bool AutoExecute;
         public bool BlockingEnabled;
         public ActionResult LastResult;
         public int Executions, AttacksThisWave;
+        // This wave's record for the result debrief (reset when a wave is prepared).
+        public int ActionsThisWave, KillsThisWave, LoopTurnsThisWave;
+        public float DamageThisWave;
+        public bool SawEnemyThisWave;
         public readonly List<BuffState> Buffs = new List<BuffState>();
         public DefenseProgram Program;
-        public float Range => RangeSetting * Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Range));
-        public float DamageMultiplier => Buffs.Aggregate(1f, (v, b) => Math.Max(v, b.Damage)) * LevelMultiplier;
-        public float Damage => (DamageSetting ?? Spec.damage) * DamageMultiplier;
-        public float Interval => Spec.interval * Buffs.Aggregate(1f, (v, b) => Math.Min(v, b.Interval));
+        // Read per enemy per tick: plain loops, no LINQ enumerators or closures (13차 129).
+        public float Range { get { float v = 1; for (int i = 0; i < Buffs.Count; i++) v = Math.Max(v, Buffs[i].Range); return Spec.range * v; } }
+        public float DamageMultiplier { get { float v = 1; for (int i = 0; i < Buffs.Count; i++) v = Math.Max(v, Buffs[i].Damage); return v * LevelMultiplier; } }
+        public float Damage => Spec.damage * DamageMultiplier;
+        public float Interval { get { float v = 1; for (int i = 0; i < Buffs.Count; i++) v = Math.Min(v, Buffs[i].Interval); return Spec.interval * v; } }
     }
     public sealed class EnemyState
     {
         public int Id, DefinitionIndex, RouteIndex, NextPoint = 1, BlockedBy;
+        public bool Boss;
         public Vector2 Position;
         public EnemySpec Spec;
         public float Health;
         public double NextAttack;
         public bool Active = true;
         public readonly List<MovementEffect> Effects = new List<MovementEffect>();
-        public bool Stunned(double time) => Effects.Any(e => e.StunUntil > time);
-        public float Speed(double time) => Spec.speed * Effects.Where(e => e.SlowUntil > time).Aggregate(1f, (v, e) => Math.Min(v, e.Multiplier));
+        public bool Stunned(double time) { for (int i = 0; i < Effects.Count; i++) if (Effects[i].StunUntil > time) return true; return false; }
+        public float Speed(double time)
+        {
+            float v = 1;
+            for (int i = 0; i < Effects.Count; i++) if (Effects[i].SlowUntil > time) v = Math.Min(v, Effects[i].Multiplier);
+            return Spec.speed * v;
+        }
+    }
+    // How a wave stood when it started, so a lost wave can be tried again with the same robots, code and coins.
+    public sealed class WaveCheckpoint
+    {
+        public int Stage, Wave, Coins, BaseHealth, Kills, Leaks;
+        public SpawnGroup[] Groups; // the wave as fought, with enemies carried over from the wave before
+        public RobotSnapshot[] Robots;
+    }
+    public sealed class RobotSnapshot
+    {
+        public RobotSpec Spec;
+        public int DefinitionIndex, Level, UpgradeCostPaid;
+        public Vector2 Position;
+        public float? Health;
+        public string Name;
+        public IReadOnlyList<CodingGame.BlockCoding.CodeBlock> Code; // null: no code
     }
     public sealed class ProjectileState
     {
         public int Id, Source;
+        public int Target; // a shot at one enemy (Attack); 0 = an area blast at Destination (Boom)
         public Vector2 Origin, Destination;
         public double LaunchedAt, ImpactAt;
         public float Damage, Radius;
@@ -281,5 +309,6 @@ namespace CodingGame.Defense
         public int Source, Target;
         public Vector2 Position;
         public float Amount, AppliedAmount, Radius;
+        public float Seconds; // "shot"/"slash": time until the damage lands
     }
 }

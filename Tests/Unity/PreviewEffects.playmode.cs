@@ -5,7 +5,6 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.VFX;
 using CodingGame.BlockCoding;
 using CodingGame.Defense;
 
@@ -23,10 +22,9 @@ internal class CommandScript : IRunCommand
             if (battleSettings.FindProperty("hitEffects." + field).objectReferenceValue !=
                 previewSettings.FindProperty("hitEffects." + field).objectReferenceValue)
                 throw new Exception("Battle/preview effect mismatch: " + field);
-        var slashPrefab = (VisualEffect)previewSettings.FindProperty("hitEffects.slashPrefab").objectReferenceValue;
-        if (AssetDatabase.GetAssetPath(slashPrefab.visualEffectAsset) !=
-            "Assets/ThirdParty/slash5-HungNguyen/slash 5 visual vfx profiles/slash-white-yellow bolder.vfx")
-            throw new Exception("Original slash mesh/rotation graph not restored");
+        var slashPrefab = previewSettings.FindProperty("hitEffects.slashPrefab").objectReferenceValue;
+        if (AssetDatabase.GetAssetPath(slashPrefab) != "Assets/!_Project/Defense/Effects/SwordSlashFlat.prefab")
+            throw new Exception("Slash effect is not SwordSlash_3 (planner)");
         int index = Enumerable.Range(0, 6).First(i => battle.DefinitionRole(i) == RobotRole.Warrior);
         battle.Simulation.GrantRobot(RobotRole.Warrior, 1);
         if (!battle.PlaceRobot(index, new Vector3(-8, 0, 6))) throw new Exception("Cannot place test warrior");
@@ -42,14 +40,14 @@ internal class CommandScript : IRunCommand
         EditorApplication.CallbackFunction check = null;
         check = () =>
         {
-            var slash = arena.GetComponentsInChildren<VisualEffect>().FirstOrDefault(v => v.aliveParticleCount > 0 && !v.culled);
-            var hit = arena.GetComponentsInChildren<ParticleSystem>().FirstOrDefault(p => p.particleCount > 0);
+            var slash = arena.GetComponentsInChildren<ParticleSystem>().FirstOrDefault(p => p.name.StartsWith("SwordSlashFlat") && p.GetComponentsInChildren<ParticleSystem>().Any(c => c.particleCount > 0));
+            var hit = arena.GetComponentsInChildren<ParticleSystem>().FirstOrDefault(p => !p.GetComponentInParent<ParticleSystem>().name.StartsWith("SwordSlashFlat") && p.particleCount > 0);
             if (slash && hit)
             {
                 EditorApplication.update -= check;
                 Application.runInBackground = wasBackground;
                 EditorApplication.isPaused = true;
-                Debug.Log("PASS: shared effect references, original slash graph, preview slash + hit particles visible. Camera=" + camera.gameObject.GetInstanceID());
+                Debug.Log("PASS: shared effect references, SwordSlash_3, preview slash + hit particles visible. Camera=" + camera.gameObject.GetInstanceID());
             }
             else if (!EditorApplication.isPlaying || EditorApplication.timeSinceStartup > deadline)
             {

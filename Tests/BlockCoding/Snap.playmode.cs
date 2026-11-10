@@ -44,6 +44,8 @@ try
     Check(!marker.gameObject.activeSelf, "existing block free placement has no preview");
     Drop(pointer);
     Check(UnityEngine.Vector2.Distance(existing.Rect.anchoredPosition, far) < .1f, "free placement preserves drop position");
+    bool parked = false; try { program.Read(); } catch (System.FormatException) { parked = true; }
+    Check(parked, "chain away from the start anchor does not run");
     pointer = Begin(existing); Move(pointer, near);
     Check(marker.gameObject.activeSelf, "existing block returning to first line shows preview");
     Drop(pointer);
@@ -57,6 +59,8 @@ try
     Check(marker.gameObject.activeSelf, "whole chain shows first-line anchor");
     Drop(pointer);
     Check(existing.Rect.anchoredPosition == first && program.Read().Count == 2, "whole chain snaps without losing links");
+    panel.DeleteOne(existing);
+    Check(program.Blocks[0].Rect.anchoredPosition == first && program.Read().Count == 1, "deleting the first block keeps the rest at the start");
     panel.ClearProgram();
     pointer = Begin(palette); Move(pointer, far);
     Check(!marker.gameObject.activeSelf, "new block far from first line has no false preview");

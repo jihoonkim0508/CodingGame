@@ -1,0 +1,4 @@
+Stage 1 workshop art applied. Original Stage01 prefab retained.
+Output: Assets/!_Project/Resources/ArtPrefabs/Stage01_Workshop.prefab
+Scene had unsaved changes; save with Ctrl+S.
+RESULT: PASS

@@ -12,6 +12,8 @@ namespace CodingGame.Defense
     {
         public int stage, wave;
         public string topic;
+        // One line telling the player what this wave asks of their code; shown as the wave goal outside the Stage 1 tutorial.
+        public string goal = "";
         public RobotStock[] robots = Array.Empty<RobotStock>();
         public BlockStock[] blocks = Array.Empty<BlockStock>();
         public BlockStock[] rewards = Array.Empty<BlockStock>();
@@ -27,7 +29,7 @@ namespace CodingGame.Defense
             new BlockDrop { kind = BlockKind.Shot, weight = 2 }, new BlockDrop { kind = BlockKind.Slash },
             new BlockDrop { kind = BlockKind.If }, new BlockDrop { kind = BlockKind.Else },
             new BlockDrop { kind = BlockKind.Buff, weight = 2 }, new BlockDrop { kind = BlockKind.Block },
-            new BlockDrop { kind = BlockKind.For, firstWave = 2 }, new BlockDrop { kind = BlockKind.While, firstWave = 3 },
+            new BlockDrop { kind = BlockKind.While, firstWave = 3 },
             new BlockDrop { kind = BlockKind.Elif, firstWave = 3 }, new BlockDrop { kind = BlockKind.Break, firstWave = 3 },
             new BlockDrop { kind = BlockKind.Continue, firstWave = 3 }
         };
@@ -36,14 +38,16 @@ namespace CodingGame.Defense
             robots = robots.Select(r => new RobotStock {role=r.role,count=r.count}).ToArray(),
             initial = initial.Select(b => new BlockStock {kind=b.kind,count=b.count}).ToArray(),
             drops = drops.Select(d => new BlockDrop {kind=d.kind,firstWave=d.firstWave,weight=d.weight}).ToArray(),
-            lessons = lessons.Select(l => new WaveLesson {stage=l.stage,wave=l.wave,topic=l.topic,
+            lessons = lessons.Select(l => new WaveLesson {stage=l.stage,wave=l.wave,topic=l.topic,goal=l.goal,
                 robots=l.robots.Select(r=>new RobotStock {role=r.role,count=r.count}).ToArray(),
                 blocks=l.blocks.Select(b=>new BlockStock {kind=b.kind,count=b.count}).ToArray(),
                 rewards=l.rewards.Select(b=>new BlockStock {kind=b.kind,count=b.count}).ToArray()}).ToArray()
         };
+        // The longest stage: Stage 2 has six waves (13차 179).
+        public const int MaxWaves = 6;
         public void Validate()
         {
-            if (lessons == null || lessons.Any(l => l == null || l.stage < 1 || l.stage > DefenseCurriculum.StageCount || l.wave < 1 || l.wave > 5 ||
+            if (lessons == null || lessons.Any(l => l == null || l.stage < 1 || l.stage > DefenseCurriculum.StageCount || l.wave < 1 || l.wave > MaxWaves ||
                 string.IsNullOrWhiteSpace(l.topic) || l.robots == null || l.blocks == null || l.rewards == null ||
                 l.robots.Any(r => r == null || !Enum.IsDefined(typeof(RobotRole), r.role) || r.count < 1) ||
                 l.blocks.Concat(l.rewards).Any(b => b == null || !Consumes(b.kind) || b.count < 1)) ||
@@ -70,7 +74,7 @@ namespace CodingGame.Defense
                 default: return BlockKind.Slow;
             }
         }
-        public static BlockKind Canonical(BlockKind kind) => kind == BlockKind.Attack ? BlockKind.Shot : kind == BlockKind.Distance ? BlockKind.Variable : kind;
+        public static BlockKind Canonical(BlockKind kind) => kind == BlockKind.Attack ? BlockKind.Shot : kind == BlockKind.Distance || kind == BlockKind.Hp ? BlockKind.Variable : kind;
         public static bool Consumes(BlockKind kind) => Enum.IsDefined(typeof(BlockKind), kind);
         public static BlockKind[] ItemKinds => Enum.GetValues(typeof(BlockKind)).Cast<BlockKind>().Select(Canonical).Distinct().ToArray();
         public static IEnumerable<BlockKind> Used(IEnumerable<CodeBlock> blocks)
@@ -80,7 +84,7 @@ namespace CodingGame.Defense
                 if (block == null) continue;
                 if (Consumes(block.Kind)) yield return Canonical(block.Kind);
                 // 메서드 수신자는 편집기에서 같은 변수 블록이므로 아이템을 중복 차감하지 않습니다.
-                foreach (var kind in Used(block.Kind == BlockKind.Distance ? block.Arguments.Skip(1) : block.Arguments)) yield return kind;
+                foreach (var kind in Used(block.Kind == BlockKind.Distance || block.Kind == BlockKind.Hp ? block.Arguments.Skip(1) : block.Arguments)) yield return kind;
                 foreach (var kind in Used(block.Body)) yield return kind;
             }
         }
@@ -88,14 +92,16 @@ namespace CodingGame.Defense
         {
             switch (Canonical(kind))
             {
-                case BlockKind.Shot: return "attack(enemy)"; case BlockKind.Slash: return "slash(enemy)";
-                case BlockKind.Block: return "block(enemy)"; case BlockKind.Boom: return "boom(enemy)";
-                case BlockKind.Slow: return "slow(enemy)"; case BlockKind.Buff: return "buff()";
+                case BlockKind.Shot: return "attack(Enemy)"; case BlockKind.Slash: return "slash()";
+                case BlockKind.Block: return "block(Enemy)"; case BlockKind.Boom: return "boom(Enemy)";
+                case BlockKind.Slow: return "slow(Enemy)"; case BlockKind.Buff: return "buff()";
                 case BlockKind.Wait: return "wait()"; case BlockKind.Number: return "0";
                 case BlockKind.Comparison: return "<"; case BlockKind.DeclareVariable: return "variable =";
                 case BlockKind.Variable: return "variable"; case BlockKind.NearestEnemy: return "get_nearest_enemy()";
                 case BlockKind.PositionX: return "get_pos_x()"; case BlockKind.PositionY: return "get_pos_y()";
+                case BlockKind.MyAttackRange: return "my_attack_range()"; case BlockKind.MyPos: return "get_my_pos()";
                 case BlockKind.True: return "True"; case BlockKind.False: return "False";
+                case BlockKind.IsDead: return "is_dead()"; case BlockKind.Arithmetic: return "+ - * /";
                 default: return kind.ToString().ToLowerInvariant();
             }
         }

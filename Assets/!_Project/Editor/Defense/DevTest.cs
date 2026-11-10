@@ -23,6 +23,7 @@ namespace CodingGame.Defense.Editor
     public static class DevTest
     {
         const string ScenesRoot = "Assets/!_Project/Scenes/", RequestKey = "CodingGame.DevTest.Request";
+        const string NoTutorial = "Defense 씬에 튜토리얼이 연결되어 있지 않습니다 (DefenseBattle.tutorial 비어 있음).";
         public const string ReportPath = "TestResults/Editor/last.json";
 
         [Serializable] sealed class Request { public int stage = 1, wave = 1; public bool previousStageRewards = true; public DefenseTestOptions options; }
@@ -92,31 +93,77 @@ namespace CodingGame.Defense.Editor
             if (EditorApplication.isPlaying) { GameFlow.LoadScene(GameFlow.StageScene); return; }
             StartFrom(GameFlow.StageScene); EditorApplication.isPlaying = true;
         }
+        // Every project scene (test scenes included), third-party demos excluded.
+        public static string[] ScenePaths => AssetDatabase.FindAssets("t:Scene", new[] { "Assets" }).Select(AssetDatabase.GUIDToAssetPath)
+            .Where(path => !path.Contains("/ThirdParty/")).OrderBy(path => path).ToArray();
+        // Plays any scene, build list or not: starts Play there, or switches to it while playing. The next plain Play still starts at Title.
+        public static void PlayScene(string path)
+        {
+            if (!AssetDatabase.LoadAssetAtPath<SceneAsset>(path)) throw new ArgumentException("씬을 찾을 수 없습니다: " + path);
+            if (EditorApplication.isPlaying) { EditorSceneManager.LoadSceneInPlayMode(path, new LoadSceneParameters(LoadSceneMode.Single)); return; }
+            EditorSceneManager.playModeStartScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(path); EditorApplication.isPlaying = true;
+        }
+        // Opens a scene for editing (asks to save the current one first).
+        public static void OpenScene(string path)
+        {
+            if (EditorApplication.isPlaying) throw new InvalidOperationException("Play 중에는 편집용으로 열 수 없습니다. Play 종료 후 다시 시도하세요.");
+            if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) EditorSceneManager.OpenScene(path);
+        }
         public static void Stop() => EditorApplication.isPlaying = false;
+        // Back to a fresh install: every saved value lives in PlayerPrefs (cleared stages), so all of it goes.
+        public static void ResetSaveData()
+        {
+            PlayerPrefs.DeleteAll(); PlayerPrefs.Save();
+            StageMap.StageProgress.SelectedStage = 0;
+            if (EditorApplication.isPlaying) GameFlow.LoadScene(GameFlow.TitleScene);
+        }
 
-        // Stage 1 tutorial section titles per wave (1-5), read from the same JSON the game uses.
+        // Stage 1 tutorial steps of a wave ("stepId first line"), from the TutorialSequence assets.
         public static string[] TutorialSections(int wave)
         {
-            var path = AssetDatabase.FindAssets("stage1_" + wave + "_ t:TextAsset", new[] { "Assets/!_Project/Defense/Tutorial/Stage1" })
-                .Select(AssetDatabase.GUIDToAssetPath).FirstOrDefault();
-            if (path == null) return Array.Empty<string>();
-            return StageOneContent.Read(AssetDatabase.LoadAssetAtPath<TextAsset>(path), wave).sections.Select(x => x.section_title).ToArray();
+            var sequence = StageOneSequence(wave);
+            return sequence ? sequence.steps.Select(s => s.stepId + " " + (s.texts.Length > 0 ? s.texts[0].text : "")).ToArray() : Array.Empty<string>();
         }
-        // Jumps to a Stage 1 tutorial section (0-based), starting 1-wave with the tutorial when needed.
-        public static void JumpTutorial(int wave, int section)
+        static TutorialSequence StageOneSequence(int wave) => AssetDatabase.FindAssets("t:TutorialSequence")
+            .Select(guid => AssetDatabase.LoadAssetAtPath<TutorialSequence>(AssetDatabase.GUIDToAssetPath(guid)))
+            .FirstOrDefault(s => s && s.enabled && s.stage == 1 && s.wave == wave); // skips the disabled SequenceTest sample
+        // Jumps to a Stage 1 tutorial step (0-based), starting that wave with the tutorial when needed.
+        public static void JumpTutorial(int wave, int step)
         {
-            var b = Battle; var stageOne = b && b.Tutorial ? b.Tutorial.EditorStageOne : null;
-            if (stageOne && stageOne.EditorWave == wave) { JumpNow(b, stageOne, section); return; }
-            SessionState.SetString(RequestKey + ".jump", wave + "," + section);
+            var b = Battle;
+            if (b && b.Simulation != null && !b.Tutorial) throw new InvalidOperationException(NoTutorial);
+            if (OnStageOneWave(b, wave)) { JumpNow(b, wave, step); return; }
+            SessionState.SetString(RequestKey + ".jump", wave + "," + step);
             PlayDefense(1, wave, true, wave > 1);
         }
-        static void JumpNow(DefenseBattle b, StageOneTutorial stageOne, int section)
+        static bool OnStageOneWave(DefenseBattle b, int wave) => b && b.Simulation != null && b.Stage == 1 && b.Simulation.WaveIndex + 1 == wave;
+        static void JumpNow(DefenseBattle b, int wave, int step)
         {
-            if (stageOne.EditorNeedsRobot(section)) PlaceTeachingRobot(b, stageOne.EditorTeachingRole);
-            stageOne.EditorJump(section);
+            var sequence = StageOneSequence(wave);
+            if (!sequence) throw new InvalidOperationException($"1-{wave} 튜토리얼 시퀀스가 없습니다.");
+            RestoreTutorialWork(b, wave, step);
+            b.Tutorial.EditorRun(sequence, step);
+        }
+        // A player who followed the Stage 1 tutorials up to (wave, step) has the warriors those tutorials placed and the code
+        // they taught on each warrior; restarting or jumping there rebuilds that. Code a robot already has is left alone.
+        static void RestoreTutorialWork(DefenseBattle b, int wave, int step = 0)
+        {
+            var current = StageOneSequence(wave);
+            var done = Enumerable.Range(1, wave - 1).Select(StageOneSequence).Where(s => s).SelectMany(s => s.steps)
+                .Concat(current ? current.steps.Take(step) : Enumerable.Empty<TutorialStep>()).ToList();
+            int robots = done.Count(s => s.completionSignal == TutorialSignals.RobotPlaced);
+            while (b.Simulation.Robots.Count < robots) PlaceTeachingRobot(b, RobotRole.Warrior);
+            var warriors = b.Simulation.Robots.Where(r => r.Spec.role == RobotRole.Warrior).OrderBy(r => r.Id).ToList();
+            foreach (var answers in done.Where(s => s.completionSignal == TutorialSignals.ProgramMatches).GroupBy(s => s.robotIndex))
+            {
+                var bot = answers.Key < warriors.Count ? warriors[answers.Key] : null;
+                if (bot == null || bot.Program != null) continue;
+                try { b.Simulation.ApplyProgram(bot.Id, "robot_" + bot.Id, TutorialAnswers.Parse(answers.Last().expectedCode)); }
+                catch (FormatException e) { Debug.LogWarning($"튜토리얼 코드 복원 실패 (로봇 {bot.Id}): {e.Message}"); }
+            }
         }
         // Lifts the tutorial input lock just for this placement; the best route-coverage cell is used.
-        static void PlaceTeachingRobot(DefenseBattle b, RobotRole role)
+        internal static void PlaceTeachingRobot(DefenseBattle b, RobotRole role)
         {
             var sim = b.Simulation; int index = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => b.DefinitionRole(i) == role);
             var spec = b.RobotDefinition(index).stats;
@@ -149,16 +196,19 @@ namespace CodingGame.Defense.Editor
             var jump = SessionState.GetString(RequestKey + ".jump", "");
             if (jump == "") return;
             if (!EditorApplication.isPlayingOrWillChangePlaymode) { SessionState.EraseString(RequestKey + ".jump"); return; }
-            var parts = jump.Split(','); int wave = int.Parse(parts[0]), section = int.Parse(parts[1]);
-            var b = Battle; var stageOne = b && b.Tutorial ? b.Tutorial.EditorStageOne : null;
-            if (!stageOne || stageOne.EditorWave != wave) return; // the tutorial enters the wave on its next Update
+            var parts = jump.Split(','); int wave = int.Parse(parts[0]), step = int.Parse(parts[1]);
+            var b = Battle;
+            if (b && b.Simulation != null && !b.Tutorial) { SessionState.EraseString(RequestKey + ".jump"); Debug.LogWarning(NoTutorial); return; }
+            if (!OnStageOneWave(b, wave) || !b.Tutorial.EditorSynced) return; // the session starts, and the tutorial resets for it, on a later Update
             SessionState.EraseString(RequestKey + ".jump");
-            try { JumpNow(b, stageOne, section); } catch (Exception e) { Debug.LogException(e); }
+            try { JumpNow(b, wave, step); } catch (Exception e) { Debug.LogException(e); }
         }
         static void Begin(DefenseBattle battle, int stage, int wave, bool previousStageRewards)
         {
             battle.EditorManualClock = false;
             battle.EditorStartSession(stage, wave, previousStageRewards, Options, pendingContent);
+            // Starting mid Stage 1 with the earlier rewards: also the robots and code the earlier tutorials left.
+            if (stage == 1 && wave > 1 && previousStageRewards) RestoreTutorialWork(battle, wave);
             Events.Clear(); Metrics.Clear(); Subscribe(battle);
         }
 
@@ -199,9 +249,10 @@ namespace CodingGame.Defense.Editor
         static void Program(DefenseSimulation sim, RobotState bot)
         {
             sim.ApplyProgram(bot.Id, "robot_" + bot.Id, Array.Empty<CodeBlock>());
-            CodeBlock command = new CodeBlock(DefenseProgression.ActionBlock(bot.Spec.NativeAction));
-            if (sim.Available(BlockKind.While, bot.Id) > 0 && sim.Available(BlockKind.True, bot.Id) > 0)
-            { var loop = new CodeBlock(BlockKind.While, "0", new CodeBlock(BlockKind.True)); loop.Body.Add(command); command = loop; }
+            var kind = DefenseProgression.ActionBlock(bot.Spec.NativeAction);
+            CodeBlock command = PythonTreeCompiler.HasEnemyArgument(kind) ? new CodeBlock(kind, "0", new CodeBlock(BlockKind.NearestEnemy)) : new CodeBlock(kind);
+            if (sim.Available(BlockKind.While, bot.Id) > 0)
+            { var loop = new CodeBlock(BlockKind.While); loop.Body.Add(command); command = loop; } // no condition slot: while True
             else if (sim.Available(BlockKind.For, bot.Id) > 0 && sim.Available(BlockKind.Number, bot.Id) > 0)
             { var loop = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "100")); loop.Body.Add(command); command = loop; }
             sim.ApplyProgram(bot.Id, "robot_" + bot.Id, new[] { command });

@@ -1,0 +1,4 @@
+PASS: map cells and road cells preserved; decoration footprints clear of roads except intended endpoint structures.
+PASS: 13 reusable prop prefabs, persistent combined meshes/materials, full map prefab and rendered overview/detail.
+MonsterBaseFix at 0.65: (0.97, 0.91, 0.85); clear entrance 1.9 x 1.85
+RESULT: PASS

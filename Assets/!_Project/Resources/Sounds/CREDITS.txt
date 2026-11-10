@@ -1,0 +1,10 @@
+Sound effects: Kenney (www.kenney.nl), CC0 1.0 Universal (public domain), downloaded from OpenGameArt.org:
+  Interface Sounds      https://opengameart.org/content/interface-sounds
+  Sci-Fi Sounds         https://opengameart.org/content/sci-fi-sounds
+  85 Short Music Jingles https://opengameart.org/content/85-short-music-jingles
+  Digital Sound Effects https://opengameart.org/content/63-digital-sound-effects-lasers-phasers-space-etc
+  RPG Sound Effects     https://opengameart.org/content/50-rpg-sound-effects
+Each <kind>.ogg here is one of those files trimmed, faded and levelled (some pitched: the three stage-clear stars).
+The game plays a file by its name (DefenseSounds, UISound), so renaming one changes which sound plays where.
+alarm.ogg, hover.ogg: made in this project, not from a pack (Editor/UI~/make_sounds.py): the alarm is one short low 98 Hz buzzing
+pulse ("징", .45 s), the hover a soft 160 ms G4 marimba tap (picked from HoverSounds/ candidates).

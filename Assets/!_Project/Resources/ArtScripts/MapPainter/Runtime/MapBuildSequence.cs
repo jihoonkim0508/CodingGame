@@ -69,6 +69,8 @@ namespace CodingGame.Art.MapPainter
         private IEnumerator Animate()
         {
             float elapsed=0;
+            yield return null; // every sceneLoaded handler has run (GameFlow covers the screen in one)
+            while(GameFlow.Loading)yield return null; // the build plays when the scene shows, not under the loading screen
             while(playback!=null&&elapsed<duration)
             {
                 playback.Sample(elapsed/Mathf.Max(.5f,duration));

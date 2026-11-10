@@ -1,7 +1,10 @@
 using System;
 using System.Collections;
+using System.Linq;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
 
 namespace CodingGame.Defense
@@ -12,14 +15,21 @@ namespace CodingGame.Defense
         [SerializeField] Image portrait;
         [SerializeField] TMP_Text speaker, stageWave, dialogue;
         [SerializeField] Button previousText, nextText;
+        [SerializeField] Sprite defaultPortrait, surprisedPortrait;
+        [SerializeField] bool showDebugId;
+        TMP_Text nextLabel;
+        TMP_Text advanceHint;
         [SerializeField, Tooltip("Top position keeps this gap so the HUD header stays readable.")] float topInset = 96;
-        Coroutine typing;
+        [SerializeField, Tooltip("Bottom position sits this much higher than authored, clear of the HUD's bottom bar.")] float bottomLift = 170;
+        GuideMood mood;
+        Coroutine typing, entrance;
         RectTransform panelRect;
         Vector2 bottomAnchorMin, bottomAnchorMax, bottomPosition, bottomPivot;
         public bool IsTyping => typing != null;
-        // Extra gap above the bottom edge, e.g. to keep the code editor's status line readable.
-        public float BottomLift { get; set; }
         public bool IsVisible => panel && panel.activeSelf;
+        // Where 디버's face is, for the pointer to fly out from.
+        public RectTransform Portrait => portrait && IsVisible ? portrait.rectTransform : null;
+        public bool CanAdvance => nextText && nextText.gameObject.activeInHierarchy && nextText.interactable;
 
         public void Initialize(Action onPrevious, Action onNext)
         {
@@ -31,28 +41,84 @@ namespace CodingGame.Defense
             bottomPosition = panelRect.anchoredPosition; bottomPivot = panelRect.pivot;
             previousText.onClick.AddListener(() => onPrevious?.Invoke());
             nextText.onClick.AddListener(() => onNext?.Invoke());
+            nextLabel = nextText.GetComponentInChildren<TMP_Text>(true);
+            if(nextLabel){nextLabel.text="";nextLabel.gameObject.SetActive(false);}
+            var previousLabel=previousText.GetComponentInChildren<TMP_Text>(true);
+            if(previousLabel){previousLabel.text="";previousLabel.gameObject.SetActive(false);}
+            advanceHint=panelRect.Find("AdvanceHint")?.GetComponent<TMP_Text>();
             Hide();
         }
 
-        public void Show(TutorialSequence sequence, TutorialDialoguePosition position, string text, bool animate)
+        // voiceLine: the script line as written, to find its recording (GuideSpeech); null keeps quiet.
+        public void Show(TutorialSequence sequence, TutorialDialoguePosition position, string text, bool animate, string speakerName, string voiceLine = null)
         {
             StopTyping();
-            // Mirror the authored bottom layout; retain width, height and edge spacing at any resolution.
-            bool top = position == TutorialDialoguePosition.Top;
-            panelRect.anchorMin = new Vector2(bottomAnchorMin.x, top ? 1 - bottomAnchorMax.y : bottomAnchorMin.y);
-            panelRect.anchorMax = new Vector2(bottomAnchorMax.x, top ? 1 - bottomAnchorMin.y : bottomAnchorMax.y);
-            panelRect.pivot = new Vector2(bottomPivot.x, top ? 1 - bottomPivot.y : bottomPivot.y);
-            panelRect.anchoredPosition = new Vector2(bottomPosition.x, top ? -bottomPosition.y - topInset : bottomPosition.y + BottomLift);
+            float spoken = Speak(voiceLine);
+            Place(position);
             panel.SetActive(true);
-            portrait.sprite = sequence.speakerPortrait;
-            portrait.enabled = sequence.speakerPortrait;
-            speaker.text = sequence.speakerName;
-            stageWave.text = sequence.stage + "-" + sequence.wave;
+            // 디버's art (default, or surprised for a startled or worried line).
+            mood = GuideMoods.For(text);
+            bool surprised = mood == GuideMood.Surprised || mood == GuideMood.Worried;
+            portrait.sprite = sequence.speakerPortrait ? sequence.speakerPortrait : surprised && surprisedPortrait ? surprisedPortrait : defaultPortrait;
+            portrait.enabled = portrait.sprite;
+            speaker.text = string.IsNullOrWhiteSpace(speakerName) || speakerName.StartsWith("안내", StringComparison.Ordinal) || speakerName == "도우미 로봇" ? "디버" : speakerName;
+            stageWave.text = "";
+            stageWave.gameObject.SetActive(false);
             dialogue.text = text ?? string.Empty;
             dialogue.ForceMeshUpdate();
             int characterCount = dialogue.textInfo.characterCount;
             dialogue.maxVisibleCharacters = animate ? 0 : int.MaxValue;
-            if (animate && characterCount > 0) typing = StartCoroutine(Type(sequence.typeSpeed, characterCount));
+            // With a voice the letters stay ahead of it (all shown by half the line, 20 a second at least) without racing off at once.
+            float speed = spoken > 0 ? Mathf.Clamp(characterCount / (spoken * .5f), 20, sequence.typeSpeed) : sequence.typeSpeed;
+            if (animate && characterCount > 0) typing = StartCoroutine(Type(speed, characterCount));
+        }
+
+        // The guide's voice volume (Esc menu slider, 0-1), kept across sessions; at 0 the lines are not played at all. The old
+        // on/off switch's "off" starts it at 0.
+        const string VoiceKey = "CodingGame.Voice.On", VoiceVolumeKey = "CodingGame.Voice.Volume";
+        static float voiceVolume = -1;
+        public static float VoiceVolume
+        {
+            get => voiceVolume >= 0 ? voiceVolume : voiceVolume = PlayerPrefs.GetFloat(VoiceVolumeKey, PlayerPrefs.GetInt(VoiceKey, 1));
+            set { voiceVolume = Mathf.Clamp01(value); PlayerPrefs.SetFloat(VoiceVolumeKey, voiceVolume); PlayerPrefs.Save(); }
+        }
+        public static bool VoiceOn => VoiceVolume > 0;
+        AudioSource voice;
+        // Plays the line's recording, if it has one, and returns its length in seconds; anything already speaking stops.
+        // The source is its own scene object: the panel is off while a 시스템 banner speaks (1-1 A01 stayed silent).
+        public float Speak(string line)
+        {
+            if (!voice) { voice = new GameObject("Guide voice").AddComponent<AudioSource>(); voice.playOnAwake = false; voice.spatialBlend = 0; }
+            voice.Stop();
+            var clip = VoiceOn && !string.IsNullOrEmpty(line) ? Resources.Load<AudioClip>("Voice/" + GuideSpeech.Key(line)) : null;
+            if (!clip) return 0;
+            voice.clip = clip; voice.volume = VoiceVolume; voice.Play();
+            return clip.length;
+        }
+        public void StopVoice() { if (voice) voice.Stop(); }
+
+        // Once a line is fully shown and a click moves on, the next button breathes so the player knows the game waits for them.
+        void Update()
+        {
+            if (voice && voice.volume != VoiceVolume) voice.volume = VoiceVolume; // the Esc menu's slider moved mid-line
+            if (!IsVisible) return;
+            float now = Time.unscaledTime;
+            bool waiting = typing == null && nextText.interactable;
+            float nudge = Mathf.Sin(Mathf.Clamp01(1 - (now - nudgedAt) / .45f) * Mathf.PI) * .35f;
+            nextText.transform.localScale = Vector3.one * ((waiting ? 1 + .07f * (.5f + .5f * Mathf.Sin(now * 5)) : 1) + nudge);
+        }
+
+        public RectTransform Panel => panelRect;
+        public bool IsCentered => centered;
+        public bool AtTop { get; private set; }
+        // Mirror the authored bottom layout; retain width, height and edge spacing at any resolution.
+        public void Place(TutorialDialoguePosition position)
+        {
+            bool top = AtTop = position == TutorialDialoguePosition.Top;
+            panelRect.anchorMin = new Vector2(bottomAnchorMin.x, top ? 1 - bottomAnchorMax.y : bottomAnchorMin.y);
+            panelRect.anchorMax = new Vector2(bottomAnchorMax.x, top ? 1 - bottomAnchorMin.y : bottomAnchorMax.y);
+            panelRect.pivot = new Vector2(bottomPivot.x, top ? 1 - bottomPivot.y : bottomPivot.y);
+            panelRect.anchoredPosition = new Vector2(bottomPosition.x, top ? -bottomPosition.y - topInset : bottomPosition.y + bottomLift);
         }
 
         IEnumerator Type(float charactersPerSecond, int characterCount)
@@ -60,7 +126,8 @@ namespace CodingGame.Defense
             float elapsed = 0;
             while (dialogue.maxVisibleCharacters < characterCount)
             {
-                elapsed += Time.unscaledDeltaTime;
+                // One slow frame (editor opening, robot spawn) would otherwise reveal many letters at once; 0.1 s keeps low frame rates at full speed.
+                elapsed += Mathf.Min(Time.unscaledDeltaTime, .1f);
                 int count = Mathf.Min(characterCount, Mathf.FloorToInt(elapsed * charactersPerSecond) + 1);
                 dialogue.maxVisibleCharacters = count;
                 yield return null;
@@ -74,12 +141,41 @@ namespace CodingGame.Defense
             StopTyping(); dialogue.maxVisibleCharacters = int.MaxValue;
         }
 
-        public void SetNavigation(bool canPrevious, bool canNext)
-        { previousText.interactable = canPrevious; nextText.interactable = canNext; }
+        // Editor only: the line's id (e.g. "1-1 A04b") in the panel's top-right corner, to match playtest notes to the script.
+        TMP_Text idLabel;
+        public void SetDebugId(string id)
+        {
+#if UNITY_EDITOR
+            if (!showDebugId) { if (idLabel) idLabel.gameObject.SetActive(false); return; }
+            if (!idLabel)
+            {
+                idLabel = new GameObject("Debug id", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                var rect = idLabel.rectTransform; rect.SetParent(panelRect, false);
+                rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one; rect.anchoredPosition = new Vector2(-14, -8); rect.sizeDelta = new Vector2(240, 28);
+                idLabel.font = dialogue.font; idLabel.fontSize = 18; idLabel.alignment = TextAlignmentOptions.TopRight;
+                idLabel.color = new Color(.14f, .26f, .36f, .55f); idLabel.raycastTarget = false;
+            }
+            idLabel.text = id;
+#endif
+        }
+
+        float nudgedAt = -10;
+        // A click the tutorial turned away (전투 시작 while a line still waits): the next button jumps to show what to press.
+        public void Nudge() => nudgedAt = Time.unscaledTime;
+
+        public void SetNavigation(bool canPrevious, bool canNext, bool action = false, bool dismissable = false, bool automatic = false)
+        {
+            previousText.interactable = canPrevious; nextText.interactable = canNext;
+            previousText.gameObject.SetActive(canPrevious);
+            nextText.gameObject.SetActive(canNext || automatic);
+            stageWave.gameObject.SetActive(false);
+            if (nextLabel) nextLabel.text = "";
+            if(advanceHint)advanceHint.gameObject.SetActive(canNext&&!automatic);
+        }
 
         public void Hide()
         {
-            StopTyping();
+            StopTyping(); StopEntrance(); StopVoice();
             if (panel) panel.SetActive(false);
         }
 
@@ -88,5 +184,96 @@ namespace CodingGame.Defense
             if (typing != null) StopCoroutine(typing);
             typing = null;
         }
+
+        // Centred mode (the opening lines): the world turns grey and the dialogue sits large in the middle of the screen,
+        // punching in when it first appears. Leaving it shrinks the dialogue back into its usual place and brings the
+        // colour back. Call after Show, every time a line is shown.
+        // grey: the opening lines (grey world, extra large); otherwise a plain explanation line, moderately larger.
+        public void SetCentered(bool on, bool grey = true)
+        {
+            var parent = (RectTransform)panelRect.parent;
+            Vector3 home = panelRect.localPosition;   // where Show just put it
+            float scale = Mathf.Min(grey ? CenterScale : PlainScale, parent.rect.width * .9f / panelRect.rect.width);
+            // Where the pivot sits when the panel's middle is the screen's middle, at that scale.
+            Vector3 middle = parent.rect.center + Vector2.Scale(panelRect.pivot - new Vector2(.5f, .5f), panelRect.rect.size) * scale;
+            if (entrance != null) StopCoroutine(entrance);
+            entrance = null;
+            if (on) { entrance = StartCoroutine(centered ? Hold(middle, scale) : PunchIn(middle, scale)); SetGrey(grey ? 1 : 0); }
+            else if (centered) entrance = StartCoroutine(Shrink(middle, scale, home));
+            else { panelRect.localScale = Vector3.one; SetGrey(0); }
+            centered = on;
+        }
+        // Glides from where the panel was to where Place just put it.
+        public void SlideFrom(Vector3 from)
+        {
+            if (entrance != null) StopCoroutine(entrance);
+            entrance = StartCoroutine(Slide(from, panelRect.localPosition));
+        }
+        IEnumerator Slide(Vector3 from, Vector3 to)
+        {
+            for (float t = 0; t < SlideSeconds; t += Time.unscaledDeltaTime)
+            {
+                panelRect.localPosition = Vector3.Lerp(from, to, Mathf.SmoothStep(0, 1, t / SlideSeconds));
+                yield return null;
+            }
+            panelRect.localPosition = to;
+            entrance = null;
+        }
+        const float SlideSeconds = .3f;
+        const float CenterScale = 1.23f, PlainScale = 1.08f, PunchSeconds = .35f, ShrinkSeconds = .6f;
+        bool centered;
+        Volume grey;
+        UniversalAdditionalCameraData greyCamera;
+        bool cameraHadPostProcessing;
+        void StopEntrance()
+        {
+            if (entrance != null) StopCoroutine(entrance);
+            entrance = null; centered = false;
+            if (panelRect) panelRect.localScale = Vector3.one;
+            SetGrey(0);
+        }
+        IEnumerator Hold(Vector3 middle, float scale) { panelRect.localPosition = middle; panelRect.localScale = Vector3.one * scale; yield break; }
+        // A restrained settling motion keeps the reading area steady.
+        IEnumerator PunchIn(Vector3 middle, float scale)
+        {
+            for (float t = 0; t < PunchSeconds; t += Time.unscaledDeltaTime)
+            {
+                float k = t / PunchSeconds, settle = 1 - k;
+                panelRect.localScale = Vector3.one * scale * (1 + .035f * settle * settle);
+                panelRect.localPosition = middle + Vector3.down * (8 * settle * settle);
+                yield return null;
+            }
+            panelRect.localPosition = middle; panelRect.localScale = Vector3.one * scale;
+            entrance = null;
+        }
+        IEnumerator Shrink(Vector3 middle, float scale, Vector3 home)
+        {
+            for (float t = 0; t < ShrinkSeconds; t += Time.unscaledDeltaTime)
+            {
+                float k = Mathf.SmoothStep(0, 1, t / ShrinkSeconds);
+                panelRect.localPosition = Vector3.Lerp(middle, home, k);
+                panelRect.localScale = Vector3.one * Mathf.Lerp(scale, 1, k);
+                if (grey) SetGrey(1 - k);
+                yield return null;
+            }
+            panelRect.localPosition = home; panelRect.localScale = Vector3.one; SetGrey(0);
+            entrance = null;
+        }
+        // weight 1: the battle camera's picture loses its colour (UI overlay stays coloured). Post-processing is on only meanwhile.
+        void SetGrey(float weight)
+        {
+            if (weight > 0 && !grey)
+            {
+                grey = new GameObject("Tutorial grey", typeof(Volume)).GetComponent<Volume>();
+                grey.isGlobal = true; grey.priority = 100;
+                grey.profile = ScriptableObject.CreateInstance<VolumeProfile>();
+                grey.profile.Add<ColorAdjustments>(true).saturation.Override(-100);
+            }
+            if (grey) grey.weight = weight;
+            var camera = Camera.main ? Camera.main.GetComponent<UniversalAdditionalCameraData>() : null;
+            if (weight > 0 && camera && !greyCamera) { greyCamera = camera; cameraHadPostProcessing = camera.renderPostProcessing; camera.renderPostProcessing = true; }
+            if (weight <= 0 && greyCamera) { greyCamera.renderPostProcessing = cameraHadPostProcessing; greyCamera = null; }
+        }
+        void OnDestroy() { if (grey) { Destroy(grey.profile); Destroy(grey.gameObject); } }
     }
 }

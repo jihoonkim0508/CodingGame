@@ -8,19 +8,34 @@ using CodingGame.BlockCoding;
 namespace CodingGame.Defense
 {
     /// <summary>검증된 블록 코드를 전투 시간에 맞춰 실행하며, 틱당 명령 수를 제한합니다.</summary>
+    // Synchronous, like the farm in 'The Farmer Was Replaced' (play feedback 4): the function runs only when called (battle
+    // start calls every robot's once, the robot's Play button calls it again), one statement after another, and a call made
+    // while it runs is refused, not queued. An attack waits only for its cooldown; a slash with nobody in range still swings.
     public sealed class DefenseProgram
     {
         enum Op { Statement, Condition, Jump, ForInit, ForTest, ForNext }
         sealed class Instruction { public Op Op; public CodeBlock Block; public int Jump, Loop; }
         sealed class LoopState { public double Count, Index; }
-        sealed class EnemyValue { public int Id; }
+        // A value as a struct, not a boxed object: numbers, truth, enemies and positions are made every tick (13차 130).
+        enum ValueKind : byte { Number, Truth, Enemy, Position }
+        readonly struct Val
+        {
+            public readonly ValueKind Kind; public readonly double Number; public readonly int Enemy; public readonly Vector2 Position;
+            Val(ValueKind kind, double number, int enemy, Vector2 position) { Kind = kind; Number = number; Enemy = enemy; Position = position; }
+            public static Val Of(double n) => new Val(ValueKind.Number, n, 0, default);
+            public static Val Of(bool b) => new Val(ValueKind.Truth, b ? 1 : 0, 0, default);
+            public static Val Of(Vector2 v) => new Val(ValueKind.Position, 0, 0, v);
+            public static Val EnemyOf(int id) => new Val(ValueKind.Enemy, 0, id, default);
+        }
         readonly List<CodeBlock> blocks;
         readonly Dictionary<BlockKind, int> blockCounts;
         readonly List<Instruction> code = new List<Instruction>();
-        readonly Dictionary<string, object> variables = new Dictionary<string, object>();
+        readonly Dictionary<string, Val> variables = new Dictionary<string, Val>();
+        // Applied code never changes: each number is parsed and each name normalized once, the first time it runs.
+        readonly Dictionary<CodeBlock, double> numbers = new Dictionary<CodeBlock, double>();
+        readonly Dictionary<CodeBlock, string> names = new Dictionary<CodeBlock, string>();
         readonly Dictionary<int, LoopState> loops = new Dictionary<int, LoopState>();
         int pc, nextLoop;
-        bool invocationStarted;
         double wakeTime;
         public string Name { get; }
         public string Source { get; }
@@ -28,28 +43,17 @@ namespace CodingGame.Defense
         public int StepsLastTick { get; private set; }
         public bool IsEmpty => blocks.Count == 0;
         public int CompletedRuns { get; private set; }
-        public bool Completed(DefenseSimulation sim) => CompletedRuns >= sim.FunctionRepeatLimit;
+        public bool Running { get; private set; }
         public int BlockCount(BlockKind kind) => blockCounts.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0;
         public double WaitRemaining(double time) => Math.Max(0, wakeTime - time);
         public IReadOnlyList<CodeBlock> CopyBlocks() => blocks.Select(Clone).ToList();
-        public void ConfigureLearning(RobotState robot)
+        void EndInvocation() { pc = 0; Running = false; variables.Clear(); loops.Clear(); }
+        // A call while the function runs (or after it faulted) is refused: Play stays locked until it ends.
+        public bool Invoke()
         {
-            float? damage = null;
-            float range = robot.Spec.range;
-            foreach (var block in blocks.Where(b => b.Kind == BlockKind.DeclareVariable && b.Arguments[0].Kind == BlockKind.Number))
-            {
-                if (block.Value != "damage" && block.Value != "range") continue;
-                float setting = LearningValue(float.Parse(PythonTreeCompiler.NormalizeNumber(block.Arguments[0].Value), CultureInfo.InvariantCulture));
-                if (block.Value == "damage") damage = setting; else range = setting;
-            }
-            robot.DamageSetting = damage; robot.RangeSetting = range;
+            if (Running || Fault != null || IsEmpty) return false;
+            EndInvocation(); Running = true; return true;
         }
-        static float LearningValue(double value)
-        {
-            if (!(value > 0 && value <= 100)) throw new FormatException("공격력과 사거리는 0 초과 100 이하입니다.");
-            return (float)value;
-        }
-        void EndInvocation() { pc = 0; invocationStarted = false; variables.Clear(); loops.Clear(); }
         public const int InstructionBudget = 64;
 
         public DefenseProgram(string name, IReadOnlyList<CodeBlock> program)
@@ -95,7 +99,7 @@ namespace CodingGame.Defense
                         var innerBreaks = new List<int>(); var innerContinues = new List<int>();
                         EmitSuite(b.Body, innerBreaks, innerContinues);
                         int step = code.Count;
-                        if (counted) Emit(Op.ForNext, loop: loop);
+                        if (counted) Emit(Op.ForNext, jump: test, loop: loop);
                         Emit(Op.Jump, jump: start);
                         if (test >= 0) code[test].Jump = code.Count;
                         foreach (var exit in innerBreaks) code[exit].Jump = code.Count;
@@ -110,15 +114,7 @@ namespace CodingGame.Defense
         public void Tick(DefenseSimulation sim, RobotState robot)
         {
             StepsLastTick = 0;
-            if (Fault != null || Completed(sim) || sim.Phase != BattlePhase.Running || sim.Time + 1e-9 < wakeTime) return;
-            if (!invocationStarted)
-            {
-                var nearest = Rules.Nearest(sim.Enemies.Where(e => e.Active && (sim.Setup.StageOneLearning || Vector2.DistanceSquared(e.Position, robot.Position) <= robot.Range * robot.Range)), robot.Position);
-                if (nearest == null && blocks.Any(UsesEnemy)) return;
-                variables["enemy"] = new EnemyValue { Id = nearest?.Id ?? 0 };
-                variables["enemyDistance"] = nearest == null ? double.PositiveInfinity : (double)Vector2.Distance(nearest.Position, robot.Position);
-                invocationStarted = true;
-            }
+            if (!Running || Fault != null || sim.Phase != BattlePhase.Running || sim.Time + 1e-9 < wakeTime) return;
             try
             {
                 // 무한 반복문도 한 틱을 독점하지 못하도록 실행 예산을 나눕니다.
@@ -129,7 +125,9 @@ namespace CodingGame.Defense
                     switch (instruction.Op)
                     {
                         case Op.Jump: pc = instruction.Jump; break;
-                        case Op.Condition: pc = Truth(Value(instruction.Block, sim, robot)) ? pc + 1 : instruction.Jump; break;
+                        case Op.Condition:
+                            pc = Truth(Value(instruction.Block, sim, robot)) ? pc + 1 : instruction.Jump;
+                            break;
                         case Op.ForInit:
                             double count = Number(Value(instruction.Block, sim, robot));
                             if (count != Math.Truncate(count) || Math.Abs(count) > 1000000000) throw new FormatException("range 횟수는 절댓값 10억 이하 정수여야 합니다.");
@@ -137,22 +135,15 @@ namespace CodingGame.Defense
                         case Op.ForTest:
                             var state = loops[instruction.Loop];
                             if (state.Index >= state.Count) pc = instruction.Jump;
-                            else { variables["i"] = state.Index; pc++; }
+                            else { variables["i"] = Val.Of(state.Index); pc++; }
                             break;
-                        case Op.ForNext: loops[instruction.Loop].Index++; pc++; break;
+                        case Op.ForNext:
+                            loops[instruction.Loop].Index++; robot.LoopTurnsThisWave++; pc++; break;
                         default:
                             var block = instruction.Block;
                             if (block.Kind == BlockKind.DeclareVariable)
                             {
-                                string name = PythonTreeCompiler.NormalizeIdentifier(block.Value);
-                                var value = Value(block.Arguments[0], sim, robot);
-                                variables[name] = value;
-                                if (sim.Setup.StageOneLearning && (name == "damage" || name == "range"))
-                                {
-                                    float setting = LearningValue(Number(value));
-                                    if (name == "damage") robot.DamageSetting = setting;
-                                    else robot.RangeSetting = setting;
-                                }
+                                variables[Identifier(block)] = Value(block.Arguments[0], sim, robot);
                                 pc++; break;
                             }
                             if (block.Kind == BlockKind.Wait)
@@ -165,24 +156,16 @@ namespace CodingGame.Defense
                             int target = 0;
                             if (PythonTreeCompiler.HasEnemyArgument(block.Kind))
                             {
-                                var argument = block.Arguments.Count == 0 || block.Arguments[0] == null
-                                    ? new CodeBlock(BlockKind.Variable, "enemy") : block.Arguments[0];
-                                var enemy = Value(argument, sim, robot) as EnemyValue;
-                                if (enemy == null) throw new FormatException("공격 대상에는 enemy 객체가 필요합니다.");
-                                target = enemy.Id;
+                                var enemy = Value(block.Arguments[0], sim, robot);
+                                if (enemy.Kind != ValueKind.Enemy) throw new FormatException("공격 대상에는 Enemy 객체가 필요합니다.");
+                                target = enemy.Enemy;
                                 // 지정한 적이 사라져도 다른 적으로 자동 교체하지 않습니다.
-                                if (target == 0 || !sim.Enemies.Any(e => e.Id == target && e.Active))
+                                if (target == 0 || Active(sim, target) == null)
                                 { robot.LastResult = ActionResult.NoTarget; pc++; return; }
                             }
-                            var result = sim.RequestAction(robot.Id, action, target);
-                            if (result == ActionResult.CoolingDown && sim.Setup.StageOneLearning)
-                            {
-                                // Recheck distance before the next attack; a moving enemy may leave the teaching condition during cooldown.
-                                EndInvocation();
-                                return;
-                            }
-                            // 재사용 대기 중에는 같은 명령에서 기다리고, 실행 결과가 나오면 다음으로 이동합니다.
-                            if (result != ActionResult.CoolingDown) pc++;
+                            // 재사용 대기 중에는 같은 명령에서 기다리고, 실행 결과가 나오면 다음으로 이동합니다. A target out of
+                            // range is a miss (NoTarget): the next statement runs, nothing waits for it to come closer.
+                            if (sim.RequestAction(robot.Id, action, target) != ActionResult.CoolingDown) pc++;
                             return;
                     }
                 }
@@ -190,8 +173,6 @@ namespace CodingGame.Defense
             }
             catch (FormatException error) { Fault = error.Message; }
         }
-        static bool UsesEnemy(CodeBlock block) => block != null && (PythonTreeCompiler.HasEnemyArgument(block.Kind) ||
-            block.Kind == BlockKind.Variable && (block.Value == "enemy" || block.Value == "enemyDistance") || block.Arguments.Any(UsesEnemy) || block.Body.Any(UsesEnemy));
         static RobotAction Action(BlockKind kind)
         {
             switch (kind)
@@ -205,43 +186,93 @@ namespace CodingGame.Defense
                 default: throw new FormatException("지원하지 않는 전투 명령입니다: " + kind);
             }
         }
-        object Value(CodeBlock block, DefenseSimulation sim, RobotState robot)
+        string Identifier(CodeBlock block)
         {
-            object Arg(int i) => Value(block.Arguments[i], sim, robot);
+            if (!names.TryGetValue(block, out var name)) names[block] = name = PythonTreeCompiler.NormalizeIdentifier(block.Value);
+            return name;
+        }
+        static EnemyState Active(DefenseSimulation sim, int id)
+        {
+            var enemies = sim.Enemies;
+            for (int i = 0; i < enemies.Count; i++) if (enemies[i].Id == id && enemies[i].Active) return enemies[i];
+            return null;
+        }
+        static int EnemyId(Val value) => value.Kind == ValueKind.Enemy ? value.Enemy : throw new FormatException("Enemy 객체가 필요합니다.");
+        Val Value(CodeBlock block, DefenseSimulation sim, RobotState robot)
+        {
+            Val Arg(int i) => Value(block.Arguments[i], sim, robot);
             switch (block.Kind)
             {
                 case BlockKind.Number:
-                    if (!double.TryParse(PythonTreeCompiler.NormalizeNumber(block.Value), NumberStyles.Float, CultureInfo.InvariantCulture, out double n) || double.IsNaN(n) || double.IsInfinity(n))
-                        throw new FormatException("실행 가능한 숫자 범위를 벗어났습니다.");
-                    return n;
-                case BlockKind.True: return true;
-                case BlockKind.False: return false;
-                case BlockKind.PositionX: return (double)robot.Position.X;
-                case BlockKind.PositionY: return (double)robot.Position.Y;
+                    if (!numbers.TryGetValue(block, out double n))
+                    {
+                        if (!double.TryParse(PythonTreeCompiler.NormalizeNumber(block.Value), NumberStyles.Float, CultureInfo.InvariantCulture, out n) || double.IsNaN(n) || double.IsInfinity(n))
+                            throw new FormatException("실행 가능한 숫자 범위를 벗어났습니다.");
+                        numbers[block] = n;
+                    }
+                    return Val.Of(n);
+                case BlockKind.True: return Val.Of(true);
+                case BlockKind.False: return Val.Of(false);
+                case BlockKind.PositionX: return Val.Of(robot.Position.X);
+                case BlockKind.PositionY: return Val.Of(robot.Position.Y);
+                case BlockKind.MyAttackRange: return Val.Of(robot.Range); // includes buffs, same range the attack uses
+                case BlockKind.MyPos: return Val.Of(robot.Position);
                 case BlockKind.Variable:
-                    if (!variables.TryGetValue(PythonTreeCompiler.NormalizeIdentifier(block.Value), out var variable)) throw new FormatException("선언되지 않은 변수입니다.");
+                    if (!variables.TryGetValue(Identifier(block), out var variable)) throw new FormatException("선언되지 않은 변수입니다.");
                     return variable;
                 case BlockKind.NearestEnemy:
-                    var nearest = Rules.Nearest(sim.Enemies.Where(e => e.Active), robot.Position);
-                    return new EnemyValue { Id = nearest?.Id ?? 0 };
+                {
+                    // Rules.Nearest over the active enemies, without the Where enumerator.
+                    EnemyState nearest = null; float best = float.MaxValue;
+                    foreach (var e in sim.Enemies)
+                    {
+                        if (!e.Active) continue;
+                        float d = Vector2.DistanceSquared(e.Position, robot.Position);
+                        if (d < best) { best = d; nearest = e; }
+                    }
+                    return Val.EnemyOf(nearest?.Id ?? 0);
+                }
                 case BlockKind.Distance:
-                    int id = ((EnemyValue)Arg(0)).Id; var enemy = sim.Enemies.Find(e => e.Id == id && e.Active);
-                    double x = Number(Arg(1)), z = Number(Arg(2));
-                    return enemy == null ? double.PositiveInfinity : Math.Sqrt(Math.Pow(enemy.Position.X - x, 2) + Math.Pow(enemy.Position.Y - z, 2));
+                    var enemy = Active(sim, EnemyId(Arg(0)));
+                    var from = Arg(1);
+                    if (from.Kind != ValueKind.Position) throw new FormatException("distance에는 위치(Vector2)가 필요합니다.");
+                    return Val.Of(enemy == null ? double.PositiveInfinity : Vector2.Distance(enemy.Position, from.Position));
+                case BlockKind.IsDead:
+                    // An enemy variable not assigned yet is no enemy, and no enemy is dead (see PythonTreeCompiler).
+                    var receiver = block.Arguments[0];
+                    if (receiver.Kind == BlockKind.Variable && !variables.ContainsKey(Identifier(receiver))) return Val.Of(true);
+                    int watched = EnemyId(Arg(0));
+                    return Val.Of(watched == 0 || Active(sim, watched) == null);
+                case BlockKind.Arithmetic:
+                    double x = Number(Arg(0)), y = Number(Arg(1));
+                    switch (block.Value)
+                    {
+                        case "+": return Val.Of(x + y); case "-": return Val.Of(x - y); case "*": return Val.Of(x * y);
+                        case "/": if (y == 0) throw new FormatException("0으로 나눌 수 없습니다."); return Val.Of(x / y);
+                    }
+                    break;
+                case BlockKind.Hp:
+                    return Val.Of(Active(sim, EnemyId(Arg(0)))?.Health ?? 0); // a defeated enemy reads as 0 hp
                 case BlockKind.Comparison:
                     var left = Arg(0); var right = Arg(1);
-                    if (block.Value == "==") return left is EnemyValue a && right is EnemyValue b ? a.Id == b.Id :
-                        (left is double || left is bool) && (right is double || right is bool) ? Number(left) == Number(right) : Equals(left, right);
+                    if (block.Value == "==")
+                    {
+                        if (left.Kind == ValueKind.Enemy && right.Kind == ValueKind.Enemy) return Val.Of(left.Enemy == right.Enemy);
+                        bool scalar(Val v) => v.Kind == ValueKind.Number || v.Kind == ValueKind.Truth;
+                        if (scalar(left) && scalar(right)) return Val.Of(Number(left) == Number(right));
+                        return Val.Of(left.Kind == ValueKind.Position && right.Kind == ValueKind.Position && left.Position == right.Position);
+                    }
                     double l = Number(left, allowInfinity: true), r = Number(right, allowInfinity: true);
-                    switch (block.Value) { case "<": return l < r; case ">": return l > r; case "<=": return l <= r; case ">=": return l >= r; }
+                    switch (block.Value) { case "<": return Val.Of(l < r); case ">": return Val.Of(l > r); case "<=": return Val.Of(l <= r); case ">=": return Val.Of(l >= r); }
                     break;
             }
             throw new FormatException("실행할 수 없는 값 블록입니다: " + block.Kind);
         }
-        static bool Truth(object value) => value is bool b ? b : value is double d ? d != 0 : value is EnemyValue e && e.Id != 0;
-        static double Number(object value, bool allowInfinity = false)
+        static bool Truth(Val value) => value.Kind == ValueKind.Truth || value.Kind == ValueKind.Number ? value.Number != 0 :
+            value.Kind == ValueKind.Enemy && value.Enemy != 0;
+        static double Number(Val value, bool allowInfinity = false)
         {
-            double n = value is double d ? d : value is bool b ? (b ? 1 : 0) : double.NaN;
+            double n = value.Kind == ValueKind.Number || value.Kind == ValueKind.Truth ? value.Number : double.NaN;
             if (double.IsNaN(n) || !allowInfinity && double.IsInfinity(n)) throw new FormatException("유효한 숫자가 필요합니다.");
             return n;
         }

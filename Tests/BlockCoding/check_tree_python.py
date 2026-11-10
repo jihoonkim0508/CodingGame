@@ -12,8 +12,13 @@ position = [0]
 
 
 class Enemy:
-    def get_distance(self, x, y):
+    def distance(self, pos):
+        x, y = pos
         return ((3 - x) ** 2 + (4 - y) ** 2) ** 0.5
+
+    @property
+    def hp(self):  # read-only, like the game API
+        return 30
 
 
 enemy = Enemy()
@@ -28,6 +33,8 @@ scope = {
     "get_nearest_enemy": lambda: enemy,
     "get_pos_x": lambda: position[0],
     "get_pos_y": lambda: 0,
+    "get_my_pos": lambda: (position[0], 0),
+    "my_attack_range": lambda: 5.0,
     "attack": lambda target: events.append(("attack", target)),
     "wait": wait,
 }
@@ -39,6 +46,7 @@ for name, source in programs.items():
 expected = {
     "tree_loop": [("wait", 2), ("wait", 3)],
     "tree_enemy": [("attack", enemy)],
+    "tree_range": [("attack", enemy)],
     "tree_while": [("wait", 0.25)],
     "tree_nested_break": [("wait", 0.25)] * 2,
     "tree_paths": [("attack", enemy)],
@@ -46,6 +54,7 @@ expected = {
     "tree_empty_body": [],
     "tree_chain": [("wait", 7)],
     "tree_unicode": [("attack", enemy)],
+    "tree_hp": [("attack", enemy)],
 }
 for name, result in expected.items():
     events.clear()
@@ -53,4 +62,4 @@ for name, result in expected.items():
     scope[name]()
     assert events == result, (name, events, result)
 
-print("PASS: generated Python 3 syntax and execution for nested loops, break/continue, 64 elif branches, methods and variables.")
+print("PASS: generated Python 3 syntax and execution for nested loops, break/continue, 64 elif branches, methods and variables, enemy.hp.")

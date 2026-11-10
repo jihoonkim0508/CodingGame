@@ -5,6 +5,7 @@ using CodingGame.BlockCoding;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace CodingGame.Defense
@@ -16,11 +17,16 @@ namespace CodingGame.Defense
         [SerializeField] GameObject editorRoot;
         [SerializeField] TMP_Text title, inventory;
         [SerializeField] Button closeButton, automaticButton;
+        // Optional: SetHint is a no-op without it.
+        [SerializeField, Tooltip("'비우기' 오른쪽 힌트 버튼. 튜토리얼이 힌트를 줄 때만 보입니다.")] Button hintButton;
+        [SerializeField] GameObject hintPopup;
+        [SerializeField] TMP_Text hintText;
         int editingId;
         DefenseSimulation editingSession;
         DefenseSimulation draftSession;
         readonly Dictionary<int, CommandCodingPanel.EditHistory> drafts = new Dictionary<int, CommandCodingPanel.EditHistory>();
         public bool IsOpen => editorRoot && editorRoot.activeSelf;
+        public bool HintOpen => IsOpen && hintPopup && hintPopup.activeSelf;
         public int EditingId => editingId;
         public CommandCodingPanel Panel => panel;
         bool HasCurrentSession => editingSession != null && editingSession == battle.Simulation;
@@ -30,12 +36,63 @@ namespace CodingGame.Defense
                 throw new InvalidOperationException("DefenseCodeEditor Inspector 참조를 연결하세요.");
             panel.ApplyToTarget = Apply;
             panel.BlockDropped += OnBlockDropped;
+            panel.BlockDropped += (kind, source, destination) => UISound.Play("block-drop");
+            panel.Feedback += kind => UISound.Play(kind);
             panel.IsAvailable = kind => editingSession == null || editingSession.Options.unlockAll || editingSession.Available(kind, editingId) > 0;
             panel.Remaining = kind => editingSession == null ? 0 : Math.Max(0, editingSession.Available(kind, editingId) - panel.Program.AllBlocks().Count(b => DefenseProgression.Canonical(b.Kind) == DefenseProgression.Canonical(kind)));
             closeButton.onClick.AddListener(() => Close());
             automaticButton.onClick.AddListener(RestoreAutomatic);
-            inventory.text = "블록 인벤토리";
+            if (hintButton) hintButton.onClick.AddListener(ToggleHint);
+            SetHint(null);
+            if (!baked) Bake();
             editorRoot.SetActive(false);
+        }
+        // The top row's buttons together at the right (play feedback 3: 비우기 sat 130 px from 닫기): 닫기, then 비우기, then the
+        // tutorial's hint, 10 px apart, 비우기 in Jalnan like 닫기. The block guide's i (DefenseBlockHelp) follows the inventory's
+        // title instead of floating alone over the card's corner.
+        // Built once in the editor and saved with the scene or prefab (13차: the editor showed the old look until Play); at run
+        // time only in one that was never baked.
+        [SerializeField, HideInInspector] bool baked;
+        public bool Baked => baked;
+        public void Bake()
+        {
+            if (baked) return;
+            inventory.text = "블록 인벤토리";
+            Arrange();
+            baked = true;
+        }
+        void Arrange()
+        {
+            var clear = (RectTransform)automaticButton.transform;
+            LeftOf(clear, (RectTransform)closeButton.transform, 10);
+            if (hintButton) LeftOf((RectTransform)hintButton.transform, clear, 10);
+            var label = automaticButton.GetComponentInChildren<TMP_Text>();
+            if (label && UITheme.Display) { label.font = UITheme.Display; label.fontStyle &= ~FontStyles.Bold; }
+            if (hintButton) Like(hintButton, automaticButton);
+            var info = panel.GetComponentsInChildren<Button>(true).FirstOrDefault(b => b.name == "Info" && b.transform.parent == panel.transform);
+            if (!info) return;
+            var rect = (RectTransform)info.transform; var heading = inventory.rectTransform; var size = rect.rect.size;
+            rect.anchorMin = rect.anchorMax = heading.anchorMin; rect.pivot = new Vector2(0, .5f); rect.sizeDelta = size;
+            rect.anchoredPosition = heading.anchoredPosition + new Vector2(-heading.pivot.x * heading.rect.width + inventory.preferredWidth + 10, (.5f - heading.pivot.y) * heading.rect.height);
+        }
+        // The hint button in 비우기's look with its word centred (play feedback 4: a dark box with the word at its right edge).
+        static void Like(Button button, Button model)
+        {
+            if (button.targetGraphic is Image image && model.targetGraphic is Image look)
+            { image.sprite = look.sprite; image.type = look.type; image.pixelsPerUnitMultiplier = look.pixelsPerUnitMultiplier; image.color = look.color; }
+            button.transition = model.transition; button.colors = model.colors; button.spriteState = model.spriteState;
+            TMP_Text text = button.GetComponentInChildren<TMP_Text>(true), font = model.GetComponentInChildren<TMP_Text>(true);
+            if (!text || !font) return;
+            text.font = font.font; text.fontSharedMaterial = font.fontSharedMaterial; text.fontSize = font.fontSize;
+            text.fontStyle = font.fontStyle; text.color = font.color; text.alignment = TextAlignmentOptions.Center;
+            var box = text.rectTransform; box.anchorMin = Vector2.zero; box.anchorMax = Vector2.one; box.offsetMin = box.offsetMax = Vector2.zero;
+        }
+        // rect's right edge gap left of anchor's left edge, on the same row; both under one parent, anchor anchored at a point.
+        static void LeftOf(RectTransform rect, RectTransform anchor, float gap)
+        {
+            var size = rect.rect.size;
+            rect.anchorMin = rect.anchorMax = anchor.anchorMin; rect.pivot = new Vector2(1, .5f); rect.sizeDelta = size;
+            rect.anchoredPosition = anchor.anchoredPosition + new Vector2(-anchor.pivot.x * anchor.rect.width - gap, (.5f - anchor.pivot.y) * anchor.rect.height);
         }
         public void Open(int id)
         {
@@ -48,7 +105,7 @@ namespace CodingGame.Defense
             foreach (int removed in drafts.Keys.Where(key => !sim.Robots.Exists(r => r.Id == key)).ToArray()) drafts.Remove(removed);
             title.text = "미리보기 · " + battle.RobotName(id);
             battle.BeginCodeView(robot);
-            editorRoot.SetActive(true);
+            editorRoot.SetActive(true); UISound.Play("open");
             if (drafts.TryGetValue(id, out var history)) panel.LoadHistory(history);
             else panel.LoadProgram(robot.Program?.Name ?? "robot_" + id, robot.Program?.CopyBlocks() ?? Array.Empty<CodeBlock>());
             panel.ShowCategory(1); panel.RefreshPalette();
@@ -57,7 +114,10 @@ namespace CodingGame.Defense
         string Apply(string name, IReadOnlyList<CodeBlock> blocks)
         {
             if (!IsOpen || !HasCurrentSession) throw new FormatException("로봇을 다시 선택하세요.");
-            editingSession.ApplyProgram(editingId, name, blocks); panel.RefreshPalette();
+            editingSession.ApplyProgram(editingId, name, blocks);
+            // The blocks in the editor stay this robot's even when the code is unfinished and nothing was applied.
+            editingSession.SetDraft(editingId, panel.Program.AllBlocks().Select(b => b.Kind));
+            panel.RefreshPalette();
             battle.NotifyCodeApplied(editingId, blocks.Count == 0);
             return blocks.Count == 0 ? "코드 없음 · 행동하지 않음" : "자동 적용됨";
         }
@@ -69,20 +129,298 @@ namespace CodingGame.Defense
             bool wasOpen = IsOpen;
             if (IsOpen && HasCurrentSession && editingSession.Robots.Exists(r => r.Id == editingId))
                 drafts[editingId] = panel.History;
-            if (IsOpen) battle.EndCodeView();
+            if (IsOpen) { battle.EndCodeView(); UISound.Play("close"); }
             if (editorRoot) editorRoot.SetActive(false);
             editingId = 0; editingSession = null;
             if (resume && wasOpen) battle.ReportTutorialAction("Editor.Close", "TargetClicked", "EditorClosed");
         }
+        // Code shown by the hint button; null or empty hides the button.
+        public void SetHint(string code)
+        {
+            if (!hintButton) return;
+            hintButton.gameObject.SetActive(!string.IsNullOrWhiteSpace(code));
+            if (hintText) hintText.text = code ?? "";
+            if (hintPopup) hintPopup.SetActive(false);
+        }
+        void ToggleHint()
+        {
+            if (!battle.TutorialAllows(TutorialKeys.Hint) || !hintPopup) return;
+            hintPopup.SetActive(!hintPopup.activeSelf);
+            battle.ReportTutorialAction(TutorialKeys.Hint, TutorialSignals.TargetClicked);
+        }
+        // Empties a robot's code (blocks go back to the inventory); through the editor when it is open on that robot.
+        public void ClearRobotProgram(int id)
+        {
+            drafts.Remove(id);
+            if (IsOpen && editingId == id) { panel.ClearProgram(); panel.RefreshPalette(); return; }
+            var sim = battle.Simulation; var robot = sim?.FindRobot(id);
+            if (robot != null && sim.CanEdit) { sim.ApplyProgram(id, robot.Program?.Name ?? "robot_" + id, Array.Empty<CodeBlock>()); sim.SetDraft(id, Array.Empty<BlockKind>()); }
+        }
+
+        public void PrepareDistanceExample()
+        {
+            if (!IsOpen || !HasCurrentSession) return;
+            // 1-3 B01: inside the loop from 1-1, find the enemy and measure the distance; the player adds the if.
+            panel.LoadProgram(panel.FunctionName, new[] { Loop(
+                new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)),
+                new CodeBlock(BlockKind.DeclareVariable, "enemy_distance", new CodeBlock(BlockKind.Distance, "0",
+                    new CodeBlock(BlockKind.Variable, "enemy"), new CodeBlock(BlockKind.MyPos)))) });
+            if (!panel.IsApplied) throw new InvalidOperationException("조건문 기초 코드의 블록 지급량을 확인하세요.");
+        }
+        public void PrepareBaselineExample()
+        {
+            if (!IsOpen || !HasCurrentSession) return;
+            // 1-3 A05: the shooter firing at the nearest enemy the moment one is in range, to compare against.
+            panel.LoadProgram(panel.FunctionName, new[] { Loop(new CodeBlock(BlockKind.Shot, "0", new CodeBlock(BlockKind.NearestEnemy))) });
+            if (!panel.IsApplied) throw new InvalidOperationException("비교용 기본 베기 코드의 블록 지급량을 확인하세요.");
+            RestartPreview();
+        }
+        static CodeBlock Loop(params CodeBlock[] body)
+        {
+            var loop = new CodeBlock(BlockKind.While); // while True (no for for the player, 12차 121)
+            loop.Body.AddRange(body);
+            return loop;
+        }
+        public void RestartPreview() => battle.RestartCodePreview();
+        // Python text of condition/value blocks lying in the workspace away from the start anchor (not part of the program).
+        public IEnumerable<string> LooseExpressions() => !IsOpen ? Enumerable.Empty<string>() : panel.Program.LooseRoots()
+            .Where(root => PythonTreeCompiler.OutputSlot(root.Kind) != BlockSlotKind.Statement)
+            .Select(root => PythonTreeCompiler.ExpressionText(root.Read()));
+        // Tutorial targets inside the editor (TutorialKeys.IsEditorArea): Editor.Code.Start | Loose | Line.N | After.N | Body.N | Arg.N.i[.j…],
+        // with N counted from 1 along the start chain (N/k for the k-th line inside its body, see Line), and Editor.Palette.<BlockKind>.
+        // False when not on screen.
+        public bool TryGetTutorialCorners(string key, Vector3[] corners)
+        {
+            if (!IsOpen || key == null) return false;
+            if (key.StartsWith(TutorialKeys.PalettePrefix)) return Corners(TutorialPaletteItem(key), null, corners);
+            if (!key.StartsWith(TutorialKeys.CodePrefix)) return false;
+            var program = panel.Program;
+            var parts = key.Substring(TutorialKeys.CodePrefix.Length).Split('.');
+            // The start slot, or the block once one sits there (the slot is narrower than e.g. enemy = get_nearest_enemy()). Empty,
+            // it is boxed at the size of the block the step's demo drops there (play feedback 3: the for went past a one-line box).
+            if (parts[0] == "Start")
+            {
+                var first = program.StartChain().FirstOrDefault();
+                if (first) return Corners(first.Rect, null, corners);
+                var slot = program.StartArea;
+                var size = Incoming(key, program.Rect) ?? new Vector2(Mathf.Max(slot.width, 352), 46);
+                return Corners(program.Rect, new Rect(slot.xMin, slot.yMax - size.y, size.x, size.y), corners);
+            }
+            if (parts[0] == "Loose") { var loose = program.LooseRoots().FirstOrDefault(); return Corners(loose ? loose.Rect : null, null, corners); }
+            var block = parts.Length < 2 ? null : Line(parts[1]);
+            if (!block) return false;
+            switch (parts[0])
+            {
+                case "Name":
+                case "Option":
+                    for (int i = 2; i < parts.Length; i++)
+                    {
+                        if (!int.TryParse(parts[i], out int arg) || arg < 0 || arg >= block.Arguments.Count || block.Arguments[arg].Blocks.Count == 0) return false;
+                        block = block.Arguments[arg].Blocks[0];
+                    }
+                    return Corners(parts[0] == "Name" ? block.InputRect : block.OptionRect, null, corners);
+                case "BodyArg":
+                case "BodyName":
+                    var bodySlot = BodyArgument(parts);
+                    return Corners(parts[0] == "BodyArg" ? bodySlot?.Rect : bodySlot?.Blocks.FirstOrDefault()?.InputRect, null, corners);
+                case "Line": return Corners(block.Rect, null, corners);
+                // The slot where the next block snaps: one line high, right under line N.
+                case "After": var r = block.Rect.rect; return Corners(block.Rect, new Rect(r.xMin, r.yMin - r.height, r.width, r.height), corners);
+                case "Body":
+                    if (!block.Body) return false;
+                    if (block.Body.Blocks.Count > 0) return Corners(block.Body.Rect, null, corners);
+                    // An empty body: the place its first line goes, at the size of the block the step's demo drops there.
+                    var bodyRect = block.Body.Rect.rect;
+                    var fit = Incoming(key, block.Body.Rect) ?? new Vector2(Mathf.Min(32, bodyRect.width), bodyRect.height - 2 * CommandDropZone.Inset.y);
+                    return Corners(block.Body.Rect, new Rect(bodyRect.xMin + CommandDropZone.Inset.x, bodyRect.yMax - CommandDropZone.Inset.y - fit.y, fit.x, fit.y), corners);
+                case "Arg":
+                    CommandDropZone slot = null;
+                    for (int i = 2; i < parts.Length; i++)
+                    {
+                        if (slot) { if (slot.Blocks.Count == 0) return false; block = slot.Blocks[0]; }
+                        if (!int.TryParse(parts[i], out int index) || index < 0 || index >= block.Arguments.Count) return false;
+                        slot = block.Arguments[index];
+                    }
+                    return Corners(slot ? slot.Rect : null, null, corners);
+                default: return false;
+            }
+        }
+        // The tutorial step's drag demo ("Editor.Palette.X>destination|…", TutorialStep.dragDemo), set by the director.
+        public string TutorialDemo { get; set; }
+        // The size, in target's units, of the palette block the demo drops on destination; null when none does.
+        Vector2? Incoming(string destination, RectTransform target)
+        {
+            foreach (var pair in (TutorialDemo ?? "").Split('|'))
+            {
+                var ends = pair.Split('>');
+                if (ends.Length != 2 || ends[1].Trim() != destination || !(TutorialPaletteItem(ends[0].Trim()) is RectTransform item)) continue;
+                var view = item.GetComponent<CommandBlockView>();
+                return new Vector2(view.preferredWidth, view.preferredHeight) * (item.lossyScale.x / target.lossyScale.x);
+            }
+            return null;
+        }
+        // An Editor.Code.Arg.N.i[.j…] slot that holds a block (the slot exists, empty, as soon as its line does).
+        public bool SlotFilled(string key)
+        {
+            if (string.IsNullOrEmpty(key)) return false;
+            // Optional ':BlockKind' makes teaching steps check what was placed, not just occupancy.
+            var parts = key.Split(':');
+            var slot = TutorialSlot(parts[0]);
+            if (slot == null || slot.Blocks.Count == 0) return false;
+            return parts.Length == 1 || parts.Length == 2 &&
+                Enum.TryParse(parts[1], out BlockKind kind) && slot.Blocks[0].BaseKind == kind;
+        }
+
+        public bool SlotSelected(string key)
+            => TutorialSlot(key) is CommandDropZone slot && (panel.SelectedZone == slot || slot.Blocks.Count > 0);
+
+        public bool SelectTutorialSlot(string key)
+        {
+            var slot = TutorialSlot(key);
+            if (slot == null) return false;
+            // A player may have filled the slot before this guide started. Keep their work;
+            // the tutorial's normal completion checks decide whether it is correct. A body (a statement slot) takes more
+            // lines at its end, so it is chosen even when it holds some (1-3 C01: the if goes under the loop's two lines).
+            if (slot.Blocks.Count > 0 && slot.Slot != BlockSlotKind.Statement) return true;
+            panel.Select(slot);
+            return true;
+        }
+
+        // A draft block's input/option can be checked before its surrounding if is complete.
+        // Expected: "3.0|<=" or "3.0.0|enemy_distance" (line, then argument indexes).
+        public bool DraftValueMatches(string expected)
+        {
+            if (!IsOpen || string.IsNullOrEmpty(expected)) return false;
+            var pair = expected.Split('|');
+            if (pair.Length != 2) return false;
+            var path = pair[0].Split('.');
+            var block = Line(path[0]);
+            if (!block) return false;
+            for (int i = 1; i < path.Length; i++)
+            {
+                if (!int.TryParse(path[i], out int arg) || arg < 0 || arg >= block.Arguments.Count) return false;
+                block = block.Arguments[arg].Blocks.FirstOrDefault();
+                if (!block) return false;
+            }
+            return block.Read().Value == pair[1];
+        }
+
+        public bool ConditionMatches(string expected)
+        {
+            if (!IsOpen) return false;
+            foreach (var block in panel.Program.AllBlocks().Where(b => PythonTreeCompiler.OutputSlot(b.Kind) == BlockSlotKind.Condition))
+            {
+                try { if (PythonTreeCompiler.ExpressionText(block.Read()) == expected) return true; }
+                catch (FormatException) { } // An unfinished comparison is not a match yet.
+            }
+            return false;
+        }
+
+        // Expected form: "1:DeclareVariable". Checks the connected draft, not the last compiled program.
+        public bool CodeLinePlaced(string expected)
+        {
+            if (!IsOpen || string.IsNullOrEmpty(expected)) return false;
+            var parts = expected.Split(':');
+            var block = parts.Length == 2 ? Line(parts[0]) : null;
+            return block && Enum.TryParse(parts[1], out BlockKind kind) && block.BaseKind == kind;
+        }
+
+        // A line of the program: "N" is the N-th block on the start chain (from 1), "N/k" the k-th block inside its body,
+        // "N/k/j" one level further (1-3's if sits inside the for: "1/3").
+        public CommandBlockView Line(string token)
+        {
+            var steps = token.Split('/');
+            var chain = panel.Program.StartChain();
+            if (!int.TryParse(steps[0], out int line) || line < 1 || line > chain.Count) return null;
+            var block = chain[line - 1];
+            for (int i = 1; i < steps.Length; i++)
+            {
+                if (!block.Body || !int.TryParse(steps[i], out int index) || index < 1 || index > block.Body.Blocks.Count) return null;
+                block = block.Body.Blocks[index - 1];
+            }
+            return block;
+        }
+
+        // Finish editing before the next dialogue can receive stray keystrokes from the completed name field.
+        public void FinishTutorialInput()
+        {
+            var current = EventSystem.current;
+            var selected = current ? current.currentSelectedGameObject : null;
+            if (IsOpen && selected && selected.transform.IsChildOf(panel.transform) && panel.TextInputFocused)
+                current.SetSelectedGameObject(null);
+        }
+
+        CommandDropZone TutorialSlot(string key)
+        {
+            if (!IsOpen || key == null || !key.StartsWith(TutorialKeys.CodePrefix)) return null;
+            var parts = key.Substring(TutorialKeys.CodePrefix.Length).Split('.');
+            if (parts[0] == "BodyArg") return BodyArgument(parts);
+            var block = parts.Length < 2 ? null : Line(parts[1]);
+            if (!block) return null;
+            if (parts[0] == "Body") return block.Body;
+            if (parts[0] != "Arg" || parts.Length < 3) return null;
+            CommandDropZone slot = null;
+            for (int i = 2; i < parts.Length; i++)
+            {
+                if (slot) { if (slot.Blocks.Count == 0) return null; block = slot.Blocks[0]; }
+                if (!int.TryParse(parts[i], out int index) || index < 0 || index >= block.Arguments.Count) return null;
+                slot = block.Arguments[index];
+            }
+            return slot;
+        }
+
+        CommandDropZone BodyArgument(string[] parts)
+        {
+            var chain = panel.Program.StartChain();
+            if (parts.Length < 4 || !int.TryParse(parts[1], out int line) || line < 1 || line > chain.Count) return null;
+            var body = chain[line - 1].Body;
+            if (!body || !int.TryParse(parts[2], out int index) || index < 0 || index >= body.Blocks.Count) return null;
+            var block = body.Blocks[index];
+            CommandDropZone slot = null;
+            for (int i = 3; i < parts.Length; i++)
+            {
+                if (slot) { block = slot.Blocks.FirstOrDefault(); if (!block) return null; }
+                if (!int.TryParse(parts[i], out int arg) || arg < 0 || arg >= block.Arguments.Count) return null;
+                slot = block.Arguments[arg];
+            }
+            return slot;
+        }
+        static bool Corners(RectTransform target, Rect? local, Vector3[] corners)
+        {
+            if (!target || !target.gameObject.activeInHierarchy) return false;
+            var r = local ?? target.rect;
+            corners[0] = target.TransformPoint(new Vector3(r.xMin, r.yMin)); corners[1] = target.TransformPoint(new Vector3(r.xMin, r.yMax));
+            corners[2] = target.TransformPoint(new Vector3(r.xMax, r.yMax)); corners[3] = target.TransformPoint(new Vector3(r.xMax, r.yMin));
+            return true;
+        }
+        // Switches the palette to the category holding an Editor.Palette.<BlockKind> target so its outline can show.
+        public void RevealPalette(string key)
+        {
+            if (!IsOpen || !PaletteKind(key, out var kind)) return;
+            int category = kind == BlockKind.Variable ? 2 : panel.Palette.Where(p => p.view.BaseKind == kind).Select(p => p.category).DefaultIfEmpty(-1).First();
+            if (category >= 0) panel.ShowCategory(category);
+        }
+        // The palette block for an Editor.Palette.<BlockKind> key (the variable template for Variable); null when not on screen.
+        public RectTransform TutorialPaletteItem(string key)
+        {
+            if (!IsOpen || !PaletteKind(key, out var kind)) return null;
+            var item = kind == BlockKind.Variable ? panel.VariableTemplate : panel.Palette.FirstOrDefault(p => p.view.BaseKind == kind).view;
+            return item && item.Rect.gameObject.activeInHierarchy ? item.Rect : null;
+        }
+        static bool PaletteKind(string key, out BlockKind kind)
+        {
+            kind = default;
+            return key != null && key.StartsWith(TutorialKeys.PalettePrefix) && Enum.TryParse(key.Substring(TutorialKeys.PalettePrefix.Length), out kind);
+        }
         public void RestoreAutomatic()
         {
-            if (!battle.TutorialAllows("Editor.RestoreAutomatic")) return;
+            if (!battle.TutorialAllows(TutorialKeys.RestoreAutomatic)) return;
             if (!IsOpen || !HasCurrentSession) return;
             panel.ClearProgram();
             panel.RefreshPalette();
             if (!panel.IsApplied) return;
             panel.ShowMessage("코드를 비웠습니다. 블록 예약이 해제됩니다.");
-            battle.ReportTutorialAction("Editor.RestoreAutomatic", "TargetClicked");
+            battle.ReportTutorialAction(TutorialKeys.RestoreAutomatic, TutorialSignals.TargetClicked);
         }
         void Update()
         {
@@ -93,7 +431,8 @@ namespace CodingGame.Defense
             if (!HasCurrentSession || !sim.CanEdit || !sim.Robots.Exists(r => r.Id == editingId)) { Close(false); return; }
             var keyboard = Keyboard.current;
             if (keyboard == null) return;
-            if (keyboard.escapeKey.wasPressedThisFrame) { Close(); return; }
+            // In a lesson Esc opens the menu over the editor; closing the editor there would leave the step behind.
+            if (keyboard.escapeKey.wasPressedThisFrame) { if (battle.InTutorial) battle.ToggleMenu(); else Close(); return; }
             if (battle.TutorialBlocksInput) return;
             // 텍스트 입력 중에는 입력창 단축키를 유지하고, 그 밖에서만 블록 실행 취소를 처리합니다.
             if (panel.TextInputFocused || keyboard.altKey.isPressed || keyboard.leftMetaKey.isPressed || keyboard.rightMetaKey.isPressed) return;
