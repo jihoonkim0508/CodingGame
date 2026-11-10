@@ -361,8 +361,11 @@ namespace CodingGame.Defense
         }
 
         string TextKey(TutorialStep step, TutorialText text) => active.sequenceId + "/" + step.stepId + "/" + text.textId;
-        // Dark blue/teal keep code and concepts readable on the ivory learning card.
-        static string Code(string text) => Regex.Replace(Regex.Replace(text ?? "", "`([^`]+)`", "<b><color=#88D4CA>$1</color></b>"),
+        // The script's emphasis (<b>) is bold, a size up and yellow (draft 7 of ten, MDA 180); code is teal and the concepts
+        // gold inside it as anywhere else.
+        const string Emphasis = "<b><size=118%><color=#FFD43B>$1</color></size></b>";
+        static string Code(string text) => Regex.Replace(Regex.Replace(Regex.Replace(text ?? "", "<b>(.*?)</b>", Emphasis, RegexOptions.Singleline),
+            "`([^`]+)`", "<b><color=#88D4CA>$1</color></b>"),
             "(변수|조건문|조건식|반복문|점\\(\\.\\))", "<b><color=#D9BB7D>$1</color></b>");
 
         void ShowText(bool firstVisit)
