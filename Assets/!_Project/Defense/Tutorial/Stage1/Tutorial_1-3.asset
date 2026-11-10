@@ -213,8 +213,53 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uC9C0\uAE08 \uCF54\uB4DC\uB294 `slash()` \uD55C \uC904\uC774\uC9C0?\n\uC0C8\uB85C
-        \uC9DC \uBCF4\uC790. \uCF54\uB4DC\uB97C \uBE44\uC6CC \uB458\uAC8C!"
+      text: "\uC9C0\uAE08 \uCF54\uB4DC\uB294 `slash()` \uD55C \uC904\uC774\uC9C0?"
+      focusKeys:
+      - Editor.Code.Line.1
+      highlightKeys: []
+    targetKeys: []
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    completionMode: 0
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 1
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    placeShooter: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
+  - stepId: C01a
+    kind: 0
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "\uC0C8\uB85C \uC9DC \uBCF4\uC790. \uCF54\uB4DC\uB97C \uBE44\uC6CC \uB458\uAC8C!"
       focusKeys:
       - Editor.ProgramDropZone
       highlightKeys: []

@@ -169,7 +169,9 @@ namespace CodingGame.Defense.Editor
             L("1-3.A01"), L("1-3.A02"),
             L("1-3.A03", Click(Unit0, s => s.Pointer = Unit0)),
             L("1-3.A04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
-            L("1-3.C01", With(Ed, s => s.ClearProgram = true, Focus(Drop))),
+            // The slash() line is shown first; the next line clears it (13차 176).
+            L("1-3.C01", With(Ed, Focus("Editor.Code.Line.1"))),
+            L("1-3.C01a", With(Ed, s => s.ClearProgram = true, Focus(Drop))),
             L("1-3.C05", Signal(TutorialSignals.CodeLinePlaced, new[] { Drop, Palette }, With(
                 s => { s.Expected = "1:While"; s.Pointer = "Editor.Palette.While"; s.Preview = true;
                     s.Demo = "Editor.Palette.While>Editor.Code.Start"; },
