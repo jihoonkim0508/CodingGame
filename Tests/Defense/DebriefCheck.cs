@@ -66,7 +66,7 @@ static class DebriefCheck
         var clean = Sim(.4f, 1);
         Bot(clean, RobotRole.Warrior, -8, 2, Slash());
         RunToEnd(clean);
-        Assert(DefenseDebrief.Report(clean, bot => "R").Contains("완벽 방어!</b> MVP R"), "clean wave without issues praises the MVP");
+        Assert(DefenseDebrief.Report(clean, bot => "R").Contains("완벽 방어!</b></color> MVP R"), "clean wave without issues praises the MVP");
         CheckLiveStatus();
         Assert(DefenseSimulation.Stars(12, 12) == 3 && DefenseSimulation.Stars(10, 12) == 3 && DefenseSimulation.Stars(9, 12) == 2 &&
             DefenseSimulation.Stars(5, 12) == 2 && DefenseSimulation.Stars(4, 12) == 1, "12 HP core: 10 for three stars, 5 for two");

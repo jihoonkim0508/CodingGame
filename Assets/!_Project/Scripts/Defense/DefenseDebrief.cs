@@ -83,10 +83,12 @@ namespace CodingGame.Defense
             var mvp = sim.Robots.OrderByDescending(bot => bot.DamageThisWave).First();
             int missed = Missed(sim);
             string tip = sim.Phase == BattlePhase.Defeat ? "다시 도전 팁" : sim.Phase == BattlePhase.Victory ? "다음 스테이지 팁" : "다음 웨이브 팁";
-            // The headline carries the most serious robot's advice, so that robot's line below shows only its numbers.
-            string headline = worst.issue != Issue.None ? $"<color=#E8590C><b>{tip}</b> · {name(worst.bot)}: {Advice(sim, worst.bot, worst.issue)}</color>"
-                : missed == 0 ? $"<color=#2B8A3E><b>완벽 방어!</b> MVP {name(mvp)} · 피해 {mvp.DamageThisWave:0}</color>"
-                : $"<color=#E8590C><b>{tip}</b> · 모든 로봇이 일했지만 {missed}마리를 놓쳤어요. 로봇을 더 놓거나 길이 꺾이는 곳 가까이 옮겨 보세요.</color>";
+            // The headline carries the most serious robot's advice, so that robot's line below shows only its numbers. Only the
+            // label is coloured, light enough for the blue result panel: orange and green text there had the panel's lightness
+            // (contrast 1.1) and looked broken (play feedback).
+            string headline = worst.issue != Issue.None ? $"<color=#FFE066><b>{tip}</b></color> · {name(worst.bot)}: {Advice(sim, worst.bot, worst.issue)}"
+                : missed == 0 ? $"<color=#8CE99A><b>완벽 방어!</b></color> MVP {name(mvp)} · 피해 {mvp.DamageThisWave:0}"
+                : $"<color=#FFE066><b>{tip}</b></color> · 모든 로봇이 일했지만 {missed}마리를 놓쳤어요. 로봇을 더 놓거나 길이 꺾이는 곳 가까이 옮겨 보세요.";
             var lines = issues.Select(x => new Line
             {
                 Bot = x.bot, Issue = x.issue, Name = name(x.bot), Mvp = x.bot == mvp && mvp.DamageThisWave > 0,
