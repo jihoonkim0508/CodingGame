@@ -34,7 +34,7 @@ namespace CodingGame.StageMap
             var vertices=new Vector3[130]; var colors=new Color[130]; var triangles=new int[64*6];
             for(int i=0;i<=64;i++)
             {
-                float a=i*Mathf.PI*2/64; var offset=new Vector3(Mathf.Cos(a)*radiusX,0,Mathf.Sin(a)*radiusZ);
+                var offset=Edge(i/64f);
                 vertices[i*2]=center+offset*.90f; vertices[i*2+1]=center+offset*1.055f;
                 colors[i*2]=new Color(.25f,1,.6f,0); colors[i*2+1]=new Color(.25f,1,.6f,.15f);
                 if(i==64)continue;
@@ -51,7 +51,7 @@ namespace CodingGame.StageMap
             var main=motes.main;main.playOnAwake=false;main.loop=true;main.useUnscaledTime=true;main.maxParticles=80;
             main.startLifetime=new ParticleSystem.MinMaxCurve(1.2f,2.8f);main.startSpeed=.08f;
             main.startSize=new ParticleSystem.MinMaxCurve(.025f,.065f);main.startColor=new Color(.4f,1,.7f,.7f);
-            var shape=motes.shape;shape.shapeType=ParticleSystemShapeType.Circle;shape.radius=2.4f;shape.rotation=new Vector3(-90,0,0);
+            var shape=motes.shape;shape.shapeType=ParticleSystemShapeType.Rectangle;shape.scale=new Vector3(radiusX*1.8f,radiusZ*1.8f,1);shape.rotation=new Vector3(-90,0,0);
             var velocity=motes.velocityOverLifetime;velocity.enabled=true;velocity.y=.32f;
             var fade=new Gradient();fade.SetKeys(new[]{new GradientColorKey(Color.white,0),new GradientColorKey(Color.white,1)},new[]{new GradientAlphaKey(0,0),new GradientAlphaKey(.7f,.25f),new GradientAlphaKey(0,1)});
             var color=motes.colorOverLifetime;color.enabled=true;color.color=fade;
@@ -69,10 +69,37 @@ namespace CodingGame.StageMap
         {
             for(int i=0;i<points.Length;i++)
             {
-                float a=i*Mathf.PI*2/(points.Length-1);
-                points[i]=new Vector3(center.x+Mathf.Cos(a)*radiusX*scale,y,center.z+Mathf.Sin(a)*radiusZ*scale);
+                var offset=Edge(i/(points.Length-1f))*scale;
+                points[i]=new Vector3(center.x+offset.x,y,center.z+offset.z);
             }
             line.SetPositions(points);line.startColor=line.endColor=color;
+        }
+        // The island's own outline instead of an ellipse: the selection ring's rectangle with cut corners
+        // (StageSelectionModels.Ring: Outline(2.88, 2.53, .48)), kept the 10% wider these rings always were. u runs 0..1 round it.
+        Vector3[] corners; float[] lengths;
+        Vector3 Edge(float u)
+        {
+            if(corners==null)
+            {
+                float x=radiusX,z=radiusZ,cut=.48f*1.10f;
+                corners=new[]{new Vector3(x,0,z-cut),new Vector3(x-cut,0,z),new Vector3(-x+cut,0,z),new Vector3(-x,0,z-cut),
+                    new Vector3(-x,0,-z+cut),new Vector3(-x+cut,0,-z),new Vector3(x-cut,0,-z),new Vector3(x,0,-z+cut)};
+                lengths=new float[9];
+                for(int i=0;i<8;i++)lengths[i+1]=lengths[i]+Vector3.Distance(corners[i],corners[(i+1)%8]);
+            }
+            float at=Mathf.Repeat(u,1)*lengths[8];int side=0;
+            while(side<7&&at>lengths[side+1])side++;
+            return Vector3.Lerp(corners[side],corners[(side+1)%8],(at-lengths[side])/(lengths[side+1]-lengths[side]));
+        }
+        // The saved field mesh was an elliptic band; in play it is built again on the island's outline (130 vertices, once).
+        Mesh shaped;
+        void Awake()
+        {
+            if(!Application.isPlaying||!fill||!fill.TryGetComponent<MeshFilter>(out var filter)||!field)return;
+            if(motes){var shape=motes.shape;shape.shapeType=ParticleSystemShapeType.Rectangle;shape.scale=new Vector3(radiusX*1.8f,radiusZ*1.8f,1);}
+            var vertices=field.vertices;
+            for(int i=0;i<=64&&i*2+1<vertices.Length;i++){var offset=Edge(i/64f);vertices[i*2]=center+offset*.90f;vertices[i*2+1]=center+offset*1.055f;}
+            shaped=Instantiate(field);shaped.name=field.name+" (island outline)";shaped.vertices=vertices;shaped.RecalculateBounds();filter.sharedMesh=shaped;
         }
         public void SetCleared(bool cleared)
         {
@@ -101,6 +128,6 @@ namespace CodingGame.StageMap
 #if UNITY_EDITOR
         public void MarkBaked() => baked = true;
 #endif
-        void OnDestroy(){if(baked)return;if(material)Destroy(material);if(field)Destroy(field);}
+        void OnDestroy(){if(shaped)Destroy(shaped);if(baked)return;if(material)Destroy(material);if(field)Destroy(field);}
     }
 }
