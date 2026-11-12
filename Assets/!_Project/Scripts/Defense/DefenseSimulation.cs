@@ -199,6 +199,25 @@ namespace CodingGame.Defense
             nextWave=WaveIndex+1<Setup.Waves.Length?ScaledWave(WaveIndex+1).Concat(carry).ToArray():Array.Empty<SpawnGroup>();
             Emit("balance-applied",0,0,Vector2.Zero);
         }
+        // The F2 balance window: one enemy definition's health, speed, attack damage and core damage multiplied, in every
+        // wave of the campaign, the wave under way (its unspawned groups) and the enemies already walking (their health too).
+        public void ScaleEnemies(int definition, float health, float speed, float damage, float leak)
+        {
+            if (!Rules.Positive(health) || !Rules.Positive(speed) || !Rules.Nonnegative(damage) || !Rules.Positive(leak))
+                throw new ArgumentException("배율은 0보다 커야 합니다.");
+            var done = new HashSet<EnemySpec>();
+            void Scale(EnemySpec spec)
+            {
+                if (spec == null || !done.Add(spec)) return;
+                spec.health *= health; spec.speed *= speed; spec.damage *= damage;
+                spec.leakDamage = Math.Max(1, (int)Math.Round(spec.leakDamage * leak));
+            }
+            var groups = (Setup.CampaignWaves ?? new[] { Setup.Waves }).Append(Setup.Waves).SelectMany(w => w).SelectMany(w => w)
+                .Concat(currentWave ?? Array.Empty<SpawnGroup>()).Concat(nextWave ?? Array.Empty<SpawnGroup>()).Concat(carry);
+            foreach (var group in groups) if (group.DefinitionIndex == definition) Scale(group.Enemy);
+            // Specs are copies made for the session (RulesConfig.Scale), shared by a group's enemies: each scales once.
+            foreach (var enemy in Enemies) if (enemy.DefinitionIndex == definition) { Scale(enemy.Spec); enemy.Health *= health; }
+        }
         public bool AdvanceStage()
         {
             if (!CanAdvanceStage) return false;

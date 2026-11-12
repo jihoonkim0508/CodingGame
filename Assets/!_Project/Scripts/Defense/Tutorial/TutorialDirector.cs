@@ -154,6 +154,17 @@ namespace CodingGame.Defense
         {
             var step = Current;
             if (step == null) return;
+            if (jumping)
+            {
+                // Every target on screen, editor ones too (TargetsAvailable counts an editor position as there while the editor is shut).
+                if (progressStep == 0 || step.kind == TutorialStepKind.ActionGuide && step.targetKeys.All(k => bridge.TryGetArea(k, out _))) jumping = false;
+                else if (Time.unscaledTime - stepEntered > .5f)
+                {
+                    int back = progressStep - 1;
+                    while (back > 0 && active.steps[back].kind != TutorialStepKind.ActionGuide) back--;
+                    Enter(back); return;
+                }
+            }
             // A disconnected line can be reattached while the guide stays open.
             // Retry only until the slot is available, so later clicks keep their selection.
             if (pendingAutoSlot && viewedStep == progressStep && Editor)
@@ -321,8 +332,16 @@ namespace CodingGame.Defense
         {
             // Step ids repeat across waves (A05a in 1-2 and 1-3), so completion is per sequence run.
             active = sequence; launched.Add(sequence.sequenceId); shownText = null; completedStep.Clear();
-            Enter(0);
+            int start = 0;
+            if (sequence.sequenceId == jumpSequence) { start = jumpStep; jumping = sequence.steps[start].kind == TutorialStepKind.ActionGuide; jumpSequence = null; }
+            Enter(start);
         }
+
+        // A developer jump (the F1 panel's dialogue id): the sequence opens at that step. An action whose target is not on
+        // screen yet (no robot placed, the editor closed) steps back to the previous action until one can be done; the lines
+        // after it then play in order up to the one asked for.
+        string jumpSequence; int jumpStep; bool jumping;
+        public void JumpWhenBegun(string sequenceId, int step) { jumpSequence = sequenceId; jumpStep = step; }
 
         // Makes step index the progress step: applies its entry effects, then shows it unless it waits for a trigger.
         void Enter(int index)

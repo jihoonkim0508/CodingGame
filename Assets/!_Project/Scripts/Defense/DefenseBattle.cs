@@ -149,6 +149,7 @@ namespace CodingGame.Defense
             removeButton.onClick.AddListener(RemoveSelected);
             for (int i = 0; i < robotButtons.Length; i++) { int index = i; robotButtons[i].onClick.AddListener(() => inventoryUI.SelectRobotItem(index)); }
             if (FromStageMap) stage = StageMap.StageProgress.SelectedStage;
+            devWindow = gameObject.AddComponent<DefenseDevWindow>();
             if (core) core.TryGetComponent(out coreGlitch);
             Restart();
         }
@@ -303,8 +304,48 @@ namespace CodingGame.Defense
             selectionCamera.Restore();
             selected = 0; BattleSpeed = 1; HidePlacement();
             rangeRing.Hide(); effectRing.Hide(); resultPanel.SetActive(false);
+            foreach (var pair in enemyBalance) Simulation.ScaleEnemies(pair.Key, pair.Value[0], pair.Value[1], pair.Value[2], pair.Value[3]);
             Tell("로봇을 선택하고 허용 영역을 클릭하세요. 탱커만 경로 위에 설치합니다.");
             RefreshHUD();
+        }
+
+        // F2 balance window (developer rights): multipliers per enemy definition (health, speed, attack damage, core damage),
+        // applied to the battle under way and kept for every battle until the game quits.
+        static readonly Dictionary<int, float[]> enemyBalance = new Dictionary<int, float[]>();
+        DefenseDevWindow devWindow;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetBalance() => enemyBalance.Clear();
+        public IReadOnlyList<EnemyDefinition> EnemyDefinitions => enemies;
+        public float[] EnemyBalance(int definition) => enemyBalance.TryGetValue(definition, out var m) ? (float[])m.Clone() : new float[] { 1, 1, 1, 1 };
+        public void SetEnemyBalance(int definition, float[] multipliers)
+        {
+            var old = EnemyBalance(definition);
+            Simulation.ScaleEnemies(definition, multipliers[0] / old[0], multipliers[1] / old[1], multipliers[2] / old[2], multipliers[3] / old[3]);
+            if (multipliers.All(m => Mathf.Approximately(m, 1))) enemyBalance.Remove(definition); else enemyBalance[definition] = (float[])multipliers.Clone();
+            SyncViews(0); RefreshHUD();
+            Trace($"balance {enemies[definition].name} x{string.Join("/", multipliers.Select(m => m.ToString("0.##")))}");
+        }
+
+        // F1 panel (developer rights): "1-3.C05" starts that stage and wave over and opens its tutorial at that line ("1-3"
+        // at its start). Returns what went wrong, or null.
+        public string DeveloperJump(string id)
+        {
+            if (!DeveloperTools || !tutorial) return "개발자 권한이 없습니다.";
+            var parts = (id ?? "").Trim().Split('.');
+            var sequence = tutorial.Sequences.FirstOrDefault(s => s && s.sequenceId == parts[0]);
+            if (!sequence) return "없는 시퀀스: " + parts[0];
+            int step = parts.Length > 1 ? Array.FindIndex(sequence.steps, s => s.stepId == parts[1]) : 0;
+            if (step < 0) return "없는 대사 ID: " + id;
+            SetDeveloperMode(false);
+            stage = sequence.stage;
+            var setup = MakeSetup(campaign, stage);
+            setup.InitialWave = sequence.wave - 1; setup.PreviousStageRewards = true;
+#if UNITY_EDITOR
+            setup.TestOptions = EditorOptions;
+#endif
+            ResetSession(setup);
+            tutorial.JumpWhenBegun(sequence.sequenceId, step);
+            return null;
         }
         public void StartBattle()
         {
@@ -607,7 +648,7 @@ namespace CodingGame.Defense
             if (keyboard != null && keyboard.fKey.wasPressedThisFrame && SpeedUnlocked && !DeveloperMode &&
                 !codeEditor.IsOpen && !inventoryUI.IsOpen) ToggleSpeed();
             if (draggingRobot && mouse != null && mouse.leftButton.wasReleasedThisFrame) EndRobotDrag(mouse.position.ReadValue());
-            if (mouse != null && !codeEditor.IsOpen && !inventoryUI.IsOpen && !DeveloperMode)
+            if (mouse != null && !codeEditor.IsOpen && !inventoryUI.IsOpen && !DeveloperMode && !(devWindow && devWindow.HasPointer(mouse.position.ReadValue())))
             {
                 if (!tutorialActive && mouse.rightButton.wasPressedThisFrame) CancelPlacement();
                 if (!eventSystem.IsPointerOverGameObject() && PointerPosition(mouse.position.ReadValue(), out var point))
