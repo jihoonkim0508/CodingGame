@@ -800,7 +800,7 @@ namespace CodingGame.Defense
                             bossCameraRestoreAt = Time.unscaledTime + 2.1f;
                             bossEntranceUntil = Time.unscaledTime + 2.9f;
                             selectionCamera.FocusBoss(DefenseViews.World(enemy.Position, 1f));
-                            Tell("보스 출현! · 잡몹을 막아낸 뒤 강력한 오류 코드가 등장했습니다.");
+                            Tell("보스 출현! · 작은 오류 코드를 모두 막아 낸 뒤 강력한 오류 코드가 등장했습니다.");
                             BossWarning.Play(DefenseBossWarning.Style);
                         }
                     }
@@ -859,7 +859,7 @@ namespace CodingGame.Defense
             {
                 HidePlacement();
                 resultText.text = (Simulation.Phase == BattlePhase.Victory ? "DEFENSE COMPLETE\n방어 성공" :
-                    Simulation.ObjectiveFailed ? "MINIONS ESCAPED\n보스 등장 전 잡몹 방어 실패" : "CORE LOST\n방어 실패") +
+                    Simulation.ObjectiveFailed ? "MINIONS ESCAPED\n보스 등장 전 작은 오류 코드 방어 실패" : "CORE LOST\n방어 실패") +
                     $"\n\n처치 {Simulation.Kills} · 돌파 {Simulation.Leaks}\n상단 초기화로 다시 시작";
             }
         }

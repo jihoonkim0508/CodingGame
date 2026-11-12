@@ -204,8 +204,8 @@ namespace CodingGame.Defense
                 if (!ReferenceEquals(lessonGoal, shownGoal) || string.IsNullOrEmpty(lessonGoal)) guide.text = !string.IsNullOrEmpty(lessonGoal) ? "목표 · " + lessonGoal :
                     sim.WaveIndex == 1 ? "목표 · 새 전사를 배치하고 '실행'으로 베기" :
                     sim.WaveIndex == 2 ? "목표 · 반복문으로 한 번에 여러 번 베기" :
-                    sim.WaveIndex == 3 ? "목표 · 새 원거리 로봇과 반복문으로 몰려오는 적 막기" :
-                    "목표 · 반복문과 '실행'으로 잡몹과 보스 막기";
+                    sim.WaveIndex == 3 ? "목표 · 새 전사와 반복문으로 몰려오는 적 막기" :
+                    "목표 · 반복문으로 작은 적을 모두 막고 보스 쓰러뜨리기";
                 shownGoal = lessonGoal;
                 AnimateGoal();
             }
@@ -1104,7 +1104,7 @@ namespace CodingGame.Defense
                 string english = reward ? $"WAVE {sim.WaveIndex + 1} " + (sim.LastWaveTimedOut ? "TIME UP" : "CLEAR") :
                     victory ? $"STAGE {battle.Stage} COMPLETE" : sim.ObjectiveFailed ? "MINIONS ESCAPED" : "CORE LOST";
                 rewardTitle.text = reward ? (sim.LastWaveTimedOut ? $"웨이브 {sim.WaveIndex + 1} 시간 종료" : $"웨이브 {sim.WaveIndex + 1} 방어 성공!") :
-                    victory ? $"스테이지 {battle.Stage} 클리어!" : sim.ObjectiveFailed ? "보스 전에 잡몹을 놓쳤어요" : "코어가 무너졌어요";
+                    victory ? $"스테이지 {battle.Stage} 클리어!" : sim.ObjectiveFailed ? "보스 전에 작은 오류 코드를 놓쳤어요" : "코어가 무너졌어요";
                 if (shownRewardPhase != sim.Phase) ShowEndBanner($"<size=40%>{english}</size>\n{rewardTitle.text}", sim.Phase == BattlePhase.Defeat);
                 // The victory sentence on two lines: in Pretendard Bold it no longer fits the card on one and left "다." alone.
                 rewardItems.text = reward ? (sim.PendingDrops.Count == 0 ? "지급할 블록이 없습니다." : "") :

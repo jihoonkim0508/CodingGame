@@ -116,20 +116,19 @@ namespace CodingGame.Defense.Editor
         // 디버's entrance lines: the HUD dims with the greyed map, so the dialogue is the one bright thing (focus report 1-3).
         static Action<S> Intro => s => { s.Intro = true; s.Dim = true; };
         static List<S> OneOne() => new List<S> {
-            L("1-1.A01", s => s.Cards = true), L("1-1.A02", Intro), L("1-1.A03", Intro), L("1-1.A04", Intro), L("1-1.A04a", Focus(Route)), L("1-1.A04b", Focus(Core)), L("1-1.A04c", Focus(Core)), L("1-1.A05"), L("1-1.A06"),
+            L("1-1.A01", s => s.Cards = true), L("1-1.A02", Intro), L("1-1.A03", Intro), L("1-1.A04a", Focus(Route)), L("1-1.A04b", Focus(Core)), L("1-1.A05"),
             L("1-1.B01", Click(TutorialKeys.RobotButton(1), s => s.Dim = true)),
             L("1-1.B02", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => s.Dim = true, Focus(TutorialKeys.Floor)))),
             L("1-1.B03", Click(Unit0, s => s.Pointer = Unit0)),
             // The range itself is the highlight (tinted inside), not a dimmed screen with a round hole: seen in perspective
             // the hole never lined up with the ring (play test).
-            L("1-1.B04", Highlight(Range0)), L("1-1.B05", Highlight(Range0)),
+            L("1-1.B04", Highlight(Range0)),
             L("1-1.C01", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
-            L("1-1.C02", Focus(Drop)), L("1-1.C03", Focus(Preview)), L("1-1.C04"),
+            L("1-1.C02", Focus(Drop)), L("1-1.C03", Focus(Preview)),
             L("1-1.C05", Code(Code11, With(
                 s => { s.Pointer = "Editor.Palette.Slash"; s.Demo = "Editor.Palette.Slash>Editor.Code.Start"; },
                 Focus("Editor.Palette.Slash", "Editor.Code.Start")))),
             L("1-1.C09", Focus("Editor.Code.Line.1")), L("1-1.C10", Focus("Editor.Code.Line.1")),
-            L("1-1.C11", Focus("Editor.Code.Line.1")),
             // The line is about when the function is called (the preview calls it again whenever it ends).
             L("1-1.D06", Focus("Editor.Code.Line.1", Preview)),
             L("1-1.D08", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(
@@ -148,7 +147,7 @@ namespace CodingGame.Defense.Editor
             L("1-1.E04d"),
             L("1-1.E05", With(Fight, Focus(Core), s => s.Trigger = TutorialSignals.Leak)),
             L("1-1.E06", s => s.Trigger = TutorialSignals.WaveCleared),
-            L("1-1.E07"), L("1-1.E08", Focus(TutorialKeys.RewardPanel)),
+            L("1-1.E07"),
             // Claiming the reward starts 1-2, so it comes last.
             L("1-1.E09", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
         };
@@ -167,11 +166,10 @@ namespace CodingGame.Defense.Editor
 
         // 1-3: the loop lesson moved from 1-1. The warrior from 1-1 gets a while True with the swing inside; the code is cleared first.
         static List<S> OneThree() => new List<S> {
-            L("1-3.A01"), L("1-3.A02"),
+            L("1-3.A01"),
             L("1-3.A03", Click(Unit0, s => s.Pointer = Unit0)),
             L("1-3.A04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
-            // The slash() line is shown first; the next line clears it (13차 176).
-            L("1-3.C01", With(Ed, Focus("Editor.Code.Line.1"))),
+            // The slash() lines are seen as the step clears them (13차 176; the line before it was cut for length).
             L("1-3.C01a", With(Ed, s => s.ClearProgram = true, Focus(Drop))),
             L("1-3.C05", Signal(TutorialSignals.CodeLinePlaced, new[] { Drop, Palette }, With(
                 s => { s.Expected = "1:While"; s.Pointer = "Editor.Palette.While"; s.Preview = true;
@@ -182,12 +180,11 @@ namespace CodingGame.Defense.Editor
                 s => { s.Pointer = "Editor.Palette.Slash"; s.AutoSlot = "Editor.Code.Body.1";
                     s.Demo = "Editor.Palette.Slash>Editor.Code.Body.1"; },
                 Focus("Editor.Palette.Slash", "Editor.Code.Body.1")))),
-            L("1-3.C10", With(Ed, Focus("Editor.Code.Line.1"))), L("1-3.C11", With(Ed, Focus("Editor.Code.Line.1"))),
+            L("1-3.C10", With(Ed, Focus("Editor.Code.Line.1"))),
             L("1-3.D01", With(Ed, Focus("Editor.Code.Line.1", Preview))),
             L("1-3.D02", s => s.CloseEditor = true),
             L("1-3.E01"),
             L("1-3.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code13; s.Battle = true; }),
-            L("1-3.B02"),
             L("1-3.B03", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
         };
 
@@ -207,7 +204,7 @@ namespace CodingGame.Defense.Editor
         // 2-1 (play feedback 4: variables open in Stage 2): a shooter stood by the road; while True, then enemy = get_nearest_enemy()
         // inside it, then attack(enemy) under that.
         static List<S> TwoOne() => new List<S> {
-            L("2-1.A01", s => s.Cards = true), L("2-1.A02"),
+            L("2-1.A01", s => s.Cards = true),
             L("2-1.A03", s => s.PlaceShooter = true),
             L("2-1.A04", Click(Unit0, s => s.Pointer = Unit0)),
             L("2-1.A05", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
@@ -222,7 +219,6 @@ namespace CodingGame.Defense.Editor
             L("2-1.B06", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/2.0", "Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.Arg.1/2.0"),
                 s => s.AutoSlot = "Editor.Code.Arg.1/2.0")),
             L("2-1.B07", EditSignal(TutorialSignals.ProgramMatches, Code21, "Editor.Code.Name.1/2.0", "Editor.Code.Name.1/2.0")),
-            L("2-1.C01", With(Ed, Focus("Editor.Code.Line.1"))),
             L("2-1.C02", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(s => { s.Preview = true; s.RestartPreview = true; s.Hold = 2; }, Focus(Preview)))),
             L("2-1.D01", s => s.CloseEditor = true),
             L("2-1.D02"),
@@ -233,7 +229,7 @@ namespace CodingGame.Defense.Editor
         // 2-3: the old 1-3 lesson. The shooter from 2-1 (Robot.Unit.0) first shows the plain loop firing on entry; then its code
         // gets the distance line and the player builds the if round attack(enemy).
         static List<S> TwoThree() => new List<S> {
-            L("2-3.A01"), L("2-3.A02"),
+            L("2-3.A01"),
             L("2-3.A03", Click(Unit0, s => s.Pointer = Unit0)),
             L("2-3.A04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
             // Held 6 s past the first (far) hit: the shooter reloads while the enemy walks right past it.
@@ -264,14 +260,14 @@ namespace CodingGame.Defense.Editor
             L("2-3.E02", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => s.Top = true)),
             // A beat after the first shot, so the player sees it before '쐈다!'.
             L("2-3.E03", With(Fight, s => { s.Trigger = TutorialSignals.FirstAttack; s.TriggerDelay = 1.2f; })),
-            L("2-3.E04", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code23; }), L("2-3.E05"),
+            L("2-3.E04", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code23; }),
             L("2-3.E06", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
         };
 
         static List<S> OneFour() => new List<S> {
             L("1-4.A01", s => s.Cards = true), L("1-4.A02"), L("1-4.A03"), L("1-4.A04"),
             L("1-4.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code13; s.Battle = true; }),
-            L("1-4.B02"), L("1-4.B03"),
+            L("1-4.B03"),
             L("1-4.B04", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
         };
 
