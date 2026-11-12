@@ -44,6 +44,7 @@ namespace CodingGame.StageMap
         Camera mapCamera;
         StageCameraController cameraMotion;
         StageNode[] nodes;
+        StageIslandView[] islands;
         StageNode recommended, unlockTarget;
         bool cinematic, entering;
         bool HideSelectionUI => cinematic || entering || (cameraMotion && cameraMotion.IsMoving);
@@ -54,6 +55,7 @@ namespace CodingGame.StageMap
         public void Configure(StageNode[] stageNodes, Camera camera, StageCameraController motion, Action<StageNode> select)
         {
             nodes = stageNodes; mapCamera = camera; cameraMotion = motion;
+            islands = nodes.Select(node => node.GetComponent<StageIslandView>()).ToArray();
             if (!Baked || nodes.Any(node => cards.All(card => card.stage != node.Number))) Build(nodes.Select(Island).ToArray());
             // The cards in node order (the scene saves them by stage number).
             cards = nodes.Select(node => cards.First(card => card.stage == node.Number)).ToArray();
@@ -257,7 +259,7 @@ namespace CodingGame.StageMap
                 card.body.color = lockTint;
                 card.body.sprite = release > .2f ? lockOpenIcon : lockIcon; // it springs open as the shake starts
                 card.glow.color = new Color(lockTint.r,lockTint.g,lockTint.b,.4f+.15f*Mathf.Sin(Time.unscaledTime*2)+release*.4f);
-                var island=node.GetComponent<StageIslandView>();
+                var island=islands[i];
                 bool purified=node.State==StageState.Cleared && (!island || island.Purification>.88f);
                 bool showPurified=purified&&!entering&&cinematic&&node==unlockTarget;
                 if(showPurified&&!card.purifiedSeal.gameObject.activeSelf)card.purifiedShownAt=Time.unscaledTime;

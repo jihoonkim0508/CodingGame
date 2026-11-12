@@ -25,20 +25,27 @@ namespace CodingGame.Art.StageSelection
         public float Purification { get; private set; }
         static readonly Color Unpurified = new Color(1,.61f,.22f);
         static readonly Color Purified = new Color(.24f,1,.61f);
+        // In play the renderers are measured once; after that the box follows visualRoot, which the bob and the hover only
+        // move and scale evenly (the HUD and the camera ask for it every frame).
+        Vector3 cachedCenter, cachedSize; float cachedScale; bool boundsCached;
         public Bounds VisualBounds
         {
             get
             {
+                if (boundsCached && visualRoot)
+                    return new Bounds(visualRoot.TransformPoint(cachedCenter), cachedSize * (visualRoot.lossyScale.x / cachedScale));
                 if (boundsRenderers == null) boundsRenderers = CollectRenderers();
                 var bounds=new Bounds(transform.position,Vector3.zero);
                 foreach(var renderer in boundsRenderers)
                     if (renderer && renderer.gameObject.activeInHierarchy) bounds.Encapsulate(renderer.bounds);
+                if (Application.isPlaying && visualRoot && visualRoot.lossyScale.x > 0)
+                { cachedCenter = visualRoot.InverseTransformPoint(bounds.center); cachedSize = bounds.size; cachedScale = visualRoot.lossyScale.x; boundsCached = true; }
                 return bounds;
             }
         }
         void OnEnable()
         {
-            originalColors.Clear();shown=(StageState)(-1);
+            originalColors.Clear();shown=(StageState)(-1);boundsCached=false;
             boundsRenderers=CollectRenderers();
             if (block == null) block = new MaterialPropertyBlock();
             foreach(var renderer in boundsRenderers)
@@ -103,6 +110,6 @@ namespace CodingGame.Art.StageSelection
                 if (!renderer.GetComponentInParent<StageLockVisual>() && !renderer.GetComponentInParent<StagePurificationVisual>()) renderers.Add(renderer);
             return renderers.ToArray();
         }
-        void OnTransformChildrenChanged(){boundsRenderers=null;}
+        void OnTransformChildrenChanged(){boundsRenderers=null;boundsCached=false;}
     }
 }
