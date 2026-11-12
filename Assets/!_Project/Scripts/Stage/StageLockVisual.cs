@@ -23,6 +23,8 @@ namespace CodingGame.StageMap
         int stageNumber;
         Camera presentationCamera;
         static readonly Color Amber = new Color(1f, .64f, .19f);
+        // The barrier's box while it shows (the lock badge centres on the island and its barrier together).
+        public Bounds? WallBounds => wall && wall.enabled && wall.gameObject.activeInHierarchy ? wall.bounds : (Bounds?)null;
         public bool IsLocked { get; private set; }
         public bool IsReleasing { get; private set; }
         public float ReleaseProgress { get; private set; }

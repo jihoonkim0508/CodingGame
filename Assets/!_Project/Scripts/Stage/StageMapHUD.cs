@@ -101,7 +101,7 @@ namespace CodingGame.StageMap
             BuildHint();
             var dev = Text("DEV keys", canvasRect, "DEV  Z: 임시 클리어    Q: 초기화", 18, new Color(1, 1, 1, .6f), Vector2.zero, new Vector2(420, 28), false);
             dev.rectTransform.anchorMin = dev.rectTransform.anchorMax = dev.rectTransform.pivot = Vector2.zero;
-            dev.rectTransform.anchoredPosition = new Vector2(18, 10); dev.fontStyle = FontStyles.Normal;
+            dev.rectTransform.anchoredPosition = new Vector2(96, 10); // right of the "Dev" mark (GameFlow) in the corner dev.fontStyle = FontStyles.Normal;
             devLine = dev.gameObject;
             var guide = Resources.Load<GameObject>(StageMapController.GuideDialogue);
             if (guide && !guideDialogue) { guideDialogue = Instantiate(guide, transform); guideDialogue.name = "GuideDialogue"; }
@@ -245,7 +245,10 @@ namespace CodingGame.StageMap
                 float release = node.LockVisual.ReleaseProgress;
                 float reaction = node.LockVisual.Rejection;
                 var bounds = node.VisualBounds;
-                Vector2 badgePosition = Project(bounds.center + Vector3.up * bounds.extents.y * .3f);
+                var badgeAt = bounds.center + Vector3.up * bounds.extents.y * .3f;
+                // Across, the badge centres on the island and its lock barrier together (the barrier sticks out on one side).
+                if (node.LockVisual.WallBounds is Bounds wall) { var both = bounds; both.Encapsulate(wall); badgeAt.x = both.center.x; }
+                Vector2 badgePosition = Project(badgeAt);
                 badgePosition.x += Mathf.Sin(Time.unscaledTime*65)*reaction*7;
                 badgePosition.y += release*45;
                 card.badge.anchoredPosition = badgePosition;
