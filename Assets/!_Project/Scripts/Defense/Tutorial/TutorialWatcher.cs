@@ -12,6 +12,7 @@ namespace CodingGame.Defense
         DefenseSimulation session;
         int wave = -1, killsAtWaveStart, leaks;
         bool firstKill, firstAttack, cleared, ended, near;
+        double swingEnds;
         readonly List<string> signals = new List<string>();
 
         // Installation order: Robot.Unit.0 is the first robot placed (1-3's loop lesson teaches the warrior from 1-1).
@@ -64,7 +65,7 @@ namespace CodingGame.Defense
             if (sim == null) return signals;
             if (sim != session || sim.WaveIndex != wave)
             {
-                session = sim; wave = sim.WaveIndex; killsAtWaveStart = sim.Kills; leaks = sim.Leaks; firstKill = firstAttack = cleared = ended = near = false;
+                session = sim; wave = sim.WaveIndex; killsAtWaveStart = sim.Kills; leaks = sim.Leaks; firstKill = firstAttack = cleared = ended = near = false; swingEnds = -1;
             }
             if (!firstKill && sim.Kills > killsAtWaveStart) { firstKill = true; signals.Add(TutorialSignals.FirstKill); }
             // 1-3 waits for the lesson's shooter, not a warrior from 1-1 or 1-2 swinging first.
@@ -73,9 +74,10 @@ namespace CodingGame.Defense
             { firstAttack = true; signals.Add(TutorialSignals.FirstAttack); }
             if (sim.Leaks > leaks) { leaks = sim.Leaks; signals.Add(TutorialSignals.Leak); }
             var teacher = TeachingRobot(sim);
-            // Once the run has ended and its last swing has played out (the robot can act again), at any attack speed.
-            if (!ended && teacher?.Program != null && teacher.Program.CompletedRuns > 0 && sim.Time + 1e-6 >= teacher.NextAction)
-            { ended = true; signals.Add(TutorialSignals.FunctionEnded); }
+            // Once the first run has ended and its swing has played out (the robot could act again), at any attack speed; a
+            // later 실행 does not push it back.
+            if (swingEnds < 0 && teacher?.Program != null && teacher.Program.CompletedRuns > 0) swingEnds = teacher.NextAction;
+            if (!ended && swingEnds >= 0 && sim.Time + 1e-6 >= swingEnds) { ended = true; signals.Add(TutorialSignals.FunctionEnded); }
             if (!near && teacher != null && sim.Phase == BattlePhase.Running && sim.Enemies.Any(e => e.Active &&
                 System.Numerics.Vector2.DistanceSquared(e.Position, teacher.Position) <= teacher.Range * teacher.Range))
             { near = true; signals.Add(TutorialSignals.EnemyInRange); }
