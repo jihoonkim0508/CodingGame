@@ -679,13 +679,14 @@ namespace CodingGame.Defense
                 bannerGroup.alpha = t < .25f ? k : t > BannerSeconds - .4f ? Mathf.Clamp01((BannerSeconds - t) / .4f) : 1;
             }
             if (resultGroup) resultGroup.alpha = Mathf.Clamp01((t - PanelFadeFrom) / .4f);
-            // Stage clear: the stars land one by one, each earned one with a chime a step higher than the last.
+            // Stage clear: the stars land left, right, then the middle one, each spinning a full turn in; every earned one rings
+            // a bell a step higher than the last (star1 to star3).
             for (int i = 0; starRow && starRow.gameObject.activeInHierarchy && i < stars.Count; i++)
             {
-                float p = Mathf.Clamp01((t - StarsFrom - i * StarStagger) / StarPop);
+                float p = Mathf.Clamp01((t - StarsFrom - StarTurn[i] * StarStagger) / StarPop);
                 stars[i].rectTransform.localScale = Vector3.one * (p < .55f ? Mathf.Lerp(0, 1.4f, p / .55f) : Mathf.Lerp(1.4f, 1, (p - .55f) / .45f));
-                stars[i].rectTransform.localEulerAngles = new Vector3(0, 0, (1 - p) * 40);
-                if (p > 0 && i >= starsRung && i < starsEarned) { starsRung = i + 1; battle.PlaySound("star" + (i + 1)); }
+                stars[i].rectTransform.localEulerAngles = new Vector3(0, 0, (1 - p) * (1 - p) * 360);
+                if (p > 0 && i < starsEarned && (starsRung & 1 << i) == 0) { starsRung |= 1 << i; battle.PlaySound("star" + ++starsChimed); }
             }
             // Blocks come in pairs with their counts.
             for (int i = 0; i < popping.Count; i++)
@@ -798,15 +799,17 @@ namespace CodingGame.Defense
         // Three large stars in the reward text's top margin (stage clear has no reward blocks there), gold when earned.
         [SerializeField, HideInInspector] System.Collections.Generic.List<TextMeshProUGUI> stars = new System.Collections.Generic.List<TextMeshProUGUI>();
         [SerializeField, HideInInspector] RectTransform starRow;
-        int starsEarned, starsRung;
-        const float StarsFrom = 1.7f, StarStagger = .4f, StarPop = .35f, StarRowHeight = 110;
+        int starsEarned, starsRung, starsChimed; // starsRung: a bit for each star that has rung
+        // The landing turn of the left, middle and right star: the middle one comes last.
+        static readonly int[] StarTurn = { 0, 2, 1 };
+        const float StarsFrom = 1.7f, StarStagger = .4f, StarPop = .5f, StarRowHeight = 110;
         void ShowStars(DefenseSimulation sim)
         {
             bool show = sim.Phase == BattlePhase.Victory;
             if (!starRow && show) BuildStars();
             if (starRow) starRow.gameObject.SetActive(show);
             if (!show) return;
-            starsEarned = sim.StageStars; starsRung = 0;
+            starsEarned = sim.StageStars; starsRung = starsChimed = 0;
             for (int i = 0; i < stars.Count; i++)
             {
                 stars[i].color = i < starsEarned ? UITheme.Sunny : UITheme.PaperDeep;
