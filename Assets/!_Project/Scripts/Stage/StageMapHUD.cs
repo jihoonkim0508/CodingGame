@@ -225,9 +225,6 @@ namespace CodingGame.StageMap
             {
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, top, null, out var at);
                 hint.anchoredPosition = at + new Vector2(0, 15 + 12 + Mathf.Abs(Mathf.Sin(Time.unscaledTime * 4)) * 16);
-                // Hovering the island the hint points at swells the hint by a third (it grows up from the arrow's tip).
-                float lift = recommended.TryGetComponent<StageIslandView>(out var island) ? island.HoverLift : 0;
-                hint.localScale = Vector3.one * (1 + .35f * lift);
             }
             for (int i = 0; i < nodes.Length; i++)
             {
