@@ -8,7 +8,8 @@ using UnityEngine.UI;
 namespace CodingGame.StageMap
 {
     // Esc on the stage map (play feedback 2026-11-12): the battle's Esc menu without its stage buttons — resume, the sound and
-    // 디버's voice volume, anti-aliasing, and back to the title. Built over the map's canvas the first time it opens.
+    // 디버's voice volume, anti-aliasing, and back to the title. Built over the map's canvas the first time it opens; while
+    // it is open the map's time stands still (GameClock).
     public sealed class StageMapMenu : MonoBehaviour
     {
         Canvas canvas;
@@ -28,10 +29,14 @@ namespace CodingGame.StageMap
             if (!menu) Build();
             bool open = !menu.activeSelf;
             menu.SetActive(open); menu.transform.SetAsLastSibling();
+            GameClock.Pause(open);
             if (!open) return;
             soundSlider.value = DefenseSounds.Volume; voiceSlider.value = TutorialDialogueView.VoiceVolume;
             ShowMsaa();
         }
+
+        // 타이틀로 leaves with the menu open: time and sound back on.
+        void OnDestroy() { if (Open) GameClock.Pause(false); }
 
         void ShowMsaa()
         {
@@ -51,7 +56,9 @@ namespace CodingGame.StageMap
             var card = new GameObject("Card", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
             card.SetParent(shade, false); card.anchorMin = card.anchorMax = new Vector2(.5f, .5f); card.sizeDelta = new Vector2(500, 540);
             UITheme.Style(card.GetComponent<Image>(), UITheme.Card, UITheme.Paper);
-            var font = TMP_Settings.defaultFontAsset;
+            // Every text in Jalnan 2 (UITheme.Display), as in the battle's menu (its labels take rewardTitle's font, Jalnan 2);
+            // Pretendard Bold, then the default font, only before UIRestyle has made it.
+            var font = UITheme.Display ? UITheme.Display : UITheme.Bold ? UITheme.Bold : TMP_Settings.defaultFontAsset;
             TMP_Text Text(string text, float x, float y, float width, float size, TextAlignmentOptions align = TextAlignmentOptions.Center)
             {
                 var label = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
