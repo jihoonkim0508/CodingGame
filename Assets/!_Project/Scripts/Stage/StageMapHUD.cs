@@ -227,7 +227,7 @@ namespace CodingGame.StageMap
             if (pointing)
             {
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, top, null, out var at);
-                hint.anchoredPosition = at + new Vector2(0, 15 + 12 + Mathf.Abs(Mathf.Sin(Time.unscaledTime * 4)) * 16);
+                hint.anchoredPosition = at + new Vector2(0, 15 + 12 + Mathf.Abs(Mathf.Sin(GameClock.Now * 4)) * 16);
             }
             for (int i = 0; i < nodes.Length; i++)
             {
@@ -249,23 +249,23 @@ namespace CodingGame.StageMap
                 // Across, the badge centres on what the player sees locked: the island and its barrier together, as drawn
                 // (in perspective the barrier shows more on the side away from the camera).
                 if (node.LockVisual.WallBounds is Bounds wall) { var both = bounds; both.Encapsulate(wall); badgePosition.x = ScreenMiddleX(both); }
-                badgePosition.x += Mathf.Sin(Time.unscaledTime*65)*reaction*7;
+                badgePosition.x += Mathf.Sin(GameClock.Now*65)*reaction*7;
                 badgePosition.y += release*45;
                 card.badge.anchoredPosition = badgePosition;
                 card.badge.localScale = Vector3.one * ((cinematic && node==unlockTarget?1.75f:1)*(1 + Mathf.Sin(release*Mathf.PI)*.16f));
                 card.badgeGroup.alpha = 1 - Mathf.SmoothStep(0,1,Mathf.InverseLerp(.55f,1,release));
                 card.body.rectTransform.localRotation = Quaternion.Euler(0,0,-Mathf.Sin(release*Mathf.PI)*14); // a shake as it opens
-                Color lockTint = Color.Lerp(LockColor,new Color(1,.74f,.32f),.15f+.1f*Mathf.Sin(Time.unscaledTime*2));
+                Color lockTint = Color.Lerp(LockColor,new Color(1,.74f,.32f),.15f+.1f*Mathf.Sin(GameClock.Now*2));
                 if (node.LockVisual.IsReleasing) lockTint = Color.Lerp(lockTint,OpenColor,release);
                 card.body.color = lockTint;
                 card.body.sprite = release > .2f ? lockOpenIcon : lockIcon; // it springs open as the shake starts
-                card.glow.color = new Color(lockTint.r,lockTint.g,lockTint.b,.4f+.15f*Mathf.Sin(Time.unscaledTime*2)+release*.4f);
+                card.glow.color = new Color(lockTint.r,lockTint.g,lockTint.b,.4f+.15f*Mathf.Sin(GameClock.Now*2)+release*.4f);
                 var island=islands[i];
                 bool purified=node.State==StageState.Cleared && (!island || island.Purification>.88f);
                 bool showPurified=purified&&!entering&&cinematic&&node==unlockTarget;
-                if(showPurified&&!card.purifiedSeal.gameObject.activeSelf)card.purifiedShownAt=Time.unscaledTime;
+                if(showPurified&&!card.purifiedSeal.gameObject.activeSelf)card.purifiedShownAt=GameClock.Now;
                 card.purifiedSeal.gameObject.SetActive(showPurified);
-                float age=Mathf.Max(0,Time.unscaledTime-card.purifiedShownAt);
+                float age=Mathf.Max(0,GameClock.Now-card.purifiedShownAt);
                 float reveal=Mathf.SmoothStep(0,1,Mathf.Clamp01(age/.3f));
                 card.purifiedGroup.alpha=reveal;
                 Vector2 sealPosition=new Vector2(0,-size.y*.5f+180);

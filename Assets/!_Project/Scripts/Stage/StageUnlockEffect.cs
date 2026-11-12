@@ -79,14 +79,14 @@ namespace CodingGame.StageMap
         }
         public void Burst()
         {
-            burstAt = Time.unscaledTime; pulse.gameObject.SetActive(false);
+            burstAt = GameClock.Now; pulse.gameObject.SetActive(false);
             sparks.transform.position = destination+Vector3.up*.9f;
             sparks.Play(); sparks.Emit(70); ring.enabled = true;
         }
         void Update()
         {
             if (burstAt<0) return;
-            float t = Mathf.Clamp01((Time.unscaledTime-burstAt)/1.35f);
+            float t = Mathf.Clamp01((GameClock.Now-burstAt)/1.35f);
             float radius = Mathf.Lerp(.5f,4.2f,1-(1-t)*(1-t));
             for (int i=0;i<ringPoints.Length;i++)
             {

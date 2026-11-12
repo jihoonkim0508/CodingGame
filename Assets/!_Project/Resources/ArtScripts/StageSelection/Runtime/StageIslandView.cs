@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using CodingGame;
 using CodingGame.StageMap;
 using UnityEngine;
 
@@ -91,14 +92,14 @@ namespace CodingGame.Art.StageSelection
         {
             if(!Application.isPlaying)return;
             // Under the mouse the island rises and swells a little (a locked one only stirs), easing in and out over .15 s.
-            hover=Mathf.MoveTowards(hover,hovering?(shown==StageState.Locked?.3f:1):0,Time.unscaledDeltaTime/.15f);
+            hover=Mathf.MoveTowards(hover,hovering?(shown==StageState.Locked?.3f:1):0,GameClock.Delta/.15f);
             float lift=hover*hover*(3-2*hover);
-            if(visualRoot){visualRoot.localPosition=rest+Vector3.up*(Mathf.Sin(Time.unscaledTime*1.05f+stageNumber*1.7f)*.035f+lift*.35f);visualRoot.localScale=restScale*(1+.07f*lift);}
-            if(shown!=StageState.Locked&&rotors!=null)foreach(var rotor in rotors)if(rotor)rotor.Rotate(0,Time.unscaledDeltaTime*18,0,Space.Self);
+            if(visualRoot){visualRoot.localPosition=rest+Vector3.up*(Mathf.Sin(GameClock.Now*1.05f+stageNumber*1.7f)*.035f+lift*.35f);visualRoot.localScale=restScale*(1+.07f*lift);}
+            if(shown!=StageState.Locked&&rotors!=null)foreach(var rotor in rotors)if(rotor)rotor.Rotate(0,GameClock.Delta*18,0,Space.Self);
             if(statusRing&&shown!=StageState.Locked)
             {
                 statusRing.GetPropertyBlock(block);
-                var color=Color.Lerp(Unpurified,Purified,Purification)*(1.55f+.12f*Mathf.Sin(Time.unscaledTime*2.5f)+lift*.6f);
+                var color=Color.Lerp(Unpurified,Purified,Purification)*(1.55f+.12f*Mathf.Sin(GameClock.Now*2.5f)+lift*.6f);
                 color.a=1;block.SetColor(BaseColor,color);statusRing.SetPropertyBlock(block);
             }
         }

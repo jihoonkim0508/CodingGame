@@ -62,7 +62,7 @@ namespace CodingGame.Defense
         {
             if (!IsVisible)
             {
-                shownAt = Time.unscaledTime;
+                shownAt = GameClock.Now;
                 flyFrom = from ? (Vector2)((RectTransform)transform).InverseTransformPoint(from.TransformPoint(from.rect.center)) : (Vector2?)null;
             }
             target = area; fromBelow = below; arrow.gameObject.SetActive(true); Place();
@@ -73,7 +73,7 @@ namespace CodingGame.Defense
 
         public void ShowDrag(RectTransform source, Rect from, Rect to)
         {
-            if (source != ghostSource) { HideDrag(); ghost = Ghost(source); ghostSource = source; dragStarted = Time.unscaledTime; }
+            if (source != ghostSource) { HideDrag(); ghost = Ghost(source); ghostSource = source; dragStarted = GameClock.Now; }
             dragFrom = from; dragTo = to;
             Drag();
         }
@@ -97,11 +97,11 @@ namespace CodingGame.Defense
         bool pathShowing; float pathShownAt;
         public void ShowPath(IReadOnlyList<Vector2> points)
         {
-            if (!pathShowing) { pathShowing = true; pathShownAt = Time.unscaledTime; }
+            if (!pathShowing) { pathShowing = true; pathShownAt = GameClock.Now; }
             float total = 0;
             for (int i = 1; i < points.Count; i++) total += Vector2.Distance(points[i - 1], points[i]);
             while (chevrons.Count < PathPack) MakeChevron();
-            float lead = PathLead(Time.unscaledTime - pathShownAt, total);
+            float lead = PathLead(GameClock.Now - pathShownAt, total);
             for (int k = 0; k < chevrons.Count; k++)
             {
                 var chevron = chevrons[k];
@@ -153,24 +153,24 @@ namespace CodingGame.Defense
         void LateUpdate() { if (IsVisible) Place(); if (ghost) Drag(); }
         void Place()
         {
-            float half = arrow.rect.height * .5f, bounce = Mathf.Abs(Mathf.Sin(Time.unscaledTime * bobSpeed)) * bob;
+            float half = arrow.rect.height * .5f, bounce = Mathf.Abs(Mathf.Sin(GameClock.Now * bobSpeed)) * bob;
             // Targets on the top edge (e.g. the editor's hint button) get the arrow underneath, pointing up.
             bool above = !fromBelow && target.yMax + gap + half * 2 + bob <= ((RectTransform)transform).rect.yMax;
             arrow.localEulerAngles = new Vector3(0, 0, above ? 0 : 180);
             var goal = new Vector2(target.center.x, above ? target.yMax + gap + half + bounce : target.yMin - gap - half - bounce);
-            float fly = Mathf.Clamp01((Time.unscaledTime - shownAt) / FlySeconds);
+            float fly = Mathf.Clamp01((GameClock.Now - shownAt) / FlySeconds);
             arrow.anchoredPosition = flyFrom.HasValue && fly < 1 ? Vector2.Lerp(flyFrom.Value, goal, 1 - (1 - fly) * (1 - fly) * (1 - fly)) : goal;
             // The shadow falls down the screen whichever way the arrow points (it turns with the arrow).
             pointerShadow.rectTransform.anchoredPosition = new Vector2(0, above ? -PointerShadow : PointerShadow);
             // Pops in with a small overshoot (ease-out-back), so the eye catches it starting.
-            float t = Mathf.Clamp01((Time.unscaledTime - shownAt) / PointerPop) - 1;
+            float t = Mathf.Clamp01((GameClock.Now - shownAt) / PointerPop) - 1;
             arrow.localScale = Vector3.one * (1 + 2.70158f * t * t * t + 1.70158f * t * t);
         }
 
         // Glide from the palette item to the slot (the block's left edge to the slot's left edge), hold, fade, rest, repeat.
         void Drag()
         {
-            float t = (Time.unscaledTime - dragStarted) % (DragSeconds + HoldSeconds + RestSeconds);
+            float t = (GameClock.Now - dragStarted) % (DragSeconds + HoldSeconds + RestSeconds);
             float move = Mathf.SmoothStep(0, 1, Mathf.Clamp01(t / DragSeconds));
             float fade = t < DragSeconds ? 1 : 1 - Mathf.Clamp01((t - DragSeconds) / HoldSeconds);
             // The palette lays its items out a frame after a tab switch, so the size is followed rather than copied once.

@@ -74,7 +74,7 @@ namespace CodingGame.Defense
             // Stalled frames do not count: the first frames after the scene opens (1-1 A01) freeze for over a second, and a card
             // landing just before one read as "탁 … 탁 탁" (play test). Slow but running frames still count (a 1/30 cap slowed
             // every beat at 20 fps).
-            float step = Time.unscaledDeltaTime;
+            float step = GameClock.Delta;
             if (step < .25f) clock += step;
             if (clock >= duration) { Hide(); return; }
             while (withCards && sounded < cards.Count && clock >= Land(sounded)) { sounded++; if (warning.clip) warning.PlayOneShot(warning.clip); }

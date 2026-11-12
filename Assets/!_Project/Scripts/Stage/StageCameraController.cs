@@ -115,7 +115,7 @@ namespace CodingGame.StageMap
         public void FollowUnlockPulse(Vector3 point)
         {
             followingRoute=true;focusing=true;
-            float blend=1-Mathf.Exp(-Time.unscaledDeltaTime*5);
+            float blend=1-Mathf.Exp(-GameClock.Delta*5);
             var rotation=Quaternion.Euler(34,5,0);
             var look=point+Vector3.up*.35f;
             var position=look-rotation*Vector3.forward*8.4f;
@@ -155,7 +155,7 @@ namespace CodingGame.StageMap
                 FrameOverview(false);
             }
             if (!IsMoving) return;
-            elapsed += Time.unscaledDeltaTime;
+            elapsed += GameClock.Delta;
             float n = Mathf.Clamp01(elapsed / activeDuration);
             float t = n * n * n * (n * (6f * n - 15f) + 10f);
             Vector3 first = Vector3.Lerp(startPosition, controlPosition, t);

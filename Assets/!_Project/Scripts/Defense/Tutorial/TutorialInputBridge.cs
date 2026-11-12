@@ -95,7 +95,7 @@ namespace CodingGame.Defense
         {
             keys = keys ?? Array.Empty<string>();
             if (spotlight && !focus.SequenceEqual(keys)) spotlight.Pulse();
-            if (Array.IndexOf(keys, TutorialKeys.Route) >= 0 && Array.IndexOf(focus, TutorialKeys.Route) < 0) roadShown = Time.unscaledTime;
+            if (Array.IndexOf(keys, TutorialKeys.Route) >= 0 && Array.IndexOf(focus, TutorialKeys.Route) < 0) roadShown = GameClock.Now;
             focus = keys; RefreshAreas();
         }
 
@@ -104,11 +104,11 @@ namespace CodingGame.Defense
         bool dismissed;
         float roadShown = -10;
         const float RoadRevealSeconds = 1.2f;
-        public bool RoadDrawn => Time.unscaledTime - roadShown >= RoadRevealSeconds;
+        public bool RoadDrawn => GameClock.Now - roadShown >= RoadRevealSeconds;
         // The road's parts cut to the length drawn so far (they run entrance to core, each from the side touching the one before).
         Bounds[] Reveal(Bounds[] parts)
         {
-            float k = Mathf.Clamp01((Time.unscaledTime - roadShown) / RoadRevealSeconds);
+            float k = Mathf.Clamp01((GameClock.Now - roadShown) / RoadRevealSeconds);
             if (k >= 1) return parts;
             float total = 0; foreach (var b in parts) total += Mathf.Max(b.size.x, b.size.z);
             float left = Mathf.SmoothStep(0, 1, k) * total;

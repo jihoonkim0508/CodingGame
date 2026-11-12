@@ -28,7 +28,7 @@ namespace CodingGame.StageMap
         public bool IsLocked { get; private set; }
         public bool IsReleasing { get; private set; }
         public float ReleaseProgress { get; private set; }
-        public float Rejection => Mathf.Clamp01(1f - (Time.unscaledTime - rejectedAt) / .65f);
+        public float Rejection => Mathf.Clamp01(1f - (GameClock.Now - rejectedAt) / .65f);
 
         public void Configure(Bounds bounds, int number)
         {
@@ -101,11 +101,11 @@ namespace CodingGame.StageMap
             block.SetFloat(ReleaseId, ReleaseProgress); wall.SetPropertyBlock(block);
         }
 
-        public void Reject() => rejectedAt = Time.unscaledTime;
+        public void Reject() => rejectedAt = GameClock.Now;
 
         void Update()
         {
-            float pulse = 1f + .12f * Mathf.Sin(Time.unscaledTime * 2 + stageNumber);
+            float pulse = 1f + .12f * Mathf.Sin(GameClock.Now * 2 + stageNumber);
             Color color = Color.Lerp(Amber, new Color(1, .5f, .24f), Rejection);
             color = Color.Lerp(color,new Color(1,.77f,.38f),ReleaseProgress);
             color.a = 1-ReleaseProgress;

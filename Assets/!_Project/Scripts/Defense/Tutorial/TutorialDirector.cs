@@ -53,18 +53,9 @@ namespace CodingGame.Defense
             !bannerUp && autoNextAt <= 0 && (!battle || !battle.HasDialogueBlockingWindow);
         public void AdvanceDialogueShortcut() { if (CanUseDialogueShortcut) NextText(); }
         // While the Esc menu is open (it opens mid-tutorial too): no steps or timed lines; the timers go on where they were.
-        float pausedAt = -1;
-        public bool Paused => pausedAt >= 0;
-        public void SetPaused(bool pause)
-        {
-            if (pause == Paused) return;
-            if (pause) { pausedAt = Time.unscaledTime; return; }
-            float shift = Time.unscaledTime - pausedAt; pausedAt = -1;
-            if (autoNextAt > 0 && autoNextAt != float.MaxValue) autoNextAt += shift;
-            if (heldUntil > 0 && heldUntil != float.MaxValue) heldUntil += shift;
-            if (targetsLostAt >= 0) targetsLostAt += shift;
-            stepEntered += shift;
-        }
+        // The Esc menu: the lesson waits. Its timers run on GameClock, which stands still meanwhile, so none needs shifting.
+        public bool Paused { get; private set; }
+        public void SetPaused(bool pause) => Paused = pause;
         // Waiting for a trigger hides the dialogue and leaves the game free; a system banner still holds input.
         public bool IsActive => active && view && (view.IsVisible || bannerUp || guideDismissed);
         // A lesson is loaded, shown or not (its hidden free-play steps still point at robots and the road).
@@ -158,7 +149,7 @@ namespace CodingGame.Defense
             {
                 // Every target on screen, editor ones too (TargetsAvailable counts an editor position as there while the editor is shut).
                 if (progressStep == 0 || step.kind == TutorialStepKind.ActionGuide && step.targetKeys.All(k => bridge.TryGetArea(k, out _))) jumping = false;
-                else if (Time.unscaledTime - stepEntered > .5f)
+                else if (GameClock.Now - stepEntered > .5f)
                 {
                     int back = progressStep - 1;
                     while (back > 0 && active.steps[back].kind != TutorialStepKind.ActionGuide) back--;
@@ -193,10 +184,10 @@ namespace CodingGame.Defense
             if (!view.IsVisible && !bannerUp && !guideDismissed) { ShowText(true); return; }
             // Opening the hint is the player's own help: the highlight and the arrow step aside (planner).
             if (Editor && Editor.HintOpen) bridge.Dismiss();
-            if (autoNextAt == float.MaxValue && !view.IsTyping) autoNextAt = Time.unscaledTime + step.autoAdvance;
-            if (heldUntil == float.MaxValue && !view.IsTyping) heldUntil = Time.unscaledTime + step.holdSeconds;
-            if (held == step && Time.unscaledTime >= heldUntil) { held = null; CompleteAction(step); return; }
-            if (autoNextAt > 0 && autoNextAt != float.MaxValue && Time.unscaledTime >= autoNextAt) { autoNextAt = -1; Enter(progressStep + 1); return; }
+            if (autoNextAt == float.MaxValue && !view.IsTyping) autoNextAt = GameClock.Now + step.autoAdvance;
+            if (heldUntil == float.MaxValue && !view.IsTyping) heldUntil = GameClock.Now + step.holdSeconds;
+            if (held == step && GameClock.Now >= heldUntil) { held = null; CompleteAction(step); return; }
+            if (autoNextAt > 0 && autoNextAt != float.MaxValue && GameClock.Now >= autoNextAt) { autoNextAt = -1; Enter(progressStep + 1); return; }
             // The banner faded: same as pressing next (ShowText resets bannerUp for the following line).
             if (bannerUp && alert && !alert.IsShowing) { NextText(); return; }
             UpdatePointer(step);
@@ -206,8 +197,8 @@ namespace CodingGame.Defense
             { targetsLostAt = -1; return; }
             // Targets such as the robot menu appear a frame after the step starts; only a target that was there and stays gone ends the tutorial.
             if (bridge.TargetsAvailable(step)) { targetsSeen = true; targetsLostAt = -1; }
-            else if (targetsSeen && targetsLostAt < 0) targetsLostAt = Time.unscaledTime;
-            else if (targetsSeen && Time.unscaledTime - targetsLostAt > 1)
+            else if (targetsSeen && targetsLostAt < 0) targetsLostAt = GameClock.Now;
+            else if (targetsSeen && GameClock.Now - targetsLostAt > 1)
             {
                 Debug.LogError($"튜토리얼 중단 [{active.sequenceId}/{step.stepId}]: 대상이 사라졌습니다.", active);
                 Finish();
@@ -216,8 +207,8 @@ namespace CodingGame.Defense
 
         static bool Same(string a, string b) => Regex.Replace(a ?? "", @"\s", "") == Regex.Replace(b ?? "", @"\s", "");
         bool Triggered(TutorialStep step) => string.IsNullOrWhiteSpace(step.trigger) ||
-            signals.Contains(step.trigger) && Time.unscaledTime - signalAt[step.trigger] >= step.triggerDelay;
-        void Remember(string signal) { if (signals.Add(signal)) signalAt[signal] = Time.unscaledTime; }
+            signals.Contains(step.trigger) && GameClock.Now - signalAt[step.trigger] >= step.triggerDelay;
+        void Remember(string signal) { if (signals.Add(signal)) signalAt[signal] = GameClock.Now; }
 
         // A signal from the game or the watcher: remember it for trigger steps and complete an action step waiting on it.
         void Signal(string signal)
@@ -233,7 +224,7 @@ namespace CodingGame.Defense
             if (!pointer) return;
             Rect area = default; string chosen = null;
             bool show = viewedStep == progressStep && !completedStep.Contains(step.stepId) && !string.IsNullOrWhiteSpace(step.pointerKey) && !(Editor && Editor.HintOpen) &&
-                Time.unscaledTime - stepEntered >= step.pointerDelay && bridge.TryGetArea(step.pointerKey, out area, out chosen);
+                GameClock.Now - stepEntered >= step.pointerDelay && bridge.TryGetArea(step.pointerKey, out area, out chosen);
             // Slots under or inside a code line are pointed at from below; from above the arrow would cover the line above. So are
             // palette blocks: from above the arrow sat on the category tabs and read as pointing at a tab (play test).
             if (show) pointer.Show(view ? view.Portrait : null, area, chosen.Contains(".After.") || chosen.Contains(".Arg.") || chosen.Contains(".Name.") || chosen.Contains(".Option.") || chosen.Contains(".Body") ||
@@ -347,7 +338,7 @@ namespace CodingGame.Defense
         void Enter(int index)
         {
             if (index >= active.steps.Length) { Finish(); return; }
-            progressStep = viewedStep = index; viewedText = 0; stepEntered = Time.unscaledTime; guideDismissed = false;
+            progressStep = viewedStep = index; viewedText = 0; stepEntered = GameClock.Now; guideDismissed = false;
             targetsSeen = false; targetsLostAt = -1;
             if (pointer) pointer.Hide();
             var step = active.steps[index];
@@ -488,7 +479,7 @@ namespace CodingGame.Defense
         {
             if (!active || progressStep >= active.steps.Length || active.steps[progressStep] != step) return;
             if (!string.IsNullOrEmpty(step.requiredSlotBlock) && (!Editor || !Editor.SlotFilled(step.requiredSlotBlock))) return;
-            if (step.holdSeconds > 0 && Time.unscaledTime < heldUntil) { held = step; return; }
+            if (step.holdSeconds > 0 && GameClock.Now < heldUntil) { held = step; return; }
             if (!completedStep.Add(step.stepId)) return;
             if ((step.completionSignal == TutorialSignals.ProgramMatches || step.completionSignal == TutorialSignals.DraftValueMatches) && Editor) Editor.FinishTutorialInput();
             Enter(progressStep + 1);

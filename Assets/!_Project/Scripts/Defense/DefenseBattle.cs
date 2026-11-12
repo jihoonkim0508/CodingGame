@@ -466,7 +466,7 @@ namespace CodingGame.Defense
         {
             if (pausedWave && Simulation != null && Simulation.Phase == (open ? BattlePhase.Running : BattlePhase.Paused)) { Simulation.TogglePause(); RefreshHUD(); }
             if (tutorial) tutorial.SetPaused(open);
-            AudioListener.pause = open;
+            GameClock.Pause(open); // the world, the lesson's clock and the sound stand still
         }
         public void TogglePause()
         {

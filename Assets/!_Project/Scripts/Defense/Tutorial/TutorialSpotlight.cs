@@ -29,12 +29,12 @@ namespace CodingGame.Defense
         // does not. The dark fades in.
         const float IntroDelay = .35f, IntroSeconds = .5f, IntroGrow = 140, DimSeconds = .25f, RippleEvery = 1.75f, RippleSeconds = .6f, RippleGrow = 22;
         float introStart = -10, dimStart = -10;
-        public void Pulse() => introStart = Time.unscaledTime;
-        float Intro => Mathf.Clamp01((Time.unscaledTime - introStart - IntroDelay) / IntroSeconds);
-        bool Waiting => Time.unscaledTime - introStart < IntroDelay;
+        public void Pulse() => introStart = GameClock.Now;
+        float Intro => Mathf.Clamp01((GameClock.Now - introStart - IntroDelay) / IntroSeconds);
+        bool Waiting => GameClock.Now - introStart < IntroDelay;
         void Update() { if (dim || outlines.Count > 0) SetVerticesDirty(); }
         // Shown again after a wait (spotlight off): fade the dark in rather than snapping to it.
-        protected override void OnEnable() { base.OnEnable(); dimStart = Time.unscaledTime; }
+        protected override void OnEnable() { base.OnEnable(); dimStart = GameClock.Now; }
         // Call before SetHoles. boxes are not padded.
         public void SetRoad(IEnumerable<Rect> boxes, IEnumerable<Vector2[]> dimmed)
         {
@@ -43,7 +43,7 @@ namespace CodingGame.Defense
         public void SetHoles(IEnumerable<Rect> clickable, IEnumerable<Rect> visible, IEnumerable<Rect> outlined, IEnumerable<Rect> round, float padding, bool darken)
         {
             clicks.Clear(); holes.Clear(); outlines.Clear(); rounds.Clear();
-            if (darken && !dim) dimStart = Time.unscaledTime;
+            if (darken && !dim) dimStart = GameClock.Now;
             dim = darken;
             foreach (var area in clickable) if (Expand(area, padding, out var r)) clicks.Add(r);
             foreach (var area in visible) if (Expand(area, padding, out var r)) holes.Add(r);
@@ -74,7 +74,7 @@ namespace CodingGame.Defense
             float k = Intro, grow = Mathf.Pow(1 - k, 3) * IntroGrow;
             // Grown for this frame only (the stored rects stay as set), so the hole closes in on its target.
             if (grow > .01f) { Grow(holes, grow); Grow(outlines, grow); Grow(rounds, grow); }
-            var color = this.color; color.a = DimAlpha * Mathf.SmoothStep(0, 1, (Time.unscaledTime - dimStart) / DimSeconds);
+            var color = this.color; color.a = DimAlpha * Mathf.SmoothStep(0, 1, (GameClock.Now - dimStart) / DimSeconds);
             try { Populate(vh, color, k); }
             finally { if (grow > .01f) { Grow(holes, -grow); Grow(outlines, -grow); Grow(rounds, -grow); } }
         }
@@ -128,7 +128,7 @@ namespace CodingGame.Defense
             }
             // Frames: drawn once the target's beat has come; a ripple leaves each one now and then after it has closed in.
             if (Waiting) return;
-            float since = Time.unscaledTime - introStart - IntroDelay - IntroSeconds;
+            float since = GameClock.Now - introStart - IntroDelay - IntroSeconds;
             float ripple = since < 0 ? -1 : since % RippleEvery / RippleSeconds;
             var sunny = UITheme.Sunny; var ripples = sunny; ripples.a = .8f * (1 - Mathf.Clamp01(ripple));
             foreach (var r in outlines)

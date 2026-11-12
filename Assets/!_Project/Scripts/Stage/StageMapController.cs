@@ -65,7 +65,7 @@ namespace CodingGame.StageMap
             // 디버's box fades out once a stage is chosen, while the camera flies there, and sits out the unlock cinematic.
             if (guideGroup)
             {
-                guideGroup.alpha = entering ? 1 - Mathf.Clamp01((Time.unscaledTime - enteredAt) / GuideFadeSeconds) : unlocking ? 0 : 1;
+                guideGroup.alpha = entering ? 1 - Mathf.Clamp01((GameClock.Now - enteredAt) / GuideFadeSeconds) : unlocking ? 0 : 1;
                 if (guideLine.text != guideMessage) guideLine.text = guideMessage;
                 SpeakGuide();
                 if (entering && voice && voice.isPlaying) voice.volume = TutorialDialogueView.VoiceVolume * guideGroup.alpha; // fades with the box
@@ -106,7 +106,7 @@ namespace CodingGame.StageMap
             }
             UISound.Play("stage-select");
             StageProgress.SelectedStage = node.Number;
-            entering = true; enteredAt = Time.unscaledTime; hud.SetEntering();
+            entering = true; enteredAt = GameClock.Now; hud.SetEntering();
             cameraController.Focus(node.transform);
             GameFlow.LoadScene(GameFlow.DefenseScene, StageCameraController.Duration);
         }
@@ -184,7 +184,7 @@ namespace CodingGame.StageMap
             cameraController.ShowPurificationIsland(source);
             yield return new WaitForSecondsRealtime(.9f);
             cameraController.RiseOverPurification(source);
-            for(float elapsed=0;elapsed<1.25f;elapsed+=Time.unscaledDeltaTime)
+            for(float elapsed=0;elapsed<1.25f;elapsed+=GameClock.Delta)
             {
                 float t=Mathf.SmoothStep(0,1,Mathf.Clamp01(elapsed/1.25f));
                 if(sourceIsland)sourceIsland.Purify(t);
@@ -205,7 +205,7 @@ namespace CodingGame.StageMap
             effectRoot.transform.SetParent(transform,false);
             var effect = effectRoot.AddComponent<StageUnlockEffect>(); effect.Configure(source,target);
             bool approaching = false;
-            for(float elapsed=0;elapsed<1.5f;elapsed+=Time.unscaledDeltaTime)
+            for(float elapsed=0;elapsed<1.5f;elapsed+=GameClock.Delta)
             {
                 float t = Mathf.Clamp01(elapsed/1.5f);
                 effect.Show(Mathf.SmoothStep(0,1,t));
@@ -214,7 +214,7 @@ namespace CodingGame.StageMap
                 yield return null;
             }
             effect.Show(1); effect.Burst();
-            for(float elapsed=0;elapsed<1f;elapsed+=Time.unscaledDeltaTime)
+            for(float elapsed=0;elapsed<1f;elapsed+=GameClock.Delta)
             {
                 float t=Mathf.Clamp01(elapsed);
                 target.LockVisual.Release(t);

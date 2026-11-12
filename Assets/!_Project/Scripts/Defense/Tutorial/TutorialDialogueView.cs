@@ -102,7 +102,7 @@ namespace CodingGame.Defense
         {
             if (voice && voice.volume != VoiceVolume) voice.volume = VoiceVolume; // the Esc menu's slider moved mid-line
             if (!IsVisible) return;
-            float now = Time.unscaledTime;
+            float now = GameClock.Now;
             bool waiting = typing == null && nextText.interactable;
             float nudge = Mathf.Sin(Mathf.Clamp01(1 - (now - nudgedAt) / .45f) * Mathf.PI) * .35f;
             nextText.transform.localScale = Vector3.one * ((waiting ? 1 + .07f * (.5f + .5f * Mathf.Sin(now * 5)) : 1) + nudge);
@@ -127,7 +127,7 @@ namespace CodingGame.Defense
             while (dialogue.maxVisibleCharacters < characterCount)
             {
                 // One slow frame (editor opening, robot spawn) would otherwise reveal many letters at once; 0.1 s keeps low frame rates at full speed.
-                elapsed += Mathf.Min(Time.unscaledDeltaTime, .1f);
+                elapsed += Mathf.Min(GameClock.Delta, .1f);
                 int count = Mathf.Min(characterCount, Mathf.FloorToInt(elapsed * charactersPerSecond) + 1);
                 dialogue.maxVisibleCharacters = count;
                 yield return null;
@@ -161,7 +161,7 @@ namespace CodingGame.Defense
 
         float nudgedAt = -10;
         // A click the tutorial turned away (전투 시작 while a line still waits): the next button jumps to show what to press.
-        public void Nudge() => nudgedAt = Time.unscaledTime;
+        public void Nudge() => nudgedAt = GameClock.Now;
 
         public void SetNavigation(bool canPrevious, bool canNext, bool action = false, bool dismissable = false, bool automatic = false)
         {
@@ -211,7 +211,7 @@ namespace CodingGame.Defense
         }
         IEnumerator Slide(Vector3 from, Vector3 to)
         {
-            for (float t = 0; t < SlideSeconds; t += Time.unscaledDeltaTime)
+            for (float t = 0; t < SlideSeconds; t += GameClock.Delta)
             {
                 panelRect.localPosition = Vector3.Lerp(from, to, Mathf.SmoothStep(0, 1, t / SlideSeconds));
                 yield return null;
@@ -236,7 +236,7 @@ namespace CodingGame.Defense
         // A restrained settling motion keeps the reading area steady.
         IEnumerator PunchIn(Vector3 middle, float scale)
         {
-            for (float t = 0; t < PunchSeconds; t += Time.unscaledDeltaTime)
+            for (float t = 0; t < PunchSeconds; t += GameClock.Delta)
             {
                 float k = t / PunchSeconds, settle = 1 - k;
                 panelRect.localScale = Vector3.one * scale * (1 + .035f * settle * settle);
@@ -248,7 +248,7 @@ namespace CodingGame.Defense
         }
         IEnumerator Shrink(Vector3 middle, float scale, Vector3 home)
         {
-            for (float t = 0; t < ShrinkSeconds; t += Time.unscaledDeltaTime)
+            for (float t = 0; t < ShrinkSeconds; t += GameClock.Delta)
             {
                 float k = Mathf.SmoothStep(0, 1, t / ShrinkSeconds);
                 panelRect.localPosition = Vector3.Lerp(middle, home, k);
