@@ -151,8 +151,8 @@ namespace CodingGame.Defense
             {
                 idLabel = new GameObject("Debug id", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
                 var rect = idLabel.rectTransform; rect.SetParent(panelRect, false);
-                rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one; rect.anchoredPosition = new Vector2(-14, -8); rect.sizeDelta = new Vector2(240, 28);
-                idLabel.font = dialogue.font; idLabel.fontSize = 18; idLabel.alignment = TextAlignmentOptions.TopRight;
+                rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one; rect.anchoredPosition = new Vector2(-90, -44); rect.sizeDelta = new Vector2(240, 28); // inside the bubble: the rect's corner sits above its rounded end
+                idLabel.font = dialogue.font; idLabel.fontSize = 20; idLabel.alignment = TextAlignmentOptions.TopRight;
                 idLabel.color = new Color(1, 1, 1, .7f); idLabel.raycastTarget = false; // on the panel's dark blue
             }
             idLabel.gameObject.SetActive(true); idLabel.transform.SetAsLastSibling();
