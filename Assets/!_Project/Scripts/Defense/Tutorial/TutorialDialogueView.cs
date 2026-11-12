@@ -141,22 +141,22 @@ namespace CodingGame.Defense
             StopTyping(); dialogue.maxVisibleCharacters = int.MaxValue;
         }
 
-        // Editor only: the line's id (e.g. "1-1 A04b") in the panel's top-right corner, to match playtest notes to the script.
+        // With developer rights (the Editor, development builds): the line's id (e.g. "1-1.A04b") in the panel's top-right
+        // corner, to match playtest notes to the script and to jump there from the F1 panel.
         TMP_Text idLabel;
         public void SetDebugId(string id)
         {
-#if UNITY_EDITOR
-            if (!showDebugId) { if (idLabel) idLabel.gameObject.SetActive(false); return; }
+            if (!showDebugId && !GameFlow.Developer) { if (idLabel) idLabel.gameObject.SetActive(false); return; }
             if (!idLabel)
             {
                 idLabel = new GameObject("Debug id", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
                 var rect = idLabel.rectTransform; rect.SetParent(panelRect, false);
                 rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one; rect.anchoredPosition = new Vector2(-14, -8); rect.sizeDelta = new Vector2(240, 28);
                 idLabel.font = dialogue.font; idLabel.fontSize = 18; idLabel.alignment = TextAlignmentOptions.TopRight;
-                idLabel.color = new Color(.14f, .26f, .36f, .55f); idLabel.raycastTarget = false;
+                idLabel.color = new Color(1, 1, 1, .7f); idLabel.raycastTarget = false; // on the panel's dark blue
             }
+            idLabel.gameObject.SetActive(true); idLabel.transform.SetAsLastSibling();
             idLabel.text = id;
-#endif
         }
 
         float nudgedAt = -10;

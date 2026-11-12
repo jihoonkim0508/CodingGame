@@ -91,7 +91,7 @@ namespace CodingGame.Defense
         DefenseBossWarning BossWarning => bossWarning ? bossWarning : bossWarning = new GameObject("BossWarning").AddComponent<DefenseBossWarning>();
         float bossEntranceUntil, bossCameraRestoreAt;
         public bool DeveloperMode { get; private set; }
-        // The developer panel (F1) is for the team only: developer mode, opened on the title (GameFlow.Developer).
+        // The developer panel (F1) and the balance window (F2) are for the team only: developer rights (GameFlow.Developer).
         public static bool DeveloperTools => GameFlow.Developer;
         public bool ShowHitRanges { get; private set; }
         public bool HelpOpen { get; internal set; }
@@ -588,7 +588,8 @@ namespace CodingGame.Defense
             bool dialogueInput = tutorial && tutorial.DialogueInputCaptured;
             var mouse = dialogueInput ? null : Mouse.current; var keyboard = dialogueInput ? null : Keyboard.current;
             bool tutorialActive = TutorialBlocksInput;
-            if (DeveloperTools && !tutorialActive && keyboard != null && keyboard.f1Key.wasPressedThisFrame) ToggleDeveloper();
+            // F1 works in a tutorial too (its dialogue-id jump is for the tutorial); the tutorial does not gate it.
+            if (DeveloperTools && keyboard != null && keyboard.f1Key.wasPressedThisFrame) SetDeveloperMode(!DeveloperMode);
             if (!tutorialActive && keyboard != null && keyboard.tabKey.wasPressedThisFrame && !codeEditor.IsOpen)
             {
                 if (DeveloperMode) ToggleDeveloper();

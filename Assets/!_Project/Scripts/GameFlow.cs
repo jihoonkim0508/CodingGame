@@ -22,7 +22,7 @@ namespace CodingGame
         static void ResetSession()
         {
             if (instance) SceneManager.sceneLoaded -= instance.OnSceneLoaded;
-            instance = null; Loading = false; Developer = false;
+            instance = null; Loading = false; Developer = Debug.isDebugBuild; // the Editor and development builds start with it
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -114,9 +114,11 @@ namespace CodingGame
             loadingFill.anchorMax = new Vector2(Mathf.Max(loadingFill.anchorMax.x, Mathf.Clamp01(progress)), 1);
         }
 
-        // Developer mode (the battle's F1 panel and 5x speed, the stage map's Z/Q keys): ten clicks in a row on the title's
-        // top-left corner turn it on, ten more off; it lasts while the game runs (like clears and stars).
+        // Developer rights (the battle's F1 panel and F2 balance window, 5x speed, the dialogue ids, the stage map's Z/Q keys):
+        // on from the start in the Editor and development builds; in a release build ten clicks in a row on the title's
+        // top-left corner turn them on, ten more off. They last while the game runs, shown by "Dev" in the bottom-left corner.
         public static bool Developer { get; private set; }
+        TMPro.TextMeshProUGUI devMark;
         const int DeveloperClicks = 10;
         const float DeveloperCorner = 120, DeveloperClickGap = 1; // 1080p pixels from the corner; seconds between clicks
         int cornerClicks; float lastCornerClick;
@@ -124,6 +126,15 @@ namespace CodingGame
         void Update()
         {
             if (toast) toast.alpha = Mathf.Clamp01((toastUntil - Time.unscaledTime) / .4f);
+            if (Developer && !devMark)
+            {
+                devMark = new GameObject("Dev", typeof(RectTransform), typeof(TMPro.TextMeshProUGUI)).GetComponent<TMPro.TextMeshProUGUI>();
+                var rect = devMark.rectTransform; rect.SetParent(transform, false);
+                rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.zero; rect.anchoredPosition = new Vector2(16, 10); rect.sizeDelta = new Vector2(120, 40);
+                devMark.font = UITheme.Display; devMark.fontSize = 28; devMark.color = UITheme.Primary; devMark.text = "Dev"; devMark.raycastTarget = false;
+                devMark.outlineWidth = .25f; devMark.outlineColor = UITheme.Ink;
+            }
+            if (devMark) devMark.gameObject.SetActive(Developer);
             var mouse = UnityEngine.InputSystem.Mouse.current;
             if (mouse != null && mouse.leftButton.wasPressedThisFrame && SceneManager.GetActiveScene().name == TitleScene) TitleClick(mouse.position.ReadValue());
         }

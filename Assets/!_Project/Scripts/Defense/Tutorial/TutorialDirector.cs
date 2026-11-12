@@ -396,7 +396,7 @@ namespace CodingGame.Defense
             }
             bannerUp = false;
             view.Show(active, step.dialoguePosition, Code(text.text), animate, text.speaker, voice);
-            view.SetDebugId(active.sequenceId + " " + step.stepId);
+            view.SetDebugId(active.sequenceId + "." + step.stepId);
             // Lines that only explain (no action, nothing to look at) sit in the middle while preparing; battle and
             // reward screens, the code editor and a selected robot's range circle (1-1 B05 "이 원") keep the bottom.
             bool explain = step.kind != TutorialStepKind.ActionGuide && focus.Length == 0 && highlight.Length == 0 &&
