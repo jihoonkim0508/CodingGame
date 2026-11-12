@@ -393,7 +393,7 @@ namespace CodingGame.BlockCoding
         {
             if(readOnlyPreview)return;
             if (e.button == PointerEventData.InputButton.Left && IsPalette) Panel.AddFromPalette(this);
-            else if (e.button == PointerEventData.InputButton.Right && !IsPalette) Panel.DeleteOne(this);
+            else if (e.button == PointerEventData.InputButton.Right && !IsPalette) Panel.RightClick(this);
             e.Use();
         }
     }

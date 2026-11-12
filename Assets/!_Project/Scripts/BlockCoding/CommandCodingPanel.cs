@@ -507,6 +507,26 @@ namespace CodingGame.BlockCoding
             foreach (var member in block.Owner.Group(block)) RemoveSingle(member);
             Changed(); Feedback?.Invoke("block-delete");
         }
+        // Right-click on a placed block: a copy (when the host allows it, CanCopy) or else removing that one block.
+        public Func<bool> CanCopy { get; set; }
+        internal void RightClick(CommandBlockView block)
+        {
+            if (CanCopy?.Invoke() == true) CopyOne(block); else DeleteOne(block);
+        }
+        // A copy of a command line, with what is inside it, goes right under it, if the inventory still holds every block in it.
+        public void CopyOne(CommandBlockView block)
+        {
+            if (!block || block.IsPalette || block.Owner == null) return;
+            EndDrag();
+            if (block.Owner.Slot != BlockSlotKind.Statement) { ShowMessage("명령 줄 블록만 복사할 수 있어요."); return; }
+            if (block.Owner.FreePlacement) { ShowMessage("맨 바깥 줄은 복사할 수 없어요. 반복문 안쪽 줄을 우클릭하세요."); return; }
+            foreach (var need in block.Descendants().GroupBy(b => b.BaseKind))
+                if ((Remaining?.Invoke(need.Key) ?? int.MaxValue) < need.Count()) { ShowMessage("보유 수량이 모자라 복사할 수 없어요."); return; }
+            var copy = CreateBlock(block.Read(), dragLayer);
+            if (!block.Owner.InsertNew(copy, block.Owner.Blocks.ToList().IndexOf(block) + 1))
+            { copy.gameObject.SetActive(false); Destroy(copy.gameObject); ShowMessage("여기에는 복사할 수 없어요."); return; }
+            Feedback?.Invoke("block-drop");
+        }
         public void DeleteOne(CommandBlockView block)
         {
             if (!block || block.IsPalette || block.Owner == null) return;
