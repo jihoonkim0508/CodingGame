@@ -51,6 +51,7 @@ namespace CodingGame.StageMap
         // The pointer ("<title> · 여기야!" over a down arrow) shows over the recommended island when this is true.
         public bool IsHintVisible => recommended && !HideSelectionUI;
         public CanvasScaler Scaler { get; private set; }
+        public Canvas Canvas => canvas;
 
         public void Configure(StageNode[] stageNodes, Camera camera, StageCameraController motion, Action<StageNode> select)
         {

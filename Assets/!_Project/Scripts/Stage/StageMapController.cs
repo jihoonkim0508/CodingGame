@@ -17,6 +17,7 @@ namespace CodingGame.StageMap
         Camera mapCamera;
         StageCameraController cameraController;
         StageMapHUD hud;
+        StageMapMenu menu;
         // 디버 talks in the battle's dialogue box (11차 116), copied by UIRequests9.BuildGuideDialogue.
         public const string GuideDialogue = "UI/GuideDialogue", GuideSpeaker = "디버";
         CanvasGroup guideGroup;
@@ -53,6 +54,8 @@ namespace CodingGame.StageMap
                 guideLine = guide.transform.Find("DialoguePanel/Dialogue").GetComponent<TMP_Text>();
                 guide.transform.Find("DialoguePanel/SpeakerName").GetComponent<TMP_Text>().text = GuideSpeaker;
             }
+            menu = gameObject.AddComponent<StageMapMenu>();
+            menu.Configure(hud.Canvas, v => { if (voice) voice.volume = v; });
             RefreshNodes();
             PlayPendingUnlock();
         }
@@ -67,7 +70,10 @@ namespace CodingGame.StageMap
                 SpeakGuide();
                 if (entering && voice && voice.isPlaying) voice.volume = TutorialDialogueView.VoiceVolume * guideGroup.alpha; // fades with the box
             }
-            bool busy = entering || unlocking || cameraController.IsMoving;
+            // Esc opens and closes the menu (not once a stage is chosen or during an unlock); while it is open the map waits.
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame && !entering && !unlocking) menu.Toggle();
+            bool busy = entering || unlocking || cameraController.IsMoving || menu.Open;
             Mouse mouse = Mouse.current;
             StageNode over = null;
             // Native Canvas buttons handle cards. Only unobstructed map points raycast into the world.
@@ -81,7 +87,6 @@ namespace CodingGame.StageMap
                 for (int i = 0; i < nodes.Length; i++) if (islands[i]) islands[i].SetHovered(nodes[i] == over);
             }
             if (busy) return;
-            Keyboard keyboard = Keyboard.current;
             if (GameFlow.Developer && keyboard != null) // developer mode only (opened on the title)
             {
                 if (keyboard.zKey.wasPressedThisFrame) { DeveloperClear(); return; }
