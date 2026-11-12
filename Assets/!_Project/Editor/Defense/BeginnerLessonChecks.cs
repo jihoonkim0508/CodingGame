@@ -368,6 +368,16 @@ namespace CodingGame.Defense.Editor
                     Require(Field<int>(battle, "palette") == 1 && sim.Robots.Count == 0,
                         "Releasing a slight drag over the robot button cleared the selected robot");
                 }
+                if (key == "1/B02")
+                {
+                    // 1-1 takes only the lit cell: a click beside it is turned away, one inside it stands on the spot.
+                    Require(!battle.PlaceRobot(Field<int>(battle, "palette"), DefenseBattle.FirstWarriorPosition + new Vector3(3, 0, 0)) && sim.Robots.Count == 0,
+                        "1-1 placed the warrior off the lit cell");
+                    Require(battle.PlaceRobot(Field<int>(battle, "palette"), DefenseBattle.FirstWarriorPosition + new Vector3(.3f, 0, -.3f)) &&
+                        System.Numerics.Vector2.Distance(sim.Robots[0].Position, new System.Numerics.Vector2(DefenseBattle.FirstWarriorPosition.x, DefenseBattle.FirstWarriorPosition.z)) < .01f,
+                        "1-1 did not stand the warrior on its spot");
+                    return;
+                }
                 PlaceBest(battle, Field<int>(battle, "palette")); return;
             }
             if (step.targetKeys.Contains(TutorialKeys.Unit(0))) { battle.SelectRobot(TutorialWatcher.TeachingRobot(sim).Id); return; }

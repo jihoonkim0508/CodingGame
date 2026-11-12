@@ -547,16 +547,31 @@ namespace CodingGame.Defense
             }
             return (points[0], new Point(0, 1));
         }
-        // 1-1's first warrior stands at one spot by the road (the planner's pick): the lesson lights that cell and a click
-        // anywhere on the floor puts the robot there.
+        // 1-1's first warrior stands at one spot by the road (the planner's pick): the lesson lights that cell, only a click
+        // inside it places the robot, and the robot stands exactly on the spot.
         static readonly Point FirstWarriorSpot = new Point(2.582f, -.191f);
+        public static Vector3 FirstWarriorPosition => DefenseViews.World(FirstWarriorSpot);
+        Bounds FirstSpotCell
+        {
+            get
+            {
+                var map = routes[0].Map; float size = map ? map.cellSize * map.transform.lossyScale.x : 2;
+                return new Bounds(FirstWarriorPosition, new Vector3(size, 1, size));
+            }
+        }
         bool FirstLessonPlacement => stage == 1 && Simulation != null && Simulation.WaveIndex == 0 && Simulation.Robots.Count == 0 &&
             tutorial && tutorial.IsActive;
         public bool PlaceRobot(int index, Vector3 position)
         {
             if (index < 0 || index >= robots.Length ||
                 tutorial && (!tutorial.AllowsWorldPoint(position) || !tutorial.AllowsRobotChoice(index))) return false;
-            if (FirstLessonPlacement) position = DefenseViews.World(FirstWarriorSpot);
+            if (FirstLessonPlacement)
+            {
+                var cell = FirstSpotCell;
+                if (position.x < cell.min.x || position.x > cell.max.x || position.z < cell.min.z || position.z > cell.max.z)
+                { RejectPlacement(index, "디버가 밝혀 준 칸에 세워 주세요."); return false; }
+                position = FirstWarriorPosition;
+            }
             var bot = Simulation.Place(robots[index].stats, index, new Point(position.x, position.z), out var error);
             if (bot == null) { RejectPlacement(index, error); return false; }
             var view = SpawnRobotView(bot);
@@ -810,10 +825,7 @@ namespace CodingGame.Defense
                 floorParts = map ? map.floorCells.Select(c => new Bounds(map.CellPosition(c), new Vector3(size, .1f, size))).ToArray() : new[] { deploymentArea.bounds };
             }
             if (FirstLessonPlacement && firstSpotPart == null)
-            {
-                var map = routes[0].Map; float size = map ? map.cellSize * map.transform.lossyScale.x : 2;
-                firstSpotPart = new[] { new Bounds(DefenseViews.World(FirstWarriorSpot), new Vector3(size, .1f, size)) };
-            }
+            { var cell = FirstSpotCell; cell.size = new Vector3(cell.size.x, .1f, cell.size.z); firstSpotPart = new[] { cell }; }
             tutorial.RegisterWorldTarget(TutorialKeys.Floor, gameObject, FirstLessonPlacement ? firstSpotPart : floorParts, box: true);
         }
         void SyncViews(float elapsed)
