@@ -552,26 +552,13 @@ namespace CodingGame.Defense
         // inside it places the robot, and the robot stands exactly on the spot.
         static readonly Point FirstWarriorSpot = new Point(2.582f, -.191f);
         public static Vector3 FirstWarriorPosition => DefenseViews.World(FirstWarriorSpot);
+        // One map cell round the spot, lit on the ground in line with the map (a square in perspective, not a screen rect).
         Bounds FirstSpotCell
         {
             get
             {
                 var map = routes[0].Map; float size = map ? map.cellSize * map.transform.lossyScale.x : 2;
-                // Square on screen: the camera looks down at a slant, so the cell goes deeper along z until its screen box (the
-                // lit area, and where a click counts) is as tall as it is wide. Worked out each frame, as the camera moves.
-                var cell = new Bounds(FirstWarriorPosition, new Vector3(size, .1f, size));
-                for (int i = 0; i < 4; i++)
-                {
-                    Vector2 min = Vector2.positiveInfinity, max = Vector2.negativeInfinity;
-                    for (int c = 0; c < 8; c++)
-                    {
-                        var p = (Vector2)battleCamera.WorldToScreenPoint(cell.center + Vector3.Scale(cell.extents, new Vector3((c & 1) * 2 - 1, (c >> 1 & 1) * 2 - 1, (c >> 2) * 2 - 1)));
-                        min = Vector2.Min(min, p); max = Vector2.Max(max, p);
-                    }
-                    if (max.y - min.y < 1) break;
-                    cell.size = new Vector3(size, .1f, cell.size.z * (max.x - min.x) / (max.y - min.y));
-                }
-                return cell;
+                return new Bounds(FirstWarriorPosition, new Vector3(size, .1f, size));
             }
         }
         bool FirstLessonPlacement => stage == 1 && Simulation != null && Simulation.WaveIndex == 0 && Simulation.Robots.Count == 0 &&
@@ -839,8 +826,13 @@ namespace CodingGame.Defense
                 float size = map ? map.cellSize * map.transform.lossyScale.x : 0;
                 floorParts = map ? map.floorCells.Select(c => new Bounds(map.CellPosition(c), new Vector3(size, .1f, size))).ToArray() : new[] { deploymentArea.bounds };
             }
-            if (FirstLessonPlacement) (firstSpotPart ??= new Bounds[1])[0] = FirstSpotCell;
-            tutorial.RegisterWorldTarget(TutorialKeys.Floor, gameObject, FirstLessonPlacement ? firstSpotPart : floorParts, box: true);
+            // 1-1's cell as two halves without box: drawn like the road, a quad on the ground in perspective.
+            if (FirstLessonPlacement && firstSpotPart == null)
+            {
+                var cell = FirstSpotCell; var half = new Vector3(cell.size.x / 2, cell.size.y, cell.size.z);
+                firstSpotPart = new[] { new Bounds(cell.center - Vector3.right * half.x / 2, half), new Bounds(cell.center + Vector3.right * half.x / 2, half) };
+            }
+            tutorial.RegisterWorldTarget(TutorialKeys.Floor, gameObject, FirstLessonPlacement ? firstSpotPart : floorParts, box: !FirstLessonPlacement);
         }
         void SyncViews(float elapsed)
         {

@@ -218,6 +218,7 @@ namespace CodingGame.Defense
             }
             // Outer corners of the whole road (nothing just beside, above or past them) get the gap outside a quarter circle dimmed.
             var done = new List<Vector2>();
+            if (key != TutorialKeys.Floor) // 1-1's floor cell keeps the map tile's square corners
             foreach (var b in parts)
                 for (int q = 0; q < 4; q++)
                 {
