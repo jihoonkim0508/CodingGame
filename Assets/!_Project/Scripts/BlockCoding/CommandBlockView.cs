@@ -348,6 +348,8 @@ namespace CodingGame.BlockCoding
             rect.localScale = Vector3.one * 1.05f;
             shape.Lifted = true; shape.SetVerticesDirty();
         }
+        // The snap preview's copy where a dragged block will land: see-through and flat (draft 1, the ghost block).
+        public void SetLandingAppearance() { canvasGroup.alpha = .4f; canvasGroup.blocksRaycasts = false; }
         public void JoinNext(bool joined) { shape.JoinNext = joined; shape.SetVerticesDirty(); }
         public void SetLayoutHorizontal()
         {

@@ -28,6 +28,9 @@ namespace CodingGame.BlockCoding
         readonly HashSet<string> enemyVariables = new HashSet<string>();
         List<CommandBlockView> dragging = new List<CommandBlockView>();
         readonly List<CommandBlockView> ghosts = new List<CommandBlockView>();
+        // See-through copies of the dragged lines where they will land (snap preview draft 1), and the zone opened for them.
+        readonly List<CommandBlockView> landing = new List<CommandBlockView>();
+        CommandDropZone gapZone;
         readonly List<Vector2> ghostOffsets = new List<Vector2>();
         readonly Vector3[] dragCorners = new Vector3[4];
         readonly List<Image> tabDots = new List<Image>();
@@ -77,6 +80,8 @@ namespace CodingGame.BlockCoding
         public CommandDropZone SelectedZone => selected;
 #if UNITY_EDITOR
         public CommandDropZone EditorSnapTarget => snapTarget;
+        // A snap preview is up: the marker (a slot) or the landing copies (a line).
+        public bool SnapPreviewShown => snapMarker && snapMarker.gameObject.activeSelf || landing.Any(mark => mark && mark.gameObject.activeSelf);
 #endif
         public IReadOnlyList<PaletteItem> Palette => palette;
         public CommandBlockView VariableTemplate => variablePrefab;
@@ -358,7 +363,7 @@ namespace CodingGame.BlockCoding
             RectTransformUtility.ScreenPointToLocalPointInRectangle(dragLayer, e.pressPosition, e.pressEventCamera, out var dragPress);
             var sourceDragTopLeft = TopLeft(dragLayer, source.Rect);
             dragGrabOffset = dragPress - sourceDragTopLeft;
-            ghosts.Clear(); ghostOffsets.Clear();
+            ghosts.Clear(); ghostOffsets.Clear(); landing.Clear();
             foreach (var block in dragging)
             {
                 ghostOffsets.Add(TopLeft(dragLayer, block.Rect) - sourceDragTopLeft);
@@ -368,6 +373,13 @@ namespace CodingGame.BlockCoding
                 copy.Rect.sizeDelta = new Vector2(copy.preferredWidth, copy.preferredHeight);
                 LayoutRebuilder.ForceRebuildLayoutImmediate(copy.Rect);
                 ghosts.Add(copy);
+                var mark = block.Copy(dragLayer);
+                mark.SetLandingAppearance();
+                mark.Rect.anchorMin = mark.Rect.anchorMax = mark.Rect.pivot = new Vector2(0, 1);
+                mark.Rect.sizeDelta = new Vector2(mark.preferredWidth, mark.preferredHeight);
+                LayoutRebuilder.ForceRebuildLayoutImmediate(mark.Rect);
+                mark.gameObject.SetActive(false);
+                landing.Add(mark);
             }
             foreach (var block in dragging) block.SetDragAppearance(true);
             MoveDrag(e);
@@ -391,7 +403,7 @@ namespace CodingGame.BlockCoding
             foreach(var zone in zones){
                 var block=zone?zone.ParentBlock:null;
                 if(!block || block.Body!=zone || block.IsPalette || !block.gameObject.activeInHierarchy ||
-                    ghosts.Any(g=>block.transform.IsChildOf(g.transform)) || dragging.Any(b=>block.transform.IsChildOf(b.transform)))continue;
+                    ghosts.Any(g=>block.transform.IsChildOf(g.transform)) || landing.Any(g=>g&&block.transform.IsChildOf(g.transform)) || dragging.Any(b=>block.transform.IsChildOf(b.transform)))continue;
                 if(!zone.Preview(Dragged,e,out _))continue;
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(block.Rect,e.position,e.pressEventCamera,out var point);
                 float down=block.Rect.rect.yMax-point.y,left=point.x-block.Rect.rect.xMin;
@@ -420,7 +432,7 @@ namespace CodingGame.BlockCoding
             float targetDistance = float.MaxValue;
             foreach (var zone in zones)
             {
-                if (!zone.gameObject.activeInHierarchy || ghosts.Any(ghost => zone.Rect.IsChildOf(ghost.transform)) ||
+                if (!zone.gameObject.activeInHierarchy || ghosts.Any(ghost => zone.Rect.IsChildOf(ghost.transform)) || landing.Any(mark => mark && zone.Rect.IsChildOf(mark.transform)) ||
                     (zone.ParentBlock && zone.ParentBlock.IsPalette) || dragging.Any(b => zone.Rect.IsChildOf(b.transform))) continue;
                 if(zone.ParentBlock && zone.ParentBlock.Body==zone && !zone.ParentBlock.BodyExpanded)continue;
                 bool socket = !zone.FreePlacement && zone.Slot != BlockSlotKind.Statement;
@@ -438,8 +450,19 @@ namespace CodingGame.BlockCoding
                         zone.Rect.IsChildOf(target.Rect)))
                 { target = zone; targetPreview = preview; targetIsSocket = socket; targetOverlap = overlap; targetDistance = distance; }
             }
+            if (!target || targetIsSocket) ShowLanding(null, default);
             if (!target) return;
             snapTarget = target;
+            if (!targetIsSocket)
+            {
+                // A line: room opens where it will land and a see-through copy sits in it; the dragged blocks stay under the hand.
+                var at = target.OpenGap(Dragged, e, LandingHeight());
+                if (gapZone && gapZone != target) gapZone.CloseGap();
+                gapZone = target;
+                LayoutRebuilder.ForceRebuildLayoutImmediate(program.Rect);
+                ShowLanding(target, at);
+                return;
+            }
             // As in e085adf, only the marker snaps; the dragged blocks remain under the hand.
             snapMarker.position = target.Rect.TransformPoint(new Vector3(target.Rect.rect.xMin + targetPreview.x,
                 target.Rect.rect.yMax + targetPreview.y, 0));
@@ -447,6 +470,32 @@ namespace CodingGame.BlockCoding
             snapMarker.sizeDelta = new Vector2(targetPreview.width, targetPreview.height) * scale;
             if (snapMarker.TryGetComponent<Image>(out var mark)) mark.pixelsPerUnitMultiplier = 16f / Mathf.Clamp(snapMarker.sizeDelta.y * .5f, 1, 8);
             snapMarker.gameObject.SetActive(true); snapMarker.SetAsLastSibling();
+        }
+        float LandingHeight()
+        {
+            float height = 0;
+            for (int i = 0; i < dragging.Count; i++)
+            {
+                height += dragging[i].preferredHeight;
+                if (i > 0 && PythonTreeCompiler.IsBranch(dragging[i].Kind)) height -= dragging[i - 1].FooterOverlap;
+            }
+            return height;
+        }
+        // Puts the landing copies at zone-local top-left at (none when zone is null, closing any room left open).
+        void ShowLanding(CommandDropZone zone, Vector2 at)
+        {
+            if (!zone && gapZone) { gapZone.CloseGap(); gapZone = null; }
+            Vector2 top = zone ? (Vector2)dragLayer.InverseTransformPoint(zone.Rect.TransformPoint(new Vector3(zone.Rect.rect.xMin + at.x, zone.Rect.rect.yMax + at.y, 0))) : default;
+            float scale = zone ? zone.Rect.lossyScale.x / dragLayer.lossyScale.x : 1;
+            for (int i = 0; i < landing.Count; i++)
+            {
+                if (!landing[i]) continue;
+                landing[i].gameObject.SetActive(zone);
+                if (!zone) continue;
+                landing[i].Rect.localScale = Vector3.one * scale;
+                landing[i].Rect.localPosition = top + ghostOffsets[i];
+                landing[i].Rect.SetAsFirstSibling(); // under the hand's copies
+            }
         }
         Rect DraggedBounds(RectTransform target)
         {
@@ -483,6 +532,8 @@ namespace CodingGame.BlockCoding
             if (!source) return;
             MoveDrag(e);
             bool inside = RectTransformUtility.RectangleContainsScreenPoint(definitionPanel, e.position, e.pressEventCamera);
+            // The drop reads the lines where the preview showed them (the room closes at the next layout pass).
+            if (gapZone) { gapZone.CloseGap(); gapZone = null; }
             if (!dropAccepted && snapTarget) snapTarget.TryDrop(e);
             if (!dropAccepted && inside && program.FreePlacement) program.TryDrop(e);
             bool discard = !source.IsPalette && !dropAccepted && !inside;
@@ -499,7 +550,9 @@ namespace CodingGame.BlockCoding
             dragging.Clear();
             Dragged = null;
             foreach (var ghost in ghosts) if (ghost) { ghost.gameObject.SetActive(false); Destroy(ghost.gameObject); }
-            ghosts.Clear(); ghostOffsets.Clear();
+            foreach (var mark in landing) if (mark) { mark.gameObject.SetActive(false); Destroy(mark.gameObject); }
+            if (gapZone) { gapZone.CloseGap(); gapZone = null; }
+            ghosts.Clear(); ghostOffsets.Clear(); landing.Clear();
             snapTarget = null;
         }
         void Delete(CommandBlockView block)

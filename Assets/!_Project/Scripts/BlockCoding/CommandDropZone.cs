@@ -51,8 +51,8 @@ namespace CodingGame.BlockCoding
             {
                 if (slot != BlockSlotKind.Statement) return blocks.Count == 0 ? CommandBlockView.ExpressionHeight : blocks[0].preferredHeight;
                 if (freePlacement) return Mathf.Max(minimumHeight, blocks.Count == 0 ? 0 : blocks.Max(b => -b.Rect.anchoredPosition.y + b.preferredHeight) + 32);
-                if (blocks.Count == 0) return minimumHeight;
-                float height = 0;
+                if (blocks.Count == 0) return Mathf.Max(minimumHeight, gapHeight);
+                float height = gapHeight;
                 for (int i = 0; i < blocks.Count; i++) height += blocks[i].preferredHeight - (i > 0 ? Overlap(i) : 0);
                 return height;
             }
@@ -327,6 +327,43 @@ namespace CodingGame.BlockCoding
                     }
                 }
         }
+        // Snap preview (draft 1, the ghost block): while a block is dragged over this zone, room as tall as it opens where it
+        // will land, under gapAfter (a free chain) or before line gapIndex (a body); the panel draws a see-through copy there.
+        int gapIndex = -1; float gapHeight; CommandBlockView gapAfter;
+        // Opens the room for source and returns where its top-left goes (zone-local, as an anchoredPosition).
+        internal Vector2 OpenGap(CommandBlockView source, PointerEventData e, float height)
+        {
+            var moved = Moving(source);
+            int index = -1; CommandBlockView after = null; Vector2 at;
+            if (freePlacement)
+            {
+                var position = ClampToWorkspace(Panel.DropPosition(e));
+                if (SnapsToFirstPosition(moved, position)) at = FirstPosition;
+                else
+                {
+                    FindSnap(moved, position, out after, out var before);
+                    // Above a chain the copy shows over its first line; the chain stays put (moving it would move the snap).
+                    at = after ? after.Rect.anchoredPosition + new Vector2(0, -after.preferredHeight + BranchOverlap(after, source))
+                        : before ? before.Rect.anchoredPosition + new Vector2(0, height) : position;
+                }
+            }
+            else
+            {
+                index = blocks.Count == 0 ? 0 : PointerIndex(e);
+                float y = 0;
+                for (int i = 0; i < index; i++) { if (i > 0) y -= Overlap(i); y += blocks[i].preferredHeight; }
+                at = new Vector2(0, -y);
+            }
+            if (index != gapIndex || after != gapAfter || !Mathf.Approximately(height, gapHeight))
+            { gapIndex = index; gapAfter = after; gapHeight = height; LayoutRebuilder.MarkLayoutForRebuild(rect); }
+            return at;
+        }
+        // The room closes at the next layout pass; till then the lines keep their places, so a drop reads them as previewed.
+        internal void CloseGap()
+        {
+            if (gapIndex < 0 && !gapAfter && gapHeight == 0) return;
+            gapIndex = -1; gapAfter = null; gapHeight = 0; LayoutRebuilder.MarkLayoutForRebuild(rect);
+        }
         public bool Preview(CommandBlockView source, PointerEventData e, out Rect preview)
         {
             preview = default;
@@ -405,6 +442,7 @@ namespace CodingGame.BlockCoding
                         if (i > 0) position.y += BranchOverlap(chain[i-1],block);
                         CommandBlockView.Place(block.Rect, position.x, -position.y, BranchWidth(chain, i), block.preferredHeight);
                         position.y -= block.preferredHeight;
+                        if (block == gapAfter) position.y -= gapHeight;
                     }
                 }
                 return;
@@ -413,6 +451,7 @@ namespace CodingGame.BlockCoding
             for (int i = 0; i < blocks.Count; i++)
             {
                 if (i > 0) y -= Overlap(i);
+                if (i == gapIndex) y += gapHeight;
                 var block = blocks[i];
                 CommandBlockView.Place(block.Rect, 0, y, BranchWidth(blocks, i), block.preferredHeight);
                 y += block.preferredHeight;

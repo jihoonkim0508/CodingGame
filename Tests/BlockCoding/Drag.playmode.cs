@@ -95,7 +95,7 @@ internal class CommandScript : IRunCommand
             e = Begin(comparison, grip);
             // The mouse is far to the right of the condition, but the block's left connector aligns.
             Move(e, comparison, condition.Rect, new Vector2(4, 0), grip);
-            Check(marker.gameObject.activeSelf, "comparison connector previews condition snap");
+            Check(panel.SnapPreviewShown, "comparison connector previews condition snap");
             Drop(e, program);
             Check(condition.Blocks.Count == 1, "pointer workspace cannot override condition snap");
             var placed = condition.Blocks[0];
@@ -113,7 +113,7 @@ internal class CommandScript : IRunCommand
             panel.ShowCategory(panel.Palette.First(p => p.view == comparison).category); Layout();
             grip = new Vector2(10, -16); e = Begin(comparison, grip);
             Move(e, comparison, condition.Rect, new Vector2(-80, 0), grip);
-            Check(marker.gameObject.activeSelf, "wide block body overlapping condition must snap");
+            Check(panel.SnapPreviewShown, "wide block body overlapping condition must snap");
             Drop(e, program);
             Check(condition.Blocks.Count == 1, "body overlap drops into condition without aligning the start");
             panel.LoadProgram("drag_check", new[] { new CodeBlock(BlockKind.Shot) }); Layout();
@@ -122,19 +122,19 @@ internal class CommandScript : IRunCommand
             grip = new Vector2(15, -16); e = Begin(variable, grip);
             // Screenshot case: the variable's right end overlaps enemy, while its start and mouse are outside.
             Move(e, variable, enemy.Rect, new Vector2(-variable.Rect.rect.width + 25, 0), grip);
-            Check(marker.gameObject.activeSelf, "variable tail overlapping enemy previews snap");
+            Check(panel.SnapPreviewShown, "variable tail overlapping enemy previews snap");
             Drop(e, program);
             Check(enemy.Blocks.Count == 1 && enemy.Blocks[0].BaseKind == BlockKind.Variable,
                 "variable tail overlap fills enemy slot");
             e = Begin(variable, grip);
             Move(e, variable, enemy.Rect, new Vector2(4, 0), grip);
-            Check(!marker.gameObject.activeSelf, "filled enemy slot cannot be replaced");
+            Check(!panel.SnapPreviewShown, "filled enemy slot cannot be replaced");
             panel.EndDrag();
             panel.LoadProgram("drag_check", new[] { new CodeBlock(BlockKind.Shot) }); Layout();
             enemy = program.Blocks[0].Arguments[0];
             e = Begin(variable, grip);
             Move(e, variable, enemy.Rect, new Vector2(-variable.Rect.rect.width - 10, 0), grip);
-            Check(!marker.gameObject.activeSelf, "separated variable does not magnetize to a distant slot");
+            Check(!panel.SnapPreviewShown, "separated variable does not magnetize to a distant slot");
             panel.EndDrag();
             panel.LoadProgram("drag_check", Array.Empty<CodeBlock>());
             var statement = Palette(BlockKind.Shot);
@@ -154,7 +154,7 @@ internal class CommandScript : IRunCommand
                 "free drop preserves block position");
             e = Begin(statement, grip);
             Move(e, statement, program.Rect, first.Rect.anchoredPosition + new Vector2(0, statement.preferredHeight), grip);
-            Check(marker.gameObject.activeSelf, "bottom connector previews prepend");
+            Check(panel.SnapPreviewShown, "bottom connector previews prepend");
             Drop(e, program);
             Check(program.CaptureDraft().Count == 1 && program.Blocks.Count == 3, "prepend matches preview and keeps chain");
             panel.LoadProgram("drag_check", new[] { new CodeBlock(BlockKind.If) }); Layout();
