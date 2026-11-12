@@ -38,7 +38,7 @@ namespace CodingGame.Defense
             panel.BlockDropped += OnBlockDropped;
             panel.BlockDropped += (kind, source, destination) => UISound.Play("block-drop");
             panel.Feedback += kind => UISound.Play(kind);
-            panel.CanCopy = () => battle.Stage >= 2; // right-click copies a line from Stage 2 (removes it in Stage 1)
+            panel.CanCopy = () => battle.Stage >= 2; // the right-click menu offers 복사 and 붙여넣기 from Stage 2 (삭제 only in Stage 1)
             panel.CategoryChosen += category => battle.ReportTutorialAction(TutorialKeys.PaletteTab(category), TutorialSignals.TargetClicked);
             panel.IsAvailable = kind => editingSession == null || editingSession.Options.unlockAll || editingSession.Available(kind, editingId) > 0;
             panel.Remaining = kind => editingSession == null ? 0 : Math.Max(0, editingSession.Available(kind, editingId) - panel.Program.AllBlocks().Count(b => DefenseProgression.Canonical(b.Kind) == DefenseProgression.Canonical(kind)));

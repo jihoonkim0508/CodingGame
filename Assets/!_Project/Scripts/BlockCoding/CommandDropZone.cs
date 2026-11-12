@@ -211,16 +211,6 @@ namespace CodingGame.BlockCoding
             Panel.Changed();
             return true;
         }
-        // A block made outside any zone (a right-click copy) placed at index in this statement list.
-        internal bool InsertNew(CommandBlockView view, int index)
-        {
-            if (!view || view.Owner || slot != BlockSlotKind.Statement || freePlacement || index < 0 || index > blocks.Count) return false;
-            if (!PythonTreeCompiler.Accepts(slot, view.Kind) || !FitsStatements(view, new List<CommandBlockView> { view }, index, out index)) return false;
-            view.transform.SetParent(rect, false); view.Bind(Panel, this);
-            blocks.Insert(index, view);
-            Refresh(); view.BringToFront(); Panel.Changed();
-            return true;
-        }
         // Checks break/continue placement and the whole sibling chain after inserting moved at index.
         bool FitsStatements(CommandBlockView source, List<CommandBlockView> moved, int index, out int adjusted)
         {
@@ -260,7 +250,17 @@ namespace CodingGame.BlockCoding
         {
             if (!freePlacement || !source || source.Panel != Panel) return false;
             if (!Panel.CanTake(source)) return false;
-            var placed = Moving(source).Select(item => Adopt(item, source.IsPalette)).ToList();
+            return PlaceChain(Moving(source).Select(item => Adopt(item, source.IsPalette)).ToList(), position);
+        }
+        // Blocks made outside any zone (a right-click paste), set down as one chain at position like a drop.
+        internal bool PlaceNew(List<CommandBlockView> views, Vector2 position)
+        {
+            if (!freePlacement || views.Count == 0) return false;
+            foreach (var view in views) { view.transform.SetParent(rect, false); view.Bind(Panel, this); }
+            return PlaceChain(views, position);
+        }
+        bool PlaceChain(List<CommandBlockView> placed, Vector2 position)
+        {
             blocks.AddRange(placed);
             for (int i = 1; i < placed.Count; i++) next[placed[i - 1]] = placed[i];
             var first = placed[0];
@@ -435,7 +435,8 @@ namespace CodingGame.BlockCoding
         public void OnPointerDown(PointerEventData e) { if (ParentBlock) ParentBlock.BringToFront(); }
         public void OnPointerClick(PointerEventData e)
         {
-            if (Panel && e.button == PointerEventData.InputButton.Right && ParentBlock && !ParentBlock.IsPalette) Panel.RightClick(ParentBlock);
+            if (Panel && e.button == PointerEventData.InputButton.Right && ParentBlock && !ParentBlock.IsPalette) Panel.RightClick(ParentBlock, e);
+            else if (Panel && e.button == PointerEventData.InputButton.Right && !ParentBlock) Panel.RightClickEmpty(e);
             else if (Panel && !(ParentBlock && ParentBlock.IsPalette)) Panel.Select(this);
             // A slot drawn inside a palette block is part of that block: clicking it adds the block, like clicking its name.
             else if (ParentBlock && ParentBlock.IsPalette) { ParentBlock.OnPointerClick(e); return; }

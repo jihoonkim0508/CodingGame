@@ -507,26 +507,136 @@ namespace CodingGame.BlockCoding
             foreach (var member in block.Owner.Group(block)) RemoveSingle(member);
             Changed(); Feedback?.Invoke("block-delete");
         }
-        // Right-click on a placed block: a copy (when the host allows it, CanCopy) or else removing that one block.
+        // Right-click menu (play feedback 2026-11-12): on a placed block 복사 (Stage 2 on, CanCopy) and 삭제, each for the block
+        // with what is inside it (an if with its elif/else); on the empty code area 붙여넣기, which sets the copied lines down where
+        // it was clicked if the inventory still holds every block in them, and warns when it does not.
         public Func<bool> CanCopy { get; set; }
-        internal void RightClick(CommandBlockView block)
-        {
-            if (CanCopy?.Invoke() == true) CopyOne(block); else DeleteOne(block);
-        }
-        // A copy of a command line, with what is inside it, goes right under it, if the inventory still holds every block in it.
-        public void CopyOne(CommandBlockView block)
+        List<CodeBlock> clipboard;
+        GameObject menu;
+        public bool MenuOpen => menu;
+        internal void RightClick(CommandBlockView block, PointerEventData e)
         {
             if (!block || block.IsPalette || block.Owner == null) return;
             EndDrag();
-            if (block.Owner.Slot != BlockSlotKind.Statement) { ShowMessage("명령 줄 블록만 복사할 수 있어요."); return; }
-            if (block.Owner.FreePlacement) { ShowMessage("맨 바깥 줄은 복사할 수 없어요. 반복문 안쪽 줄을 우클릭하세요."); return; }
-            foreach (var need in block.Descendants().GroupBy(b => b.BaseKind))
-                if ((Remaining?.Invoke(need.Key) ?? int.MaxValue) < need.Count()) { ShowMessage("보유 수량이 모자라 복사할 수 없어요."); return; }
-            var copy = CreateBlock(block.Read(), dragLayer);
-            if (!block.Owner.InsertNew(copy, block.Owner.Blocks.ToList().IndexOf(block) + 1))
-            { copy.gameObject.SetActive(false); Destroy(copy.gameObject); ShowMessage("여기에는 복사할 수 없어요."); return; }
-            Feedback?.Invoke("block-drop");
+            var items = new List<(string, Action)>();
+            if (CanCopy?.Invoke() == true && block.Owner.Slot == BlockSlotKind.Statement) items.Add(("복사", () => Copy(block)));
+            items.Add(("삭제", () => DeleteUnit(block)));
+            OpenMenu(e.position, e.pressEventCamera, items);
         }
+        internal void RightClickEmpty(PointerEventData e)
+        {
+            if (CanCopy?.Invoke() != true || !program.FreePlacement) return;
+            EndDrag();
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(program.Rect, e.position, e.pressEventCamera, out var point);
+            var at = point - new Vector2(program.Rect.rect.xMin, program.Rect.rect.yMax);
+            OpenMenu(e.position, e.pressEventCamera, new List<(string, Action)> { ("붙여넣기", () => Paste(at)) });
+        }
+        static List<CommandBlockView> Unit(CommandBlockView block)
+        {
+            var group = block.Owner.Group(block); // on the free canvas: the block and every line under it
+            int count = 1;
+            if (block.Kind == BlockKind.If || block.Kind == BlockKind.Elif)
+                while (count < group.Count && (group[count].Kind == BlockKind.Elif || group[count].Kind == BlockKind.Else))
+                    if (group[count++].Kind == BlockKind.Else) break;
+            return group.GetRange(0, count);
+        }
+        public void Copy(CommandBlockView block)
+        {
+            if (!block || block.IsPalette || block.Owner == null) return;
+            clipboard = Unit(block).Select(b => b.Read()).ToList();
+            ShowMessage("복사했어요. 코드 칸의 빈 곳을 우클릭해 붙여넣으세요.");
+        }
+        public void DeleteUnit(CommandBlockView block)
+        {
+            if (!block || block.IsPalette || block.Owner == null) return;
+            EndDrag();
+            foreach (var member in Unit(block)) RemoveSingle(member, true);
+            Changed(); Feedback?.Invoke("block-delete");
+        }
+        // at: from the code area's top-left, y down negative (as DropPosition).
+        public bool Paste(Vector2 at)
+        {
+            if (clipboard == null) { Warn("먼저 블록을 우클릭해 복사하세요."); return false; }
+            var views = clipboard.Select(data => CreateBlock(data, dragLayer)).ToList();
+            bool enough = views.SelectMany(v => v.Descendants()).GroupBy(b => b.BaseKind)
+                .All(need => (Remaining?.Invoke(need.Key) ?? int.MaxValue) >= need.Count());
+            if (!enough || !program.PlaceNew(views, at))
+            {
+                foreach (var view in views) { view.gameObject.SetActive(false); Destroy(view.gameObject); }
+                Warn(enough ? "여기에는 붙여넣을 수 없어요." : "블록이 없어서 배치할 수 없어요.");
+                return false;
+            }
+            Feedback?.Invoke("block-drop");
+            return true;
+        }
+        Vector2 menuScreen; Camera menuCamera;
+        void OpenMenu(Vector2 screen, Camera camera, List<(string label, Action act)> items)
+        {
+            CloseMenu();
+            menuScreen = screen; menuCamera = camera;
+            var box = MenuBox();
+            foreach (var (label, act) in items)
+            {
+                var button = new GameObject(label, typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
+                button.transform.SetParent(box, false);
+                var size = button.GetComponent<LayoutElement>(); size.preferredWidth = 150; size.preferredHeight = 46;
+                var image = UITheme.Style(button.GetComponent<Image>(), UITheme.Button, label == "삭제" ? UITheme.Coral : UITheme.Sky);
+                var click = button.GetComponent<Button>(); click.targetGraphic = image;
+                click.onClick.AddListener(() => { CloseMenu(); act(); });
+                Text(button.transform, label, 22, Color.white);
+            }
+        }
+        // A red note where the menu was, for two seconds (the status line under the code is easy to miss).
+        void Warn(string text)
+        {
+            ShowMessage(text); CloseMenu();
+            var box = MenuBox(false);
+            var note = new GameObject("Note", typeof(RectTransform), typeof(LayoutElement));
+            note.transform.SetParent(box, false);
+            var size = note.GetComponent<LayoutElement>(); size.preferredWidth = 330; size.preferredHeight = 44;
+            Text(note.transform, text, 20, UITheme.Hex(0xE03131));
+            StartCoroutine(CloseLater(menu));
+        }
+        System.Collections.IEnumerator CloseLater(GameObject note)
+        {
+            yield return new WaitForSecondsRealtime(2);
+            if (note && note == menu) CloseMenu();
+        }
+        // The menu on the root canvas over everything; under it a clear sheet that shuts it on a click anywhere else.
+        RectTransform MenuBox(bool modal = true)
+        {
+            var canvas = (RectTransform)definitionPanel.GetComponentInParent<Canvas>().rootCanvas.transform;
+            menu = new GameObject("Block menu", typeof(RectTransform));
+            var root = (RectTransform)menu.transform; root.SetParent(canvas, false);
+            root.anchorMin = Vector2.zero; root.anchorMax = Vector2.one; root.offsetMin = root.offsetMax = Vector2.zero;
+            if (modal)
+            {
+                var sheet = menu.AddComponent<Image>(); sheet.color = Color.clear;
+                var trigger = menu.AddComponent<EventTrigger>();
+                var click = new EventTrigger.Entry { eventID = EventTriggerType.PointerClick };
+                click.callback.AddListener(_ => CloseMenu()); trigger.triggers.Add(click);
+            }
+            var box = new GameObject("Box", typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter)).GetComponent<RectTransform>();
+            box.SetParent(root, false); box.anchorMin = box.anchorMax = new Vector2(.5f, .5f); box.pivot = new Vector2(0, 1);
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(root, menuScreen, menuCamera, out var point);
+            box.anchoredPosition = point + new Vector2(4, -4) - root.rect.center;
+            var image = box.GetComponent<Image>(); image.sprite = UITheme.Card; image.type = Image.Type.Sliced; image.color = UITheme.Paper;
+            var layout = box.GetComponent<VerticalLayoutGroup>(); layout.padding = new RectOffset(10, 10, 10, 10); layout.spacing = 6;
+            layout.childControlWidth = layout.childControlHeight = true; layout.childForceExpandWidth = layout.childForceExpandHeight = false;
+            var fit = box.GetComponent<ContentSizeFitter>(); fit.horizontalFit = fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            root.SetAsLastSibling();
+            return box;
+        }
+        static void Text(Transform parent, string text, float size, Color color)
+        {
+            var label = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+            label.rectTransform.SetParent(parent, false);
+            label.rectTransform.anchorMin = Vector2.zero; label.rectTransform.anchorMax = Vector2.one;
+            label.rectTransform.offsetMin = label.rectTransform.offsetMax = Vector2.zero;
+            if (UITheme.Bold) label.font = UITheme.Bold;
+            label.text = text; label.fontSize = size; label.color = color; label.alignment = TextAlignmentOptions.Center; label.raycastTarget = false;
+        }
+        public void CloseMenu() { if (menu) Destroy(menu); menu = null; }
         public void DeleteOne(CommandBlockView block)
         {
             if (!block || block.IsPalette || block.Owner == null) return;
@@ -539,6 +649,6 @@ namespace CodingGame.BlockCoding
             block.gameObject.SetActive(false);
             Destroy(block.gameObject);
         }
-        void OnDisable() => EndDrag();
+        void OnDisable() { EndDrag(); CloseMenu(); }
     }
 }
