@@ -50,6 +50,9 @@ namespace CodingGame.Art.MapPainter
             }
             Vector3 position=new Vector3((min.x+max.x)*.5f,y,(min.z+max.z)*.5f);
             Vector3 scale=new Vector3(Mathf.Max(2,max.x-min.x+map.cellSize*4),Mathf.Max(2,max.z-min.z+map.cellSize*4),1);
+            // That is the size in the world: a scaled map (stages 2 and 3 are at 0.8) would shrink the quad short of the view's
+            // bottom edge, so take the parent's scale out (the quad's y lies along the world's z).
+            if(transform.parent){var parent=transform.parent.lossyScale; scale=new Vector3(scale.x/Mathf.Max(.0001f,Mathf.Abs(parent.x)),scale.y/Mathf.Max(.0001f,Mathf.Abs(parent.z)),1);}
             if(Vector3.Distance(transform.position,position)>.0001f)transform.position=position;
             if(Vector3.Distance(transform.localScale,scale)>.0001f)transform.localScale=scale;
             var rotation=Quaternion.Euler(90,0,0); if(Quaternion.Angle(transform.rotation,rotation)>.001f)transform.rotation=rotation;
