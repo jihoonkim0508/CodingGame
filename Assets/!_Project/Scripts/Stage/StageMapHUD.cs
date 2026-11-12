@@ -245,10 +245,10 @@ namespace CodingGame.StageMap
                 float release = node.LockVisual.ReleaseProgress;
                 float reaction = node.LockVisual.Rejection;
                 var bounds = node.VisualBounds;
-                var badgeAt = bounds.center + Vector3.up * bounds.extents.y * .3f;
-                // Across, the badge centres on the island and its lock barrier together (the barrier sticks out on one side).
-                if (node.LockVisual.WallBounds is Bounds wall) { var both = bounds; both.Encapsulate(wall); badgeAt.x = both.center.x; }
-                Vector2 badgePosition = Project(badgeAt);
+                Vector2 badgePosition = Project(bounds.center + Vector3.up * bounds.extents.y * .3f);
+                // Across, the badge centres on what the player sees locked: the island and its barrier together, as drawn
+                // (in perspective the barrier shows more on the side away from the camera).
+                if (node.LockVisual.WallBounds is Bounds wall) { var both = bounds; both.Encapsulate(wall); badgePosition.x = ScreenMiddleX(both); }
                 badgePosition.x += Mathf.Sin(Time.unscaledTime*65)*reaction*7;
                 badgePosition.y += release*45;
                 card.badge.anchoredPosition = badgePosition;
@@ -276,6 +276,16 @@ namespace CodingGame.StageMap
             }
         }
 
+        float ScreenMiddleX(Bounds b)
+        {
+            float min = float.MaxValue, max = float.MinValue;
+            for (int i = 0; i < 8; i++)
+            {
+                float x = Project(b.center + Vector3.Scale(b.extents, new Vector3((i & 1) * 2 - 1, (i >> 1 & 1) * 2 - 1, (i >> 2) * 2 - 1))).x;
+                min = Mathf.Min(min, x); max = Mathf.Max(max, x);
+            }
+            return (min + max) / 2;
+        }
         Vector2 Project(Vector3 world)
         {
             RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect,mapCamera.WorldToScreenPoint(world),null,out var point);
