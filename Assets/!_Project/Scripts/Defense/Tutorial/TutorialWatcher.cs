@@ -73,7 +73,9 @@ namespace CodingGame.Defense
             { firstAttack = true; signals.Add(TutorialSignals.FirstAttack); }
             if (sim.Leaks > leaks) { leaks = sim.Leaks; signals.Add(TutorialSignals.Leak); }
             var teacher = TeachingRobot(sim);
-            if (!ended && teacher?.Program != null && teacher.Program.CompletedRuns > 0) { ended = true; signals.Add(TutorialSignals.FunctionEnded); }
+            // Once the run has ended and its last swing has played out (the robot can act again), at any attack speed.
+            if (!ended && teacher?.Program != null && teacher.Program.CompletedRuns > 0 && sim.Time + 1e-6 >= teacher.NextAction)
+            { ended = true; signals.Add(TutorialSignals.FunctionEnded); }
             if (!near && teacher != null && sim.Phase == BattlePhase.Running && sim.Enemies.Any(e => e.Active &&
                 System.Numerics.Vector2.DistanceSquared(e.Position, teacher.Position) <= teacher.Range * teacher.Range))
             { near = true; signals.Add(TutorialSignals.EnemyInRange); }

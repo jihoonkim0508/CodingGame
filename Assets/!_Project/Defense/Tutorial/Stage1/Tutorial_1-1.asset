@@ -1120,7 +1120,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
-    triggerDelay: 0.6
+    triggerDelay: 0.2
   - stepId: E03b
     kind: 1
     dialoguePosition: 1
