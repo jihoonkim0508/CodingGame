@@ -557,7 +557,11 @@ namespace CodingGame.Defense
             get
             {
                 var map = routes[0].Map; float size = map ? map.cellSize * map.transform.lossyScale.x : 2;
-                return new Bounds(FirstWarriorPosition, new Vector3(size, 1, size));
+                // Square on screen: the camera looks down at a slant, so the cell goes deeper along z until it shows as tall as wide.
+                var center = FirstWarriorPosition;
+                float Across(Vector3 axis) => Vector2.Distance(battleCamera.WorldToScreenPoint(center - axis * size / 2), battleCamera.WorldToScreenPoint(center + axis * size / 2));
+                float deep = Across(Vector3.forward);
+                return new Bounds(center, new Vector3(size, 1, deep > 1 ? size * Across(Vector3.right) / deep : size));
             }
         }
         bool FirstLessonPlacement => stage == 1 && Simulation != null && Simulation.WaveIndex == 0 && Simulation.Robots.Count == 0 &&
