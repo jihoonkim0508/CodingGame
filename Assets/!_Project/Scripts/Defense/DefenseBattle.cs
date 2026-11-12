@@ -42,7 +42,7 @@ namespace CodingGame.Defense
         [SerializeField] Transform core;
         DefenseCoreGlitch coreGlitch;
         static readonly Color RangeColor = new Color(.35f, .9f, 1); // attack ranges: a MOBA-like cyan rim; the tutorial highlight pulses blue and fills (DefenseRangeRing)
-        Bounds[] floorParts;
+        Bounds[] floorParts, firstSpotPart;
         [SerializeField] RobotDefinition[] robots = Array.Empty<RobotDefinition>();
         [SerializeField] EnemyDefinition[] enemies = Array.Empty<EnemyDefinition>();
         [SerializeField] DefenseRangeRing rangeRing;
@@ -506,10 +506,16 @@ namespace CodingGame.Defense
             }
             return (points[0], new Point(0, 1));
         }
+        // 1-1's first warrior stands at one spot by the road (the planner's pick): the lesson lights that cell and a click
+        // anywhere on the floor puts the robot there.
+        static readonly Point FirstWarriorSpot = new Point(2.582f, -.191f);
+        bool FirstLessonPlacement => stage == 1 && Simulation != null && Simulation.WaveIndex == 0 && Simulation.Robots.Count == 0 &&
+            tutorial && tutorial.IsActive;
         public bool PlaceRobot(int index, Vector3 position)
         {
             if (index < 0 || index >= robots.Length ||
                 tutorial && (!tutorial.AllowsWorldPoint(position) || !tutorial.AllowsRobotChoice(index))) return false;
+            if (FirstLessonPlacement) position = DefenseViews.World(FirstWarriorSpot);
             var bot = Simulation.Place(robots[index].stats, index, new Point(position.x, position.z), out var error);
             if (bot == null) { RejectPlacement(index, error); return false; }
             var view = SpawnRobotView(bot);
@@ -761,7 +767,12 @@ namespace CodingGame.Defense
                 float size = map ? map.cellSize * map.transform.lossyScale.x : 0;
                 floorParts = map ? map.floorCells.Select(c => new Bounds(map.CellPosition(c), new Vector3(size, .1f, size))).ToArray() : new[] { deploymentArea.bounds };
             }
-            tutorial.RegisterWorldTarget(TutorialKeys.Floor, gameObject, floorParts, box: true);
+            if (FirstLessonPlacement && firstSpotPart == null)
+            {
+                var map = routes[0].Map; float size = map ? map.cellSize * map.transform.lossyScale.x : 2;
+                firstSpotPart = new[] { new Bounds(DefenseViews.World(FirstWarriorSpot), new Vector3(size, .1f, size)) };
+            }
+            tutorial.RegisterWorldTarget(TutorialKeys.Floor, gameObject, FirstLessonPlacement ? firstSpotPart : floorParts, box: true);
         }
         void SyncViews(float elapsed)
         {
