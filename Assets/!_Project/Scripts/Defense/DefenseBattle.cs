@@ -557,11 +557,21 @@ namespace CodingGame.Defense
             get
             {
                 var map = routes[0].Map; float size = map ? map.cellSize * map.transform.lossyScale.x : 2;
-                // Square on screen: the camera looks down at a slant, so the cell goes deeper along z until it shows as tall as wide.
-                var center = FirstWarriorPosition;
-                float Across(Vector3 axis) => Vector2.Distance(battleCamera.WorldToScreenPoint(center - axis * size / 2), battleCamera.WorldToScreenPoint(center + axis * size / 2));
-                float deep = Across(Vector3.forward);
-                return new Bounds(center, new Vector3(size, 1, deep > 1 ? size * Across(Vector3.right) / deep : size));
+                // Square on screen: the camera looks down at a slant, so the cell goes deeper along z until its screen box (the
+                // lit area, and where a click counts) is as tall as it is wide. Worked out each frame, as the camera moves.
+                var cell = new Bounds(FirstWarriorPosition, new Vector3(size, .1f, size));
+                for (int i = 0; i < 4; i++)
+                {
+                    Vector2 min = Vector2.positiveInfinity, max = Vector2.negativeInfinity;
+                    for (int c = 0; c < 8; c++)
+                    {
+                        var p = (Vector2)battleCamera.WorldToScreenPoint(cell.center + Vector3.Scale(cell.extents, new Vector3((c & 1) * 2 - 1, (c >> 1 & 1) * 2 - 1, (c >> 2) * 2 - 1)));
+                        min = Vector2.Min(min, p); max = Vector2.Max(max, p);
+                    }
+                    if (max.y - min.y < 1) break;
+                    cell.size = new Vector3(size, .1f, cell.size.z * (max.x - min.x) / (max.y - min.y));
+                }
+                return cell;
             }
         }
         bool FirstLessonPlacement => stage == 1 && Simulation != null && Simulation.WaveIndex == 0 && Simulation.Robots.Count == 0 &&
@@ -829,8 +839,7 @@ namespace CodingGame.Defense
                 float size = map ? map.cellSize * map.transform.lossyScale.x : 0;
                 floorParts = map ? map.floorCells.Select(c => new Bounds(map.CellPosition(c), new Vector3(size, .1f, size))).ToArray() : new[] { deploymentArea.bounds };
             }
-            if (FirstLessonPlacement && firstSpotPart == null)
-            { var cell = FirstSpotCell; cell.size = new Vector3(cell.size.x, .1f, cell.size.z); firstSpotPart = new[] { cell }; }
+            if (FirstLessonPlacement) (firstSpotPart ??= new Bounds[1])[0] = FirstSpotCell;
             tutorial.RegisterWorldTarget(TutorialKeys.Floor, gameObject, FirstLessonPlacement ? firstSpotPart : floorParts, box: true);
         }
         void SyncViews(float elapsed)
