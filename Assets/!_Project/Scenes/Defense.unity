@@ -17532,7 +17532,6 @@ GameObject:
   - component: {fileID: 367391519}
   - component: {fileID: 367391521}
   - component: {fileID: 367391520}
-  - component: {fileID: 367391522}
   m_Layer: 0
   m_Name: CodePreview
   m_TagString: Untagged
@@ -17600,23 +17599,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 367391518}
   m_CullTransparentMesh: 1
---- !u!114 &367391522
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 367391518}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 539c1201cf4ebfb4b92227c22fb84c0e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.LearningCardShape
-  radius: 12
-  borderWidth: 1
-  border: {r: 0.24, g: 0.36, b: 0.47, a: 1}
-  shadow: 0
-  fadeBorderWithFill: 1
 --- !u!114 &368287930 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 1527679794925793873, guid: 983eb9d780f8648498a2271edbc670d2, type: 3}
