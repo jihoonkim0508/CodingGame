@@ -402,8 +402,9 @@ namespace CodingGame.Defense.Editor
                 .FindPropertyRelative("groups").GetArrayElementAtIndex(0);
             practiceGroup.FindPropertyRelative("count").intValue = 8;
             practiceGroup.FindPropertyRelative("interval").floatValue = 1.2f;
-            practiceGroup.FindPropertyRelative("healthOverride").floatValue = 0;
-            practiceGroup.FindPropertyRelative("speedOverride").floatValue = 0;
+            // The regular monster with the numbers the tutorial monster had (one monster per kind; F2 tunes it everywhere).
+            practiceGroup.FindPropertyRelative("healthOverride").floatValue = 20;
+            practiceGroup.FindPropertyRelative("speedOverride").floatValue = 1.4f;
             if (firstThreeOnly)
             {
                 so.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(campaign);
@@ -463,15 +464,15 @@ namespace CodingGame.Defense.Editor
             fourth.FindPropertyRelative("count").intValue = 6;
             fourth.FindPropertyRelative("interval").floatValue = .6f;
             var fifth = waves.GetArrayElementAtIndex(4).FindPropertyRelative("groups");
-            var basic = AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"{Folder}/TutorialError.asset");
+            var basic = Data("Enemy");
             var minions = fifth.GetArrayElementAtIndex(0);
             minions.FindPropertyRelative("enemy").objectReferenceValue = basic;
             minions.FindPropertyRelative("route").intValue = 1;
             minions.FindPropertyRelative("count").intValue = 3;
             minions.FindPropertyRelative("delay").floatValue = 0;
             minions.FindPropertyRelative("interval").floatValue = 2;
-            minions.FindPropertyRelative("healthOverride").floatValue = 0;
-            minions.FindPropertyRelative("speedOverride").floatValue = 0;
+            minions.FindPropertyRelative("healthOverride").floatValue = 20;
+            minions.FindPropertyRelative("speedOverride").floatValue = 1.4f;
             minions.FindPropertyRelative("leakDamageOverride").intValue = 0;
             minions.FindPropertyRelative("boss").boolValue = false;
             var boss = fifth.GetArrayElementAtIndex(1);
@@ -494,10 +495,12 @@ namespace CodingGame.Defense.Editor
             var stage = so.FindProperty("stages").GetArrayElementAtIndex(0);
             var firstGroups = stage.FindPropertyRelative("waves").GetArrayElementAtIndex(0).FindPropertyRelative("groups");
             firstGroups.arraySize = 3;
-            var basicEnemy = AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"{Folder}/TutorialError.asset");
+            var basicEnemy = AssetDatabase.LoadAssetAtPath<EnemyDefinition>("Assets/!_Project/Defense/Data/Enemy.asset");
             // Two swings (the warrior's 7 each) fell a basic enemy here (14 x 0.9 = 12.6 for wave 1): two Play presses a kill.
+            firstGroups.GetArrayElementAtIndex(0).FindPropertyRelative("enemy").objectReferenceValue = basicEnemy;
             firstGroups.GetArrayElementAtIndex(0).FindPropertyRelative("healthOverride").floatValue = 14;
-            var tankEnemy = AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"{Folder}/TutorialBoss.asset");
+            firstGroups.GetArrayElementAtIndex(0).FindPropertyRelative("speedOverride").floatValue = 1.4f;
+            var tankEnemy = AssetDatabase.LoadAssetAtPath<EnemyDefinition>("Assets/!_Project/Defense/Data/Heavy.asset");
             if (!basicEnemy || !tankEnemy) throw new InvalidOperationException("1-1의 기본·단단한 적 asset이 없습니다.");
             // While 디버 slows, pauses and resumes the battle (E04 to E04c) one more walks in from 4s, so there is something to
             // watch (play feedback 4); it was a bunch of four, cut to one so basic enemies come one at a time (13차 175).
@@ -508,7 +511,7 @@ namespace CodingGame.Defense.Editor
             crowd.FindPropertyRelative("delay").floatValue = 4;
             crowd.FindPropertyRelative("interval").floatValue = .6f;
             crowd.FindPropertyRelative("healthOverride").floatValue = 14;
-            crowd.FindPropertyRelative("speedOverride").floatValue = 0;
+            crowd.FindPropertyRelative("speedOverride").floatValue = 1.4f;
             crowd.FindPropertyRelative("leakDamageOverride").intValue = 0;
             crowd.FindPropertyRelative("boss").boolValue = false;
             // The one that reaches the core has the tank's body (play feedback 4: it looked like the others); the tank rule
