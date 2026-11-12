@@ -70,11 +70,22 @@ namespace CodingGame.Defense.Editor
         static string DotEnv(string name) => File.Exists(".env") ? File.ReadAllLines(".env").Select(line => line.Trim())
             .Where(line => line.StartsWith(name + "=")).Select(line => line.Substring(name.Length + 1).Trim().Trim('"')).FirstOrDefault() : null;
 
+        // stage 0: every lesson line and 디버's stage-map lines (a full run keeps only these clips).
         static List<TutorialText> Lines(int stage = 0) => AssetDatabase.FindAssets("t:TutorialSequence").Select(AssetDatabase.GUIDToAssetPath)
             .Select(AssetDatabase.LoadAssetAtPath<TutorialSequence>).Where(s => s && s.enabled && (stage == 0 || s.stage == stage))
-            .SelectMany(s => s.steps).SelectMany(step => step.texts)
+            .SelectMany(s => s.steps).SelectMany(step => step.texts).Concat(stage == 0 ? MapLines() : Enumerable.Empty<TutorialText>())
             .Where(t => !string.IsNullOrWhiteSpace(t.text) && GuideSpeech.Speakable(t.text).Length > 0)
             .GroupBy(t => GuideSpeech.Key(t.text)).Select(g => g.First()).ToList();
+        static IEnumerable<TutorialText> MapLines() =>
+            CodingGame.StageMap.StageMapController.GuideLines.Select(line => new TutorialText { speaker = CodingGame.StageMap.StageMapController.GuideSpeaker, text = line });
+
+        // The stage map's lines only, in the Typecast voice (missing ones; delete a clip to record it again).
+        public static void BuildTypecastStageMap()
+        {
+            if (string.IsNullOrEmpty(TypecastKey))
+                throw new System.InvalidOperationException("[GuideVoice] TYPECAST_API_KEY가 없습니다. 프로젝트 폴더의 .env에 TYPECAST_API_KEY=키 를 적어 주세요.");
+            Build("typecast", MapLines().ToList());
+        }
 
         // only: record just these lines and leave every other clip alone; null records all lines and removes unused clips.
         static void Build(string engine, List<TutorialText> only = null)

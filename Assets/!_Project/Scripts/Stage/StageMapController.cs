@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Linq;
 using CodingGame.Art.StageSelection;
+using CodingGame.Defense;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -63,6 +64,8 @@ namespace CodingGame.StageMap
             {
                 guideGroup.alpha = entering ? 1 - Mathf.Clamp01((Time.unscaledTime - enteredAt) / GuideFadeSeconds) : unlocking ? 0 : 1;
                 if (guideLine.text != guideMessage) guideLine.text = guideMessage;
+                SpeakGuide();
+                if (entering && voice && voice.isPlaying) voice.volume = TutorialDialogueView.VoiceVolume * guideGroup.alpha; // fades with the box
             }
             bool busy = entering || unlocking || cameraController.IsMoving;
             Mouse mouse = Mouse.current;
@@ -128,9 +131,27 @@ namespace CodingGame.StageMap
                 node.Refresh();
                 if (node.State == StageState.Available && (!recommendedStage || node.Number < recommendedStage.Number)) recommendedStage = node;
             }
-            guideMessage = recommendedStage ? $"오류 코드가 {StageProgress.Title(recommendedStage.Number)}에 몰려오고 있어! 빛나는 섬을 눌러 줘!" :
-                nodes.Any(node => StageProgress.BestStars(node.Number) < 3) ? "다녀온 구역에 다시 가 볼까? 코어를 더 많이 지키면 별이 늘어나!" : "모든 구역에서 별 세 개! 이번엔 다른 코드로 막아 볼래?";
+            guideMessage = recommendedStage ? Attack(recommendedStage.Number) :
+                nodes.Any(node => StageProgress.BestStars(node.Number) < 3) ? Revisit : AllStars;
             hud.Refresh(recommendedStage);
+        }
+
+        static string Attack(int stage) => $"오류 코드가 {StageProgress.Title(stage)}에 몰려오고 있어! 빛나는 섬을 눌러 줘!";
+        const string Revisit = "다녀온 구역에 다시 가 볼까? 코어를 더 많이 지키면 별이 늘어나!", AllStars = "모든 구역에서 별 세 개! 이번엔 다른 코드로 막아 볼래?";
+        // Every line 디버 can say on the map, for the voice recorder (GuideVoice records them with the lessons' lines).
+        public static string[] GuideLines => new[] { Attack(1), Attack(2), Attack(3), Revisit, AllStars };
+
+        // 디버 reads the box aloud when its line changes, once the box is up (not while a stage is chosen or a cinematic runs).
+        AudioSource voice;
+        string spoken;
+        void SpeakGuide()
+        {
+            if (entering || unlocking || spoken == guideMessage) return;
+            spoken = guideMessage;
+            if (!voice) { voice = gameObject.AddComponent<AudioSource>(); voice.playOnAwake = false; voice.spatialBlend = 0; }
+            voice.Stop();
+            var clip = TutorialDialogueView.VoiceOn ? Resources.Load<AudioClip>("Voice/" + GuideSpeech.Key(guideMessage)) : null;
+            if (clip) { voice.clip = clip; voice.volume = TutorialDialogueView.VoiceVolume; voice.Play(); }
         }
 
         bool PlayPendingUnlock()
