@@ -65,7 +65,7 @@ namespace CodingGame.Art.StageSelection.Editor
                 var source=AssetDatabase.LoadAssetAtPath<GameObject>(StageSelectionModels.Root+"/Prefabs/"+StageSelectionModels.Names[i]+".prefab");
                 var island=(GameObject)PrefabUtility.InstantiatePrefab(source,world.transform);island.name="Stage";island.transform.localPosition=positions[i];
             }
-            var bridges=new GameObject("Connecting Circuit Walkways");bridges.transform.SetParent(world.transform,false);
+            var bridges=new GameObject("Connecting Circuit Walkways");bridges.transform.SetParent(world.transform,false);bridges.transform.localPosition=new Vector3(0,-.04f,0); // bridges .04 lower (2026-11-12)
             var bridgePrefab=AssetDatabase.LoadAssetAtPath<GameObject>(StageSelectionModels.Root+"/Prefabs/CircuitBridge.prefab");
             for(int bridge=0;bridge<2;bridge++)
             {
