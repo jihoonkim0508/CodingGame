@@ -199,6 +199,20 @@ namespace CodingGame.Defense
         // core's glitch follow.
         // The core model of the map in use (the core bar stands over it) and the camera that shows it.
         public Transform CoreModel { get; private set; }
+        // The spawn gate's and the core's renderers: the road focus stops at their edge instead of lighting them.
+        Renderer[][] routeEnds = System.Array.Empty<Renderer[]>();
+        // A road part cut back along its length to the model's edge where they overlap on the ground.
+        static Bounds OffModel(Bounds part, Renderer[] model)
+        {
+            Bounds? hull = null;
+            foreach (var r in model) if (r && r.enabled && r.gameObject.activeInHierarchy) { if (hull is Bounds h) { h.Encapsulate(r.bounds); hull = h; } else hull = r.bounds; }
+            if (!(hull is Bounds m) || m.max.x <= part.min.x || m.min.x >= part.max.x || m.max.z <= part.min.z || m.min.z >= part.max.z) return part;
+            Vector3 min = part.min, max = part.max;
+            if (part.size.x >= part.size.z) { if (m.center.x < part.center.x) min.x = Mathf.Min(max.x, m.max.x); else max.x = Mathf.Max(min.x, m.min.x); }
+            else { if (m.center.z < part.center.z) min.z = Mathf.Min(max.z, m.max.z); else max.z = Mathf.Max(min.z, m.min.z); }
+            part.SetMinMax(min, max);
+            return part;
+        }
         public Camera BattleCamera => battleCamera;
         void UseStageMap(int selectedStage)
         {
@@ -210,6 +224,8 @@ namespace CodingGame.Defense
             selectionCamera.SetHome(view.position, view.rotation);
             floorParts = null;
             CoreModel = (first ? stageOneMap : workshopMap).GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "CodeBase");
+            var gate = (first ? stageOneMap : workshopMap).GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "ErrorGate");
+            routeEnds = new[] { gate, CoreModel }.Where(t => t).Select(t => t.GetComponentsInChildren<Renderer>(true)).ToArray();
             if (coreGlitch) coreGlitch.SetModel(CoreModel);
             StartCoroutine(CombineTiles(first ? stageOneMap : workshopMap));
         }
@@ -814,6 +830,7 @@ namespace CodingGame.Defense
                     var b = new Bounds(DefenseViews.World(points[p - 1]), width);
                     b.Encapsulate(new Bounds(DefenseViews.World(points[p]), width));
                     b.SetMinMax(new Vector3(Mathf.Max(b.min.x, min.x), 0, Mathf.Max(b.min.z, min.z)), new Vector3(Mathf.Min(b.max.x, max.x), .1f, Mathf.Min(b.max.z, max.z)));
+                    foreach (var end in routeEnds) b = OffModel(b, end);
                     if (b.size.x > 0 && b.size.z > 0) route.Add(b);
                 }
             }
