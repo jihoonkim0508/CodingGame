@@ -32,7 +32,8 @@ namespace CodingGame.Defense.Editor {
    var backdrop = new Color(.075f, .105f, .15f);
    Plain(root.GetComponent<Image>(), backdrop);
    Plain(root.Find("Background").GetComponent<Image>(), backdrop);
-   foreach (string path in new[] { "Library", "CodePreview", "Editor/PreviewPanel", "RobotStats" })
+   // Editor/PreviewPanel keeps its StudioPreviewFrame skin (the flat panel lost the preview's visible frame; rolled back 2026-11-12).
+   foreach (string path in new[] { "Library", "CodePreview", "RobotStats" })
    {
     var panel = root.Find(path);
     if (!panel || !panel.TryGetComponent<Image>(out var image)) continue;
