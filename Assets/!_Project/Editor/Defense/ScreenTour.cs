@@ -26,7 +26,6 @@ namespace CodingGame.Defense.Editor
         public static void Run() => Start(Folder, Steps());
 
         // 12차 120: 1-5 to the boss's entrance, then the entrance replayed with each warning draft, photographed into BossWarning/.
-        [MenuItem("Tools/Develop/보스 경고 시안 찍기")]
         public static void RunBossWarnings() => Start("BossWarning", BossWarnings());
 
         // Raw footage for the demo video: real play recorded clip by clip (TestResults/Demo/footage/cNN_name.mp4, 1920x1080,

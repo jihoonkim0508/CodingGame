@@ -39,7 +39,6 @@ namespace CodingGame.Art.Workshop
    try{Apply();}catch(Exception e){Report("SceneApply.txt",e+"\nRESULT: FAIL");Debug.LogException(e);}
   }
   static void Report(string file,string text){Directory.CreateDirectory(ScriptRoot+"/Reports");File.WriteAllText(ScriptRoot+"/Reports/"+file,text);}
-  [MenuItem("Tools/Art/Workshop/Apply Stage 1 Art to ArtTestScene")]
   public static void Apply()
   {
    var scene=SceneManager.GetActiveScene();if(scene.path!=MapPainterAssets.ArtScene)throw new InvalidOperationException("Open ArtTestScene first. Other scenes are not modified.");
@@ -111,7 +110,6 @@ namespace CodingGame.Art.Workshop
    Undo.RecordObject(camera,"Frame active workshop camera");Undo.RecordObject(camera.transform,"Frame active workshop camera");Frame(camera,map);
    PrefabUtility.SaveAsPrefabAsset(map.gameObject,Output);EditorSceneManager.MarkSceneDirty(scene);
   }
-  [MenuItem("Tools/Art/Workshop/Capture and Verify ArtTestScene")]
   public static void VerifyLive()
   {
    var scene=SceneManager.GetActiveScene();if(scene.path!=MapPainterAssets.ArtScene)throw new Exception("Open ArtTestScene.");

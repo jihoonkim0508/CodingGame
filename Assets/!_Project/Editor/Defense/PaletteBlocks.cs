@@ -16,7 +16,6 @@ namespace CodingGame.Defense.Editor
     {
         const string Scene = "Assets/!_Project/Scenes/Defense.unity";
 
-        [MenuItem("Tools/Develop/코드 편집기에 is_dead·계산 블록 추가")]
         public static void Add()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Play 종료 후 실행하세요.");

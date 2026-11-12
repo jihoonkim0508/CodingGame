@@ -16,7 +16,6 @@ namespace CodingGame.Defense.Editor
 
         // Four sides of each model (front = looking down -Z at its +Z face) into TestResults/Editor/monsters, to see which
         // way it faces before it is fitted.
-        [MenuItem("Tools/Develop/Monster Model Sides")]
         public static void Sides()
         {
             Directory.CreateDirectory("TestResults/Editor/monsters");
@@ -52,7 +51,6 @@ namespace CodingGame.Defense.Editor
         // The tank on Heavy and the runner on Runner: the primitive body, helmet and visor are switched off and the base disc
         // removed, the model stands on the ground at a height in the enemy's own units (Heavy is scaled 1.3, Runner 0.8) and faces +Z as
         // the walk turns it, and it becomes the body DefenseActorView tints when stunned or slowed.
-        [MenuItem("Tools/Develop/Apply Monster Models")]
         public static void Apply()
         {
             Fit("Heavy", "MonsterTank", 1.1f);
@@ -62,7 +60,6 @@ namespace CodingGame.Defense.Editor
 
         // The runner flies: lifted off the ground and bobbing (DefenseActorView.hover), a flame from each foot (the two
         // octagonal nozzles low on its left and right, facing outward and down).
-        [MenuItem("Tools/Develop/Runner Thrusters")]
         public static void Runner()
         {
             Fit("Runner", "MonsterRunner", 1.25f); // at 1.0 the runner read as a small dot on the road (3-5 screenshot)
@@ -72,7 +69,6 @@ namespace CodingGame.Defense.Editor
 
         // No dark base disc under the enemies (the team's models stood on a primitive cylinder): removed from the three enemy
         // prefabs, the walking model set down onto the ground, and the next-wave cards photographed again.
-        [MenuItem("Tools/Develop/Enemy Base Discs Off")]
         public static void NoBase()
         {
             foreach (var enemy in new[] { "Enemy", "Heavy", "Runner" })

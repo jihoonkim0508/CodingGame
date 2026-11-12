@@ -28,7 +28,6 @@ namespace CodingGame.Defense.Editor
             (5, 2, 6), (4, 1, 9), (3, 0, 10), (2, 0, 11), (1, -1, 11), (0, -1, 12), (-1, -1, 12), (-2, -1, 12),
             (-3, 1, 6), (-3, 9, 12), (-4, 2, 4), (-4, 9, 11),
         };
-        [MenuItem("Tools/Develop/1스테이지 맵 만들기 (ㄷ자)")]
         public static void Build()
         {
             var road = Enumerable.Range(Start, BendLeft - Start).Select(x => new GridCell(x, Road))

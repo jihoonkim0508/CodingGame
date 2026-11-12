@@ -24,7 +24,6 @@ namespace CodingGame.Defense.Editor
         // empty), so the voice goes by id; the name stays for the script's own lookup when no id is given.
         const string TypecastVoice = "Siwoo", TypecastVoiceId = "tc_6699eb3849dfac016c29444c";
 
-        [MenuItem("Tools/Develop/디버 음성 만들기")]
         public static void Build() => Build("windows");
 
         // Every guide line again: the generator keeps existing clips, so 디버's are removed first (the banner's stay). A run cut

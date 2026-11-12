@@ -13,7 +13,6 @@ namespace CodingGame.Defense.Editor {
   const string Root="Assets/!_Project/Resources/LearningSkins/";
   static Sprite panel,button,surface,primaryButton;
   static Sprite[] roles,hud;
-  [MenuItem("Tools/Learning UI/Apply Generated Sprite Skins")]
   public static void Apply(){
    if(EditorApplication.isPlaying)throw new InvalidOperationException("Stop Play first");
    if(EditorSceneManager.GetActiveScene().isDirty)throw new InvalidOperationException("Preserve unsaved scene first");

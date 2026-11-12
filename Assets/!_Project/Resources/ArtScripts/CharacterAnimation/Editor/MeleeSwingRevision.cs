@@ -23,7 +23,6 @@ namespace CodingGame.Art.CharacterAnimation
    try{Refresh();}catch(Exception e){Directory.CreateDirectory(Root+"/Reports~");File.WriteAllText(Root+"/Reports~/UnityMeleeSwing.txt",e+"\nRESULT: FAIL");Debug.LogException(e);}
   }
   static void Check(bool value,string message){if(!value)throw new Exception("Melee swing: "+message);}
-  [MenuItem("Tools/Art/Characters/Update Melee Swing Only")]
   public static void Refresh()
   {
    // Keep the user's renamed prefab/controller and all material settings.

@@ -14,7 +14,6 @@ namespace CodingGame.Art.MapPainter.Editor
     {
         private static void Check(bool condition, string message)
         { if (!condition) throw new InvalidOperationException("Verification failed: " + message); }
-        [MenuItem("Tools/Art/Validate Modular Map Painter")]
         public static void RunFromMenu() { Run(MapPainterAssets.Setup()); }
         public static void Run(ModularMapPalette palette)
         {

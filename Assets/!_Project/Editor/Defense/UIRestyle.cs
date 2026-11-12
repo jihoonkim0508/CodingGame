@@ -92,7 +92,6 @@ namespace CodingGame.Defense.Editor
         // Children of a card that sit outside it, on the editor's sky background.
         static readonly Regex OnNight = new Regex("(^|/)RobotCodeEditor/(Library/Title|Subtitle|Status)$");
 
-        [MenuItem("Tools/Develop/UI 스타일 적용")]
         public static void Apply()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new System.InvalidOperationException("Play 종료 후 적용하세요.");

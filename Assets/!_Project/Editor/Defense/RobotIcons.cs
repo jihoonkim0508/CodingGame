@@ -16,7 +16,6 @@ namespace CodingGame.Defense.Editor
         const string Folder = "Assets/!_Project/Defense/UI/RobotIcons", EnemyFolder = "Assets/!_Project/Defense/UI/EnemyIcons";
         const int Size = 256;
 
-        [MenuItem("Tools/Develop/로봇 아이콘 만들기")]
         public static void Build()
         {
             Directory.CreateDirectory(Folder);

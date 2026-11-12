@@ -17,7 +17,6 @@ namespace CodingGame.Defense.Editor
 {
     public static class TutorialSequenceBuilder
     {
-        [MenuItem("Tools/Develop/Stage 1 튜토리얼 asset 다시 만들기")]
         public static void Menu() => Debug.Log(Run());
 
         [MenuItem("Tools/Develop/Apply Stage 1 Tutorials 1-1 to 1-5")]
@@ -28,7 +27,6 @@ namespace CodingGame.Defense.Editor
             Debug.Log(Run());
         }
 
-        [MenuItem("Tools/Develop/Apply Beginner Tutorial 1-1")]
         public static void ApplyOneOne()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Play 종료 후 적용하세요.");
@@ -43,7 +41,6 @@ namespace CodingGame.Defense.Editor
         }
 
         const string Folder = "Assets/!_Project/Defense/Tutorial/Stage1";
-        [MenuItem("Tools/Develop/Apply Beginner Lessons 1-1 to 1-3")]
         public static void ApplyFirstThree()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Play 종료 후 적용하세요.");

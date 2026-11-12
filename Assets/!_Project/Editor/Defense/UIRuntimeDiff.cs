@@ -21,7 +21,6 @@ namespace CodingGame.Defense.Editor
         static Dictionary<string, string> before;
         static double until;
 
-        [MenuItem("Tools/Develop/UI Runtime Diff")]
         public static void Run()
         {
             EditorSceneManager.OpenScene(Scene);

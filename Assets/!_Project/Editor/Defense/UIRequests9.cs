@@ -30,7 +30,6 @@ namespace CodingGame.Defense.Editor
         // The dialogue text starts this far in (GeneratedUISkinBuilder.Distinct); 디버's picture sits in the middle of that column.
         const float PortraitColumn = 210;
 
-        [MenuItem("Tools/Learning UI/Apply 9차 Requests")]
         public static void Apply()
         {
             var a2z = A2ZAsset();
@@ -55,7 +54,6 @@ namespace CodingGame.Defense.Editor
             Debug.Log("[UIRequests9] applied");
         }
 
-        [MenuItem("Tools/Learning UI/Apply 10차 Requests")]
         public static void Apply10()
         {
             EditorSceneManager.OpenScene(Scene);
@@ -64,7 +62,6 @@ namespace CodingGame.Defense.Editor
             Debug.Log("[UIRequests10] applied");
         }
 
-        [MenuItem("Tools/Learning UI/Apply 12차 Requests")]
         public static void Apply12()
         {
             if (SceneManager.GetActiveScene().path != Scene) EditorSceneManager.OpenScene(Scene);
@@ -91,7 +88,6 @@ namespace CodingGame.Defense.Editor
         // 142: the inventory window (TAB) has one slot per block kind; is_dead() and calculations (play feedback 4) never got
         // theirs, so DefenseInventoryUI.Start threw "인벤토리 Inspector 참조를 연결하세요" on every battle. Each missing kind gets a
         // copy of the last slot in the grid's next cell (three columns, rows going down); the label is filled from the kind.
-        [MenuItem("Tools/Learning UI/Fix Inventory Slots")]
         public static void InventorySlots()
         {
             if (SceneManager.GetActiveScene().path != Scene) EditorSceneManager.OpenScene(Scene);
@@ -149,7 +145,6 @@ namespace CodingGame.Defense.Editor
         // speech bubble, 디버's picture, Jalnan name, A2Z line) on its own overlay canvas at the top middle, without the battle's
         // view script, page arrows or hint; nothing on it takes clicks, so the map under it still does.
         const string GuidePrefab = "Assets/!_Project/Resources/UI/GuideDialogue.prefab";
-        [MenuItem("Tools/Learning UI/Build Stage Guide Dialogue")]
         public static void BuildGuideDialogue()
         {
             var defense = SceneManager.GetSceneByPath(Scene);
@@ -198,7 +193,6 @@ namespace CodingGame.Defense.Editor
             var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
             return sprite ? sprite : throw new InvalidOperationException(path + " is not a sprite");
         }
-        [MenuItem("Tools/Learning UI/Stage Lock Icon")]
         public static void StageLockIcon()
         {
             var scene = SceneManager.GetSceneByPath(StageScene);
@@ -282,7 +276,6 @@ namespace CodingGame.Defense.Editor
         static Transform Canvas(string name) =>
             Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None).First(c => c.name == name).transform;
 
-        [MenuItem("Tools/Develop/Verify UI Requests (9차)")]
         public static void Verify()
         {
             var failed = new List<string>(); int passed = 0;

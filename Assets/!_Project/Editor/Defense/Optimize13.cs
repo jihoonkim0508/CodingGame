@@ -35,7 +35,6 @@ namespace CodingGame.Defense.Editor
 
         // 124: the title's embers re-mesh every frame; on their own canvas only they rebuild, not the whole title canvas.
         // The title draws no meshes, so its camera needs no depth or colour copy and no shadows.
-        [MenuItem("Tools/Optimize/124 Title")]
         public static void Title124() => EditScene(TitleScene, scene =>
         {
             foreach (var embers in All<TitleAtmosphere>(scene))
@@ -46,7 +45,6 @@ namespace CodingGame.Defense.Editor
         // 125: the stage map's UI (island cards, locks, seals, the "여기야!" pointer, the DEV line and 디버's box) saved in
         // Stage.unity instead of built at load; the islands are the active renderers named "Stage", left to right, as at run time.
         const string StageScene = "Assets/!_Project/Scenes/Stage.unity";
-        [MenuItem("Tools/Optimize/125 Stage Map")]
         public static void StageMap125() => EditScene(StageScene, scene =>
         {
             foreach (var old in All<StageMap.StageMapHUD>(scene).ToArray()) Object.DestroyImmediate(old.gameObject);
@@ -70,7 +68,6 @@ namespace CodingGame.Defense.Editor
         // 126: the battle turned about 195 body texts into Pretendard Bold when it started (UITheme.BoldBody over the scene);
         // the scene now saves them that way and the battle no longer re-meshes them at load.
         const string DefenseScene = "Assets/!_Project/Scenes/Defense.unity";
-        [MenuItem("Tools/Optimize/126 Battle Body Font")]
         public static void BodyFont126() => EditScene(DefenseScene, scene =>
         {
             foreach (var text in ToBold(scene))
@@ -85,7 +82,6 @@ namespace CodingGame.Defense.Editor
             text.font != UITheme.Display && text.font != UITheme.Lines && text.fontSharedMaterial == text.font.material).ToArray();
 
         // 132: the goal banner bobs every frame (DefensePlayerHUD.AnimateGoal); on its own canvas only it is rebuilt.
-        [MenuItem("Tools/Optimize/132 HUD Canvases")]
         public static void HudCanvases132() => EditScene(DefenseScene, scene =>
         {
             var goal = GoalBanner(scene);
@@ -100,7 +96,6 @@ namespace CodingGame.Defense.Editor
         // 127/128: what the battle built or restyled when it started (UIRuntimeDiff: the core bar, the status line, next-wave label,
         // goal banner and robot photos, the dock's layout, the code editor's top row, the preview frame, the tutorial pointer)
         // is built here once and saved with the scene; at run time those components skip it.
-        [MenuItem("Tools/Optimize/128 Bake Battle UI")]
         public static void BattleUI128() => EditScene(DefenseScene, scene =>
         {
             // The core bar is PR #21's graphic, drawn by itself; it is placed over the scene's core for the scene's camera.
@@ -147,7 +142,6 @@ namespace CodingGame.Defense.Editor
         // Robot and enemy health bars as pooled UI (DefenseHealthBars) instead of three cubes per actor: the actors' prefabs keep
         // only the bar's anchor; the battle's layer (under the HUD) and the code preview's (over its picture) are baked with
         // their bars. Rerunnable.
-        [MenuItem("Tools/Optimize/Unit Health Bars")]
         public static void HealthBars()
         {
             foreach (var path in AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/!_Project/Defense/Prefabs" }).Select(AssetDatabase.GUIDToAssetPath))
@@ -215,7 +209,6 @@ namespace CodingGame.Defense.Editor
         // Stage.unity with their meshes and materials in one asset; the boss's violet aura (motes, light, halo) as a prefab
         // copied onto the boss. Rerunnable.
         const string StageEffects = "Assets/!_Project/Resources/ArtScripts/StageSelection/StageEffects.asset", BossAura = "Assets/!_Project/Resources/Effects/BossAura.prefab";
-        [MenuItem("Tools/Optimize/Stage Visuals")]
         public static void StageVisuals()
         {
             EditScene(StageScene, scene =>
@@ -303,7 +296,6 @@ namespace CodingGame.Defense.Editor
         // map renderers in every cascade for shadows that mostly fall on the map itself. The modules too, so maps painted later
         // keep it.
         const string Modules = "Assets/!_Project/Resources/ArtScripts/MapPainter/Generated/Modules";
-        [MenuItem("Tools/Optimize/160 Map Shadows Off")]
         public static void MapShadows160()
         {
             foreach (var guid in AssetDatabase.FindAssets("t:Prefab", new[] { Modules }))
@@ -332,7 +324,6 @@ namespace CodingGame.Defense.Editor
         // sheet pads right and up so its sprite rects stay); a plain texture is scaled to a power of two instead, which keeps a
         // tiling texture seamless. One wider than its import limit keeps its size. Images under 256 px stay as they are.
         const int SmallTexture = 256;
-        [MenuItem("Tools/Optimize/138 Texture Compression")]
         public static void Textures138()
         {
             foreach (var path in UnpackedTextures().ToArray())
@@ -384,7 +375,6 @@ namespace CodingGame.Defense.Editor
         }
 
         // 164: the Esc menu saved again with its anti-aliasing row.
-        [MenuItem("Tools/Optimize/164 Menu Anti-aliasing")]
         public static void MenuMsaa164() => EditScene(DefenseScene, scene =>
         {
             foreach (var hud in All<DefensePlayerHUD>(scene)) { hud.RebakeMenu(); EditorUtility.SetDirty(hud); }
@@ -413,7 +403,6 @@ namespace CodingGame.Defense.Editor
             EditorUtility.SetDirty(data);
         }
 
-        [MenuItem("Tools/Develop/Verify Optimizations (13차)")]
         public static void Verify()
         {
             var failed = new List<string>(); int passed = 0;

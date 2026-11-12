@@ -21,7 +21,6 @@ namespace CodingGame.TitleScreen.Editor
         static readonly string Work = "C:/Users/user/Documents/ChatGPT/CodingGame/TitleScreenWork";
         static TMP_FontAsset font;
 
-        [MenuItem("Tools/Title/Rebuild Layered Title Scene")]
         public static void Apply()
         {
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
@@ -141,7 +140,6 @@ namespace CodingGame.TitleScreen.Editor
             File.WriteAllText(Work + "/Reports/SceneBuild.txt", "Title scene built. Existing GameFlow bindings preserved.\nIntro duration: " + controller.Duration + "\nRESULT: PASS\n");
         }
 
-        [MenuItem("Tools/Title/Update Team Logo Only")]
         public static void ApplyTeamLogo()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play mode before updating the team logo.");
@@ -168,7 +166,6 @@ namespace CodingGame.TitleScreen.Editor
             EditorSceneManager.MarkSceneDirty(scene);EditorSceneManager.SaveScene(scene);AssetDatabase.SaveAssets();
         }
 
-        [MenuItem("Tools/Title/Update Mouse Menu and Projectiles")]
         public static void ApplyMouseMenuAndProjectiles()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Stop Play mode before updating title controls.");
@@ -202,7 +199,6 @@ namespace CodingGame.TitleScreen.Editor
             effect.target=new Vector2(490,-290);EditorUtility.SetDirty(effect);
         }
 
-        [MenuItem("Tools/Title/Update Black Opening")]
         public static void ApplyBlackOpening()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play mode before updating the opening.");
@@ -220,7 +216,6 @@ namespace CodingGame.TitleScreen.Editor
             AssetDatabase.SaveAssets();
         }
 
-        [MenuItem("Tools/Title/Update Mouse Hover Markers")]
         public static void ApplyHoverMarkers()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Stop Play mode before updating hover markers.");

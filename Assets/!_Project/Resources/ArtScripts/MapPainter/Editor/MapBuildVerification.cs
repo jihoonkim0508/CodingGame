@@ -13,7 +13,6 @@ namespace CodingGame.Art.MapPainter.Editor
     public static class MapBuildVerification
     {
         private static void Check(bool condition,string message){if(!condition)throw new InvalidOperationException(message);}
-        [MenuItem("Tools/Art/Validate Map Build Animation")]
         public static void Run()
         {
             var scene=EditorSceneManager.NewPreviewScene();var log=new List<string>();

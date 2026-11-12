@@ -19,7 +19,6 @@ namespace CodingGame.Defense.Editor
         const string Scene="Assets/!_Project/Scenes/Defense.unity";
         static readonly Color Ink=Hex("D0DFE7"), Blue=Hex("84C6DB"), Edge=Hex("496879"), Paper=Hex("293E4D"), Sky=Hex("344E60"), Yellow=Hex("D8B567");
         static Color Hex(string value) { ColorUtility.TryParseHtmlString("#"+value,out var c); return c; }
-        [MenuItem("Tools/Learning UI/Apply Tutorial and Defense Theme")]
         public static void Apply()
         {
             if(EditorApplication.isPlaying) throw new InvalidOperationException("Stop Play before applying UI.");

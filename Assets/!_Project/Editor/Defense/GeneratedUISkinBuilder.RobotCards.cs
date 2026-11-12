@@ -11,7 +11,6 @@ namespace CodingGame.Defense.Editor
 {
     public static partial class GeneratedUISkinBuilder
     {
-        [MenuItem("Tools/Learning UI/Apply Robot Roster Cards")]
         public static void ApplyRobotRosterCards()
         {
             if (EditorApplication.isPlaying)

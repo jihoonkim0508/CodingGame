@@ -22,7 +22,6 @@ namespace CodingGame.Art.MapPainter.Editor
             if(!File.Exists(Request))return;File.Delete(Request);
             try{Apply();}catch(Exception e){File.WriteAllText(MapPainterAssets.Report("WideRoadUpgrade.txt"),e+"\nRESULT: FAIL");Debug.LogException(e);}
         }
-        [MenuItem("Tools/Art/Modular Map/Widen Existing Roads to 150 Percent")]
         public static void Apply()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Stop Play mode before changing map assets.");

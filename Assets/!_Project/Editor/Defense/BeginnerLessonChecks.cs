@@ -31,7 +31,6 @@ namespace CodingGame.Defense.Editor
             };
         }
 
-        [MenuItem("Tools/Develop/Preview Beginner Lesson 1-3")]
         public static void PreviewCondition()
         {
             SessionState.SetBool(Running, false);
@@ -39,7 +38,6 @@ namespace CodingGame.Defense.Editor
             DevTest.JumpTutorial(3, 0);
         }
 
-        [MenuItem("Tools/Develop/Preview 1-3 Attack Slot")]
         public static void PreviewAttackSlot()
         {
             SessionState.SetBool(Running, false);
@@ -49,7 +47,6 @@ namespace CodingGame.Defense.Editor
         }
 
 
-        [MenuItem("Tools/Develop/Verify Beginner Lessons 1-1 to 1-3")]
         public static void Run()
         {
             TutorialSequenceBuilder.ApplyFirstThree();
@@ -61,7 +58,6 @@ namespace CodingGame.Defense.Editor
             DevTest.PlayDefense(1, 1, true, false);
         }
 
-        [MenuItem("Tools/Develop/Verify Beginner Lesson 1-3 Only")]
         public static void RunConditionOnly()
         {
             TutorialSequenceBuilder.ApplyFirstThree();
@@ -114,7 +110,6 @@ namespace CodingGame.Defense.Editor
             DevTest.PlayDefense(3, 1, true, true);
         }
 
-        [MenuItem("Tools/Develop/Verify Beginner Lessons 1-4 and 1-5")]
         public static void RunLastTwo()
         {
             TutorialSequenceBuilder.ApplyAllFive();

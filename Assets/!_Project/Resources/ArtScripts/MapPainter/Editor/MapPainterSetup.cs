@@ -10,7 +10,6 @@ namespace CodingGame.Art.MapPainter.Editor
 {
     public static class MapPainterSetup
     {
-        [MenuItem("Tools/Art/Setup Modular Map Painter")]
         public static void SetupScene()
         {
             var log=new List<string> { "Map Painter setup; Unity "+Application.unityVersion };

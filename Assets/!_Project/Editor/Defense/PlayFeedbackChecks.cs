@@ -19,7 +19,6 @@ namespace CodingGame.Defense.Editor
         static readonly Stack<IEnumerator> run = new Stack<IEnumerator>();
         static int failures;
 
-        [MenuItem("Tools/Develop/Verify Play Feedback 3")]
         public static void Run()
         {
             Directory.CreateDirectory(Path.GetDirectoryName(LogPath)); Directory.CreateDirectory(Shots);

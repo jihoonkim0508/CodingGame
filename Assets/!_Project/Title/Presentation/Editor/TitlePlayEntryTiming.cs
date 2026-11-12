@@ -25,7 +25,6 @@ namespace CodingGame.TitleScreen.Editor
             SessionState.SetString("TitlePerformance.EntryLabel", "");
             TitlePerformanceProbe.Begin(label);
         }
-        [MenuItem("Tools/Performance/Enable Faster Play Entry")]
         static void EnableFastPlay()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play first");
@@ -36,7 +35,6 @@ namespace CodingGame.TitleScreen.Editor
             EditorSettings.enterPlayModeOptions = EnterPlayModeOptions.DisableDomainReload;
             AssetDatabase.SaveAssets();
         }
-        [MenuItem("Tools/Performance/Restore Standard Play Entry")]
         static void RestoreStandardPlay()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play first");

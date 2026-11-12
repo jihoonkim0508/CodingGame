@@ -30,7 +30,6 @@ namespace CodingGame.Art.StageSelection.Editor
             try{Apply();}catch(Exception e){Report(e+"\nRESULT: FAIL");Debug.LogException(e);}
         }
         static void Report(string text){Directory.CreateDirectory("Logs/StageSelection");File.WriteAllText("Logs/StageSelection/Apply.txt",text);}
-        [MenuItem("Tools/Art/Stage Selection/Build Three Theme Islands")]
         public static void Apply()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Stop Play mode before rebuilding the stage map.");
