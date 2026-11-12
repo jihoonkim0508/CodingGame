@@ -65,6 +65,10 @@ namespace CodingGame.BlockCoding
         internal bool CanTake(CommandBlockView source) => !source.IsPalette || (Remaining?.Invoke(source.Kind) ?? int.MaxValue) > 0;
         int currentCategory;
         public void RefreshPalette() => ShowCategory(currentCategory);
+        // The player clicked a palette tab (not raised when code switches the tab).
+        public event Action<int> CategoryChosen;
+        public RectTransform CategoryTab(int category) =>
+            category >= 0 && category < categoryButtons.Length && categoryButtons[category] ? (RectTransform)categoryButtons[category].transform : null;
         bool dropAccepted;
         static int nextName;
         public CommandDropZone Program => program;
@@ -100,7 +104,7 @@ namespace CodingGame.BlockCoding
             for (int i = 0; i < categoryButtons.Length; i++)
             {
                 int category = i;
-                categoryButtons[i].onClick.AddListener(() => ShowCategory(category));
+                categoryButtons[i].onClick.AddListener(() => { ShowCategory(category); CategoryChosen?.Invoke(category); });
                 // Tab names in Jalnan like the other labels, and on a paper tab a dot of its blocks' colour (비주얼_레퍼런스.md 3).
                 var label = categoryButtons[i].GetComponentInChildren<TMP_Text>(true);
                 if (label && UITheme.Display) { label.font = UITheme.Display; label.fontStyle &= ~FontStyles.Bold; label.fontSize = 16; label.margin = new Vector4(14, 0, 0, 0); }

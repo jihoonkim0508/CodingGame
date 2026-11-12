@@ -38,6 +38,7 @@ namespace CodingGame.Defense
             panel.BlockDropped += OnBlockDropped;
             panel.BlockDropped += (kind, source, destination) => UISound.Play("block-drop");
             panel.Feedback += kind => UISound.Play(kind);
+            panel.CategoryChosen += category => battle.ReportTutorialAction(TutorialKeys.PaletteTab(category), TutorialSignals.TargetClicked);
             panel.IsAvailable = kind => editingSession == null || editingSession.Options.unlockAll || editingSession.Available(kind, editingId) > 0;
             panel.Remaining = kind => editingSession == null ? 0 : Math.Max(0, editingSession.Available(kind, editingId) - panel.Program.AllBlocks().Count(b => DefenseProgression.Canonical(b.Kind) == DefenseProgression.Canonical(kind)));
             closeButton.onClick.AddListener(() => Close());
@@ -192,6 +193,8 @@ namespace CodingGame.Defense
         public bool TryGetTutorialCorners(string key, Vector3[] corners)
         {
             if (!IsOpen || key == null) return false;
+            if (key.StartsWith(TutorialKeys.PaletteTabPrefix))
+                return int.TryParse(key.Substring(TutorialKeys.PaletteTabPrefix.Length), out int tab) && Corners(panel.CategoryTab(tab), null, corners);
             if (key.StartsWith(TutorialKeys.PalettePrefix)) return Corners(TutorialPaletteItem(key), null, corners);
             if (!key.StartsWith(TutorialKeys.CodePrefix)) return false;
             var program = panel.Program;

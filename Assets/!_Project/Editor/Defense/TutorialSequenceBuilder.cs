@@ -140,6 +140,8 @@ namespace CodingGame.Defense.Editor
             // in range is the moment for the robot's Play button.
             L("1-1.E03a", s => { s.Trigger = TutorialSignals.FunctionEnded; s.TriggerDelay = .6f; s.HoldBattle = true; }),
             L("1-1.E03b", Click(TutorialKeys.Play(0), s => { s.Trigger = TutorialSignals.EnemyInRange; s.Pointer = TutorialKeys.Play(0); s.SlowBattle = true; s.Top = true; })),
+            // A basic enemy takes two swings (the warrior's 7 against 12.6): once the first call ends, the second press.
+            L("1-1.E03c", Click(TutorialKeys.Play(0), s => { s.Trigger = TutorialSignals.FunctionEnded; s.TriggerDelay = .3f; s.Pointer = TutorialKeys.Play(0); s.SlowBattle = true; s.Top = true; })),
             L("1-1.E04", s => { s.Trigger = TutorialSignals.FirstKill; s.TriggerDelay = .8f; s.SlowBattle = true; }),
             L("1-1.E04a", Click(TutorialKeys.Pause, s => { s.Pointer = TutorialKeys.Pause; s.SlowBattle = true; })),
             L("1-1.E04b", Click(TutorialKeys.Pause, s => { s.Pointer = TutorialKeys.Pause; s.HoldBattle = true; })),
@@ -171,6 +173,8 @@ namespace CodingGame.Defense.Editor
             L("1-3.A04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
             // The slash() lines are seen as the step clears them (13차 176; the line before it was cut for length).
             L("1-3.C01a", With(Ed, s => s.ClearProgram = true, Focus(Drop))),
+            // The player opens the 제어 tab, where the loop is (the editor opens on 명령).
+            L("1-3.C04", Click(TutorialKeys.PaletteTab(0), With(Ed, s => s.Pointer = TutorialKeys.PaletteTab(0), Focus(TutorialKeys.PaletteTab(0))))),
             L("1-3.C05", Signal(TutorialSignals.CodeLinePlaced, new[] { Drop, Palette }, With(
                 s => { s.Expected = "1:While"; s.Pointer = "Editor.Palette.While"; s.Preview = true;
                     s.Demo = "Editor.Palette.While>Editor.Code.Start"; },
@@ -494,7 +498,7 @@ namespace CodingGame.Defense.Editor
             var firstGroups = stage.FindPropertyRelative("waves").GetArrayElementAtIndex(0).FindPropertyRelative("groups");
             firstGroups.arraySize = 3;
             var basicEnemy = AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"{Folder}/TutorialError.asset");
-            // One swing (14) fells a basic enemy here (14 x 0.9 for wave 1): each Play press at the right moment is a kill.
+            // Two swings (the warrior's 7 each) fell a basic enemy here (14 x 0.9 = 12.6 for wave 1): two Play presses a kill.
             firstGroups.GetArrayElementAtIndex(0).FindPropertyRelative("healthOverride").floatValue = 14;
             var tankEnemy = AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"{Folder}/TutorialBoss.asset");
             if (!basicEnemy || !tankEnemy) throw new InvalidOperationException("1-1의 기본·단단한 적 asset이 없습니다.");

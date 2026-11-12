@@ -1169,6 +1169,54 @@ MonoBehaviour:
     dismissable: 0
     holdSeconds: 0
     triggerDelay: 0
+  - stepId: E03c
+    kind: 1
+    dialoguePosition: 1
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "\uC544\uC9C1 \uBC84\uD2F0\uACE0 \uC788\uC5B4! \uD55C \uBC88 \uBCA0\uC5B4\uC120
+        \uBD80\uC871\uD574.\n\uD55C \uBC88 \uB354 <b>\u2018\uC2E4\uD589\u2019</b>\uC744
+        \uB20C\uB7EC \uC918!"
+      focusKeys: []
+      highlightKeys: []
+    targetKeys:
+    - Robot.Play.0
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    completionMode: 1
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 0
+    slowBattle: 1
+    allowPreview: 0
+    highlightPadding: 10
+    trigger: FunctionEnded
+    skipIf: 
+    expectedCode: 
+    pointerKey: Robot.Play.0
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    placeShooter: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0.3
   - stepId: E04
     kind: 0
     dialoguePosition: 0

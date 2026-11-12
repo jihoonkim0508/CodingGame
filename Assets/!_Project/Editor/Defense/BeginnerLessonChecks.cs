@@ -320,7 +320,7 @@ namespace CodingGame.Defense.Editor
             {
                 Log("CLEAR wave=" + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills +
                     " leaks=" + sim.Leaks + " survivors=" + sim.LastSurvivors + " timedOut=" + sim.LastWaveTimedOut);
-                // 1-1: the Play presses fell the three basic enemies (one swing each); the tank-bodied one still gets through.
+                // 1-1: the Play presses fell the three basic enemies (two swings each); the tank-bodied one still gets through.
                 if (battle.Stage == 1 && sim.WaveIndex == 0) Require(sim.Kills >= 3 && sim.Leaks >= 1 && sim.BaseHealth >= 8,
                     "1-1's Play lesson did not hold the road; core=" + sim.BaseHealth + " kills=" + sim.Kills + " leaks=" + sim.Leaks);
                 // 1-3: two warriors' ten-swing loops (and Play between calls) hold eight enemies.
@@ -380,6 +380,13 @@ namespace CodingGame.Defense.Editor
             if (step.completionSignal == TutorialSignals.PreviewHit ||
                 step.completionSignal == TutorialSignals.PreviewSingleHit || step.completionSignal == TutorialSignals.PreviewMultiHit)
             { Require(Field<DefenseAttackPreview>(battle, "attackPreview").IsShowing, "Preview is closed at " + key); return; }
+            var tab = step.targetKeys.FirstOrDefault(k => k.StartsWith(TutorialKeys.PaletteTabPrefix, StringComparison.Ordinal));
+            if (tab != null)
+            {
+                Require(director.EditorBridge.TryGetArea(tab, out _), "Palette tab " + tab + " is not offered at " + key);
+                panel.CategoryTab(int.Parse(tab.Substring(TutorialKeys.PaletteTabPrefix.Length))).GetComponent<Button>().onClick.Invoke();
+                return;
+            }
             Require(editor.IsOpen && battle.TutorialAllows(TutorialKeys.Palette), "Editor action blocked at " + key);
             if (step.completionSignal == TutorialSignals.SlotSelected) { Select(panel, Slot(editor, step.expectedCode)); return; }
             if (step.completionSignal == TutorialSignals.CodeLinePlaced)

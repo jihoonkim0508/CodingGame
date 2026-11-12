@@ -41,6 +41,9 @@ namespace CodingGame.Defense
         public static string Range(int index) => RangePrefix + index;
         // The index-th robot's Play button under it (the HUD registers it while it shows).
         public static string Play(int index) => PlayPrefix + index;
+        // The code editor's palette tab (0 제어, 1 명령, 2 값, 3 논리); clicking it reports this key.
+        public const string PaletteTabPrefix = PalettePrefix + "Tab.";
+        public static string PaletteTab(int category) => PaletteTabPrefix + category;
         public static bool IsRange(string key) => key != null && key.StartsWith(RangePrefix, System.StringComparison.Ordinal);
         // World targets the game registers at run time; they need no scene binding.
         public static bool IsRuntime(string key) => key != null && (key == Route || key == Floor || key.StartsWith(UnitPrefix) || key.StartsWith(RangePrefix) || key.StartsWith(PlayPrefix));

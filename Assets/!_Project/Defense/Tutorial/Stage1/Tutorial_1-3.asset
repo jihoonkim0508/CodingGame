@@ -207,6 +207,55 @@ MonoBehaviour:
     dismissable: 0
     holdSeconds: 0
     triggerDelay: 0
+  - stepId: C04
+    kind: 1
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "\uBC18\uBCF5\uBB38 \uBE14\uB85D\uC740 <b>\u2018\uC81C\uC5B4\u2019</b>
+        \uCE78\uC5D0 \uC788\uC5B4.\n<b>\u2018\uC81C\uC5B4\u2019</b>\uB97C \uB20C\uB7EC
+        \uC918!"
+      focusKeys:
+      - Editor.Palette.Tab.0
+      highlightKeys: []
+    targetKeys:
+    - Editor.Palette.Tab.0
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    completionMode: 1
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 1
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: Editor.Palette.Tab.0
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    placeShooter: 0
+    prepareBaselineExample: 0
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
   - stepId: C05
     kind: 1
     dialoguePosition: 0
