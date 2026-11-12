@@ -198,6 +198,7 @@ namespace CodingGame.Defense
                 return int.TryParse(key.Substring(TutorialKeys.PaletteTabPrefix.Length), out int tab) && Corners(panel.CategoryTab(tab), null, corners);
             if (key.StartsWith(TutorialKeys.PalettePrefix)) return Corners(TutorialPaletteItem(key), null, corners);
             if (!key.StartsWith(TutorialKeys.CodePrefix)) return false;
+            if (key == TutorialKeys.Status) return Corners(panel.StatusLine, null, corners);
             var program = panel.Program;
             var parts = key.Substring(TutorialKeys.CodePrefix.Length).Split('.');
             // The start slot, or the block once one sits there (the slot is narrower than e.g. enemy = get_nearest_enemy()). Empty,

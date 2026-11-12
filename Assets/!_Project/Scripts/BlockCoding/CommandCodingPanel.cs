@@ -72,6 +72,8 @@ namespace CodingGame.BlockCoding
         bool dropAccepted;
         static int nextName;
         public CommandDropZone Program => program;
+        // The line under the code that reports what is wrong with it (the tutorial calls it the debugging line).
+        public RectTransform StatusLine => status.rectTransform;
         public CommandDropZone SelectedZone => selected;
 #if UNITY_EDITOR
         public CommandDropZone EditorSnapTarget => snapTarget;

@@ -32,6 +32,8 @@ namespace CodingGame.Defense
             Hint = "Editor.Hint", Preview = "Editor.Preview", CoreHealth = "Battle.CoreHealth", Route = "Battle.Route", RewardPanel = "Battle.RewardPanel", NextWave = "Battle.NextWave",
             Floor = "Battle.Floor";
         public const string CodePrefix = "Editor.Code.", PalettePrefix = "Editor.Palette.";
+        // The code editor's bottom line (errors and state): 1-1 introduces it as the debugging line.
+        public const string Status = CodePrefix + "Status";
         const string UnitPrefix = "Robot.Unit.", RangePrefix = "Robot.Range.", PlayPrefix = "Robot.Play.";
         public const string RobotButtonPrefix = "Battle.Robot.";
         public static string RobotButton(int index) => RobotButtonPrefix + index;

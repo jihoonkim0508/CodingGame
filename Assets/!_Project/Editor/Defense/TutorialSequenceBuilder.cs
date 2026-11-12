@@ -130,7 +130,10 @@ namespace CodingGame.Defense.Editor
             L("1-1.D06", Focus("Editor.Code.Line.1", Preview)),
             L("1-1.D08", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(
                 s => { s.Preview = true; s.Hold = 3; }, Focus(Preview)))),
-            L("1-1.D09", With(Ed, Focus(Preview))), L("1-1.D10", s => s.CloseEditor = true),
+            L("1-1.D09", With(Ed, Focus(Preview))),
+            // Before the first workspace closes: the bottom line is where the code's problems show (debugging).
+            L("1-1.D09a", With(Ed, Focus(TutorialKeys.Status))),
+            L("1-1.D10", s => s.CloseEditor = true),
             L("1-1.E01", Focus(TutorialKeys.NextWave)),
             L("1-1.E03", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => s.Top = true)),
             // Battle start called the function once and it ended (a swing, likely at nobody); then, slowed, the first enemy
