@@ -24,8 +24,9 @@ namespace CodingGame.Defense
         void OnEnable() { previousMask = -1; }
         // The editor lays the dock out once (13차) so the scene shows it as the battle does; at run time it follows which robots
         // are on the deck.
-        // Off the screen's bottom by as much as the next-wave tab is off its left edge (UpcomingTab x 24).
-        const float BottomGap = 24;
+        // Lifted off the screen's bottom: the old 16 px plus a padding as wide as the next-wave tab's gap from the left edge
+        // (UpcomingTab x 24), the whole window raised, nothing drawn under it (play feedback 2026-11-12).
+        const float BottomGap = 16 + 24;
         public void Layout() { previousMask = -1; LateUpdate(); }
         void LateUpdate()
         {
