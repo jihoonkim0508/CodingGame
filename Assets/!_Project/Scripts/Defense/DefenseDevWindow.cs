@@ -71,10 +71,10 @@ namespace CodingGame.Defense
                 GUI.Label(new Rect(area.x + 16, y, 230, 36), enemies[i].name + (battle.EnemyStatsSet(i) ? "  *" : ""));
                 for (int c = 0; c < Columns.Length; c++) fields[i][c] = GUI.TextField(new Rect(area.x + 250 + c * 110, y, 96, 36), fields[i][c]);
                 if (GUI.Button(new Rect(area.x + 700, y, 100, 36), "Apply")) Apply(i);
-                if (GUI.Button(new Rect(area.x + 808, y, 116, 36), "Authored")) { battle.SetEnemyStats(i, null); fields[i] = Values(battle.EnemyNow(i)); }
+                if (GUI.Button(new Rect(area.x + 808, y, 116, 36), "Reset")) { battle.SetEnemyStats(i, null); fields[i] = Values(battle.EnemyNow(i)); }
             }
             y += 54;
-            GUI.Label(new Rect(area.x + 16, y, 700, 34), string.IsNullOrEmpty(message) ? "* set by hand. Authored: the wave's own numbers back." : message);
+            GUI.Label(new Rect(area.x + 16, y, 700, 34), string.IsNullOrEmpty(message) ? "* set by hand. Reset: the wave's own numbers back." : message);
             if (GUI.Button(new Rect(area.x + area.width - 136, y, 120, 34), "Close")) balanceOpen = false;
         }
 
