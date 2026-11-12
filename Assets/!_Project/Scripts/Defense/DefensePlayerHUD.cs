@@ -512,6 +512,7 @@ namespace CodingGame.Defense
         [SerializeField, HideInInspector] System.Collections.Generic.List<Button> bakedPlayButtons = new System.Collections.Generic.List<Button>();
         int playShown;
         static Sprite playTriangle;
+        static readonly Vector2 RunningChip = new Vector2(64, 22);
         void RefreshPlayButtons(DefenseSimulation sim)
         {
             var canvas = (RectTransform)canvasRoot.transform;
@@ -527,12 +528,17 @@ namespace CodingGame.Defense
                 playIds[shown - 1] = bot.Id;
                 bool running = bot.Program.Running;
                 button.interactable = !running && sim.Phase == BattlePhase.Running;
-                // Running: a small "···" chip, so it says busy without competing with the robots (play feedback 2026-11-12).
+                // Running: a small, flat "···" pill (the chip's top and bottom cut off, its corners still round), so it says busy
+                // without competing with the robots (play feedback 2026-11-12).
                 label.text = running ? "···" : "실행";
+                label.fontSize = running ? 36 : 22; // big dots on the flat pill
                 icon.gameObject.SetActive(!running);
                 button.transform.localScale = Vector3.one * (running ? .7f : 1);
-                RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, battleCamera.WorldToScreenPoint(DefenseViews.World(bot.Position)), null, out var foot);
                 var rect = (RectTransform)button.transform;
+                var fit = button.GetComponent<ContentSizeFitter>();
+                fit.horizontalFit = fit.verticalFit = running ? ContentSizeFitter.FitMode.Unconstrained : ContentSizeFitter.FitMode.PreferredSize;
+                if (running) rect.sizeDelta = RunningChip;
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, battleCamera.WorldToScreenPoint(DefenseViews.World(bot.Position)), null, out var foot);
                 rect.anchoredPosition = foot + Vector2.down * 30;
                 rect.gameObject.SetActive(true);
                 battle.Tutorial?.RegisterUITarget(TutorialKeys.Play(index), rect);
