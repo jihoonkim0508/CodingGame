@@ -24,6 +24,8 @@ namespace CodingGame.Defense
         void OnEnable() { previousMask = -1; }
         // The editor lays the dock out once (13차) so the scene shows it as the battle does; at run time it follows which robots
         // are on the deck.
+        // Off the screen's bottom by as much as the next-wave tab is off its left edge (UpcomingTab x 24).
+        const float BottomGap = 24;
         public void Layout() { previousMask = -1; LateUpdate(); }
         void LateUpdate()
         {
@@ -37,7 +39,7 @@ namespace CodingGame.Defense
             float gapWidth = Mathf.Max(0, count - 1) * CardGap;
             float width = Mathf.Min(available, Mathf.Max(760, count * PreferredCardWidth + gapWidth + 292));
             root.anchorMin = root.anchorMax = root.pivot = new Vector2(.5f, 0);
-            root.anchoredPosition = new Vector2(0, 16); root.sizeDelta = new Vector2(width, 164);
+            root.anchoredPosition = new Vector2(0, BottomGap); root.sizeDelta = new Vector2(width, 164);
             float actionWidth = Mathf.Min(220, width * .29f), rosterWidth = width - actionWidth - 72;
             Place(roster, 24, 14, rosterWidth, 78);
             Place(action, width - 24 - actionWidth, 14, actionWidth, 78);
