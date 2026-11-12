@@ -507,7 +507,7 @@ namespace CodingGame.Defense
         }
 
         // A Play button under each robot with code while a battle is on (play feedback 4, like 'The Farmer Was Replaced'): it
-        // calls the robot's function, and reads 실행 중 (locked) until the function ends.
+        // calls the robot's function, and shows a small "···" (locked) until the function ends.
         readonly System.Collections.Generic.List<(Button button, TextMeshProUGUI label, Image icon)> playButtons = new System.Collections.Generic.List<(Button, TextMeshProUGUI, Image)>();
         [SerializeField, HideInInspector] System.Collections.Generic.List<Button> bakedPlayButtons = new System.Collections.Generic.List<Button>();
         int playShown;
@@ -527,8 +527,10 @@ namespace CodingGame.Defense
                 playIds[shown - 1] = bot.Id;
                 bool running = bot.Program.Running;
                 button.interactable = !running && sim.Phase == BattlePhase.Running;
-                label.text = running ? "실행 중" : "실행";
+                // Running: a small "···" chip, so it says busy without competing with the robots (play feedback 2026-11-12).
+                label.text = running ? "···" : "실행";
                 icon.gameObject.SetActive(!running);
+                button.transform.localScale = Vector3.one * (running ? .7f : 1);
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, battleCamera.WorldToScreenPoint(DefenseViews.World(bot.Position)), null, out var foot);
                 var rect = (RectTransform)button.transform;
                 rect.anchoredPosition = foot + Vector2.down * 30;
