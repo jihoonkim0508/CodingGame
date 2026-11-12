@@ -4,16 +4,17 @@ using UnityEngine.InputSystem;
 
 namespace CodingGame.Defense
 {
-    // Developer tools drawn over the battle (developer rights only, GameFlow.Developer): with the F1 panel open, a box that
-    // jumps to a dialogue id ("1-3.C05"); F2 opens the balance window, where each enemy's health, speed, attack damage and
-    // core damage are multiplied for the battle under way and the ones after it. Plain IMGUI: a team tool, not game UI.
+    // Developer tools drawn over the battle (developer rights only, GameFlow.Developer): with the F1 panel open, a box in the
+    // panel's empty bottom strip that jumps to a dialogue id ("1-3.C05"); F2 opens the balance window, where each enemy's
+    // health, speed, attack damage and core damage are set to fixed numbers for the battle under way and the ones after it.
+    // Plain IMGUI: a team tool, not game UI.
     public sealed class DefenseDevWindow : MonoBehaviour
     {
         DefenseBattle battle;
         bool balanceOpen;
         string jumpId = "1-1.A01", message;
         string[][] fields;
-        static readonly string[] Columns = { "HP x", "Speed x", "Damage x", "Leak x" };
+        static readonly string[] Columns = { "HP", "Speed", "Damage", "Leak" };
 
         void Awake() => battle = GetComponent<DefenseBattle>();
 
@@ -21,7 +22,7 @@ namespace CodingGame.Defense
         {
             if (!GameFlow.Developer) { balanceOpen = false; return; }
             var keyboard = Keyboard.current;
-            if (keyboard != null && keyboard.f2Key.wasPressedThisFrame) { balanceOpen = !balanceOpen; fields = null; }
+            if (keyboard != null && keyboard.f2Key.wasPressedThisFrame) { balanceOpen = !balanceOpen; fields = null; message = null; }
         }
 
         void OnGUI()
@@ -31,8 +32,9 @@ namespace CodingGame.Defense
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1));
             float width = Screen.width / scale;
             GUI.skin.label.fontSize = GUI.skin.textField.fontSize = GUI.skin.button.fontSize = GUI.skin.box.fontSize = 20;
-            if (battle.DeveloperMode) JumpBox(new Rect(width / 2 - 300, 70, 600, 92));
-            balanceArea = new Rect(width / 2 - 420, 180, 840, 120 + 44 * battle.EnemyDefinitions.Count);
+            // The F1 panel's bottom strip is empty between "수량 1~999" and "전체 추가" (1080p: x 300 to 1350, y 905 to 965).
+            if (battle.DeveloperMode) JumpBox(new Rect(width / 2 - 640, 908, 920, 52));
+            balanceArea = new Rect(width / 2 - 470, 180, 940, 130 + 44 * battle.EnemyDefinitions.Count);
             if (balanceOpen) BalanceWindow(balanceArea);
         }
         Rect balanceArea;
@@ -46,11 +48,10 @@ namespace CodingGame.Defense
 
         void JumpBox(Rect area)
         {
-            GUI.Box(area, "Dialogue ID (e.g. 1-3.C05)");
-            jumpId = GUI.TextField(new Rect(area.x + 16, area.y + 36, 400, 36), jumpId);
-            if (GUI.Button(new Rect(area.x + 430, area.y + 36, 150, 36), "Go"))
-                message = battle.DeveloperJump(jumpId);
-            if (!string.IsNullOrEmpty(message)) GUI.Label(new Rect(area.x + 16, area.y + area.height, 600, 30), message);
+            GUI.Label(new Rect(area.x, area.y + 10, 220, 34), "Dialogue ID");
+            jumpId = GUI.TextField(new Rect(area.x + 150, area.y + 8, 300, 36), jumpId);
+            if (GUI.Button(new Rect(area.x + 460, area.y + 8, 110, 36), "Go")) message = battle.DeveloperJump(jumpId);
+            GUI.Label(new Rect(area.x + 585, area.y + 10, 340, 34), string.IsNullOrEmpty(message) ? "e.g. 1-3.C05 or 1-3" : message);
         }
 
         void BalanceWindow(Rect area)
@@ -59,36 +60,37 @@ namespace CodingGame.Defense
             if (fields == null)
             {
                 fields = new string[enemies.Count][];
-                for (int i = 0; i < enemies.Count; i++)
-                    fields[i] = System.Array.ConvertAll(battle.EnemyBalance(i), m => m.ToString("0.##", CultureInfo.InvariantCulture));
+                for (int i = 0; i < enemies.Count; i++) fields[i] = Values(battle.EnemyNow(i));
             }
-            GUI.Box(area, "Enemy balance (F2) - multipliers on the authored stats, kept until the game quits");
+            GUI.Box(area, "Enemy stats (F2) - the numbers this battle's enemies come with; kept until the game quits");
             float y = area.y + 40;
-            for (int c = 0; c < Columns.Length; c++) GUI.Label(new Rect(area.x + 260 + c * 120, y, 120, 30), Columns[c]);
+            for (int c = 0; c < Columns.Length; c++) GUI.Label(new Rect(area.x + 250 + c * 110, y, 110, 30), Columns[c]);
             for (int i = 0; i < enemies.Count; i++)
             {
                 y += 44;
-                var stats = enemies[i].stats;
-                GUI.Label(new Rect(area.x + 16, y, 240, 36), $"{enemies[i].name}  ({stats.health:0} hp)");
-                for (int c = 0; c < Columns.Length; c++) fields[i][c] = GUI.TextField(new Rect(area.x + 260 + c * 120, y, 100, 36), fields[i][c]);
-                if (GUI.Button(new Rect(area.x + 740, y, 84, 36), "Apply")) Apply(i);
+                GUI.Label(new Rect(area.x + 16, y, 230, 36), enemies[i].name + (battle.EnemyStatsSet(i) ? "  *" : ""));
+                for (int c = 0; c < Columns.Length; c++) fields[i][c] = GUI.TextField(new Rect(area.x + 250 + c * 110, y, 96, 36), fields[i][c]);
+                if (GUI.Button(new Rect(area.x + 700, y, 100, 36), "Apply")) Apply(i);
+                if (GUI.Button(new Rect(area.x + 808, y, 116, 36), "Authored")) { battle.SetEnemyStats(i, null); fields[i] = Values(battle.EnemyNow(i)); }
             }
-            y += 50;
-            if (GUI.Button(new Rect(area.x + 16, y, 200, 34), "All x1 (reset)"))
-            {
-                for (int i = 0; i < enemies.Count; i++) { fields[i] = new[] { "1", "1", "1", "1" }; Apply(i); }
-            }
+            y += 54;
+            GUI.Label(new Rect(area.x + 16, y, 700, 34), string.IsNullOrEmpty(message) ? "* set by hand. Authored: the wave's own numbers back." : message);
             if (GUI.Button(new Rect(area.x + area.width - 136, y, 120, 34), "Close")) balanceOpen = false;
-            if (!string.IsNullOrEmpty(message)) GUI.Label(new Rect(area.x + 240, y, 360, 34), message);
         }
+
+        static string[] Values(EnemySpec spec) => new[] { spec.health.ToString("0.##", CultureInfo.InvariantCulture),
+            spec.speed.ToString("0.##", CultureInfo.InvariantCulture), spec.damage.ToString("0.##", CultureInfo.InvariantCulture),
+            spec.leakDamage.ToString(CultureInfo.InvariantCulture) };
 
         void Apply(int definition)
         {
-            var multipliers = new float[4];
-            for (int c = 0; c < 4; c++)
-                if (!float.TryParse(fields[definition][c], NumberStyles.Float, CultureInfo.InvariantCulture, out multipliers[c]) || multipliers[c] <= 0)
-                { message = $"{battle.EnemyDefinitions[definition].name}: '{fields[definition][c]}' is not a multiplier above 0"; return; }
-            battle.SetEnemyBalance(definition, multipliers); message = null;
+            var f = fields[definition];
+            bool Number(string text, out float value) => float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+            if (!Number(f[0], out float health) || health <= 0 || !Number(f[1], out float speed) || speed <= 0 ||
+                !Number(f[2], out float damage) || damage < 0 || !int.TryParse(f[3], out int leak) || leak < 1)
+            { message = $"{battle.EnemyDefinitions[definition].name}: HP and Speed above 0, Damage 0 or more, Leak 1 or more"; return; }
+            battle.SetEnemyStats(definition, new DefenseSimulation.EnemyStats { health = health, speed = speed, damage = damage, leakDamage = leak });
+            message = null;
         }
     }
 }

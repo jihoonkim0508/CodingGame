@@ -199,24 +199,42 @@ namespace CodingGame.Defense
             nextWave=WaveIndex+1<Setup.Waves.Length?ScaledWave(WaveIndex+1).Concat(carry).ToArray():Array.Empty<SpawnGroup>();
             Emit("balance-applied",0,0,Vector2.Zero);
         }
-        // The F2 balance window: one enemy definition's health, speed, attack damage and core damage multiplied, in every
-        // wave of the campaign, the wave under way (its unspawned groups) and the enemies already walking (their health too).
-        public void ScaleEnemies(int definition, float health, float speed, float damage, float leak)
+        // The F2 balance window: one enemy definition's health, speed, attack damage and core damage set to fixed values, in
+        // the wave under way (its unspawned groups and the enemies already walking, whose health keeps its share) and in every
+        // wave scaled after it (ScaledWave). null gives the authored numbers back.
+        public sealed class EnemyStats { public float health, speed, damage; public int leakDamage; }
+        readonly Dictionary<int, EnemyStats> enemyStats = new Dictionary<int, EnemyStats>();
+        readonly Dictionary<EnemySpec, EnemySpec> authoredSpecs = new Dictionary<EnemySpec, EnemySpec>();
+        public void SetEnemyStats(int definition, EnemyStats stats)
         {
-            if (!Rules.Positive(health) || !Rules.Positive(speed) || !Rules.Nonnegative(damage) || !Rules.Positive(leak))
-                throw new ArgumentException("배율은 0보다 커야 합니다.");
-            var done = new HashSet<EnemySpec>();
-            void Scale(EnemySpec spec)
+            if (stats != null && (!Rules.Positive(stats.health) || !Rules.Positive(stats.speed) || !Rules.Nonnegative(stats.damage) || stats.leakDamage < 1))
+                throw new ArgumentException("체력·속도는 0보다, 코어 피해는 1 이상이어야 합니다.");
+            if (stats == null) enemyStats.Remove(definition); else enemyStats[definition] = stats;
+            var live = (currentWave ?? Array.Empty<SpawnGroup>()).Concat(nextWave ?? Array.Empty<SpawnGroup>()).Concat(carry)
+                .Where(g => g.DefinitionIndex == definition).Select(g => g.Enemy)
+                .Concat(Enemies.Where(e => e.DefinitionIndex == definition).Select(e => e.Spec)).Distinct().ToArray();
+            var before = live.ToDictionary(spec => spec, spec => spec.health);
+            foreach (var spec in live)
             {
-                if (spec == null || !done.Add(spec)) return;
-                spec.health *= health; spec.speed *= speed; spec.damage *= damage;
-                spec.leakDamage = Math.Max(1, (int)Math.Round(spec.leakDamage * leak));
+                if (!authoredSpecs.ContainsKey(spec)) authoredSpecs[spec] = spec.Copy();
+                var source = authoredSpecs[spec];
+                spec.health = stats?.health ?? source.health; spec.speed = stats?.speed ?? source.speed;
+                spec.damage = stats?.damage ?? source.damage; spec.leakDamage = stats?.leakDamage ?? source.leakDamage;
             }
-            var groups = (Setup.CampaignWaves ?? new[] { Setup.Waves }).Append(Setup.Waves).SelectMany(w => w).SelectMany(w => w)
-                .Concat(currentWave ?? Array.Empty<SpawnGroup>()).Concat(nextWave ?? Array.Empty<SpawnGroup>()).Concat(carry);
-            foreach (var group in groups) if (group.DefinitionIndex == definition) Scale(group.Enemy);
-            // Specs are copies made for the session (RulesConfig.Scale), shared by a group's enemies: each scales once.
-            foreach (var enemy in Enemies) if (enemy.DefinitionIndex == definition) { Scale(enemy.Spec); enemy.Health *= health; }
+            foreach (var enemy in Enemies) if (enemy.DefinitionIndex == definition) enemy.Health *= enemy.Spec.health / before[enemy.Spec];
+        }
+        // The numbers an enemy of this definition comes with now: the next group's (set or authored), else the asset's.
+        public EnemySpec EnemyNow(int definition, EnemySpec asset)
+        {
+            var group = (Phase == BattlePhase.Ready ? currentWave : nextWave)?.FirstOrDefault(g => g.DefinitionIndex == definition)
+                ?? currentWave?.FirstOrDefault(g => g.DefinitionIndex == definition);
+            return group != null ? group.Enemy : asset;
+        }
+        void ApplyEnemyStats(SpawnGroup group)
+        {
+            if (!enemyStats.TryGetValue(group.DefinitionIndex, out var stats)) return;
+            authoredSpecs[group.Enemy] = group.Enemy.Copy();
+            group.Enemy.health = stats.health; group.Enemy.speed = stats.speed; group.Enemy.damage = stats.damage; group.Enemy.leakDamage = stats.leakDamage;
         }
         public bool AdvanceStage()
         {
@@ -241,8 +259,10 @@ namespace CodingGame.Defense
             return Setup.Waves[waveIndex].Select(group =>
             {
                 var enemy = Setup.RulesConfig.Scale(group.Enemy, Setup.Stage, waveIndex);
-                return new SpawnGroup { Enemy = enemy, DefinitionIndex = group.DefinitionIndex, RouteIndex = group.RouteIndex,
+                var scaled = new SpawnGroup { Enemy = enemy, DefinitionIndex = group.DefinitionIndex, RouteIndex = group.RouteIndex,
                     Count = group.Count, Delay = group.Delay, Interval = group.Interval, Boss = group.Boss };
+                ApplyEnemyStats(scaled);
+                return scaled;
             }).ToArray();
         }
         public string StartError()

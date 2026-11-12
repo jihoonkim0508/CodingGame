@@ -304,26 +304,27 @@ namespace CodingGame.Defense
             selectionCamera.Restore();
             selected = 0; BattleSpeed = 1; HidePlacement();
             rangeRing.Hide(); effectRing.Hide(); resultPanel.SetActive(false);
-            foreach (var pair in enemyBalance) Simulation.ScaleEnemies(pair.Key, pair.Value[0], pair.Value[1], pair.Value[2], pair.Value[3]);
+            foreach (var pair in enemyStats) Simulation.SetEnemyStats(pair.Key, pair.Value);
             Tell("로봇을 선택하고 허용 영역을 클릭하세요. 탱커만 경로 위에 설치합니다.");
             RefreshHUD();
         }
 
-        // F2 balance window (developer rights): multipliers per enemy definition (health, speed, attack damage, core damage),
-        // applied to the battle under way and kept for every battle until the game quits.
-        static readonly Dictionary<int, float[]> enemyBalance = new Dictionary<int, float[]>();
+        // F2 balance window (developer rights): fixed health, speed, attack damage and core damage per enemy definition,
+        // applied to the battle under way and kept for every battle until the game quits; null gives the authored ones back.
+        static readonly Dictionary<int, DefenseSimulation.EnemyStats> enemyStats = new Dictionary<int, DefenseSimulation.EnemyStats>();
         DefenseDevWindow devWindow;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetBalance() => enemyBalance.Clear();
+        static void ResetBalance() => enemyStats.Clear();
         public IReadOnlyList<EnemyDefinition> EnemyDefinitions => enemies;
-        public float[] EnemyBalance(int definition) => enemyBalance.TryGetValue(definition, out var m) ? (float[])m.Clone() : new float[] { 1, 1, 1, 1 };
-        public void SetEnemyBalance(int definition, float[] multipliers)
+        public bool EnemyStatsSet(int definition) => enemyStats.ContainsKey(definition);
+        public EnemySpec EnemyNow(int definition) => Simulation.EnemyNow(definition, enemies[definition].stats);
+        public void SetEnemyStats(int definition, DefenseSimulation.EnemyStats stats)
         {
-            var old = EnemyBalance(definition);
-            Simulation.ScaleEnemies(definition, multipliers[0] / old[0], multipliers[1] / old[1], multipliers[2] / old[2], multipliers[3] / old[3]);
-            if (multipliers.All(m => Mathf.Approximately(m, 1))) enemyBalance.Remove(definition); else enemyBalance[definition] = (float[])multipliers.Clone();
+            Simulation.SetEnemyStats(definition, stats);
+            if (stats == null) enemyStats.Remove(definition); else enemyStats[definition] = stats;
             SyncViews(0); RefreshHUD();
-            Trace($"balance {enemies[definition].name} x{string.Join("/", multipliers.Select(m => m.ToString("0.##")))}");
+            Trace(stats == null ? $"balance {enemies[definition].name} authored" :
+                $"balance {enemies[definition].name} hp {stats.health} speed {stats.speed} damage {stats.damage} leak {stats.leakDamage}");
         }
 
         // F1 panel (developer rights): "1-3.C05" starts that stage and wave over and opens its tutorial at that line ("1-3"
