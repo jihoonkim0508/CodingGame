@@ -80,6 +80,8 @@ namespace CodingGame.Art.StageSelection
         }
         // Set by StageMapController every frame: OnMouseEnter never fires, the project reads input only through the Input System.
         public void SetHovered(bool on){hovering=on;}
+        // 0 to 1, eased: how far the hover rise has gone (the Enter hint swells with it).
+        public float HoverLift=>hover*hover*(3-2*hover);
         void LateUpdate()
         {
             if(!Application.isPlaying)return;
