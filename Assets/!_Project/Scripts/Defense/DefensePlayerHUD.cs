@@ -530,8 +530,13 @@ namespace CodingGame.Defense
                 button.interactable = !running && sim.Phase == BattlePhase.Running;
                 // Running: a small, flat "···" pill (the chip's top and bottom cut off, its corners still round), so it says busy
                 // without competing with the robots (play feedback 2026-11-12).
-                label.text = running ? "···" : "실행";
+                label.text = running ? "<voffset=-0.14em>···</voffset>" : "실행";
                 label.fontSize = running ? 36 : 22; // big dots on the flat pill
+                // The dots sit at the font's middle, above the line's centre: in the whole pill (the chip's padding is 6 over 8
+                // under), centred by their shape and lowered 0.14 em (measured on screen: they showed 3.5 px high).
+                label.alignment = running ? TextAlignmentOptions.CenterGeoAligned : TextAlignmentOptions.Center;
+                var row = button.GetComponent<HorizontalLayoutGroup>();
+                if (row.padding.top != (running ? 0 : 6)) row.padding = running ? new RectOffset(14, 14, 0, 0) : new RectOffset(14, 16, 6, 8);
                 icon.gameObject.SetActive(!running);
                 button.transform.localScale = Vector3.one * (running ? .7f : 1);
                 var rect = (RectTransform)button.transform;
