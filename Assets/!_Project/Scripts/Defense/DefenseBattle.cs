@@ -201,15 +201,18 @@ namespace CodingGame.Defense
         public Transform CoreModel { get; private set; }
         // The spawn gate's and the core's renderers: the road focus stops at their edge instead of lighting them.
         Renderer[][] routeEnds = System.Array.Empty<Renderer[]>();
-        // A road part cut back along its length to the model's edge where they overlap on the ground.
-        static Bounds OffModel(Bounds part, Renderer[] model)
+        Renderer[] coreRenderers;
+        // How far the lit road runs on into the core's model, to its entrance (the user: '코어는 입구 정도까지').
+        const float CoreReach = 1.2f;
+        // A road part cut back along its length to the model's edge where they overlap on the ground, less reach (world units).
+        static Bounds OffModel(Bounds part, Renderer[] model, float reach = 0)
         {
             Bounds? hull = null;
             foreach (var r in model) if (r && r.enabled && r.gameObject.activeInHierarchy) { if (hull is Bounds h) { h.Encapsulate(r.bounds); hull = h; } else hull = r.bounds; }
             if (!(hull is Bounds m) || m.max.x <= part.min.x || m.min.x >= part.max.x || m.max.z <= part.min.z || m.min.z >= part.max.z) return part;
             Vector3 min = part.min, max = part.max;
-            if (part.size.x >= part.size.z) { if (m.center.x < part.center.x) min.x = Mathf.Min(max.x, m.max.x); else max.x = Mathf.Max(min.x, m.min.x); }
-            else { if (m.center.z < part.center.z) min.z = Mathf.Min(max.z, m.max.z); else max.z = Mathf.Max(min.z, m.min.z); }
+            if (part.size.x >= part.size.z) { if (m.center.x < part.center.x) min.x = Mathf.Min(max.x, m.max.x - reach); else max.x = Mathf.Max(min.x, m.min.x + reach); }
+            else { if (m.center.z < part.center.z) min.z = Mathf.Min(max.z, m.max.z - reach); else max.z = Mathf.Max(min.z, m.min.z + reach); }
             part.SetMinMax(min, max);
             return part;
         }
@@ -226,6 +229,7 @@ namespace CodingGame.Defense
             CoreModel = (first ? stageOneMap : workshopMap).GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "CodeBase");
             var gate = (first ? stageOneMap : workshopMap).GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "ErrorGate");
             routeEnds = new[] { gate, CoreModel }.Where(t => t).Select(t => t.GetComponentsInChildren<Renderer>(true)).ToArray();
+            coreRenderers = CoreModel ? routeEnds[routeEnds.Length - 1] : null;
             if (coreGlitch) coreGlitch.SetModel(CoreModel);
             StartCoroutine(CombineTiles(first ? stageOneMap : workshopMap));
         }
@@ -830,7 +834,7 @@ namespace CodingGame.Defense
                     var b = new Bounds(DefenseViews.World(points[p - 1]), width);
                     b.Encapsulate(new Bounds(DefenseViews.World(points[p]), width));
                     b.SetMinMax(new Vector3(Mathf.Max(b.min.x, min.x), 0, Mathf.Max(b.min.z, min.z)), new Vector3(Mathf.Min(b.max.x, max.x), .1f, Mathf.Min(b.max.z, max.z)));
-                    foreach (var end in routeEnds) b = OffModel(b, end);
+                    for (int e = 0; e < routeEnds.Length; e++) b = OffModel(b, routeEnds[e], routeEnds[e] == coreRenderers ? CoreReach : 0);
                     if (b.size.x > 0 && b.size.z > 0) route.Add(b);
                 }
             }
