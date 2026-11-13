@@ -4,10 +4,11 @@ using UnityEngine.Rendering;
 
 namespace CodingGame.StageMap
 {
-    // The map's code error: until its stage compiles, a model (an island, a bridge) has a band of glitch cells running over it,
-    // the Object Glitch Shader's band (Resources/ArtScripts/StageSelection/StageGlitch, a copy of BandGlitchLit that
-    // overwrites the colour instead of base + glitch - 1, which turned plain colours black). The cells are drawn by copies
-    // of the model's meshes with that material, alpha clipped, so the model shows unchanged under them. Built in play only.
+    // The map's code error: until its stage compiles, a model (an island, a bridge) is covered in glitch cells, the Object
+    // Glitch Shader's band (Resources/ArtScripts/StageSelection/StageGlitch, a copy of BandGlitchLit that overwrites the
+    // colour instead of base + glitch - 1, which turned plain colours black) made 14 wide so the cells cover over 90% of each
+    // island (the user: at least 80%; 1.2 wide covered under 10%), its core still running across. The cells are drawn by copies
+    // of the model's meshes over it (not clipped); the screens and glows stay on top. Built in play only.
     public sealed class StageGlitchVisual : MonoBehaviour
     {
         const string MaterialPath = "ArtScripts/StageSelection/StageGlitch";
