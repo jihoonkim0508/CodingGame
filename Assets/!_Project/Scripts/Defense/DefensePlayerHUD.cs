@@ -173,6 +173,7 @@ namespace CodingGame.Defense
             var sim = battle.Simulation;
             if (sim == null) return;
             AnimateResult();
+            ClearOfTutorialLine();
             FlashLeak(sim);
             AnimateFloaters();
             CallWave(sim);
@@ -680,6 +681,32 @@ namespace CodingGame.Defense
             banner.font = UITheme.Display ? UITheme.Display : rewardItems.font; banner.fontSize = 112; banner.characterSpacing = -2; banner.alignment = TextAlignmentOptions.Center; banner.raycastTarget = false;
             if (UITheme.Banner) banner.fontSharedMaterial = UITheme.Banner;
             strip.gameObject.SetActive(false);
+        }
+        // A lesson's line shown at the top over the result (its claim-the-reward steps) covered the card's title and first row
+        // (the user: '보상 결과 윗부분이 잘린다'): the card moves down under the line by the overlap, and back once it goes.
+        Vector2 cardRest; bool cardRestSet; float cardShift;
+        const float CardLineGap = 12, CardShiftSpeed = 1600;
+        static readonly Vector3[] screenCorners = new Vector3[4];
+        static float ScreenY(RectTransform r, bool top)
+        {
+            r.GetWorldCorners(screenCorners);
+            var canvas = r.GetComponentInParent<Canvas>().rootCanvas;
+            return RectTransformUtility.WorldToScreenPoint(canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera, screenCorners[top ? 1 : 0]).y;
+        }
+        void ClearOfTutorialLine()
+        {
+            var card = (RectTransform)rewardTitle.transform.parent;
+            if (!cardRestSet) { cardRest = card.anchoredPosition; cardRestSet = true; }
+            float target = 0;
+            var line = battle.Tutorial ? battle.Tutorial.DialogueView : null;
+            if (rewardPanel.activeInHierarchy && line && line.IsVisible && line.AtTop && card.rect.height > 0)
+            {
+                float top = ScreenY(card, true), perUnit = (top - ScreenY(card, false)) / card.rect.height;
+                // Where the card's top would be unmoved, against the line's bottom edge (screen pixels to card units).
+                target = Mathf.Max(0, (top + cardShift * perUnit - ScreenY(line.Panel, false)) / perUnit + CardLineGap);
+            }
+            cardShift = rewardPanel.activeInHierarchy ? Mathf.MoveTowards(cardShift, target, CardShiftSpeed * Time.unscaledDeltaTime) : 0;
+            card.anchoredPosition = cardRest - new Vector2(0, cardShift);
         }
         void AnimateResult()
         {

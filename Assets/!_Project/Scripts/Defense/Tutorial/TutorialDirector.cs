@@ -13,6 +13,8 @@ namespace CodingGame.Defense
         [SerializeField] DefenseBattle battle;
         [SerializeField] TutorialInputBridge bridge;
         [SerializeField] TutorialDialogueView view;
+        // 디버's dialogue box: the result card keeps clear of it (DefensePlayerHUD).
+        public TutorialDialogueView DialogueView => view;
         // Optional: without them arrows are skipped and system lines use the dialogue box.
         [SerializeField] TutorialPointer pointer;
         [SerializeField] TutorialSystemAlert alert;
