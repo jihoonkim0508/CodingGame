@@ -85,6 +85,22 @@ namespace CodingGame.Art.StageSelection
                 block.SetFloat("_PurifyFlash",IsPurifying?Mathf.Sin(Purification*Mathf.PI):0);
                 pair.Key.SetPropertyBlock(block);
             }
+            // Until the stage compiles the island has the code error on it; the clear's scan (Purification 0 to 1) settles it
+            // in its first quarter, before the island brightens (the lit overlay, in the brighter colours, showed pale).
+            if(Application.isPlaying)Glitch.SetStrength(1-4*Purification);
+        }
+        StageGlitchVisual glitch;
+        StageGlitchVisual Glitch
+        {
+            get
+            {
+                if(glitch)return glitch;
+                glitch=gameObject.AddComponent<StageGlitchVisual>();
+                var surfaces=new List<Renderer>();
+                if(visualRoot)foreach(var renderer in visualRoot.GetComponentsInChildren<Renderer>())if(renderer!=statusRing)surfaces.Add(renderer);
+                glitch.Build(surfaces,Vector3.right); // across: a band running up and down crossed the flat island only now and then
+                return glitch;
+            }
         }
         // Set by StageMapController every frame: OnMouseEnter never fires, the project reads input only through the Input System.
         public void SetHovered(bool on){hovering=on;}
@@ -108,7 +124,7 @@ namespace CodingGame.Art.StageSelection
         {
             var renderers = new List<Renderer>();
             foreach (var renderer in GetComponentsInChildren<Renderer>(true))
-                if (!renderer.GetComponentInParent<StageLockVisual>() && !renderer.GetComponentInParent<StagePurificationVisual>()) renderers.Add(renderer);
+                if (!renderer.GetComponentInParent<StageLockVisual>() && !renderer.GetComponentInParent<StagePurificationVisual>() && !StageGlitchVisual.IsOverlay(renderer)) renderers.Add(renderer);
             return renderers.ToArray();
         }
         void OnTransformChildrenChanged(){boundsRenderers=null;boundsCached=false;}

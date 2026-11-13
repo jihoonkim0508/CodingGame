@@ -28,6 +28,7 @@ namespace CodingGame.StageMap
         StageNode recommendedStage, hovered;
         string guideMessage = "지켜 낸 구역에도 언제든 다시 갈 수 있어. 섬을 눌러 봐!";
         StageIslandView[] islands;
+        readonly System.Collections.Generic.Dictionary<StageNode, StageGlitchVisual> bridges = new System.Collections.Generic.Dictionary<StageNode, StageGlitchVisual>();
         public StageNode RecommendedStage => recommendedStage;
         public string GuideMessage => guideMessage;
         public bool IsUnlocking => unlocking;
@@ -56,6 +57,17 @@ namespace CodingGame.StageMap
             }
             menu = gameObject.AddComponent<StageMapMenu>();
             menu.Configure(hud.Canvas, v => { if (voice) voice.volume = v; });
+            // The bridge out of each island has the code error too until that island compiles; the unlock's energy fixes it.
+            var walkways = GameObject.Find("Connecting Circuit Walkways");
+            foreach (var node in nodes)
+            {
+                var next = nodes.FirstOrDefault(n => n.Number == node.Number + 1);
+                var bridge = walkways && next ? walkways.transform.Find($"Bridge {node.Number} to {next.Number}") : null;
+                if (!bridge) continue;
+                var glitch = bridge.gameObject.AddComponent<StageGlitchVisual>();
+                glitch.Build(bridge.GetComponentsInChildren<Renderer>(), next.transform.position - node.transform.position);
+                bridges[node] = glitch;
+            }
             RefreshNodes();
             PlayPendingUnlock();
         }
@@ -134,6 +146,7 @@ namespace CodingGame.StageMap
             foreach (var node in nodes)
             {
                 node.Refresh();
+                if (bridges.TryGetValue(node, out var bridge)) bridge.SetStrength(node.State == StageState.Cleared ? 0 : 1);
                 if (node.State == StageState.Available && (!recommendedStage || node.Number < recommendedStage.Number)) recommendedStage = node;
             }
             guideMessage = recommendedStage ? Attack(recommendedStage.Number) :
@@ -180,6 +193,8 @@ namespace CodingGame.StageMap
             if(target)target.LockVisual.SetLocked(true);
             var island = target?target.GetComponent<StageIslandView>():null;
             if(island) island.RefreshState(StageState.Locked);
+            bridges.TryGetValue(source,out var bridge);
+            if(bridge)bridge.SetStrength(1);
             yield return new WaitForSecondsRealtime(.4f);
             cameraController.ShowPurificationIsland(source);
             yield return new WaitForSecondsRealtime(.9f);
@@ -209,6 +224,7 @@ namespace CodingGame.StageMap
             {
                 float t = Mathf.Clamp01(elapsed/1.5f);
                 effect.Show(Mathf.SmoothStep(0,1,t));
+                if(bridge)bridge.SetStrength(1-Mathf.SmoothStep(0,1,t));
                 if(t>.15f&&!approaching)cameraController.FollowUnlockPulse(effect.HeadPosition);
                 if(!approaching && t>.68f) { approaching=true; cameraController.ShowUnlockIsland(target); }
                 yield return null;
