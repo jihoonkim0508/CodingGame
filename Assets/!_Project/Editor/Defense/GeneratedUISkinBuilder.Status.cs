@@ -12,7 +12,7 @@ namespace CodingGame.Defense.Editor {
    var card=canvas.Find("Reward/Card");
    var tag=card.Find("StatusTag");if(tag)tag.gameObject.SetActive(false);
    var heading=card.Find("Title").GetComponent<TMP_Text>();Stretch(heading.rectTransform,new Vector2(0,1),Vector2.one,new Vector2(40,-62),new Vector2(-40,-22));heading.fontSize=28;heading.color=new Color(.035f,.12f,.2f);heading.alignment=TextAlignmentOptions.Center;
-   Stretch((RectTransform)card.Find("RewardScroll"),Vector2.zero,Vector2.one,new Vector2(42,112),new Vector2(-42,-110));
+   Stretch((RectTransform)card.Find("RewardScroll"),Vector2.zero,Vector2.one,new Vector2(42,112),new Vector2(-42,-74));
    var claim=card.Find("Claim");Stretch((RectTransform)claim,new Vector2(0,0),new Vector2(1,0),new Vector2(48,29),new Vector2(-48,69));
    var image=claim.GetComponent<Image>();Skin(image,distinct["SkyClaimButton"],Color.white);image.pixelsPerUnitMultiplier=8;
    var label=claim.GetComponentInChildren<TMP_Text>(true);Stretch(label.rectTransform,Vector2.zero,Vector2.one,new Vector2(18,3),new Vector2(-18,-3));label.color=new Color(.025f,.1f,.18f);label.fontSize=20;label.enableVertexGradient=false;label.alignment=TextAlignmentOptions.Center;label.margin=Vector4.zero;label.enableAutoSizing=true;label.fontSizeMin=16;label.fontSizeMax=20;

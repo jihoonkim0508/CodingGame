@@ -745,7 +745,7 @@ namespace CodingGame.Defense
             new System.Collections.Generic.Dictionary<CodingGame.BlockCoding.BlockKind, (RectTransform, TextMeshProUGUI)>();
         void ShowRewardBlocks(System.Collections.Generic.IReadOnlyList<CodingGame.BlockCoding.BlockKind> drops)
         {
-            rewardItems.margin = new Vector4(8,8,8,12);
+            rewardItems.margin = new Vector4(8, ListTop + 8, 8, 12);
             if (rewardBlocks) foreach (Transform child in rewardBlocks) child.gameObject.SetActive(false);
             popping.Clear();
             var panel = battle.CodeEditor ? battle.CodeEditor.Panel : null;
@@ -755,7 +755,7 @@ namespace CodingGame.Defense
                 rewardBlocks = new GameObject("Reward blocks", typeof(RectTransform)).GetComponent<RectTransform>();
                 rewardBlocks.SetParent(rewardItems.transform, false);
                 // RewardTop clear of the list's top edge, which clipped the blocks as they popped to 1.15x (play feedback 4).
-                rewardBlocks.anchorMin = rewardBlocks.anchorMax = rewardBlocks.pivot = new Vector2(0, 1); rewardBlocks.anchoredPosition = new Vector2(RewardInset, -RewardTop);
+                rewardBlocks.anchorMin = rewardBlocks.anchorMax = rewardBlocks.pivot = new Vector2(0, 1); rewardBlocks.anchoredPosition = new Vector2(RewardInset, -ListTop - RewardTop);
             }
             float x = 0, y = 0, rowHeight = 0, width = ((RectTransform)rewardItems.transform).rect.width - 2 * RewardInset;
             foreach (var group in drops.GroupBy(k => k).OrderBy(g => g.Key))
@@ -786,9 +786,12 @@ namespace CodingGame.Defense
                 x += w + 60; rowHeight = Mathf.Max(rowHeight, h);
                 popping.Add(copy); popping.Add(count.rectTransform);
             }
-            rewardItems.margin = new Vector4(8, RewardTop + y + rowHeight + 16, 8, 12);
+            rewardItems.margin = new Vector4(8, ListTop + RewardTop + y + rowHeight + 16, 8, 12);
         }
         const float RewardTop = 14, RewardInset = 6;
+        // The scroll area reaches up to the title band and the list starts ListTop under its top: the area cuts what goes
+        // past its edge, and the stars popping to 1.4x lost their tops on it while they sat right under it.
+        const float ListTop = 36;
         // The stage's stars, the core left and what the next star needs, so a clear invites a better run.
         // 디버 to the left of the result card (the title's parent; the reward panel itself is the full-screen shade), so it
         // fades in with the panel: face and one line for this result.
@@ -855,7 +858,8 @@ namespace CodingGame.Defense
                 stars[i].color = i < starsEarned ? UITheme.Sunny : UITheme.PaperDeep;
                 stars[i].rectTransform.localScale = Vector3.zero;
             }
-            var margin = rewardItems.margin; margin.y = StarRowHeight + 8; rewardItems.margin = margin;
+            starRow.anchoredPosition = new Vector2(0, -ListTop);
+            var margin = rewardItems.margin; margin.y = ListTop + StarRowHeight + 8; rewardItems.margin = margin;
         }
         void BuildStars()
         {
