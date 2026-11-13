@@ -376,6 +376,21 @@ namespace CodingGame.Defense.Editor
                 added.FindPropertyRelative("rewards").arraySize = 0; added.FindPropertyRelative("goal").stringValue = "";
                 StageLesson(stage, wave, topic, role, robotCount, blocks);
             }
+            void Rewards(int stage, int wave, params (BlockKind kind, int count)[] blocks)
+            {
+                for (int i = 0; i < lessons.arraySize; i++)
+                {
+                    var lesson = lessons.GetArrayElementAtIndex(i);
+                    if (lesson.FindPropertyRelative("stage").intValue != stage || lesson.FindPropertyRelative("wave").intValue != wave) continue;
+                    var stock = lesson.FindPropertyRelative("rewards");
+                    stock.arraySize = blocks.Length;
+                    for (int b = 0; b < blocks.Length; b++)
+                    {
+                        stock.GetArrayElementAtIndex(b).FindPropertyRelative("kind").intValue = (int)blocks[b].kind;
+                        stock.GetArrayElementAtIndex(b).FindPropertyRelative("count").intValue = blocks[b].count;
+                    }
+                }
+            }
             void FreeLesson(int stage, int wave, string topic, string goal) { StageLesson(stage, wave, topic, RobotRole.Warrior, 0); Goal(stage, wave, goal); }
             void Goal(int stage, int wave, string goal)
             {
@@ -397,24 +412,35 @@ namespace CodingGame.Defense.Editor
             // 1-1 the swing and the Play button, 1-2 free, 1-3 the loop, 1-4 free with a third warrior, 1-5 the boss; the shooter
             // and variables open at 2-1, conditions at 2-3, the tank at 3-1 (13차 179).
             Lesson(1, "베기와 실행 버튼", 1, (BlockKind.Slash, 1));
-            Lesson(2, "베기 자유 플레이", 1, (BlockKind.Slash, 2));
+            // Grants and rewards give what the robots' code needs and no more (play feedback: eight slash() for three warriors,
+            // value blocks with nothing to use them on): one slash() and, from the loop on, one while per warrior, plus 1-2's
+            // second swing a call (slash() twice, before loops; that warrior may keep it). A reward is the next wave's need
+            // (1-1's slash() for 1-2's warrior, 1-2's slash() and 1-3's while for 1-4's), else nothing.
+            Lesson(2, "베기 자유 플레이", 1, (BlockKind.Slash, 1));
             Lesson(3, "반복문", 0, (BlockKind.While, 2));
+            Rewards(1, 1, (BlockKind.Slash, 1)); Rewards(1, 2, (BlockKind.Slash, 1)); Rewards(1, 3, (BlockKind.While, 1));
             SetupIntroEncounter(so);
-            // 1-3: eight basic enemies 1.2 s apart, two swings each: the two warriors' while True loops hold the road.
+            // Balance (play feedback): from 1-2 a basic enemy takes three of the warrior's swings (17.5 health: about 3 s from
+            // the first hit to the kill) and walks at about 2 per second, so one warrior lets some through and every robot the
+            // lessons give has work; Stage 2's Heavies are the shooter's (45 health, 1.5 speed: two shots at the edge of its
+            // range, one from within about 4.8). Health and speed are written before the stage's scaling, which brings them to
+            // those numbers.
+            // 1-3: eight basic enemies 1.2 s apart, three swings each: the two warriors' while True loops hold the road.
             var practiceGroup = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves").GetArrayElementAtIndex(2)
                 .FindPropertyRelative("groups").GetArrayElementAtIndex(0);
             practiceGroup.FindPropertyRelative("count").intValue = 8;
             practiceGroup.FindPropertyRelative("interval").floatValue = 1.2f;
             // The regular monster with the numbers the tutorial monster had (one monster per kind; F2 tunes it everywhere).
-            practiceGroup.FindPropertyRelative("healthOverride").floatValue = 20;
-            practiceGroup.FindPropertyRelative("speedOverride").floatValue = 1.4f;
+            practiceGroup.FindPropertyRelative("healthOverride").floatValue = 15.2f;
+            practiceGroup.FindPropertyRelative("speedOverride").floatValue = 1.81f;
             if (firstThreeOnly)
             {
                 so.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(campaign);
                 return "campaign: lessons 1-1 to 1-3 only";
             }
-            Lesson(4, "반복 자유 플레이", 1, (BlockKind.While, 1), (BlockKind.Slash, 1));
-            Lesson(5, "반복 보스 실습", 0, (BlockKind.While, 1), (BlockKind.Slash, 1));
+            Lesson(4, "반복 자유 플레이", 1);
+            Lesson(5, "반복 보스 실습", 0);
+            Rewards(1, 4); Rewards(1, 5); Rewards(2, 1); Rewards(2, 2);
             // Stage 2: variables at 2-1 (two shooters), conditions at 2-3 (with the utility robot's slow() to use them on).
             StageLesson(2, 1, "변수: 찾은 적을 상자에 담기(원거리)", RobotRole.Shooter, 2, (BlockKind.While, 2), (BlockKind.Shot, 2),
                 (BlockKind.DeclareVariable, 2), (BlockKind.Variable, 2), (BlockKind.NearestEnemy, 2));
@@ -457,6 +483,11 @@ namespace CodingGame.Defense.Editor
             }
             // A boss is a Heavy about four times as tough as the wave's own (base health before the stage's scaling), coming
             // once every minion is down; reaching the core ends the stage, as 1-5's does.
+            Groups(1, 2, ("Enemy", 4, 0, 2, 16.7f, 1.95f, 0, false));
+            // 2-1 and 2-2: the two shooters alone hold them (2-2's goal; a few get through 2-2), the warriors from Stage 1
+            // placed as well make them easy.
+            Groups(2, 1, ("Enemy", 6, 0, 2.5f, 15.4f, 1.95f, 0, false), ("Heavy", 2, 6, 4, 26.4f, 1.95f, 0, false));
+            Groups(2, 2, ("Enemy", 8, 0, 2, 13.2f, 1.88f, 0, false), ("Heavy", 2, 5, 5, 22.7f, 1.83f, 0, false), ("Runner", 3, 12, 2, 13.2f, 1.84f, 0, false));
             Groups(2, 6, ("Enemy", 6, 0, 1.4f, 0, 0, 0, false), ("Runner", 4, 3, 1.4f, 0, 0, 0, false), ("Heavy", 1, 0, 2, 200, 1.3f, 12, true));
             // No tank-bodied minions before the last boss: the boss comes only once they are all down, and with them it came
             // after Stage 3's 50 s and walked in at the time-up (campaign run, 13차 179).
@@ -464,8 +495,10 @@ namespace CodingGame.Defense.Editor
             stages.GetArrayElementAtIndex(2).FindPropertyRelative("waves").arraySize = 4;
             var waves = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves");
             var fourth = waves.GetArrayElementAtIndex(3).FindPropertyRelative("groups").GetArrayElementAtIndex(0);
-            fourth.FindPropertyRelative("count").intValue = 6;
-            fourth.FindPropertyRelative("interval").floatValue = .6f;
+            fourth.FindPropertyRelative("count").intValue = 8;
+            fourth.FindPropertyRelative("interval").floatValue = .8f;
+            fourth.FindPropertyRelative("healthOverride").floatValue = 13.3f;
+            fourth.FindPropertyRelative("speedOverride").floatValue = 1.93f;
             var fifth = waves.GetArrayElementAtIndex(4).FindPropertyRelative("groups");
             var basic = Data("Enemy");
             var minions = fifth.GetArrayElementAtIndex(0);
@@ -474,8 +507,8 @@ namespace CodingGame.Defense.Editor
             minions.FindPropertyRelative("count").intValue = 3;
             minions.FindPropertyRelative("delay").floatValue = 0;
             minions.FindPropertyRelative("interval").floatValue = 2;
-            minions.FindPropertyRelative("healthOverride").floatValue = 20;
-            minions.FindPropertyRelative("speedOverride").floatValue = 1.4f;
+            minions.FindPropertyRelative("healthOverride").floatValue = 14.5f;
+            minions.FindPropertyRelative("speedOverride").floatValue = 1.99f;
             minions.FindPropertyRelative("leakDamageOverride").intValue = 0;
             minions.FindPropertyRelative("boss").boolValue = false;
             var boss = fifth.GetArrayElementAtIndex(1);

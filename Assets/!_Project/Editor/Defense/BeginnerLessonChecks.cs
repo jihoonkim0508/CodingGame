@@ -515,8 +515,10 @@ namespace CodingGame.Defense.Editor
                 groups[0].DefinitionIndex == groups[1].DefinitionIndex &&
                 groups[1].Enemy.health >= 80 && groups[1].Enemy.health > groups[0].Enemy.health * 3,
                 "1-5 boss must strengthen the existing basic enemy only");
-            foreach (var kind in new[] { BlockKind.While, BlockKind.Slash })
-                Require(sim.Available(kind) > 0, "1-5 has no spare " + kind + " block");
+            // The three warriors' loops are all 1-5 needs: it brings no blocks (play feedback: no spare grants).
+            Require(sim.Lesson != null && sim.Lesson.blocks.Length == 0 && sim.Lesson.robots.Length == 0 && sim.Lesson.rewards.Length == 0,
+                "1-5 should bring no blocks, robots or rewards");
+            Require(sim.Robots.Count(r => r.Spec.role == RobotRole.Warrior && r.Program != null && !r.Program.IsEmpty) == 3, "1-5 starts with three coded warriors");
             Require(sim.Available(BlockKind.DeclareVariable) == 0 && sim.Available(BlockKind.If) == 0, "Variables and conditions open in Stage 2, not 1-5");
             battle.StartBattle();
             Require(battle.Simulation.Phase == BattlePhase.Running, "1-5 battle did not start");
