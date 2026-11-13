@@ -97,7 +97,7 @@ namespace CodingGame.Defense
             if (!banner) BuildBanner();
             if (!guideCorner) BuildGuide();
             if (!starRow) BuildStars();
-            if (!menu || !MenuHasMsaa) RebakeMenu();
+            if (!menu || !MenuHasMsaa || !stageButton) RebakeMenu(); // stageButton: the restart button became 스테이지 선택
             if (!debriefRoot) BuildDebrief();
             while (debriefCards.Count < 6) MakeDebriefCard();
             if (!restartStageButton) BuildRestartStage();
@@ -105,7 +105,7 @@ namespace CodingGame.Defense
         // 164: the saved Esc menu built again (the anti-aliasing row was added to it).
         public void RebakeMenu() { if (menu) DestroyImmediate(menu); BuildMenu(); }
         bool MenuHasMsaa => msaaButtons != null && msaaButtons.Length == GraphicsOptions.MsaaLevels.Length && msaaButtons.All(b => b);
-        public bool PartsBaked => waveCall && floaterLayer && leakFlash && statusLayer && banner && guideCorner && starRow && menu && MenuHasMsaa && debriefRoot && restartStageButton;
+        public bool PartsBaked => waveCall && floaterLayer && leakFlash && statusLayer && banner && guideCorner && starRow && menu && MenuHasMsaa && stageButton && debriefRoot && restartStageButton;
 #endif
         // The look the battle used to give these on start (status line, next-wave label, goal banner, robot photos on the cards),
         // built once in the editor and saved with the scene (13차: the scene showed the old look until Play). Start builds it
@@ -852,11 +852,11 @@ namespace CodingGame.Defense
                 starRow.gameObject.SetActive(false);
             }
         }
-        // Esc: a menu over the battle (and over a lesson) to resume, set the sound and voice volume, restart the stage or leave
-        // for the stage map. A running wave pauses while it is open and resumes when it closes; a lesson waits.
+        // Esc: a menu over the battle (and over a lesson) to resume, set the sound and voice volume, or leave for the stage
+        // select or the title. A running wave pauses while it is open and resumes when it closes; a lesson waits.
         [SerializeField, HideInInspector] GameObject menu;
         [SerializeField, HideInInspector] Slider soundSlider, voiceSlider;
-        [SerializeField, HideInInspector] Button restartButton, resumeButton, leaveButton;
+        [SerializeField, HideInInspector] Button stageButton, resumeButton, leaveButton;
         [SerializeField, HideInInspector] TMP_Text soundPercent, voicePercent;
         [SerializeField, HideInInspector] Button[] msaaButtons; // 끔, 2x, 4x (GraphicsOptions.MsaaLevels)
         bool pausedByMenu;
@@ -872,7 +872,6 @@ namespace CodingGame.Defense
             if (!open) pausedByMenu = false;
             soundSlider.value = DefenseSounds.Volume; voiceSlider.value = TutorialDialogueView.VoiceVolume;
             ShowMsaa();
-            restartButton.interactable = battle.CanRestart; // a lesson restarts only where it says so
         }
         // The chosen anti-aliasing level filled in, the others plain.
         void ShowMsaa()
@@ -880,7 +879,7 @@ namespace CodingGame.Defense
             for (int i = 0; i < msaaButtons.Length; i++)
                 UITheme.Style((Image)msaaButtons[i].targetGraphic, UITheme.Button, GraphicsOptions.MsaaLevels[i] == GraphicsOptions.Msaa ? UITheme.Primary : UITheme.PaperDeep);
         }
-        // Time and sound back on when the scene goes (the menu's 타이틀로 / 스테이지 맵으로 leave with it open).
+        // Time and sound back on when the scene goes (the menu's 스테이지 선택 / 타이틀로 leave with it open).
         void OnDestroy() { if (MenuOpen) GameClock.Pause(false); }
         void BuildMenu()
         {
@@ -957,18 +956,17 @@ namespace CodingGame.Defense
                 var label = button.GetComponentInChildren<TMP_Text>(); label.enableAutoSizing = false; label.fontSize = 22;
                 return button;
             }).ToArray();
-            restartButton = Add("이 스테이지 처음부터", -120, UITheme.PaperDeep);
+            stageButton = Add("스테이지 선택", -120, UITheme.PaperDeep);
             leaveButton = Add("타이틀로", -200, UITheme.Coral);
             Text("스테이지 도중에 나가면 이 스테이지 진행은 저장되지 않아요.", -290, 19).color = UITheme.Muted;
             menu.SetActive(false); // built closed, so the first Esc opens it
         }
-        // The menu's calls, added at run time (a baked menu keeps none); from the stage map the last button goes back there.
+        // The menu's calls, added at run time (a baked menu keeps none).
         void WireMenu()
         {
             resumeButton.onClick.AddListener(ToggleMenu);
-            restartButton.onClick.AddListener(() => { ToggleMenu(); battle.Restart(); });
-            leaveButton.GetComponentInChildren<TMP_Text>().text = battle.FromStageMap ? "스테이지 맵으로" : "타이틀로";
-            leaveButton.onClick.AddListener(() => GameFlow.LoadScene(battle.FromStageMap ? GameFlow.StageScene : GameFlow.TitleScene));
+            stageButton.onClick.AddListener(() => GameFlow.LoadScene(GameFlow.StageScene));
+            leaveButton.onClick.AddListener(() => GameFlow.LoadScene(GameFlow.TitleScene));
             soundSlider.onValueChanged.AddListener(v => { DefenseSounds.Volume = v; soundPercent.text = Mathf.RoundToInt(v * 100) + "%"; });
             voiceSlider.onValueChanged.AddListener(v => { TutorialDialogueView.VoiceVolume = v; voicePercent.text = Mathf.RoundToInt(v * 100) + "%"; });
             for (int i = 0; i < msaaButtons.Length; i++)
