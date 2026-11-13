@@ -12,7 +12,8 @@ namespace CodingGame.Defense
         DefenseSimulation session;
         int wave = -1, killsAtWaveStart, leaks;
         bool firstKill, firstAttack, cleared, ended, near;
-        double swingEnds, playEnds;
+        double swingEnds, playEnds, killSwingEnds;
+        bool killSwingEnded;
         int runsSeen;
         DefenseProgram watchedProgram;
         readonly List<string> signals = new List<string>();
@@ -60,6 +61,8 @@ namespace CodingGame.Defense
             return lines.Select(line => name.Replace(line, m => "v" + names.IndexOf(m.Value))).ToList();
         }
 
+        // From now on only runs that end later count for PlayEnded (a run ended before, swing still playing, does not).
+        public void ForgetRuns() { playEnds = -1; runsSeen = watchedProgram?.CompletedRuns ?? 0; }
         // Signals raised since the last poll. expectedCode (optional) adds ProgramMatches while robot robotIndex's code matches it.
         public IReadOnlyList<string> Poll(DefenseSimulation sim, string expectedCode = null, int robotIndex = 0)
         {
@@ -67,9 +70,16 @@ namespace CodingGame.Defense
             if (sim == null) return signals;
             if (sim != session || sim.WaveIndex != wave)
             {
-                session = sim; wave = sim.WaveIndex; killsAtWaveStart = sim.Kills; leaks = sim.Leaks; firstKill = firstAttack = cleared = ended = near = false; swingEnds = playEnds = -1;
+                session = sim; wave = sim.WaveIndex; killsAtWaveStart = sim.Kills; leaks = sim.Leaks; firstKill = firstAttack = cleared = ended = near = killSwingEnded = false; swingEnds = playEnds = killSwingEnds = -1;
             }
-            if (!firstKill && sim.Kills > killsAtWaveStart) { firstKill = true; signals.Add(TutorialSignals.FirstKill); }
+            if (!firstKill && sim.Kills > killsAtWaveStart)
+            {
+                firstKill = true; signals.Add(TutorialSignals.FirstKill);
+                // The robot that made it: its swing ends when it could act again.
+                var killer = sim.Robots.Where(r => r.KillsThisWave > 0).OrderByDescending(r => r.NextAction).FirstOrDefault();
+                killSwingEnds = killer != null ? killer.NextAction : sim.Time;
+            }
+            if (!killSwingEnded && killSwingEnds >= 0 && sim.Time + 1e-6 >= killSwingEnds) { killSwingEnded = true; signals.Add(TutorialSignals.KillSwingEnded); }
             // 1-3 waits for the lesson's shooter, not a warrior from 1-1 or 1-2 swinging first.
             bool lesson = sim.Setup.PlayerFlow && sim.Setup.Stage == 1 && sim.WaveIndex == 2;
             if (!firstAttack && (lesson ? TeachingRobot(sim)?.AttacksThisWave > 0 : sim.Robots.Any(r => r.AttacksThisWave > 0)))
@@ -80,9 +90,10 @@ namespace CodingGame.Defense
             // later 실행 does not push it back.
             if (swingEnds < 0 && teacher?.Program != null && teacher.Program.CompletedRuns > 0) swingEnds = teacher.NextAction;
             if (!ended && swingEnds >= 0 && sim.Time + 1e-6 >= swingEnds) { ended = true; signals.Add(TutorialSignals.FunctionEnded); }
-            // Every run's end once its swing has played out, so a line about a 실행 press waits until that swing has landed.
+            // A run's end once its swing has played out, so a line about a 실행 press waits until that swing has landed: the
+            // first run to end since ForgetRuns (a later press does not push it back, so pressing on cannot hold the line off).
             if (teacher?.Program != watchedProgram) { watchedProgram = teacher?.Program; runsSeen = 0; }
-            if (watchedProgram != null && watchedProgram.CompletedRuns > runsSeen) { runsSeen = watchedProgram.CompletedRuns; playEnds = teacher.NextAction; }
+            if (watchedProgram != null && watchedProgram.CompletedRuns > runsSeen) { runsSeen = watchedProgram.CompletedRuns; if (playEnds < 0) playEnds = teacher.NextAction; }
             if (playEnds >= 0 && sim.Time + 1e-6 >= playEnds) { playEnds = -1; signals.Add(TutorialSignals.PlayEnded); }
             if (!near && teacher != null && sim.Phase == BattlePhase.Running && sim.Enemies.Any(e => e.Active &&
                 System.Numerics.Vector2.DistanceSquared(e.Position, teacher.Position) <= teacher.Range * teacher.Range))

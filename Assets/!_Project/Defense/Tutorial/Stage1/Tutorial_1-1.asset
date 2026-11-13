@@ -1169,7 +1169,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
-    triggerDelay: 0.2
+    triggerDelay: 0
   - stepId: E03b
     kind: 1
     dialoguePosition: 1
@@ -1265,7 +1265,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
-    triggerDelay: 0.3
+    triggerDelay: 0
   - stepId: E04
     kind: 0
     dialoguePosition: 0
@@ -1291,7 +1291,7 @@ MonoBehaviour:
     slowBattle: 1
     allowPreview: 0
     highlightPadding: 10
-    trigger: FirstKill
+    trigger: KillSwingEnded
     skipIf: 
     expectedCode: 
     pointerKey: 
@@ -1312,7 +1312,7 @@ MonoBehaviour:
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
-    triggerDelay: 0.8
+    triggerDelay: 0
   - stepId: E04a
     kind: 1
     dialoguePosition: 0

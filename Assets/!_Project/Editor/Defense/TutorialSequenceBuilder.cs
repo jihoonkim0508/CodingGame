@@ -138,12 +138,15 @@ namespace CodingGame.Defense.Editor
             L("1-1.E03", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => s.Top = true)),
             // Battle start called the function once and it ended (a swing, likely at nobody); then, slowed, the first enemy
             // in range is the moment for the robot's Play button.
-            L("1-1.E03a", s => { s.Trigger = TutorialSignals.FunctionEnded; s.TriggerDelay = .2f; s.HoldBattle = true; }),
+            // The swing-paced lines (E03a, E03c, E04) come when the robot's swing has played out, so they follow its attack
+            // speed instead of fixed delays (the user: '공속 가져와서, 하드코딩하지 말고').
+            L("1-1.E03a", s => { s.Trigger = TutorialSignals.FunctionEnded; s.HoldBattle = true; }),
             L("1-1.E03b", Click(TutorialKeys.Play(0), s => { s.Trigger = TutorialSignals.EnemyInRange; s.Pointer = TutorialKeys.Play(0); s.SlowBattle = true; s.Top = true; })),
             // A basic enemy takes two swings (the warrior's 7 against 12.6): once the pressed call has ended and its swing has
             // landed and played out, at normal speed (FunctionEnded came at the battle start's call), the second press.
-            L("1-1.E03c", Click(TutorialKeys.Play(0), s => { s.Trigger = TutorialSignals.PlayEnded; s.TriggerDelay = .3f; s.Pointer = TutorialKeys.Play(0); s.SlowBattle = true; s.Top = true; })),
-            L("1-1.E04", s => { s.Trigger = TutorialSignals.FirstKill; s.TriggerDelay = .8f; s.SlowBattle = true; }),
+            L("1-1.E03c", Click(TutorialKeys.Play(0), s => { s.Trigger = TutorialSignals.PlayEnded; s.Pointer = TutorialKeys.Play(0); s.SlowBattle = true; s.Top = true; })),
+            // After the kill the battle runs on at 1x until the killing swing is over, then slows under the line.
+            L("1-1.E04", s => { s.Trigger = TutorialSignals.KillSwingEnded; s.SlowBattle = true; }),
             L("1-1.E04a", Click(TutorialKeys.Pause, s => { s.Pointer = TutorialKeys.Pause; s.SlowBattle = true; })),
             L("1-1.E04b", Click(TutorialKeys.Pause, s => { s.Pointer = TutorialKeys.Pause; s.HoldBattle = true; })),
             L("1-1.E04c", Click(TutorialKeys.Speed, s => s.Pointer = TutorialKeys.Speed)),

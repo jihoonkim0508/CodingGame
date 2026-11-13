@@ -15,6 +15,9 @@ namespace CodingGame.Defense
         // A run of the teaching robot's function has ended and its swing played out, each run; a step that waits for it counts
         // only runs ending after it began (1-1 E03c: the one its 실행 called, watched at normal speed).
         public const string PlayEnded = "PlayEnded";
+        // The swing that made the wave's first kill has played out (the robot could act again): 1-1 E04 waits for it, so the
+        // line comes when the swing is over at whatever attack speed, not a fixed time after the kill.
+        public const string KillSwingEnded = "KillSwingEnded";
         // Produced by TutorialDirector: a loose condition block in the editor reads as the step's expectedCode.
         public const string ConditionBuilt = "ConditionBuilt";
         // Produced by TutorialDirector: the editor slot named by the step's expectedCode (an Editor.Code.Arg.* key) holds a block,

@@ -345,7 +345,7 @@ namespace CodingGame.Defense
             if (step.completionSignal == TutorialSignals.PreviewSingleHit || step.completionSignal == TutorialSignals.PreviewMultiHit)
                 signals.Remove(step.completionSignal);
             // Only a run ending from now on counts (an earlier 실행 or the battle start's run has ended already).
-            if (step.trigger == TutorialSignals.PlayEnded) signals.Remove(step.trigger);
+            if (step.trigger == TutorialSignals.PlayEnded) { signals.Remove(step.trigger); watcher.ForgetRuns(); }
             held = null; heldUntil = step.holdSeconds > 0 ? float.MaxValue : 0;
             pendingAutoSlot = false;
             ApplyEntry(step);
