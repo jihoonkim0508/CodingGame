@@ -12,6 +12,9 @@ namespace CodingGame.Defense
         public const string FirstKill = "FirstKill", FirstAttack = "FirstAttack", Leak = "Leak", WaveCleared = "WaveCleared", ProgramMatches = "ProgramMatches";
         // The teaching robot's function has run to its end once this wave; an enemy has come into its range (1-1's Play lesson).
         public const string FunctionEnded = "FunctionEnded", EnemyInRange = "EnemyInRange";
+        // A run of the teaching robot's function has ended and its swing played out, each run; a step that waits for it counts
+        // only runs ending after it began (1-1 E03c: the one its 실행 called, watched at normal speed).
+        public const string PlayEnded = "PlayEnded";
         // Produced by TutorialDirector: a loose condition block in the editor reads as the step's expectedCode.
         public const string ConditionBuilt = "ConditionBuilt";
         // Produced by TutorialDirector: the editor slot named by the step's expectedCode (an Editor.Code.Arg.* key) holds a block,

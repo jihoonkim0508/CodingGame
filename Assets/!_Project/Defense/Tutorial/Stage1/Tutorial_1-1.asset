@@ -1244,7 +1244,7 @@ MonoBehaviour:
     slowBattle: 1
     allowPreview: 0
     highlightPadding: 10
-    trigger: FunctionEnded
+    trigger: PlayEnded
     skipIf: 
     expectedCode: 
     pointerKey: Robot.Play.0

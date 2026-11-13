@@ -140,8 +140,9 @@ namespace CodingGame.Defense.Editor
             // in range is the moment for the robot's Play button.
             L("1-1.E03a", s => { s.Trigger = TutorialSignals.FunctionEnded; s.TriggerDelay = .2f; s.HoldBattle = true; }),
             L("1-1.E03b", Click(TutorialKeys.Play(0), s => { s.Trigger = TutorialSignals.EnemyInRange; s.Pointer = TutorialKeys.Play(0); s.SlowBattle = true; s.Top = true; })),
-            // A basic enemy takes two swings (the warrior's 7 against 12.6): once the first call ends, the second press.
-            L("1-1.E03c", Click(TutorialKeys.Play(0), s => { s.Trigger = TutorialSignals.FunctionEnded; s.TriggerDelay = .3f; s.Pointer = TutorialKeys.Play(0); s.SlowBattle = true; s.Top = true; })),
+            // A basic enemy takes two swings (the warrior's 7 against 12.6): once the pressed call has ended and its swing has
+            // landed and played out, at normal speed (FunctionEnded came at the battle start's call), the second press.
+            L("1-1.E03c", Click(TutorialKeys.Play(0), s => { s.Trigger = TutorialSignals.PlayEnded; s.TriggerDelay = .3f; s.Pointer = TutorialKeys.Play(0); s.SlowBattle = true; s.Top = true; })),
             L("1-1.E04", s => { s.Trigger = TutorialSignals.FirstKill; s.TriggerDelay = .8f; s.SlowBattle = true; }),
             L("1-1.E04a", Click(TutorialKeys.Pause, s => { s.Pointer = TutorialKeys.Pause; s.SlowBattle = true; })),
             L("1-1.E04b", Click(TutorialKeys.Pause, s => { s.Pointer = TutorialKeys.Pause; s.HoldBattle = true; })),
