@@ -140,10 +140,13 @@ namespace CodingGame.StageMap
             rect.anchorMin=rect.anchorMax=new Vector2(.5f,1);rect.pivot=new Vector2(.5f,.5f);rect.anchoredPosition=new Vector2(0,-60);rect.sizeDelta=new Vector2(180,160);
             emblem.GetComponent<StageMapSymbolGraphic>().raycastTarget=false;
             Image("Purified title backing",card.purifiedSeal,new Vector2(0,-120),new Vector2(286,47),new Color(.025f,.16f,.12f,.94f));
-            Text("Purified seal text",card.purifiedSeal,"정화 완료",38,new Color(.76f,1,.87f),new Vector2(0,-119),new Vector2(286,48),true);
-            var caption=Text("Purified seal caption",card.purifiedSeal,"PURIFIED",15,new Color(.53f,.9f,.73f),new Vector2(0,-172),new Vector2(280,22),true);caption.characterSpacing=5;
+            Text("Purified seal text",card.purifiedSeal,SealText,38,new Color(.76f,1,.87f),new Vector2(0,-119),new Vector2(286,48),true);
+            var caption=Text("Purified seal caption",card.purifiedSeal,SealCaption,15,new Color(.53f,.9f,.73f),new Vector2(0,-172),new Vector2(280,22),true);caption.characterSpacing=5;
         }
 
+        // A cleared island's error is fixed: the build compiles (was 정화 완료 / PURIFIED). The seal's two lines are saved with
+        // Stage.unity, so a change here goes there too.
+        const string SealText = "컴파일 성공", SealCaption = "COMPILED";
         const float CardHeight = 170;
         static readonly Color GoalColor = new Color(.8f,.9f,.96f), LockedGoalColor = new Color(1,.94f,.76f);
         Vector2 CardPosition(StageNode node,Vector2 size,float width)
@@ -199,9 +202,9 @@ namespace CodingGame.StageMap
                 bool locked = node.State == StageState.Locked;
                 Color tint = locked ? LockColor : node.State == StageState.Cleared ? PurifiedColor : OpenColor;
                 card.border.color = card.number.color = card.state.color = tint;
-                card.state.text = locked ? "봉인 중" : node.State == StageState.Cleared ? "정화 완료" : "도전 가능";
+                card.state.text = locked ? "봉인 중" : node.State == StageState.Cleared ? SealText : "도전 가능";
                 card.state.fontSize=node.State==StageState.Cleared?32:28;
-                card.goal.text = locked ? $"{node.Number-1}스테이지 정화 후 개방" : node.State == StageState.Cleared ? "오류 제거 완료 · 다시 도전" : "도전해서 오류를 정화하세요";
+                card.goal.text = locked ? $"{node.Number-1}스테이지 컴파일 성공 후 개방" : node.State == StageState.Cleared ? "오류 제거 완료 · 다시 도전" : "도전해서 오류를 고치세요";
                 card.goal.color = locked ? LockedGoalColor : GoalColor;
             }
         }
