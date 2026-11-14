@@ -255,12 +255,13 @@ namespace CodingGame.Defense
                     return Val.Of(Active(sim, EnemyId(Arg(0)))?.Health ?? 0); // a defeated enemy reads as 0 hp
                 case BlockKind.Comparison:
                     var left = Arg(0); var right = Arg(1);
-                    if (block.Value == "==")
+                    if (block.Value == "==" || block.Value == "!=")
                     {
-                        if (left.Kind == ValueKind.Enemy && right.Kind == ValueKind.Enemy) return Val.Of(left.Enemy == right.Enemy);
                         bool scalar(Val v) => v.Kind == ValueKind.Number || v.Kind == ValueKind.Truth;
-                        if (scalar(left) && scalar(right)) return Val.Of(Number(left) == Number(right));
-                        return Val.Of(left.Kind == ValueKind.Position && right.Kind == ValueKind.Position && left.Position == right.Position);
+                        bool equal = left.Kind == ValueKind.Enemy && right.Kind == ValueKind.Enemy ? left.Enemy == right.Enemy :
+                            scalar(left) && scalar(right) ? Number(left) == Number(right) :
+                            left.Kind == ValueKind.Position && right.Kind == ValueKind.Position && left.Position == right.Position;
+                        return Val.Of(equal == (block.Value == "=="));
                     }
                     double l = Number(left, allowInfinity: true), r = Number(right, allowInfinity: true);
                     switch (block.Value) { case "<": return Val.Of(l < r); case ">": return Val.Of(l > r); case "<=": return Val.Of(l <= r); case ">=": return Val.Of(l >= r); }

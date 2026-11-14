@@ -84,7 +84,8 @@ static class TreeCheck
         Reject(B(BlockKind.Wait, trueBlock));
         Reject(Set("flag", Compare("==", N("1"), N("1"))));
         Reject(B(BlockKind.If, Compare("==", trueBlock, N("1"))));
-        Reject(B(BlockKind.If, Compare("!=", N("1"), N("2"))));
+        PythonTreeCompiler.Compile("not_equal", new[] { Body(B(BlockKind.If, Compare("!=", nearest, nearest)), wait) }); // like ==, any values
+        Assert(PythonTreeCompiler.ExpressionText(Compare("!=", V("i"), N("4"))) == "i != 4", "!= reads as Python's not-equal.");
         Reject(B(BlockKind.If, Compare("<", nearest, N("2"))));
         Reject(B(BlockKind.For, N("1.5")));
         Reject(B(BlockKind.For, N("2f")));

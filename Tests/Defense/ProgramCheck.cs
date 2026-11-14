@@ -182,6 +182,10 @@ static class ProgramCheck
         var inRange=InRange("==");inRange.Body.Add(new CodeBlock(BlockKind.Slash));
         rangeSim.ApplyProgram(rangeBot.Id,"range",new[]{inRange,new CodeBlock(BlockKind.Wait,"0",N("100"))});rangeSim.Start();Tick(rangeSim,10);
         Assert(rangeBot.Executions==1&&rangeBot.Program.Fault==null&&rangeBot.Program.Source.Contains("my_attack_range() == ")&&rangeSim.Enemies.Single().Health<10000,"my_attack_range() reads the robot's range");
+        // != is the opposite: equal to its range, so the attack is skipped.
+        var notSim=Make();var notBot=Bot(notSim);var notInRange=InRange("!=");notInRange.Body.Add(new CodeBlock(BlockKind.Slash));
+        notSim.ApplyProgram(notBot.Id,"not_range",new[]{notInRange,new CodeBlock(BlockKind.Wait,"0",N("100"))});notSim.Start();Tick(notSim,10);
+        Assert(notBot.Executions==0&&notBot.Program.Fault==null&&notBot.Program.Source.Contains("my_attack_range() != ")&&notSim.Enemies.Single().Health==10000,"!= is false for equal values, so the slash never runs");
         sim.ApplyProgram(robot.Id,"invalid_wait",new[]{new CodeBlock(BlockKind.Wait,"0",N("-1"))});sim.Invoke(robot.Id);Tick(sim,1);
         Assert(robot.Program.Fault!=null&&sim.Phase==BattlePhase.Running,"runtime diagnostic stops only offending program");
         sim.RestoreAutomatic(robot.Id);Assert(robot.Program==null&&robot.AutoExecute&&robot.Action==RobotAction.Slash,"restore native automatic mode");

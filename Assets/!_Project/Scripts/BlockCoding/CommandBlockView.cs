@@ -101,9 +101,13 @@ namespace CodingGame.BlockCoding
                     if (input.textViewport) input.textViewport.sizeDelta = new Vector2(kind == BlockKind.Number ? -4 : -12, 0);
                 }
                 if (dropdown) dropdown.onValueChanged.AddListener(SelectionChanged);
-                // The calculation block is a copy of the comparison's (two holes and a picker) with the operators in its picker.
-                if (kind == BlockKind.Arithmetic)
-                { dropdown.ClearOptions(); dropdown.AddOptions(new List<string>(PythonTreeCompiler.Operators)); dropdown.SetValueWithoutNotify(0); dropdown.RefreshShownValue(); }
+                // The calculation block is a copy of the comparison's (two holes and a picker) with the operators in its picker;
+                // both pickers list the compiler's own signs, so a sign added there shows up in every block.
+                if (kind == BlockKind.Arithmetic || kind == BlockKind.Comparison)
+                {
+                    dropdown.ClearOptions(); dropdown.AddOptions(new List<string>(kind == BlockKind.Arithmetic ? PythonTreeCompiler.Operators : PythonTreeCompiler.Comparisons));
+                    dropdown.SetValueWithoutNotify(0); dropdown.RefreshShownValue();
+                }
                 // Pieces of a value block (enemy., distance(, a held block) 8 apart, not touching (play feedback 4).
                 if (!IsStatement && header.TryGetComponent<HorizontalLayoutGroup>(out var row)) row.spacing = 8;
             }

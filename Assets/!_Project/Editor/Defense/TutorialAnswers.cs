@@ -58,7 +58,7 @@ namespace CodingGame.Defense.Editor
         static CodeBlock Condition(string text)
         {
             if (text.EndsWith(".is_dead()")) return new CodeBlock(BlockKind.IsDead, "0", new CodeBlock(BlockKind.Variable, text.Substring(0, text.Length - 10)));
-            foreach (var sign in new[] { "<=", ">=", "==", "<", ">" })
+            foreach (var sign in new[] { "<=", ">=", "==", "!=", "<", ">" })
             {
                 var parts = text.Split(new[] { " " + sign + " " }, StringSplitOptions.None);
                 if (parts.Length == 2) return new CodeBlock(BlockKind.Comparison, sign, Value(parts[0]), Value(parts[1]));

@@ -318,7 +318,7 @@ namespace CodingGame.BlockCoding
                     return Operand(0) + " " + block.Value + " " + Operand(1);
                 case BlockKind.Comparison:
                     if (!Comparisons.Contains(block.Value)) throw new FormatException("지원하지 않는 비교 연산자입니다.");
-                    if (block.Value != "==")
+                    if (block.Value != "==" && block.Value != "!=") // equality works on any values; order needs numbers
                     {
                         Require(block.Arguments[0], variables, Numeric, "대소 비교에는 숫자가 필요합니다.");
                         Require(block.Arguments[1], variables, Numeric, "대소 비교에는 숫자가 필요합니다.");
@@ -328,7 +328,7 @@ namespace CodingGame.BlockCoding
             }
         }
 
-        public static readonly string[] Comparisons = { "==", "<", ">", "<=", ">=" };
+        public static readonly string[] Comparisons = { "==", "!=", "<", ">", "<=", ">=" };
         public static readonly string[] Operators = { "+", "-", "*", "/" };
         static readonly Regex Number = new Regex(@"\A[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)\z");
 
