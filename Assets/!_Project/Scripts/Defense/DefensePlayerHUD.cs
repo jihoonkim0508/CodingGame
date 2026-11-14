@@ -33,6 +33,7 @@ namespace CodingGame.Defense
         RawImage[] enemyImages;
         DefenseHoverInfo[] enemyHovers;
         int[] cardDefinitions, cardCounts, shownCardCounts;
+        EnemySpec[] cardSpecs;
         Button[] upperRobotButtons;
         Coroutine placementFeedback;
         Vector2 toastPosition;
@@ -69,7 +70,7 @@ namespace CodingGame.Defense
             enemyImages = enemyCards.Select(c => c.GetComponentInChildren<RawImage>(true)).ToArray();
             enemyHovers = enemyCards.Select(c => c.GetComponent<DefenseHoverInfo>()).ToArray();
             cardDefinitions = new int[enemyCards.Length];
-            cardCounts = new int[enemyCards.Length];
+            cardCounts = new int[enemyCards.Length]; cardSpecs = new EnemySpec[enemyCards.Length];
             shownCardCounts = Enumerable.Repeat(-1, enemyCards.Length).ToArray();
             upperRobotButtons = new[] { upgradeRobotButton, developRobotButton };
             // Parts baked in the scene (BakeParts) get their listeners and pools here.
@@ -299,6 +300,7 @@ namespace CodingGame.Defense
                 if (index == typeCount)
                 {
                     if (typeCount == cardDefinitions.Length) continue;
+                    cardSpecs[typeCount] = group.Enemy; // this wave's numbers (the stage's scaling, the F2 window's)
                     cardDefinitions[typeCount++] = group.DefinitionIndex;
                 }
                 cardCounts[index] += group.Count;
@@ -312,7 +314,7 @@ namespace CodingGame.Defense
                 if (i >= typeCount) continue;
                 var definition = battle.EnemyAt(cardDefinitions[i]);
                 if (definition.icon && enemyImages[i] && enemyImages[i].texture != definition.icon) ShowEnemy(enemyImages[i], definition.icon);
-                if (enemyHovers[i]) enemyHovers[i].SetEnemy(definition);
+                if (enemyHovers[i]) enemyHovers[i].SetEnemy(definition, cardSpecs[i]);
                 int count = fighting ? sim.RemainingOf(cardDefinitions[i]) : cardCounts[i];
                 if (shownCardCounts[i] != count)
                 {
