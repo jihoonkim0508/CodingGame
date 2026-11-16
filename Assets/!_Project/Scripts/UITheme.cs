@@ -16,8 +16,9 @@ namespace CodingGame
             Muted = Hex(0x6B7085), Sunny = Hex(0xFFC531), Mint = Hex(0x3DD6A3), Sky = Hex(0x56B8FF), Coral = Hex(0xFF6B6B),
             Grape = Hex(0xB08CFF), Orange = Hex(0xFFA34D), Night = Hex(0x1B2133),
             Primary = Hex(0xEFCB84), World = Hex(0x4B8BBE); // Primary: a beige gold, softer than Sunny; World: the stage map's sky, behind full-screen panels
-        // Code block faces by palette tab (제어, 명령, 값, 논리), and the chosen tab's fill: white text reads on each (3.5:1 or more).
-        public static readonly Color[] BlockCategories = { Hex(0x2F7FD3), Hex(0x8A5CE6), Hex(0xD9650B), Hex(0x2F9A57) };
+        // Code block faces by palette tab (제어 blue, 명령 red, 값 yellow, 논리 purple), and the same on the tabs: their dots and the
+        // chosen tab's fill (ink text reads on each). A block's face goes by its shape (CommandBlockView.RefreshShape).
+        public static readonly Color[] BlockCategories = { new Color(.27f, .72f, .9f), new Color(.97f, .43f, .57f), new Color(1f, .76f, .3f), new Color(.73f, .53f, .94f) };
         // Rich-text colours that read on paper.
         public const string InkHex = "#262A3E", MutedHex = "#6B7085", CodeHex = "#1971C2", GoodHex = "#2B8A3E", WarnHex = "#E8590C",
             DangerHex = "#E03131", GoldHex = "#A35C00", KeywordHex = "#D6336C", CalmHex = "#0C8A73";

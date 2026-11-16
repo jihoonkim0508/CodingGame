@@ -66,8 +66,8 @@ namespace CodingGame.Defense
             foreach (var item in entries)
             {
                 var slot=PythonTreeCompiler.OutputSlot(item.kind);
-                Color category=PythonTreeCompiler.HasBody(item.kind)||item.kind==BlockKind.Break||item.kind==BlockKind.Continue?new Color(.3f,.74f,.9f):
-                    slot==BlockSlotKind.Condition?new Color(.73f,.55f,.92f):slot==BlockSlotKind.Value?new Color(.95f,.75f,.36f):new Color(.94f,.48f,.62f);
+                Color category=PythonTreeCompiler.HasBody(item.kind)||item.kind==BlockKind.Break||item.kind==BlockKind.Continue?UITheme.BlockCategories[0]:
+                    UITheme.BlockCategories[slot==BlockSlotKind.Condition?3:slot==BlockSlotKind.Value?2:1];
                 item.button.targetGraphic.color=item==entry?category:Color.Lerp(category,new Color(.1f,.14f,.2f),.6f);
             }
         }

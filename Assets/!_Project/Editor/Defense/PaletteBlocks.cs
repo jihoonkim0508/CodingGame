@@ -10,8 +10,8 @@ using Object = UnityEngine.Object;
 namespace CodingGame.Defense.Editor
 {
     // Adds the palette blocks the Defense scene's code editor lacks, as copies of blocks already there (the scene's editor
-    // instance holds the palette): `( ).is_dead()` in 논리 from the one-hole shoot( ) block, and the calculation `( ) + ( )` in
-    // 값 from the comparison (its picker gets + - * / at run time). Blocks already in the palette are left alone.
+    // instance holds the palette): the calculation `( ) + ( )` in 값 from the comparison (its picker gets + - * / at run time).
+    // Blocks already in the palette are left alone. is_dead() has no block of its own: it is typed after `enemy.`.
     public static class PaletteBlocks
     {
         const string Scene = "Assets/!_Project/Scenes/Defense.unity";
@@ -44,15 +44,6 @@ namespace CodingGame.Defense.Editor
                 item.FindPropertyRelative("category").intValue = category;
                 log += kind + " added; ";
             }
-            // shoot( [ ] ) → [ ] .is_dead(): the words are the header's own labels, not those inside the hole.
-            Append(BlockKind.IsDead, BlockKind.Shot, 3, view =>
-            {
-                var header = view.transform.Find("Header");
-                var words = header.GetComponentsInChildren<TMP_Text>(true).Where(t => t.transform.parent == header).ToArray();
-                if (words.Length < 2) throw new InvalidOperationException("attack 블록의 글자 구성이 예상과 다릅니다.");
-                words[0].gameObject.SetActive(false);
-                words[words.Length - 1].text = ".is_dead()";
-            });
             Append(BlockKind.Arithmetic, BlockKind.Comparison, 2, view => { });
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorSceneManager.MarkSceneDirty(scene);

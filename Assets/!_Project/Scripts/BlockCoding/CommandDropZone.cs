@@ -37,7 +37,7 @@ namespace CodingGame.BlockCoding
         {
             get
             {
-                if (blocks.Count == 0) return slot == BlockSlotKind.Statement ? minimumWidth : EmptyWidth;
+                if (blocks.Count == 0) return slot == BlockSlotKind.Statement ? minimumWidth : Mathf.Max(EmptyWidth, socketRoom.x);
                 if (!freePlacement) return blocks.Max(block => block.preferredWidth);
                 return Mathf.Max(minimumWidth, blocks.Max(block => block.preferredWidth + block.Rect.anchoredPosition.x) + 8);
             }
@@ -49,7 +49,7 @@ namespace CodingGame.BlockCoding
         {
             get
             {
-                if (slot != BlockSlotKind.Statement) return blocks.Count == 0 ? CommandBlockView.ExpressionHeight : blocks[0].preferredHeight;
+                if (slot != BlockSlotKind.Statement) return blocks.Count == 0 ? Mathf.Max(CommandBlockView.ExpressionHeight, socketRoom.y) : blocks[0].preferredHeight;
                 if (freePlacement) return Mathf.Max(minimumHeight, blocks.Count == 0 ? 0 : blocks.Max(b => -b.Rect.anchoredPosition.y + b.preferredHeight) + 32);
                 if (blocks.Count == 0) return Mathf.Max(minimumHeight, gapHeight);
                 float height = gapHeight;
@@ -330,9 +330,17 @@ namespace CodingGame.BlockCoding
         // Snap preview (draft 1, the ghost block): while a block is dragged over this zone, room as tall as it opens where it
         // will land, under gapAfter (a free chain) or before line gapIndex (a body); the panel draws a see-through copy there.
         int gapIndex = -1; float gapHeight; CommandBlockView gapAfter;
+        // An empty value or condition slot opens to the dragged block's size instead.
+        Vector2 socketRoom;
         // Opens the room for source and returns where its top-left goes (zone-local, as an anchoredPosition).
         internal Vector2 OpenGap(CommandBlockView source, PointerEventData e, float height)
         {
+            if (slot != BlockSlotKind.Statement && !freePlacement)
+            {
+                var room = new Vector2(source.preferredWidth, source.preferredHeight);
+                if (room != socketRoom) { socketRoom = room; LayoutRebuilder.MarkLayoutForRebuild(rect); }
+                return Vector2.zero;
+            }
             var moved = Moving(source);
             int index = -1; CommandBlockView after = null; Vector2 at;
             if (freePlacement)
@@ -361,8 +369,8 @@ namespace CodingGame.BlockCoding
         // The room closes at the next layout pass; till then the lines keep their places, so a drop reads them as previewed.
         internal void CloseGap()
         {
-            if (gapIndex < 0 && !gapAfter && gapHeight == 0) return;
-            gapIndex = -1; gapAfter = null; gapHeight = 0; LayoutRebuilder.MarkLayoutForRebuild(rect);
+            if (gapIndex < 0 && !gapAfter && gapHeight == 0 && socketRoom == Vector2.zero) return;
+            gapIndex = -1; gapAfter = null; gapHeight = 0; socketRoom = Vector2.zero; LayoutRebuilder.MarkLayoutForRebuild(rect);
         }
         public bool Preview(CommandBlockView source, PointerEventData e, out Rect preview)
         {

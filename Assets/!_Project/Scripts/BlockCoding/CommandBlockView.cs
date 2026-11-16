@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -26,10 +27,12 @@ namespace CodingGame.BlockCoding
         public CommandCodingPanel Panel { get; private set; }
         public CommandDropZone Owner { get; private set; }
         public bool IsPalette { get; private set; }
-        static readonly string[] Methods = { "distance(", "hp" };
+        static readonly string[] Methods = { "distance(", "hp", "is_dead()" };
         bool HasDot => kind == BlockKind.Variable && input && input.text.EndsWith(".", StringComparison.Ordinal);
-        // Dropdown after `name.`: 1 = distance(position), 2 = the read-only hp property.
-        public BlockKind Kind => !HasDot ? kind : dropdown.value == 1 ? BlockKind.Distance : dropdown.value == 2 ? BlockKind.Hp : kind;
+        // Dropdown after `name.`: 1 = distance(position), 2 = the read-only hp property, 3 = is_dead() (a condition: the block
+        // turns into a logic block; there is no is_dead() block of its own in the palette).
+        public BlockKind Kind => !HasDot ? kind : dropdown.value == 1 ? BlockKind.Distance : dropdown.value == 2 ? BlockKind.Hp :
+            dropdown.value == 3 ? BlockKind.IsDead : kind;
         public BlockKind BaseKind => kind;
         public CommandDropZone Body => body;
         public IReadOnlyList<CommandDropZone> Arguments => arguments;
@@ -158,7 +161,9 @@ namespace CodingGame.BlockCoding
         {
             int selection = dropdown.value;
             var options = new List<string> { "메서드 선택" };
-            if (selection > 0 || (Panel && Panel.IsEnemyVariable(VariableName))) options.AddRange(Methods);
+            if (selection > 0 || (Panel && Panel.IsEnemyVariable(VariableName)))
+                // is_dead() once it is handed out (an item, like the other blocks), or when this block already is one.
+                options.AddRange(selection == 3 || (Panel?.IsAvailable?.Invoke(BlockKind.IsDead) ?? true) ? Methods : Methods.Take(2));
             else options[0] = "사용 가능한 메서드 없음";
             dropdown.ClearOptions();
             dropdown.AddOptions(options);
@@ -196,8 +201,7 @@ namespace CodingGame.BlockCoding
             if (methodArguments) methodArguments.SetActive(Kind == BlockKind.Distance);
             shape.Configure(PythonTreeCompiler.OutputSlot(Kind), body);
             var slot=PythonTreeCompiler.OutputSlot(Kind);
-            shape.color=body?new Color(.27f,.72f,.9f):slot==BlockSlotKind.Condition?new Color(.73f,.53f,.94f):
-                slot==BlockSlotKind.Value?new Color(1f,.76f,.3f):new Color(.97f,.43f,.57f);
+            shape.color=UITheme.BlockCategories[body?0:slot==BlockSlotKind.Condition?3:slot==BlockSlotKind.Value?2:1];
         }
         public void SetText(string value) { input.text = value; }
 
@@ -281,11 +285,11 @@ namespace CodingGame.BlockCoding
             int skip = 0;
             if (kind == BlockKind.Variable)
             {
-                bool member = data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp;
+                bool member = data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp || data.Kind == BlockKind.IsDead;
                 variableName = member ? data.Arguments[0].Value : data.Value;
                 input.SetTextWithoutNotify(variableName + (member ? "." : "")); FitInput(input, MinField);
                 dropdown.ClearOptions(); dropdown.AddOptions(new List<string> { "메서드 선택" }); dropdown.AddOptions(new List<string>(Methods));
-                dropdown.SetValueWithoutNotify(data.Kind == BlockKind.Distance ? 1 : data.Kind == BlockKind.Hp ? 2 : 0);
+                dropdown.SetValueWithoutNotify(data.Kind == BlockKind.Distance ? 1 : data.Kind == BlockKind.Hp ? 2 : data.Kind == BlockKind.IsDead ? 3 : 0);
                 RefreshVariableOptions();
                 if (data.Kind == BlockKind.Variable) return;
                 skip = 1;
@@ -305,7 +309,7 @@ namespace CodingGame.BlockCoding
             {
                 if (Kind == BlockKind.Variable) { block.Value = input.text; return block; }
                 block.Arguments.Add(new CodeBlock(BlockKind.Variable, VariableName));
-                if (Kind == BlockKind.Hp) return block;
+                if (Kind == BlockKind.Hp || Kind == BlockKind.IsDead) return block;
             }
             foreach (var argument in arguments) block.Arguments.Add(argument.ReadArgument());
             if (body) block.Body.AddRange(body.Read());

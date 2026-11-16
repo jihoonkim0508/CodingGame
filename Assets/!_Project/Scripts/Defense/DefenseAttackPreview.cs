@@ -64,6 +64,8 @@ namespace CodingGame.Defense
             if (!cameraControl || !coinLabel || !projectilePrefab || !battle || !arena || !previewCamera || !previewImage || !previewPanel || !stats || !status || !effectRing)
                 throw new InvalidOperationException("공격 미리보기 Inspector 참조를 연결하세요.");
             if (!baked) Bake();
+            // An enemy near the picture's top edge had its bar drawn over the card above it: bars stay inside the picture.
+            if (healthBars && !healthBars.GetComponent<RectMask2D>()) healthBars.gameObject.AddComponent<RectMask2D>();
             Close();
         }
         // The preview in a paper card like the editor's others, not a near-black frame, its top clear of the title above, and

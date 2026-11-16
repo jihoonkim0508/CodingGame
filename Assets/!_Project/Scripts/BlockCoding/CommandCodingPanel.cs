@@ -165,14 +165,14 @@ namespace CodingGame.BlockCoding
             variablePrefab.SetStock(Remaining?.Invoke(BlockKind.Variable) ?? 0);
             variablePrefab.gameObject.SetActive(IsAvailable?.Invoke(BlockKind.Variable) ?? true);
             variablePalette.gameObject.SetActive(category == 2);
-            // The chosen tab is filled with its blocks' colour, white text and a little larger; the others are paper with muted
-            // text (play feedback: a beige tab on the beige panel did not read as chosen).
+            // The chosen tab is filled with its blocks' colour, ink text and a little larger; the others are dark with muted
+            // text and a dot of their blocks' colour (play feedback: a beige tab on the beige panel did not read as chosen).
             for (int i = 0; i < categoryButtons.Length; i++)
             {
                 bool chosen = i == category;
-                categoryButtons[i].targetGraphic.color = chosen ? new Color(0.15f, 0.45f, 0.65f) : new Color(0.13f, 0.17f, 0.24f);
+                categoryButtons[i].targetGraphic.color = chosen ? UITheme.BlockCategories[Mathf.Min(i, UITheme.BlockCategories.Length - 1)] : new Color(0.13f, 0.17f, 0.24f);
                 var label = categoryButtons[i].GetComponentInChildren<TMP_Text>(true);
-                if (label) label.color = chosen ? Color.white : new Color(.72f, .8f, .86f);
+                if (label) label.color = chosen ? UITheme.Ink : new Color(.72f, .8f, .86f);
                 if (i < tabDots.Count) tabDots[i].enabled = !chosen;
                 categoryButtons[i].transform.localScale = Vector3.one * (chosen ? 1.06f : 1);
             }
@@ -345,7 +345,10 @@ namespace CodingGame.BlockCoding
         internal CommandBlockView CreateBlock(CodeBlock data, Transform parent)
         {
             if (data.Kind == BlockKind.Attack) data = new CodeBlock(BlockKind.Shot, data.Value, data.Arguments.ToArray());
-            bool variable = data.Kind == BlockKind.Variable || data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp;
+            // is_dead() is a variable's member only (typed after `enemy.`), like distance( and hp.
+            if (data.Kind == BlockKind.IsDead && data.Arguments.FirstOrDefault()?.Kind != BlockKind.Variable)
+                throw new FormatException("is_dead()는 변수 뒤에 점을 찍어 씁니다. 예: enemy.is_dead()");
+            bool variable = data.Kind == BlockKind.Variable || data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp || data.Kind == BlockKind.IsDead;
             var template = variable ? variablePrefab : palette.FirstOrDefault(item => item.view.BaseKind == data.Kind).view;
             if (!template) throw new FormatException("블록 프리팹이 연결되지 않았습니다: " + data.Kind);
             var view = Instantiate(template, parent);
@@ -426,7 +429,6 @@ namespace CodingGame.BlockCoding
             snapTarget = null;
             zones.RemoveWhere(zone => !zone);
             CommandDropZone target = null;
-            Rect targetPreview = default;
             bool targetIsSocket = false;
             float targetOverlap = -1;
             float targetDistance = float.MaxValue;
@@ -440,7 +442,7 @@ namespace CodingGame.BlockCoding
                 var area = zone.Rect.rect;
                 bool pointerOver = (openingBody && zone==openingBody.Body) || RectTransformUtility.RectangleContainsScreenPoint(zone.Rect, e.position, e.pressEventCamera);
                 // Keep the original pointer hit area and also accept overlap anywhere on the block.
-                if ((!pointerOver && !bounds.Overlaps(area)) || !zone.Preview(Dragged, e, out var preview)) continue;
+                if ((!pointerOver && !bounds.Overlaps(area)) || !zone.Preview(Dragged, e, out _)) continue;
                 float overlap = Mathf.Max(0, Mathf.Min(bounds.xMax, area.xMax) - Mathf.Max(bounds.xMin, area.xMin)) *
                     Mathf.Max(0, Mathf.Min(bounds.yMax, area.yMax) - Mathf.Max(bounds.yMin, area.yMin));
                 overlap /= Mathf.Max(1, Mathf.Min(bounds.width * bounds.height, area.width * area.height));
@@ -448,28 +450,18 @@ namespace CodingGame.BlockCoding
                 if (!target || socket && !targetIsSocket || socket == targetIsSocket &&
                     (socket ? overlap > targetOverlap || Mathf.Approximately(overlap, targetOverlap) && distance < targetDistance :
                         zone.Rect.IsChildOf(target.Rect)))
-                { target = zone; targetPreview = preview; targetIsSocket = socket; targetOverlap = overlap; targetDistance = distance; }
+                { target = zone; targetIsSocket = socket; targetOverlap = overlap; targetDistance = distance; }
             }
-            if (!target || targetIsSocket) ShowLanding(null, default);
-            if (!target) return;
+            if (!target) { ShowLanding(null, default); return; }
             snapTarget = target;
-            if (!targetIsSocket)
-            {
-                // A line: room opens where it will land and a see-through copy sits in it; the dragged blocks stay under the hand.
-                var at = target.OpenGap(Dragged, e, LandingHeight());
-                if (gapZone && gapZone != target) gapZone.CloseGap();
-                gapZone = target;
-                LayoutRebuilder.ForceRebuildLayoutImmediate(program.Rect);
-                ShowLanding(target, at);
-                return;
-            }
-            // As in e085adf, only the marker snaps; the dragged blocks remain under the hand.
-            snapMarker.position = target.Rect.TransformPoint(new Vector3(target.Rect.rect.xMin + targetPreview.x,
-                target.Rect.rect.yMax + targetPreview.y, 0));
-            var scale = target.Rect.lossyScale.x / snapMarker.parent.lossyScale.x;
-            snapMarker.sizeDelta = new Vector2(targetPreview.width, targetPreview.height) * scale;
-            if (snapMarker.TryGetComponent<Image>(out var mark)) mark.pixelsPerUnitMultiplier = 16f / Mathf.Clamp(snapMarker.sizeDelta.y * .5f, 1, 8);
-            snapMarker.gameObject.SetActive(true); snapMarker.SetAsLastSibling();
+            // Room opens where it will land and a see-through copy sits in it: between lines for a line, the empty slot grown to
+            // the block's size for a value or condition (play feedback: round blocks showed no snap preview). The dragged blocks
+            // stay under the hand.
+            var at = target.OpenGap(Dragged, e, LandingHeight());
+            if (gapZone && gapZone != target) gapZone.CloseGap();
+            gapZone = target;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(program.Rect);
+            ShowLanding(target, at);
         }
         float LandingHeight()
         {
