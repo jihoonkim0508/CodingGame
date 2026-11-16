@@ -12,6 +12,15 @@ Shader "CodingGame/Art/Character Surface"
   _RimStrength("Edge Light",Range(0,1))=.10
   _AccentGlow("Colored Surface Glow",Range(0,.5))=.035
   _TextureSaturation("Texture Saturation",Range(0,1))=.88
+  _ToonShadowColor("Cel Shadow Tint",Color)=(.48,.56,.7,1)
+  _ToonMidColor("Cel Midtone Tint",Color)=(.78,.83,.92,1)
+  _ToonLightColor("Cel Light Tint",Color)=(1,.99,.96,1)
+  _ToonShadowThreshold("Cel Shadow Threshold",Range(-1,1))=-.12
+  _ToonLightThreshold("Cel Light Threshold",Range(-1,1))=.48
+  _CelStrength("Cel Shading Blend",Range(0,1))=.45
+  _OutlineWidth("Outline Width (Pixels)",Range(0,3))=0
+  [Toggle] _OutlineUseSmoothNormals("Smoothed Skinned Outline Normals",Float)=0
+  _OutlineColor("Outline Color",Color)=(.055,.075,.09,1)
   _Dissolve("Dissolve (0 visible - 1 hidden)",Range(0,1))=0
   _DissolveScale("Dissolve Cell Scale",Range(1,40))=12
   _DissolveEdgeWidth("Dissolve Edge Width",Range(.001,.2))=.045
@@ -31,13 +40,18 @@ Shader "CodingGame/Art/Character Surface"
     float4 _BaseMap_ST;
     half4 _BaseColor, _AccentColor;
     half4 _DissolveEdgeColor;
+    half4 _OutlineColor;
+    half4 _ToonShadowColor, _ToonMidColor, _ToonLightColor;
     float _LightSoftness, _ShadowStrength, _Smoothness, _SpecularStrength;
     float _RimStrength, _AccentGlow, _BuildGlow, _TextureSaturation;
     float _Dissolve, _DissolveScale, _DissolveEdgeWidth;
+    float _OutlineWidth;
+    float _ToonShadowThreshold, _ToonLightThreshold;
+    float _CelStrength, _OutlineUseSmoothNormals;
    CBUFFER_END
    struct Attributes
    {
-    float4 positionOS:POSITION; float3 normalOS:NORMAL; float2 uv:TEXCOORD0;
+    float4 positionOS:POSITION; float3 normalOS:NORMAL; float4 tangentOS:TANGENT; float2 uv:TEXCOORD0;
     UNITY_VERTEX_INPUT_INSTANCE_ID
    };
    struct Varyings
@@ -71,6 +85,12 @@ Shader "CodingGame/Art/Character Surface"
     if(_Dissolve<=0)return 1;
     float remaining=DissolveField(p)-_Dissolve;clip(remaining);return remaining;
    }
+   half CelBand(half value,half threshold,half softness)
+   {
+    // Keep the color bands crisp without flickering when characters occupy few pixels.
+    half edge=max(softness,fwidth(value));
+    return smoothstep(threshold-edge,threshold+edge,value);
+   }
    half4 Frag(Varyings i):SV_Target
    {
     UNITY_SETUP_INSTANCE_ID(i); UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
@@ -83,21 +103,28 @@ Shader "CodingGame/Art/Character Surface"
      shadowCoord=ComputeScreenPos(TransformWorldToHClip(i.positionWS));
     #endif
     Light key=GetMainLight(shadowCoord);
-    half diffuse=smoothstep(0,1,saturate((dot(n,key.direction)+_LightSoftness)/(1+_LightSoftness)));
+    half nDotL=dot(n,key.direction);
+    half softness=.06+.12*_LightSoftness;
+    half3 tone=lerp(_ToonShadowColor.rgb,_ToonMidColor.rgb,CelBand(nDotL,_ToonShadowThreshold,softness));
+    tone=lerp(tone,_ToonLightColor.rgb,CelBand(nDotL,_ToonLightThreshold,softness));
+    half shadow=lerp(1,CelBand(key.shadowAttenuation,.5,.06),_ShadowStrength);
+    tone=lerp(_ToonShadowColor.rgb,tone,shadow);
     half3 ambient=max(SampleSH(n),half3(.16,.18,.22));
-    half3 illumination=ambient*.4+lerp(half3(.35,.39,.47),half3(.92,.90,.86),diffuse)*key.color;
-    illumination*=lerp(half3(.55,.64,.76),half3(1,1,1),lerp(1,key.shadowAttenuation,_ShadowStrength));
+    half diffuse=smoothstep(0,1,saturate((nDotL+_LightSoftness)/(1+_LightSoftness)));
+    half3 softTone=lerp(half3(.42,.47,.56),half3(1,.98,.94),diffuse);
+    softTone*=lerp(half3(.65,.71,.81),half3(1,1,1),shadow);
+    half3 illumination=lerp(softTone,tone,_CelStrength)*key.color+ambient*.3;
     half3 h=SafeNormalize(key.direction+view);
-    half highlight=pow(saturate(dot(n,h)),lerp(12,72,_Smoothness))*_SpecularStrength*key.shadowAttenuation;
+    half highlight=pow(saturate(dot(n,h)),lerp(12,72,_Smoothness))*_SpecularStrength*shadow;
     InputData inputData=(InputData)0;
     inputData.positionWS=i.positionWS; inputData.normalizedScreenSpaceUV=GetNormalizedScreenSpaceUV(i.positionCS);
     uint pixelLightCount=GetAdditionalLightsCount();
     LIGHT_LOOP_BEGIN(pixelLightCount)
      Light light=GetAdditionalLight(lightIndex,i.positionWS);
-     illumination+=light.color*light.distanceAttenuation*light.shadowAttenuation*saturate(dot(n,light.direction))*.65;
+     illumination+=light.color*light.distanceAttenuation*light.shadowAttenuation*saturate(dot(n,light.direction))*.45;
     LIGHT_LOOP_END
     half saturation=max(albedo.r,max(albedo.g,albedo.b))-min(albedo.r,min(albedo.g,albedo.b));
-    half rim=pow(1-saturate(dot(n,view)),3)*_RimStrength;
+    half rim=pow(1-saturate(dot(n,view)),4)*_RimStrength*saturate(nDotL+.25);
     half3 color=albedo*illumination+highlight*key.color+rim*lerp(half3(.6,.7,.85),_AccentColor.rgb,.3);
     color+=albedo*smoothstep(.08,.35,saturation)*_AccentGlow;
     color+=_DissolveEdgeColor.rgb*(1-smoothstep(0,_DissolveEdgeWidth,remaining))*step(.0001,_Dissolve);
@@ -105,6 +132,29 @@ Shader "CodingGame/Art/Character Surface"
     return half4(MixFog(color,i.fog),1);
    }
    float3 _LightDirection, _LightPosition;
+   Varyings OutlineVert(Attributes i)
+   {
+    Varyings o=Vert(i);
+    // The importer welds seam normals into the tangent stream, which follows bone animation.
+    float3 outlineNormal=o.normalWS;
+    if(_OutlineUseSmoothNormals>.5 && dot(i.tangentOS.xyz,i.tangentOS.xyz)>.1)
+     outlineNormal=TransformObjectToWorldNormal(i.tangentOS.xyz);
+    float2 projectedNormal=mul((float3x3)UNITY_MATRIX_VP,outlineNormal).xy;
+    float2 pixelNormal=projectedNormal*_ScaledScreenParams.xy;
+    // Keep a readable screen width, with bounded normalization to avoid corner spikes.
+    float normalScale=max(abs(UNITY_MATRIX_P._m11),1e-4)*_ScaledScreenParams.y;
+    pixelNormal/=normalScale;
+    pixelNormal*=rsqrt(max(dot(pixelNormal,pixelNormal),.16));
+    o.positionCS.xy+=pixelNormal*(2*_OutlineWidth/_ScaledScreenParams.xy)*o.positionCS.w;
+    return o;
+   }
+   half4 OutlineFrag(Varyings i):SV_Target
+   {
+    UNITY_SETUP_INSTANCE_ID(i); UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
+    clip(_OutlineWidth-.001);
+    DissolveClip(i.positionOS);
+    return half4(MixFog(_OutlineColor.rgb,i.fog),_OutlineColor.a);
+   }
    Varyings ShadowVert(Attributes i)
    {
     Varyings o=Vert(i); float3 lightDirection=_LightDirection;
@@ -144,6 +194,19 @@ Shader "CodingGame/Art/Character Surface"
    #pragma multi_compile _ _ADDITIONAL_LIGHTS
    #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
    #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
+   #pragma multi_compile_fog
+   ENDHLSL
+  }
+  Pass
+  {
+   Name "CharacterOutline" Tags {"LightMode"="SRPDefaultUnlit"}
+   Cull Front ZWrite Off ZTest LEqual
+   Blend SrcAlpha OneMinusSrcAlpha
+   HLSLPROGRAM
+   #pragma target 3.0
+   #pragma vertex OutlineVert
+   #pragma fragment OutlineFrag
+   #pragma multi_compile_instancing
    #pragma multi_compile_fog
    ENDHLSL
   }
