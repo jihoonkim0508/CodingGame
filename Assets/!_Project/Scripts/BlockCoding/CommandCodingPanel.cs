@@ -43,6 +43,8 @@ namespace CodingGame.BlockCoding
         bool initialized;
         bool loading;
         bool restoringHistory;
+        string sizedFunctionName;
+        float sizedTitleWidth = -1;
         internal sealed class Draft
         {
             public string name;
@@ -234,6 +236,7 @@ namespace CodingGame.BlockCoding
         }
         internal void Changed()
         {
+            RefreshFunctionNameSize();
             if (updating) return;
             updating = true;
             IsApplied = false;
@@ -399,7 +402,39 @@ namespace CodingGame.BlockCoding
                 for (int i = 0; i < ghosts.Count; i++) ghosts[i].Rect.localPosition = point - dragGrabOffset + ghostOffsets[i];
             UpdateSnapPreview(e);
         }
-        void LateUpdate(){if(Dragged && dragEvent!=null)UpdateSnapPreview(dragEvent);}
+        public void RefreshFunctionNameSize()
+        {
+            if (!functionName || !functionName.textComponent) return;
+            var title = functionName.transform.parent as RectTransform;
+            var layout = functionName.GetComponent<LayoutElement>();
+            if (!title || !layout) return;
+            float reserved = 0;
+            var group = title.GetComponent<HorizontalLayoutGroup>();
+            int siblings = 0;
+            foreach (RectTransform child in title)
+            {
+                if (child == functionName.transform || !child.gameObject.activeSelf) continue;
+                var siblingLayout = child.GetComponent<LayoutElement>();
+                if (siblingLayout && siblingLayout.ignoreLayout) continue;
+                reserved += LayoutUtility.GetPreferredWidth(child);
+                siblings++;
+            }
+            if (group) reserved += group.padding.horizontal + siblings * group.spacing;
+            float available = Mathf.Max(64, title.rect.width - reserved);
+            float width = Mathf.Clamp(Mathf.Ceil(functionName.textComponent.GetPreferredValues(functionName.text).x + 36), 64, available);
+            layout.minWidth = 64;
+            layout.preferredWidth = width;
+            layout.flexibleWidth = 0;
+            sizedFunctionName = functionName.text;
+            sizedTitleWidth = title.rect.width;
+            LayoutRebuilder.MarkLayoutForRebuild(title);
+        }
+        void LateUpdate()
+        {
+            if (functionName && (sizedFunctionName != functionName.text ||
+                ((RectTransform)functionName.transform.parent).rect.width != sizedTitleWidth)) RefreshFunctionNameSize();
+            if (Dragged && dragEvent != null) UpdateSnapPreview(dragEvent);
+        }
         void UpdateBodyPreview(PointerEventData e)
         {
             CommandBlockView candidate=null;
