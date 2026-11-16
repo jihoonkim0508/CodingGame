@@ -172,7 +172,8 @@ namespace CodingGame.BlockCoding
                 bool chosen = i == category;
                 categoryButtons[i].targetGraphic.color = chosen ? UITheme.BlockCategories[Mathf.Min(i, UITheme.BlockCategories.Length - 1)] : new Color(0.13f, 0.17f, 0.24f);
                 var label = categoryButtons[i].GetComponentInChildren<TMP_Text>(true);
-                if (label) label.color = chosen ? UITheme.Ink : new Color(.72f, .8f, .86f);
+                // The dot's room on the left goes with the dot, so the chosen tab's name sits in its middle.
+                if (label) { label.color = chosen ? UITheme.Ink : new Color(.72f, .8f, .86f); label.margin = new Vector4(chosen ? 0 : 14, 0, 0, 0); }
                 if (i < tabDots.Count) tabDots[i].enabled = !chosen;
                 categoryButtons[i].transform.localScale = Vector3.one * (chosen ? 1.06f : 1);
             }
