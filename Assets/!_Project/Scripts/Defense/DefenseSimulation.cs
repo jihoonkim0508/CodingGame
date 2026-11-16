@@ -469,8 +469,6 @@ namespace CodingGame.Defense
             return !Rules.NeedsPermission(action) ? .1f : Setup.Permissions.First(p => p.role == bot.Spec.role && p.action == action).strength;
         }
         public float ActionDamage(RobotState bot, RobotAction action) => Profile(bot, action).damage * bot.DamageMultiplier * Strength(bot, action);
-        public float ActionDamage(RobotState bot, RobotAction action, float distance) => ActionDamage(bot, action) *
-            (bot.Spec.role == RobotRole.Shooter && action == RobotAction.Attack ? Rules.RangedDamageFactor(bot.Spec.range, distance) : 1f);
         public float ActionInterval(RobotState bot, RobotAction action) => Profile(bot, action).interval * (bot.Interval / bot.Spec.interval);
         public ActionResult RequestAction(int robotId, RobotAction action, int targetId = 0)
         {
@@ -523,7 +521,7 @@ namespace CodingGame.Defense
         void Stun(RobotState bot, RobotSpec profile, float strength, List<EnemyState> targets, EnemyState target)
         {
             foreach (var e in targets) { var effect = Effect(e, bot.Id); effect.StunUntil = Math.Max(effect.StunUntil, Time + profile.duration * strength); }
-            Hit(target, ActionDamage(bot, RobotAction.Block, Vector2.Distance(bot.Position, target.Position)), bot.Id);
+            Hit(target, ActionDamage(bot, RobotAction.Block), bot.Id);
             Emit("stun", bot.Id, target.Id, bot.Position, 0, bot.Range);
         }
         void Launch(RobotState bot, RobotSpec profile, float strength, EnemyState target)
@@ -560,7 +558,7 @@ namespace CodingGame.Defense
         }
         void Shoot(RobotState bot, RobotAction action, RobotSpec profile, float strength, EnemyState target)
         {
-            float distance = Vector2.Distance(bot.Position, target.Position), damage = ActionDamage(bot, action, distance);
+            float distance = Vector2.Distance(bot.Position, target.Position), damage = ActionDamage(bot, action); // the same at any distance in range
             if (action == RobotAction.Attack)
             {
                 // 사격형 탄은 날아가서 도착할 때 피해를 줍니다(기획). 도착 시점에 같은 적을 맞힙니다.

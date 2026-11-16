@@ -103,7 +103,7 @@ static class Check
         {
             var direct=new DefenseSimulation(Setup(speed:8));var attacker=Place(direct,role,-8,3);attacker.AutoExecute=false;
             direct.Start();Advance(direct,.2);direct.RequestAction(attacker.Id,attacker.Spec.NativeAction);
-            float expected=100-direct.ActionDamage(attacker,attacker.Spec.NativeAction,Vector2.Distance(attacker.Position,direct.Enemies[0].Position));
+            float expected=100-direct.ActionDamage(attacker,attacker.Spec.NativeAction);
             Assert(direct.Enemies[0].Health==100,"damage waits for the shot to arrive or the sword to pass: "+role);
             Advance(direct,1);
             Assert(direct.Projectiles.Count==0&&Math.Abs(direct.Enemies[0].Health-expected)<.001f,"direct action still hits a fast target that moved on: "+role);

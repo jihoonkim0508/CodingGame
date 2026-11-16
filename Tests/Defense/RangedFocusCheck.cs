@@ -96,6 +96,10 @@ static class RangedFocusCheck
         Assert(run.NormalDamage == 0, $"normal enemies are skipped (lost {run.NormalDamage})");
         Assert(run.ShotDistances.Count > 0 && run.ShotDistances.All(d => d > 0 && d <= 10.01f) && run.TankDamage > 0,
             $"the tank is shot inside the range ({run.ShotDistances.Count} shots, {run.TankDamage} damage)");
+        // claude/ranged-flat: no distance falloff. The tank is shot from far off, and every shot does the base 20.
+        Assert(run.ShotDistances.Max() > 6 && Math.Abs(run.TankDamage - run.ShotDistances.Count * 20) < .5f,
+            $"every shot does the base damage at any distance: {run.ShotDistances.Count} shots at {string.Join(", ", run.ShotDistances.Select(d => d.ToString("0.0")))}, {run.TankDamage} damage");
+        Console.WriteLine($"Ranged focus: {run.ShotDistances.Count} shots at {string.Join(", ", run.ShotDistances.Select(d => d.ToString("0.0")))}, {run.TankDamage} damage");
 
         Console.WriteLine($"Ranged focus checks passed: {checks}");
     }

@@ -69,7 +69,7 @@ static class Check
             foreach (var shot in sim.Events.Where(e => e.Kind == "shot" && e.Source == robot.Id))
             {
                 float d = Vector2.Distance(robot.Position, shot.Position);
-                if (firstTarget == 0) { firstTarget = shot.Target; firstDistance = d; firstDamage = sim.ActionDamage(robot, RobotAction.Attack, d); }
+                if (firstTarget == 0) { firstTarget = shot.Target; firstDistance = d; firstDamage = sim.ActionDamage(robot, RobotAction.Attack); }
                 else if (shot.Target == firstTarget && d <= 3) closeLater = true;
             }
             sim.Events.Clear();
@@ -139,14 +139,16 @@ static class Check
             var baseline = Approach(false, y); var guarded = Approach(true, y);
             Require(baseline.distance > 6.5f && !baseline.closeLater,
                 $"y={y}: the unconditional shooter must fire first at its range's edge (got {baseline.distance:0.0}) and not shoot that enemy again within 3");
-            Require(guarded.distance <= 3 && guarded.damage >= 60,
-                $"y={y}: the condition must hold the first shot until within 3 and fell the enemy with it (got {guarded.distance:0.0}m, {guarded.damage:0})");
-            Require(guarded.kills == 4 && baseline.kills < guarded.kills,
-                $"y={y}: the condition must defend all four enemies and the unconditional code fewer (got {guarded.kills} and {baseline.kills})");
+            Require(guarded.distance <= 3,
+                $"y={y}: the condition must hold the first shot until within 3 (got {guarded.distance:0.0}m)");
+            // claude/ranged-flat: no distance falloff, so waiting does not hit harder. 2-3's reason to wait (one shot up close,
+            // lines 2-3.B03 and D07) is gone here; the lesson needs a new one (Docs/원거리_집중공격_설계.md).
+            Require(guarded.damage == baseline.damage,
+                $"y={y}: a shot does the same damage near and far (got {guarded.damage:0} and {baseline.damage:0})");
             if (y == 1.8f) Console.WriteLine($"Straight road: unconditional first shot {baseline.distance:0.0}m {baseline.damage:0}, kills {baseline.kills}; " +
                 $"condition first shot {guarded.distance:0.0}m {guarded.damage:0}, kills {guarded.kills}");
         }
         IntroLeak();
-        Console.WriteLine("PASS: 1-1 Play at each enemy fells the basic ones, enemies walking through the pace and pause lines; pause freezes battle; a conditional shooter waits until within 3 and fells each enemy with one shot.");
+        Console.WriteLine("PASS: 1-1 Play at each enemy fells the basic ones, enemies walking through the pace and pause lines; pause freezes battle; a conditional shooter waits until within 3 (same damage as from afar: no distance falloff).");
     }
 }
