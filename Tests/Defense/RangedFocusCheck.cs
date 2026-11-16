@@ -27,6 +27,21 @@ static class RangedFocusCheck
         "            break\n" +
         "        shoot(enemy)\n";
 
+    // The branch's code: the most damage (3x) is from a third of the range in, so it shoots only inside 0.3 of the range.
+    public const string Falloff =
+        "while True:\n" +
+        "    enemy = get_nearest_enemy()\n" +
+        "    if enemy.type != Enemy.Tank:\n" +
+        "        continue\n" +
+        "    while True:\n" +
+        "        if enemy.is_dead():\n" +
+        "            break\n" +
+        "        dist = enemy.distance(get_my_pos())\n" +
+        "        if dist > my_attack_range():\n" +
+        "            break\n" +
+        "        if dist < my_attack_range() * 0.3:\n" +
+        "            shoot(enemy)\n";
+
     // Two normal enemies walk past first, a tank behind them; the robot stands 2 off the road with range 10.
     public sealed class Run
     {
@@ -68,14 +83,14 @@ static class RangedFocusCheck
         run.Fault = bot.Program.Fault;
         return run;
     }
+    static string Indented(string code) => "def robot():\n" + string.Concat(code.Split('\n').Where(l => l.Length > 0).Select(l => "    " + l + "\n"));
 
     public static void RunAll()
     {
         Assert(PythonTreeCompiler.EnemyTypes.SequenceEqual(Enum.GetNames(typeof(EnemyType))), "Enemy.<name> lists the game's enemy kinds in their order");
 
         var focus = TutorialAnswers.Parse(Focus);
-        Assert(PythonTreeCompiler.Compile("robot", focus) == "def robot():\n" + string.Concat(Focus.Split('\n').Where(l => l.Length > 0).Select(l => "    " + l + "\n")),
-            "the focus code compiles back to the same Python");
+        Assert(PythonTreeCompiler.Compile("robot", focus) == Indented(Focus), "the focus code compiles back to the same Python");
         Assert(!PythonTreeCompiler.HasStaleEnemyLoop(focus), "a loop that breaks on enemy.is_dead() is not warned as aiming at a gone target");
         Assert(PythonTreeCompiler.HasStaleEnemyLoop(TutorialAnswers.Parse("enemy = get_nearest_enemy()\nwhile True:\n    shoot(enemy)")),
             "a loop that never looks at its target again is still warned");
@@ -96,6 +111,18 @@ static class RangedFocusCheck
         Assert(run.NormalDamage == 0, $"normal enemies are skipped (lost {run.NormalDamage})");
         Assert(run.ShotDistances.Count > 0 && run.ShotDistances.All(d => d > 0 && d <= 10.01f) && run.TankDamage > 0,
             $"the tank is shot inside the range ({run.ShotDistances.Count} shots, {run.TankDamage} damage)");
+
+        var falloff = TutorialAnswers.Parse(Falloff);
+        Assert(PythonTreeCompiler.Compile("robot", falloff) == Indented(Falloff), "the falloff code compiles back to the same Python");
+        Assert(!PythonTreeCompiler.HasStaleEnemyLoop(falloff), "no stale-target warning on the falloff code");
+        run = Simulate(Falloff);
+        Assert(run.Fault == null && run.NormalDamage == 0, $"falloff code: no fault ({run.Fault}), normals skipped (lost {run.NormalDamage})");
+        // shoot() waits out the reload on its line without looking again, so a shot decided inside 0.3 can leave a little later
+        // (here 0.5 s at speed 1): still inside a third of the range, so still 3x.
+        Assert(run.ShotDistances.Count > 0 && run.ShotDistances.All(d => d > 0 && d < 10 / 3f),
+            "falloff code shoots inside a third of the range: " + string.Join(", ", run.ShotDistances.Select(d => d.ToString("0.00"))));
+        Assert(Math.Abs(run.TankDamage - run.ShotDistances.Count * 60) < .5f, $"every shot does 3x (20 -> 60): {run.ShotDistances.Count} shots, {run.TankDamage} damage");
+        Console.WriteLine($"Ranged focus: {run.ShotDistances.Count} shots at {string.Join(", ", run.ShotDistances.Select(d => d.ToString("0.0")))}, {run.TankDamage} damage");
 
         Console.WriteLine($"Ranged focus checks passed: {checks}");
     }
