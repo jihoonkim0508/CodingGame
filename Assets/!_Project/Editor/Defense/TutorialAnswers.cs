@@ -8,7 +8,8 @@ namespace CodingGame.Defense.Editor
 {
     // Reads the Stage 1 tutorial answers (TutorialStep.expectedCode) into blocks: "name = get_nearest_enemy()",
     // "x = enemy.distance(get_my_pos())", "name = my_attack_range()", "slash()", "shoot(enemy)", "if a <= b:" (any comparison),
-    // "if x.is_dead():", "a * b" (one of + - * /), "for i in range(n):" and "while True:" with an indented body.
+    // "if x.is_dead():", "a * b" (one of + - * /), "x.type", "Enemy.Tank", "break", "continue", "for i in range(n):" and
+    // "while True:" with a body indented deeper (any width).
     // ponytail: only what the Stage 1 answers use; a new answer shape needs a case here.
     public static class TutorialAnswers
     {
@@ -29,22 +30,24 @@ namespace CodingGame.Defense.Editor
                 if (line.StartsWith("if ") && line.EndsWith(":"))
                 {
                     var block = new CodeBlock(BlockKind.If, "0", Condition(line.Substring(3, line.Length - 4)));
-                    block.Body.AddRange(Suite(lines, ref index, depth + 4));
+                    block.Body.AddRange(Suite(lines, ref index, depth + 1));
                     result.Add(block);
                 }
                 else if (line.StartsWith("for i in range(") && line.EndsWith("):"))
                 {
                     var block = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, line.Substring(15, line.Length - 17)));
-                    block.Body.AddRange(Suite(lines, ref index, depth + 4));
+                    block.Body.AddRange(Suite(lines, ref index, depth + 1));
                     result.Add(block);
                 }
                 else if (line == "while True:")
                 {
                     var block = new CodeBlock(BlockKind.While);
-                    block.Body.AddRange(Suite(lines, ref index, depth + 4));
+                    block.Body.AddRange(Suite(lines, ref index, depth + 1));
                     result.Add(block);
                 }
                 else if (line == "slash()") result.Add(new CodeBlock(BlockKind.Slash));
+                else if (line == "break") result.Add(new CodeBlock(BlockKind.Break));
+                else if (line == "continue") result.Add(new CodeBlock(BlockKind.Continue));
                 else if (line.StartsWith("shoot(") && line.EndsWith(")")) result.Add(new CodeBlock(BlockKind.Shot, "0", Value(line.Substring(6, line.Length - 7))));
                 else
                 {
@@ -75,6 +78,8 @@ namespace CodingGame.Defense.Editor
             if (text == "get_nearest_enemy()") return new CodeBlock(BlockKind.NearestEnemy);
             if (text == "my_attack_range()") return new CodeBlock(BlockKind.MyAttackRange);
             if (text == "get_my_pos()") return new CodeBlock(BlockKind.MyPos);
+            if (text.StartsWith("Enemy.", StringComparison.Ordinal)) return new CodeBlock(BlockKind.EnemyTypeName, text.Substring(6));
+            if (text.EndsWith(".type", StringComparison.Ordinal)) return new CodeBlock(BlockKind.EnemyTypeOf, "0", new CodeBlock(BlockKind.Variable, text.Substring(0, text.Length - 5)));
             if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out _))
                 return new CodeBlock(BlockKind.Number, text);
             if (text.EndsWith(".distance(get_my_pos())"))

@@ -202,6 +202,7 @@ static class Check
         GuideSpeechCheck.Run();
         MeleeCheck.Run();
         WhileTrueCheck.Run();
+        RangedFocusCheck.RunAll();
         AllocCheck.Run();
         PlacementCheck.Run();
     }

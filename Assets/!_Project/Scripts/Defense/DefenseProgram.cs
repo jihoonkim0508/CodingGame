@@ -17,7 +17,7 @@ namespace CodingGame.Defense
         sealed class Instruction { public Op Op; public CodeBlock Block; public int Jump, Loop; }
         sealed class LoopState { public double Count, Index; }
         // A value as a struct, not a boxed object: numbers, truth, enemies and positions are made every tick (13차 130).
-        enum ValueKind : byte { Number, Truth, Enemy, Position }
+        enum ValueKind : byte { Number, Truth, Enemy, Position, Kind }
         readonly struct Val
         {
             public readonly ValueKind Kind; public readonly double Number; public readonly int Enemy; public readonly Vector2 Position;
@@ -26,6 +26,8 @@ namespace CodingGame.Defense
             public static Val Of(bool b) => new Val(ValueKind.Truth, b ? 1 : 0, 0, default);
             public static Val Of(Vector2 v) => new Val(ValueKind.Position, 0, 0, v);
             public static Val EnemyOf(int id) => new Val(ValueKind.Enemy, 0, id, default);
+            // An enemy's kind (EnemyType as a number); -1 is no enemy's kind, different from every kind.
+            public static Val KindOf(int type) => new Val(ValueKind.Kind, type, 0, default);
         }
         readonly List<CodeBlock> blocks;
         readonly Dictionary<BlockKind, int> blockCounts;
@@ -253,12 +255,19 @@ namespace CodingGame.Defense
                     break;
                 case BlockKind.Hp:
                     return Val.Of(Active(sim, EnemyId(Arg(0)))?.Health ?? 0); // a defeated enemy reads as 0 hp
+                case BlockKind.EnemyTypeOf:
+                    return Val.KindOf((int?)Active(sim, EnemyId(Arg(0)))?.Spec.type ?? -1);
+                case BlockKind.EnemyTypeName:
+                    int named = Array.IndexOf(PythonTreeCompiler.EnemyTypes, block.Value);
+                    if (named < 0) throw new FormatException("알 수 없는 적 종류입니다: Enemy." + block.Value);
+                    return Val.KindOf(named);
                 case BlockKind.Comparison:
                     var left = Arg(0); var right = Arg(1);
                     if (block.Value == "==" || block.Value == "!=")
                     {
                         bool scalar(Val v) => v.Kind == ValueKind.Number || v.Kind == ValueKind.Truth;
                         bool equal = left.Kind == ValueKind.Enemy && right.Kind == ValueKind.Enemy ? left.Enemy == right.Enemy :
+                            left.Kind == ValueKind.Kind && right.Kind == ValueKind.Kind ? left.Number == right.Number :
                             scalar(left) && scalar(right) ? Number(left) == Number(right) :
                             left.Kind == ValueKind.Position && right.Kind == ValueKind.Position && left.Position == right.Position;
                         return Val.Of(equal == (block.Value == "=="));

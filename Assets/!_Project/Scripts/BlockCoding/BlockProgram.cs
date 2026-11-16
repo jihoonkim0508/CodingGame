@@ -8,7 +8,9 @@ namespace CodingGame.BlockCoding
         Attack, Wait, While, If, Elif, Else, NearestEnemy, Distance,
         PositionX, PositionY, Number, Comparison, True, False, DeclareVariable, Variable,
         For, Break, Continue, Slash, Block, Boom, Shot, Slow, Buff, Hp, MyAttackRange, MyPos,
-        IsDead, Arithmetic
+        IsDead, Arithmetic,
+        EnemyTypeOf, // enemy.type: a member of an enemy variable (receiver in Arguments[0])
+        EnemyTypeName // Enemy.Normal / Enemy.Fast / Enemy.Tank: Value is the name
     }
 
     [Serializable]

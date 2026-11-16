@@ -12,6 +12,11 @@ position = [0]
 
 
 class Enemy:
+    Normal, Fast, Tank = "Normal", "Fast", "Tank"
+
+    def __init__(self, type="Tank"):
+        self.type = type
+
     def distance(self, pos):
         x, y = pos
         return ((3 - x) ** 2 + (4 - y) ** 2) ** 0.5
@@ -22,6 +27,7 @@ class Enemy:
 
 
 enemy = Enemy()
+kinds = iter([])
 
 
 def wait(seconds):
@@ -30,7 +36,8 @@ def wait(seconds):
 
 
 scope = {
-    "get_nearest_enemy": lambda: enemy,
+    "get_nearest_enemy": lambda: next(kinds, enemy),
+    "Enemy": Enemy,
     "get_pos_x": lambda: position[0],
     "get_pos_y": lambda: 0,
     "get_my_pos": lambda: (position[0], 0),
@@ -56,10 +63,13 @@ expected = {
     "tree_unicode": [("shoot", enemy)],
     "tree_hp": [("shoot", enemy)],
 }
+normal = Enemy("Normal")
+expected["tree_kind"] = [("shoot", enemy)]
 for name, result in expected.items():
     events.clear()
     position[0] = 0
+    kinds = iter([normal, enemy]) if name == "tree_kind" else iter([])
     scope[name]()
     assert events == result, (name, events, result)
 
-print("PASS: generated Python 3 syntax and execution for nested loops, break/continue, 64 elif branches, methods and variables, enemy.hp.")
+print("PASS: generated Python 3 syntax and execution for nested loops, break/continue, 64 elif branches, methods and variables, enemy.hp, enemy.type != Enemy.Tank.")
