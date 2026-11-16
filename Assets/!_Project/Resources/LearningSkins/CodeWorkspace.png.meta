@@ -144,6 +144,28 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
+    - serializedVersion: 2
+      name: CodeWorkspaceUnruled
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 13
+        width: 1504
+        height: 964
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 70, y: 50, z: 50, w: 35}
+      customData:
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0116a6d8f42a49bd8abc000000000001
+      internalID: 640116000000000001
+      vertices: []
+      indices:
+      edges: []
+      weights: []
     outline: []
     customData: 
     physicsShape: []
@@ -159,6 +181,7 @@ TextureImporter:
       entries: []
     nameFileIdTable:
       CodeWorkspace: -8887260534993836147
+      CodeWorkspaceUnruled: 640116000000000001
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

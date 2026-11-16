@@ -15,6 +15,8 @@ namespace CodingGame.Defense.Editor {
    ImportDistinct("DialogueCardTallName",new Rect(16,34,2144,674),new Vector4(960,0,300,0));
    ImportDistinct("PaletteTray",new Rect(20,31,848,1722),new Vector4(95,110,80,280));
    ImportDistinct("CodeWorkspace",new Rect(16,13,1504,999),new Vector4(70,50,50,70));
+   LoadUnruledWorkspace();
+   distinct["CodeWorkspaceInsetFrame"]=Single("CodeWorkspaceInsetFrame",new Vector4(48,48,48,48));
    ImportDistinct("StatsCard",new Rect(68,58,952,1337),new Vector4(80,170,60,210));
    ImportDistinct("GoalBanner",new Rect(16,167,2139,406),new Vector4(440,0,160,0));
    ImportDistinct("StudyHudBand",new Rect(30,282,2112,162),new Vector4(70,16,40,16));
@@ -50,6 +52,21 @@ namespace CodingGame.Defense.Editor {
    var target=root.Find(path);if(!target)return;var image=target.GetComponent<Image>();if(!image)image=target.gameObject.AddComponent<Image>();
    Skin(image,distinct[key],tint??Color.white);image.pixelsPerUnitMultiplier=scale;
   }
+  static void LoadUnruledWorkspace()
+  {
+   string path = Root + "CodeWorkspace.png";
+   var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+#pragma warning disable CS0618
+   var entries = importer.spritesheet.ToList();
+   entries.Add(new SpriteMetaData {
+    name = "CodeWorkspaceUnruled", rect = new Rect(16,13,1504,964),
+    border = new Vector4(70,50,50,35), pivot = new Vector2(.5f,.5f), alignment = 0
+   });
+   importer.spritesheet = entries.ToArray();
+#pragma warning restore CS0618
+   importer.SaveAndReimport();
+   distinct["CodeWorkspaceUnruled"] = AssetDatabase.LoadAllAssetsAtPath(path).OfType<Sprite>().First(s => s.name == "CodeWorkspaceUnruled");
+  }
   static RectTransform Child(Transform parent,string name){var t=parent.Find(name) as RectTransform;if(t)return t;var go=new GameObject(name,typeof(RectTransform));go.transform.SetParent(parent,false);return go.GetComponent<RectTransform>();}
   static TMP_Text TextLabel(Transform parent,string name,string value,float size,Color color){
    var rect=Child(parent,name);var text=rect.GetComponent<TextMeshProUGUI>();if(!text)text=rect.gameObject.AddComponent<TextMeshProUGUI>();
@@ -76,9 +93,9 @@ namespace CodingGame.Defense.Editor {
    }
    if(!root.Find("Library"))return;
    var bg=root.GetComponent<Image>();if(bg){bg.sprite=null;bg.color=new Color(.075f,.105f,.15f);}
-   Specific(root,"Editor","CodeWorkspace",Color.white,4);
-   Specific(root,"Editor/TitleBar/FunctionName","RobotStatusHeaderRounded",Color.white);
-   Specific(root,"Python","CodeWorkspace",Color.white,4);
+   Specific(root,"Editor","CodeWorkspaceInsetFrame",Color.white,3);
+   StyleFunctionName(root);
+   Specific(root,"Python","CodeWorkspaceInsetFrame",Color.white,3);
    var previewHint=root.Find("CodePreview/PreviewHint")?.GetComponent<TMP_Text>();
    if(previewHint){SetRect(previewHint.rectTransform,new Vector2(.5f,1),new Vector2(0,-15),new Vector2(340,26),new Vector2(.5f,1));previewHint.fontSize=15;previewHint.alignment=TextAlignmentOptions.Center;previewHint.margin=Vector4.zero;}
    var previewStatus=root.Find("CodePreview/Status")?.GetComponent<TMP_Text>();

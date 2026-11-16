@@ -31,7 +31,9 @@ namespace CodingGame.Defense.Editor {
   {
    var backdrop = new Color(.075f, .105f, .15f);
    Plain(root.GetComponent<Image>(), backdrop);
-   Plain(root.Find("Background").GetComponent<Image>(), backdrop);
+   var background = root.Find("Background");
+   Plain(background.GetComponent<Image>(), backdrop);
+   Stretch((RectTransform)background, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
    foreach (string path in new[] { "Library", "CodePreview", "Editor/PreviewPanel", "RobotStats" })
    {
     var panel = root.Find(path);
@@ -51,11 +53,23 @@ namespace CodingGame.Defense.Editor {
    var stats = root.Find("RobotStats") as RectTransform;
    SetStudioSideInsets(stats, 24, -8);
    var library = root.Find("Library") as RectTransform;
+   library.offsetMin = new Vector2(library.offsetMin.x, 62);
    if (stats && library) stats.offsetMin = new Vector2(stats.offsetMin.x, library.offsetMin.y);
    SetStudioSideInsets(root.Find("Editor") as RectTransform, 338, -26);
+   var editor = (RectTransform)root.Find("Editor");
+   editor.offsetMin = new Vector2(editor.offsetMin.x, 62);
+   var divider = Child(editor, "HeaderDivider");
+   var dividerImage = divider.GetComponent<Image>();
+   if (!dividerImage) dividerImage = divider.gameObject.AddComponent<Image>();
+   Plain(dividerImage, new Color(.2f, .35f, .4f));
+   dividerImage.raycastTarget = false;
+   Stretch(divider, new Vector2(0,1), Vector2.one, new Vector2(10,-94.5f), new Vector2(-10,-91.5f));
+   var status = (RectTransform)root.Find("Status");
+   status.anchoredPosition = new Vector2(status.anchoredPosition.x, 26);
    SetStudioSideInsets(root.Find("Title") as RectTransform, 24, -12);
    var python = (RectTransform)root.Find("Python");
    python.anchoredPosition = new Vector2(-26, python.anchoredPosition.y);
+   python.offsetMin = new Vector2(python.offsetMin.x, 70);
   }
 
   static void SetStudioSideInsets(RectTransform rect, float left, float right)
@@ -63,6 +77,31 @@ namespace CodingGame.Defense.Editor {
    if (!rect) return;
    rect.offsetMin = new Vector2(left, rect.offsetMin.y);
    rect.offsetMax = new Vector2(right, rect.offsetMax.y);
+  }
+  internal static void StyleFunctionName(Transform root)
+  {
+   var field = root.Find("Editor/TitleBar/FunctionName")?.GetComponent<TMP_InputField>();
+   if (!field) return;
+   var image = field.GetComponent<Image>();
+   if (image) Object.DestroyImmediate(image);
+   var surface = field.GetComponent<CommandBlockShape>();
+   if (!surface) surface = field.gameObject.AddComponent<CommandBlockShape>();
+   surface.Configure(BlockSlotKind.Statement, false);
+   surface.color = new Color(.27f,.72f,.9f);
+   field.targetGraphic = surface;
+   var layout = field.GetComponent<LayoutElement>();
+   layout.minHeight = layout.preferredHeight = 38;
+   var viewport = field.textViewport;
+   viewport.sizeDelta = new Vector2(-20,-12);
+   var well = viewport.GetComponent<CommandBlockShape>();
+   if (!well) well = viewport.gameObject.AddComponent<CommandBlockShape>();
+   well.Configure(BlockSlotKind.Value, false);
+   well.color = new Color(.12f,.4f,.56f);
+   well.raycastTarget = false;
+   field.textComponent.alignment = TextAlignmentOptions.Center;
+   field.textComponent.color = new Color(.94f,.96f,.98f);
+   field.textComponent.margin = Vector4.zero;
+   root.GetComponent<CommandCodingPanel>()?.RefreshFunctionNameSize();
   }
   static void RefineHelp(Transform card){
    var list=card.Find("BlockList");var viewport=(RectTransform)list.Find("Viewport");Stretch(viewport,Vector2.zero,Vector2.one,new Vector2(18,18),new Vector2(-44,-68));
