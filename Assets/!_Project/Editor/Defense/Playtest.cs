@@ -34,7 +34,7 @@ namespace CodingGame.Defense.Editor
             ("1-1 D08 바로 적중해도 1.5초 보여 줌", PreviewHitHold),
             ("1-1 E08 보상 집중이 대화창에 안 가림", RewardFocusClear),
             ("1-2 B01 자유 플레이: 대사 숨고 조작 풀림, 힌트", OneTwoIntro),
-            ("베기 이펙트 SwordSlash_3", Slash),
+            ("베기 이펙트 (Stylized Slash 한 장)", Slash),
             ("코어 피격·사망 글리치", CoreGlitch),
             ("맵 소품 위 설치 막힘 · 기지 체력바 위치 · 사거리 색", PropsAndBase),
             ("스테이지 맵 클릭 후 전환 대기", StageClickDelay),
@@ -605,41 +605,34 @@ namespace CodingGame.Defense.Editor
             yield return Wait(() => DevTest.Ready && !Battle.Tutorial.IsActive && Battle.Simulation.Robots.Count == 0, "튜토리얼 없는 1-1", 10);
             DevTest.PlaceTeachingRobot(Battle, RobotRole.Warrior);
             var bot = Battle.Simulation.Robots[0];
+            DevTest.GrantAll(); // 1-1 hands out no while
             Battle.Simulation.ApplyProgram(bot.Id, "robot_" + bot.Id, TutorialAnswers.Parse("while True:\n    slash()"));
             DevTest.StartWave(); Time.timeScale = 3;
             // Real time from just before the first enemy comes in range, so the frames between effect and strike are seen.
             yield return Wait(() => Battle.Simulation.Enemies.Any(e => System.Numerics.Vector2.Distance(e.Position, bot.Position) < bot.Range + 1), "적 접근", 60);
             Time.timeScale = 1;
             yield return Wait(() => Slashes().Count > 0, "첫 베기", 10);
-            var effect = (ParticleSystem)Slashes()[0].GetType().GetField("Item1").GetValue(Slashes()[0]);
+            var effect = (UnityEngine.VFX.VisualEffect)Slashes()[0].GetType().GetField("Item1").GetValue(Slashes()[0]);
             var enemy = Battle.Simulation.Enemies.Where(e => e.Active).OrderBy(e => System.Numerics.Vector2.Distance(e.Position, bot.Position)).FirstOrDefault();
             Check(enemy != null && enemy.Health >= enemy.Spec.health, $"베기 이펙트가 나올 때는 아직 피해 없음 (체력 {enemy?.Health:0}/{enemy?.Spec.health:0})");
-            Check(effect.name.StartsWith("SwordSlashFlat"), "이펙트: " + effect.name + " (SwordSlash_3을 가로로 눕힌 변형)");
-            // The arc (the "Slash" particle) should sweep around the robot's lower body.
-            var arcSystem = effect.GetComponentsInChildren<ParticleSystem>().First(p => p.name == "Slash");
+            Check(Slashes().Count == 1, $"베기 이펙트는 한 장 (두 장을 이어 붙이지 않음): {Slashes().Count}장");
+            Check(effect.name.StartsWith("slash-white-red-bolder"), "이펙트: " + effect.name + " (Stylized Slash VFX의 white-red)");
+            // The crescent lies flat round the robot's lower body, centred on the robot.
             var views = Field<IDictionary>(Battle, "robotViews");
             var robotModel = ((Component)views.Values.Cast<object>().First()).transform.Find("Head/Model").GetComponentInChildren<Renderer>().bounds;
-            float arcY = float.NaN;
-            for (int i = 0; i < 20 && float.IsNaN(arcY); i++)
-            {
-                yield return null;
-                var live = new ParticleSystem.Particle[arcSystem.particleCount]; arcSystem.GetParticles(live);
-                if (live.Length > 0) arcY = arcSystem.transform.TransformPoint(live[0].position).y;
-            }
-            float middle = (robotModel.min.y + robotModel.max.y) / 2;
+            float arcY = effect.transform.position.y, middle = (robotModel.min.y + robotModel.max.y) / 2;
             Check(arcY >= robotModel.min.y && arcY <= middle, $"베기 높이 {arcY:0.00}: 로봇 하단부 ({robotModel.min.y:0.00}~{middle:0.00})");
-            float expectedScale = bot.Spec.range / 2.3f, scale = Mathf.Abs(effect.transform.localScale.x); // mirrored: negative x
-            Check(Mathf.Abs(scale - expectedScale) < expectedScale * .05f, $"크기 {scale:0.00} (사거리 {bot.Spec.range} / 2.3 ≈ {expectedScale:0.00}: 궤적이 사거리 끝까지)");
-            // The arc's ring sits 1.3 x scale ahead of the effect's origin; it should be centred on the robot.
-            var ring = effect.transform.position + Vector3.ProjectOnPlane(effect.transform.forward, Vector3.up).normalized * (1.3f * scale);
-            float offCentre = new Vector2(ring.x - bot.Position.X, ring.z - bot.Position.Y).magnitude;
-            Check(offCentre < .1f, $"베기 궤적의 중심이 로봇 위치 (어긋남 {offCentre:0.00})");
+            // At scale 1 its outer edge is 6.8 from its centre (DefenseHitVisuals.SlashOuterRadius).
+            float expectedScale = bot.Spec.range / 6.8f, scale = effect.transform.localScale.x;
+            Check(Mathf.Abs(scale - expectedScale) < expectedScale * .05f, $"크기 {scale:0.00} (사거리 {bot.Spec.range} / 6.8 ≈ {expectedScale:0.00}: 바깥 끝이 사거리)");
+            float offCentre = new Vector2(effect.transform.position.x - bot.Position.X, effect.transform.position.z - bot.Position.Y).magnitude;
+            Check(offCentre < .1f, $"베기의 중심이 로봇 위치 (어긋남 {offCentre:0.00})");
             if (enemy != null)
             {
                 var toEnemy = new Vector3(enemy.Position.X - bot.Position.X, 0, enemy.Position.Y - bot.Position.Y).normalized;
-                // The effect is turned 49° left so its arc's average over its life (49° right of its forward) is on the target.
-                var forward = Quaternion.Euler(0, 49, 0) * Vector3.ProjectOnPlane(effect.transform.forward, Vector3.up).normalized;
-                Check(Vector3.Dot(forward, toEnemy) > .95f, $"베기 궤적의 중심이 적 방향 (dot {Vector3.Dot(forward, toEnemy):0.00})");
+                // The crescent's thick part is on its -X side.
+                var thick = Vector3.ProjectOnPlane(-effect.transform.right, Vector3.up).normalized;
+                Check(Vector3.Dot(thick, toEnemy) > .95f, $"베기의 두꺼운 쪽이 적 방향 (dot {Vector3.Dot(thick, toEnemy):0.00})");
             }
             yield return .25f;
             Check(enemy != null && enemy.Health < enemy.Spec.health, $"검이 정면을 지나면 피해 (체력 {enemy?.Health:0}/{enemy?.Spec.health:0})");

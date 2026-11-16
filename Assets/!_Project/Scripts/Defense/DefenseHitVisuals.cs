@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.VFX;
 
 namespace CodingGame.Defense
 {
@@ -8,19 +9,22 @@ namespace CodingGame.Defense
     sealed class DefenseHitVisuals
     {
         [SerializeField] ParticleSystem prefab;
-        [SerializeField] ParticleSystem slashPrefab; // SwordSlash_3 (planner)
+        [SerializeField] VisualEffect slashPrefab; // Stylized Slash VFX (HungNguyen), white-red bolder (planner)
         [SerializeField] DefenseRangeRing hitRangePrefab;
         [SerializeField, Min(.01f)] float lifetime = 1.5f;
         // Ranged attack (Stylized Projectile Pack, Laser_Blue_Small): flare at the muzzle, a shot flying to the target, impact there.
         [SerializeField] ParticleSystem shotPrefab, shotFlarePrefab, shotImpactPrefab;
-        // SwordSlashFlat (mirrored SwordSlash_3) sweeps clockwise like the sword, from -72° to +84° of its forward, and over its
-        // life sits 49° right of it on average (top-down render). Turned 49° left so that average is on the target; its arc then
-        // passes the target .13 s in.
-        const float SlashCentre = 49, SlashLead = .13f;
+        // The slash is one flat crescent lying round its origin (top-down render): at scale 1 its outer edge is 6.8 from the
+        // centre and its thick part on its -X side; it shows for about half a second of its 1 s life and is fullest about .2 s in.
+        // One per slash() (planner: not two joined into a circle), scaled so the outer edge is the attack range, its thick part
+        // turned to the target, and started so it is fullest as the strike lands.
+        const float SlashOuterRadius = 6.8f;
+        const float SlashLead = .2f, SlashLife = 1;
         readonly List<(float wait, Action show)> delayed = new List<(float, Action)>();
         readonly List<(ParticleSystem shot, Vector3 target, float speed, Quaternion rotation)> shots = new List<(ParticleSystem, Vector3, float, Quaternion)>();
         readonly List<(ParticleSystem effect, float remaining)> active = new List<(ParticleSystem, float)>();
-        readonly List<(ParticleSystem effect, float remaining)> slashes = new List<(ParticleSystem, float)>();
+        readonly List<(VisualEffect effect, float remaining)> slashes = new List<(VisualEffect, float)>();
+        readonly Stack<VisualEffect> slashPool = new Stack<VisualEffect>();
         readonly List<(DefenseRangeRing ring, float remaining)> hitRanges = new List<(DefenseRangeRing, float)>();
         public DefenseTestOptions Options { get; set; } = new DefenseTestOptions();
         // Effects are made per hit, slash and shot; a finished one waits switched off for the next of its kind (13차 133).
@@ -49,6 +53,12 @@ namespace CodingGame.Defense
             effect.Clear(true); effect.gameObject.SetActive(false);
             if (!pools.TryGetValue(origin, out var pool)) pools[origin] = pool = new Stack<ParticleSystem>();
             pool.Push(effect);
+        }
+        void ReturnSlash(VisualEffect slash)
+        {
+            if (!slash) return;
+            slash.gameObject.SetActive(false);
+            slashPool.Push(slash);
         }
         bool showHitRanges;
         DefenseRangeRing areaRing;
@@ -84,7 +94,7 @@ namespace CodingGame.Defense
                 areaRing.Show(position, evt.Radius, evt.Kind == "buff" ? new Color(.4f, 1, .5f) : new Color(1, .65f, .25f));
                 areaSeconds = .25f;
             }
-            // Started so its arc passes the target with the strike.
+            // Started so it is fullest as the strike lands.
             if (evt.Kind == "slash") { Later(evt.Seconds - SlashLead, () => Slash(evt, parent, offset, position)); return; }
             if (!Options.hitEffects) return;
             if ((evt.Kind != "hit" && evt.Kind != "projectile-hit") || evt.Amount <= 0 || laser) return;
@@ -101,18 +111,20 @@ namespace CodingGame.Defense
             var direction = position + Vector3.up * .1f - origin;
             // At scale 1 SwordSlash_3's arc is a ring of radius 2.3 centred 1.3 ahead of the prefab origin (top-down render);
             // moved back so the ring is centred on the robot, and radius / 2.3 makes it reach the attack range (planner).
-            var facing = (direction.sqrMagnitude > .0001f ? Quaternion.LookRotation(direction) : Quaternion.identity) * Quaternion.Euler(0, -SlashCentre, 0);
-            // slash() cuts all the way round: the arc forwards and the same arc turned to the back make the full circle.
-            for (int half = 0; half < 2 && Options.slashEffects; half++)
+            // Its -X side (the thick part) to the target; round the robot's lower body, .45 above the ground point (planner).
+            var facing = (direction.sqrMagnitude > .0001f ? Quaternion.LookRotation(direction) : Quaternion.identity) * Quaternion.Euler(0, 90, 0);
+            if (Options.slashEffects)
             {
-                var turned = facing * Quaternion.Euler(0, 180 * half, 0);
-                var slash = Take(slashPrefab, origin, turned, parent);
-                float scale = evt.Radius / 2.3f;
-                slash.transform.localScale *= scale;
-                // The prefab draws its arc 2 units above its origin (at a character's chest); lowered so the arc sweeps
-                // around the robot's lower body, .45 above the ground point (planner).
-                slash.transform.position += Vector3.up * (.45f - 2f * scale) - turned * Vector3.forward * (1.3f * scale);
-                slashes.Add((slash, slash.main.duration));
+                VisualEffect slash = null;
+                while (slashPool.Count > 0 && !slash) slash = slashPool.Pop();   // one destroyed with its old parent is skipped
+                if (!slash) slash = UnityEngine.Object.Instantiate(slashPrefab, parent);
+                slash.transform.SetParent(parent, false);
+                slash.transform.SetPositionAndRotation(origin + Vector3.up * .35f, facing);
+                slash.transform.localScale = slashPrefab.transform.localScale * (evt.Radius / SlashOuterRadius);
+                slash.gameObject.SetActive(true);
+                // Stepped by Tick like the particle effects, so it keeps to battle pause and speed.
+                slash.pause = true; slash.Reinit();
+                slashes.Add((slash, SlashLife));
             }
             if (showHitRanges)
             {
@@ -162,8 +174,8 @@ namespace CodingGame.Defense
             if (areaRing && areaSeconds <= 0) areaRing.Hide();
             // Simulate leaves systems paused, so IsAlive remains true after their last particle; expire by time instead.
             foreach (var (effect, _) in active) effect.Simulate(elapsed, true, false, false);
-            foreach (var (effect, _) in slashes) effect.Simulate(elapsed, true, false, false);
-            Expire(active, elapsed, Return); Expire(slashes, elapsed, Return);
+            foreach (var (effect, _) in slashes) effect.Simulate(elapsed);
+            Expire(active, elapsed, Return); Expire(slashes, elapsed, ReturnSlash);
             Expire(hitRanges, elapsed, ring => UnityEngine.Object.Destroy(ring.gameObject)); // debug rings only
         }
         static void Expire<T>(List<(T, float)> items, float elapsed, Action<T> done) where T : Component
@@ -185,7 +197,7 @@ namespace CodingGame.Defense
             if (areaRing) areaRing.Hide();
             foreach (var (effect, _) in active) Return(effect);
             active.Clear();
-            foreach (var (effect, _) in slashes) Return(effect);
+            foreach (var (effect, _) in slashes) ReturnSlash(effect);
             slashes.Clear();
             foreach (var (flying, _, _, _) in shots) Return(flying);
             shots.Clear();
