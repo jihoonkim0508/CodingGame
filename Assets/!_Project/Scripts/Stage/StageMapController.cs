@@ -58,6 +58,7 @@ namespace CodingGame.StageMap
             menu = gameObject.AddComponent<StageMapMenu>();
             menu.Configure(hud.Canvas, v => { if (voice) voice.volume = v; });
             // The bridge out of each island has the code error too until that island compiles; the unlock's energy fixes it.
+            camera.gameObject.AddComponent<StageTextGlitch>();
             var walkways = GameObject.Find("Connecting Circuit Walkways");
             foreach (var node in nodes)
             {
@@ -65,7 +66,7 @@ namespace CodingGame.StageMap
                 var bridge = walkways && next ? walkways.transform.Find($"Bridge {node.Number} to {next.Number}") : null;
                 if (!bridge) continue;
                 var glitch = bridge.gameObject.AddComponent<StageGlitchVisual>();
-                glitch.Build(bridge.GetComponentsInChildren<Renderer>(), next.transform.position - node.transform.position);
+                glitch.Build(bridge.GetComponentsInChildren<Renderer>(), false);
                 bridges[node] = glitch;
             }
             RefreshNodes();

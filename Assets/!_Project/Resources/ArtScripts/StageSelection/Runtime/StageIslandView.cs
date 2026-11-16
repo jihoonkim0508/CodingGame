@@ -86,7 +86,7 @@ namespace CodingGame.Art.StageSelection
                 pair.Key.SetPropertyBlock(block);
             }
             // Until the stage compiles the island has the code error on it; the clear's scan (Purification 0 to 1) settles it
-            // in its first quarter, before the island brightens (the lit overlay, in the brighter colours, showed pale).
+            // in its first quarter, before the island brightens.
             if(Application.isPlaying)Glitch.SetStrength(1-4*Purification);
         }
         StageGlitchVisual glitch;
@@ -98,7 +98,7 @@ namespace CodingGame.Art.StageSelection
                 glitch=gameObject.AddComponent<StageGlitchVisual>();
                 var surfaces=new List<Renderer>();
                 if(visualRoot)foreach(var renderer in visualRoot.GetComponentsInChildren<Renderer>())if(renderer!=statusRing)surfaces.Add(renderer);
-                glitch.Build(surfaces,Vector3.right); // across: a band running up and down crossed the flat island only now and then
+                glitch.Build(surfaces,true);
                 return glitch;
             }
         }
@@ -124,7 +124,7 @@ namespace CodingGame.Art.StageSelection
         {
             var renderers = new List<Renderer>();
             foreach (var renderer in GetComponentsInChildren<Renderer>(true))
-                if (!renderer.GetComponentInParent<StageLockVisual>() && !renderer.GetComponentInParent<StagePurificationVisual>() && !StageGlitchVisual.IsOverlay(renderer)) renderers.Add(renderer);
+                if (!renderer.GetComponentInParent<StageLockVisual>() && !renderer.GetComponentInParent<StagePurificationVisual>()) renderers.Add(renderer);
             return renderers.ToArray();
         }
         void OnTransformChildrenChanged(){boundsRenderers=null;boundsCached=false;}
