@@ -412,7 +412,7 @@ MonoBehaviour:
     - textId: t1
       speaker: "\uB514\uBC84"
       text: "\uC774\uC81C \uADF8 \uC801\uC744 \uC3D8\uC790! \uBA85\uB839 \uD0ED\uC758
-        <b>\u2018`attack()`\u2019</b>\uC744\n\uC0C1\uC790 \uC904 \uBC14\uB85C \uC544\uB798\uC5D0
+        <b>\u2018`shoot()`\u2019</b>\uC744\n\uC0C1\uC790 \uC904 \uBC14\uB85C \uC544\uB798\uC5D0
         \uB123\uC5B4 \uC918."
       focusKeys:
       - Editor.Palette.Shot
@@ -536,7 +536,7 @@ MonoBehaviour:
     highlightPadding: 10
     trigger: 
     skipIf: 
-    expectedCode: "while True:\n    enemy = get_nearest_enemy()\n    attack(enemy)"
+    expectedCode: "while True:\n    enemy = get_nearest_enemy()\n    shoot(enemy)"
     pointerKey: Editor.Code.Name.1/2.0
     autoSelectSlot: 
     hintCode: 
@@ -725,7 +725,7 @@ MonoBehaviour:
     expectedCode: 
     pointerKey: 
     autoSelectSlot: 
-    hintCode: "while True:\n    enemy = get_nearest_enemy()\n    attack(enemy)"
+    hintCode: "while True:\n    enemy = get_nearest_enemy()\n    shoot(enemy)"
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0

@@ -132,7 +132,7 @@ static class DebriefCheck
 
         var stale = OneRun();
         var spin = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "30"));
-        // slash() has no target; the shooter's attack(enemy) is what can hold an enemy that is gone.
+        // slash() has no target; the shooter's shoot(enemy) is what can hold an enemy that is gone.
         spin.Body.Add(new CodeBlock(BlockKind.Shot, "0", new CodeBlock(BlockKind.Variable, "enemy")));
         var spinner = Bot(stale, RobotRole.Shooter, 0, 2, new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)), spin);
         stale.Start(); Near(stale, spinner); stale.Invoke(spinner.Id);

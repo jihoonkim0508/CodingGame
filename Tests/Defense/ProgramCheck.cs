@@ -132,7 +132,7 @@ static class ProgramCheck
         sim=Make();robot=Bot(sim); var other=Bot(sim,RobotRole.Shooter,-7);other.AutoExecute=false;
         var attack=new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy));
         sim.ApplyProgram(robot.Id,"cross",new[]{attack});attack.Kind=BlockKind.Buff;
-        Assert(!robot.AutoExecute&&robot.Program.Source.Contains("attack(get_nearest_enemy())"),"apply freezes source and disables automatic actions");
+        Assert(!robot.AutoExecute&&robot.Program.Source.Contains("shoot(get_nearest_enemy())"),"apply freezes source and disables automatic actions");
         sim.Start();Tick(sim,6);
         // The shot is in flight: it carries the ten percent damage and lands on arrival.
         Assert(robot.Executions==1&&sim.Projectiles.Single().Damage==2&&sim.Enemies.Single().Health==10000,"code uses same ten percent combat path without duplicate native attack");

@@ -192,7 +192,7 @@ namespace CodingGame.Defense.Editor
             yield return Seconds(1);
             // One block per beat; the if goes in with its attack, since an empty if does not compile.
             string[] lines = { "while True:", "    enemy = get_nearest_enemy()", "    d = enemy.distance(get_my_pos())",
-                "    r = my_attack_range()", "    if d <= r:\n        attack(enemy)" };
+                "    r = my_attack_range()", "    if d <= r:\n        shoot(enemy)" };
             for (int n = 1; n <= lines.Length; n++)
             {
                 Program(TutorialAnswers.Parse(string.Join("\n", lines.Take(n))));
@@ -347,8 +347,8 @@ namespace CodingGame.Defense.Editor
             else if (!coding && lesson.CodeEditor.IsOpen) lesson.CodeEditor.Close(false);
         }
 
-        // DevTest.AutoDeploy gives a shooter attack() with no target, which the compiler now rejects; the tour fills in
-        // attack(enemy) for any robot left without a program.
+        // DevTest.AutoDeploy gives a shooter shoot() with no target, which the compiler now rejects; the tour fills in
+        // shoot(enemy) for any robot left without a program.
         static void Deploy()
         {
             // AutoDeploy places every robot first, then runs out of blocks part-way through the programs (a later robot was

@@ -22,7 +22,7 @@ static class AllocCheck
             Routes = new[] { new Route(new[] { new Vector2(-15, 0), new Vector2(15, 0) }, 1) },
             Waves = new[] { new[] { new SpawnGroup { Enemy = new EnemySpec { health = 400, speed = .4f }, Count = 12, Interval = .4f } } } });
         var enemy = B(BlockKind.Variable, "enemy");
-        // while True: enemy = get_nearest_enemy(); d = enemy.distance(get_my_pos()); if d < my_attack_range() * 0.9: attack(enemy) / slash()
+        // while True: enemy = get_nearest_enemy(); d = enemy.distance(get_my_pos()); if d < my_attack_range() * 0.9: shoot(enemy) / slash()
         CodeBlock[] Code(bool melee) => new[] { With(B(BlockKind.While),
             B(BlockKind.DeclareVariable, "enemy", B(BlockKind.NearestEnemy)),
             B(BlockKind.DeclareVariable, "d", B(BlockKind.Distance, "0", enemy, B(BlockKind.MyPos))),

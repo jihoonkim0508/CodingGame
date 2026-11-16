@@ -63,8 +63,8 @@ namespace CodingGame.Defense.Editor
         const string Code31 = "while True:\n    enemy = get_nearest_enemy()\n    block(enemy)";
         // 2-1: the found enemy kept in a variable; 2-3: the shooter waits until the enemy is within 3, where one shot fells it
         // (32 x 7/distance, at most 3x), instead of firing on entry at 7 and reloading 6 s while the enemy walks past.
-        const string Code21 = "while True:\n    enemy = get_nearest_enemy()\n    attack(enemy)";
-        const string Code23 = "while True:\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:\n        attack(enemy)";
+        const string Code21 = "while True:\n    enemy = get_nearest_enemy()\n    shoot(enemy)";
+        const string Code23 = "while True:\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:\n        shoot(enemy)";
         const string StagesFolder = "Assets/!_Project/Defense/Tutorial/Stages23";
 
         sealed class Line { public string Speaker, Text; }
@@ -210,7 +210,7 @@ namespace CodingGame.Defense.Editor
             }, Focus(focus)));
 
         // 2-1 (play feedback 4: variables open in Stage 2): a shooter stood by the road; while True, then enemy = get_nearest_enemy()
-        // inside it, then attack(enemy) under that.
+        // inside it, then shoot(enemy) under that.
         static List<S> TwoOne() => new List<S> {
             L("2-1.A01", s => s.Cards = true),
             L("2-1.A03", s => s.PlaceShooter = true),
@@ -235,7 +235,7 @@ namespace CodingGame.Defense.Editor
         };
 
         // 2-3: the old 1-3 lesson. The shooter from 2-1 (Robot.Unit.0) first shows the plain loop firing on entry; then its code
-        // gets the distance line and the player builds the if round attack(enemy).
+        // gets the distance line and the player builds the if round shoot(enemy).
         static List<S> TwoThree() => new List<S> {
             L("2-3.A01"),
             L("2-3.A03", Click(Unit0, s => s.Pointer = Unit0)),
@@ -257,7 +257,7 @@ namespace CodingGame.Defense.Editor
             L("2-3.C09", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/3.0.1", "Editor.Palette.Number", "Editor.Palette.Number", "Editor.Code.Arg.1/3.0.1"), s => s.AutoSlot = "Editor.Code.Arg.1/3.0.1")),
             L("2-3.C09a", EditSignal(TutorialSignals.DraftValueMatches, "1/3.0.1|3", "Editor.Code.Name.1/3.0.1", "Editor.Code.Name.1/3.0.1")),
             L("2-3.C10", Focus("Editor.Code.Arg.1/3.0")),
-            // attack() goes in the if, then the enemy it shoots goes in its brackets (a variable renamed enemy finishes the code).
+            // shoot() goes in the if, then the enemy it shoots goes in its brackets (a variable renamed enemy finishes the code).
             L("2-3.D02", With(EditSignal(TutorialSignals.CodeLinePlaced, "1/3/1:Shot", "Editor.Palette.Shot", "Editor.Palette.Shot", "Editor.Code.Body.1/3"),
                 s => { s.AutoSlot = "Editor.Code.Body.1/3"; s.Demo = "Editor.Palette.Shot>Editor.Code.Body.1/3"; })),
             L("2-3.D03", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/3/1.0", "Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.Arg.1/3/1.0"), s => s.AutoSlot = "Editor.Code.Arg.1/3/1.0")),
@@ -299,7 +299,7 @@ namespace CodingGame.Defense.Editor
         // Script code names in the code colour (1-4 already has backticks).
         static readonly Regex CodeNames = new Regex(@"(?<![A-Za-z0-9_.`])(" + string.Join("|", new[] {
             "enemy.distance(get_my_pos())", ".distance(get_my_pos())", "enemy.distance()", "get_nearest_enemy()", "get_my_pos()", "my_attack_range()",
-            "enemy_distance", "while True", "slash()", "block()", "attack()", ".hp", "enemy", "while", "if", "<=" }.Select(Regex.Escape)) + @")(?![A-Za-z0-9_(`])");
+            "enemy_distance", "while True", "slash()", "block()", "shoot()", ".hp", "enemy", "while", "if", "<=" }.Select(Regex.Escape)) + @")(?![A-Za-z0-9_(`])");
 
         static Dictionary<string, List<Line>> ParseScript(string path)
         {

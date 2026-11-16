@@ -37,7 +37,7 @@ static class WhileTrueCheck
             B(BlockKind.Arithmetic, "*", B(BlockKind.MyAttackRange), B(BlockKind.Number, "0.3")));
         var ranged = Forever(With(B(BlockKind.If, "0", near), B(BlockKind.Shot, "0", Enemy)));
         Assert(PythonTreeCompiler.Compile("robot_2", ranged).Contains(
-            "        if enemy.distance(get_my_pos()) < my_attack_range() * 0.3:\n            attack(enemy)\n"),
+            "        if enemy.distance(get_my_pos()) < my_attack_range() * 0.3:\n            shoot(enemy)\n"),
             "after `if enemy.is_dead(): enemy = ...` the name is an enemy, so distance and attack compile");
 
         // Still refused: an enemy read before any assignment other than through is_dead(), and is_dead() on a number.

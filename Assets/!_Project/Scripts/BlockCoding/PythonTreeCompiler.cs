@@ -114,7 +114,7 @@ namespace CodingGame.BlockCoding
                 if (!path.Add(block)) throw new FormatException("블록을 자기 자신의 내부에 연결할 수 없습니다.");
                 OutputSlot(block.Kind);
                 if (HasEnemyArgument(block.Kind) && (block.Arguments == null || block.Arguments.Count == 0 || block.Arguments[0] == null))
-                    throw new FormatException("공격 대상을 넣어 주세요. 예: enemy = get_nearest_enemy() 다음에 " + (block.Kind == BlockKind.Shot || block.Kind == BlockKind.Attack ? "attack" : block.Kind.ToString().ToLowerInvariant()) + "(enemy)");
+                    throw new FormatException("공격 대상을 넣어 주세요. 예: enemy = get_nearest_enemy() 다음에 " + (block.Kind == BlockKind.Shot || block.Kind == BlockKind.Attack ? "shoot" : block.Kind.ToString().ToLowerInvariant()) + "(enemy)");
                 if (block.Arguments == null || block.Arguments.Count != ArgumentCount(block.Kind))
                     throw new FormatException($"{block.Kind}: 입력 슬롯을 모두 채워 주세요.");
                 for (int i = 0; i < block.Arguments.Count; i++)
@@ -279,7 +279,7 @@ namespace CodingGame.BlockCoding
             {
                 var target = block.Arguments[0];
                 Require(target, variables, ValueType.Enemy, "공격 대상에는 Enemy 객체가 필요합니다.");
-                string method = block.Kind == BlockKind.Shot || block.Kind == BlockKind.Attack ? "attack" : block.Kind.ToString().ToLowerInvariant();
+                string method = block.Kind == BlockKind.Shot || block.Kind == BlockKind.Attack ? "shoot" : block.Kind.ToString().ToLowerInvariant();
                 return method + "(" + Expression(target, variables) + ")";
             }
             switch (block.Kind)

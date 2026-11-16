@@ -124,7 +124,7 @@ static class Check
     }
     static void Main()
     {
-        const string answer = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= 3:\n    attack(enemy)";
+        const string answer = "enemy = get_nearest_enemy()\nenemy_distance = enemy.distance(get_my_pos())\nif enemy_distance <= 3:\n    shoot(enemy)";
         Require(Attacks("<=") > 0, "True distance condition must execute the attack inside if");
         Require(Attacks(">") == 0, "False condition must skip the attack even when the enemy is in attack range");
         Require(TutorialWatcher.Matches(new DefenseProgram("renamed", Program("<=", "target", "distance")), answer), "Consistent custom variable names should be accepted");

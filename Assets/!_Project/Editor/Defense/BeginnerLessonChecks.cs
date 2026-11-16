@@ -203,7 +203,7 @@ namespace CodingGame.Defense.Editor
                 {
                     var tank = sim.Robots.SingleOrDefault(r => r.Spec.role == RobotRole.Tank);
                     Require(tank != null, "3-1 did not place the tank");
-                    try { DevTest.AutoDeploy(); } catch (FormatException) { } // it places them, then stops at a target-less attack()
+                    try { DevTest.AutoDeploy(); } catch (FormatException) { } // it places them, then stops at a target-less shoot()
                     Loops(sim);
                     battle.StartBattle();
                     Log("START 3-1 robots=" + sim.Robots.Count + " tank at " + tank.Position);
@@ -460,7 +460,7 @@ namespace CodingGame.Defense.Editor
             // Two shooters: 2-1 gives the variable blocks for two copies of its code.
             if (sim.RobotAvailable(RobotRole.Shooter) > 0 && sim.Robots.Count(r => r.Spec.role == RobotRole.Shooter) < 2) { battle.ChooseRobot(shooter); PlaceBest(battle, shooter); }
             foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Shooter && (r.Program == null || r.Program.IsEmpty)).ToArray())
-                sim.ApplyProgram(bot.Id, "free_" + bot.Id, TutorialAnswers.Parse("while True:\n    enemy = get_nearest_enemy()\n    attack(enemy)"));
+                sim.ApplyProgram(bot.Id, "free_" + bot.Id, TutorialAnswers.Parse("while True:\n    enemy = get_nearest_enemy()\n    shoot(enemy)"));
         }
 
         static void FreePlayFour(DefenseBattle battle)

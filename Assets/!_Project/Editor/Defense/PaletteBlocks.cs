@@ -10,7 +10,7 @@ using Object = UnityEngine.Object;
 namespace CodingGame.Defense.Editor
 {
     // Adds the palette blocks the Defense scene's code editor lacks, as copies of blocks already there (the scene's editor
-    // instance holds the palette): `( ).is_dead()` in 논리 from the one-hole attack( ) block, and the calculation `( ) + ( )` in
+    // instance holds the palette): `( ).is_dead()` in 논리 from the one-hole shoot( ) block, and the calculation `( ) + ( )` in
     // 값 from the comparison (its picker gets + - * / at run time). Blocks already in the palette are left alone.
     public static class PaletteBlocks
     {
@@ -44,7 +44,7 @@ namespace CodingGame.Defense.Editor
                 item.FindPropertyRelative("category").intValue = category;
                 log += kind + " added; ";
             }
-            // attack( [ ] ) → [ ] .is_dead(): the words are the header's own labels, not those inside the hole.
+            // shoot( [ ] ) → [ ] .is_dead(): the words are the header's own labels, not those inside the hole.
             Append(BlockKind.IsDead, BlockKind.Shot, 3, view =>
             {
                 var header = view.transform.Find("Header");
