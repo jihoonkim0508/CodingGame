@@ -21,6 +21,21 @@ static class ProgramCheck
     static RobotState Bot(DefenseSimulation sim, RobotRole role=RobotRole.Warrior,float x=-9)
         => sim.Place(new RobotSpec{role=role,range=6,damage=role==RobotRole.Buffer?0:20,interval=.1f},(int)role,new Vector2(x,role==RobotRole.Tank?0:2),out _);
     static void Tick(DefenseSimulation sim,int frames) { for(int i=0;i<frames;i++)sim.Advance(1.0/60); }
+    // The attack preview fights the wave's own enemies: their type and numbers (damage too), every group shown, no boss wait.
+    static void CheckPreviewWave()
+    {
+        SpawnGroup G(EnemyType type, int definition, int count, float delay, bool boss = false) => new SpawnGroup { Enemy = new EnemySpec { type = type, health = 30 + definition, damage = 9 },
+            DefinitionIndex = definition, RouteIndex = 1, Count = count, Delay = delay, Interval = .5f, Boss = boss };
+        var wave = new[] { G(EnemyType.Tank, 2, 1, 0, true), G(EnemyType.Tank, 2, 2, 6), G(EnemyType.Normal, 0, 6, 0) };
+        var sample = DefenseSimulation.PreviewWave(wave, 3);
+        Assert(string.Join(",", sample.Select(g => g.DefinitionIndex)) == "0,2,2" && sample.All(g => g.Count == 1 && g.RouteIndex == 0 && !g.Boss),
+            "preview: ordinary groups by delay, then the boss, one enemy each");
+        Assert(sample[2].Enemy.type == EnemyType.Tank && sample[2].Enemy.health == 32 && sample[2].Enemy.damage == 9 && sample[2].Enemy != wave[0].Enemy,
+            "preview: the wave's own numbers, copied");
+        Assert(sample.Select(g => g.Delay).SequenceEqual(new[] { 0f, 1.4f, 2.8f }), "preview: 1.4 s apart");
+        Assert(DefenseSimulation.PreviewWave(new[] { G(EnemyType.Fast, 1, 5, 0), G(EnemyType.Normal, 0, 4, 5) }, 1).Single().DefinitionIndex == 1, "preview: a one-enemy lesson takes the first");
+        Assert(DefenseSimulation.PreviewWave(new[] { G(EnemyType.Normal, 0, 8, 0) }, 3).Length == 3, "preview: one group fills the sample");
+    }
     static void CheckTankLifecycle()
     {
         DefenseSimulation Scenario(int count) => new DefenseSimulation(new BattleSetup { Progression = FixtureProgression.Create(),
@@ -68,6 +83,7 @@ static class ProgramCheck
     public static void Run()
     {
         CheckTankLifecycle();
+        CheckPreviewWave();
         // Same close spawn and cooldown as the authored tank preview.
         var tankSetup = new BattleSetup { Progression = FixtureProgression.Create(),
             Min = new Vector2(-50,-50), Max = new Vector2(50,50),

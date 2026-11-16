@@ -44,18 +44,9 @@ namespace CodingGame.Defense
             hitEffects.Clear(); hitEffects.Options=options;
             if (simulation != null) simulation.Setup.TestOptions=options;
         }
-        public void EditorApplyBalance()
-        {
-            if(simulation==null)return;
-            var setup=simulation.Setup;
-            CopyRules(setup);
-            var enemy=HarmlessEnemy();setup.Waves[0][0].Enemy=enemy;
-            simulation.ApplyBalance(setup,Enumerable.Range(0,6).Select(i=>battle.RobotDefinition(i).stats.Copy()).ToArray(),new[]{enemy});
-            projectileViews.Clear();hitEffects.Clear();foreach(var view in views.Values)view.ClearVisuals();RefreshStats();
-        }
+        // The live battle has the new numbers by now (robot specs, the wave's enemies): start the demo again from them.
+        public void EditorApplyBalance() { if (simulation != null) ResetPreview(); }
 #endif
-        EnemySpec HarmlessEnemy() => Harmless(battle.PreviewEnemy.stats);
-        static EnemySpec Harmless(EnemySpec spec) { var enemy = spec.Copy(); enemy.damage = 0; return enemy; }
         // The preview runs the live battle's balance so the demo matches what the robot will do.
         void CopyRules(BattleSetup setup)
         {
@@ -128,18 +119,17 @@ namespace CodingGame.Defense
         {
             ClearActors(); source = selected.Program; emptyElapsed = 0; firstHitReported = false; firstHitCount = 0;
             sourceLevel = selected.Level;
-            // 1-3's distance lesson on a straight road: one of the wave's own enemies at a time walks in from beyond the shooter's
+            var live = battle.Simulation;
+            // 2-3's distance lesson (the old 1-3's) on a straight road: one enemy at a time walks in from beyond the shooter's
             // range, so a shot fired on entry leaves it reloading while the enemy passes close, and a shot held until close fells it.
-            bool approach = battle.Simulation.Setup.Stage == 1 && battle.Simulation.WaveIndex == 2;
-            var lessonEnemy = approach ? battle.Simulation.Setup.Waves[2].FirstOrDefault()?.Enemy : null;
+            bool approach = live.Setup.Stage == 2 && live.WaveIndex == 2;
             var setup = new BattleSetup {
-                TestOptions = battle.Simulation.Options,
+                TestOptions = live.Options,
                 Min = new Point(-50,-50), Max = new Point(50,50), BaseHealth = 100,
                 Routes = new[] { new Route(new[] {
                     approach ? new Point(Math.Max(7, selected.Range + 1), 0) : new Point(2,0),
                     new Point(-20,0) }, .75f) }, // narrow, so the robot at 1.8 is clear of it under the placement rule
-                Waves = new[] { new[] { new SpawnGroup { Enemy = lessonEnemy != null ? Harmless(lessonEnemy) : HarmlessEnemy(),
-                    Count = approach ? 1 : 3, Interval = 1.4f } } }
+                Waves = new[] { DefenseSimulation.PreviewWave(live.CurrentWave, approach ? 1 : 3) }
             };
             CopyRules(setup);
             simulation = new DefenseSimulation(setup);
@@ -147,7 +137,7 @@ namespace CodingGame.Defense
             var bot = simulation.Place(selected.Spec.Copy(), selected.DefinitionIndex, point, out var error);
             if (bot == null) throw new InvalidOperationException(error);
             bot.Level = selected.Level;
-            if (bot.Health.HasValue) bot.Health = bot.MaxHealth;
+            bot.Health = selected.Health; // a tank hurt in an earlier wave starts hurt here too
             if (source != null) simulation.ApplyProgram(bot.Id, source.Name, source.CopyBlocks());
             AddView(bot.Id, battle.RobotDefinition(bot.DefinitionIndex).prefab);
             views[bot.Id].Face(previewCamera.transform.position);
@@ -273,7 +263,7 @@ namespace CodingGame.Defense
             }
             foreach (var e in simulation.Enemies)
             {
-                if (!views.ContainsKey(e.Id)) AddView(e.Id, battle.PreviewEnemy.prefab);
+                if (!views.ContainsKey(e.Id)) AddView(e.Id, battle.EnemyAt(e.DefinitionIndex).prefab);
                 var view = views[e.Id];
                 view.SyncEnemy(e, simulation.Time, World(e.Position), previewCamera.transform.rotation);
                 if (healthBars) healthBars.Show(e.Id, previewCamera, view.HealthAnchor, view.HealthWidth, e.Health, e.Spec.health);

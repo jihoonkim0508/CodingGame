@@ -40,6 +40,7 @@ try
     preview.PreviewSimulation.Advance(2.5); Status();
     Check(label.text.Contains("저지 3/3"),"loop restores blocking through code execution");
     var held=preview.PreviewSimulation;
+    held.Robots.Single().Health=1e6f; // the preview's enemies hit as hard as the wave's; this check is about the reset, not the tank's death
     for(int i=0;i<100;i++) Advance(.1f);
     Check(preview.PreviewSimulation==held&&held.Time>12&&held.Enemies.Count==3,"living blocked enemies are not reset after eight seconds");
     // Enemies spawn inside the tank's range, so a short wait still reaches the next command before anything walks out of reach.

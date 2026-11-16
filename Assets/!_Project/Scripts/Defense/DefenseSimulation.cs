@@ -287,6 +287,18 @@ namespace CodingGame.Defense
                 Level = r.Level, UpgradeCostPaid = r.UpgradeCostPaid, Health = r.Health, Name = r.Program?.Name, Code = r.Program?.CopyBlocks() }).ToArray() };
         static SpawnGroup CopyGroup(SpawnGroup g) => new SpawnGroup { Enemy = g.Enemy.Copy(), DefinitionIndex = g.DefinitionIndex, RouteIndex = g.RouteIndex,
             Count = g.Count, Delay = g.Delay, Interval = g.Interval, Boss = g.Boss };
+        // The attack preview's enemies: the wave's own (type, this wave's scaled and overridden numbers, damage), one from each
+        // group in turn up to `count` (each group at least once when count > 1), 1.4 s apart on the preview's one road. No boss
+        // wait: a boss behind enemies that walk past would never come and the demo would never end.
+        public static SpawnGroup[] PreviewWave(IReadOnlyList<SpawnGroup> wave, int count)
+        {
+            var groups = wave.OrderBy(g => g.Boss).ThenBy(g => g.Delay).ToArray();
+            if (count > 1) count = Math.Max(count, groups.Length);
+            var picks = new List<SpawnGroup>();
+            for (int round = 0; picks.Count < count && groups.Any(g => g.Count > round); round++)
+                foreach (var g in groups) if (g.Count > round && picks.Count < count) picks.Add(g);
+            return picks.Select((g, i) => { var one = CopyGroup(g); one.Count = 1; one.Delay = i * 1.4f; one.Interval = 1.4f; one.RouteIndex = 0; one.Boss = false; return one; }).ToArray();
+        }
         public void Restore(WaveCheckpoint checkpoint)
         {
             if (Phase != BattlePhase.Ready || Robots.Count > 0 || checkpoint.Stage != Setup.Stage || checkpoint.Wave != WaveIndex)
