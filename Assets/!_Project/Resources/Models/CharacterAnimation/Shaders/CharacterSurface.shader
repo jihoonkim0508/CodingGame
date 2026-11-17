@@ -200,7 +200,8 @@ Shader "CodingGame/Art/Character Surface"
   Pass
   {
    Name "CharacterOutline" Tags {"LightMode"="SRPDefaultUnlit"}
-   Cull Front ZWrite Off ZTest LEqual
+   // ZWrite On: drawn with the opaques, an outline that leaves no depth is painted over by the floor drawn after it.
+   Cull Front ZWrite On ZTest LEqual
    Blend SrcAlpha OneMinusSrcAlpha
    HLSLPROGRAM
    #pragma target 3.0
