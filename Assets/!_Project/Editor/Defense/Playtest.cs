@@ -627,13 +627,10 @@ namespace CodingGame.Defense.Editor
             Check(Mathf.Abs(scale - expectedScale) < expectedScale * .05f, $"크기 {scale:0.00} (사거리 {bot.Spec.range} / 6.8 ≈ {expectedScale:0.00}: 바깥 끝이 사거리)");
             float offCentre = new Vector2(effect.transform.position.x - bot.Position.X, effect.transform.position.z - bot.Position.Y).magnitude;
             Check(offCentre < .1f, $"베기의 중심이 로봇 위치 (어긋남 {offCentre:0.00})");
-            if (enemy != null)
-            {
-                var toEnemy = new Vector3(enemy.Position.X - bot.Position.X, 0, enemy.Position.Y - bot.Position.Y).normalized;
-                // The crescent's thick part is on its -X side.
-                var thick = Vector3.ProjectOnPlane(-effect.transform.right, Vector3.up).normalized;
-                Check(Vector3.Dot(thick, toEnemy) > .95f, $"베기의 두꺼운 쪽이 적 방향 (dot {Vector3.Dot(thick, toEnemy):0.00})");
-            }
+            // The crescent's thick part is on its -X side: always to the bottom of the screen, wherever the enemy is.
+            var thick = Vector3.ProjectOnPlane(-effect.transform.right, Vector3.up).normalized;
+            var screenDown = Vector3.ProjectOnPlane(-Camera.main.transform.up, Vector3.up).normalized;
+            Check(Vector3.Dot(thick, screenDown) > .99f, $"베기의 두꺼운 쪽이 화면 아래 (dot {Vector3.Dot(thick, screenDown):0.00})");
             yield return .25f;
             Check(enemy != null && enemy.Health < enemy.Spec.health, $"검이 정면을 지나면 피해 (체력 {enemy?.Health:0}/{enemy?.Spec.health:0})");
             Shot();

@@ -16,8 +16,8 @@ namespace CodingGame.Defense
         [SerializeField] ParticleSystem shotPrefab, shotFlarePrefab, shotImpactPrefab;
         // The slash is one flat crescent lying round its origin (top-down render): at scale 1 its outer edge is 6.8 from the
         // centre and its thick part on its -X side; it shows for about half a second of its 1 s life and is fullest about .2 s in.
-        // One per slash() (planner: not two joined into a circle), scaled so the outer edge is the attack range, its thick part
-        // turned to the target, and started so it is fullest as the strike lands.
+        // One per slash() (planner: not two joined into a circle), played whole, scaled so the outer edge is the attack range,
+        // its thick part to the bottom of the screen, and started so it is fullest as the strike lands.
         const float SlashOuterRadius = 6.8f;
         const float SlashLead = .2f, SlashLife = 1;
         readonly List<(float wait, Action show)> delayed = new List<(float, Action)>();
@@ -95,7 +95,7 @@ namespace CodingGame.Defense
                 areaSeconds = .25f;
             }
             // Started so it is fullest as the strike lands.
-            if (evt.Kind == "slash") { Later(evt.Seconds - SlashLead, () => Slash(evt, parent, offset, position)); return; }
+            if (evt.Kind == "slash") { Later(evt.Seconds - SlashLead, () => Slash(evt, parent, offset)); return; }
             if (!Options.hitEffects) return;
             if ((evt.Kind != "hit" && evt.Kind != "projectile-hit") || evt.Amount <= 0 || laser) return;
             // Manual simulation keeps every child particle in sync with battle pause and speed.
@@ -105,14 +105,12 @@ namespace CodingGame.Defense
         {
             if (wait > 0) delayed.Add((wait, show)); else show();
         }
-        void Slash(CombatEvent evt, Transform parent, Vector3 offset, Vector3 position)
+        void Slash(CombatEvent evt, Transform parent, Vector3 offset)
         {
             var origin = offset + DefenseViews.World(evt.Origin, .1f);
-            var direction = position + Vector3.up * .1f - origin;
-            // At scale 1 SwordSlash_3's arc is a ring of radius 2.3 centred 1.3 ahead of the prefab origin (top-down render);
-            // moved back so the ring is centred on the robot, and radius / 2.3 makes it reach the attack range (planner).
-            // Its -X side (the thick part) to the target; round the robot's lower body, .45 above the ground point (planner).
-            var facing = (direction.sqrMagnitude > .0001f ? Quaternion.LookRotation(direction) : Quaternion.identity) * Quaternion.Euler(0, 90, 0);
+            // The whole effect as made, only turned: its -X side (the thick part) always to the bottom of the screen (world -Z
+            // under the fixed camera), whichever side the target is on (planner). Round the robot's lower body, .45 up (planner).
+            var facing = Quaternion.Euler(0, -90, 0);
             if (Options.slashEffects)
             {
                 VisualEffect slash = null;
