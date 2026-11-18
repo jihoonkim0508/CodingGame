@@ -20556,7 +20556,7 @@ MonoBehaviour:
   projectilePrefab: {fileID: 5101280866201362435, guid: b9454c1812db1074bb7030fbdafd2e4b, type: 3}
   hitEffects:
     prefab: {fileID: 8443315704496310908, guid: b8a43a26812e02d4e94a8deab7fec8d2, type: 3}
-    slashPrefab: {fileID: 1010469353794949301, guid: 60d310309985b9d4e9917e6e851e63c9, type: 3}
+    slashPrefab: {fileID: 4558307697038599767, guid: cc759c64a5f81d341b0414fd737979fa, type: 3}
     hitRangePrefab: {fileID: 2013993619354616449, guid: 65ea53d7f8ca6be44adf8b30ab3963b5, type: 3}
     lifetime: 1.5
     shotPrefab: {fileID: 1478078783599965658, guid: fee6e71f0488a1d4480be2b3d6e1bbf7, type: 3}
@@ -20966,7 +20966,7 @@ MonoBehaviour:
   projectilePrefab: {fileID: 5101280866201362435, guid: b9454c1812db1074bb7030fbdafd2e4b, type: 3}
   hitEffects:
     prefab: {fileID: 8443315704496310908, guid: b8a43a26812e02d4e94a8deab7fec8d2, type: 3}
-    slashPrefab: {fileID: 1010469353794949301, guid: 60d310309985b9d4e9917e6e851e63c9, type: 3}
+    slashPrefab: {fileID: 4558307697038599767, guid: cc759c64a5f81d341b0414fd737979fa, type: 3}
     hitRangePrefab: {fileID: 2013993619354616449, guid: 65ea53d7f8ca6be44adf8b30ab3963b5, type: 3}
     lifetime: 1.5
     shotPrefab: {fileID: 1478078783599965658, guid: fee6e71f0488a1d4480be2b3d6e1bbf7, type: 3}
