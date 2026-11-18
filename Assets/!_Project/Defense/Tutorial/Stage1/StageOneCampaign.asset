@@ -132,37 +132,38 @@ MonoBehaviour:
       rewards: []
     - stage: 2
       wave: 3
-      topic: "\uC870\uAC74\uBB38: \uC3E0 \uB54C \uACE0\uB974\uAE30"
-      goal: "\uBE60\uB978 \uC18D\uB3C4\uBCD1 \uB4F1\uC7A5 \xB7 \uAC00\uAE4C\uC774
-        \uC624\uBA74 slow()\uB85C \uB2A6\uCD94\uACE0 \uACF5\uACA9\uD558\uAE30"
+      topic: "\uC870\uAC74\uBB38: \uBCA8 \uB54C \uACE0\uB974\uAE30(\uC804\uC0AC\uD615)"
+      goal: "\uC801\uC774 \uACF5\uACA9 \uBC94\uC704\uC5D0 \uB4E4\uC5B4\uC654\uC744
+        \uB54C\uB9CC \uBCA0\uB294 \uC870\uAC74\uBB38\uC73C\uB85C \uB9C9\uAE30"
       robots:
-      - role: 5
+      - role: 1
         count: 1
       blocks:
+      - kind: 2
+        count: 1
+      - kind: 19
+        count: 1
       - kind: 3
         count: 2
       - kind: 11
-        count: 2
-      - kind: 10
         count: 2
       - kind: 27
         count: 2
       - kind: 14
         count: 2
+      - kind: 6
+        count: 1
       - kind: 15
-        count: 3
+        count: 2
       - kind: 26
-        count: 1
-      - kind: 23
-        count: 1
-      rewards:
-      - kind: 23
-        count: 1
+        count: 2
+      rewards: []
     - stage: 2
       wave: 4
       topic: "\uC870\uAC74 \uC790\uC720 \uD50C\uB808\uC774"
-      goal: "\uC801\uC774 \uAC00\uAE4C\uC774 \uC654\uC744 \uB54C \uC3D8\uB294 \uC870\uAC74\uBB38\uC73C\uB85C
-        \uBB34\uB9AC \uB9C9\uAE30"
+      goal: "\uC801\uC774 \uACF5\uACA9 \uBC94\uC704\uC5D0 \uB4E4\uC5B4\uC654\uC744
+        \uB54C\uB9CC \uACF5\uACA9\uD558\uB294 \uC870\uAC74\uBB38\uC73C\uB85C \uBB34\uB9AC
+        \uB9C9\uAE30"
       robots: []
       blocks: []
       rewards:
@@ -170,11 +171,21 @@ MonoBehaviour:
         count: 1
     - stage: 2
       wave: 5
-      topic: "\uC790\uC720 \uD50C\uB808\uC774"
-      goal: "\uBCC0\uC218\uC640 \uC870\uAC74\uBB38\uC744 \uBAA8\uB450 \uC368\uC11C
-        \uB354 \uD070 \uBB34\uB9AC \uB9C9\uAE30"
+      topic: "is_dead(): \uD55C \uC801\uC744 \uB05D\uAE4C\uC9C0"
+      goal: "\uC4F0\uB7EC\uC9C4 \uC801\uC774\uBA74 \uC0C8\uB85C \uCC3E\uB294 is_dead()\uB85C
+        \uD55C \uC801\uC529 \uB05D\uB0B4\uAE30"
       robots: []
-      blocks: []
+      blocks:
+      - kind: 28
+        count: 2
+      - kind: 3
+        count: 1
+      - kind: 14
+        count: 1
+      - kind: 6
+        count: 1
+      - kind: 15
+        count: 2
       rewards:
       - kind: 3
         count: 1
@@ -226,6 +237,90 @@ MonoBehaviour:
         count: 1
     - stage: 2
       wave: 6
+      topic: "break: \uC0AC\uAC70\uB9AC\uB97C \uBC97\uC5B4\uB098\uBA74 \uB193\uC544\uC8FC\uAE30"
+      goal: "\uBE60\uB978 \uC801 \uB4F1\uC7A5 \xB7 \uC0AC\uAC70\uB9AC \uBC16\uC73C\uB85C
+        \uB098\uAC04 \uC801\uC740 break\uB85C \uB193\uC544\uC8FC\uAE30"
+      robots: []
+      blocks:
+      - kind: 2
+        count: 1
+      - kind: 17
+        count: 2
+      - kind: 3
+        count: 1
+      - kind: 11
+        count: 1
+      - kind: 27
+        count: 1
+      - kind: 26
+        count: 1
+      - kind: 15
+        count: 1
+      rewards: []
+    - stage: 2
+      wave: 7
+      topic: "\uC790\uC720 \uC2E4\uC2B5: \uC4F0\uB7EC\uC9C0\uAC70\uB098 \uBA40\uC5B4\uC9C0\uBA74
+        break"
+      goal: "\uC4F0\uB7EC\uC9C4 \uC801\uB3C4, \uBA40\uC5B4\uC9C4 \uC801\uB3C4 break\uB85C
+        \uB193\uC544\uC8FC\uACE0 \uB2E4\uC74C \uC801 \uC7A1\uAE30"
+      robots: []
+      blocks:
+      - kind: 28
+        count: 1
+      - kind: 3
+        count: 1
+      - kind: 15
+        count: 1
+      - kind: 17
+        count: 1
+      rewards: []
+    - stage: 2
+      wave: 8
+      topic: "continue\uC640 enemy.type"
+      goal: "\uB2E8\uB2E8\uD55C \uC801 \uB4F1\uC7A5 \xB7 \uC6D0\uAC70\uB9AC\uD615\uC740
+        continue\uB85C \uB2E8\uB2E8\uD55C \uC801\uB9CC, \uC791\uC740 \uC801\uC740
+        \uC804\uC0AC\uD615\uC774"
+      robots: []
+      blocks:
+      - kind: 3
+        count: 1
+      - kind: 11
+        count: 1
+      - kind: 15
+        count: 1
+      - kind: 31
+        count: 2
+      - kind: 18
+        count: 2
+      - kind: 2
+        count: 1
+      - kind: 19
+        count: 1
+      rewards: []
+    - stage: 2
+      wave: 9
+      topic: "\uC790\uC720 \uC885\uD569"
+      goal: "\uBAA8\uB4E0 \uC885\uB958\uC758 \uC801 \xB7 is_dead(), break, continue\uB85C
+        \uB85C\uBD07\uB9C8\uB2E4 \uB9E1\uC744 \uC801 \uB098\uB204\uAE30"
+      robots: []
+      blocks:
+      - kind: 3
+        count: 2
+      - kind: 28
+        count: 1
+      - kind: 17
+        count: 1
+      - kind: 18
+        count: 1
+      - kind: 11
+        count: 1
+      - kind: 15
+        count: 2
+      - kind: 2
+        count: 1
+      rewards: []
+    - stage: 2
+      wave: 10
       topic: "\uBCF4\uC2A4"
       goal: "\uBCF4\uC2A4 \uB4F1\uC7A5 \xB7 \uC791\uC740 \uC801\uC744 \uBAA8\uB450
         \uB9C9\uACE0 \uBCF4\uC2A4\uB97C \uC4F0\uB7EC\uB728\uB9AC\uAE30"
@@ -408,17 +503,17 @@ MonoBehaviour:
         route: 0
         count: 5
         delay: 0
-        interval: 1.4
-        healthOverride: 0
+        interval: 3
+        healthOverride: 11.9
         speedOverride: 0
         leakDamageOverride: 0
         boss: 0
       - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
         route: 0
         count: 4
-        delay: 5
-        interval: 1.6
-        healthOverride: 0
+        delay: 16
+        interval: 3
+        healthOverride: 8.9
         speedOverride: 0
         leakDamageOverride: 0
         boss: 0
@@ -444,48 +539,151 @@ MonoBehaviour:
     - groups:
       - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
         route: 0
-        count: 6
+        count: 3
         delay: 0
-        interval: 2.4
-        healthOverride: 0
-        speedOverride: 0
+        interval: 5
+        healthOverride: 26
+        speedOverride: 1.37
         leakDamageOverride: 0
         boss: 0
       - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
         route: 0
-        count: 8
-        delay: 4
-        interval: 1.1
-        healthOverride: 0
-        speedOverride: 0
+        count: 4
+        delay: 3
+        interval: 3
+        healthOverride: 26
+        speedOverride: 1.46
         leakDamageOverride: 0
         boss: 0
       - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
         route: 0
-        count: 6
+        count: 3
+        delay: 8
+        interval: 3
+        healthOverride: 19.6
+        speedOverride: 1.74
+        leakDamageOverride: 0
+        boss: 0
+    - groups:
+      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
+        route: 0
+        count: 5
+        delay: 0
+        interval: 2
+        healthOverride: 40
+        speedOverride: 1.6
+        leakDamageOverride: 0
+        boss: 0
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 4
+        delay: 6
+        interval: 2.5
+        healthOverride: 18.8
+        speedOverride: 1.69
+        leakDamageOverride: 0
+        boss: 0
+    - groups:
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 5
+        delay: 0
+        interval: 2
+        healthOverride: 17.9
+        speedOverride: 1.65
+        leakDamageOverride: 0
+        boss: 0
+      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
+        route: 0
+        count: 4
+        delay: 3
+        interval: 2
+        healthOverride: 23.9
+        speedOverride: 1.5
+        leakDamageOverride: 0
+        boss: 0
+      - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
+        route: 0
+        count: 2
+        delay: 8
+        interval: 5
+        healthOverride: 25.4
+        speedOverride: 1.3
+        leakDamageOverride: 0
+        boss: 0
+    - groups:
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 4
+        delay: 0
+        interval: 2
+        healthOverride: 17.1
+        speedOverride: 1.6
+        leakDamageOverride: 0
+        boss: 0
+      - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
+        route: 0
+        count: 3
+        delay: 3
+        interval: 6
+        healthOverride: 34.2
+        speedOverride: 1.17
+        leakDamageOverride: 0
+        boss: 0
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 3
         delay: 10
-        interval: 1.4
-        healthOverride: 0
-        speedOverride: 0
+        interval: 2
+        healthOverride: 17.1
+        speedOverride: 1.6
         leakDamageOverride: 0
         boss: 0
     - groups:
       - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
         route: 0
-        count: 6
+        count: 5
         delay: 0
-        interval: 1.4
-        healthOverride: 0
-        speedOverride: 0
+        interval: 1.8
+        healthOverride: 17.4
+        speedOverride: 1.56
         leakDamageOverride: 0
         boss: 0
       - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
         route: 0
-        count: 4
+        count: 5
         delay: 3
-        interval: 1.4
-        healthOverride: 0
-        speedOverride: 0
+        interval: 1.5
+        healthOverride: 21.8
+        speedOverride: 1.42
+        leakDamageOverride: 0
+        boss: 0
+      - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
+        route: 0
+        count: 3
+        delay: 6
+        interval: 5
+        healthOverride: 32.6
+        speedOverride: 1.14
+        leakDamageOverride: 0
+        boss: 0
+    - groups:
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 4
+        delay: 0
+        interval: 2
+        healthOverride: 15.6
+        speedOverride: 1.52
+        leakDamageOverride: 0
+        boss: 0
+      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
+        route: 0
+        count: 3
+        delay: 4
+        interval: 2
+        healthOverride: 20.8
+        speedOverride: 1.33
         leakDamageOverride: 0
         boss: 0
       - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
@@ -493,8 +691,8 @@ MonoBehaviour:
         count: 1
         delay: 0
         interval: 2
-        healthOverride: 200
-        speedOverride: 1.3
+        healthOverride: 60
+        speedOverride: 1.6
         leakDamageOverride: 12
         boss: 1
     waveSeconds: 50

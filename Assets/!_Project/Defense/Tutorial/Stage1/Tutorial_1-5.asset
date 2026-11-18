@@ -56,7 +56,9 @@ MonoBehaviour:
     robotIndex: 0
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 1
@@ -103,7 +105,9 @@ MonoBehaviour:
     robotIndex: 0
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
@@ -150,7 +154,9 @@ MonoBehaviour:
     robotIndex: 0
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
@@ -197,7 +203,9 @@ MonoBehaviour:
     robotIndex: 0
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
@@ -242,7 +250,9 @@ MonoBehaviour:
     robotIndex: 0
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
@@ -289,7 +299,9 @@ MonoBehaviour:
     robotIndex: 0
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
@@ -336,7 +348,9 @@ MonoBehaviour:
     robotIndex: 0
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
@@ -382,7 +396,9 @@ MonoBehaviour:
     robotIndex: 0
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0

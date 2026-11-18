@@ -26,9 +26,9 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uC6D0\uAC70\uB9AC \uB85C\uBD07\uC740 \uC801\uC774 \uBCF4\uC774\uC790\uB9C8\uC790
-        \uC3D8\uC9C0?\n\uC774\uBC88\uC5D4 <b>\uC3E0 \uB54C\uB97C \uACE0\uB974\uB294</b>
-        \uBC95\uC744 \uBC30\uC6CC \uBCF4\uC790!"
+      text: "\uC804\uC0AC\uD615\uC740 \uC801\uC774 \uC5C6\uC5B4\uB3C4 <b>`slash()`</b>\uB97C
+        \uBD80\uB974\uBA74\n\uD5C8\uACF5\uC744 \uBCA0\uACE0 <b>\uC7A0\uAE50 \uC26C\uC5B4\uC57C</b>
+        \uD574."
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -55,10 +55,12 @@ MonoBehaviour:
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 1
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
@@ -73,12 +75,12 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "<b>\uD654\uC0B4\uD45C\uAC00 \uAC00\uB9AC\uD0A4\uB294 \uC6D0\uAC70\uB9AC
+      text: "<b>\uD654\uC0B4\uD45C\uAC00 \uAC00\uB9AC\uD0A4\uB294 \uC804\uC0AC\uD615
         \uB85C\uBD07</b>\uC744 \uB20C\uB7EC \uC918!"
       focusKeys: []
       highlightKeys: []
     targetKeys:
-    - Robot.Unit.0
+    - Robot.Unit.-1
     dim: 0
     undimmed: 0
     blockInput: 1
@@ -95,17 +97,19 @@ MonoBehaviour:
     trigger: 
     skipIf: 
     expectedCode: 
-    pointerKey: Robot.Unit.0
+    pointerKey: Robot.Unit.-1
     autoSelectSlot: 
     hintCode: 
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
@@ -148,10 +152,12 @@ MonoBehaviour:
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
@@ -167,7 +173,7 @@ MonoBehaviour:
     - textId: t1
       speaker: "\uB514\uBC84"
       text: "\uC67C\uCABD\uC744 \uBD10. \uC9C0\uAE08 \uBA85\uB839\uC740\n\uC801\uC774
-        \uACF5\uACA9 \uBC94\uC704\uC5D0 \uB4E4\uC5B4\uC624\uC790\uB9C8\uC790 \uC3F4."
+        \uC624\uB4E0 \uB9D0\uB4E0 <b>\uACC4\uC18D \uBCA0.</b>"
       focusKeys:
       - Editor.Preview
       highlightKeys: []
@@ -196,10 +202,12 @@ MonoBehaviour:
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 1
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
@@ -214,13 +222,54 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uBD24\uC9C0? \uBA40\uB9AC\uC11C \uD55C \uBC88 \uC3D8\uACE0 \uB2E4\uC2DC
-        \uC900\uBE44\uD558\uB294 \uC0AC\uC774\n\uC801\uC774 <b>\uBC14\uB85C \uC606\uC744
-        \uC9C0\uB098\uAC00!</b>"
+      text: "\uBD24\uC9C0? \uD5C8\uACF5\uC744 \uBCA0\uACE0 \uC26C\uB294 \uC0AC\uC774\n\uC801\uC774
+        <b>\uACF5\uACA9 \uBC94\uC704\uB97C \uC9C0\uB098\uAC00 \uBC84\uB838\uC5B4!</b>"
       focusKeys:
-      - Editor.Code.Line.1/1
+      - Editor.Preview
       highlightKeys: []
-    - textId: t2
+    targetKeys: []
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    completionMode: 0
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 1
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: -1
+    prepareDistanceExample: 0
+    placeShooter: 0
+    placeWarrior: 0
+    prepareBaselineExample: 0
+    prepareExample: 
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
+  - stepId: B02
+    kind: 0
+    dialoguePosition: 0
+    texts:
+    - textId: t1
       speaker: "\uB514\uBC84"
       text: "\uCF54\uB4DC\uB97C \uC0B4\uC9DD \uBC14\uAFD4 \uB1A8\uC5B4. \uCCAB\uC9F8
         \uC904\uC740 2-1\uCC98\uB7FC\n<b>\uAC00\uC7A5 \uAC00\uAE4C\uC6B4 \uC801</b>\uC744
@@ -240,7 +289,7 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     slowBattle: 0
-    allowPreview: 0
+    allowPreview: 1
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -252,104 +301,12 @@ MonoBehaviour:
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 1
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
-    restartPreview: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-    triggerDelay: 0
-  - stepId: B02
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uB514\uBC84"
-      text: "\uB458\uC9F8 \uC904\uC740 <b>\uC801\uAE4C\uC9C0\uC758 \uAC70\uB9AC</b>\uB97C
-        \uC7AC\uC11C\n`enemy_distance` \uC0C1\uC790\uC5D0 \uB2F4\uC544."
-      focusKeys:
-      - Editor.Code.Line.1/2
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    requiredSlotBlock: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    slowBattle: 0
-    allowPreview: 0
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    autoSelectSlot: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    prepareDistanceExample: 0
-    placeShooter: 0
-    prepareBaselineExample: 0
-    restartPreview: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-    triggerDelay: 0
-  - stepId: B03
-    kind: 0
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uB514\uBC84"
-      text: "\uAC70\uB9AC 7\uC5D0\uC11C \uC3D8\uBA74 \uD53C\uD574 32, \uAC70\uB9AC
-        3\uC5D0\uC11C \uC3D8\uBA74 75!\n\uADF8\uB7EC\uB2C8\uAE4C <b>\uAC70\uB9AC
-        3 \uC548</b>\uC5D0\uC11C \uC3D8\uBA74 \uD55C \uBC29\uC774\uC57C."
-      focusKeys: []
-      highlightKeys: []
-    targetKeys: []
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 0
-    completionSignal: 
-    requiredSlotBlock: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    slowBattle: 0
-    allowPreview: 0
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 
-    pointerKey: 
-    autoSelectSlot: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    prepareDistanceExample: 0
-    placeShooter: 0
-    prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
@@ -365,7 +322,8 @@ MonoBehaviour:
     - textId: t1
       speaker: "\uB514\uBC84"
       text: "\uADF8\uB798\uC11C \uC774\uAC78 \uD655\uC778\uD560 \uAC70\uC57C.\n<b>\uC801\uAE4C\uC9C0\uC758
-        \uAC70\uB9AC\uAC00 3\uBCF4\uB2E4 \uC791\uAC70\uB098 \uAC19\uB2E4\uBA74!</b>"
+        \uAC70\uB9AC\uAC00 \uACF5\uACA9 \uBC94\uC704\uBCF4\uB2E4 \uC791\uAC70\uB098
+        \uAC19\uB2E4\uBA74!</b>"
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -392,10 +350,12 @@ MonoBehaviour:
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
@@ -411,7 +371,7 @@ MonoBehaviour:
     - textId: t1
       speaker: "\uB514\uBC84"
       text: "\uC774 \uC9C8\uBB38\uC758 \uB2F5\uC740 <b>\uCC38</b> \uC544\uB2C8\uBA74
-        <b>\uAC70\uC9D3</b>.\n\uB85C\uBD07\uC740 \uCC38\uC77C \uB54C\uB9CC \uC3D8\uAC8C
+        <b>\uAC70\uC9D3</b>.\n\uB85C\uBD07\uC740 \uCC38\uC77C \uB54C\uB9CC \uBCA0\uAC8C
         \uB420 \uAC70\uC57C."
       focusKeys: []
       highlightKeys: []
@@ -439,10 +399,12 @@ MonoBehaviour:
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
@@ -458,11 +420,11 @@ MonoBehaviour:
     - textId: t1
       speaker: "\uB514\uBC84"
       text: "\uC870\uAC74\uC740 <b>`if`</b>(\uB9CC\uC57D ~\uB77C\uBA74) \uBE14\uB85D\uC73C\uB85C
-        \uB9CC\uB4E4\uC5B4.\n<b>`if`</b>\uB97C \uB458\uC9F8 \uC904 \uBC14\uB85C \uC544\uB798\uC5D0
+        \uB9CC\uB4E4\uC5B4.\n<b>`if`</b>\uB97C `enemy` \uC904 \uBC14\uB85C \uC544\uB798\uC5D0
         \uB193\uC544 \uC918!"
       focusKeys:
       - Editor.Palette.If
-      - Editor.Code.After.1/2
+      - Editor.Code.After.1/1
       highlightKeys: []
     targetKeys:
     - Editor.ProgramDropZone
@@ -482,7 +444,7 @@ MonoBehaviour:
     highlightPadding: 10
     trigger: 
     skipIf: 
-    expectedCode: 1/3:If
+    expectedCode: 1/2:If
     pointerKey: Editor.Palette.If
     autoSelectSlot: Editor.Code.Body.1
     hintCode: 
@@ -490,14 +452,16 @@ MonoBehaviour:
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: Editor.Palette.If>Editor.Code.After.1/2
+    dragDemo: Editor.Palette.If>Editor.Code.After.1/1
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -512,7 +476,7 @@ MonoBehaviour:
         <b>\uBE44\uAD50 \uBE14\uB85D</b>\uC744 \uB20C\uB7EC \uB123\uC5B4 \uC918."
       focusKeys:
       - Editor.Palette.Comparison
-      - Editor.Code.Arg.1/3.0
+      - Editor.Code.Arg.1/2.0
       highlightKeys: []
     targetKeys:
     - Editor.ProgramDropZone
@@ -532,22 +496,24 @@ MonoBehaviour:
     highlightPadding: 10
     trigger: 
     skipIf: 
-    expectedCode: Editor.Code.Arg.1/3.0
+    expectedCode: Editor.Code.Arg.1/2.0
     pointerKey: Editor.Palette.Comparison
-    autoSelectSlot: Editor.Code.Arg.1/3.0
+    autoSelectSlot: Editor.Code.Arg.1/2.0
     hintCode: 
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: Editor.Palette.Comparison>Editor.Code.Arg.1/3.0
+    dragDemo: Editor.Palette.Comparison>Editor.Code.Arg.1/2.0
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -561,7 +527,7 @@ MonoBehaviour:
       text: "\uAC00\uC6B4\uB370 \uAE30\uD638 \uCE78\uC744 \uB20C\uB7EC\n<b>`<=`</b>(\uC791\uAC70\uB098
         \uAC19\uB2E4)\uB85C \uBC14\uAFD4 \uC918!"
       focusKeys:
-      - Editor.Code.Option.1/3.0
+      - Editor.Code.Option.1/2.0
       highlightKeys: []
     targetKeys:
     - Editor.ProgramDropZone
@@ -581,18 +547,20 @@ MonoBehaviour:
     highlightPadding: 10
     trigger: 
     skipIf: 
-    expectedCode: 1/3.0|<=
-    pointerKey: Editor.Code.Option.1/3.0
+    expectedCode: 1/2.0|<=
+    pointerKey: Editor.Code.Option.1/2.0
     autoSelectSlot: 
     hintCode: 
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
@@ -607,12 +575,12 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uC67C\uCABD \uCE78\uC5D4 \uAC70\uB9AC\uAC00 \uB4E4\uC5B4\uAC00.\n<b>=</b>
-        \uC5C6\uB294 <b>\u2018variable\u2019</b> \uBE14\uB85D\uC744 \uB20C\uB7EC
-        \uC918."
+      text: "\uC67C\uCABD \uCE78\uC5D4 \uC801\uAE4C\uC9C0\uC758 \uAC70\uB9AC\uAC00
+        \uB4E4\uC5B4\uAC00.\n\uAC12 \uD0ED\uC758 <b>`enemy.distance()`</b> \uBE14\uB85D\uC744
+        \uB20C\uB7EC \uC918."
       focusKeys:
       - Editor.Palette.Variable
-      - Editor.Code.Arg.1/3.0.0
+      - Editor.Code.Arg.1/2.0.0
       highlightKeys: []
     targetKeys:
     - Editor.ProgramDropZone
@@ -632,22 +600,24 @@ MonoBehaviour:
     highlightPadding: 10
     trigger: 
     skipIf: 
-    expectedCode: Editor.Code.Arg.1/3.0.0
-    pointerKey: Editor.Palette.Variable
-    autoSelectSlot: Editor.Code.Arg.1/3.0.0
+    expectedCode: Editor.Code.Arg.1/2.0.0:Distance
+    pointerKey: Editor.Code.Option.1/2.0.0|Editor.Code.Name.1/2.0.0|Editor.Palette.Variable
+    autoSelectSlot: Editor.Code.Arg.1/2.0.0
     hintCode: 
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: Editor.Palette.Variable>Editor.Code.Arg.1/3.0.0
+    dragDemo: Editor.Palette.Variable>Editor.Code.Arg.1/2.0.0
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -658,60 +628,11 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uADF8 \uAE00\uC790\uB97C \uB20C\uB7EC <b>`enemy_distance`</b>\uB85C
-        \uBC14\uAFD4 \uC918!"
+      text: "\uAD04\uD638\uC5D4 \uB0B4 \uC704\uCE58, <b>`get_my_pos()`</b>\uB97C
+        \uB123\uC5B4 \uC918!"
       focusKeys:
-      - Editor.Code.Name.1/3.0.0
-      highlightKeys: []
-    targetKeys:
-    - Editor.ProgramDropZone
-    - Editor.BlockPalette
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 3
-    completionSignal: DraftValueMatches
-    requiredSlotBlock: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    slowBattle: 0
-    allowPreview: 0
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 1/3.0.0|enemy_distance
-    pointerKey: Editor.Code.Name.1/3.0.0
-    autoSelectSlot: 
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    prepareDistanceExample: 0
-    placeShooter: 0
-    prepareBaselineExample: 0
-    restartPreview: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: 
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-    triggerDelay: 0
-  - stepId: C09
-    kind: 1
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uB514\uBC84"
-      text: "\uC624\uB978\uCABD\uC5D4 <b>3</b>! \uAC12 \uD0ED\uC758 <b>\uC22B\uC790
-        \uBE14\uB85D</b>\uC744 \uB20C\uB7EC \uC918."
-      focusKeys:
-      - Editor.Palette.Number
-      - Editor.Code.Arg.1/3.0.1
+      - Editor.Palette.MyPos
+      - Editor.Code.Arg.1/2.0.0.0
       highlightKeys: []
     targetKeys:
     - Editor.ProgramDropZone
@@ -731,36 +652,39 @@ MonoBehaviour:
     highlightPadding: 10
     trigger: 
     skipIf: 
-    expectedCode: Editor.Code.Arg.1/3.0.1
-    pointerKey: Editor.Palette.Number
-    autoSelectSlot: Editor.Code.Arg.1/3.0.1
+    expectedCode: Editor.Code.Arg.1/2.0.0.0:MyPos
+    pointerKey: Editor.Palette.MyPos
+    autoSelectSlot: Editor.Code.Arg.1/2.0.0.0
     hintCode: 
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: Editor.Palette.Number>Editor.Code.Arg.1/3.0.1
+    dragDemo: Editor.Palette.MyPos>Editor.Code.Arg.1/2.0.0.0
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
     triggerDelay: 0
-  - stepId: C09a
+  - stepId: C09
     kind: 1
     dialoguePosition: 0
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uC22B\uC790 \uCE78\uC744 \uB20C\uB7EC <b>3</b>\uC73C\uB85C \uBC14\uAFD4
-        \uC918!"
+      text: "\uC624\uB978\uCABD\uC5D4 \uACF5\uACA9 \uBC94\uC704! \uAC12 \uD0ED\uC758\n<b>`my_attack_range()`</b>
+        \uBE14\uB85D\uC744 \uB20C\uB7EC \uC918."
       focusKeys:
-      - Editor.Code.Name.1/3.0.1
+      - Editor.Palette.MyAttackRange
+      - Editor.Code.Arg.1/2.0.1
       highlightKeys: []
     targetKeys:
     - Editor.ProgramDropZone
@@ -770,7 +694,7 @@ MonoBehaviour:
     blockInput: 1
     outline: 1
     completionMode: 3
-    completionSignal: DraftValueMatches
+    completionSignal: SlotFilled
     requiredSlotBlock: 
     sourceKey: 
     destinationKey: 
@@ -780,22 +704,24 @@ MonoBehaviour:
     highlightPadding: 10
     trigger: 
     skipIf: 
-    expectedCode: 1/3.0.1|3
-    pointerKey: Editor.Code.Name.1/3.0.1
-    autoSelectSlot: 
+    expectedCode: Editor.Code.Arg.1/2.0.1:MyAttackRange
+    pointerKey: Editor.Palette.MyAttackRange
+    autoSelectSlot: Editor.Code.Arg.1/2.0.1
     hintCode: 
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo: Editor.Palette.MyAttackRange>Editor.Code.Arg.1/2.0.1
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -806,10 +732,10 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uC644\uC131! \uAC70\uB9AC\uAC00 3 \uC774\uD558\uBA74 <b>\uCC38</b>,\n\uCC38\uC77C
-        \uB54C\uB9CC `if` \uC548\uCABD\uC744 \uC2E4\uD589\uD574."
+      text: "\uC644\uC131! \uAC70\uB9AC\uAC00 \uACF5\uACA9 \uBC94\uC704 \uC548\uC774\uBA74
+        <b>\uCC38</b>,\n\uCC38\uC77C \uB54C\uB9CC `if` \uC548\uCABD\uC744 \uC2E4\uD589\uD574."
       focusKeys:
-      - Editor.Code.Arg.1/3.0
+      - Editor.Code.Arg.1/2.0
       highlightKeys: []
     targetKeys: []
     dim: 0
@@ -823,7 +749,7 @@ MonoBehaviour:
     destinationKey: 
     pauseBattle: 1
     slowBattle: 0
-    allowPreview: 0
+    allowPreview: 1
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -835,10 +761,12 @@ MonoBehaviour:
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
@@ -853,111 +781,12 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "`if` \uC548\uCABD\uC5D4 \uB2F9\uC5F0\uD788 \uC3D8\uAE30!\n\uBA85\uB839
-        \uD0ED\uC758 <b>\u2018`shoot()`\u2019</b>\uC744 `if` \uC548\uC5D0 \uB123\uC5B4
+      text: "`if` \uC548\uCABD\uC5D4 \uB2F9\uC5F0\uD788 \uBCA0\uAE30!\n\uBA85\uB839
+        \uD0ED\uC758 <b>\u2018`slash()`\u2019</b>\uB97C `if` \uC548\uC5D0 \uB123\uC5B4
         \uC918."
       focusKeys:
-      - Editor.Palette.Shot
-      - Editor.Code.Body.1/3
-      highlightKeys: []
-    targetKeys:
-    - Editor.ProgramDropZone
-    - Editor.BlockPalette
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 3
-    completionSignal: CodeLinePlaced
-    requiredSlotBlock: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    slowBattle: 0
-    allowPreview: 0
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: 1/3/1:Shot
-    pointerKey: Editor.Palette.Shot
-    autoSelectSlot: Editor.Code.Body.1/3
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    prepareDistanceExample: 0
-    placeShooter: 0
-    prepareBaselineExample: 0
-    restartPreview: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: Editor.Palette.Shot>Editor.Code.Body.1/3
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-    triggerDelay: 0
-  - stepId: D03
-    kind: 1
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uB514\uBC84"
-      text: "\uAD04\uD638\uC5D4 \uB204\uAD6C\uB97C \uC3E0\uC9C0 \uB123\uC5B4\uC57C
-        \uD574.\n<b>\u2018variable\u2019</b> \uBE14\uB85D\uC744 \uAD04\uD638 \uC548\uC5D0
-        \uB123\uC5B4 \uC918."
-      focusKeys:
-      - Editor.Palette.Variable
-      - Editor.Code.Arg.1/3/1.0
-      highlightKeys: []
-    targetKeys:
-    - Editor.ProgramDropZone
-    - Editor.BlockPalette
-    dim: 0
-    undimmed: 0
-    blockInput: 1
-    outline: 1
-    completionMode: 3
-    completionSignal: SlotFilled
-    requiredSlotBlock: 
-    sourceKey: 
-    destinationKey: 
-    pauseBattle: 1
-    slowBattle: 0
-    allowPreview: 0
-    highlightPadding: 10
-    trigger: 
-    skipIf: 
-    expectedCode: Editor.Code.Arg.1/3/1.0
-    pointerKey: Editor.Palette.Variable
-    autoSelectSlot: Editor.Code.Arg.1/3/1.0
-    hintCode: 
-    pointerDelay: 0
-    closeEditor: 0
-    clearProgram: 0
-    openEditor: 0
-    robotIndex: 0
-    prepareDistanceExample: 0
-    placeShooter: 0
-    prepareBaselineExample: 0
-    restartPreview: 0
-    introEntrance: 0
-    alertCards: 0
-    dragDemo: Editor.Palette.Variable>Editor.Code.Arg.1/3/1.0
-    autoAdvance: 0
-    dismissable: 0
-    holdSeconds: 0
-    triggerDelay: 0
-  - stepId: D04
-    kind: 1
-    dialoguePosition: 0
-    texts:
-    - textId: t1
-      speaker: "\uB514\uBC84"
-      text: "\uAE00\uC790\uB97C \uB20C\uB7EC <b>`enemy`</b>\uB85C \uBC14\uAFD4 \uC918!"
-      focusKeys:
-      - Editor.Code.Name.1/3/1.0
+      - Editor.Palette.Slash
+      - Editor.Code.Body.1/2
       highlightKeys: []
     targetKeys:
     - Editor.ProgramDropZone
@@ -977,23 +806,25 @@ MonoBehaviour:
     highlightPadding: 10
     trigger: 
     skipIf: 
-    expectedCode: "while True:\n    enemy = get_nearest_enemy()\n    enemy_distance
-      = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:\n        shoot(enemy)"
-    pointerKey: Editor.Code.Name.1/3/1.0
-    autoSelectSlot: 
+    expectedCode: "while True:\n    enemy = get_nearest_enemy()\n    if enemy.distance(get_my_pos())
+      <= my_attack_range():\n        slash()"
+    pointerKey: Editor.Palette.Slash
+    autoSelectSlot: Editor.Code.Body.1/2
     hintCode: 
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: 
+    dragDemo: Editor.Palette.Slash>Editor.Code.Body.1/2
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
@@ -1005,8 +836,8 @@ MonoBehaviour:
     - textId: t1
       speaker: "\uB514\uBC84"
       text: "\uCCAB \uC870\uAC74\uBB38 \uC644\uC131! \uC67C\uCABD\uC744 \uBD10.\n\uC774\uBC88\uC5D4
-        \uAC00\uAE4C\uC774 \uC62C \uB54C\uAE4C\uC9C0 \uAE30\uB2E4\uB838\uB2E4 \uC3E0
-        \uAC70\uC57C."
+        \uC801\uC774 \uB4E4\uC5B4\uC62C \uB54C\uAE4C\uC9C0 \uAE30\uB2E4\uB838\uB2E4
+        \uBCA8 \uAC70\uC57C."
       focusKeys:
       - Editor.Preview
       highlightKeys: []
@@ -1035,10 +866,12 @@ MonoBehaviour:
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 1
     introEntrance: 0
     alertCards: 0
@@ -1053,11 +886,11 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uBD24\uC9C0? <b>\uD55C \uBC29</b>\uC774\uC57C!\n<b>\uCC38\uC774\uBA74
+      text: "\uBD24\uC9C0? <b>\uB4E4\uC5B4\uC624\uC790\uB9C8\uC790 \uBCB4\uC5B4!</b>\n<b>\uCC38\uC774\uBA74
         `if` \uC548\uCABD\uC744 \uC2E4\uD589\uD558\uACE0, \uAC70\uC9D3\uC774\uBA74
         \uAC74\uB108\uB6F0\uC5B4.</b>"
       focusKeys:
-      - Editor.Code.Body.1/3
+      - Editor.Code.Body.1/2
       highlightKeys: []
     targetKeys: []
     dim: 0
@@ -1083,10 +916,12 @@ MonoBehaviour:
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
@@ -1128,10 +963,12 @@ MonoBehaviour:
     closeEditor: 1
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
@@ -1174,10 +1011,12 @@ MonoBehaviour:
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
@@ -1192,8 +1031,8 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uC408\uB2E4! \uC801\uC774 \uAC70\uB9AC 3 \uC548\uC5D0 \uC624\uC790\n\uC870\uAC74\uC774
-        <b>\uCC38</b>\uC774 \uB410\uC5B4!"
+      text: "\uBCB4\uB2E4! \uC801\uC774 \uACF5\uACA9 \uBC94\uC704\uC5D0 \uB4E4\uC5B4\uC628
+        \uC21C\uAC04\n\uC870\uAC74\uC774 <b>\uCC38</b>\uC774 \uB410\uC5B4!"
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -1220,10 +1059,12 @@ MonoBehaviour:
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
@@ -1238,9 +1079,8 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uD574\uB0C8\uB2E4! <b>\uC801\uC774 \uAC00\uAE4C\uC774 \uC624\uBA74,
-        \uC3DC\uB2E4!</b>\n\uC3E0 \uB54C\uB97C \uACE0\uB974\uB294 \uAC8C \uBC14\uB85C
-        \uC870\uAC74\uBB38\uC774\uC57C."
+      text: "\uD574\uB0C8\uB2E4! <b>\uC801\uC774 \uB4E4\uC5B4\uC624\uBA74, \uBCA4\uB2E4!</b>\n\uBCA8
+        \uB54C\uB97C \uACE0\uB974\uB294 \uAC8C \uBC14\uB85C \uC870\uAC74\uBB38\uC774\uC57C."
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -1262,16 +1102,18 @@ MonoBehaviour:
     expectedCode: 
     pointerKey: 
     autoSelectSlot: 
-    hintCode: "while True:\n    enemy = get_nearest_enemy()\n    enemy_distance =
-      enemy.distance(get_my_pos())\n    if enemy_distance <= 3:\n        shoot(enemy)"
+    hintCode: "while True:\n    enemy = get_nearest_enemy()\n    if enemy.distance(get_my_pos())
+      <= my_attack_range():\n        slash()"
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
@@ -1314,10 +1156,12 @@ MonoBehaviour:
     closeEditor: 0
     clearProgram: 0
     openEditor: 0
-    robotIndex: 0
+    robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
+    placeWarrior: 0
     prepareBaselineExample: 0
+    prepareExample: 
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
