@@ -13,7 +13,7 @@ namespace CodingGame.BlockCoding
     public static class PythonTreeCompiler
     {
         [Flags]
-        enum ValueType { Integer = 1, Float = 2, Enemy = 4, Boolean = 8, Vector2 = 16 }
+        enum ValueType { Integer = 1, Float = 2, Enemy = 4, Boolean = 8, Vector2 = 16, EnemyType = 32 }
         const ValueType Numeric = ValueType.Integer | ValueType.Float;
         static readonly HashSet<string> Keywords = new HashSet<string>(
             ("False None True and as assert async await break class continue def del elif else except finally for from " +
@@ -28,6 +28,7 @@ namespace CodingGame.BlockCoding
                 case BlockKind.Number: case BlockKind.Variable: case BlockKind.NearestEnemy:
                 case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.Distance: case BlockKind.Hp:
                 case BlockKind.MyAttackRange: case BlockKind.MyPos: case BlockKind.Arithmetic:
+                case BlockKind.EnemyTypeOf: case BlockKind.EnemyTypeName:
                     return BlockSlotKind.Value;
                 case BlockKind.Attack: case BlockKind.Wait: case BlockKind.DeclareVariable:
                 case BlockKind.For: case BlockKind.While: case BlockKind.If: case BlockKind.Elif:
@@ -52,7 +53,8 @@ namespace CodingGame.BlockCoding
             switch (kind)
             {
                 case BlockKind.For: case BlockKind.If: case BlockKind.Elif:
-                case BlockKind.Wait: case BlockKind.DeclareVariable: case BlockKind.Hp: case BlockKind.IsDead: return 1; // Hp, IsDead: receiver
+                case BlockKind.Wait: case BlockKind.DeclareVariable: case BlockKind.Hp: case BlockKind.IsDead:
+                case BlockKind.EnemyTypeOf: return 1; // Hp, IsDead, EnemyTypeOf: receiver
                 case BlockKind.Comparison: case BlockKind.Arithmetic: return 2;
                 case BlockKind.Distance: return 2; // receiver, position (Vector2)
                 default: return 0;
@@ -103,7 +105,9 @@ namespace CodingGame.BlockCoding
             var enemies = new HashSet<string>(All(blocks).Where(b => b.Kind == BlockKind.DeclareVariable && b.Arguments.FirstOrDefault()?.Kind == BlockKind.NearestEnemy).Select(b => b.Value));
             return All(blocks).Any(loop => (loop.Kind == BlockKind.For || loop.Kind == BlockKind.While) &&
                 All(loop.Body).Where(b => b.Kind == BlockKind.Variable && enemies.Contains(b.Value)).Select(b => b.Value)
-                    .Except(All(loop.Body).Where(b => b.Kind == BlockKind.DeclareVariable).Select(b => b.Value)).Any());
+                    .Except(All(loop.Body).Where(b => b.Kind == BlockKind.DeclareVariable).Select(b => b.Value))
+                    // `if enemy.is_dead(): break` (or re-assign) watches the target: that loop is not stale.
+                    .Except(All(loop.Body).Where(b => b.Kind == BlockKind.IsDead && b.Arguments.FirstOrDefault()?.Kind == BlockKind.Variable).Select(b => b.Arguments[0].Value)).Any());
         }
 
         static void ValidateTree(IReadOnlyList<CodeBlock> blocks, HashSet<CodeBlock> path)
@@ -220,6 +224,7 @@ namespace CodingGame.BlockCoding
                 case BlockKind.MyAttackRange: return ValueType.Float;
                 case BlockKind.MyPos: return ValueType.Vector2;
                 case BlockKind.NearestEnemy: return ValueType.Enemy;
+                case BlockKind.EnemyTypeOf: case BlockKind.EnemyTypeName: return ValueType.EnemyType;
                 case BlockKind.True: case BlockKind.False: case BlockKind.Comparison: case BlockKind.IsDead: return ValueType.Boolean;
                 case BlockKind.Arithmetic:
                     return block.Value == "/" || ((TypeOf(block.Arguments[0], variables) | TypeOf(block.Arguments[1], variables)) & ValueType.Float) != 0
@@ -267,6 +272,8 @@ namespace CodingGame.BlockCoding
                 case BlockKind.Distance: return Arg(0) + ".distance(" + Arg(1) + ")";
                 case BlockKind.Hp: return Arg(0) + ".hp";
                 case BlockKind.IsDead: return Arg(0) + ".is_dead()";
+                case BlockKind.EnemyTypeOf: return Arg(0) + ".type";
+                case BlockKind.EnemyTypeName: return "Enemy." + block.Value;
                 case BlockKind.Comparison: case BlockKind.Arithmetic: return Arg(0) + " " + block.Value + " " + Arg(1);
                 default: return Call(block.Kind) ?? block.Kind.ToString();
             }
@@ -301,6 +308,12 @@ namespace CodingGame.BlockCoding
                 case BlockKind.Hp:
                     Require(block.Arguments[0], variables, ValueType.Enemy, "hp는 Enemy 객체에서만 읽을 수 있습니다.");
                     return Arg(0) + ".hp";
+                case BlockKind.EnemyTypeOf:
+                    Require(block.Arguments[0], variables, ValueType.Enemy, "type은 Enemy 객체에서만 읽을 수 있습니다. 예: enemy.type");
+                    return Arg(0) + ".type";
+                case BlockKind.EnemyTypeName:
+                    if (!EnemyTypes.Contains(block.Value)) throw new FormatException("적 종류는 Enemy.Normal, Enemy.Fast, Enemy.Tank 중 하나입니다.");
+                    return "Enemy." + block.Value;
                 case BlockKind.IsDead:
                     // A name not assigned yet reads as no enemy, which is dead: `while True: if enemy.is_dead(): enemy = ...`
                     // picks its first target on the first turn.
@@ -318,6 +331,9 @@ namespace CodingGame.BlockCoding
                     return Operand(0) + " " + block.Value + " " + Operand(1);
                 case BlockKind.Comparison:
                     if (!Comparisons.Contains(block.Value)) throw new FormatException("지원하지 않는 비교 연산자입니다.");
+                    // An enemy's kind is compared only with a kind: `enemy.type != 3` says nothing in the game.
+                    bool kind(int i) => (TypeOf(block.Arguments[i], variables) & ValueType.EnemyType) != 0;
+                    if (kind(0) != kind(1)) throw new FormatException("적 종류는 Enemy.Tank 같은 종류와 비교해야 합니다. 예: enemy.type != Enemy.Tank");
                     if (block.Value != "==" && block.Value != "!=") // equality works on any values; order needs numbers
                     {
                         Require(block.Arguments[0], variables, Numeric, "대소 비교에는 숫자가 필요합니다.");
@@ -330,6 +346,8 @@ namespace CodingGame.BlockCoding
 
         public static readonly string[] Comparisons = { "==", "!=", "<", ">", "<=", ">=" };
         public static readonly string[] Operators = { "+", "-", "*", "/" };
+        // The game's enemy kinds (Defense.EnemyType) as the Python names after `Enemy.`.
+        public static readonly string[] EnemyTypes = { "Normal", "Fast", "Tank" };
         static readonly Regex Number = new Regex(@"\A[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)\z");
 
         public static string NormalizeNumber(string text)

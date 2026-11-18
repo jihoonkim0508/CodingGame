@@ -354,10 +354,10 @@ namespace CodingGame.BlockCoding
         internal CommandBlockView CreateBlock(CodeBlock data, Transform parent)
         {
             if (data.Kind == BlockKind.Attack) data = new CodeBlock(BlockKind.Shot, data.Value, data.Arguments.ToArray());
-            // is_dead() is a variable's member only (typed after `enemy.`), like distance( and hp.
-            if (data.Kind == BlockKind.IsDead && data.Arguments.FirstOrDefault()?.Kind != BlockKind.Variable)
-                throw new FormatException("is_dead()는 변수 뒤에 점을 찍어 씁니다. 예: enemy.is_dead()");
-            bool variable = data.Kind == BlockKind.Variable || data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp || data.Kind == BlockKind.IsDead;
+            // is_dead() and type are a variable's members only (typed after `enemy.`), like distance( and hp.
+            if ((data.Kind == BlockKind.IsDead || data.Kind == BlockKind.EnemyTypeOf) && data.Arguments.FirstOrDefault()?.Kind != BlockKind.Variable)
+                throw new FormatException(data.Kind == BlockKind.IsDead ? "is_dead()는 변수 뒤에 점을 찍어 씁니다. 예: enemy.is_dead()" : "type은 변수 뒤에 점을 찍어 씁니다. 예: enemy.type");
+            bool variable = data.Kind == BlockKind.Variable || data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp || data.Kind == BlockKind.IsDead || data.Kind == BlockKind.EnemyTypeOf;
             var template = variable ? variablePrefab : palette.FirstOrDefault(item => item.view.BaseKind == data.Kind).view;
             if (!template) throw new FormatException("블록 프리팹이 연결되지 않았습니다: " + data.Kind);
             var view = Instantiate(template, parent);

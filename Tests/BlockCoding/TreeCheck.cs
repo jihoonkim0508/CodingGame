@@ -140,6 +140,19 @@ static class TreeCheck
             Body(B(BlockKind.If, Compare(">", B(BlockKind.Hp, V("enemy")), N("10"))), B(BlockKind.Shot, V("enemy"))) });
         Assert(programs["tree_hp"].Contains("if enemy.hp > 10:"), "hp property syntax.");
         Reject(Set("x", N("1")), Set("y", B(BlockKind.Hp, V("x"))));
+        // enemy.type is compared with a kind (Enemy.Tank), only with ==/!=, and the kind is one of the game's.
+        var type = new CodeBlock(BlockKind.EnemyTypeOf, "0", V("enemy"));
+        CodeBlock Kind(string name) => new CodeBlock(BlockKind.EnemyTypeName, name);
+        programs["tree_kind"] = PythonTreeCompiler.Compile("tree_kind", new[] { Body(B(BlockKind.For, N("2")), aim,
+            Body(B(BlockKind.If, Compare("!=", type, Kind("Tank"))), B(BlockKind.Continue)), B(BlockKind.Shot, V("enemy"))) });
+        Assert(programs["tree_kind"].Contains("if enemy.type != Enemy.Tank:\n            continue"), "type and kind syntax.");
+        Reject(aim, Body(B(BlockKind.If, Compare("==", type, N("2"))), B(BlockKind.Shot, V("enemy"))));
+        Reject(aim, Body(B(BlockKind.If, Compare("<", type, Kind("Fast"))), B(BlockKind.Shot, V("enemy"))));
+        Reject(aim, Body(B(BlockKind.If, Compare("==", type, Kind("Boss"))), B(BlockKind.Shot, V("enemy"))));
+        Reject(Set("x", N("1")), Set("y", new CodeBlock(BlockKind.EnemyTypeOf, "0", V("x"))));
+        // A loop that leaves when its target is dead watches it: no stale-target warning.
+        Assert(!PythonTreeCompiler.HasStaleEnemyLoop(new[] { aim, Body(B(BlockKind.While),
+            Body(B(BlockKind.If, B(BlockKind.IsDead, V("enemy"))), B(BlockKind.Break)), B(BlockKind.Shot, V("enemy"))) }), "is_dead() loop flagged.");
         Console.WriteLine("PASS: nested block compiler, typed sockets, branch connections, variables, loops, stale-target lint and validation.");
     }
 }

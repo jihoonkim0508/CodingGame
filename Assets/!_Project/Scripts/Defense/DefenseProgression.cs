@@ -74,7 +74,7 @@ namespace CodingGame.Defense
                 default: return BlockKind.Slow;
             }
         }
-        public static BlockKind Canonical(BlockKind kind) => kind == BlockKind.Attack ? BlockKind.Shot : kind == BlockKind.Distance || kind == BlockKind.Hp ? BlockKind.Variable : kind;
+        public static BlockKind Canonical(BlockKind kind) => kind == BlockKind.Attack ? BlockKind.Shot : kind == BlockKind.Distance || kind == BlockKind.Hp || kind == BlockKind.EnemyTypeOf ? BlockKind.Variable : kind;
         public static bool Consumes(BlockKind kind) => Enum.IsDefined(typeof(BlockKind), kind);
         public static BlockKind[] ItemKinds => Enum.GetValues(typeof(BlockKind)).Cast<BlockKind>().Select(Canonical).Distinct().ToArray();
         public static IEnumerable<BlockKind> Used(IEnumerable<CodeBlock> blocks)
@@ -84,7 +84,7 @@ namespace CodingGame.Defense
                 if (block == null) continue;
                 if (Consumes(block.Kind)) yield return Canonical(block.Kind);
                 // 메서드 수신자는 편집기에서 같은 변수 블록이므로 아이템을 중복 차감하지 않습니다.
-                foreach (var kind in Used(block.Kind == BlockKind.Distance || block.Kind == BlockKind.Hp ? block.Arguments.Skip(1) : block.Arguments)) yield return kind;
+                foreach (var kind in Used(block.Kind == BlockKind.Distance || block.Kind == BlockKind.Hp || block.Kind == BlockKind.EnemyTypeOf ? block.Arguments.Skip(1) : block.Arguments)) yield return kind;
                 foreach (var kind in Used(block.Body)) yield return kind;
             }
         }
@@ -102,6 +102,7 @@ namespace CodingGame.Defense
                 case BlockKind.MyAttackRange: return "my_attack_range()"; case BlockKind.MyPos: return "get_my_pos()";
                 case BlockKind.True: return "True"; case BlockKind.False: return "False";
                 case BlockKind.IsDead: return "is_dead()"; case BlockKind.Arithmetic: return "+ - * /";
+                case BlockKind.EnemyTypeName: return "Enemy.Tank";
                 default: return kind.ToString().ToLowerInvariant();
             }
         }

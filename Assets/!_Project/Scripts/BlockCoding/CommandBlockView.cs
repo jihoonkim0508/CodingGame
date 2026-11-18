@@ -27,12 +27,14 @@ namespace CodingGame.BlockCoding
         public CommandCodingPanel Panel { get; private set; }
         public CommandDropZone Owner { get; private set; }
         public bool IsPalette { get; private set; }
-        static readonly string[] Methods = { "distance(", "hp", "is_dead()" };
+        static readonly string[] Methods = { "distance(", "hp", "is_dead()", "type" };
+        static readonly BlockKind[] MemberKinds = { BlockKind.Distance, BlockKind.Hp, BlockKind.IsDead, BlockKind.EnemyTypeOf };
         bool HasDot => kind == BlockKind.Variable && input && input.text.EndsWith(".", StringComparison.Ordinal);
-        // Dropdown after `name.`: 1 = distance(position), 2 = the read-only hp property, 3 = is_dead() (a condition: the block
-        // turns into a logic block; there is no is_dead() block of its own in the palette).
-        public BlockKind Kind => !HasDot ? kind : dropdown.value == 1 ? BlockKind.Distance : dropdown.value == 2 ? BlockKind.Hp :
-            dropdown.value == 3 ? BlockKind.IsDead : kind;
+        // Dropdown after `name.`: distance(position), the read-only hp and type properties, is_dead() (a condition: the block
+        // turns into a logic block; there is no is_dead() block of its own in the palette). Read by the shown name, since the
+        // members not handed out yet are left out of the list.
+        string Member => HasDot && dropdown.value > 0 && dropdown.value < dropdown.options.Count ? dropdown.options[dropdown.value].text : null;
+        public BlockKind Kind { get { int member = Array.IndexOf(Methods, Member); return member < 0 ? kind : MemberKinds[member]; } }
         public BlockKind BaseKind => kind;
         public CommandDropZone Body => body;
         public IReadOnlyList<CommandDropZone> Arguments => arguments;
@@ -41,7 +43,8 @@ namespace CodingGame.BlockCoding
         public RectTransform InputRect => input ? input.transform as RectTransform : null;
         public RectTransform OptionRect => dropdown ? dropdown.transform as RectTransform : null;
         public string DraftValue => kind == BlockKind.Comparison ? PythonTreeCompiler.Comparisons[dropdown.value] :
-            kind == BlockKind.Arithmetic ? PythonTreeCompiler.Operators[dropdown.value] : input ? input.text : null;
+            kind == BlockKind.Arithmetic ? PythonTreeCompiler.Operators[dropdown.value] :
+            kind == BlockKind.EnemyTypeName ? PythonTreeCompiler.EnemyTypes[dropdown.value] : input ? input.text : null;
         public string VariableName => kind == BlockKind.DeclareVariable ? input.text :
             kind == BlockKind.Variable ? (HasDot ? input.text.Substring(0, input.text.Length - 1) : input.text) : variableName;
         public string RetainedName { get; private set; }
@@ -78,7 +81,7 @@ namespace CodingGame.BlockCoding
         {
             if (!rect || !header || !canvasGroup || !shape ||
                 ((kind == BlockKind.Number || kind == BlockKind.DeclareVariable || kind == BlockKind.Variable) && !input) ||
-                ((kind == BlockKind.Variable || kind == BlockKind.Comparison || kind == BlockKind.Arithmetic) && !dropdown) ||
+                ((kind == BlockKind.Variable || kind == BlockKind.Comparison || kind == BlockKind.Arithmetic || kind == BlockKind.EnemyTypeName) && !dropdown) ||
                 (PythonTreeCompiler.HasBody(kind) && !body) || (stockLabel && !stockColumn))
                 throw new InvalidOperationException(name + ": Inspector 참조가 누락되었습니다.");
             Panel = panel;
@@ -106,12 +109,14 @@ namespace CodingGame.BlockCoding
                 if (dropdown) dropdown.onValueChanged.AddListener(SelectionChanged);
                 // The calculation block is a copy of the comparison's (two holes and a picker) with the operators in its picker;
                 // both pickers list the compiler's own signs, so a sign added there shows up in every block.
-                if (kind == BlockKind.Arithmetic || kind == BlockKind.Comparison)
+                // `Enemy.` picks a kind the same way, Tank first chosen (the kind a ranged robot hunts).
+                if (kind == BlockKind.Arithmetic || kind == BlockKind.Comparison || kind == BlockKind.EnemyTypeName)
                 {
                     // A copy is bound as a new block: it keeps the sign it was copied with (the copy under the hand showed == or +).
                     int sign = dropdown.value;
-                    dropdown.ClearOptions(); dropdown.AddOptions(new List<string>(kind == BlockKind.Arithmetic ? PythonTreeCompiler.Operators : PythonTreeCompiler.Comparisons));
-                    dropdown.SetValueWithoutNotify(sign); dropdown.RefreshShownValue();
+                    dropdown.ClearOptions(); dropdown.AddOptions(new List<string>(kind == BlockKind.Arithmetic ? PythonTreeCompiler.Operators :
+                        kind == BlockKind.Comparison ? PythonTreeCompiler.Comparisons : PythonTreeCompiler.EnemyTypes));
+                    dropdown.SetValueWithoutNotify(kind == BlockKind.EnemyTypeName && palette ? Array.IndexOf(PythonTreeCompiler.EnemyTypes, "Tank") : sign); dropdown.RefreshShownValue();
                 }
                 // Pieces of a value block (enemy., distance(, a held block) 8 apart, not touching (play feedback 4).
                 if (!IsStatement && header.TryGetComponent<HorizontalLayoutGroup>(out var row)) row.spacing = 8;
@@ -161,15 +166,18 @@ namespace CodingGame.BlockCoding
         }
         public void RefreshVariableOptions()
         {
-            int selection = dropdown.value;
+            string chosen = Member;
             var options = new List<string> { "메서드 선택" };
-            if (selection > 0 || (Panel && Panel.IsEnemyVariable(VariableName)))
-                // is_dead() once it is handed out (an item, like the other blocks), or when this block already is one.
-                options.AddRange(selection == 3 || (Panel?.IsAvailable?.Invoke(BlockKind.IsDead) ?? true) ? Methods : Methods.Take(2));
+            // is_dead() once it is handed out (an item, like the other blocks), type once Enemy.Tank is (nothing to compare it
+            // with before), or when this block already is one.
+            bool Offered(int i) => Methods[i] == chosen || MemberKinds[i] != BlockKind.IsDead && MemberKinds[i] != BlockKind.EnemyTypeOf ||
+                (Panel?.IsAvailable?.Invoke(MemberKinds[i] == BlockKind.IsDead ? BlockKind.IsDead : BlockKind.EnemyTypeName) ?? true);
+            if (chosen != null || (Panel && Panel.IsEnemyVariable(VariableName)))
+                options.AddRange(Methods.Where((_, i) => Offered(i)));
             else options[0] = "사용 가능한 메서드 없음";
             dropdown.ClearOptions();
             dropdown.AddOptions(options);
-            dropdown.SetValueWithoutNotify(HasDot ? Mathf.Min(selection, options.Count - 1) : 0);
+            dropdown.SetValueWithoutNotify(HasDot && chosen != null ? Mathf.Max(0, options.IndexOf(chosen)) : 0);
             dropdown.RefreshShownValue();
             dropdown.gameObject.SetActive(HasDot);
             RefreshShape();
@@ -284,14 +292,15 @@ namespace CodingGame.BlockCoding
             if (kind == BlockKind.DeclareVariable) RetainedName = data.Value;
             if (kind == BlockKind.Comparison) { dropdown.SetValueWithoutNotify(Array.IndexOf(PythonTreeCompiler.Comparisons, data.Value)); FitDropdown(dropdown); }
             if (kind == BlockKind.Arithmetic) { dropdown.SetValueWithoutNotify(Array.IndexOf(PythonTreeCompiler.Operators, data.Value)); FitDropdown(dropdown); }
+            if (kind == BlockKind.EnemyTypeName) { dropdown.SetValueWithoutNotify(Array.IndexOf(PythonTreeCompiler.EnemyTypes, data.Value)); FitDropdown(dropdown); }
             int skip = 0;
             if (kind == BlockKind.Variable)
             {
-                bool member = data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp || data.Kind == BlockKind.IsDead;
+                bool member = Array.IndexOf(MemberKinds, data.Kind) >= 0;
                 variableName = member ? data.Arguments[0].Value : data.Value;
                 input.SetTextWithoutNotify(variableName + (member ? "." : "")); FitInput(input, MinField);
                 dropdown.ClearOptions(); dropdown.AddOptions(new List<string> { "메서드 선택" }); dropdown.AddOptions(new List<string>(Methods));
-                dropdown.SetValueWithoutNotify(data.Kind == BlockKind.Distance ? 1 : data.Kind == BlockKind.Hp ? 2 : data.Kind == BlockKind.IsDead ? 3 : 0);
+                dropdown.SetValueWithoutNotify(Array.IndexOf(MemberKinds, data.Kind) + 1);
                 RefreshVariableOptions();
                 if (data.Kind == BlockKind.Variable) return;
                 skip = 1;
@@ -307,11 +316,12 @@ namespace CodingGame.BlockCoding
             if (kind == BlockKind.Number || kind == BlockKind.DeclareVariable) block.Value = input.text;
             if (kind == BlockKind.Comparison) block.Value = PythonTreeCompiler.Comparisons[dropdown.value];
             if (kind == BlockKind.Arithmetic) block.Value = PythonTreeCompiler.Operators[dropdown.value];
+            if (kind == BlockKind.EnemyTypeName) block.Value = PythonTreeCompiler.EnemyTypes[dropdown.value];
             if (kind == BlockKind.Variable)
             {
                 if (Kind == BlockKind.Variable) { block.Value = input.text; return block; }
                 block.Arguments.Add(new CodeBlock(BlockKind.Variable, VariableName));
-                if (Kind == BlockKind.Hp || Kind == BlockKind.IsDead) return block;
+                if (Kind == BlockKind.Hp || Kind == BlockKind.IsDead || Kind == BlockKind.EnemyTypeOf) return block;
             }
             foreach (var argument in arguments) block.Arguments.Add(argument.ReadArgument());
             if (body) block.Body.AddRange(body.Read());
