@@ -139,14 +139,13 @@ static class Check
             var baseline = Approach(false, y); var guarded = Approach(true, y);
             Require(baseline.distance > 6.5f && !baseline.closeLater,
                 $"y={y}: the unconditional shooter must fire first at its range's edge (got {baseline.distance:0.0}) and not shoot that enemy again within 3");
-            Require(guarded.distance <= 3 && guarded.damage >= 60,
-                $"y={y}: the condition must hold the first shot until within 3 and fell the enemy with it (got {guarded.distance:0.0}m, {guarded.damage:0})");
-            Require(guarded.kills == 4 && baseline.kills < guarded.kills,
-                $"y={y}: the condition must defend all four enemies and the unconditional code fewer (got {guarded.kills} and {baseline.kills})");
+            // Damage no longer grows up close (inverse-distance bonus dropped 2026-11-18): the condition only times the shot.
+            Require(guarded.distance <= 3 && Math.Abs(guarded.damage - baseline.damage) < .01f,
+                $"y={y}: the condition must hold the first shot until within 3, for the same damage as from the edge (got {guarded.distance:0.0}m, {guarded.damage:0} vs {baseline.damage:0})");
             if (y == 1.8f) Console.WriteLine($"Straight road: unconditional first shot {baseline.distance:0.0}m {baseline.damage:0}, kills {baseline.kills}; " +
                 $"condition first shot {guarded.distance:0.0}m {guarded.damage:0}, kills {guarded.kills}");
         }
         IntroLeak();
-        Console.WriteLine("PASS: 1-1 Play at each enemy fells the basic ones, enemies walking through the pace and pause lines; pause freezes battle; a conditional shooter waits until within 3 and fells each enemy with one shot.");
+        Console.WriteLine("PASS: 1-1 Play at each enemy fells the basic ones, enemies walking through the pace and pause lines; pause freezes battle; a conditional shooter waits until within 3.");
     }
 }

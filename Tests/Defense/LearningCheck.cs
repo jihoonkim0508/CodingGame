@@ -21,8 +21,7 @@ static class LearningCheck
         Require(sim.RobotAvailable(RobotRole.Shooter)==2 && sim.Inventory[BlockKind.Shot]==2 && !sim.Inventory.ContainsKey(BlockKind.For), "Only lesson 1-1 supplies");
         var bot=sim.Place(profiles[(int)RobotRole.Shooter],4,new Vector2(0,3),out _);
         Require(bot!=null,"Starting supplies playable");
-        Require(Math.Abs(sim.ActionDamage(bot,RobotAction.Attack,2)-2*sim.ActionDamage(bot,RobotAction.Attack,4))<.001f,"Distance double, damage half");
-        Require(sim.ActionDamage(bot,RobotAction.Attack,0)==sim.ActionDamage(bot,RobotAction.Attack,1),"Near-distance damage capped");
+        Require(sim.ActionDamage(bot,RobotAction.Attack,1)==sim.ActionDamage(bot,RobotAction.Attack,7),"Ranged damage does not depend on distance");
         sim.ApplyProgram(bot.Id,"fire",new[]{new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy))});
         // Stage 1 starts 1-2 and 1-4 only with two warriors whose code finds an enemy and slashes it when the distance check passes.
         sim.Options.unlockAll=true; sim.Options.inventoryLimit=false;

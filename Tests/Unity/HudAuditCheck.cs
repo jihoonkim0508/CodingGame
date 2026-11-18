@@ -258,12 +258,9 @@ public static class HudAuditCheck
         Run("H11 shooter text matches the damage rule", () =>
         {
             var shooter = battle.RobotDefinitions.Single(r => r.stats.role == RobotRole.Shooter);
-            float range = shooter.stats.range, plateau = range / 3;
-            if (Mathf.Abs(Rules.RangedDamageFactor(range, plateau) - Rules.RangedDamageFactor(range, 1)) > 1e-4f || Rules.RangedDamageFactor(range, plateau * 1.5f) >= Rules.RangedDamageFactor(range, plateau))
-                return "test setup: the damage rule is no longer 'max inside a third of the range'";
+            // Damage does not depend on distance (inverse-distance bonus dropped 2026-11-18): no text may promise more up close.
             string text = shooter.description;
-            if (text.Contains("1m")) return "description still says \"1m 이하\" but the maximum holds inside " + plateau.ToString("0.0") + " m (a third of range " + range + ")";
-            return text.Contains("1/3") || text.Contains("3분의 1") || text.Contains(plateau.ToString("0.0")) ? null : "description does not say where the maximum ends (a third of the range, " + plateau.ToString("0.0") + " m): " + text;
+            return new[] { "1m", "1/3", "반비례", "가까운 적일수록", "최대 피해" }.Any(text.Contains) ? "description still describes distance-based damage: " + text : null;
         });
 
         // H9 step 1: a result panel and the Esc menu opened together; MenuEnd reads them after real time has passed.

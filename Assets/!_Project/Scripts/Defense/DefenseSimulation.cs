@@ -471,8 +471,8 @@ namespace CodingGame.Defense
             return !Rules.NeedsPermission(action) ? .1f : Setup.Permissions.First(p => p.role == bot.Spec.role && p.action == action).strength;
         }
         public float ActionDamage(RobotState bot, RobotAction action) => Profile(bot, action).damage * bot.DamageMultiplier * Strength(bot, action);
-        public float ActionDamage(RobotState bot, RobotAction action, float distance) => ActionDamage(bot, action) *
-            (bot.Spec.role == RobotRole.Shooter && action == RobotAction.Attack ? Rules.RangedDamageFactor(bot.Spec.range, distance) : 1f);
+        // Distance does not change damage: the shooter's inverse-distance bonus was dropped (design decision 2026-11-18).
+        public float ActionDamage(RobotState bot, RobotAction action, float distance) => ActionDamage(bot, action);
         public float ActionInterval(RobotState bot, RobotAction action) => Profile(bot, action).interval * (bot.Interval / bot.Spec.interval);
         public ActionResult RequestAction(int robotId, RobotAction action, int targetId = 0)
         {

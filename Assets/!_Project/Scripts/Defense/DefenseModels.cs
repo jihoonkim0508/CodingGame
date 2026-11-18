@@ -72,7 +72,6 @@ namespace CodingGame.Defense
             enemies.OrderBy(e => Vector2.DistanceSquared(e.Position, from)).ThenBy(e => e.Id).FirstOrDefault();
         public static RobotAction NativeAction(RobotRole role) => (RobotAction)(int)role;
         // Up to 3x inside a third of the range (the most a shot does, play feedback 4), 1x at the edge.
-        public static float RangedDamageFactor(float range, float distance) => range / Math.Max(range / 3f, distance);
         public static ActionCompatibility Compatibility(RobotRole role, RobotAction action, IReadOnlyList<ActionPermission> permissions = null)
         {
             if (NativeAction(role) == action) return ActionCompatibility.Native;

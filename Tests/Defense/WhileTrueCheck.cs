@@ -69,9 +69,8 @@ static class WhileTrueCheck
         }
         Assert(first > 0 && first < 3.05f && bot.Program.Fault == null, $"the ranged loop first shoots inside 0.3 of its range (first shot at {first:0.00})");
 
-        // Why 0.3: a shot does the most (3x) from a third of the range in, 1x at the edge.
-        Assert(Rules.RangedDamageFactor(9, 1) == 3 && Rules.RangedDamageFactor(9, 3) == 3 && Rules.RangedDamageFactor(9, 6) == 1.5f &&
-            Rules.RangedDamageFactor(9, 9) == 1, "ranged damage peaks inside a third of the range");
+        // A shot does the same damage from any distance (no inverse-distance bonus).
+        Assert(sim.ActionDamage(bot, RobotAction.Attack, 1) == sim.ActionDamage(bot, RobotAction.Attack, 10), "ranged damage does not depend on distance");
 
         // Dividing by zero stops that robot's code with a message instead of breaking the battle.
         sim = Make(new SpawnGroup { Enemy = new EnemySpec { health = 20, speed = 1 }, Count = 1, Interval = 1 });
