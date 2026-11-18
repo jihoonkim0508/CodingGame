@@ -171,14 +171,14 @@ namespace CodingGame.Defense
         {
             if (!IsOpen || !HasCurrentSession) return;
             // 2-3 B02: the warrior's loop finds the nearest enemy; the player adds the if on its distance, and the slash.
-            panel.LoadProgram(panel.FunctionName, new[] { Loop(new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy))) });
+            LoadLesson(new[] { Loop(new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy))) });
             if (!panel.IsApplied) throw new InvalidOperationException("조건문 기초 코드의 블록 지급량을 확인하세요.");
         }
         public void PrepareBaselineExample()
         {
             if (!IsOpen || !HasCurrentSession) return;
             // 2-3 A05: the warrior slashing on and on, at air or not (each swing rests it 1.6 s), to compare against.
-            panel.LoadProgram(panel.FunctionName, new[] { Loop(new CodeBlock(BlockKind.Slash)) });
+            LoadLesson(new[] { Loop(new CodeBlock(BlockKind.Slash)) });
             if (!panel.IsApplied) throw new InvalidOperationException("비교용 기본 베기 코드의 블록 지급량을 확인하세요.");
             RestartPreview();
         }
@@ -195,8 +195,18 @@ namespace CodingGame.Defense
                 new CodeBlock(BlockKind.MyPos)), new CodeBlock(BlockKind.MyAttackRange));
             var code = id == "2-5" ? new[] { Find(), Loop(Shoot()) } :
                 new[] { Loop(Find(), id == "2-8" ? Loop(Leave(dead), Leave(away), Shoot()) : Loop(Shoot())) };
-            panel.LoadProgram(panel.FunctionName, code);
+            LoadLesson(code);
             if (!panel.IsApplied) throw new InvalidOperationException(id + " 준비 코드의 블록 지급량을 확인하세요.");
+        }
+        // The lesson hands over what its prepared code is short of, so it loads even when other robots hold those blocks (play-test 2-8).
+        void LoadLesson(CodeBlock[] code)
+        {
+            foreach (var group in DefenseProgression.Used(code).GroupBy(DefenseProgression.Canonical))
+            {
+                int missing = group.Count() - editingSession.Available(group.Key, editingId);
+                if (missing > 0) editingSession.GrantBlock(group.Key, missing);
+            }
+            panel.LoadProgram(panel.FunctionName, code);
         }
         static CodeBlock Loop(params CodeBlock[] body)
         {
