@@ -637,8 +637,10 @@ namespace CodingGame.Defense.Editor
             // each shot leaves one hurt and it gets through, the one that keeps its enemy until is_dead() fells them all. The
             // Heavy comes first: the preview's shooter stops once it is down.
             Groups(2, 5, ("Heavy", 4, 0, 3, 26, 1.1f, 0, false), ("Enemy", 3, 14, 2.5f, 15, 1.6f, 0, false));
-            // 2-6: fast ones that take two shots, so a live target runs out of range during the reload.
-            Groups(2, 6, ("Runner", 4, 0, 3, 35, 1.35f, 0, false), ("Enemy", 3, 14, 3, 18.8f, 1.5f, 0, false));
+            // 2-6: three fast ones of three shots (72 health) outrun the lesson shooter's range alive, basic ones of one shot
+            // right behind them: without break it keeps aiming at a fast one out of range and fires nothing while the basic
+            // ones walk past (team: 3 felled, 4 through); with break it lets go and fells them (6 felled, 1 through).
+            Groups(2, 6, ("Runner", 3, 0, 2.5f, 60, 1.35f, 0, false), ("Enemy", 4, 6, 2.5f, 18.8f, 1.5f, 0, false));
             Groups(2, 7, ("Enemy", 4, 0, 3, 17.9f, 1.6f, 0, false), ("Runner", 4, 4, 3.5f, 23.9f, 1.3f, 0, false), ("Heavy", 2, 10, 6, 25.4f, 1.2f, 0, false));
             // 2-8: small ones of two swings before and after two Heavies of three shots: the shooter that continues past them
             // keeps its shots for the Heavies and the warrior takes the small ones (without the warrior two get through).
