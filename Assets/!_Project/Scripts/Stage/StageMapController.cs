@@ -39,8 +39,8 @@ namespace CodingGame.StageMap
             nodes = stageNodes; mapCamera = camera;
             islands = nodes.Select(node => node.GetComponent<StageIslandView>()).ToArray();
             var cameraData=camera.GetUniversalAdditionalCameraData();
-            cameraData.antialiasing=AntialiasingMode.SubpixelMorphologicalAntiAliasing;
-            cameraData.antialiasingQuality=AntialiasingQuality.High;
+            // No forced SMAA: it came in when the pipeline had no MSAA; the graphics option's MSAA decides now, "끔" included.
+            cameraData.antialiasing=AntialiasingMode.None;
             cameraData.renderPostProcessing=true;
             cameraController = gameObject.AddComponent<StageCameraController>();
             cameraController.Configure(camera, nodes);

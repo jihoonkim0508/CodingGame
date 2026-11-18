@@ -153,7 +153,7 @@ Shader "CodingGame/Art/Character Surface"
     UNITY_SETUP_INSTANCE_ID(i); UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
     clip(_OutlineWidth-.001);
     DissolveClip(i.positionOS);
-    return half4(MixFog(_OutlineColor.rgb,i.fog),_OutlineColor.a);
+    return half4(MixFog(_OutlineColor.rgb,i.fog),1); // opaque: blended, it took up whatever was drawn before it
    }
    Varyings ShadowVert(Attributes i)
    {
@@ -202,7 +202,6 @@ Shader "CodingGame/Art/Character Surface"
    Name "CharacterOutline" Tags {"LightMode"="SRPDefaultUnlit"}
    // ZWrite On: drawn with the opaques, an outline that leaves no depth is painted over by the floor drawn after it.
    Cull Front ZWrite On ZTest LEqual
-   Blend SrcAlpha OneMinusSrcAlpha
    HLSLPROGRAM
    #pragma target 3.0
    #pragma vertex OutlineVert

@@ -83,7 +83,9 @@ namespace CodingGame.Art.MapPainter
         public void PlayStageEntry() { BeginStageEntry();TryPlayOnce(); }
         private void Begin()
         {
-            Finish(false); playback=new MapBuildPlayback(GetComponent<ModularMapRoot>(),this); playback.Sample(0);
+            // A map switched on after load (stage 1) gets this OnEnable before its root's: style the tiles first, or the
+            // playback snapshots empty property blocks and restores them at the end (the map lost its colours).
+            Finish(false); GetComponent<ModularMapRoot>()?.ApplyFloorColors(); playback=new MapBuildPlayback(GetComponent<ModularMapRoot>(),this); playback.Sample(0);
         }
         public void SamplePreview(float normalizedTime) { playback?.Sample(normalizedTime); }
         public void Finish(bool notify=true)
