@@ -21,7 +21,9 @@ namespace CodingGame.Defense
         // Installation order: Robot.Unit.0 is the first robot placed (1-3's loop lesson teaches the warrior from 1-1).
         public static IReadOnlyList<RobotState> OrderedRobots(DefenseSimulation sim) =>
             sim == null ? Array.Empty<RobotState>() : sim.Robots.OrderBy(robot => robot.Id).ToArray();
-        public static RobotState Robot(DefenseSimulation sim, int index) => OrderedRobots(sim).ElementAtOrDefault(index);
+        // A negative index counts from the newest (-1: 2-3's warrior, stood by the road by the lesson itself).
+        public static RobotState Robot(DefenseSimulation sim, int index)
+        { var robots = OrderedRobots(sim); return robots.ElementAtOrDefault(index < 0 ? robots.Count + index : index); }
         public static int RobotIndex(DefenseSimulation sim, int id) =>
             OrderedRobots(sim).Select((robot, index) => (robot, index)).Where(entry => entry.robot.Id == id)
                 .Select(entry => entry.index).DefaultIfEmpty(-1).First();
@@ -80,8 +82,8 @@ namespace CodingGame.Defense
                 killSwingEnds = killer != null ? killer.NextAction : sim.Time;
             }
             if (!killSwingEnded && killSwingEnds >= 0 && sim.Time + 1e-6 >= killSwingEnds) { killSwingEnded = true; signals.Add(TutorialSignals.KillSwingEnded); }
-            // The line is about the lesson's robot (robot 0), not another robot swinging first.
-            if (!firstAttack && TeachingRobot(sim)?.AttacksThisWave > 0)
+            // The line is about the lesson's robot (the step's: robot 0 but in 2-3), not another robot swinging first.
+            if (!firstAttack && Robot(sim, robotIndex)?.AttacksThisWave > 0)
             { firstAttack = true; signals.Add(TutorialSignals.FirstAttack); }
             if (sim.Leaks > leaks) { leaks = sim.Leaks; signals.Add(TutorialSignals.Leak); }
             var teacher = TeachingRobot(sim);

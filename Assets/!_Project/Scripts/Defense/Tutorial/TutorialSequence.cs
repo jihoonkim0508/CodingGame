@@ -64,10 +64,12 @@ namespace CodingGame.Defense
         [Tooltip("단계 진입 시 편집기를 닫고 robotIndex 로봇의 편집기를 엽니다.")] public bool openEditor;
         [Tooltip("판정·코드 삭제·편집기 대상. 1-3에서는 0이 적 출현 지점에 가장 가까운 로봇, 다른 웨이브에서는 배치 순서입니다.")]
         [Min(0)] public int robotIndex;
-        [Tooltip("1-3 조건문 소개용으로 적 찾기·거리 저장 두 줄을 준비합니다. 다른 로봇의 코드는 유지합니다.")]
+        [Tooltip("2-3 조건문 소개용으로 반복 안에 적 찾기 한 줄을 준비합니다. 다른 로봇의 코드는 유지합니다.")]
         public bool prepareDistanceExample;
         [Tooltip("단계 진입 시 원거리 로봇을 입구 근처 길 옆에 세웁니다(1-3).")] public bool placeShooter;
+        [Tooltip("단계 진입 시 전사형 로봇을 길 옆에 세우고 while True: slash()를 줍니다. 이미 서 있으면 그대로 두고(2-8), robotIndex가 -1이면 한 대 더 세웁니다(2-3).")] public bool placeWarrior;
         public bool prepareBaselineExample;
+        [Tooltip("단계 진입 시 이 웨이브의 준비 코드를 넣습니다(2-5, 2-6, 2-8). 비우면 넣지 않습니다.")] public string prepareExample;
         public bool restartPreview;
         [Tooltip("흑백 화면 가운데에 대화창을 크게 띄웁니다. 이어지는 단계도 켜 두면 가운데에 남고, 꺼진 단계로 넘어갈 때 원래 자리로 줄어들며 이동합니다.")] public bool introEntrance;
         [Tooltip("시스템 배너에 경고 카드 세 장을 함께 띄웁니다(1-1 A01).")] public bool alertCards;

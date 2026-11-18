@@ -360,11 +360,13 @@ namespace CodingGame.Defense
             if (!Editor) return;
             var robot = TutorialWatcher.Robot(session, step.robotIndex);
             if (step.placeShooter) battle.PlaceLessonShooter();
+            if (step.placeWarrior) battle.PlaceLessonRobot(RobotRole.Warrior, step.robotIndex < 0);
             if (step.closeEditor) Editor.Close(false);
             if (step.clearProgram && robot != null) Editor.ClearRobotProgram(robot.Id);
             if (step.openEditor && robot != null) { Editor.Close(false); Editor.Open(robot.Id); }
             if (step.prepareBaselineExample) Editor.PrepareBaselineExample();
             if (step.prepareDistanceExample) Editor.PrepareDistanceExample();
+            if (!string.IsNullOrEmpty(step.prepareExample)) Editor.PrepareExample(step.prepareExample);
             if (step.restartPreview) Editor.RestartPreview();
             if (!string.IsNullOrEmpty(step.autoSelectSlot) && !Editor.SelectTutorialSlot(step.autoSelectSlot))
             {

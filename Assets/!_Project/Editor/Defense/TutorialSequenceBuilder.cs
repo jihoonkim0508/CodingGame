@@ -61,10 +61,16 @@ namespace CodingGame.Defense.Editor
         const string Code11 = "slash()";
         const string Code13 = "while True:\n    slash()";
         const string Code31 = "while True:\n    enemy = get_nearest_enemy()\n    block(enemy)";
-        // 2-1: the found enemy kept in a variable; 2-3: the shooter waits until the enemy is within 3, where one shot fells it
-        // (32 x 7/distance, at most 3x), instead of firing on entry at 7 and reloading 6 s while the enemy walks past.
+        // 2-1: the found enemy kept in a variable; 2-3: the warrior slashes only once the nearest enemy is within its range,
+        // instead of slashing air and resting 1.6 s while an enemy walks in.
         const string Code21 = "while True:\n    enemy = get_nearest_enemy()\n    shoot(enemy)";
-        const string Code23 = "while True:\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:\n        shoot(enemy)";
+        const string Code23 = "while True:\n    enemy = get_nearest_enemy()\n    if enemy.distance(get_my_pos()) <= my_attack_range():\n        slash()";
+        // 2-5: the enemy kept until is_dead() says it fell; 2-6: a loop in the loop that break leaves once its enemy is out of
+        // range; 2-7's hint also leaves it once the enemy is down; 2-8: continue skips every nearest enemy that is not a tank.
+        const string Code25 = "enemy = get_nearest_enemy()\nwhile True:\n    if enemy.is_dead():\n        enemy = get_nearest_enemy()\n    shoot(enemy)";
+        const string Code26 = "while True:\n    enemy = get_nearest_enemy()\n    while True:\n        if enemy.distance(get_my_pos()) > my_attack_range():\n            break\n        shoot(enemy)";
+        const string Code27 = "while True:\n    enemy = get_nearest_enemy()\n    while True:\n        if enemy.is_dead():\n            break\n        if enemy.distance(get_my_pos()) > my_attack_range():\n            break\n        shoot(enemy)";
+        const string Code28 = "while True:\n    enemy = get_nearest_enemy()\n    if enemy.type != Enemy.Tank:\n        continue\n    while True:\n        if enemy.is_dead():\n            break\n        if enemy.distance(get_my_pos()) > my_attack_range():\n            break\n        shoot(enemy)";
         const string StagesFolder = "Assets/!_Project/Defense/Tutorial/Stages23";
 
         sealed class Line { public string Speaker, Text; }
@@ -90,7 +96,8 @@ namespace CodingGame.Defense.Editor
             public string Demo;
             public bool Top;
             public float Hold, TriggerDelay;
-            public bool DistanceExample, BaselineExample, RestartPreview, PlaceShooter;
+            public bool DistanceExample, BaselineExample, RestartPreview, PlaceShooter, PlaceWarrior;
+            public string Example;
         }
 
         static Dictionary<string, List<Line>> lines;
@@ -203,7 +210,9 @@ namespace CodingGame.Defense.Editor
                 s.Expected = expected; s.Pointer = pointer;
                 if (signal == TutorialSignals.CodeLinePlaced || signal == TutorialSignals.SlotFilled)
                 {
-                    string slot = signal == TutorialSignals.SlotFilled ? expected :
+                    // A ':Kind' after the slot says what must be there (2-3 C07: get_my_pos()); a demo needs a palette block to drag.
+                    string slot = !pointer.StartsWith(TutorialKeys.PalettePrefix, StringComparison.Ordinal) ? null :
+                        signal == TutorialSignals.SlotFilled ? expected.Split(':')[0] :
                         focus.LastOrDefault(key => key.StartsWith(TutorialKeys.CodePrefix, StringComparison.Ordinal));
                     if (!string.IsNullOrEmpty(slot)) s.Demo = pointer + ">" + slot;
                 }
@@ -234,42 +243,146 @@ namespace CodingGame.Defense.Editor
             L("2-1.E02", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
         };
 
-        // 2-3: the old 1-3 lesson. The shooter from 2-1 (Robot.Unit.0) first shows the plain loop firing on entry; then its code
-        // gets the distance line and the player builds the if round shoot(enemy).
+        // 2-3 (게임 논리 검토, 3e52879): a warrior the lesson stands by the road (the newest robot, Robot.Unit.-1) first shows
+        // slash() on and on, resting after each swing at air; then its loop finds the nearest enemy and the player builds the if
+        // on its distance round slash().
+        static readonly string Newest = TutorialKeys.Unit(-1);
         static List<S> TwoThree() => new List<S> {
-            L("2-3.A01"),
-            L("2-3.A03", Click(Unit0, s => s.Pointer = Unit0)),
+            L("2-3.A01", s => s.PlaceWarrior = true),
+            L("2-3.A03", Click(Newest, s => s.Pointer = Newest)),
             L("2-3.A04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
-            // Held 6 s past the first (far) hit: the shooter reloads while the enemy walks right past it.
+            // Held past the first swing until the enemy has walked through while the warrior rests.
             L("2-3.A05", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(
                 s => { s.BaselineExample = true; s.Preview = true; s.Hold = 6; }, Focus(Preview)))),
-            L("2-3.B01", With(s => s.DistanceExample = true, Focus("Editor.Code.Line.1/1"))),
-            L("2-3.B02", Focus("Editor.Code.Line.1/2")),
-            L("2-3.B03"),
+            L("2-3.B01", With(Ed, Focus(Preview))),
+            L("2-3.B02", With(Ed, s => s.DistanceExample = true, Focus("Editor.Code.Line.1/1"))),
             L("2-3.B04"), L("2-3.B05"),
-            // Everything sits inside the for (line 1); the if becomes its third line ("1/3").
-            L("2-3.C01", With(EditSignal(TutorialSignals.CodeLinePlaced, "1/3:If", "Editor.Palette.If", "Editor.Palette.If", "Editor.Code.After.1/2"),
-                s => { s.AutoSlot = "Editor.Code.Body.1"; s.Demo = "Editor.Palette.If>Editor.Code.After.1/2"; })),
-            L("2-3.C03", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/3.0", "Editor.Palette.Comparison", "Editor.Palette.Comparison", "Editor.Code.Arg.1/3.0"), s => s.AutoSlot = "Editor.Code.Arg.1/3.0")),
-            L("2-3.C04", EditSignal(TutorialSignals.DraftValueMatches, "1/3.0|<=", "Editor.Code.Option.1/3.0", "Editor.Code.Option.1/3.0")),
-            L("2-3.C06", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/3.0.0", "Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.Arg.1/3.0.0"), s => s.AutoSlot = "Editor.Code.Arg.1/3.0.0")),
-            L("2-3.C07", EditSignal(TutorialSignals.DraftValueMatches, "1/3.0.0|enemy_distance", "Editor.Code.Name.1/3.0.0", "Editor.Code.Name.1/3.0.0")),
-            L("2-3.C09", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/3.0.1", "Editor.Palette.Number", "Editor.Palette.Number", "Editor.Code.Arg.1/3.0.1"), s => s.AutoSlot = "Editor.Code.Arg.1/3.0.1")),
-            L("2-3.C09a", EditSignal(TutorialSignals.DraftValueMatches, "1/3.0.1|3", "Editor.Code.Name.1/3.0.1", "Editor.Code.Name.1/3.0.1")),
-            L("2-3.C10", Focus("Editor.Code.Arg.1/3.0")),
-            // shoot() goes in the if, then the enemy it shoots goes in its brackets (a variable renamed enemy finishes the code).
-            L("2-3.D02", With(EditSignal(TutorialSignals.CodeLinePlaced, "1/3/1:Shot", "Editor.Palette.Shot", "Editor.Palette.Shot", "Editor.Code.Body.1/3"),
-                s => { s.AutoSlot = "Editor.Code.Body.1/3"; s.Demo = "Editor.Palette.Shot>Editor.Code.Body.1/3"; })),
-            L("2-3.D03", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/3/1.0", "Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.Arg.1/3/1.0"), s => s.AutoSlot = "Editor.Code.Arg.1/3/1.0")),
-            L("2-3.D04", EditSignal(TutorialSignals.ProgramMatches, Code23, "Editor.Code.Name.1/3/1.0", "Editor.Code.Name.1/3/1.0")),
+            // The if becomes the loop's second line ("1/2"), a click adds it at the body's end.
+            L("2-3.C01", With(EditSignal(TutorialSignals.CodeLinePlaced, "1/2:If", "Editor.Palette.If", "Editor.Palette.If", "Editor.Code.After.1/1"),
+                s => { s.AutoSlot = "Editor.Code.Body.1"; s.Demo = "Editor.Palette.If>Editor.Code.After.1/1"; })),
+            L("2-3.C03", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/2.0", "Editor.Palette.Comparison", "Editor.Palette.Comparison", "Editor.Code.Arg.1/2.0"), s => s.AutoSlot = "Editor.Code.Arg.1/2.0")),
+            L("2-3.C04", EditSignal(TutorialSignals.DraftValueMatches, "1/2.0|<=", "Editor.Code.Option.1/2.0", "Editor.Code.Option.1/2.0")),
+            // enemy.distance() is the variable block named enemy. with distance( chosen after the dot (no block of its own).
+            L("2-3.C06", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/2.0.0:Distance",
+                "Editor.Code.Option.1/2.0.0|Editor.Code.Name.1/2.0.0|Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.Arg.1/2.0.0"),
+                s => { s.AutoSlot = "Editor.Code.Arg.1/2.0.0"; s.Demo = "Editor.Palette.Variable>Editor.Code.Arg.1/2.0.0"; })),
+            L("2-3.C07", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/2.0.0.0:MyPos", "Editor.Palette.MyPos", "Editor.Palette.MyPos", "Editor.Code.Arg.1/2.0.0.0"), s => s.AutoSlot = "Editor.Code.Arg.1/2.0.0.0")),
+            L("2-3.C09", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/2.0.1:MyAttackRange", "Editor.Palette.MyAttackRange", "Editor.Palette.MyAttackRange", "Editor.Code.Arg.1/2.0.1"), s => s.AutoSlot = "Editor.Code.Arg.1/2.0.1")),
+            L("2-3.C10", With(Ed, Focus("Editor.Code.Arg.1/2.0"))),
+            L("2-3.D02", With(EditSignal(TutorialSignals.ProgramMatches, Code23, "Editor.Palette.Slash", "Editor.Palette.Slash", "Editor.Code.Body.1/2"),
+                s => { s.AutoSlot = "Editor.Code.Body.1/2"; s.Demo = "Editor.Palette.Slash>Editor.Code.Body.1/2"; })),
             L("2-3.D06", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(s => { s.Preview = true; s.RestartPreview = true; s.Hold = 3; }, Focus(Preview)))),
-            L("2-3.D07", With(Ed, Focus("Editor.Code.Body.1/3"))),
+            L("2-3.D07", With(Ed, Focus("Editor.Code.Body.1/2"))),
             L("2-3.E01", s => s.CloseEditor = true),
             L("2-3.E02", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => s.Top = true)),
-            // A beat after the first shot, so the player sees it before '쐈다!'.
+            // A beat after the warrior's first swing, so the player sees it before '벴다!'.
             L("2-3.E03", With(Fight, s => { s.Trigger = TutorialSignals.FirstAttack; s.TriggerDelay = 1.2f; })),
             L("2-3.E04", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code23; }),
             L("2-3.E06", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
+        }.Select(s => { s.Robot = -1; return s; }).ToList();
+
+        static Action<S> Claim => Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; });
+        // The editor closes, the start button, then the wave (2-5, 2-6, 2-8 E01 to E03).
+        static S[] Battle(string wave, string hint) => new[] {
+            L(wave + ".E01", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => { s.CloseEditor = true; s.Top = true; s.HintCode = hint; })),
+            L(wave + ".E02", With(Fight, s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = hint; })),
+            L(wave + ".E03", Claim) };
+        // A variable block put in the slot and named enemy, said in one line (2-5 and 2-6 C02).
+        static Action<S> EnemyIn(string path) => With(EditSignal(TutorialSignals.DraftValueMatches, path + "|enemy",
+            "Editor.Code.Name." + path + "|Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.Arg." + path),
+            s => { s.AutoSlot = "Editor.Code.Arg." + path; s.Demo = "Editor.Palette.Variable>Editor.Code.Arg." + path; });
+        // `enemy.` and is_dead() from its list: the slot then holds a condition.
+        static Action<S> Dead(string path) => EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg." + path + ":IsDead",
+            "Editor.Code.Option." + path + "|Editor.Code.Name." + path, "Editor.Code.Arg." + path);
+
+        // 2-5 (원거리_집중공격_설계 4-5): the enemy found once before the loop is shot until it falls, then the shooter stands
+        // still; the player adds the if that finds a new one once enemy.is_dead().
+        static List<S> TwoFive() => new List<S> {
+            L("2-5.A01", s => s.Cards = true), L("2-5.A02"),
+            L("2-5.A03", Click(Unit0, s => s.Pointer = Unit0)),
+            L("2-5.A04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
+            // Held past the first hit until the first enemy is down (two shots, 6 s apart) and the shooter has stood still.
+            L("2-5.A05", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(
+                s => { s.Example = "2-5"; s.RestartPreview = true; s.Preview = true; s.Hold = 10; }, Focus("Editor.Code.Line.1", Preview)))),
+            L("2-5.B01", With(Ed, Focus("Editor.Code.Line.1", Preview))), L("2-5.B02", With(Ed, Focus("Editor.Code.Line.1"))),
+            // In front of shoot(enemy), the loop's first line: dragged there (a click adds at the end).
+            L("2-5.C01", With(EditSignal(TutorialSignals.CodeLinePlaced, "2/1:If", "Editor.Palette.If", "Editor.Palette.If", "Editor.Code.Before.2/1"),
+                s => s.Demo = "Editor.Palette.If>Editor.Code.Before.2/1")),
+            L("2-5.C02", EnemyIn("2/1.0")),
+            L("2-5.C03", Dead("2/1.0")),
+            L("2-5.C04", With(Ed, Focus("Editor.Code.Arg.2/1.0"))),
+            L("2-5.D01", With(EditSignal(TutorialSignals.CodeLinePlaced, "2/1/1:DeclareVariable", "Editor.Palette.DeclareVariable", "Editor.Palette.DeclareVariable", "Editor.Code.Body.2/1"),
+                s => s.AutoSlot = "Editor.Code.Body.2/1")),
+            L("2-5.D02", With(EditSignal(TutorialSignals.ProgramMatches, Code25, "Editor.Palette.NearestEnemy", "Editor.Palette.NearestEnemy", "Editor.Code.Arg.2/1/1.0"),
+                s => { s.AutoSlot = "Editor.Code.Arg.2/1/1.0"; s.Demo = "Editor.Palette.NearestEnemy>Editor.Code.Arg.2/1/1.0"; })),
+            L("2-5.D03", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(s => { s.Preview = true; s.RestartPreview = true; s.Hold = 10; }, Focus(Preview)))),
+            L("2-5.D04", With(Ed, Focus("Editor.Code.Line.2/1"))),
+        }.Concat(Battle("2-5", Code25)).ToList();
+
+        // 2-6 (게임 논리 검토): the loop in the loop keeps shooting its enemy after it ran out of range; break leaves the inner
+        // loop then, and the outer one finds the nearest again.
+        static List<S> TwoSix() => new List<S> {
+            L("2-6.A01", s => s.Cards = true), L("2-6.A02"),
+            L("2-6.A03", Click(Unit0, s => s.Pointer = Unit0)),
+            L("2-6.A04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
+            // No line of its own for the demo: B01's '봤지?' waits on the preview until the target has run out of range.
+            L("2-6.B01", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(
+                s => { s.Example = "2-6"; s.RestartPreview = true; s.Preview = true; s.Hold = 8; }, Focus("Editor.Code.Line.1/2", Preview)))),
+            L("2-6.B02", With(Ed, Focus("Editor.Code.Line.1/2"))), L("2-6.B03", With(Ed, Focus("Editor.Code.Line.1/2"))),
+            L("2-6.C01", With(EditSignal(TutorialSignals.CodeLinePlaced, "1/2/1:If", "Editor.Palette.If", "Editor.Palette.If", "Editor.Code.Before.1/2/1"),
+                s => s.Demo = "Editor.Palette.If>Editor.Code.Before.1/2/1")),
+            L("2-6.C02", With(EditSignal(TutorialSignals.DraftValueMatches, "1/2/1.0|>", "Editor.Code.Option.1/2/1.0|Editor.Palette.Comparison", "Editor.Palette.Comparison", "Editor.Code.Arg.1/2/1.0"),
+                s => { s.AutoSlot = "Editor.Code.Arg.1/2/1.0"; s.Demo = "Editor.Palette.Comparison>Editor.Code.Arg.1/2/1.0"; })),
+            // Both sides in one line: enemy. with distance( and get_my_pos() on the left, my_attack_range() on the right.
+            L("2-6.C03", Signal(TutorialSignals.ConditionBuilt, new[] { Drop, Palette }, With(s => {
+                s.Expected = "enemy.distance(get_my_pos()) > my_attack_range()"; s.AutoSlot = "Editor.Code.Arg.1/2/1.0.0";
+                s.Pointer = "Editor.Palette.Variable"; s.Demo = "Editor.Palette.Variable>Editor.Code.Arg.1/2/1.0.0"; },
+                Focus("Editor.Code.Arg.1/2/1.0.0", "Editor.Code.Arg.1/2/1.0.1")))),
+            L("2-6.C04", With(EditSignal(TutorialSignals.ProgramMatches, Code26, "Editor.Palette.Break", "Editor.Palette.Break", "Editor.Code.Body.1/2/1"),
+                s => { s.AutoSlot = "Editor.Code.Body.1/2/1"; s.Demo = "Editor.Palette.Break>Editor.Code.Body.1/2/1"; })),
+            L("2-6.D01", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(s => { s.Preview = true; s.RestartPreview = true; s.Hold = 10; }, Focus(Preview)))),
+            L("2-6.D02", With(Ed, Focus("Editor.Code.Body.1/2/1"))),
+        }.Concat(Battle("2-6", Code26)).ToList();
+
+        // 2-8: 2-7's hint, then an if under enemy = get_nearest_enemy() that continues while the nearest enemy is no tank; a
+        // warrior stands by the road from the start for the small ones.
+        static List<S> TwoEight() => new List<S> {
+            L("2-8.A01", s => { s.Cards = true; s.PlaceWarrior = true; }), L("2-8.A02"),
+            L("2-8.A03", Click(Unit0, s => s.Pointer = Unit0)),
+            L("2-8.A04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
+            L("2-8.B01", With(Ed, s => s.Example = "2-8", Focus("Editor.Code.Line.1/1"))),
+            L("2-8.B02", With(Ed, Focus("Editor.Code.Line.1/2"))), L("2-8.B03", With(Ed, Focus("Editor.Code.Line.1"))),
+            L("2-8.C01", With(EditSignal(TutorialSignals.CodeLinePlaced, "1/2:If", "Editor.Palette.If", "Editor.Palette.If", "Editor.Code.After.1/1"),
+                s => s.Demo = "Editor.Palette.If>Editor.Code.After.1/1")),
+            // The comparison put in the if and its sign turned to != (one line: the block, then its picker).
+            L("2-8.C02", With(EditSignal(TutorialSignals.DraftValueMatches, "1/2.0|!=", "Editor.Code.Option.1/2.0|Editor.Palette.Comparison", "Editor.Palette.Comparison", "Editor.Code.Arg.1/2.0"),
+                s => { s.AutoSlot = "Editor.Code.Arg.1/2.0"; s.Demo = "Editor.Palette.Comparison>Editor.Code.Arg.1/2.0"; })),
+            L("2-8.C03", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/2.0.0:EnemyTypeOf",
+                "Editor.Code.Option.1/2.0.0|Editor.Code.Name.1/2.0.0|Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.Arg.1/2.0.0"),
+                s => { s.AutoSlot = "Editor.Code.Arg.1/2.0.0"; s.Demo = "Editor.Palette.Variable>Editor.Code.Arg.1/2.0.0"; })),
+            L("2-8.C04", With(EditSignal(TutorialSignals.DraftValueMatches, "1/2.0.1|Tank", "Editor.Code.Option.1/2.0.1|Editor.Palette.EnemyTypeName", "Editor.Palette.EnemyTypeName", "Editor.Code.Arg.1/2.0.1"),
+                s => { s.AutoSlot = "Editor.Code.Arg.1/2.0.1"; s.Demo = "Editor.Palette.EnemyTypeName>Editor.Code.Arg.1/2.0.1"; })),
+            L("2-8.C05", With(EditSignal(TutorialSignals.ProgramMatches, Code28, "Editor.Palette.Continue", "Editor.Palette.Continue", "Editor.Code.Body.1/2"),
+                s => { s.AutoSlot = "Editor.Code.Body.1/2"; s.Demo = "Editor.Palette.Continue>Editor.Code.Body.1/2"; })),
+            L("2-8.D01", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(s => { s.Preview = true; s.RestartPreview = true; s.Hold = 10; }, Focus(Preview)))),
+            L("2-8.D02", With(Ed, Focus("Editor.Code.Line.1/2"))),
+        }.Concat(Battle("2-8", Code28)).ToList();
+
+        // 2-7, 2-9, 2-10: lines before free play (as 1-4, 1-5), the hint holding the code to build on.
+        static List<S> TwoSeven() => new List<S> {
+            L("2-7.A01", s => s.Cards = true), L("2-7.A02"), L("2-7.A03"), L("2-7.A04"),
+            L("2-7.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code27; s.Battle = true; }),
+            L("2-7.B02", Claim),
+        };
+        static List<S> TwoNine() => new List<S> {
+            L("2-9.A01", s => s.Cards = true), L("2-9.A02"), L("2-9.A03"), L("2-9.A04"),
+            L("2-9.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code28; s.Battle = true; }),
+            L("2-9.B02"), L("2-9.B03", Claim),
+        };
+        static List<S> TwoTen() => new List<S> {
+            L("2-10.A01", s => s.Cards = true), L("2-10.A02"), L("2-10.A03"), L("2-10.A04"),
+            L("2-10.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.Battle = true; }),
+            L("2-10.B02"), L("2-10.B03", Claim),
         };
 
         static List<S> OneFour() => new List<S> {
@@ -299,12 +412,13 @@ namespace CodingGame.Defense.Editor
         // Script code names in the code colour (1-4 already has backticks).
         static readonly Regex CodeNames = new Regex(@"(?<![A-Za-z0-9_.`])(" + string.Join("|", new[] {
             "enemy.distance(get_my_pos())", ".distance(get_my_pos())", "enemy.distance()", "get_nearest_enemy()", "get_my_pos()", "my_attack_range()",
-            "enemy_distance", "while True", "slash()", "block()", "shoot()", ".hp", "enemy", "while", "if", "<=" }.Select(Regex.Escape)) + @")(?![A-Za-z0-9_(`])");
+            "enemy.is_dead()", "is_dead()", "enemy.type", "Enemy.Tank", "Enemy.", "Tank", "type", "break", "continue",
+            "enemy_distance", "while True", "slash()", "block()", "shoot()", ".hp", "enemy", "while", "if", "<=", "!=" }.Select(Regex.Escape)) + @")(?![A-Za-z0-9_(`])");
 
         static Dictionary<string, List<Line>> ParseScript(string path)
         {
             var result = new Dictionary<string, List<Line>>();
-            var pattern = new Regex(@"^\[(\d-\d\.[A-Z]\d\d[a-z]?)\] (?:\((?:ui|UI)로 표시\)\s*)?(\S+) : (.*)$");
+            var pattern = new Regex(@"^\[(\d-\d+\.[A-Z]\d\d[a-z]?)\] (?:\((?:ui|UI)로 표시\)\s*)?(\S+) : (.*)$");
             foreach (var raw in File.ReadAllLines(path))
             {
                 var m = pattern.Match(raw);
@@ -340,7 +454,7 @@ namespace CodingGame.Defense.Editor
                     highlightPadding = s.Padding, trigger = s.Trigger, expectedCode = s.Expected,
                     pointerKey = s.Pointer, autoSelectSlot = s.AutoSlot, hintCode = s.HintCode, pointerDelay = s.PointerDelay,
                     closeEditor = s.CloseEditor, clearProgram = s.ClearProgram, openEditor = s.OpenEditor, robotIndex = s.Robot,
-                    prepareDistanceExample = s.DistanceExample, prepareBaselineExample = s.BaselineExample, restartPreview = s.RestartPreview, placeShooter = s.PlaceShooter,
+                    prepareDistanceExample = s.DistanceExample, prepareBaselineExample = s.BaselineExample, prepareExample = s.Example, restartPreview = s.RestartPreview, placeShooter = s.PlaceShooter, placeWarrior = s.PlaceWarrior,
                     introEntrance = s.Intro, undimmed = s.Undimmed, alertCards = s.Cards, autoAdvance = s.Auto, dismissable = s.Dismissable, holdSeconds = s.Hold, triggerDelay = s.TriggerDelay, dragDemo = s.Demo };
             }).ToArray();
             EditorUtility.SetDirty(sequence);
@@ -373,7 +487,7 @@ namespace CodingGame.Defense.Editor
                     }
                     return;
                 }
-                // A wave without a lesson yet (2-6): a new entry, no rewards.
+                // A wave without a lesson yet (2-7 to 2-10): a new entry, no rewards.
                 lessons.arraySize++;
                 var added = lessons.GetArrayElementAtIndex(lessons.arraySize - 1);
                 added.FindPropertyRelative("stage").intValue = stage; added.FindPropertyRelative("wave").intValue = wave;
@@ -445,23 +559,43 @@ namespace CodingGame.Defense.Editor
             Lesson(4, "반복 자유 플레이", 1);
             Lesson(5, "반복 보스 실습", 0);
             Rewards(1, 4); Rewards(1, 5); Rewards(2, 1); Rewards(2, 2);
-            // Stage 2: variables at 2-1 (two shooters), conditions at 2-3 (with the utility robot's slow() to use them on).
+            // Stage 2: variables at 2-1 (two shooters), conditions at 2-3 (a warrior the lesson stands by the road, with its
+            // while True: slash() to compare and the blocks of its if).
             StageLesson(2, 1, "변수: 찾은 적을 상자에 담기(원거리)", RobotRole.Shooter, 2, (BlockKind.While, 2), (BlockKind.Shot, 2),
                 (BlockKind.DeclareVariable, 2), (BlockKind.Variable, 2), (BlockKind.NearestEnemy, 2));
-            StageLesson(2, 3, "조건문: 쏠 때 고르기", RobotRole.Utility, 1, (BlockKind.If, 2), (BlockKind.Comparison, 2), (BlockKind.Number, 2),
-                (BlockKind.MyPos, 2), (BlockKind.DeclareVariable, 2), (BlockKind.Variable, 3), (BlockKind.MyAttackRange, 1), (BlockKind.Slow, 1));
+            StageLesson(2, 3, "조건문: 벨 때 고르기(전사형)", RobotRole.Warrior, 1, (BlockKind.While, 1), (BlockKind.Slash, 1), (BlockKind.If, 2),
+                (BlockKind.Comparison, 2), (BlockKind.MyPos, 2), (BlockKind.DeclareVariable, 2), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 2),
+                (BlockKind.MyAttackRange, 2));
+            Goal(2, 3, "적이 공격 범위에 들어왔을 때만 베는 조건문으로 막기");
+            Rewards(2, 3);
             // Free waves bring nothing new: 2-1 and 2-3 already give two of each block their codes use.
             FreeLesson(2, 2, "변수 자유 플레이", "찾은 적을 변수에 담아 두 원거리형으로 무리 막기");
-            FreeLesson(2, 4, "조건 자유 플레이", "적이 가까이 왔을 때 쏘는 조건문으로 무리 막기");
-            FreeLesson(2, 5, "자유 플레이", "변수와 조건문을 모두 써서 더 큰 무리 막기");
-            FreeLesson(2, 6, "보스", "보스 등장 · 작은 적을 모두 막고 보스를 쓰러뜨리기");
+            FreeLesson(2, 4, "조건 자유 플레이", "적이 공격 범위에 들어왔을 때만 공격하는 조건문으로 무리 막기");
+            // 2-5 to 2-10 (원거리_집중공격_설계 7): is_dead(), break, free, continue with enemy.type, free, the boss. Each lesson
+            // brings what its new lines need on top of the shooter's code before it; 2-7 and 2-9 what their hints add.
+            StageLesson(2, 5, "is_dead(): 한 적을 끝까지", RobotRole.Shooter, 0, (BlockKind.IsDead, 2), (BlockKind.If, 1),
+                (BlockKind.DeclareVariable, 1), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 2));
+            Goal(2, 5, "쓰러진 적이면 새로 찾는 is_dead()로 한 적씩 끝내기");
+            StageLesson(2, 6, "break: 사거리를 벗어나면 놓아주기", RobotRole.Shooter, 0, (BlockKind.While, 1), (BlockKind.Break, 2),
+                (BlockKind.If, 1), (BlockKind.Comparison, 1), (BlockKind.MyPos, 1), (BlockKind.MyAttackRange, 1), (BlockKind.Variable, 1));
+            Goal(2, 6, "빠른 적 등장 · 사거리 밖으로 나간 적은 break로 놓아주기");
+            StageLesson(2, 7, "자유 실습: 쓰러지거나 멀어지면 break", RobotRole.Shooter, 0, (BlockKind.IsDead, 1), (BlockKind.If, 1),
+                (BlockKind.Variable, 1), (BlockKind.Break, 1));
+            Goal(2, 7, "쓰러진 적도, 멀어진 적도 break로 놓아주고 다음 적 잡기");
+            StageLesson(2, 8, "continue와 enemy.type", RobotRole.Shooter, 0, (BlockKind.If, 1), (BlockKind.Comparison, 1),
+                (BlockKind.Variable, 1), (BlockKind.EnemyTypeName, 2), (BlockKind.Continue, 2), (BlockKind.While, 1), (BlockKind.Slash, 1));
+            Goal(2, 8, "단단한 적 등장 · 원거리형은 continue로 단단한 적만, 작은 적은 전사형이");
+            StageLesson(2, 9, "자유 종합", RobotRole.Shooter, 0, (BlockKind.If, 2), (BlockKind.IsDead, 1), (BlockKind.Break, 1),
+                (BlockKind.Continue, 1), (BlockKind.Comparison, 1), (BlockKind.Variable, 2), (BlockKind.While, 1));
+            Goal(2, 9, "모든 종류의 적 · is_dead(), break, continue로 로봇마다 맡을 적 나누기");
+            FreeLesson(2, 10, "보스", "보스 등장 · 작은 적을 모두 막고 보스를 쓰러뜨리기");
             StageLesson(3, 1, "탱커형 소개", RobotRole.Tank, 1, (BlockKind.While, 1), (BlockKind.Block, 1));
             Goal(3, 1, "탱커형으로 길을 막고 다른 로봇으로 공격하기");
             FreeLesson(3, 2, "자유 플레이", "적이 두 번에 나눠 와요 · 탱커형과 함께 끝까지 막기");
             FreeLesson(3, 3, "자유 플레이", "탱커병 뒤로 적이 줄지어 와요 · 길을 막고 한꺼번에 공격하기");
             FreeLesson(3, 4, "보스", "마지막 보스 · 작은 적을 모두 막고 보스를 쓰러뜨리기");
             DropLesson(3, 5);
-            // Stage 2 gains its boss wave (2-6); Stage 3 ends at its boss (3-4, the old last wave with a boss behind it).
+            // Stage 2 has ten waves, its boss at 2-10; Stage 3 ends at its boss (3-4, the old last wave with a boss behind it).
             var stages = so.FindProperty("stages");
             EnemyDefinition Data(string name) => AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"Assets/!_Project/Defense/Data/{name}.asset") ??
                 throw new InvalidOperationException(name + " enemy asset not found");
@@ -492,7 +626,22 @@ namespace CodingGame.Defense.Editor
             // placed as well make them easy.
             Groups(2, 1, ("Enemy", 6, 0, 2.5f, 15.4f, 1.95f, 0, false), ("Heavy", 2, 6, 4, 26.4f, 1.95f, 0, false));
             Groups(2, 2, ("Enemy", 8, 0, 2, 13.2f, 1.88f, 0, false), ("Heavy", 2, 5, 5, 22.7f, 1.83f, 0, false), ("Runner", 3, 12, 2, 13.2f, 1.84f, 0, false));
-            Groups(2, 6, ("Enemy", 6, 0, 1.4f, 0, 0, 0, false), ("Runner", 4, 3, 1.4f, 0, 0, 0, false), ("Heavy", 1, 0, 2, 200, 1.3f, 12, true));
+            // 2-3: one at a time, 3 s apart, each felled by two of the warrior's swings (13 health): slashing only once one is in
+            // range lands both swings before a fast one has crossed, slashing at air often only one.
+            Groups(2, 3, ("Runner", 5, 0, 3, 11.9f, 0, 0, false), ("Enemy", 4, 16, 3, 8.9f, 0, 0, false));
+            // 2-5 to 2-9 (shooter: 32 a shot, 6 s reload): a basic or fast enemy falls to one shot, a Heavy to two (three from
+            // 2-8), after the stage's scaling. 2-5's Heavy comes first: the preview's shooter stops once it is down.
+            Groups(2, 5, ("Heavy", 3, 0, 5, 26, 1.37f, 0, false), ("Runner", 4, 3, 3, 26, 1.46f, 0, false), ("Enemy", 3, 8, 3, 19.6f, 1.74f, 0, false));
+            // 2-6: fast ones that take two shots, so a live target runs out of range during the reload.
+            Groups(2, 6, ("Runner", 5, 0, 2, 40, 1.6f, 0, false), ("Enemy", 4, 6, 2.5f, 18.8f, 1.69f, 0, false));
+            Groups(2, 7, ("Enemy", 5, 0, 2, 17.9f, 1.65f, 0, false), ("Runner", 4, 3, 2, 23.9f, 1.5f, 0, false), ("Heavy", 2, 8, 5, 25.4f, 1.3f, 0, false));
+            // 2-8: small ones first and between the Heavies, so the shooter's continue has some to skip (the warriors take them).
+            Groups(2, 8, ("Enemy", 4, 0, 2, 17.1f, 1.6f, 0, false), ("Heavy", 3, 3, 6, 34.2f, 1.17f, 0, false), ("Enemy", 3, 10, 2, 17.1f, 1.6f, 0, false));
+            Groups(2, 9, ("Enemy", 5, 0, 1.8f, 17.4f, 1.56f, 0, false), ("Runner", 5, 3, 1.5f, 21.8f, 1.42f, 0, false), ("Heavy", 3, 6, 5, 32.6f, 1.14f, 0, false));
+            // 2-10: the old 2-6 boss (a Heavy), its minions falling to one shot since a minion at the core now ends a boss wave
+            // at once (12a8df8). The boss as two shooters and the warriors fell it within the 50 s (4-4): 173 health, 1.74 speed
+            // once scaled (the old 480 at 1.27 walked in at time-up in every run).
+            Groups(2, 10, ("Enemy", 4, 0, 2, 15.6f, 1.52f, 0, false), ("Runner", 3, 4, 2, 20.8f, 1.33f, 0, false), ("Heavy", 1, 0, 2, 60, 1.6f, 12, true));
             // No tank-bodied minions before the last boss: the boss comes only once they are all down, and with them it came
             // after Stage 3's 50 s and walked in at the time-up (campaign run, 13차 179).
             Groups(3, 4, ("Runner", 4, 0, 1.3f, 0, 0, 0, false), ("Enemy", 5, 4, 1.2f, 0, 0, 0, false), ("Heavy", 1, 0, 2, 130, 1.1f, 12, true));
@@ -527,7 +676,7 @@ namespace CodingGame.Defense.Editor
             boss.FindPropertyRelative("boss").boolValue = true;
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(campaign);
-            return "campaign: lessons for 1-1 to 3-4, 1-4 swarm, bosses at 1-5, 2-6 and 3-4";
+            return "campaign: lessons for 1-1 to 3-4, 1-4 swarm, bosses at 1-5, 2-10 and 3-4";
         }
 
         static void SetupIntroEncounter(SerializedObject so)
@@ -573,7 +722,9 @@ namespace CodingGame.Defense.Editor
             lines = ParseScript(Path.Combine(Directory.GetCurrentDirectory(), Script));
             log.AppendLine("lines " + lines.Count);
             var sequences = new[] { Write("1-1", 1, OneOne()), Write("1-2", 2, OneTwo()), Write("1-3", 3, OneThree()), Write("1-4", 4, OneFour()), Write("1-5", 5, OneFive()),
-                Write("2-1", 1, TwoOne(), 2), Write("2-3", 3, TwoThree(), 2), Write("3-1", 1, ThreeOne(), 3) };
+                Write("2-1", 1, TwoOne(), 2), Write("2-3", 3, TwoThree(), 2), Write("2-5", 5, TwoFive(), 2), Write("2-6", 6, TwoSix(), 2),
+                Write("2-7", 7, TwoSeven(), 2), Write("2-8", 8, TwoEight(), 2), Write("2-9", 9, TwoNine(), 2), Write("2-10", 10, TwoTen(), 2),
+                Write("3-1", 1, ThreeOne(), 3) };
             foreach (var s in sequences) log.AppendLine(s.sequenceId + ": " + s.steps.Length + " steps");
             log.AppendLine(Campaign());
             AssetDatabase.SaveAssets();

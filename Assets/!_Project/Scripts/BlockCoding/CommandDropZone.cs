@@ -186,6 +186,10 @@ namespace CodingGame.BlockCoding
                 if (ancestor.Kind == BlockKind.For || ancestor.Kind == BlockKind.While) return true;
             return false;
         }
+        // A plain variable goes in a condition slot too, to become `enemy.is_dead()` there (2-5 C02 then C03); until then the
+        // line does not compile.
+        bool Takes(CommandBlockView source) => PythonTreeCompiler.Accepts(slot, source.Kind) ||
+            slot == BlockSlotKind.Condition && source.Kind == BlockKind.Variable;
         public bool Insert(CommandBlockView source, int index)
         {
             if (!source || source.Panel != Panel || index < 0 || index > blocks.Count) return false;
@@ -198,7 +202,7 @@ namespace CodingGame.BlockCoding
                 return PlaceFree(source, last ? last.Rect.anchoredPosition + new Vector2(0, -last.preferredHeight) : FirstPosition);
             }
             if (ParentBlock && ParentBlock.IsPalette) return false;
-            if (!PythonTreeCompiler.Accepts(slot, source.Kind)) return false;
+            if (!Takes(source)) return false;
             if (!source.IsPalette && (transform.IsChildOf(source.transform) || source.Owner == this && slot != BlockSlotKind.Statement)) return false;
             var moved = Moving(source);
             if (moved.Any(b => transform.IsChildOf(b.transform))) return false;
@@ -385,7 +389,7 @@ namespace CodingGame.BlockCoding
         public bool Preview(CommandBlockView source, PointerEventData e, out Rect preview)
         {
             preview = default;
-            if (!source || !Panel.CanTake(source) || !PythonTreeCompiler.Accepts(slot, source.Kind)) return false;
+            if (!source || !Panel.CanTake(source) || !Takes(source)) return false;
             var moved = Moving(source);
             if (moved.Any(b => transform.IsChildOf(b.transform))) return false;
             if (freePlacement)

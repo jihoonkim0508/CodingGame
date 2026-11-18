@@ -82,13 +82,14 @@ namespace CodingGame.Defense.Editor
             DevTest.PlayDefense(1, 1, true, false);
         }
 
-        // Stage 2's lessons (play feedback 4): 2-1 variables, 2-2 free, 2-3 conditions; ends when 2-4 begins.
-        [MenuItem("Tools/Develop/Verify Stage 2 Lessons 2-1 to 2-3")]
+        // Stage 2's lessons (play feedback 4, 원거리_집중공격_설계 7): 2-1 variables, 2-3 conditions, 2-5 is_dead(), 2-6 break,
+        // 2-8 continue, the free waves between them and the 2-10 boss; ends with the stage won.
+        [MenuItem("Tools/Develop/Verify Stage 2 Lessons 2-1 to 2-10")]
         public static void RunStageTwo()
         {
             TutorialSequenceBuilder.ApplyAllFive();
             Directory.CreateDirectory(Path.GetDirectoryName(LogPath));
-            File.WriteAllText(LogPath, "START stage 2 lessons 2-1 to 2-3 integration check\n");
+            File.WriteAllText(LogPath, "START stage 2 lessons 2-1 to 2-10 integration check\n");
             last = null; practiced = practicedFour = practicedFive = bossVisualSeen = false;
             coreAtThirdWave = -1; next = 0;
             SessionState.SetBool(Running, true);
@@ -146,7 +147,7 @@ namespace CodingGame.Defense.Editor
                 director.EditorStop();
                 battle.SelectRobot(TutorialWatcher.TeachingRobot(DevTest.Sim).Id); battle.DevelopSelected();
                 battle.CodeEditor.Panel.LoadProgram("condition_example", TutorialAnswers.Parse(
-                    "while True:\n    enemy = get_nearest_enemy()\n    enemy_distance = enemy.distance(get_my_pos())\n    if enemy_distance <= 3:"));
+                    "while True:\n    enemy = get_nearest_enemy()\n    if enemy.distance(get_my_pos()) <= my_attack_range():"));
                 director.EditorRun(sequence, Array.FindIndex(sequence.steps, s => s.stepId == "D02"));
             }
             if (!SessionState.GetBool(Running, false)) return;
@@ -177,7 +178,7 @@ namespace CodingGame.Defense.Editor
             bool allFive = SessionState.GetBool("CodingGame.BeginnerLessons.AllFive", false);
             if (battle.Stage == 2)
             {
-                if (sim.WaveIndex >= 3) { End("PASS 2-1 to 2-3 completed: variables lesson, free 2-2, conditions lesson; core=" + sim.BaseHealth); return; }
+                if (sim.Phase == BattlePhase.Victory) { End("PASS 2-1 to 2-10 completed: variables, conditions, is_dead(), break, continue lessons, free waves, boss; core=" + sim.BaseHealth); return; }
                 if (sim.Phase == BattlePhase.Defeat) { End("FAIL stage 2 wave " + (sim.WaveIndex + 1) + " lost; kills=" + sim.Kills + " leaks=" + sim.Leaks); return; }
                 // 2-2 has no lesson to claim its reward, so the checker does.
                 if (sim.Phase == BattlePhase.Reward && !director.IsActive)
@@ -186,8 +187,9 @@ namespace CodingGame.Defense.Editor
                         " leaks=" + sim.Leaks + " survivors=" + sim.LastSurvivors + " timedOut=" + sim.LastWaveTimedOut);
                     battle.ClaimRewards(); return;
                 }
-                // Free time (after 2-1's lesson, all of 2-2): a second shooter with 2-1's code, then the battle.
-                if (sim.Phase == BattlePhase.Ready && !director.IsActive && (sim.WaveIndex == 1 || director.EditorStep?.stepId == "E01"))
+                // Free time (a wave without a lesson, or a lesson waiting for the wave's end): a second shooter with 2-1's code,
+                // from 2-5 the warriors too, then the battle.
+                if (sim.Phase == BattlePhase.Ready && (!director.IsActive || director.EditorStep?.trigger == TutorialSignals.WaveCleared))
                 { StageTwoFree(battle); battle.StartBattle(); Log("START " + (sim.WaveIndex + 1) + " robots=" + sim.Robots.Count); return; }
             }
             if (battle.Stage == 3)
@@ -210,7 +212,7 @@ namespace CodingGame.Defense.Editor
                     return;
                 }
             }
-            if (!allFive && sim.WaveIndex >= 3) { End("PASS waves 1-1, 1-2, 1-3 completed; reached 1-4 without changing it"); return; }
+            if (!allFive && battle.Stage == 1 && sim.WaveIndex >= 3) { End("PASS waves 1-1, 1-2, 1-3 completed; reached 1-4 without changing it"); return; }
             if (allFive && sim.Phase == BattlePhase.Victory)
             {
                 Require(bossVisualSeen && Field<bool>(battle, "bossCameraRestored"), "Boss entrance or camera return was not completed");
@@ -380,7 +382,7 @@ namespace CodingGame.Defense.Editor
                 }
                 PlaceBest(battle, Field<int>(battle, "palette")); return;
             }
-            if (step.targetKeys.Contains(TutorialKeys.Unit(0))) { battle.SelectRobot(TutorialWatcher.TeachingRobot(sim).Id); return; }
+            if (step.targetKeys.Contains(TutorialKeys.Unit(step.robotIndex))) { battle.SelectRobot(TutorialWatcher.Robot(sim, step.robotIndex).Id); return; }
             if (step.completionSignal == TutorialSignals.EditorOpened) { battle.DevelopSelected(); return; }
             if (step.completionSignal == TutorialSignals.BattleStarted) { battle.StartBattle(); return; }
             if (step.completionSignal == TutorialSignals.PreviewHit ||
@@ -396,14 +398,49 @@ namespace CodingGame.Defense.Editor
             Require(editor.IsOpen && battle.TutorialAllows(TutorialKeys.Palette), "Editor action blocked at " + key);
             if (step.completionSignal == TutorialSignals.SlotSelected) { Select(panel, Slot(editor, step.expectedCode)); return; }
             if (step.completionSignal == TutorialSignals.CodeLinePlaced)
-            { Add(panel, (BlockKind)Enum.Parse(typeof(BlockKind), step.expectedCode.Split(':')[1])); return; }
+            {
+                var placed = step.expectedCode.Split(':'); var kind = (BlockKind)Enum.Parse(typeof(BlockKind), placed[1]);
+                int cut = placed[0].LastIndexOf('/');
+                // A line inside a body goes where the step says (2-5's if in front of shoot(enemy)), as a drag would put it.
+                if (cut < 0) Add(panel, kind);
+                else editor.Line(placed[0].Substring(0, cut)).Body.Insert(panel.Palette.First(p => p.view.BaseKind == kind).view, int.Parse(placed[0].Substring(cut + 1)) - 1);
+                return;
+            }
             if (step.completionSignal == TutorialSignals.DraftValueMatches)
             {
                 var pair = step.expectedCode.Split('|'); var path = pair[0].Split('.');
                 var block = editor.Line(path[0]); // "1/3" is the third line inside line 1
-                foreach (int arg in path.Skip(1).Select(int.Parse)) block = block.Arguments[arg].Blocks[0];
+                foreach (int arg in path.Skip(1).Select(int.Parse)) block = block ? block.Arguments[arg].Blocks.FirstOrDefault() : null;
+                // One line for the block and its value (2-5 C02, 2-8 C02): the block first.
+                if (!block) { Select(panel, Slot(editor, step.autoSelectSlot)); Add(panel, PaletteKind(step.pointerKey)); return; }
                 if (block.BaseKind == BlockKind.Comparison) block.SelectOption(Array.IndexOf(PythonTreeCompiler.Comparisons, pair[1]));
+                else if (block.BaseKind == BlockKind.EnemyTypeName) block.SelectOption(Array.IndexOf(PythonTreeCompiler.EnemyTypes, pair[1]));
                 else block.SetText(pair[1]);
+                return;
+            }
+            string memberKind = step.completionSignal == TutorialSignals.SlotFilled && step.expectedCode.Contains(":") ? step.expectedCode.Split(':')[1] : null;
+            if (memberKind == nameof(BlockKind.IsDead) || memberKind == nameof(BlockKind.EnemyTypeOf) || memberKind == nameof(BlockKind.Distance))
+            {
+                // A member after `enemy.` (distance(, is_dead(), type): the variable block, its name with the dot, then the member.
+                var slot = Slot(editor, step.expectedCode.Split(':')[0]);
+                if (slot.Blocks.Count == 0) { Select(panel, slot); Add(panel, BlockKind.Variable); return; }
+                var block = slot.Blocks[0];
+                if (block.VariableName != "enemy" || !block.OptionRect.gameObject.activeSelf)
+                { block.SetText("enemy."); return; }
+                string member = memberKind == nameof(BlockKind.IsDead) ? "is_dead()" : memberKind == nameof(BlockKind.Distance) ? "distance(" : "type";
+                block.SelectOption(block.OptionRect.GetComponent<TMP_Dropdown>().options.FindIndex(o => o.text == member));
+                return;
+            }
+            if (step.completionSignal == TutorialSignals.ConditionBuilt && step.expectedCode.Contains(".distance("))
+            {
+                // 2-6 C03: enemy.distance(get_my_pos()) on the left, my_attack_range() on the right, a piece a tick.
+                var left = Slot(editor, step.autoSelectSlot); var right = Slot(editor, step.autoSelectSlot.Substring(0, step.autoSelectSlot.Length - 1) + "1");
+                if (left.Blocks.Count == 0) { Select(panel, left); Add(panel, BlockKind.Variable); return; }
+                var near = left.Blocks[0];
+                if (near.VariableName != "enemy" || !near.OptionRect.gameObject.activeSelf) { near.SetText("enemy."); return; }
+                if (near.Kind != BlockKind.Distance) { near.SelectOption(near.OptionRect.GetComponent<TMP_Dropdown>().options.FindIndex(o => o.text == "distance(")); return; }
+                if (near.Arguments[0].Blocks.Count == 0) { Select(panel, near.Arguments[0]); Add(panel, BlockKind.MyPos); return; }
+                if (right.Blocks.Count == 0) { Select(panel, right); Add(panel, BlockKind.MyAttackRange); }
                 return;
             }
             if (step.completionSignal == TutorialSignals.SlotFilled || step.completionSignal == TutorialSignals.ConditionBuilt)
@@ -453,9 +490,16 @@ namespace CodingGame.Defense.Editor
             Log("PASS free play: two swings a call, extra warrior, optional hint, close/reopen unfinished draft, original code retained, battle start");
         }
 
+        static BlockKind PaletteKind(string pointer) => (BlockKind)Enum.Parse(typeof(BlockKind),
+            pointer.Split('|').Last().Substring(TutorialKeys.PalettePrefix.Length));
         static void StageTwoFree(DefenseBattle battle)
         {
             var sim = battle.Simulation;
+            // From 2-2 the warriors brought from Stage 1 stand by the road too (the core's 12 last the whole stage; 2-8's continue
+            // leaves the small ones to them). 2-3 brings its own warrior for the lesson.
+            int warrior = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => battle.DefinitionRole(i) == RobotRole.Warrior);
+            while (sim.WaveIndex >= 1 && sim.RobotAvailable(RobotRole.Warrior) > 0 && sim.Robots.Count < sim.Setup.RobotLimit) { battle.ChooseRobot(warrior); PlaceBest(battle, warrior); }
+            Loops(sim);
             int shooter = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => battle.DefinitionRole(i) == RobotRole.Shooter);
             // Two shooters: 2-1 gives the variable blocks for two copies of its code.
             if (sim.RobotAvailable(RobotRole.Shooter) > 0 && sim.Robots.Count(r => r.Spec.role == RobotRole.Shooter) < 2) { battle.ChooseRobot(shooter); PlaceBest(battle, shooter); }

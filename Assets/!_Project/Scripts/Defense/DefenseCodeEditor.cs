@@ -170,20 +170,33 @@ namespace CodingGame.Defense
         public void PrepareDistanceExample()
         {
             if (!IsOpen || !HasCurrentSession) return;
-            // 1-3 B01: inside the loop from 1-1, find the enemy and measure the distance; the player adds the if.
-            panel.LoadProgram(panel.FunctionName, new[] { Loop(
-                new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)),
-                new CodeBlock(BlockKind.DeclareVariable, "enemy_distance", new CodeBlock(BlockKind.Distance, "0",
-                    new CodeBlock(BlockKind.Variable, "enemy"), new CodeBlock(BlockKind.MyPos)))) });
+            // 2-3 B02: the warrior's loop finds the nearest enemy; the player adds the if on its distance, and the slash.
+            panel.LoadProgram(panel.FunctionName, new[] { Loop(new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy))) });
             if (!panel.IsApplied) throw new InvalidOperationException("조건문 기초 코드의 블록 지급량을 확인하세요.");
         }
         public void PrepareBaselineExample()
         {
             if (!IsOpen || !HasCurrentSession) return;
-            // 1-3 A05: the shooter firing at the nearest enemy the moment one is in range, to compare against.
-            panel.LoadProgram(panel.FunctionName, new[] { Loop(new CodeBlock(BlockKind.Shot, "0", new CodeBlock(BlockKind.NearestEnemy))) });
+            // 2-3 A05: the warrior slashing on and on, at air or not (each swing rests it 1.6 s), to compare against.
+            panel.LoadProgram(panel.FunctionName, new[] { Loop(new CodeBlock(BlockKind.Slash)) });
             if (!panel.IsApplied) throw new InvalidOperationException("비교용 기본 베기 코드의 블록 지급량을 확인하세요.");
             RestartPreview();
+        }
+        // 2-5: the enemy found once, before the loop; 2-6: a loop in the loop that never lets its enemy go; 2-8: 2-7's hint
+        // (break once the enemy is down or out of range).
+        public void PrepareExample(string id)
+        {
+            if (!IsOpen || !HasCurrentSession) return;
+            CodeBlock Find() => new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy));
+            CodeBlock Shoot() => new CodeBlock(BlockKind.Shot, "0", new CodeBlock(BlockKind.Variable, "enemy"));
+            CodeBlock Leave(CodeBlock condition) { var check = new CodeBlock(BlockKind.If, "0", condition); check.Body.Add(new CodeBlock(BlockKind.Break)); return check; }
+            var dead = new CodeBlock(BlockKind.IsDead, "0", new CodeBlock(BlockKind.Variable, "enemy"));
+            var away = new CodeBlock(BlockKind.Comparison, ">", new CodeBlock(BlockKind.Distance, "0", new CodeBlock(BlockKind.Variable, "enemy"),
+                new CodeBlock(BlockKind.MyPos)), new CodeBlock(BlockKind.MyAttackRange));
+            var code = id == "2-5" ? new[] { Find(), Loop(Shoot()) } :
+                new[] { Loop(Find(), id == "2-8" ? Loop(Leave(dead), Leave(away), Shoot()) : Loop(Shoot())) };
+            panel.LoadProgram(panel.FunctionName, code);
+            if (!panel.IsApplied) throw new InvalidOperationException(id + " 준비 코드의 블록 지급량을 확인하세요.");
         }
         static CodeBlock Loop(params CodeBlock[] body)
         {
@@ -239,6 +252,8 @@ namespace CodingGame.Defense
                 case "Line": return Corners(block.Rect, null, corners);
                 // The slot where the next block snaps: one line high, right under line N.
                 case "After": var r = block.Rect.rect; return Corners(block.Rect, new Rect(r.xMin, r.yMin - r.height, r.width, r.height), corners);
+                // The upper half of line N: a block dropped there goes in front of it (2-5's if above shoot(enemy)).
+                case "Before": var b = block.Rect.rect; return Corners(block.Rect, new Rect(b.xMin, b.center.y, b.width, b.height / 2), corners);
                 case "Body":
                     if (!block.Body) return false;
                     if (block.Body.Blocks.Count > 0) return Corners(block.Body.Rect, null, corners);
@@ -281,7 +296,7 @@ namespace CodingGame.Defense
             var slot = TutorialSlot(parts[0]);
             if (slot == null || slot.Blocks.Count == 0) return false;
             return parts.Length == 1 || parts.Length == 2 &&
-                Enum.TryParse(parts[1], out BlockKind kind) && slot.Blocks[0].BaseKind == kind;
+                Enum.TryParse(parts[1], out BlockKind kind) && (slot.Blocks[0].BaseKind == kind || slot.Blocks[0].Kind == kind);
         }
 
         public bool SlotSelected(string key)

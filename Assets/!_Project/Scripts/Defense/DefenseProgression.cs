@@ -43,8 +43,8 @@ namespace CodingGame.Defense
                 blocks=l.blocks.Select(b=>new BlockStock {kind=b.kind,count=b.count}).ToArray(),
                 rewards=l.rewards.Select(b=>new BlockStock {kind=b.kind,count=b.count}).ToArray()}).ToArray()
         };
-        // The longest stage: Stage 2 has six waves (13차 179).
-        public const int MaxWaves = 6;
+        // The longest stage: Stage 2 has ten waves (원거리_집중공격_설계 7).
+        public const int MaxWaves = 10;
         public void Validate()
         {
             if (lessons == null || lessons.Any(l => l == null || l.stage < 1 || l.stage > DefenseCurriculum.StageCount || l.wave < 1 || l.wave > MaxWaves ||

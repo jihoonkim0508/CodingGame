@@ -536,14 +536,16 @@ namespace CodingGame.Defense
             robotViews.Add(bot.Id, view);
             return view;
         }
-        // 1-3: the tutorial stands the lesson's shooter by the road, far enough past the entrance (8) that the enemies walk into
-        // its range (7) and close enough to the road that they pass within 3 of it (the lesson's condition); out on the open
-        // floor that condition might never come true.
-        public void PlaceLessonShooter()
+        // 2-1 and 2-3: the tutorial stands the lesson's robot by the road, far enough past the entrance (8) that the enemies walk
+        // into its range and close enough to the road (2 to 2.8) that a warrior's range reaches them.
+        public void PlaceLessonShooter() => PlaceLessonRobot(RobotRole.Shooter);
+        // A robot of the role by the road unless one stands already (another one for a lesson that teaches the newest, 2-3);
+        // a warrior comes with while True: slash() (2-3's code to compare, 2-8's for the small ones).
+        public void PlaceLessonRobot(RobotRole role, bool another = false)
         {
-            int index = Array.FindIndex(robots, r => r.stats.role == RobotRole.Shooter);
+            int index = Array.FindIndex(robots, r => r.stats.role == role);
             var sim = Simulation;
-            if (index < 0 || sim == null || !sim.CanEdit || sim.Robots.Any(r => r.Spec.role == RobotRole.Shooter)) return;
+            if (index < 0 || sim == null || !sim.CanEdit || !another && sim.Robots.Any(r => r.Spec.role == role) || sim.DeploymentError(role) != null) return;
             var groups = sim.Setup.Waves[sim.WaveIndex];
             var road = sim.Setup.Routes[groups.Length > 0 ? groups[0].RouteIndex : 0].Points;
             for (float along = 8; along < 20; along += .5f)
@@ -553,11 +555,17 @@ namespace CodingGame.Defense
                         var (point, normal) = Along(road, along);
                         var spot = point + normal * off * side;
                         if (sim.PlacementError(robots[index].stats, spot) != null) continue;
-                        SpawnRobotView(sim.Place(robots[index].stats, index, spot, out _));
+                        var bot = sim.Place(robots[index].stats, index, spot, out _);
+                        SpawnRobotView(bot);
+                        if (role == RobotRole.Warrior)
+                        {
+                            var loop = new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.While); loop.Body.Add(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Slash));
+                            sim.ApplyProgram(bot.Id, "warrior_" + bot.Id, new[] { loop });
+                        }
                         sounds.Play("place"); SyncViews(0); RefreshHUD();
                         return;
                     }
-            throw new InvalidOperationException("1-3 원거리 로봇을 세울 길 옆 자리가 없습니다.");
+            throw new InvalidOperationException("수업 로봇을 세울 길 옆 자리가 없습니다.");
         }
         // The point at distance s along a polyline and the unit normal to its left there.
         static (Point point, Point normal) Along(Point[] points, float s)
@@ -617,6 +625,7 @@ namespace CodingGame.Defense
         {
             if (!robotViews.TryGetValue(id, out var view) || !view) return;
             string unit = TutorialKeys.Unit(TutorialWatcher.RobotIndex(Simulation, id));
+            if (!TutorialAllows(unit) && TutorialWatcher.Robot(Simulation, -1)?.Id == id) unit = TutorialKeys.Unit(-1);
             string key = TutorialAllows(unit) ? unit : TutorialAllows(TutorialKeys.SelectedRobot) ? TutorialKeys.SelectedRobot : "Battle.SelectRobot";
             if (!TutorialAllows(key)) return;
             var robot = Simulation.FindRobot(id);
@@ -823,6 +832,9 @@ namespace CodingGame.Defense
             for (int i = bots.Count; i < tutorialUnits; i++)
             { tutorial.UnregisterRuntimeTarget(TutorialKeys.Unit(i), null); tutorial.UnregisterRuntimeTarget(TutorialKeys.Range(i), null); }
             tutorialUnits = bots.Count;
+            // The newest robot as Robot.Unit.-1 too (2-3's warrior, see TutorialWatcher.Robot).
+            if (bots.Count > 0 && robotViews.TryGetValue(bots[bots.Count - 1].Id, out var newest) && newest)
+                tutorial.RegisterWorldTarget(TutorialKeys.Unit(-1), newest.gameObject, RobotBounds(bots[bots.Count - 1]));
             var route = new List<Bounds>();
             // Clipped to the map, in case a route starts off it.
             var min = DefenseViews.World(Simulation.Setup.Min); var max = DefenseViews.World(Simulation.Setup.Max);
