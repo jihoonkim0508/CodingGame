@@ -210,12 +210,17 @@ namespace CodingGame.BlockCoding
                 block.Arguments[0].Load(new[] { new CodeBlock(BlockKind.Number, "10") });
         }
         internal bool IsEnemyVariable(string name) => enemyVariables.Contains(name);
-        internal void RenameVariable(string previous, string current)
+        // False when another declaration already has the new name: the uses wait under the old one. Renamed into it they
+        // became that variable's too (enemy_distance backspaced past enemy) and no longer followed their own declaration.
+        // ponytail: a name finished on another variable's leaves its uses one edit short; they are retyped by hand.
+        internal bool RenameVariable(CommandBlockView declaration, string previous, string current)
         {
-            if (string.IsNullOrEmpty(previous)) return;
-            if (program.AllBlocks().Any(b => b.BaseKind == BlockKind.DeclareVariable && b.VariableName == previous)) return;
+            var others = program.AllBlocks().Where(b => b.BaseKind == BlockKind.DeclareVariable && b != declaration).Select(b => b.VariableName).ToList();
+            if (others.Contains(current)) return false;
+            if (string.IsNullOrEmpty(previous) || others.Contains(previous)) return true;
             foreach (var block in program.AllBlocks())
                 if (block.BaseKind == BlockKind.Variable && block.VariableName == previous) block.SetVariable(current);
+            return true;
         }
         void SyncVariables()
         {

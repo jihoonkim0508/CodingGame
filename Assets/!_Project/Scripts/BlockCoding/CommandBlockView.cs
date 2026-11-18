@@ -108,8 +108,10 @@ namespace CodingGame.BlockCoding
                 // both pickers list the compiler's own signs, so a sign added there shows up in every block.
                 if (kind == BlockKind.Arithmetic || kind == BlockKind.Comparison)
                 {
+                    // A copy is bound as a new block: it keeps the sign it was copied with (the copy under the hand showed == or +).
+                    int sign = dropdown.value;
                     dropdown.ClearOptions(); dropdown.AddOptions(new List<string>(kind == BlockKind.Arithmetic ? PythonTreeCompiler.Operators : PythonTreeCompiler.Comparisons));
-                    dropdown.SetValueWithoutNotify(0); dropdown.RefreshShownValue();
+                    dropdown.SetValueWithoutNotify(sign); dropdown.RefreshShownValue();
                 }
                 // Pieces of a value block (enemy., distance(, a held block) 8 apart, not touching (play feedback 4).
                 if (!IsStatement && header.TryGetComponent<HorizontalLayoutGroup>(out var row)) row.spacing = 8;
@@ -134,8 +136,8 @@ namespace CodingGame.BlockCoding
                 try
                 {
                     string current = PythonTreeCompiler.NormalizeIdentifier(value);
-                    if (!IsPalette && current != RetainedName) Panel.RenameVariable(RetainedName, current);
-                    RetainedName = current;
+                    // While the name is another variable's, the uses keep the last one they were given.
+                    if (IsPalette || current == RetainedName || Panel.RenameVariable(this, RetainedName, current)) RetainedName = current;
                 }
                 catch (FormatException) { }
             }

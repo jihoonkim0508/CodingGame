@@ -8,7 +8,17 @@ void Check(bool condition, string name) { if (!condition) throw new System.Excep
 try
 {
     battle.EditorStartSession(2, 1, false, new CodingGame.Defense.DefenseTestOptions { tutorial = false, tutorialInput = false, inventoryLimit = false, unlockAll = true }); // sandbox: Stage 1 locks robots and placement for teaching
-    Check(battle.PlaceRobot(4, new UnityEngine.Vector3(-8, 0, 6)), "place robot");
+    // The first legal spot: a fixed one goes stale when the map changes (it ended up on the enemy road).
+    bool Place(int index)
+    {
+        var sim = battle.Simulation;
+        for (float x = sim.Setup.Min.X + 1; x < sim.Setup.Max.X - 1; x++)
+            for (float y = sim.Setup.Min.Y + 1; y < sim.Setup.Max.Y - 1; y++)
+                if (sim.PlacementError(battle.RobotDefinition(index).stats, new System.Numerics.Vector2(x, y)) == null &&
+                    battle.PlaceRobot(index, new UnityEngine.Vector3(x, 0, y))) return true;
+        return false;
+    }
+    Check(Place(4), "place robot");
     battle.SelectRobot(battle.SelectedId); battle.DevelopSelected();
     var panel = editor.Panel;
     var program = panel.Program;

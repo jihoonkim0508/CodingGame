@@ -1,0 +1,139 @@
+diff --git a/Assets/!_Project/Scripts/BlockCoding/CommandDropZone.cs b/Assets/!_Project/Scripts/BlockCoding/CommandDropZone.cs
+index 05dc381..8590ca2 100644
+--- a/Assets/!_Project/Scripts/BlockCoding/CommandDropZone.cs
++++ b/Assets/!_Project/Scripts/BlockCoding/CommandDropZone.cs
+@@ -116,7 +116,7 @@ internal void Load(IReadOnlyList<CodeBlock> source)
+             Refresh(); SetLayoutHorizontal();
+         }
+         IEnumerable<CommandBlockView> Roots() => blocks.Where(b => !next.ContainsValue(b));
+-        bool AtStart(CommandBlockView root) => root.Rect.anchoredPosition == FirstPosition;
++        bool AtStart(CommandBlockView root) => Home(root) == FirstPosition;
+         // The chain that runs: the one snapped to the top-left start anchor (empty when none is there).
+         public List<CommandBlockView> StartChain()
+         {
+@@ -143,7 +143,7 @@ public sealed class DraftGroup
+         }
+         // Read() deliberately rejects disconnected roots. Drafts must retain them.
+         public List<DraftGroup> CaptureDraft() => Roots().Select(root => new DraftGroup {
+-            position = root.Rect.anchoredPosition,
++            position = Home(root),
+             blocks = Group(root).Select(block => block.Read()).ToList()
+         }).ToList();
+         public void RestoreDraft(IReadOnlyList<DraftGroup> groups)
+@@ -192,7 +192,9 @@ public bool Insert(CommandBlockView source, int index)
+             if (!Panel.CanTake(source)) return false;
+             if (freePlacement)
+             {
+-                var last = blocks.LastOrDefault();
++                // A clicked block goes to the end of the program, or starts it: the list's last block is the one placed last,
++                // which may sit mid-chain or lie loose elsewhere.
++                var last = StartChain().LastOrDefault();
+                 return PlaceFree(source, last ? last.Rect.anchoredPosition + new Vector2(0, -last.preferredHeight) : FirstPosition);
+             }
+             if (ParentBlock && ParentBlock.IsPalette) return false;
+@@ -266,7 +268,8 @@ bool PlaceChain(List<CommandBlockView> placed, Vector2 position)
+             var first = placed[0];
+             var last = placed[placed.Count - 1];
+             position = ClampToWorkspace(position);
+-            if (SnapsToFirstPosition(placed, position)) position = FirstPosition;
++            bool start = SnapsToFirstPosition(placed, position);
++            if (start) position = FirstPosition;
+             CommandBlockView.Place(first.Rect, position.x, -position.y, first.preferredWidth, first.preferredHeight);
+ 
+             FindSnap(placed, position, out var attachAfter, out var attachBefore);
+@@ -277,8 +280,9 @@ bool PlaceChain(List<CommandBlockView> placed, Vector2 position)
+             }
+             else if (attachBefore)
+             {
+-                // Insert at the visible first row and move its chain down instead of clipping above the workspace.
+-                first.Rect.anchoredPosition = attachBefore.Rect.anchoredPosition;
++                // Insert at the visible first row and move its chain down instead of clipping above the workspace. A block
++                // snapped to the start stays there: the loose chain lying under the anchor comes up to it.
++                if (!start) first.Rect.anchoredPosition = attachBefore.Rect.anchoredPosition;
+                 next[last] = attachBefore;
+             }
+             Refresh();
+@@ -287,9 +291,11 @@ bool PlaceChain(List<CommandBlockView> placed, Vector2 position)
+             Panel.Changed();
+             return true;
+         }
++        // The start anchor takes a first line while no other chain sits on it. Loose blocks elsewhere do not count: any of
++        // them used to switch the snap off, and a line could then not be put on the start at all (AtStart is exact).
+         bool SnapsToFirstPosition(List<CommandBlockView> moved, Vector2 position) =>
+             moved.All(block => PythonTreeCompiler.OutputSlot(block.Kind) == BlockSlotKind.Statement) &&
+-            !blocks.Any(block => !moved.Contains(block)) && Gap(position, FirstPosition, moved[0].preferredWidth) < SnapDistance;
++            !Roots().Any(root => AtStart(root) && !moved.Contains(root)) && Gap(position, FirstPosition, moved[0].preferredWidth) < SnapDistance;
+         // Distance from a dropped block's top-left to a snap edge; anywhere along the edge's row (left edge to
+         // the right end of the row) counts as on it, so a block let go to the right of the slot still snaps.
+         static float Gap(Vector2 position, Vector2 edge, float width)
+@@ -322,7 +328,7 @@ void FindSnap(List<CommandBlockView> placed, Vector2 position, out CommandBlockV
+                         for(int i=1;i<placed.Count;i++)height-=BranchOverlap(placed[i-1],placed[i]);
+                         var edge = position + new Vector2(0, -height + BranchOverlap(placed.Last(),target));
+                         float width = Mathf.Max(target.preferredWidth, first.preferredWidth);
+-                        float distance = Mathf.Min(Gap(edge, target.Rect.anchoredPosition, width), Gap(position, target.Rect.anchoredPosition, width));
++                        float distance = Mathf.Min(Gap(edge, Home(target), width), Gap(position, Home(target), width));
+                         if (distance < nearest && ValidChain(placed.Concat(Group(target)).ToList())) { nearest = distance; attachBefore = target; attachAfter = null; }
+                     }
+                 }
+@@ -330,6 +336,10 @@ void FindSnap(List<CommandBlockView> placed, Vector2 position, out CommandBlockV
+         // Snap preview (draft 1, the ghost block): while a block is dragged over this zone, room as tall as it opens where it
+         // will land, under gapAfter (a free chain) or before line gapIndex (a body); the panel draws a see-through copy there.
+         int gapIndex = -1; float gapHeight; CommandBlockView gapAfter;
++        // On top of a free chain the room is the chain itself moved down: gapBefore is its root, gapHome where the chain
++        // stands. A root's place is its chain's, so whatever reads it for that asks Home.
++        CommandBlockView gapBefore; Vector2 gapHome;
++        Vector2 Home(CommandBlockView root) => root == gapBefore ? gapHome : root.Rect.anchoredPosition;
+         // An empty value or condition slot opens to the dragged block's size instead.
+         Vector2 socketRoom;
+         // Opens the room for source and returns where its top-left goes (zone-local, as an anchoredPosition).
+@@ -342,17 +352,19 @@ internal Vector2 OpenGap(CommandBlockView source, PointerEventData e, float heig
+                 return Vector2.zero;
+             }
+             var moved = Moving(source);
+-            int index = -1; CommandBlockView after = null; Vector2 at;
++            int index = -1; CommandBlockView after = null, before = null; Vector2 at;
+             if (freePlacement)
+             {
+                 var position = ClampToWorkspace(Panel.DropPosition(e));
+                 if (SnapsToFirstPosition(moved, position)) at = FirstPosition;
+                 else
+                 {
+-                    FindSnap(moved, position, out after, out var before);
+-                    // Above a chain the copy shows over its first line; the chain stays put (moving it would move the snap).
++                    FindSnap(moved, position, out after, out before);
++                    // On top of a chain the copy shows on the chain's first row, where the drop sets the block, and the chain
++                    // moves down under it as it will (the copy used to show one block higher, off the code area for the
++                    // program, with the chain left in place).
+                     at = after ? after.Rect.anchoredPosition + new Vector2(0, -after.preferredHeight + BranchOverlap(after, source))
+-                        : before ? before.Rect.anchoredPosition + new Vector2(0, height) : position;
++                        : before ? Home(before) : position;
+                 }
+             }
+             else
+@@ -362,15 +374,22 @@ internal Vector2 OpenGap(CommandBlockView source, PointerEventData e, float heig
+                 for (int i = 0; i < index; i++) { if (i > 0) y -= Overlap(i); y += blocks[i].preferredHeight; }
+                 at = new Vector2(0, -y);
+             }
+-            if (index != gapIndex || after != gapAfter || !Mathf.Approximately(height, gapHeight))
+-            { gapIndex = index; gapAfter = after; gapHeight = height; LayoutRebuilder.MarkLayoutForRebuild(rect); }
++            if (index != gapIndex || after != gapAfter || before != gapBefore || !Mathf.Approximately(height, gapHeight))
++            {
++                if (gapBefore) gapBefore.Rect.anchoredPosition = gapHome;
++                gapIndex = index; gapAfter = after; gapBefore = before; gapHeight = height;
++                if (before) { gapHome = before.Rect.anchoredPosition; before.Rect.anchoredPosition = gapHome + new Vector2(0, -height + BranchOverlap(moved[moved.Count - 1], before)); }
++                LayoutRebuilder.MarkLayoutForRebuild(rect);
++            }
+             return at;
+         }
+         // The room closes at the next layout pass; till then the lines keep their places, so a drop reads them as previewed.
++        // A chain moved down for room on top of it goes home at once: its root's place is where the chain stands.
+         internal void CloseGap()
+         {
+-            if (gapIndex < 0 && !gapAfter && gapHeight == 0 && socketRoom == Vector2.zero) return;
+-            gapIndex = -1; gapAfter = null; gapHeight = 0; socketRoom = Vector2.zero; LayoutRebuilder.MarkLayoutForRebuild(rect);
++            if (gapIndex < 0 && !gapAfter && !gapBefore && gapHeight == 0 && socketRoom == Vector2.zero) return;
++            if (gapBefore) { gapBefore.Rect.anchoredPosition = gapHome; SetLayoutHorizontal(); }
++            gapIndex = -1; gapAfter = null; gapBefore = null; gapHeight = 0; socketRoom = Vector2.zero; LayoutRebuilder.MarkLayoutForRebuild(rect);
+         }
+         public bool Preview(CommandBlockView source, PointerEventData e, out Rect preview)
+         {

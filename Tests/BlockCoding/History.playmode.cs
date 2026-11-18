@@ -10,6 +10,16 @@ var draftKind = CodingGame.BlockCoding.BlockKind.Wait; // starts with an empty a
 var shotKind = CodingGame.BlockCoding.BlockKind.Shot;
 // Attacks need an explicit target; get_nearest_enemy() stock is kept plentiful so only the attack stock is counted.
 CodingGame.BlockCoding.CodeBlock Aimed() => new CodingGame.BlockCoding.CodeBlock(shotKind, "0", new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.NearestEnemy));
+// The first legal spot: a fixed one goes stale when the map changes (it ended up on the enemy road).
+bool Place(int index)
+{
+    var sim = battle.Simulation;
+    for (float x = sim.Setup.Min.X + 1; x < sim.Setup.Max.X - 1; x++)
+        for (float y = sim.Setup.Min.Y + 1; y < sim.Setup.Max.Y - 1; y++)
+            if (sim.PlacementError(battle.RobotDefinition(index).stats, new System.Numerics.Vector2(x, y)) == null &&
+                battle.PlaceRobot(index, new UnityEngine.Vector3(x, 0, y))) return true;
+    return false;
+}
 try
 {
     // Sandbox with exact stock: these checks count reservations, so the inventory limit stays on.
@@ -18,7 +28,7 @@ try
     battle.Simulation.Inventory[shotKind] = 3; // exact stock: Stage 2 already starts with some attack blocks
     battle.Simulation.Inventory[CodingGame.BlockCoding.BlockKind.NearestEnemy] = 20;
     if (CodingGame.Defense.DefenseProgression.Consumes(CodingGame.BlockCoding.BlockKind.Wait)) battle.Simulation.GrantBlock(CodingGame.BlockCoding.BlockKind.Wait, 2);
-    Check(battle.PlaceRobot(4, new UnityEngine.Vector3(-8, 0, 6)), "place first robot");
+    Check(Place(4), "place first robot");
     int firstId = battle.SelectedId;
     battle.SelectRobot(firstId); battle.DevelopSelected();
     var panel = editor.Panel;
@@ -57,7 +67,7 @@ try
     Check(!panel.CanRedo, "new edit discards redo branch");
     panel.LoadProgram("reserved", Enumerable.Range(0, 3).Select(_ => Aimed()).ToArray());
     panel.ClearProgram(); editor.Close();
-    Check(battle.PlaceRobot(1, new UnityEngine.Vector3(-6, 0, 6)), "place second robot");
+    Check(Place(1), "place second robot");
     int secondId = battle.SelectedId;
     battle.SelectRobot(secondId); battle.DevelopSelected();
     panel.LoadProgram("second", new[] { Aimed() });
@@ -67,7 +77,7 @@ try
     editor.Close(); battle.SelectRobot(secondId); battle.DevelopSelected();
     Check(panel.Program.Blocks.Count == 1 && panel.FunctionName == "second", "histories isolated per robot");
     battle.Restart();
-    Check(battle.PlaceRobot(4, new UnityEngine.Vector3(-8, 0, 6)), "place after restart");
+    Check(Place(4), "place after restart");
     battle.SelectRobot(battle.SelectedId); battle.DevelopSelected();
     Check(panel.Program.Blocks.Count == 0 && !panel.CanUndo, "restart clears drafts even if robot id is reused");
     // 도메인 리로드 직후처럼 UI는 열려 있지만 두 세션이 모두 사라진 상태를 재현합니다.

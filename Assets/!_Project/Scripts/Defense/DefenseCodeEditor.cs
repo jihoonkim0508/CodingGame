@@ -40,7 +40,9 @@ namespace CodingGame.Defense
             panel.Feedback += kind => UISound.Play(kind);
             panel.CanCopy = () => battle.Stage >= 2; // the right-click menu offers 복사 and 붙여넣기 from Stage 2 (삭제 only in Stage 1)
             panel.CategoryChosen += category => battle.ReportTutorialAction(TutorialKeys.PaletteTab(category), TutorialSignals.TargetClicked);
-            panel.IsAvailable = kind => editingSession == null || editingSession.Options.unlockAll || editingSession.Available(kind, editingId) > 0;
+            // A kind the player owns stays on the palette when other robots use all of it (it vanished, as if not unlocked,
+            // while one this robot used up stayed as ×0): the count beside it says none is left.
+            panel.IsAvailable = kind => editingSession == null || editingSession.Options.unlockAll || editingSession.Owned(kind) > 0 || editingSession.Available(kind, editingId) > 0;
             panel.Remaining = kind => editingSession == null ? 0 : Math.Max(0, editingSession.Available(kind, editingId) - panel.Program.AllBlocks().Count(b => DefenseProgression.Canonical(b.Kind) == DefenseProgression.Canonical(kind)));
             closeButton.onClick.AddListener(() => Close());
             automaticButton.onClick.AddListener(RestoreAutomatic);
@@ -116,9 +118,15 @@ namespace CodingGame.Defense
         string Apply(string name, IReadOnlyList<CodeBlock> blocks)
         {
             if (!IsOpen || !HasCurrentSession) throw new FormatException("로봇을 다시 선택하세요.");
+            // Emptying the robot does not depend on the name field: under a name Python rejects the last code kept running
+            // while the editor said the robot does nothing.
+            if (blocks.Count == 0) try { PythonTreeCompiler.NormalizeIdentifier(name); } catch (FormatException) { name = "robot_" + editingId; }
             editingSession.ApplyProgram(editingId, name, blocks);
-            // The blocks in the editor stay this robot's even when the code is unfinished and nothing was applied.
-            editingSession.SetDraft(editingId, panel.Program.AllBlocks().Select(b => b.Kind));
+            // The blocks in the editor stay this robot's even when the code is unfinished and nothing was applied, except a
+            // kind the stock cannot cover (an undo after another robot took the blocks): that kind holds none, or the shared
+            // stock went below zero and the other robot's applied code no longer fit.
+            editingSession.SetDraft(editingId, panel.Program.AllBlocks().Select(b => DefenseProgression.Canonical(b.Kind)).GroupBy(k => k)
+                .Where(g => g.Count() <= editingSession.Available(g.Key, editingId)).SelectMany(g => g));
             panel.RefreshPalette();
             battle.NotifyCodeApplied(editingId, blocks.Count == 0);
             return blocks.Count == 0 ? "코드 없음 · 행동하지 않음" : "자동 적용됨";

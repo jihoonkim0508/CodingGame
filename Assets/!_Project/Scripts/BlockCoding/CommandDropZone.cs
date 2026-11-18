@@ -192,7 +192,9 @@ namespace CodingGame.BlockCoding
             if (!Panel.CanTake(source)) return false;
             if (freePlacement)
             {
-                var last = blocks.LastOrDefault();
+                // A clicked block goes to the end of the program, or starts it: the list's last block is the one placed last,
+                // which may sit mid-chain or lie loose elsewhere.
+                var last = StartChain().LastOrDefault();
                 return PlaceFree(source, last ? last.Rect.anchoredPosition + new Vector2(0, -last.preferredHeight) : FirstPosition);
             }
             if (ParentBlock && ParentBlock.IsPalette) return false;
@@ -266,7 +268,8 @@ namespace CodingGame.BlockCoding
             var first = placed[0];
             var last = placed[placed.Count - 1];
             position = ClampToWorkspace(position);
-            if (SnapsToFirstPosition(placed, position)) position = FirstPosition;
+            bool start = SnapsToFirstPosition(placed, position);
+            if (start) position = FirstPosition;
             CommandBlockView.Place(first.Rect, position.x, -position.y, first.preferredWidth, first.preferredHeight);
 
             FindSnap(placed, position, out var attachAfter, out var attachBefore);
@@ -277,8 +280,9 @@ namespace CodingGame.BlockCoding
             }
             else if (attachBefore)
             {
-                // Insert at the visible first row and move its chain down instead of clipping above the workspace.
-                first.Rect.anchoredPosition = attachBefore.Rect.anchoredPosition;
+                // Insert at the visible first row and move its chain down instead of clipping above the workspace. A block
+                // snapped to the start stays there: the loose chain lying under the anchor comes up to it.
+                if (!start) first.Rect.anchoredPosition = attachBefore.Rect.anchoredPosition;
                 next[last] = attachBefore;
             }
             Refresh();
@@ -287,9 +291,11 @@ namespace CodingGame.BlockCoding
             Panel.Changed();
             return true;
         }
+        // The start anchor takes a first line while no other chain sits on it. Loose blocks elsewhere do not count: any of
+        // them used to switch the snap off, and a line could then not be put on the start at all (AtStart is exact).
         bool SnapsToFirstPosition(List<CommandBlockView> moved, Vector2 position) =>
             moved.All(block => PythonTreeCompiler.OutputSlot(block.Kind) == BlockSlotKind.Statement) &&
-            !blocks.Any(block => !moved.Contains(block)) && Gap(position, FirstPosition, moved[0].preferredWidth) < SnapDistance;
+            !Roots().Any(root => AtStart(root) && !moved.Contains(root)) && Gap(position, FirstPosition, moved[0].preferredWidth) < SnapDistance;
         // Distance from a dropped block's top-left to a snap edge; anywhere along the edge's row (left edge to
         // the right end of the row) counts as on it, so a block let go to the right of the slot still snaps.
         static float Gap(Vector2 position, Vector2 edge, float width)
@@ -350,9 +356,13 @@ namespace CodingGame.BlockCoding
                 else
                 {
                     FindSnap(moved, position, out after, out var before);
-                    // Above a chain the copy shows over its first line; the chain stays put (moving it would move the snap).
+                    // On top of a chain the copy shows on the chain's first row, where the drop sets the block (one block
+                    // higher, as it used to, it was off the code area for the program). The chain stays put till the drop:
+                    // moving it would move the snap.
+                    // ponytail: no room opens there, so the copy lies over the chain's first line; opening it means the chain's
+                    // drawn place apart from its stored one (tried: the loop a player aims at moves away from the pointer).
                     at = after ? after.Rect.anchoredPosition + new Vector2(0, -after.preferredHeight + BranchOverlap(after, source))
-                        : before ? before.Rect.anchoredPosition + new Vector2(0, height) : position;
+                        : before ? before.Rect.anchoredPosition : position;
                 }
             }
             else

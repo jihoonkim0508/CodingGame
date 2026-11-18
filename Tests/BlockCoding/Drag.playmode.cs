@@ -75,7 +75,7 @@ internal class CommandScript : IRunCommand
             var hole = Screen(conditional.Rect, new Vector2(40, -shape.HeaderHeight - 8));
             Check(!shape.Raycast(hole, camera), "condition hole is not clickable");
             var bodyGraphic = (Graphic)new SerializedObject(conditional.Body).FindProperty("background").objectReferenceValue;
-            Check(!bodyGraphic.raycastTarget, "body background does not intercept hole clicks");
+            Check(bodyGraphic.raycastTarget, "a placed body takes clicks, to be selected (1-3 D01)");
             var hits = new System.Collections.Generic.List<RaycastResult>();
             canvas.GetComponent<GraphicRaycaster>().Raycast(new PointerEventData(EventSystem.current) { position = hole }, hits);
             Check(!hits.Any(hit => hit.gameObject.transform.IsChildOf(conditional.transform)), "empty hole falls through in real UI raycast");
@@ -99,7 +99,7 @@ internal class CommandScript : IRunCommand
             Drop(e, program);
             Check(condition.Blocks.Count == 1, "pointer workspace cannot override condition snap");
             var placed = condition.Blocks[0];
-            Check(placed.Rect.anchoredPosition == new Vector2(4, 0), "condition drop matches preview position");
+            Check(placed.Rect.anchoredPosition == Vector2.zero, "condition drop sits at the slot's corner (slots have no inset)");
             var number = Palette(BlockKind.Number);
             panel.ShowCategory(panel.Palette.First(p => p.view == number).category); Layout();
             var right = placed.Arguments[1];
