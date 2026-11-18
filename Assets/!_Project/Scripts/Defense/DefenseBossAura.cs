@@ -18,7 +18,7 @@ namespace CodingGame.Defense
         {
             fullScale = transform.localScale * 1.65f;
             transform.localScale = fullScale * .08f;
-            appearedAt = Time.unscaledTime;
+            appearedAt = GameClock.Now; // the grow-in waits behind the Esc menu
             if (!looked) { visual = Resources.Load<GameObject>("Effects/BossAura"); looked = true; }
             if (visual)
             {
@@ -87,7 +87,7 @@ namespace CodingGame.Defense
 
         void Update()
         {
-            float reveal = Mathf.Clamp01((Time.unscaledTime - appearedAt) / 1.15f);
+            float reveal = Mathf.Clamp01((GameClock.Now - appearedAt) / 1.15f);
             transform.localScale = fullScale * Mathf.SmoothStep(.08f, 1f, reveal);
             if (glow) glow.intensity = 1.6f + .45f * Mathf.Sin(Time.unscaledTime * 3.2f);
             if (halo) halo.widthMultiplier = .05f + .015f * Mathf.Sin(Time.unscaledTime * 3.2f);

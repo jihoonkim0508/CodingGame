@@ -50,7 +50,7 @@ namespace CodingGame.Defense
         void LateUpdate()
         {
             Initialize(); if (elapsed >= activeSeconds) return;
-            elapsed += Time.unscaledDeltaTime;
+            elapsed += GameClock.Delta; // stands still behind the Esc menu, like the entrance it serves
             float t = Mathf.SmoothStep(0, 1, Mathf.Clamp01(elapsed / Mathf.Max(.01f, activeSeconds)));
             battleCamera.transform.SetPositionAndRotation(Vector3.Lerp(fromPosition, destination, t), Quaternion.Slerp(fromRotation, rotation, t));
             battleCamera.rect = new Rect(Mathf.Lerp(fromRect.x, viewport.x, t), Mathf.Lerp(fromRect.y, viewport.y, t),

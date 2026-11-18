@@ -34,7 +34,7 @@ namespace CodingGame.Defense
                 bakedStyle = -1;
                 animate = style switch { 1 => Glitch(), 2 => Terminal(), 3 => Reticle(), 4 => Burst(), _ => Bands() };
             }
-            startedAt = Time.unscaledTime;
+            startedAt = GameClock.Now; // waits behind the Esc menu with the entrance
             root.gameObject.SetActive(true);
             animate(0);
         }
@@ -44,7 +44,7 @@ namespace CodingGame.Defense
         void Update()
         {
             if (startedAt < 0) return;
-            float t = Time.unscaledTime - startedAt;
+            float t = GameClock.Now - startedAt;
             if (t >= Seconds) { Hide(); return; }
             animate(t);
             // Everything fades out over the last .3 s.
