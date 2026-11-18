@@ -63,14 +63,14 @@ namespace CodingGame.Defense.Editor
         const string Code31 = "while True:\n    enemy = get_nearest_enemy()\n    block(enemy)";
         // 2-1: the found enemy kept in a variable; 2-3: the warrior slashes only once the nearest enemy is within its range,
         // instead of slashing air and resting 1.6 s while an enemy walks in.
-        const string Code21 = "while True:\n    enemy = get_nearest_enemy()\n    shoot(enemy)";
-        const string Code23 = "while True:\n    enemy = get_nearest_enemy()\n    if enemy.distance(get_my_pos()) <= my_attack_range():\n        slash()";
+        internal const string Code21 = "while True:\n    enemy = get_nearest_enemy()\n    shoot(enemy)";
+        internal const string Code23 = "while True:\n    enemy = get_nearest_enemy()\n    if enemy.distance(get_my_pos()) <= my_attack_range():\n        slash()";
         // 2-5: the enemy kept until is_dead() says it fell; 2-6: a loop in the loop that break leaves once its enemy is out of
         // range; 2-7's hint also leaves it once the enemy is down; 2-8: continue skips every nearest enemy that is not a tank.
-        const string Code25 = "enemy = get_nearest_enemy()\nwhile True:\n    if enemy.is_dead():\n        enemy = get_nearest_enemy()\n    shoot(enemy)";
-        const string Code26 = "while True:\n    enemy = get_nearest_enemy()\n    while True:\n        if enemy.distance(get_my_pos()) > my_attack_range():\n            break\n        shoot(enemy)";
-        const string Code27 = "while True:\n    enemy = get_nearest_enemy()\n    while True:\n        if enemy.is_dead():\n            break\n        if enemy.distance(get_my_pos()) > my_attack_range():\n            break\n        shoot(enemy)";
-        const string Code28 = "while True:\n    enemy = get_nearest_enemy()\n    if enemy.type != Enemy.Tank:\n        continue\n    while True:\n        if enemy.is_dead():\n            break\n        if enemy.distance(get_my_pos()) > my_attack_range():\n            break\n        shoot(enemy)";
+        internal const string Code25 = "enemy = get_nearest_enemy()\nwhile True:\n    if enemy.is_dead():\n        enemy = get_nearest_enemy()\n    shoot(enemy)";
+        internal const string Code26 = "while True:\n    enemy = get_nearest_enemy()\n    while True:\n        if enemy.distance(get_my_pos()) > my_attack_range():\n            break\n        shoot(enemy)";
+        internal const string Code27 = "while True:\n    enemy = get_nearest_enemy()\n    while True:\n        if enemy.is_dead():\n            break\n        if enemy.distance(get_my_pos()) > my_attack_range():\n            break\n        shoot(enemy)";
+        internal const string Code28 = "while True:\n    enemy = get_nearest_enemy()\n    if enemy.type != Enemy.Tank:\n        continue\n    while True:\n        if enemy.is_dead():\n            break\n        if enemy.distance(get_my_pos()) > my_attack_range():\n            break\n        shoot(enemy)";
         const string StagesFolder = "Assets/!_Project/Defense/Tutorial/Stages23";
 
         sealed class Line { public string Speaker, Text; }
@@ -622,26 +622,31 @@ namespace CodingGame.Defense.Editor
             // A boss is a Heavy about four times as tough as the wave's own (base health before the stage's scaling), coming
             // once every minion is down; reaching the core ends the stage, as 1-5's does.
             Groups(1, 2, ("Enemy", 4, 0, 2, 16.7f, 1.95f, 0, false));
-            // 2-1 and 2-2: the two shooters alone hold them (2-2's goal; a few get through 2-2), the warriors from Stage 1
-            // placed as well make them easy.
+            // Stage 2 is held by its own robots alone (no Stage 1 warriors): two shooters (32 a shot, 6 s reload), from 2-3 one
+            // warrior (7 a swing, 1.6 s) with each lesson's answer code; health and speed below are before the stage's scaling.
+            // 2-1 and 2-2: the two shooters (a Heavy gets through 2-1, two enemies 2-2).
             Groups(2, 1, ("Enemy", 6, 0, 2.5f, 15.4f, 1.95f, 0, false), ("Heavy", 2, 6, 4, 26.4f, 1.95f, 0, false));
-            Groups(2, 2, ("Enemy", 8, 0, 2, 13.2f, 1.88f, 0, false), ("Heavy", 2, 5, 5, 22.7f, 1.83f, 0, false), ("Runner", 3, 12, 2, 13.2f, 1.84f, 0, false));
-            // 2-3: one at a time, 3 s apart, each felled by two of the warrior's swings (13 health): slashing only once one is in
-            // range lands both swings before a fast one has crossed, slashing at air often only one.
-            Groups(2, 3, ("Runner", 5, 0, 3, 11.9f, 0, 0, false), ("Enemy", 4, 16, 3, 8.9f, 0, 0, false));
-            // 2-5 to 2-9 (shooter: 32 a shot, 6 s reload): a basic or fast enemy falls to one shot, a Heavy to two (three from
-            // 2-8), after the stage's scaling. 2-5's Heavy comes first: the preview's shooter stops once it is down.
-            Groups(2, 5, ("Heavy", 3, 0, 5, 26, 1.37f, 0, false), ("Runner", 4, 3, 3, 26, 1.46f, 0, false), ("Enemy", 3, 8, 3, 19.6f, 1.74f, 0, false));
+            Groups(2, 2, ("Enemy", 5, 0, 2.5f, 13.2f, 1.88f, 0, false), ("Heavy", 2, 5, 5, 22.7f, 1.83f, 0, false), ("Runner", 2, 12, 2.5f, 13.2f, 1.84f, 0, false));
+            // 2-3: one at a time, 5 s apart (so the warrior's swing is ready when the next walks in), each in its range for
+            // about 1.8 s: two swings fell a fast one (13 health), which slashing only once one is in range lands and slashing at
+            // air mostly does not (the warrior alone: 5 felled against 1). Then basic ones of 41 health, a shot and two swings.
+            Groups(2, 3, ("Runner", 5, 0, 5, 11.9f, 1.6f, 0, false), ("Enemy", 4, 25, 5, 28, 2.1f, 0, false));
+            // 2-4: the same pair, a little closer together.
+            Groups(2, 4, ("Runner", 4, 0, 4.5f, 10.3f, 1.43f, 0, false), ("Enemy", 5, 18, 4.5f, 24.5f, 1.86f, 0, false));
+            // 2-5: slow Heavies 3 s apart, two shots each: the nearest changes between shots, so a shooter that picks it anew
+            // each shot leaves one hurt and it gets through, the one that keeps its enemy until is_dead() fells them all. The
+            // Heavy comes first: the preview's shooter stops once it is down.
+            Groups(2, 5, ("Heavy", 4, 0, 3, 26, 1.1f, 0, false), ("Enemy", 3, 14, 2.5f, 15, 1.6f, 0, false));
             // 2-6: fast ones that take two shots, so a live target runs out of range during the reload.
-            Groups(2, 6, ("Runner", 5, 0, 2, 40, 1.6f, 0, false), ("Enemy", 4, 6, 2.5f, 18.8f, 1.69f, 0, false));
-            Groups(2, 7, ("Enemy", 5, 0, 2, 17.9f, 1.65f, 0, false), ("Runner", 4, 3, 2, 23.9f, 1.5f, 0, false), ("Heavy", 2, 8, 5, 25.4f, 1.3f, 0, false));
-            // 2-8: small ones first and between the Heavies, so the shooter's continue has some to skip (the warriors take them).
-            Groups(2, 8, ("Enemy", 4, 0, 2, 17.1f, 1.6f, 0, false), ("Heavy", 3, 3, 6, 34.2f, 1.17f, 0, false), ("Enemy", 3, 10, 2, 17.1f, 1.6f, 0, false));
-            Groups(2, 9, ("Enemy", 5, 0, 1.8f, 17.4f, 1.56f, 0, false), ("Runner", 5, 3, 1.5f, 21.8f, 1.42f, 0, false), ("Heavy", 3, 6, 5, 32.6f, 1.14f, 0, false));
-            // 2-10: the old 2-6 boss (a Heavy), its minions falling to one shot since a minion at the core now ends a boss wave
-            // at once (12a8df8). The boss as two shooters and the warriors fell it within the 50 s (4-4): 173 health, 1.74 speed
-            // once scaled (the old 480 at 1.27 walked in at time-up in every run).
-            Groups(2, 10, ("Enemy", 4, 0, 2, 15.6f, 1.52f, 0, false), ("Runner", 3, 4, 2, 20.8f, 1.33f, 0, false), ("Heavy", 1, 0, 2, 60, 1.6f, 12, true));
+            Groups(2, 6, ("Runner", 4, 0, 3, 35, 1.35f, 0, false), ("Enemy", 3, 14, 3, 18.8f, 1.5f, 0, false));
+            Groups(2, 7, ("Enemy", 4, 0, 3, 17.9f, 1.6f, 0, false), ("Runner", 4, 4, 3.5f, 23.9f, 1.3f, 0, false), ("Heavy", 2, 10, 6, 25.4f, 1.2f, 0, false));
+            // 2-8: small ones of two swings before and after two Heavies of three shots: the shooter that continues past them
+            // keeps its shots for the Heavies and the warrior takes the small ones (without the warrior two get through).
+            Groups(2, 8, ("Enemy", 6, 0, 4.5f, 7.5f, 1.7f, 0, false), ("Heavy", 2, 3, 8, 34.2f, 1.17f, 0, false), ("Enemy", 3, 29, 4.5f, 7.5f, 1.7f, 0, false));
+            Groups(2, 9, ("Enemy", 5, 0, 4.5f, 7.5f, 1.6f, 0, false), ("Runner", 3, 20, 4.5f, 7, 1.2f, 0, false), ("Heavy", 2, 6, 8, 32.6f, 1.14f, 0, false));
+            // 2-10: the old 2-6 boss (a Heavy), its minions small since a minion at the core ends a boss wave at once (12a8df8).
+            // The boss, 173 health at 1.41 once scaled, falls to the shooters in about 44 s of the 50.
+            Groups(2, 10, ("Enemy", 4, 0, 3.5f, 15.6f, 1.5f, 0, false), ("Runner", 2, 16, 4, 7, 1.1f, 0, false), ("Heavy", 1, 0, 2, 60, 1.3f, 12, true));
             // No tank-bodied minions before the last boss: the boss comes only once they are all down, and with them it came
             // after Stage 3's 50 s and walked in at the time-up (campaign run, 13차 179).
             Groups(3, 4, ("Runner", 4, 0, 1.3f, 0, 0, 0, false), ("Enemy", 5, 4, 1.2f, 0, 0, 0, false), ("Heavy", 1, 0, 2, 130, 1.1f, 12, true));

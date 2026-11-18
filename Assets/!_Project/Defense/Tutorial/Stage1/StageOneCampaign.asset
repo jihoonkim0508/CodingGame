@@ -473,9 +473,9 @@ MonoBehaviour:
     - groups:
       - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
         route: 0
-        count: 8
+        count: 5
         delay: 0
-        interval: 2
+        interval: 2.5
         healthOverride: 13.2
         speedOverride: 1.88
         leakDamageOverride: 0
@@ -491,9 +491,9 @@ MonoBehaviour:
         boss: 0
       - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
         route: 0
-        count: 3
+        count: 2
         delay: 12
-        interval: 2
+        interval: 2.5
         healthOverride: 13.2
         speedOverride: 1.84
         leakDamageOverride: 0
@@ -503,129 +503,120 @@ MonoBehaviour:
         route: 0
         count: 5
         delay: 0
-        interval: 3
-        healthOverride: 11.9
-        speedOverride: 0
-        leakDamageOverride: 0
-        boss: 0
-      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
-        route: 0
-        count: 4
-        delay: 16
-        interval: 3
-        healthOverride: 8.9
-        speedOverride: 0
-        leakDamageOverride: 0
-        boss: 0
-    - groups:
-      - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
-        route: 0
-        count: 4
-        delay: 0
-        interval: 2.4
-        healthOverride: 0
-        speedOverride: 0
-        leakDamageOverride: 0
-        boss: 0
-      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
-        route: 0
-        count: 6
-        delay: 3
-        interval: 1.4
-        healthOverride: 0
-        speedOverride: 0
-        leakDamageOverride: 0
-        boss: 0
-    - groups:
-      - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
-        route: 0
-        count: 3
-        delay: 0
         interval: 5
-        healthOverride: 26
-        speedOverride: 1.37
-        leakDamageOverride: 0
-        boss: 0
-      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
-        route: 0
-        count: 4
-        delay: 3
-        interval: 3
-        healthOverride: 26
-        speedOverride: 1.46
-        leakDamageOverride: 0
-        boss: 0
-      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
-        route: 0
-        count: 3
-        delay: 8
-        interval: 3
-        healthOverride: 19.6
-        speedOverride: 1.74
-        leakDamageOverride: 0
-        boss: 0
-    - groups:
-      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
-        route: 0
-        count: 5
-        delay: 0
-        interval: 2
-        healthOverride: 40
+        healthOverride: 11.9
         speedOverride: 1.6
         leakDamageOverride: 0
         boss: 0
       - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
         route: 0
         count: 4
-        delay: 6
+        delay: 25
+        interval: 5
+        healthOverride: 28
+        speedOverride: 2.1
+        leakDamageOverride: 0
+        boss: 0
+    - groups:
+      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
+        route: 0
+        count: 4
+        delay: 0
+        interval: 4.5
+        healthOverride: 10.3
+        speedOverride: 1.43
+        leakDamageOverride: 0
+        boss: 0
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 5
+        delay: 18
+        interval: 4.5
+        healthOverride: 24.5
+        speedOverride: 1.86
+        leakDamageOverride: 0
+        boss: 0
+    - groups:
+      - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
+        route: 0
+        count: 4
+        delay: 0
+        interval: 3
+        healthOverride: 26
+        speedOverride: 1.1
+        leakDamageOverride: 0
+        boss: 0
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 3
+        delay: 14
         interval: 2.5
+        healthOverride: 15
+        speedOverride: 1.6
+        leakDamageOverride: 0
+        boss: 0
+    - groups:
+      - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
+        route: 0
+        count: 4
+        delay: 0
+        interval: 3
+        healthOverride: 35
+        speedOverride: 1.35
+        leakDamageOverride: 0
+        boss: 0
+      - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
+        route: 0
+        count: 3
+        delay: 14
+        interval: 3
         healthOverride: 18.8
-        speedOverride: 1.69
+        speedOverride: 1.5
         leakDamageOverride: 0
         boss: 0
     - groups:
       - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
         route: 0
-        count: 5
+        count: 4
         delay: 0
-        interval: 2
+        interval: 3
         healthOverride: 17.9
-        speedOverride: 1.65
+        speedOverride: 1.6
         leakDamageOverride: 0
         boss: 0
       - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
         route: 0
         count: 4
-        delay: 3
-        interval: 2
+        delay: 4
+        interval: 3.5
         healthOverride: 23.9
-        speedOverride: 1.5
+        speedOverride: 1.3
         leakDamageOverride: 0
         boss: 0
       - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
         route: 0
         count: 2
-        delay: 8
-        interval: 5
+        delay: 10
+        interval: 6
         healthOverride: 25.4
-        speedOverride: 1.3
+        speedOverride: 1.2
         leakDamageOverride: 0
         boss: 0
     - groups:
       - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
         route: 0
-        count: 4
+        count: 6
         delay: 0
-        interval: 2
-        healthOverride: 17.1
-        speedOverride: 1.6
+        interval: 4.5
+        healthOverride: 7.5
+        speedOverride: 1.7
         leakDamageOverride: 0
         boss: 0
       - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
         route: 0
-        count: 3
+        count: 2
         delay: 3
-        interval: 6
+        interval: 8
         healthOverride: 34.2
         speedOverride: 1.17
         leakDamageOverride: 0
@@ -633,10 +624,10 @@ MonoBehaviour:
       - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
         route: 0
         count: 3
-        delay: 10
-        interval: 2
-        healthOverride: 17.1
-        speedOverride: 1.6
+        delay: 29
+        interval: 4.5
+        healthOverride: 7.5
+        speedOverride: 1.7
         leakDamageOverride: 0
         boss: 0
     - groups:
@@ -644,25 +635,25 @@ MonoBehaviour:
         route: 0
         count: 5
         delay: 0
-        interval: 1.8
-        healthOverride: 17.4
-        speedOverride: 1.56
+        interval: 4.5
+        healthOverride: 7.5
+        speedOverride: 1.6
         leakDamageOverride: 0
         boss: 0
       - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
         route: 0
-        count: 5
-        delay: 3
-        interval: 1.5
-        healthOverride: 21.8
-        speedOverride: 1.42
+        count: 3
+        delay: 20
+        interval: 4.5
+        healthOverride: 7
+        speedOverride: 1.2
         leakDamageOverride: 0
         boss: 0
       - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
         route: 0
-        count: 3
+        count: 2
         delay: 6
-        interval: 5
+        interval: 8
         healthOverride: 32.6
         speedOverride: 1.14
         leakDamageOverride: 0
@@ -672,18 +663,18 @@ MonoBehaviour:
         route: 0
         count: 4
         delay: 0
-        interval: 2
+        interval: 3.5
         healthOverride: 15.6
-        speedOverride: 1.52
+        speedOverride: 1.5
         leakDamageOverride: 0
         boss: 0
       - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
         route: 0
-        count: 3
-        delay: 4
-        interval: 2
-        healthOverride: 20.8
-        speedOverride: 1.33
+        count: 2
+        delay: 16
+        interval: 4
+        healthOverride: 7
+        speedOverride: 1.1
         leakDamageOverride: 0
         boss: 0
       - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
@@ -692,7 +683,7 @@ MonoBehaviour:
         delay: 0
         interval: 2
         healthOverride: 60
-        speedOverride: 1.6
+        speedOverride: 1.3
         leakDamageOverride: 12
         boss: 1
     waveSeconds: 50

@@ -22,7 +22,7 @@ namespace CodingGame.Defense.Editor
         static string last;
         static double since, next;
         static bool practiced, practicedFour, practicedFive, bossVisualSeen;
-        static int coreAtThirdWave, killsAtThirdWave, leaksAtThirdWave, killsAtFifthWave;
+        static int coreAtThirdWave, killsAtThirdWave, leaksAtThirdWave, killsAtFifthWave, codedWave;
         static BeginnerLessonChecks()
         {
             EditorApplication.update += Tick;
@@ -91,7 +91,7 @@ namespace CodingGame.Defense.Editor
             Directory.CreateDirectory(Path.GetDirectoryName(LogPath));
             File.WriteAllText(LogPath, "START stage 2 lessons 2-1 to 2-10 integration check\n");
             last = null; practiced = practicedFour = practicedFive = bossVisualSeen = false;
-            coreAtThirdWave = -1; next = 0;
+            coreAtThirdWave = -1; codedWave = -1; next = 0;
             SessionState.SetBool(Running, true);
             SessionState.SetBool("CodingGame.BeginnerLessons.AllFive", false);
             DevTest.PlayDefense(2, 1, true, true);
@@ -189,8 +189,9 @@ namespace CodingGame.Defense.Editor
                 }
                 // Free time (a wave without a lesson, or a lesson waiting for the wave's end): a second shooter with 2-1's code,
                 // from 2-5 the warriors too, then the battle.
+                if (sim.Phase == BattlePhase.Ready && codedWave != sim.WaveIndex) { codedWave = sim.WaveIndex; StageTwoCodes(sim, false); }
                 if (sim.Phase == BattlePhase.Ready && (!director.IsActive || director.EditorStep?.trigger == TutorialSignals.WaveCleared))
-                { StageTwoFree(battle); battle.StartBattle(); Log("START " + (sim.WaveIndex + 1) + " robots=" + sim.Robots.Count); return; }
+                { StageTwoFree(battle); StageTwoStart(battle); return; }
             }
             if (battle.Stage == 3)
             {
@@ -384,7 +385,7 @@ namespace CodingGame.Defense.Editor
             }
             if (step.targetKeys.Contains(TutorialKeys.Unit(step.robotIndex))) { battle.SelectRobot(TutorialWatcher.Robot(sim, step.robotIndex).Id); return; }
             if (step.completionSignal == TutorialSignals.EditorOpened) { battle.DevelopSelected(); return; }
-            if (step.completionSignal == TutorialSignals.BattleStarted) { battle.StartBattle(); return; }
+            if (step.completionSignal == TutorialSignals.BattleStarted) { if (battle.Stage == 2) StageTwoStart(battle); else battle.StartBattle(); return; }
             if (step.completionSignal == TutorialSignals.PreviewHit ||
                 step.completionSignal == TutorialSignals.PreviewSingleHit || step.completionSignal == TutorialSignals.PreviewMultiHit)
             { Require(Field<DefenseAttackPreview>(battle, "attackPreview").IsShowing, "Preview is closed at " + key); return; }
@@ -495,16 +496,46 @@ namespace CodingGame.Defense.Editor
         static void StageTwoFree(DefenseBattle battle)
         {
             var sim = battle.Simulation;
-            // From 2-2 the warriors brought from Stage 1 stand by the road too (the core's 12 last the whole stage; 2-8's continue
-            // leaves the small ones to them). 2-3 brings its own warrior for the lesson.
-            int warrior = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => battle.DefinitionRole(i) == RobotRole.Warrior);
-            while (sim.WaveIndex >= 1 && sim.RobotAvailable(RobotRole.Warrior) > 0 && sim.Robots.Count < sim.Setup.RobotLimit) { battle.ChooseRobot(warrior); PlaceBest(battle, warrior); }
-            Loops(sim);
+            // Stage 2's own robots only: two shooters, from 2-3 the lesson's warrior (no Stage 1 warriors; 2-8's continue leaves
+            // the small ones to the warrior and the second shooter).
             int shooter = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => battle.DefinitionRole(i) == RobotRole.Shooter);
             // Two shooters: 2-1 gives the variable blocks for two copies of its code.
             if (sim.RobotAvailable(RobotRole.Shooter) > 0 && sim.Robots.Count(r => r.Spec.role == RobotRole.Shooter) < 2) { battle.ChooseRobot(shooter); PlaceBest(battle, shooter); }
             foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Shooter && (r.Program == null || r.Program.IsEmpty)).ToArray())
                 sim.ApplyProgram(bot.Id, "free_" + bot.Id, TutorialAnswers.Parse("while True:\n    enemy = get_nearest_enemy()\n    shoot(enemy)"));
+        }
+
+        // Each wave's answer code at battle start: the lessons (2-5, 2-6, 2-8) teach the first shooter, the free waves' hints
+        // go to it too (2-7: break on is_dead() or range, 2-9: continue to tanks); the second shooter keeps 2-1's code until
+        // 2-7's, the warrior 2-3's condition. Between waves the second shooter holds 2-1's code, so the next lesson's guided
+        // blocks are not reserved by it.
+        static readonly string[] SecondShooter = {
+            TutorialSequenceBuilder.Code21, TutorialSequenceBuilder.Code21, TutorialSequenceBuilder.Code21, TutorialSequenceBuilder.Code21,
+            TutorialSequenceBuilder.Code21, TutorialSequenceBuilder.Code21, TutorialSequenceBuilder.Code27, TutorialSequenceBuilder.Code27,
+            TutorialSequenceBuilder.Code27, TutorialSequenceBuilder.Code27 };
+        static void StageTwoCodes(DefenseSimulation sim, bool battle)
+        {
+            var teacher = TutorialWatcher.TeachingRobot(sim); int wave = sim.WaveIndex;
+            var second = sim.Robots.Where(r => r.Spec.role == RobotRole.Shooter && r != teacher).OrderBy(r => r.Id).FirstOrDefault();
+            var setup = sim.Setup; var options = setup.TestOptions;
+            setup.TestOptions = options.Copy(); setup.TestOptions.inventoryLimit = false;
+            try
+            {
+                if (second != null) sim.ApplyProgram(second.Id, "second_" + second.Id, TutorialAnswers.Parse(battle ? SecondShooter[wave] : TutorialSequenceBuilder.Code21));
+                if (battle && (wave == 6 || wave == 8) && teacher != null)
+                    sim.ApplyProgram(teacher.Id, "hint_" + teacher.Id, TutorialAnswers.Parse(wave == 6 ? TutorialSequenceBuilder.Code27 : TutorialSequenceBuilder.Code28));
+            }
+            finally { setup.TestOptions = options; }
+        }
+        static void StageTwoStart(DefenseBattle battle)
+        {
+            var sim = battle.Simulation;
+            Require(sim.Robots.Count(r => r.Spec.role == RobotRole.Shooter) <= 2 && sim.Robots.Count(r => r.Spec.role == RobotRole.Warrior) == (sim.WaveIndex >= 2 ? 1 : 0),
+                "Stage 2 must be played with two shooters and, from 2-3, one warrior: " + string.Join(",", sim.Robots.Select(r => r.Spec.role)));
+            StageTwoCodes(sim, true);
+            battle.StartBattle();
+            Log("START " + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills + " leaks=" + sim.Leaks + " robots=" +
+                string.Join(",", TutorialWatcher.OrderedRobots(sim).Select(r => r.Spec.role + ":" + r.Program?.Name)));
         }
 
         static void FreePlayFour(DefenseBattle battle)
