@@ -31,6 +31,9 @@ namespace CodingGame.Defense
         [SerializeField] TutorialSpotlight spotlight;
         [SerializeField] TutorialTargetBinding[] targets = Array.Empty<TutorialTargetBinding>();
         readonly List<Rect> screenAreas = new List<Rect>();
+        // Only targets take the pointer: a highlighted-only area (1-1's slash() line) stays lit, but its block could be dragged
+        // out and deleted, and the lesson then waited forever for a preview hit.
+        readonly List<Rect> clickAreas = new List<Rect>();
         readonly List<Rect> visibleAreas = new List<Rect>();
         readonly List<Rect> roundAreas = new List<Rect>();
         // The road: lit boxes and the dim inside them off the road (see AddRoad).
@@ -148,6 +151,7 @@ namespace CodingGame.Defense
                     // With a focus on screen the focus carries the box; the action targets only stay lit.
                     Show(start, outlined && focus.Length == 0 && !dismissed && !TutorialKeys.IsRange(key));
                 }
+            clickAreas.Clear(); clickAreas.AddRange(screenAreas);
             if (currentStep != null && !dismissed)
                 foreach (var key in focus)
                     // "a|b": the first one on screen (e.g. the empty slot once the block is placed, else the place to drop it).
@@ -163,12 +167,12 @@ namespace CodingGame.Defense
                 !currentStep.targetKeys.Contains(TutorialKeys.Speed))
             {
                 int start = screenAreas.Count;
-                if (AddArea(TutorialKeys.Speed) > 0) Show(start, false);
+                if (AddArea(TutorialKeys.Speed) > 0) { Show(start, false); for (int i = start; i < screenAreas.Count; i++) clickAreas.Add(screenAreas[i]); }
             }
             // Focus uses the same spotlight as action steps: dim everything but the holes.
             bool dim = currentStep == null || !currentStep.undimmed && !dismissed && (currentStep.dim || focus.Length > 0 || Acting);
             spotlight.SetRoad(roadBoxes, roadDim);
-            spotlight.SetHoles(screenAreas, visibleAreas, outlinedAreas, roundAreas, currentStep?.highlightPadding ?? 0, dim);
+            spotlight.SetHoles(clickAreas, visibleAreas, outlinedAreas, roundAreas, currentStep?.highlightPadding ?? 0, dim);
         }
 
         // Areas added since start become visible holes; a single rect gets the outline.

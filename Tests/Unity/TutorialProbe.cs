@@ -221,8 +221,7 @@ public static class TutorialQA
         string signal = step.completionSignal, target = step.targetKeys.FirstOrDefault() ?? "";
         if (signal == TutorialSignals.ProgramMatches) { TutorialProbe.Load(step.expectedCode); lastCode = step.expectedCode; }
         else if (signal == TutorialSignals.ConditionBuilt) TutorialProbe.LoadWithLoose(lastCode, step.expectedCode);
-        else if (signal == TutorialSignals.SlotFilled) TutorialProbe.Load("enemy = get_nearest_enemy()
-slash(variable)"); // 1-1 D04: block placed, not named yet
+        else if (signal == TutorialSignals.SlotFilled) TutorialProbe.Load("enemy = get_nearest_enemy()\nslash(variable)"); // 1-1 D04: block placed, not named yet
         else if (signal == TutorialSignals.EditorOpened) b.DevelopSelected();
         else if (signal == TutorialSignals.EditorClosed) b.CodeEditor.Close();
         else if (signal == TutorialSignals.BattleStarted) b.StartBattle();
