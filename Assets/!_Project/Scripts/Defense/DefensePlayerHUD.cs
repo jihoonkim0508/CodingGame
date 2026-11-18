@@ -33,6 +33,7 @@ namespace CodingGame.Defense
         RawImage[] enemyImages;
         DefenseHoverInfo[] enemyHovers;
         int[] cardDefinitions, cardCounts, shownCardCounts;
+        bool[] cardBosses; bool bossSeen; // a boss group is its own card even when it shares its minions' definition
         EnemySpec[] cardSpecs;
         Button[] upperRobotButtons;
         Coroutine placementFeedback;
@@ -70,7 +71,7 @@ namespace CodingGame.Defense
             enemyImages = enemyCards.Select(c => c.GetComponentInChildren<RawImage>(true)).ToArray();
             enemyHovers = enemyCards.Select(c => c.GetComponent<DefenseHoverInfo>()).ToArray();
             cardDefinitions = new int[enemyCards.Length];
-            cardCounts = new int[enemyCards.Length]; cardSpecs = new EnemySpec[enemyCards.Length];
+            cardCounts = new int[enemyCards.Length]; cardBosses = new bool[enemyCards.Length]; cardSpecs = new EnemySpec[enemyCards.Length];
             shownCardCounts = Enumerable.Repeat(-1, enemyCards.Length).ToArray();
             upperRobotButtons = new[] { upgradeRobotButton, developRobotButton };
             // Parts baked in the scene (BakeParts) get their listeners and pools here.
@@ -173,7 +174,6 @@ namespace CodingGame.Defense
         {
             var sim = battle.Simulation;
             if (sim == null) return;
-            AnimateResult();
             ClearOfTutorialLine();
             FlashLeak(sim);
             AnimateFloaters();
@@ -238,6 +238,7 @@ namespace CodingGame.Defense
             rewardPanel.SetActive(reward || ended);
             if (reward || ended) RefreshRewardPanel(sim, reward);
             else resultShown = -100; // a restart right after the result clears its banner too, not only after BannerSeconds
+            AnimateResult(); // after the panel is switched on and its banner started, so its first visible frame is already the start state
             shownRewardPhase = sim.Phase; shownRewardWave = sim.WaveIndex; shownRewardStage = battle.Stage;
         }
         (int, int, int) shownCounters = (-1, -1, -1), shownWave = (-1, -1, -1), shownEnemies = (-1, -1, -1), shownSeconds = (-1, -1, -1),
@@ -290,18 +291,19 @@ namespace CodingGame.Defense
             // Cards follow the wave's own enemy types (in spawn order), so tutorial enemies get cards too. While fighting they
             // stay on the wave being fought and count down as its enemies die; between waves they show the next wave.
             var groups = fighting ? sim.CurrentWave : sim.UpcomingWave;
+            if (!fighting) bossSeen = false;
             int typeCount = 0;
             Array.Clear(cardCounts, 0, cardCounts.Length);
             for (int g = 0; g < groups.Count; g++)
             {
                 var group = groups[g];
                 int index = 0;
-                while (index < typeCount && cardDefinitions[index] != group.DefinitionIndex) index++;
+                while (index < typeCount && (cardDefinitions[index] != group.DefinitionIndex || cardBosses[index] != group.Boss)) index++;
                 if (index == typeCount)
                 {
                     if (typeCount == cardDefinitions.Length) continue;
                     cardSpecs[typeCount] = group.Enemy; // this wave's numbers (the stage's scaling, the F2 window's)
-                    cardDefinitions[typeCount++] = group.DefinitionIndex;
+                    cardBosses[typeCount] = group.Boss; cardDefinitions[typeCount++] = group.DefinitionIndex;
                 }
                 cardCounts[index] += group.Count;
             }
@@ -315,13 +317,22 @@ namespace CodingGame.Defense
                 var definition = battle.EnemyAt(cardDefinitions[i]);
                 if (definition.icon && enemyImages[i] && enemyImages[i].texture != definition.icon) ShowEnemy(enemyImages[i], definition.icon);
                 if (enemyHovers[i]) enemyHovers[i].SetEnemy(definition, cardSpecs[i]);
-                int count = fighting ? sim.RemainingOf(cardDefinitions[i]) : cardCounts[i];
-                if (shownCardCounts[i] != count)
+                int count = fighting ? RemainingOnCard(sim, i) : cardCounts[i];
+                int shown = count * 2 + (cardBosses[i] ? 1 : 0);
+                if (shownCardCounts[i] != shown)
                 {
-                    shownCardCounts[i] = count;
-                    enemyCounts[i].text = "× " + count;
+                    shownCardCounts[i] = shown;
+                    enemyCounts[i].text = (cardBosses[i] ? "보스 × " : "× ") + count;
                 }
             }
+        }
+        // The boss waits for its minions, so until one is seen its whole group is still to come.
+        int RemainingOnCard(DefenseSimulation sim, int card)
+        {
+            int definition = cardDefinitions[card], bossLeft = 0;
+            foreach (var e in sim.Enemies) if (e.Active && e.Boss && e.DefinitionIndex == definition) { bossLeft++; bossSeen = true; }
+            if (!bossSeen) foreach (var g in sim.CurrentWave) if (g.Boss && g.DefinitionIndex == definition) bossLeft += g.Count;
+            return cardBosses[card] ? bossLeft : Math.Max(0, sim.RemainingOf(definition) - bossLeft);
         }
         static void ShowEnemy(RawImage image, Texture icon)
         {
@@ -666,7 +677,7 @@ namespace CodingGame.Defense
             banner.color = lost ? new Color(1, .35f, .35f) : new Color(.88f, .96f, 1); banner.text = text.Replace("  /  ", "  ");
             resultGroup = rewardPanel.GetComponent<CanvasGroup>();
             if (!resultGroup) resultGroup = rewardPanel.AddComponent<CanvasGroup>();
-            resultShown = Time.unscaledTime;
+            resultShown = GameClock.Now; // GameClock stands still behind the Esc menu
         }
         // A dark strip across the screen keeps the letters readable over the bright floor.
         void BuildBanner()
@@ -712,7 +723,7 @@ namespace CodingGame.Defense
         }
         void AnimateResult()
         {
-            float t = Time.unscaledTime - resultShown;
+            float t = GameClock.Now - resultShown;
             if (banner)
             {
                 banner.transform.parent.gameObject.SetActive(t < BannerSeconds);
@@ -1155,7 +1166,7 @@ namespace CodingGame.Defense
                 if (shownRewardPhase != sim.Phase) ShowEndBanner($"<size=40%>{english}</size>\n{rewardTitle.text}", sim.Phase == BattlePhase.Defeat);
                 // The victory sentence on two lines: in Pretendard Bold it no longer fits the card on one and left "다." alone.
                 rewardItems.text = reward ? (sim.PendingDrops.Count == 0 ? "지급할 블록이 없습니다." : "") :
-                    (sim.Phase == BattlePhase.Victory ? battle.FromStageMap ? "5개 웨이브 방어 성공\n스테이지 맵에서 다음 스테이지를 선택하세요." : sim.CanAdvanceStage ? "5개 웨이브 방어 성공\n보유 블록과 로봇을 다음 스테이지로 가져갑니다." : "1~3스테이지, 총 15개 웨이브를 완료했습니다." : "방어 실패 · 배치와 코드를 바꿔 도전하세요") + $"\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
+                    (sim.Phase == BattlePhase.Victory ? battle.FromStageMap ? $"{sim.Setup.Waves.Length}개 웨이브 방어 성공\n스테이지 맵에서 다음 스테이지를 선택하세요." : sim.CanAdvanceStage ? $"{sim.Setup.Waves.Length}개 웨이브 방어 성공\n보유 블록과 로봇을 다음 스테이지로 가져갑니다." : "1~3스테이지, 총 15개 웨이브를 완료했습니다." : "방어 실패 · 배치와 코드를 바꿔 도전하세요") + $"\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
                 if (sim.LastRush > 0) rewardItems.text += $"\n\n시간 종료 · 남은 적 {sim.LastRush}마리가 코어로 돌진 (코어 -{sim.LastRushDamage})";
                 else if (reward) rewardItems.text += $"\n\n잔여 적 {sim.LastSurvivors}" + (sim.WaveIndex + 1 < sim.Setup.Waves.Length ? " · 다음 웨이브에 추가" : " · 최종 기록");
                 if (sim.Phase == BattlePhase.Victory) rewardItems.text = StarLine(sim) + "\n\n" + rewardItems.text;

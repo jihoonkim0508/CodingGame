@@ -166,20 +166,25 @@ namespace CodingGame.Defense
             }
             if (spinSeconds > 0)
             {
-                spinTime += delta * pace;
+                spinTime += delta; // delta is already the battle clock's (scaled by battle speed)
                 float k = Mathf.Clamp01(spinTime / spinSeconds);
                 head.rotation = spinFrom * Quaternion.Euler(0, 360 * Mathf.SmoothStep(0, 1, k), 0);
                 if (k >= 1) spinSeconds = 0;
             }
             if (hover)
             {
-                hoverTime += delta * pace;
+                hoverTime += delta;
                 var at = hover.localPosition; at.y = hoverY + HoverHeight * Mathf.Sin(hoverTime * HoverHz * 2 * Mathf.PI); hover.localPosition = at;
             }
             beamTime -= delta;
             if (beamTime <= 0) beam.enabled = false;
         }
-        public void ClearVisuals() { beamTime = 0; beam.enabled = false; }
+        // A wave ending mid-spin would leave the model turned: the clock stops with the wave, so put it back at its facing.
+        public void ClearVisuals()
+        {
+            beamTime = 0; beam.enabled = false;
+            if (spinSeconds > 0) { head.rotation = spinFrom; spinSeconds = 0; }
+        }
         // Ready to stand for another actor (the code preview reuses its views): no beam, spin or strike under way, facing
         // ahead, the animator back at its first state.
         public void Recycle()

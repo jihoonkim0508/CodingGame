@@ -86,7 +86,7 @@ namespace CodingGame.Defense
                 if (evt.Kind == "launch") source.AimAt(position);
                 else if (evt.Kind == "slash") source.Spin(position, evt.Seconds);
                 else if (evt.Kind == "shot") Fire(source, position + Vector3.up * .45f, evt.Seconds, rotation, parent);
-                else if (!evt.Melee && (evt.Kind == "hit" || evt.Kind == "buff" || evt.Kind == "stun")) source.FireAt(position);
+                else if (!evt.Melee && evt.Kind == "hit") source.FireAt(position); // buff/stun carry the robot's own position: no beam to itself
             }
             if (Options.ranges && area && evt.Radius > 0 && evt.Kind != "slash")
             {
@@ -97,7 +97,9 @@ namespace CodingGame.Defense
             // Started so it is fullest as the strike lands.
             if (evt.Kind == "slash") { Later(evt.Seconds - SlashLead, () => Slash(evt, parent, offset)); return; }
             if (!Options.hitEffects) return;
-            if ((evt.Kind != "hit" && evt.Kind != "projectile-hit") || evt.Amount <= 0 || laser) return;
+            if ((evt.Kind != "hit" && evt.Kind != "projectile-hit") || evt.Amount <= 0) return;
+            // The laser's impact is drawn where the enemy is when the hit lands, not where it was at launch.
+            if (laser) { Play(active, shotImpactPrefab, offset + DefenseViews.World(evt.Position, .45f), rotation, parent); return; }
             // Manual simulation keeps every child particle in sync with battle pause and speed.
             Play(active, prefab, offset + DefenseViews.World(evt.Position, .45f), rotation, parent);
         }
@@ -164,7 +166,6 @@ namespace CodingGame.Defense
                 flying.transform.position = Vector3.MoveTowards(flying.transform.position, target, speed * elapsed);
                 flying.Simulate(elapsed, true, false, false);
                 if (flying.transform.position != target) continue;
-                if (Options.hitEffects) Play(active, shotImpactPrefab, target, rotation, flying.transform.parent);
                 Return(flying);
                 shots.RemoveAt(i);
             }
