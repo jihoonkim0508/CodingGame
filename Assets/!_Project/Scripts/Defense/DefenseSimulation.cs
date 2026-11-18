@@ -282,6 +282,7 @@ namespace CodingGame.Defense
         public WaveCheckpoint Checkpoint { get; private set; }
         WaveCheckpoint Capture() => new WaveCheckpoint {
             Stage = Setup.Stage, Wave = WaveIndex, Coins = Coins, BaseHealth = BaseHealth, Kills = Kills, Leaks = Leaks,
+            RobotStock = new Dictionary<RobotRole, int>(RobotInventory),
             Groups = currentWave.Select(CopyGroup).ToArray(),
             Robots = Robots.Select(r => new RobotSnapshot { Spec = r.Spec.Copy(), DefinitionIndex = r.DefinitionIndex, Position = r.Position,
                 Level = r.Level, UpgradeCostPaid = r.UpgradeCostPaid, Health = r.Health, Name = r.Program?.Name, Code = r.Program?.CopyBlocks() }).ToArray() };
@@ -310,6 +311,7 @@ namespace CodingGame.Defense
                 bot.Level = saved.Level; bot.UpgradeCostPaid = saved.UpgradeCostPaid; bot.Health = saved.Health;
                 if (saved.Code != null) ApplyProgram(bot.Id, saved.Name, saved.Code);
             }
+            if (checkpoint.RobotStock != null) { RobotInventory.Clear(); foreach (var stock in checkpoint.RobotStock) RobotInventory[stock.Key] = stock.Value; }
             currentWave = checkpoint.Groups.Select(CopyGroup).ToArray(); groupCounts = new int[currentWave.Length];
             Coins = checkpoint.Coins; BaseHealth = checkpoint.BaseHealth; Kills = checkpoint.Kills;
             Leaks = waveLeaksAtStart = checkpoint.Leaks;
@@ -778,7 +780,7 @@ namespace CodingGame.Defense
             if (e.NextPoint == path.Length)
             {
                 e.Active = false; e.BlockedBy = 0; Leaks++; if (Options.baseDamage) BaseHealth = Math.Max(0, BaseHealth - e.Spec.leakDamage);
-                if (Setup.PlayerFlow && Setup.Stage == 1 && WaveIndex == 4 && !e.Boss) ObjectiveFailed = true;
+                if (Setup.PlayerFlow && !e.Boss && currentWave.Any(g => g.Boss)) ObjectiveFailed = true; // a boss wave with a leaked minion: the boss never comes
                 Emit("leaked", e.Id, 0, e.Position, e.Spec.leakDamage);
             }
         }

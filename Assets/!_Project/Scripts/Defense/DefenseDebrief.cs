@@ -41,7 +41,7 @@ namespace CodingGame.Defense
                         ? "적이 사거리에 들어왔지만 공격하지 않았어요. if 조건이 참이 되는 값인지 확인해 보세요."
                         : "적이 사거리에 들어왔지만 공격 명령이 실행되지 않았어요. 공격 블록과 대상 칸을 확인해 보세요.";
                 case Issue.LoopSpun:
-                    return $"for 반복이 {bot.LoopTurnsThisWave}번 도는 동안 공격은 {bot.ActionsThisWave}번뿐이었어요. if 조건이 거짓이거나 노린 적이 이미 사라져도 반복 횟수는 줄어요. " +
+                    return $"반복문이 {bot.LoopTurnsThisWave}번 도는 동안 공격은 {bot.ActionsThisWave}번뿐이었어요. if 조건이 거짓이거나 노린 적이 이미 사라져도 반복 횟수는 줄어요. " +
                         (sim.Owned(BlockKind.While) > 0 ? "끝까지 공격하려면 while True를 써 보세요." : "range() 횟수를 늘리거나 함수가 끝나면 로봇 아래 '실행'으로 다시 불러 보세요.");
                 case Issue.OutOfRuns:
                     return $"함수가 끝나 멈춰 있었어요(이번 웨이브 {bot.Program.CompletedRuns}번 실행). 적이 올 때 로봇 아래 '실행'을 눌러 다시 부르거나 " +

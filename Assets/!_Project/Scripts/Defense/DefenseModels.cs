@@ -282,6 +282,7 @@ namespace CodingGame.Defense
         public int Stage, Wave, Coins, BaseHealth, Kills, Leaks;
         public SpawnGroup[] Groups; // the wave as fought, with enemies carried over from the wave before
         public RobotSnapshot[] Robots;
+        public Dictionary<RobotRole, int> RobotStock; // stock at wave start, so a robot lost in an earlier wave is not handed back on retry (null: recompute)
     }
     public sealed class RobotSnapshot
     {

@@ -99,7 +99,7 @@ namespace CodingGame.Defense
                         var innerBreaks = new List<int>(); var innerContinues = new List<int>();
                         EmitSuite(b.Body, innerBreaks, innerContinues);
                         int step = code.Count;
-                        if (counted) Emit(Op.ForNext, jump: test, loop: loop);
+                        Emit(Op.ForNext, jump: test, loop: loop); // while counts its turns too (the debrief)
                         Emit(Op.Jump, jump: start);
                         if (test >= 0) code[test].Jump = code.Count;
                         foreach (var exit in innerBreaks) code[exit].Jump = code.Count;
@@ -138,7 +138,8 @@ namespace CodingGame.Defense
                             else { variables["i"] = Val.Of(state.Index); pc++; }
                             break;
                         case Op.ForNext:
-                            loops[instruction.Loop].Index++; robot.LoopTurnsThisWave++; pc++; break;
+                            if (loops.TryGetValue(instruction.Loop, out var turn)) turn.Index++; // while has no counter
+                            robot.LoopTurnsThisWave++; pc++; break;
                         default:
                             var block = instruction.Block;
                             if (block.Kind == BlockKind.DeclareVariable)
@@ -259,7 +260,7 @@ namespace CodingGame.Defense
                     {
                         bool scalar(Val v) => v.Kind == ValueKind.Number || v.Kind == ValueKind.Truth;
                         bool equal = left.Kind == ValueKind.Enemy && right.Kind == ValueKind.Enemy ? left.Enemy == right.Enemy :
-                            scalar(left) && scalar(right) ? Number(left) == Number(right) :
+                            scalar(left) && scalar(right) ? Number(left, allowInfinity: true) == Number(right, allowInfinity: true) :
                             left.Kind == ValueKind.Position && right.Kind == ValueKind.Position && left.Position == right.Position;
                         return Val.Of(equal == (block.Value == "=="));
                     }

@@ -204,5 +204,6 @@ static class Check
         WhileTrueCheck.Run();
         AllocCheck.Run();
         PlacementCheck.Run();
+        AuditCheck.Run();
     }
 }

@@ -80,9 +80,8 @@ namespace CodingGame.Defense
                 killSwingEnds = killer != null ? killer.NextAction : sim.Time;
             }
             if (!killSwingEnded && killSwingEnds >= 0 && sim.Time + 1e-6 >= killSwingEnds) { killSwingEnded = true; signals.Add(TutorialSignals.KillSwingEnded); }
-            // 1-3 waits for the lesson's shooter, not a warrior from 1-1 or 1-2 swinging first.
-            bool lesson = sim.Setup.PlayerFlow && sim.Setup.Stage == 1 && sim.WaveIndex == 2;
-            if (!firstAttack && (lesson ? TeachingRobot(sim)?.AttacksThisWave > 0 : sim.Robots.Any(r => r.AttacksThisWave > 0)))
+            // The line is about the lesson's robot (robot 0), not another robot swinging first.
+            if (!firstAttack && TeachingRobot(sim)?.AttacksThisWave > 0)
             { firstAttack = true; signals.Add(TutorialSignals.FirstAttack); }
             if (sim.Leaks > leaks) { leaks = sim.Leaks; signals.Add(TutorialSignals.Leak); }
             var teacher = TeachingRobot(sim);
