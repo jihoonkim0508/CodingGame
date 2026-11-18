@@ -10,7 +10,6 @@ namespace CodingGame.Defense
         public DefenseTestOptions EditorOptions { get; private set; } = new DefenseTestOptions();
         public DefenseCampaignDefinition EditorCampaign => campaign;
         public DefenseCodeEditor EditorCode => codeEditor;
-        public bool EditorManualClock { get; set; }
         public event Action<string, DefenseSimulation, CombatEvent> EditorCombatEvent;
         public void EditorObserve(string origin, DefenseSimulation sim, CombatEvent evt)
             => EditorCombatEvent?.Invoke(origin, sim, evt);
@@ -22,7 +21,7 @@ namespace CodingGame.Defense
             var boss = Simulation.Enemies.FirstOrDefault(e => e.Boss);
             if (boss == null) return;
             bossEntranceStarted = true; bossCameraRestored = false;
-            bossCameraRestoreAt = Time.unscaledTime + 2.1f; bossEntranceUntil = Time.unscaledTime + DefenseBossWarning.Seconds;
+            bossCameraRestoreAt = GameClock.Now + 2.1f; bossEntranceUntil = GameClock.Now + DefenseBossWarning.Seconds;
             selectionCamera.FocusBoss(DefenseViews.World(boss.Position, 1f));
             BossWarning.Play(style);
         }

@@ -847,7 +847,7 @@ namespace CodingGame.Defense
         string StarLine(DefenseSimulation sim)
         {
             int earned = sim.StageStars, max = sim.Setup.BaseHealth;
-            int best = battle.FromStageMap ? StageMap.StageProgress.BestStars(battle.Stage) : 0;
+            int best = battle.FromStageMap ? battle.BestStarsBefore : 0; // this clear is already recorded when the screen draws
             string line = earned > best && best > 0 ? $"<color={UITheme.GoodHex}><b>새 기록!</b></color>   " : best > earned ? $"<color={UITheme.MutedHex}>최고 기록 {new string('★', best)}</color>   " : "";
             line += $"코어 {sim.BaseHealth} / {max} · " + (earned < 3 ? $"코어를 {DefenseSimulation.CoreForStars(earned + 1, max)} 이상 남기면 ★{earned + 1}" : "최고 등급!");
             return line;

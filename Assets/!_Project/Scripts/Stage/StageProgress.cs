@@ -50,15 +50,11 @@ namespace CodingGame.StageMap
             previewClears.Add(number);
         }
 
+        // A real clear always counts, also after a developer preview (the preview list only adds what the map shows).
         public static void MarkCleared(int number)
         {
             if(!IsCleared(number)) PendingPurification=number;
             if(!IsCleared(number) && GetState(number+1)==StageState.Locked) PendingUnlock = number+1;
-            if (previewClears.Count > 0)
-            {
-                previewClears.Add(number);
-                return;
-            }
             cleared.Add(number);
         }
 
@@ -66,7 +62,7 @@ namespace CodingGame.StageMap
         public static int BestStars(int number) => stars.TryGetValue(number, out int best) ? best : 0;
         public static void RecordStars(int number, int count)
         {
-            if (previewClears.Count > 0 || count <= BestStars(number)) return;
+            if (count <= BestStars(number)) return;
             stars[number] = count;
         }
 

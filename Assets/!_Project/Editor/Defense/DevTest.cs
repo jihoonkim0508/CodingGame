@@ -205,7 +205,6 @@ namespace CodingGame.Defense.Editor
         }
         static void Begin(DefenseBattle battle, int stage, int wave, bool previousStageRewards)
         {
-            battle.EditorManualClock = false;
             battle.EditorStartSession(stage, wave, previousStageRewards, Options, pendingContent);
             // Starting mid Stage 1 with the earlier rewards: also the robots and code the earlier tutorials left.
             if (stage == 1 && wave > 1 && previousStageRewards) RestoreTutorialWork(battle, wave);

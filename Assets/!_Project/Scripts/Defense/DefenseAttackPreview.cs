@@ -208,19 +208,9 @@ namespace CodingGame.Defense
         void Spare(TextMeshPro text) { if (text) { text.gameObject.SetActive(false); spareDamage.Push(text); } }
         void AdvancePreview(float dt)
         {
-            if (sourceLevel != selected.Level) ResetPreview();
-            else if (source != selected.Program)
-            {
-                source = selected.Program;
-                var bot = simulation.Robots.FirstOrDefault();
-                if (bot != null)
-                {
-                    bot.Program = source == null ? null : new DefenseProgram(source.Name, source.CopyBlocks());
-                    bot.AutoExecute = false;
-                }
-            }
-            // The demo calls the function again as soon as it ends, as if Play were pressed each time.
-            if (simulation.Robots.FirstOrDefault() is RobotState demo) simulation.Invoke(demo.Id);
+            // The demo plays the code as one wave would: the function is called once, at the start, and a new level or new code
+            // starts the demo over with a clean robot. Calling it again whenever it ended made code without a loop look like a loop.
+            if (sourceLevel != selected.Level || source != selected.Program) ResetPreview();
             bool wasOver = DemoOver;
             simulation.Advance(dt);
             if (!DemoOver) { emptyElapsed = 0; return; }
@@ -244,12 +234,13 @@ namespace CodingGame.Defense
         void Update()
         {
             if (selected == null) return;
-            if (battle.TutorialBlocksPreview) return;
             RefreshStats();
             if (!IsShowing) return;
             var rect = previewImage.rectTransform.rect;
             if (rect.width > 0 && rect.height > 0) previewCamera.aspect = rect.width / rect.height;
-            float dt = battle.Simulation.Options.preview ? Time.unscaledDeltaTime : 0;
+            // The demo's clock stands still while a lesson holds the preview and behind the Esc menu (GameClock); its robot
+            // and enemies are still drawn where they stand (a new view starts at the arena's origin, on the road).
+            float dt = battle.Simulation.Options.preview && !battle.TutorialBlocksPreview ? GameClock.Delta : 0;
             AdvancePreview(dt);
             hitEffects.Tick(dt);
             if (simulation.Options.projectiles) projectileViews.Sync(simulation, projectilePrefab, arena, arena.position); else projectileViews.Clear();
@@ -309,7 +300,8 @@ namespace CodingGame.Defense
             // Explain a wasted command before "completed", or a one-run function hides why nothing happened.
             else if (bot.LastResult == ActionResult.Ineffective) state = "호환되지 않는 명령 · 이 로봇에서는 동작하지 않아요";
             else if (program.WaitRemaining(simulation.Time) is double wait && wait > 0) state = $"wait() · {wait:0.0}초 기다리는 중";
-            else if (program.StepsLastTick == 0) state = "코드 대기";
+            // The function has ended and, as in a wave, is not called again: say so, or the robot just seems to stop.
+            else if (!program.Running) state = "함수 끝 · " + (bot.LastResult == ActionResult.NoTarget ? "대상이 사거리 밖 · 빗나감" : $"명령 {bot.Executions}회 실행");
             else switch (bot.LastResult)
             {
                 case ActionResult.CoolingDown:

@@ -20,7 +20,7 @@ void Advance(float seconds) => preview.SendMessage("AdvancePreview",seconds);
 try
 {
     battle.EditorStartSession(2, 1, false, new CodingGame.Defense.DefenseTestOptions { tutorial = false, tutorialInput = false, inventoryLimit = false, unlockAll = true }); // sandbox: Stage 1 locks robots and placement for teaching
-    Check(battle.PlaceRobot(2,new UnityEngine.Vector3(-9.6f,0,-0.8f)),"place authored tank");
+    Check(battle.PlaceRobot(2,new UnityEngine.Vector3(-9.6f,0,0.8f)),"place authored tank");
     battle.SelectRobot(battle.SelectedId); battle.DevelopSelected();
     battle.Simulation.GrantBlock(CodingGame.BlockCoding.BlockKind.Buff,1);
     string stock = Stock(); var time = battle.Simulation.Time; var baseHealth = battle.Simulation.BaseHealth;
@@ -28,16 +28,16 @@ try
     Show(); Status();
     Check(label.text.Contains("코드 없음")&&label.text.Contains("저지 비활성"),"empty tank status");
     Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.NearestEnemy)));
-    preview.PreviewSimulation.Advance(2.5); Status();
+    preview.PreviewSimulation.Advance(4.5); Status(); // the three enemies come 1.4 s apart
     Check(label.text.Contains("저지 3/3")&&label.text.Contains("한도 도달"),"occupied capacity status");
-    Check(label.text.Contains("재사용 대기"),"cooldown distinct from body blocking");
+    Check(label.text.Contains("함수 끝"),"ended function named apart from body blocking");
     Check(preview.PreviewSimulation.Enemies.All(e=>e.BlockedBy!=0&&e.Position.X>0),"authored preview enemies intercepted");
     UnityEngine.Canvas.ForceUpdateCanvases(); label.ForceMeshUpdate();
     // preferred size ignores auto sizing; the rendered bounds are what must fit.
     Check(label.textBounds.size.y<=label.rectTransform.rect.height&&label.textBounds.size.x<=label.rectTransform.rect.width,"status fits authored panel");
     preview.SendMessage("ResetPreview"); Status();
     Check(preview.PreviewSimulation.Robots.Count==1&&preview.PreviewSimulation.Enemies.Count==0&&label.text.Contains("저지 비활성"),"loop resets stance and actors");
-    preview.PreviewSimulation.Advance(2.5); Status();
+    preview.PreviewSimulation.Advance(4.5); Status();
     Check(label.text.Contains("저지 3/3"),"loop restores blocking through code execution");
     var held=preview.PreviewSimulation;
     held.Robots.Single().Health=1e6f; // the preview's enemies hit as hard as the wave's; this check is about the reset, not the tank's death
@@ -58,7 +58,7 @@ try
     for(int i=0;i<300&&Reachable();i++) Advance(.1f);
     Check(!Reachable()&&empty.RemainingEnemies>0&&empty.Leaks==0&&preview.PreviewSimulation==empty,"enemies out of reach start delay before they leave the map");
     Advance(.99f); Status();
-    Check(preview.PreviewSimulation==empty&&label.text.Contains("후 다시 시작"),"preview remains through first 0.99 seconds after nothing can be hit");
+    Check(preview.PreviewSimulation==empty&&label.text.Contains("뒤 다시 시작"),"preview remains through first 0.99 seconds after nothing can be hit");
     Advance(.01f);
     Check(preview.PreviewSimulation!=empty&&preview.PreviewSimulation.RemainingEnemies==3&&preview.PreviewSimulation.Robots.Count==1,"preview restarts at one second with one robot");
     // A function runs once per wave, so loop the guard to clear every enemy.
@@ -77,6 +77,13 @@ try
     Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Buff));
     preview.PreviewSimulation.Advance(.25); Status();
     Check(label.text.Contains("호환되지 않는 명령"),"incompatible command explained");
+    // The demo plays code as one wave would: the function is called once, and new code starts the demo over.
+    Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.NearestEnemy)));
+    var once=preview.PreviewSimulation; once.Robots.Single().Health=1e6f;
+    for(int i=0;i<40;i++) Advance(.1f);
+    Check(preview.PreviewSimulation==once&&once.Robots.Single().Program.CompletedRuns==1&&once.Robots.Single().Executions==1,"function is called once per demo");
+    editor.Panel.LoadProgram("guard",new CodingGame.BlockCoding.CodeBlock[0]); Advance(.01f);
+    Check(preview.PreviewSimulation!=once&&!preview.PreviewSimulation.Robots.Single().BlockingEnabled&&preview.PreviewSimulation.Enemies.Count==0,"new code starts the demo over with a clean robot");
     Check(Stock()==stock&&battle.Simulation.Time==time&&battle.Simulation.BaseHealth==baseHealth&&actualTank.Health==health,
         "preview does not consume actual inventory, time or health");
     preview.Close();

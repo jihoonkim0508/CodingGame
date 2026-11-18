@@ -176,6 +176,9 @@ namespace CodingGame.Defense
             UseStageMap(selectedStage);
             var bounds=deploymentArea.bounds;
             var map=routes[0].Map;
+            var tiles=MapTiles(map).ToArray();
+            // The area was sized for the workshop map: grow it over the active map's floor (stage 1's right column lay outside).
+            foreach(var t in tiles){bounds.Encapsulate(new Vector3(t.Min.X,0,t.Min.Y));bounds.Encapsulate(new Vector3(t.Max.X,0,t.Max.Y));}
             if(map&&map.hasBase&&core)core.position=map.CellPosition(map.baseCell);
             return new BattleSetup {
                 PlayerFlow=true, Stage=selectedStage, BaseHealth=content.baseHealth, RobotLimit=content.robotLimit,
@@ -187,7 +190,7 @@ namespace CodingGame.Defense
                 Min=new Point(bounds.min.x,bounds.min.z), Max=new Point(bounds.max.x,bounds.max.z),
                 Routes=routes.Select(r=>r.Read()).ToArray(),
                 Obstacles=blockedAreas.Select(a=>a.bounds).Concat(MapProps(map)).Select(b=>new PlacementObstacle {Min=new Point(b.min.x,b.min.z),Max=new Point(b.max.x,b.max.z)}).ToArray(),
-                Floor=MapTiles(map).ToArray(),
+                Floor=tiles,
                 Waves=content.ReadWaves(selectedStage),
                 CampaignWaves=Enumerable.Range(1,content.stages.Length).Select(content.ReadWaves).ToArray(),
                 CampaignSeconds=content.stages.Select(s=>s.waveSeconds).ToArray()
@@ -385,6 +388,13 @@ namespace CodingGame.Defense
             if (!TutorialAllows("Battle.ClaimRewards") && !(Simulation.Phase == BattlePhase.Reward && TutorialAllows("Battle.ContinueCampaign"))) return;
             if (Simulation.Phase == BattlePhase.Reward) Trace($"wave-end kills={Simulation.Kills} leaks={Simulation.Leaks} survivors={Simulation.LastSurvivors} rewards={Simulation.PendingDrops.Count}");
             if (!Simulation.ClaimRewards()) return;
+            // The stage is won here, so it counts here: the Esc menu's buttons leave the result screen without ContinueCampaign.
+            if (Simulation.Phase == BattlePhase.Victory && FromStageMap)
+            {
+                BestStarsBefore = StageMap.StageProgress.BestStars(stage);
+                StageMap.StageProgress.RecordStars(stage, Simulation.StageStars);
+                StageMap.StageProgress.MarkCleared(stage);
+            }
             UISound.Play("reward"); UISound.Play("coin", .7f);
             selected = 0; rangeRing.Hide(); ClearCombatVisuals();
             ClearDrops(); Tell(Simulation.Phase == BattlePhase.Victory ? Simulation.CanAdvanceStage ?
@@ -394,19 +404,15 @@ namespace CodingGame.Defense
             ReportTutorialAction("Battle.ClaimRewards", "TargetClicked", "RewardsClaimed");
             ReportTutorialAction("Battle.ContinueCampaign", "TargetClicked", "RewardsClaimed");
         }
+        // The stage's best stars before this clear: the result screen's "새 기록!" compares with it (the new record is written by then).
+        public int BestStarsBefore { get; private set; }
         void ClearDrops() { foreach (var drop in dropViews) if (drop) Destroy(drop.gameObject); dropViews.Clear(); }
         public void ContinueCampaign()
         {
             if (Simulation.Phase == BattlePhase.Reward) { ClaimRewards(); return; }
             if (Simulation.Phase == BattlePhase.Defeat) { if (CanRetryWave) RetryWave(); else Restart(); return; }
             if (!TutorialAllows("Battle.ContinueCampaign")) return;
-            if (FromStageMap)
-            {
-                StageMap.StageProgress.RecordStars(stage, Simulation.StageStars);
-                StageMap.StageProgress.MarkCleared(stage);
-                GameFlow.LoadScene(GameFlow.StageScene);
-                return;
-            }
+            if (FromStageMap) { GameFlow.LoadScene(GameFlow.StageScene); return; }
             if (Simulation.CanAdvanceStage && stageOneMap && stage == 1)
             {
                 // Stage 2 is on another map, so it starts as a new session with Stage 1's rewards (as from the stage map).
@@ -420,6 +426,7 @@ namespace CodingGame.Defense
             {
                 codeEditor.Close(false); inventoryUI.Close();
                 Simulation.AdvanceStage(); stage = Simulation.Setup.Stage;
+                bossEntranceStarted = bossCameraRestored = false; // the next stage's boss enters too
                 selected = 0; ClearDrops(); ClearCombatVisuals();
                 Tell($"STAGE {stage} · {Simulation.Lesson?.topic}"); RefreshHUD();
                 ReportTutorialAction("Battle.ContinueCampaign", "TargetClicked", "StageAdvanced");
@@ -707,12 +714,10 @@ namespace CodingGame.Defense
                 else if (palette >= 0) { placementMarker.gameObject.SetActive(false); rangeRing.Hide(); }
             }
             double previous = Simulation.Time;
-#if UNITY_EDITOR
-            if (!EditorManualClock)
-#endif
-            if (bossEntranceStarted && !bossCameraRestored && Time.unscaledTime >= bossCameraRestoreAt)
+            // The entrance runs on GameClock, which stands still behind the Esc menu.
+            if (bossEntranceStarted && !bossCameraRestored && GameClock.Now >= bossCameraRestoreAt)
             { selectionCamera.Restore(); bossCameraRestored = true; }
-            if (!bossEntranceStarted || Time.unscaledTime >= bossEntranceUntil)
+            if (!bossEntranceStarted || GameClock.Now >= bossEntranceUntil)
                 Simulation.Advance(UnityEngine.Time.deltaTime * BattleSpeed * (tutorial ? tutorial.BattlePace : 1f));
             float elapsed = (float)(Simulation.Time - previous);
             SyncViews(elapsed);
@@ -885,11 +890,11 @@ namespace CodingGame.Defense
                     if (enemy.Boss)
                     {
                         view.gameObject.AddComponent<DefenseBossAura>();
-                        if (!bossEntranceStarted && Simulation.Setup.PlayerFlow && Simulation.Setup.Stage == 1 && Simulation.WaveIndex == 4)
+                        if (!bossEntranceStarted && Simulation.Setup.PlayerFlow) // every stage's boss
                         {
                             bossEntranceStarted = true; bossCameraRestored = false;
-                            bossCameraRestoreAt = Time.unscaledTime + 2.1f;
-                            bossEntranceUntil = Time.unscaledTime + 2.9f;
+                            bossCameraRestoreAt = GameClock.Now + 2.1f;
+                            bossEntranceUntil = GameClock.Now + 2.9f;
                             selectionCamera.FocusBoss(DefenseViews.World(enemy.Position, 1f));
                             Tell("보스 출현! · 작은 오류 코드를 모두 막아 낸 뒤 강력한 오류 코드가 등장했습니다.");
                             BossWarning.Play(DefenseBossWarning.Style);
