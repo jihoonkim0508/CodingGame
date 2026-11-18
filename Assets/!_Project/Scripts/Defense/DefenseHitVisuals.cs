@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.VFX;
 
 namespace CodingGame.Defense
 {
@@ -9,22 +8,19 @@ namespace CodingGame.Defense
     sealed class DefenseHitVisuals
     {
         [SerializeField] ParticleSystem prefab;
-        [SerializeField] VisualEffect slashPrefab; // Stylized Slash VFX (HungNguyen), white-red bolder (planner)
+        [SerializeField] ParticleSystem slashPrefab; // Super Anime FX DefaultSlash_Rotation, one turn (Resources/Effects/SlashRotationOnce, planner)
         [SerializeField] DefenseRangeRing hitRangePrefab;
         [SerializeField, Min(.01f)] float lifetime = 1.5f;
         // Ranged attack (Stylized Projectile Pack, Laser_Blue_Small): flare at the muzzle, a shot flying to the target, impact there.
         [SerializeField] ParticleSystem shotPrefab, shotFlarePrefab, shotImpactPrefab;
-        // The slash is one flat crescent lying round its origin (top-down render): at scale 1 its outer edge is 6.8 from the
-        // centre and its thick part on its -X side; it shows for about half a second of its 1 s life and is fullest about .2 s in.
-        // One per slash() (planner: not two joined into a circle), played whole, scaled so the outer edge is the attack range,
-        // its thick part to the bottom of the screen, and started so it is fullest as the strike lands.
-        const float SlashOuterRadius = 6.8f;
-        const float SlashLead = .2f, SlashLife = 1;
+        // The slash is one flat ring round the robot that sweeps once: at scale 1 its outer edge is 3 from the centre, it shows
+        // from about .1 s to .45 s and is fullest about .25 s in. Scaled so the outer edge is the attack range, started so it
+        // is fullest as the strike lands.
+        const float SlashOuterRadius = 3f;
+        const float SlashLead = .25f;
         readonly List<(float wait, Action show)> delayed = new List<(float, Action)>();
         readonly List<(ParticleSystem shot, Vector3 target, float speed, Quaternion rotation)> shots = new List<(ParticleSystem, Vector3, float, Quaternion)>();
         readonly List<(ParticleSystem effect, float remaining)> active = new List<(ParticleSystem, float)>();
-        readonly List<(VisualEffect effect, float remaining)> slashes = new List<(VisualEffect, float)>();
-        readonly Stack<VisualEffect> slashPool = new Stack<VisualEffect>();
         readonly List<(DefenseRangeRing ring, float remaining)> hitRanges = new List<(DefenseRangeRing, float)>();
         public DefenseTestOptions Options { get; set; } = new DefenseTestOptions();
         // Effects are made per hit, slash and shot; a finished one waits switched off for the next of its kind (13차 133).
@@ -53,12 +49,6 @@ namespace CodingGame.Defense
             effect.Clear(true); effect.gameObject.SetActive(false);
             if (!pools.TryGetValue(origin, out var pool)) pools[origin] = pool = new Stack<ParticleSystem>();
             pool.Push(effect);
-        }
-        void ReturnSlash(VisualEffect slash)
-        {
-            if (!slash) return;
-            slash.gameObject.SetActive(false);
-            slashPool.Push(slash);
         }
         bool showHitRanges;
         DefenseRangeRing areaRing;
@@ -110,21 +100,12 @@ namespace CodingGame.Defense
         void Slash(CombatEvent evt, Transform parent, Vector3 offset)
         {
             var origin = offset + DefenseViews.World(evt.Origin, .1f);
-            // The whole effect as made, only turned: its -X side (the thick part) always to the bottom of the screen (world -Z
-            // under the fixed camera), whichever side the target is on (planner). Round the robot's lower body, .45 up (planner).
-            var facing = Quaternion.Euler(0, -90, 0);
             if (Options.slashEffects)
             {
-                VisualEffect slash = null;
-                while (slashPool.Count > 0 && !slash) slash = slashPool.Pop();   // one destroyed with its old parent is skipped
-                if (!slash) slash = UnityEngine.Object.Instantiate(slashPrefab, parent);
-                slash.transform.SetParent(parent, false);
-                slash.transform.SetPositionAndRotation(origin + Vector3.up * .35f, facing);
+                // Stepped by Tick with the other particle effects, so it keeps to battle pause and speed.
+                var slash = Take(slashPrefab, origin + Vector3.up * .35f, slashPrefab.transform.rotation, parent);
                 slash.transform.localScale = slashPrefab.transform.localScale * (evt.Radius / SlashOuterRadius);
-                slash.gameObject.SetActive(true);
-                // Stepped by Tick like the particle effects, so it keeps to battle pause and speed.
-                slash.pause = true; slash.Reinit();
-                slashes.Add((slash, SlashLife));
+                active.Add((slash, lifetime));
             }
             if (showHitRanges)
             {
@@ -173,8 +154,7 @@ namespace CodingGame.Defense
             if (areaRing && areaSeconds <= 0) areaRing.Hide();
             // Simulate leaves systems paused, so IsAlive remains true after their last particle; expire by time instead.
             foreach (var (effect, _) in active) effect.Simulate(elapsed, true, false, false);
-            foreach (var (effect, _) in slashes) effect.Simulate(elapsed);
-            Expire(active, elapsed, Return); Expire(slashes, elapsed, ReturnSlash);
+            Expire(active, elapsed, Return);
             Expire(hitRanges, elapsed, ring => UnityEngine.Object.Destroy(ring.gameObject)); // debug rings only
         }
         static void Expire<T>(List<(T, float)> items, float elapsed, Action<T> done) where T : Component
@@ -196,8 +176,6 @@ namespace CodingGame.Defense
             if (areaRing) areaRing.Hide();
             foreach (var (effect, _) in active) Return(effect);
             active.Clear();
-            foreach (var (effect, _) in slashes) ReturnSlash(effect);
-            slashes.Clear();
             foreach (var (flying, _, _, _) in shots) Return(flying);
             shots.Clear();
             ClearRanges();
