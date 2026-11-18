@@ -34,7 +34,7 @@ namespace CodingGame.Defense.Editor
             ("1-1 D08 바로 적중해도 1.5초 보여 줌", PreviewHitHold),
             ("1-1 E08 보상 집중이 대화창에 안 가림", RewardFocusClear),
             ("1-2 B01 자유 플레이: 대사 숨고 조작 풀림, 힌트", OneTwoIntro),
-            ("베기 이펙트 (360° Rotation 한 바퀴)", Slash),
+            ("베기 이펙트 (Stylized Slash 한 장)", Slash),
             ("코어 피격·사망 글리치", CoreGlitch),
             ("맵 소품 위 설치 막힘 · 기지 체력바 위치 · 사거리 색", PropsAndBase),
             ("스테이지 맵 클릭 후 전환 대기", StageClickDelay),
@@ -598,13 +598,7 @@ namespace CodingGame.Defense.Editor
         }
         static bool shotTaken;
 
-        // The battle's live particle effects whose name is the slash prefab's (hits and shots share the list).
-        static List<ParticleSystem> Slashes()
-        {
-            var visuals = Field<object>(Battle, "hitEffects");
-            return Field<IList>(visuals, "active").Cast<object>().Select(e => (ParticleSystem)e.GetType().GetField("Item1").GetValue(e))
-                .Where(e => e && e.name.StartsWith("SlashRotationOnce")).ToList();
-        }
+        static IList Slashes() { var visuals = Field<object>(Battle, "hitEffects"); return Field<IList>(visuals, "slashes"); }
         static IEnumerator Slash()
         {
             DevTest.PlayDefense(1, 1, false);
@@ -618,23 +612,25 @@ namespace CodingGame.Defense.Editor
             yield return Wait(() => Battle.Simulation.Enemies.Any(e => System.Numerics.Vector2.Distance(e.Position, bot.Position) < bot.Range + 1), "적 접근", 60);
             Time.timeScale = 1;
             yield return Wait(() => Slashes().Count > 0, "첫 베기", 10);
-            var effect = Slashes()[0];
+            var effect = (UnityEngine.VFX.VisualEffect)Slashes()[0].GetType().GetField("Item1").GetValue(Slashes()[0]);
             var enemy = Battle.Simulation.Enemies.Where(e => e.Active).OrderBy(e => System.Numerics.Vector2.Distance(e.Position, bot.Position)).FirstOrDefault();
             Check(enemy != null && enemy.Health >= enemy.Spec.health, $"베기 이펙트가 나올 때는 아직 피해 없음 (체력 {enemy?.Health:0}/{enemy?.Spec.health:0})");
-            Check(Slashes().Count == 1, $"베기 이펙트는 하나: {Slashes().Count}개");
-            // One turn only: every system of the copy plays its single burst, none loops or keeps emitting.
-            var systems = effect.GetComponentsInChildren<ParticleSystem>();
-            Check(systems.All(s => !s.main.loop && s.emission.rateOverTime.constantMax == 0), $"한 바퀴만 돎 (반복·지속 생성 없음, 시스템 {systems.Length}개)");
-            // The ring lies flat round the robot's lower body, centred on the robot.
+            Check(Slashes().Count == 1, $"베기 이펙트는 한 장 (두 장을 이어 붙이지 않음): {Slashes().Count}장");
+            Check(effect.name.StartsWith("slash-white-red-bolder"), "이펙트: " + effect.name + " (Stylized Slash VFX의 white-red)");
+            // The crescent lies flat round the robot's lower body, centred on the robot.
             var views = Field<IDictionary>(Battle, "robotViews");
             var robotModel = ((Component)views.Values.Cast<object>().First()).transform.Find("Head/Model").GetComponentInChildren<Renderer>().bounds;
             float arcY = effect.transform.position.y, middle = (robotModel.min.y + robotModel.max.y) / 2;
             Check(arcY >= robotModel.min.y && arcY <= middle, $"베기 높이 {arcY:0.00}: 로봇 하단부 ({robotModel.min.y:0.00}~{middle:0.00})");
-            // At scale 1 its outer edge is 3 from its centre (DefenseHitVisuals.SlashOuterRadius).
-            float expectedScale = bot.Spec.range / 3f, scale = effect.transform.localScale.x;
-            Check(Mathf.Abs(scale - expectedScale) < expectedScale * .05f, $"크기 {scale:0.00} (사거리 {bot.Spec.range} / 3 ≈ {expectedScale:0.00}: 바깥 끝이 사거리)");
+            // At scale 1 its outer edge is 6.8 from its centre (DefenseHitVisuals.SlashOuterRadius).
+            float expectedScale = bot.Spec.range / 6.8f, scale = effect.transform.localScale.x;
+            Check(Mathf.Abs(scale - expectedScale) < expectedScale * .05f, $"크기 {scale:0.00} (사거리 {bot.Spec.range} / 6.8 ≈ {expectedScale:0.00}: 바깥 끝이 사거리)");
             float offCentre = new Vector2(effect.transform.position.x - bot.Position.X, effect.transform.position.z - bot.Position.Y).magnitude;
             Check(offCentre < .1f, $"베기의 중심이 로봇 위치 (어긋남 {offCentre:0.00})");
+            // The crescent's thick part is on its -X side: always to the bottom of the screen, wherever the enemy is.
+            var thick = Vector3.ProjectOnPlane(-effect.transform.right, Vector3.up).normalized;
+            var screenDown = Vector3.ProjectOnPlane(-Camera.main.transform.up, Vector3.up).normalized;
+            Check(Vector3.Dot(thick, screenDown) > .99f, $"베기의 두꺼운 쪽이 화면 아래 (dot {Vector3.Dot(thick, screenDown):0.00})");
             yield return .25f;
             Check(enemy != null && enemy.Health < enemy.Spec.health, $"검이 정면을 지나면 피해 (체력 {enemy?.Health:0}/{enemy?.Spec.health:0})");
             Shot();
