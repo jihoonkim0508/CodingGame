@@ -62,6 +62,9 @@ namespace CodingGame.Defense
         [SerializeField] DefenseAttackPreview attackPreview;
         [SerializeField, Min(1)] int stage = 1;
         public int Stage => stage;
+        // The prototype is built up to Stage 2 (2-10): winning it ends the play-through with a notice instead of Stage 3.
+        public const int PrototypeLastStage = 2;
+        public bool PrototypeEnded => Simulation != null && Simulation.Phase == BattlePhase.Victory && stage >= PrototypeLastStage;
         public bool FromStageMap => StageMap.StageProgress.SelectedStage > 0;
         public RobotDefinition RobotDefinition(int index) => robots[index];
         public IReadOnlyList<RobotDefinition> RobotDefinitions => robots;
@@ -412,7 +415,7 @@ namespace CodingGame.Defense
             if (Simulation.Phase == BattlePhase.Reward) { ClaimRewards(); return; }
             if (Simulation.Phase == BattlePhase.Defeat) { if (CanRetryWave) RetryWave(); else Restart(); return; }
             if (!TutorialAllows("Battle.ContinueCampaign")) return;
-            if (FromStageMap) { GameFlow.LoadScene(GameFlow.StageScene); return; }
+            if (FromStageMap || PrototypeEnded) { GameFlow.LoadScene(GameFlow.StageScene); return; }
             if (Simulation.CanAdvanceStage && stageOneMap && stage == 1)
             {
                 // Stage 2 is on another map, so it starts as a new session with Stage 1's rewards (as from the stage map).

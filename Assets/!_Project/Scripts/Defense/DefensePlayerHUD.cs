@@ -1154,7 +1154,7 @@ namespace CodingGame.Defense
             SplitDefeatButtons(retry);
             claimLabel.text = reward ? (sim.WaveIndex + 1 == sim.Setup.Waves.Length ? "보상 수령 · 스테이지 완료" : "보상 수령 · 다음 준비") :
                 // Two lines in one button: smaller and closer together, or the second line touched the button's edge.
-                retry ? $"<size=88%>WAVE {sim.Checkpoint.Wave + 1} 다시 도전</size>\n<size=60%>배치·코드 그대로</size>" : sim.Phase != BattlePhase.Victory ? "이 스테이지 재도전" : battle.FromStageMap ? "스테이지 맵으로" : sim.CanAdvanceStage ? $"스테이지 {battle.Stage + 1}로 진행" : "3스테이지 완료";
+                retry ? $"<size=88%>WAVE {sim.Checkpoint.Wave + 1} 다시 도전</size>\n<size=60%>배치·코드 그대로</size>" : sim.Phase != BattlePhase.Victory ? "이 스테이지 재도전" : battle.FromStageMap || battle.PrototypeEnded ? "스테이지 맵으로" : sim.CanAdvanceStage ? $"스테이지 {battle.Stage + 1}로 진행" : "3스테이지 완료";
             if (shownRewardPhase != sim.Phase || shownRewardWave != sim.WaveIndex || shownRewardStage != battle.Stage)
             {
                 // Korean first; the banner keeps the English call as a small line above it.
@@ -1163,6 +1163,7 @@ namespace CodingGame.Defense
                     victory ? $"STAGE {battle.Stage} COMPLETE" : sim.ObjectiveFailed ? "MINIONS ESCAPED" : "CORE LOST";
                 rewardTitle.text = reward ? (sim.LastWaveTimedOut ? $"웨이브 {sim.WaveIndex + 1} 시간 종료" : $"웨이브 {sim.WaveIndex + 1} 방어 성공!") :
                     victory ? $"스테이지 {battle.Stage} 클리어!" : sim.ObjectiveFailed ? "보스 전에 작은 오류 코드를 놓쳤어요" : "코어가 무너졌어요";
+                if (battle.PrototypeEnded) { english = "PROTOTYPE END"; rewardTitle.text = "프로토타입은 여기까지 개발되었어요!"; }
                 if (shownRewardPhase != sim.Phase) ShowEndBanner($"<size=40%>{english}</size>\n{rewardTitle.text}", sim.Phase == BattlePhase.Defeat);
                 // The victory sentence on two lines: in Pretendard Bold it no longer fits the card on one and left "다." alone.
                 rewardItems.text = reward ? (sim.PendingDrops.Count == 0 ? "지급할 블록이 없습니다." : "") :
@@ -1170,6 +1171,8 @@ namespace CodingGame.Defense
                 if (sim.LastRush > 0) rewardItems.text += $"\n\n시간 종료 · 남은 적 {sim.LastRush}마리가 코어로 돌진 (코어 -{sim.LastRushDamage})";
                 else if (reward) rewardItems.text += $"\n\n잔여 적 {sim.LastSurvivors}" + (sim.WaveIndex + 1 < sim.Setup.Waves.Length ? " · 다음 웨이브에 추가" : " · 최종 기록");
                 if (sim.Phase == BattlePhase.Victory) rewardItems.text = StarLine(sim) + "\n\n" + rewardItems.text;
+                if (battle.PrototypeEnded)
+                    rewardItems.text = StarLine(sim) + $"\n\n스테이지 {battle.Stage} · {battle.Stage}-{sim.Setup.Waves.Length}까지가 지금 개발된 프로토타입이에요.\n다음 스테이지는 개발 중입니다.\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
                 ShowRewardBlocks(reward ? sim.PendingDrops : null);
                 ShowStars(sim);
                 ShowDebrief(sim);
