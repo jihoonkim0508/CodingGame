@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace CodingGame
 {
@@ -22,6 +23,13 @@ namespace CodingGame
 
         // Play mode may start without a domain reload: never begin paused.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void Reset() { pausedAt = -1; pausedTotal = 0; scale = 1; }
+        static void Reset()
+        {
+            pausedAt = -1; pausedTotal = 0; scale = 1;
+            SceneManager.sceneLoaded -= Resume; SceneManager.sceneLoaded += Resume;
+        }
+        // Here, not in the menus' OnDestroy: a scene's unload may destroy the menu object before its owner, which then saw no
+        // open menu and left the next scene paused (the stage map's camera and cards stood still after 스테이지 선택).
+        static void Resume(Scene scene, LoadSceneMode mode) { if (mode == LoadSceneMode.Single) Pause(false); }
     }
 }

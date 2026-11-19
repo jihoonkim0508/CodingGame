@@ -923,8 +923,6 @@ namespace CodingGame.Defense
             for (int i = 0; i < msaaButtons.Length; i++)
                 UITheme.Style((Image)msaaButtons[i].targetGraphic, UITheme.Button, GraphicsOptions.MsaaLevels[i] == GraphicsOptions.Msaa ? UITheme.Primary : UITheme.PaperDeep);
         }
-        // Time and sound back on when the scene goes (the menu's 스테이지 선택 / 타이틀로 leave with it open).
-        void OnDestroy() { if (MenuOpen) GameClock.Pause(false); }
         void BuildMenu()
         {
             var shade = new GameObject("Menu", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();

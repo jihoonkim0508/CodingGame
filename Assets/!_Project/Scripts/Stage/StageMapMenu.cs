@@ -35,8 +35,6 @@ namespace CodingGame.StageMap
             ShowMsaa();
         }
 
-        // 타이틀로 leaves with the menu open: time and sound back on.
-        void OnDestroy() { if (Open) GameClock.Pause(false); }
 
         void ShowMsaa()
         {
