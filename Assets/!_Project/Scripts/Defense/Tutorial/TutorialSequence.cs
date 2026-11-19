@@ -38,6 +38,8 @@ namespace CodingGame.Defense
         public bool blockInput = true;
         [Tooltip("Draw outlines around highlighted targets.")]
         public bool outline = true;
+        [Tooltip("둥근 focus: 구멍 모서리를 둥글게 자릅니다. 끄면 각진 focus.")]
+        public bool roundFocus;
         public TutorialCompletionMode completionMode;
         public string completionSignal;
         [Tooltip("완료 시 필요한 슬롯 블록. 'Editor.Code.Arg.2.0:Variable'처럼 슬롯 키:블록 종류로 지정합니다.")]

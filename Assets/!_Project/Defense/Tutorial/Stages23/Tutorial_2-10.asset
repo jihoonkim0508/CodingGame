@@ -34,6 +34,7 @@ MonoBehaviour:
     undimmed: 0
     blockInput: 1
     outline: 1
+    roundFocus: 0
     completionMode: 0
     completionSignal: 
     requiredSlotBlock: 
@@ -82,6 +83,7 @@ MonoBehaviour:
     undimmed: 0
     blockInput: 1
     outline: 1
+    roundFocus: 0
     completionMode: 0
     completionSignal: 
     requiredSlotBlock: 
@@ -131,6 +133,7 @@ MonoBehaviour:
     undimmed: 0
     blockInput: 1
     outline: 1
+    roundFocus: 0
     completionMode: 0
     completionSignal: 
     requiredSlotBlock: 
@@ -179,6 +182,7 @@ MonoBehaviour:
     undimmed: 0
     blockInput: 1
     outline: 1
+    roundFocus: 0
     completionMode: 0
     completionSignal: 
     requiredSlotBlock: 
@@ -227,6 +231,7 @@ MonoBehaviour:
     undimmed: 0
     blockInput: 1
     outline: 1
+    roundFocus: 0
     completionMode: 0
     completionSignal: 
     requiredSlotBlock: 
@@ -275,6 +280,7 @@ MonoBehaviour:
     undimmed: 0
     blockInput: 1
     outline: 1
+    roundFocus: 0
     completionMode: 0
     completionSignal: 
     requiredSlotBlock: 
@@ -323,6 +329,7 @@ MonoBehaviour:
     undimmed: 0
     blockInput: 1
     outline: 1
+    roundFocus: 0
     completionMode: 1
     completionSignal: 
     requiredSlotBlock: 

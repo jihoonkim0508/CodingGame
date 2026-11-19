@@ -87,7 +87,7 @@ namespace CodingGame.Defense.Editor
             public int Robot;
             public float Padding = 10;
             public string[] Highlight = Array.Empty<string>();
-            public bool Intro, Cards, Undimmed, Dismissable;
+            public bool Intro, Cards, Undimmed, Dismissable, Round;
             public float Auto;
             public string SkipIf;
             public string Demo;
@@ -119,7 +119,7 @@ namespace CodingGame.Defense.Editor
         static List<S> OneOne() => new List<S> {
             L("1-1.A01", s => s.Cards = true), L("1-1.A02", Intro), L("1-1.A03", Intro), L("1-1.A04a", Focus(Route)), L("1-1.A04b", Focus(Core)), L("1-1.A05"),
             L("1-1.B01", Click(TutorialKeys.RobotButton(1), s => s.Dim = true)),
-            L("1-1.B02", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => s.Dim = true, Focus(TutorialKeys.Floor)))),
+            L("1-1.B02", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => { s.Dim = true; s.Round = true; }, Focus(TutorialKeys.Floor)))),
             L("1-1.B03", Click(Unit0, s => s.Pointer = Unit0)),
             // The range itself is the highlight (tinted inside), not a dimmed screen with a round hole: seen in perspective
             // the hole never lined up with the ring (play test).
@@ -459,7 +459,7 @@ namespace CodingGame.Defense.Editor
                 return new TutorialStep {
                     stepId = s.Id, kind = s.Kind, dialoguePosition = s.Top ? TutorialDialoguePosition.Top : TutorialDialoguePosition.Bottom,
                     texts = s.Lines.Select((line, i) => new TutorialText { textId = "t" + (i + 1), speaker = line.Speaker, text = line.Text, focusKeys = s.Focus, highlightKeys = s.Highlight }).ToArray(),
-                    targetKeys = s.Targets, dim = s.Dim, blockInput = true, outline = true,
+                    targetKeys = s.Targets, dim = s.Dim, blockInput = true, outline = true, roundFocus = s.Round,
                     completionMode = s.Kind == TutorialStepKind.ActionGuide ? s.Mode : TutorialCompletionMode.Unconfigured, completionSignal = s.Signal,
                     requiredSlotBlock = s.RequiredSlotBlock,
                     skipIf = s.SkipIf, pauseBattle = s.HoldBattle || !battle, slowBattle = s.SlowBattle,
