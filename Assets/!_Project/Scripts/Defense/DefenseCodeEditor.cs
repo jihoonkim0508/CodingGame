@@ -218,7 +218,7 @@ namespace CodingGame.Defense
             loop.Body.AddRange(body);
             return loop;
         }
-        public void RestartPreview() => battle.RestartCodePreview();
+        public void RestartPreview(float hold = 0) => battle.RestartCodePreview(hold);
         // Python text of condition/value blocks lying in the workspace away from the start anchor (not part of the program).
         public IEnumerable<string> LooseExpressions() => !IsOpen ? Enumerable.Empty<string>() : panel.Program.LooseRoots()
             .Where(root => PythonTreeCompiler.OutputSlot(root.Kind) != BlockSlotKind.Statement)

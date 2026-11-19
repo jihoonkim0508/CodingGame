@@ -56,7 +56,10 @@ namespace CodingGame.Defense
         }
         public DefenseSimulation PreviewSimulation => simulation;
         public bool IsShowing => selected != null && previewPanel.activeSelf;
-        public void Restart() { if (IsShowing) ResetPreview(); }
+        // hold: seconds the restarted demo stands at its start (a lesson waits for the spotlight to reach the preview, or the
+        // first shot fired before the player looked: 2-1 C02).
+        public void Restart(float hold = 0) { if (IsShowing) { ResetPreview(); holdUntil = GameClock.Now + hold; } }
+        float holdUntil;
         public void SetHitRangesVisible(bool visible) => hitEffects.SetHitRangesVisible(visible);
         void Start()
         {
@@ -241,7 +244,7 @@ namespace CodingGame.Defense
             if (rect.width > 0 && rect.height > 0) previewCamera.aspect = rect.width / rect.height;
             // The demo's clock stands still while a lesson holds the preview and behind the Esc menu (GameClock); its robot
             // and enemies are still drawn where they stand (a new view starts at the arena's origin, on the road).
-            float dt = battle.Simulation.Options.preview && !battle.TutorialBlocksPreview ? GameClock.Delta : 0;
+            float dt = battle.Simulation.Options.preview && !battle.TutorialBlocksPreview && GameClock.Now >= holdUntil ? GameClock.Delta : 0;
             AdvancePreview(dt);
             hitEffects.Tick(dt);
             if (simulation.Options.projectiles) projectileViews.Sync(simulation, projectilePrefab, arena, arena.position); else projectileViews.Clear();

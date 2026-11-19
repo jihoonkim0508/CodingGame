@@ -29,6 +29,7 @@ namespace CodingGame.Defense
         // does not. The dark fades in.
         const float IntroDelay = .35f, IntroSeconds = .5f, IntroGrow = 140, DimSeconds = .25f, RippleEvery = 1.75f, RippleSeconds = .6f, RippleGrow = 22;
         float introStart = -10, dimStart = -10;
+        public const float IntroTotal = IntroDelay + IntroSeconds; // until a new hole has closed in on its target
         public void Pulse() => introStart = GameClock.Now;
         float Intro => Mathf.Clamp01((GameClock.Now - introStart - IntroDelay) / IntroSeconds);
         bool Waiting => GameClock.Now - introStart < IntroDelay;

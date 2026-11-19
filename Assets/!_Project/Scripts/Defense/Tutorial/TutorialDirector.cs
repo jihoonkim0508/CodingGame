@@ -367,7 +367,7 @@ namespace CodingGame.Defense
             if (step.prepareBaselineExample) Editor.PrepareBaselineExample();
             if (step.prepareDistanceExample) Editor.PrepareDistanceExample();
             if (!string.IsNullOrEmpty(step.prepareExample)) Editor.PrepareExample(step.prepareExample);
-            if (step.restartPreview) Editor.RestartPreview();
+            if (step.restartPreview) Editor.RestartPreview(TutorialSpotlight.IntroTotal); // the demo starts once the spotlight has reached it
             if (!string.IsNullOrEmpty(step.autoSelectSlot) && !Editor.SelectTutorialSlot(step.autoSelectSlot))
             {
                 pendingAutoSlot = true;

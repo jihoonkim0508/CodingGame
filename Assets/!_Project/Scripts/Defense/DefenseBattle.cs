@@ -129,7 +129,7 @@ namespace CodingGame.Defense
             selectionCamera.Restore(); playerHUD.SetVisible(!DeveloperMode); developerRoot.SetActive(DeveloperMode);
             attackPreview.Close();
         }
-        public void RestartCodePreview() => attackPreview.Restart();
+        public void RestartCodePreview(float hold = 0) => attackPreview.Restart(hold);
         public string RobotName(int id)
         { var bot = Simulation.FindRobot(id); return bot == null ? "로봇 없음" : robots[bot.DefinitionIndex].displayName; }
 
