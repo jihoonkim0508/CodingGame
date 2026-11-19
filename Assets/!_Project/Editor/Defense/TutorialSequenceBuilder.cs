@@ -136,7 +136,7 @@ namespace CodingGame.Defense.Editor
             // The line is about when the function is called (the preview calls it again whenever it ends).
             L("1-1.D06", Focus("Editor.Code.Line.1", Preview)),
             L("1-1.D08", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(
-                s => { s.Preview = true; s.Hold = 3; }, Focus(Preview)))),
+                s => { s.Preview = true; s.RestartPreview = true; s.Hold = 3; }, Focus(Preview)))),
             L("1-1.D09", With(Ed, Focus(Preview))),
             // Before the first workspace closes: the bottom line is where the code's problems show (debugging).
             L("1-1.D09a", With(Ed, Focus(TutorialKeys.Status))),
@@ -253,7 +253,7 @@ namespace CodingGame.Defense.Editor
             L("2-3.A04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
             // Held past the first swing until the enemy has walked through while the warrior rests.
             L("2-3.A05", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(
-                s => { s.BaselineExample = true; s.Preview = true; s.Hold = 6; }, Focus(Preview)))),
+                s => { s.BaselineExample = true; s.Preview = true; s.RestartPreview = true; s.Hold = 6; }, Focus(Preview)))),
             L("2-3.B01", With(Ed, Focus(Preview))),
             L("2-3.B02", With(Ed, s => s.DistanceExample = true, Focus("Editor.Code.Line.1/1"))),
             L("2-3.B04"), L("2-3.B05"),

@@ -914,7 +914,7 @@ MonoBehaviour:
     placeWarrior: 0
     prepareBaselineExample: 0
     prepareExample: 
-    restartPreview: 0
+    restartPreview: 1
     introEntrance: 0
     alertCards: 0
     dragDemo: 
