@@ -250,18 +250,29 @@ namespace CodingGame.Defense.Editor
             L("2-1.B07", EditSignal(TutorialSignals.ProgramMatches, Code21, "Editor.Code.Name.1/2.0", "Editor.Code.Name.1/2.0")),
             L("2-1.C02", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(s => { s.Preview = true; s.RestartPreview = true; s.Hold = 2; }, Focus(Preview)))),
             L("2-1.C02a", CloseClick),
+            // 1-5's clear brought a warrior (GameData/Award.md): the lesson stands it by the road after the shooter (2-1's balance
+            // assumes that spot, and installation order keeps the shooter Unit 0 and the warrior the newest for 2-3), then the
+            // player gives it 1-3's loop (the stand-in code PlaceLessonRobot gives is cleared as the arrow points at it).
+            L("2-1.C03", s => s.PlaceWarrior = true),
+            L("2-1.C04", Click(Newest, s => { s.Pointer = Newest; s.Robot = -1; s.ClearProgram = true; })),
+            L("2-1.C05", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; s.Robot = -1; })),
+            L("2-1.C06", With(EditSignal(TutorialSignals.CodeLinePlaced, "1:While", "Editor.Palette.While", "Editor.Palette.While", "Editor.Code.Start"), s => s.Robot = -1)),
+            L("2-1.C07", Code(Code13, With(
+                s => { s.Pointer = "Editor.Palette.Slash"; s.AutoSlot = "Editor.Code.Body.1"; s.Demo = "Editor.Palette.Slash>Editor.Code.Body.1"; s.Robot = -1; },
+                Focus("Editor.Palette.Slash", "Editor.Code.Body.1")))),
+            L("2-1.C08", CloseClick),
             L("2-1.D01"),
             L("2-1.D02"),
             L("2-1.E01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code21; s.Battle = true; }),
             L("2-1.E02", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
         };
 
-        // 2-3 (게임 논리 검토, 3e52879): a warrior the lesson stands by the road (the newest robot, Robot.Unit.-1) first shows
-        // slash() on and on, resting after each swing at air; then its loop finds the nearest enemy and the player builds the if
-        // on its distance round slash().
+        // 2-3 (게임 논리 검토, 3e52879): the warrior 2-1 stood by the road (the newest robot, Robot.Unit.-1; no warrior is left in
+        // stock since 1-5's clear brings it) first shows slash() on and on, resting after each swing at air; then its loop finds
+        // the nearest enemy and the player builds the if on its distance round slash().
         static readonly string Newest = TutorialKeys.Unit(-1);
         static List<S> TwoThree() => new List<S> {
-            L("2-3.A01", s => s.PlaceWarrior = true),
+            L("2-3.A01"),
             L("2-3.A03", Click(Newest, s => s.Pointer = Newest)),
             L("2-3.A04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
             // Held past the first swing until the enemy has walked through while the warrior rests.
@@ -400,6 +411,16 @@ namespace CodingGame.Defense.Editor
                 s => { s.AutoSlot = "Editor.Code.Body.1/2"; s.Demo = "Editor.Palette.Continue>Editor.Code.Body.1/2"; })),
             L("2-8.D01", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(s => { s.Preview = true; s.RestartPreview = true; s.Hold = 10; }, Focus(Preview)))),
             L("2-8.D02", With(Ed, Focus("Editor.Code.Line.1/2"))),
+            // The second shooter (2-6's, the newest robot) still shoots the small ones with 2-6's or 2-7's code: it gets this one
+            // by copy and paste as in 2-6, its old code cleared first (2-7's clear holds a second set of the new blocks).
+            L("2-8.F01", Signal(TutorialSignals.CodeCopied, new[] { Drop }, With(s => { s.Pointer = "Editor.Code.Line.1"; s.Preview = true; }, Focus("Editor.Code.Line.1")))),
+            L("2-8.F02", CloseClick),
+            L("2-8.F03", Click(Newest, s => { s.Pointer = Newest; s.Robot = -1; })),
+            L("2-8.F04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; s.Robot = -1; })),
+            L("2-8.F05", With(Ed, s => { s.ClearProgram = true; s.Robot = -1; }, Focus(Drop))),
+            L("2-8.F06", Signal(TutorialSignals.ProgramMatches, new[] { Drop }, With(s => { s.Expected = Code28; s.Pointer = "Editor.Code.Start"; s.Preview = true; s.Robot = -1; },
+                Focus("Editor.Code.Start")))),
+            L("2-8.F07", With(Ed, s => s.Robot = -1, Focus("Editor.Code.Line.1/2"))),
         }.Concat(Battle("2-8", Code28)).ToList();
 
         // 2-2, 2-4, 2-7, 2-9, 2-10: lines before free play (as 1-4, 1-5), the hint holding the code to build on. 2-2 had no line
@@ -548,7 +569,7 @@ namespace CodingGame.Defense.Editor
             Topic(1, 4, "반복 자유 플레이", "새 전사와 반복문으로 몰려오는 적 막기");
             Topic(1, 5, "반복 보스 실습", "반복문으로 작은 적을 모두 막고 보스 쓰러뜨리기");
             Topic(2, 1, "변수: 찾은 적을 상자에 담기(원거리)", "찾은 적을 변수에 담아 원거리형으로 공격하기");
-            Topic(2, 2, "변수 자유 플레이", "2-1에서 만든 코드로 원거리형 하나가 혼자 막기 · 빠른 적 첫 등장");
+            Topic(2, 2, "변수 자유 플레이", "2-1에서 만든 코드로 원거리형과 전사형이 함께 막기 · 빠른 적 첫 등장");
             Topic(2, 3, "조건문: 벨 때 고르기(전사형)", "적이 공격 범위에 들어왔을 때만 베는 조건문으로 막기");
             Topic(2, 4, "조건 자유 플레이", "빠른 적이 먼저 와요 · 조건문 전사형과 원거리형이 함께 막기");
             Topic(2, 5, "is_dead(): 한 적을 끝까지", "쓰러진 적이면 새로 찾는 is_dead()로 한 적씩 끝내기");

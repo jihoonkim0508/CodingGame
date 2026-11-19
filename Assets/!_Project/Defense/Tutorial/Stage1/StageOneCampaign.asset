@@ -160,9 +160,9 @@ MonoBehaviour:
     - stage: 2
       wave: 2
       topic: "\uBCC0\uC218 \uC790\uC720 \uD50C\uB808\uC774"
-      goal: "2-1\uC5D0\uC11C \uB9CC\uB4E0 \uCF54\uB4DC\uB85C \uC6D0\uAC70\uB9AC\uD615
-        \uD558\uB098\uAC00 \uD63C\uC790 \uB9C9\uAE30 \xB7 \uBE60\uB978 \uC801 \uCCAB
-        \uB4F1\uC7A5"
+      goal: "2-1\uC5D0\uC11C \uB9CC\uB4E0 \uCF54\uB4DC\uB85C \uC6D0\uAC70\uB9AC\uD615\uACFC
+        \uC804\uC0AC\uD615\uC774 \uD568\uAED8 \uB9C9\uAE30 \xB7 \uBE60\uB978 \uC801
+        \uCCAB \uB4F1\uC7A5"
       robots: []
       blocks: []
       rewards:

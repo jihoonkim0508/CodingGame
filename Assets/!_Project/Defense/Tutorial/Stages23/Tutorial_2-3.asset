@@ -26,9 +26,9 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uC804\uC0AC\uD615\uC740 \uC801\uC774 \uC5C6\uC5B4\uB3C4 <b>`slash()`</b>\uB97C
-        \uBD80\uB974\uBA74\n\uD5C8\uACF5\uC744 \uBCA0\uACE0 <b>\uC7A0\uAE50 \uC26C\uC5B4\uC57C</b>
-        \uD574."
+      text: "\uC774\uBC88\uC5D4 <b>\uC804\uC0AC\uD615</b> \uCC28\uB840\uC57C! \uC804\uC0AC\uD615\uC740
+        \uC801\uC774 \uC5C6\uC5B4\uB3C4\n<b>`slash()`</b>\uB97C \uBD80\uB974\uBA74
+        \uD5C8\uACF5\uC744 \uBCA0\uACE0 <b>\uC7A0\uAE50 \uC26C\uC5B4\uC57C</b> \uD574."
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -60,7 +60,7 @@ MonoBehaviour:
     robotIndex: -1
     prepareDistanceExample: 0
     placeShooter: 0
-    placeWarrior: 1
+    placeWarrior: 0
     prepareBaselineExample: 0
     prepareExample: 
     restartPreview: 0

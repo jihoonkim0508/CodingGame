@@ -703,6 +703,317 @@ MonoBehaviour:
     dismissable: 0
     holdSeconds: 0
     triggerDelay: 0
+  - stepId: C03
+    kind: 0
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "1\uC2A4\uD14C\uC774\uC9C0\uC758 <b>\uC804\uC0AC\uD615</b>\uB3C4 \uB530\uB77C\uC654\uC5B4!
+        \uAE38 \uC606\uC5D0 \uC138\uC6CC \uB480\uC5B4.\n\uC774 \uB85C\uBD07\uC5D0\uAC8C\uB3C4
+        \uCF54\uB4DC\uB97C \uC9DC \uC8FC\uC790."
+      focusKeys: []
+      highlightKeys: []
+    targetKeys: []
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    roundFocus: 0
+    completionMode: 0
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    rushTank: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    placeShooter: 0
+    placeWarrior: 1
+    prepareBaselineExample: 0
+    prepareExample: 
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
+  - stepId: C04
+    kind: 1
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "<b>\uD654\uC0B4\uD45C\uAC00 \uAC00\uB9AC\uD0A4\uB294 \uC804\uC0AC\uD615
+        \uB85C\uBD07</b>\uC744 \uB20C\uB7EC \uC918!"
+      focusKeys: []
+      highlightKeys: []
+    targetKeys:
+    - Robot.Unit.-1
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    roundFocus: 0
+    completionMode: 1
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    rushTank: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: Robot.Unit.-1
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 1
+    openEditor: 0
+    robotIndex: -1
+    prepareDistanceExample: 0
+    placeShooter: 0
+    placeWarrior: 0
+    prepareBaselineExample: 0
+    prepareExample: 
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
+  - stepId: C05
+    kind: 1
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "<b>\u2018\uAC1C\uBC1C\u2019</b>\uC744 \uB20C\uB7EC \uC918!"
+      focusKeys: []
+      highlightKeys: []
+    targetKeys:
+    - Battle.Develop
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    roundFocus: 0
+    completionMode: 3
+    completionSignal: EditorOpened
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 1
+    rushTank: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: Battle.Develop
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: -1
+    prepareDistanceExample: 0
+    placeShooter: 0
+    placeWarrior: 0
+    prepareBaselineExample: 0
+    prepareExample: 
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
+  - stepId: C06
+    kind: 1
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "1\uC2A4\uD14C\uC774\uC9C0\uC5D0\uC11C \uBC30\uC6B4 <b>\u2018`while True`\u2019</b>\uB97C\n\uC624\uB978\uCABD
+        \uCCAB \uC790\uB9AC\uC5D0 \uB193\uC544 \uC918!"
+      focusKeys:
+      - Editor.Palette.While
+      - Editor.Code.Start
+      highlightKeys: []
+    targetKeys:
+    - Editor.ProgramDropZone
+    - Editor.BlockPalette
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    roundFocus: 0
+    completionMode: 3
+    completionSignal: CodeLinePlaced
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    rushTank: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 1:While
+    pointerKey: Editor.Palette.While
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: -1
+    prepareDistanceExample: 0
+    placeShooter: 0
+    placeWarrior: 0
+    prepareBaselineExample: 0
+    prepareExample: 
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: Editor.Palette.While>Editor.Code.Start
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
+  - stepId: C07
+    kind: 1
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "`while` \uC548\uCABD\uC5D0 <b>\u2018`slash()`\u2019</b>\uB97C \uB123\uC5B4
+        \uC918.\n\uC26C\uC9C0 \uC54A\uACE0 \uACC4\uC18D \uBCA8 \uAC70\uC57C!"
+      focusKeys:
+      - Editor.Palette.Slash
+      - Editor.Code.Body.1
+      highlightKeys: []
+    targetKeys:
+    - Editor.ProgramDropZone
+    - Editor.BlockPalette
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    roundFocus: 0
+    completionMode: 3
+    completionSignal: ProgramMatches
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 1
+    rushTank: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: "while True:\n    slash()"
+    pointerKey: Editor.Palette.Slash
+    autoSelectSlot: Editor.Code.Body.1
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: -1
+    prepareDistanceExample: 0
+    placeShooter: 0
+    placeWarrior: 0
+    prepareBaselineExample: 0
+    prepareExample: 
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: Editor.Palette.Slash>Editor.Code.Body.1
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
+  - stepId: C08
+    kind: 1
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "<b>\u2018\uB2EB\uAE30\u2019</b>\uB97C \uB20C\uB7EC \uC791\uC5C5 \uACF5\uAC04\uC744
+        \uB2EB\uC544 \uC918."
+      focusKeys: []
+      highlightKeys: []
+    targetKeys:
+    - Editor.Close
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    roundFocus: 0
+    completionMode: 1
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 1
+    rushTank: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: Editor.Close
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    placeShooter: 0
+    placeWarrior: 0
+    prepareBaselineExample: 0
+    prepareExample: 
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
   - stepId: D01
     kind: 0
     dialoguePosition: 0
@@ -759,8 +1070,8 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uC774\uBC88 \uBB34\uB9AC\uB294 \uC6D0\uAC70\uB9AC \uB85C\uBD07 <b>\uD558\uB098</b>\uB85C
-        \uB9C9\uC544 \uBCF4\uC790.\n\uC900\uBE44\uB418\uBA74 <b>\u2018\uC804\uD22C
+      text: "\uC774\uBC88 \uBB34\uB9AC\uB294 <b>\uC6D0\uAC70\uB9AC\uD615\uACFC \uC804\uC0AC\uD615</b>\uC774
+        \uD568\uAED8 \uB9C9\uC544.\n\uC900\uBE44\uB418\uBA74 <b>\u2018\uC804\uD22C
         \uC2DC\uC791\u2019</b>!"
       focusKeys: []
       highlightKeys: []
