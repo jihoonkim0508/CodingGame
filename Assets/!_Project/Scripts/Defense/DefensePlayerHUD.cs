@@ -705,8 +705,8 @@ namespace CodingGame.Defense
                 prototypeEnd.GetComponentInChildren<TextMeshProUGUI>().text =
                     $"<size=45%>PROTOTYPE END</size>\n프로토타입은 여기까지 개발되었어요!\n\n<size=45%>스테이지 {battle.Stage} · {battle.Stage}-{sim.Setup.Waves.Length}까지가 지금 개발된 프로토타입이에요.\n다음 스테이지는 개발 중입니다.\n\n\n화면을 누르면 스테이지 맵으로 돌아가요</size>";
                 prototypeEnd.SetActive(true);
+                prototypeEnd.transform.SetAsLastSibling(); // once, as it shows: an Esc menu opened later stays above it
             }
-            prototypeEnd.transform.SetAsLastSibling();
         }
         // A dark strip across the screen keeps the letters readable over the bright floor.
         void BuildBanner()
