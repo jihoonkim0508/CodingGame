@@ -15,7 +15,7 @@ static class AuditCheck
     static void Tick(DefenseSimulation sim, int frames) { for (int i = 0; i < frames; i++) sim.Advance(1.0 / 60); }
     static RobotSpec Spec(RobotRole role) => new RobotSpec { role = role, damage = 4, range = 8, interval = .1f, projectileSpeed = 200 };
     static BattleSetup Setup(int stage, int initialWave, params SpawnGroup[][] waves) => new BattleSetup { Progression = FixtureProgression.Create(), TestOptions = new DefenseTestOptions(),
-        PlayerFlow = true, Stage = stage, InitialWave = initialWave, WaveSeconds = 50, Min = new Vector2(-20, -10), Max = new Vector2(20, 10), BaseHealth = 100,
+        PlayerFlow = true, Stage = stage, InitialWave = initialWave, Min = new Vector2(-20, -10), Max = new Vector2(20, 10), BaseHealth = 100,
         Routes = new[] { new Route(new[] { new Vector2(-10, 0), new Vector2(10, 0) }, 1.1f) },
         ActionProfiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(Spec).ToArray(), Waves = waves };
     static SpawnGroup Group(int count, float speed, float delay = 0, bool boss = false) =>

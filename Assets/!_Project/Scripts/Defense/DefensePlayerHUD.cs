@@ -82,6 +82,15 @@ namespace CodingGame.Defense
                 shortcut.fontSize = (speedLabel.enableAutoSizing ? speedLabel.fontSizeMax : speedLabel.fontSize) - 2; shortcut.fontStyle |= FontStyles.Bold;
                 shortcutRect.sizeDelta = new Vector2(20, 26);
             }
+            // No wave time limit (the user, 2026-11-19): the header's 시간 stat goes, and 웨이브 and 남은 적 move one slot right
+            // to close the gap before 코인. Set here so the scene stays as it is.
+            if (timeCounter && waveCounter && enemyCounter)
+            {
+                var timeStat = (RectTransform)timeCounter.transform.parent; var enemyStat = (RectTransform)enemyCounter.transform.parent;
+                var step = new Vector2(timeStat.anchoredPosition.x - enemyStat.anchoredPosition.x, 0);
+                timeStat.gameObject.SetActive(false);
+                enemyStat.anchoredPosition += step; ((RectTransform)waveCounter.transform.parent).anchoredPosition += step;
+            }
             claimButton.onClick.AddListener(battle.ContinueCampaign);
             upgradeRobotButton.onClick.AddListener(battle.UpgradeSelected);
             developRobotButton.onClick.AddListener(battle.DevelopSelected);
@@ -219,14 +228,11 @@ namespace CodingGame.Defense
             bool fighting = sim.Phase == BattlePhase.Running || sim.Phase == BattlePhase.Paused;
             string state = ended ? "작전 종료" : fighting ? "전투 중" : "정비 중";
             // Strings are made only when the number behind them changes (13차 132): this ran every frame.
-            bool rush = sim.FinalRush && !reward && !ended;
-            if (Changed(ref shownCounters, (battle.Stage, ended ? 2 : fighting ? 1 : 0, rush ? 1 : 0)))
-                counters.text = $"{battle.Stage} 스테이지  ·  {state}" + (rush ? "  ·  <color=#FF8A80>끝나면 남은 적 돌진</color>" : "");
+            if (Changed(ref shownCounters, (battle.Stage, ended ? 2 : fighting ? 1 : 0, 0)))
+                counters.text = $"{battle.Stage} 스테이지  ·  {state}";
             if (waveCounter && Changed(ref shownWave, (sim.WaveIndex, sim.Setup.Waves.Length, 0))) waveCounter.text = $"{sim.WaveIndex+1} / {sim.Setup.Waves.Length}";
-            int enemies = reward ? sim.LastSurvivors : sim.RemainingEnemies;
+            int enemies = sim.RemainingEnemies;
             if (enemyCounter && Changed(ref shownEnemies, (enemies, 0, 0))) enemyCounter.text = enemies.ToString();
-            int seconds = (int)Math.Ceiling(sim.WaveRemaining);
-            if (timeCounter && Changed(ref shownSeconds, (seconds, 0, 0))) timeCounter.text = $"{seconds:00}초";
             if (coinCounter && Changed(ref shownCoins, (sim.Coins, 0, 0))) coinCounter.text = sim.Coins.ToString("N0");
             combatControls.SetActive(fighting);
             RefreshEnemyCards(sim, fighting);
@@ -277,7 +283,7 @@ namespace CodingGame.Defense
             AnimateResult(); // after the panel is switched on and its banner started, so its first visible frame is already the start state
             shownRewardPhase = sim.Phase; shownRewardWave = sim.WaveIndex; shownRewardStage = battle.Stage;
         }
-        (int, int, int) shownCounters = (-1, -1, -1), shownWave = (-1, -1, -1), shownEnemies = (-1, -1, -1), shownSeconds = (-1, -1, -1),
+        (int, int, int) shownCounters = (-1, -1, -1), shownWave = (-1, -1, -1), shownEnemies = (-1, -1, -1),
             shownCoins = (-1, -1, -1), shownPlaced = (-1, -1, -1), shownSpeed = (int.MinValue, 0, 0);
         string shownGoal;
         static bool Changed(ref (int, int, int) shown, (int, int, int) now) { if (shown == now) return false; shown = now; return true; }
@@ -1222,17 +1228,15 @@ namespace CodingGame.Defense
             {
                 // Korean first; the banner keeps the English call as a small line above it.
                 bool victory = sim.Phase == BattlePhase.Victory;
-                string english = reward ? $"WAVE {sim.WaveIndex + 1} " + (sim.LastWaveTimedOut ? "TIME UP" : "CLEAR") :
+                string english = reward ? $"WAVE {sim.WaveIndex + 1} CLEAR" :
                     victory ? $"STAGE {battle.Stage} COMPLETE" : sim.ObjectiveFailed ? "MINIONS ESCAPED" : "CORE LOST";
-                rewardTitle.text = reward ? (sim.LastWaveTimedOut ? $"웨이브 {sim.WaveIndex + 1} 시간 종료" : $"웨이브 {sim.WaveIndex + 1} 방어 성공!") :
+                rewardTitle.text = reward ? $"웨이브 {sim.WaveIndex + 1} 방어 성공!" :
                     victory ? $"스테이지 {battle.Stage} 클리어!" : sim.ObjectiveFailed ? "보스 전에 작은 오류 코드를 놓쳤어요" : "코어가 무너졌어요";
                 if (battle.PrototypeEnded) { english = "PROTOTYPE END"; rewardTitle.text = "프로토타입은 여기까지 개발되었어요!"; }
                 if (shownRewardPhase != sim.Phase) ShowEndBanner($"<size=40%>{english}</size>\n{rewardTitle.text}", sim.Phase == BattlePhase.Defeat);
                 // The victory sentence on two lines: in Pretendard Bold it no longer fits the card on one and left "다." alone.
                 rewardItems.text = reward ? (sim.PendingDrops.Count == 0 ? "지급할 블록이 없습니다." : "") :
                     (sim.Phase == BattlePhase.Victory ? battle.FromStageMap ? $"{sim.Setup.Waves.Length}개 웨이브 방어 성공\n스테이지 맵에서 다음 스테이지를 선택하세요." : sim.CanAdvanceStage ? $"{sim.Setup.Waves.Length}개 웨이브 방어 성공\n보유 블록과 로봇을 다음 스테이지로 가져갑니다." : $"1~3스테이지, 총 {sim.Setup.CampaignWaves?.Sum(waves => waves.Length) ?? sim.Setup.Waves.Length}개 웨이브를 완료했습니다." : "방어 실패 · 배치와 코드를 바꿔 도전하세요") + $"\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
-                if (sim.LastRush > 0) rewardItems.text += $"\n\n시간 종료 · 남은 적 {sim.LastRush}마리가 코어로 돌진 (코어 -{sim.LastRushDamage})";
-                else if (reward) rewardItems.text += $"\n\n잔여 적 {sim.LastSurvivors}" + (sim.WaveIndex + 1 < sim.Setup.Waves.Length ? " · 다음 웨이브에 추가" : " · 최종 기록");
                 if (sim.Phase == BattlePhase.Victory) rewardItems.text = StarLine(sim) + "\n\n" + rewardItems.text;
                 if (battle.PrototypeEnded)
                     rewardItems.text = StarLine(sim) + $"\n\n스테이지 {battle.Stage} · {battle.Stage}-{sim.Setup.Waves.Length}까지가 지금 개발된 프로토타입이에요.\n다음 스테이지는 개발 중입니다.\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";

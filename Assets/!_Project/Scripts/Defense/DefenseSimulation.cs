@@ -34,26 +34,11 @@ namespace CodingGame.Defense
         public int Leaks { get; private set; }
         public int Spawned { get; private set; }
         public int WaveLeaks => Leaks - waveLeaksAtStart;
-        // A stage's last wave: when time runs out the enemies left all rush the core instead of being carried, so slow code
-        // still costs at the end (1-5: a boss not beaten in time reaches the core). LastRush: how many did, and the damage.
-        public bool FinalRush => Setup.PlayerFlow && Setup.Stage > 0 && WaveIndex + 1 == Setup.Waves.Length;
-        public int LastRush { get; private set; }
-        public int LastRushDamage { get; private set; }
         // Stage result: 3 stars with 80%+ of the core left, 2 with 40%+, 1 for a clear (12 HP: 10 and 5). Forgiving on
         // purpose: 1-1 lets one enemy through by design.
         public static int Stars(int core, int max) => core * 5 >= max * 4 ? 3 : core * 5 >= max * 2 ? 2 : 1;
         public static int CoreForStars(int stars, int max) => stars >= 3 ? (max * 4 + 4) / 5 : stars == 2 ? (max * 2 + 4) / 5 : 1;
         public int StageStars => Phase == BattlePhase.Victory ? Stars(BaseHealth, Setup.BaseHealth) : 0;
-        public double WaveRemaining
-        {
-            get
-            {
-                if (!Options.waveTimeout || Setup.WaveSeconds <= 0) return double.PositiveInfinity;
-                double remaining = Setup.WaveSeconds - (Phase == BattlePhase.Ready ? 0 : Time - waveStart);
-                // 종료 판정과 같은 오차 범위를 사용해 종료된 웨이브에 1초가 남아 보이지 않게 합니다.
-                return remaining <= 1e-8 ? 0 : remaining;
-            }
-        }
         // Read every tick: plain loops, no LINQ (13차 129).
         public int RemainingEnemies
         {
@@ -69,11 +54,7 @@ namespace CodingGame.Defense
         public IReadOnlyList<SpawnGroup> CurrentWave => currentWave;
         public int RemainingOf(int definition) => Enemies.Count(e => e.Active && e.DefinitionIndex == definition) +
             currentWave.Select((g, i) => g.DefinitionIndex == definition ? g.Count - groupCounts[i] : 0).Sum();
-        public int LastSurvivors { get; private set; }
-        public bool LastWaveTimedOut { get; private set; }
         public bool ObjectiveFailed { get; private set; }
-        public readonly List<int> WaveSurvivors = new List<int>();
-        readonly List<SpawnGroup> carry = new List<SpawnGroup>();
         SpawnGroup[] currentWave, nextWave;
         public IReadOnlyList<SpawnGroup> UpcomingWave => Phase == BattlePhase.Ready ? currentWave :
             nextWave;
@@ -147,7 +128,7 @@ namespace CodingGame.Defense
             drafts.TryGetValue(robot.Id, out var draft) && draft.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0);
         int nextId = 1;
         int[] groupCounts;
-        double waveStart, accumulated, spawnElapsed;
+        double accumulated, spawnElapsed;
         int waveLeaksAtStart;
 
         public DefenseSimulation(BattleSetup setup)
@@ -173,8 +154,8 @@ namespace CodingGame.Defense
         {
             currentWave = nextWave ?? ScaledWave(WaveIndex);
             nextWave = WaveIndex + 1 < Setup.Waves.Length ? ScaledWave(WaveIndex + 1) : Array.Empty<SpawnGroup>();
-            carry.Clear(); groupCounts = new int[currentWave.Length]; waveStart = Time; spawnElapsed = 0;
-            waveLeaksAtStart = Leaks; ObjectiveFailed = false; LastRush = LastRushDamage = 0;
+            groupCounts = new int[currentWave.Length]; spawnElapsed = 0;
+            waveLeaksAtStart = Leaks; ObjectiveFailed = false;
             foreach (var bot in Robots) { bot.AttacksThisWave = bot.ActionsThisWave = bot.KillsThisWave = bot.LoopTurnsThisWave = 0; bot.DamageThisWave = 0; bot.SawEnemyThisWave = false; }
             if (Setup.PlayerFlow && Lesson != null) GrantSupply(Lesson);
         }
@@ -198,7 +179,7 @@ namespace CodingGame.Defense
                 throw new ArgumentException("현재 웨이브의 스폰 항목 추가·삭제·경로 변경은 재시작이 필요합니다.");
             Setup.BaseHealth=incoming.BaseHealth;Setup.RobotLimit=incoming.RobotLimit;Setup.RulesConfig=incoming.RulesConfig;
             Setup.Progression=incoming.Progression;Setup.Permissions=incoming.Permissions;Setup.ActionProfiles=incoming.ActionProfiles;
-            Setup.Waves=incoming.Waves;Setup.CampaignWaves=incoming.CampaignWaves;Setup.CampaignSeconds=incoming.CampaignSeconds;Setup.WaveSeconds=incoming.WaveSeconds;
+            Setup.Waves=incoming.Waves;Setup.CampaignWaves=incoming.CampaignWaves;
             BaseHealth=Setup.BaseHealth;Projectiles.Clear();strikes.Clear();
             foreach(var bot in Robots)
             {
@@ -209,7 +190,7 @@ namespace CodingGame.Defense
             foreach(var enemy in Enemies){enemy.Spec=Setup.RulesConfig.Scale(enemies[enemy.DefinitionIndex],Setup.Stage,WaveIndex);enemy.Health=enemy.Spec.health;enemy.NextAttack=Time;}
             for(int i=0;i<authoredGroups;i++){currentWave[i].Count=Math.Max(groupCounts[i],replacement[i].Count);currentWave[i].Delay=replacement[i].Delay;currentWave[i].Interval=replacement[i].Interval;}
             foreach(var group in currentWave)group.Enemy=Setup.RulesConfig.Scale(enemies[group.DefinitionIndex],Setup.Stage,WaveIndex);
-            nextWave=WaveIndex+1<Setup.Waves.Length?ScaledWave(WaveIndex+1).Concat(carry).ToArray():Array.Empty<SpawnGroup>();
+            nextWave=WaveIndex+1<Setup.Waves.Length?ScaledWave(WaveIndex+1):Array.Empty<SpawnGroup>();
             Emit("balance-applied",0,0,Vector2.Zero);
         }
         // The F2 balance window: a stage-wave's groups (as authored, before the stage's scaling) replaced for this session.
@@ -220,18 +201,17 @@ namespace CodingGame.Defense
             if (Setup.CampaignWaves != null) Setup.CampaignWaves[stage - 1][waveIndex] = groups;
             if (stage != Setup.Stage) return false;
             Setup.Waves[waveIndex] = groups;
-            // Enemies carried over from the wave before come after the authored groups.
             if (waveIndex == WaveIndex && Phase == BattlePhase.Ready)
-            { currentWave = ScaledWave(waveIndex).Concat(currentWave.Skip(groups.Length)).ToArray(); groupCounts = new int[currentWave.Length]; return true; }
-            if (waveIndex == WaveIndex + 1 && nextWave != null) nextWave = ScaledWave(waveIndex).Concat(nextWave.Skip(groups.Length)).ToArray();
+            { currentWave = ScaledWave(waveIndex); groupCounts = new int[currentWave.Length]; return true; }
+            if (waveIndex == WaveIndex + 1 && nextWave != null) nextWave = ScaledWave(waveIndex);
             return waveIndex > WaveIndex;
         }
         public bool AdvanceStage()
         {
             if (!CanAdvanceStage) return false;
             Setup.Stage++; WaveIndex = 0;
-            if (Setup.CampaignWaves != null) { Setup.Waves = Setup.CampaignWaves[Setup.Stage-1]; Setup.WaveSeconds = Setup.CampaignSeconds[Setup.Stage-1]; } BaseHealth = Setup.BaseHealth;
-            nextWave = null; carry.Clear(); WaveSurvivors.Clear(); LastSurvivors = 0; LastWaveTimedOut = false;
+            if (Setup.CampaignWaves != null) Setup.Waves = Setup.CampaignWaves[Setup.Stage-1]; BaseHealth = Setup.BaseHealth;
+            nextWave = null;
             PrepareWave(); ResetPrograms(); Phase = BattlePhase.Ready; Log("advance"); return true;
         }
         void ResetPrograms()
@@ -265,7 +245,7 @@ namespace CodingGame.Defense
         {
             if (StartError() != null) return;
             Log("start");
-            Checkpoint = Capture(); accumulated = 0; waveStart = Time; Phase = BattlePhase.Running;
+            Checkpoint = Capture(); accumulated = 0; Phase = BattlePhase.Running;
             foreach (var bot in Robots) bot.Program?.Invoke();
         }
         // The last wave start; a defeat can go back to it with Restore on a fresh simulation of the same stage and wave.
@@ -688,45 +668,13 @@ namespace CodingGame.Defense
                 if (Options.enemyMovement && e.BlockedBy == 0) Move(e, e.Speed(Time) * dt);
             }
             if (BaseHealth <= 0 || ObjectiveFailed) { Enemies.RemoveAll(e => !e.Active); Projectiles.Clear(); strikes.Clear(); Phase = BattlePhase.Defeat; return; }
-            // 시간 종료 시 비행 중인 투사체를 취소해 종료 후 피해나 드랍이 발생하지 않게 합니다.
-            bool timedOut = Options.waveTimeout && Setup.WaveSeconds > 0 && Time - waveStart + 1e-8 >= Setup.WaveSeconds;
-            if (!timedOut) { ResolveProjectiles(); ResolveStrikes(); }
+            ResolveProjectiles(); ResolveStrikes();
             Enemies.RemoveAll(e => !e.Active);
-            int remaining = RemainingEnemies;
-            if (remaining == 0 || timedOut) CompleteWave(remaining);
+            // No time limit (the user, 2026-11-19): the wave ends once every enemy of it has been killed or reached the core.
+            if (RemainingEnemies == 0) CompleteWave();
         }
-        // Carries survivors and unspawned enemies into the next wave, then moves to rewards or the next wave.
-        void CompleteWave(int remaining)
+        void CompleteWave()
         {
-            LastWaveTimedOut = remaining > 0;
-            LastRush = LastRushDamage = 0;
-            if (LastWaveTimedOut && FinalRush)
-            {
-                // Nothing to carry into: every enemy still around (or not yet out) reaches the core at once.
-                LastRush = remaining; Leaks += remaining;
-                LastRushDamage = Enemies.Where(e => e.Active).Sum(e => e.Spec.leakDamage) +
-                    currentWave.Select((g, i) => (g.Count - groupCounts[i]) * g.Enemy.leakDamage).Sum();
-                if (Options.baseDamage) BaseHealth = Math.Max(0, BaseHealth - LastRushDamage);
-                Emit("rush", 0, remaining, Vector2.Zero, LastRushDamage);
-                Enemies.Clear(); groupCounts = currentWave.Select(g => g.Count).ToArray(); remaining = 0;
-                if (BaseHealth <= 0) { Projectiles.Clear(); strikes.Clear(); Phase = BattlePhase.Defeat; return; }
-            }
-            LastSurvivors = remaining; WaveSurvivors.Add(LastSurvivors);
-            // 살아 있는 적과 아직 생성되지 않은 적을 다음 웨이브로 이월하며 처치 보상은 주지 않습니다.
-            carry.Clear();
-            // 같은 적이라도 등장 웨이브가 달라 스탯이 다르면 별도로 이월합니다.
-            foreach (var group in Enemies.Where(e => e.Active).GroupBy(e =>
-                (e.DefinitionIndex, e.RouteIndex, e.Spec.type, e.Spec.health, e.Spec.speed, e.Boss,
-                    e.Spec.damage, e.Spec.attackInterval, e.Spec.leakDamage)))
-                carry.Add(new SpawnGroup { Enemy = group.First().Spec.Copy(), DefinitionIndex = group.Key.DefinitionIndex, RouteIndex = group.Key.RouteIndex, Count = group.Count(), Interval = .4f, Boss = group.Key.Boss });
-            for (int i = 0; i < currentWave.Length; i++)
-            {
-                var g = currentWave[i]; int left = g.Count - groupCounts[i];
-                if (left > 0) carry.Add(new SpawnGroup { Enemy = g.Enemy.Copy(), DefinitionIndex = g.DefinitionIndex, RouteIndex = g.RouteIndex, Count = left, Interval = .4f, Boss = g.Boss });
-                groupCounts[i] = g.Count;
-            }
-            if (WaveIndex + 1 < Setup.Waves.Length) nextWave = nextWave.Concat(carry).ToArray();
-            Enemies.Clear();
             Projectiles.Clear(); strikes.Clear();
             Emit("wave-completed", 0, WaveIndex, Vector2.Zero);
             if (Setup.PlayerFlow)

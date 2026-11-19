@@ -283,7 +283,7 @@ namespace CodingGame.Defense.Editor
             var labels = new Dictionary<string, string> {
                 ["tutorial"] = "튜토리얼 실행", ["tutorialInput"] = "튜토리얼 입력 제한", ["robotCode"] = "로봇 코드 실행",
                 ["enemyMovement"] = "적 이동", ["enemyAttack"] = "적 공격", ["enemySpawn"] = "적 스폰", ["baseDamage"] = "기지 피해", ["robotDamage"] = "로봇 피해",
-                ["attackDamage"] = "적에게 공격 피해", ["waveTimeout"] = "웨이브 시간 제한", ["deploymentLimit"] = "설치 개수 제한",
+                ["attackDamage"] = "적에게 공격 피해", ["deploymentLimit"] = "설치 개수 제한",
                 ["inventoryLimit"] = "인벤토리 제한", ["unlockAll"] = "전체 해금", ["supply"] = "준비 보급", ["rewards"] = "종료 보상", ["drops"] = "처치 드롭",
                 ["ranges"] = "사거리 표시", ["hitRanges"] = "피격 범위", ["launchEffects"] = "발사 이펙트", ["hitEffects"] = "피격 이펙트", ["slashEffects"] = "슬래시 이펙트",
                 ["projectiles"] = "투사체 표시", ["preview"] = "미리보기 실행", ["detailedLog"] = "상세 이벤트 기록 (리포트용)" };

@@ -45,12 +45,10 @@ namespace CodingGame.Defense
             Tone("buff", () => Notes("buff", .06f, .14f, 660, 990));
             Tone("blast", () => Sweep("blast", .2f, 180, 60, noise: .8f, volume: .3f));
             Tone("leaked", () => Sweep("leaked", .25f, 170, 150, square: .8f, volume: .3f));
-            Tone("rush", () => Sweep("rush", .5f, 160, 70, square: .8f, noise: .2f, volume: .4f));
             Tone("tank-destroyed", () => Sweep("tank-destroyed", .3f, 320, 90, square: .4f, volume: .3f));
             Tone("place", () => Sweep("place", .05f, 700, 900, volume: .2f));
             Tone("deny", () => Notes("deny", .07f, .2f, 220, 180));
             Tone("clear", () => Notes("clear", .1f, .28f, 523.25f, 659.25f, 783.99f));
-            Tone("timeup", () => Notes("timeup", .12f, .25f, 523.25f, 392f));
             Tone("victory", () => Notes("victory", .12f, .3f, 523.25f, 659.25f, 783.99f, 1046.5f));
             Tone("defeat", () => Notes("defeat", .16f, .3f, 392f, 329.63f, 261.63f));
             // Each stage-clear star rings a step higher than the one before.
@@ -75,7 +73,7 @@ namespace CodingGame.Defense
         {
             if (sim.Phase == shownPhase) return;
             shownPhase = sim.Phase;
-            if (sim.Phase == BattlePhase.Reward) Play(sim.LastWaveTimedOut ? "timeup" : "clear");
+            if (sim.Phase == BattlePhase.Reward) Play("clear");
             else if (sim.Phase == BattlePhase.Victory) Play("victory");
             else if (sim.Phase == BattlePhase.Defeat) Play("defeat");
         }

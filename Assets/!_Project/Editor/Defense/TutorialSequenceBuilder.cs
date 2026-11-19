@@ -750,7 +750,6 @@ namespace CodingGame.Defense.Editor
             strongGroup.FindPropertyRelative("interval").floatValue = 2;
             strongGroup.FindPropertyRelative("healthOverride").floatValue = 500;
             strongGroup.FindPropertyRelative("speedOverride").floatValue = 1.6f;
-            stage.FindPropertyRelative("waveSeconds").floatValue = 120;
         }
 
         public static string Run()

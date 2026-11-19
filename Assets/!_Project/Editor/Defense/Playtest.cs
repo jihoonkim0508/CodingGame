@@ -660,7 +660,6 @@ namespace CodingGame.Defense.Editor
             foreach (var bot in Battle.Simulation.Robots) Battle.Simulation.ApplyProgram(bot.Id, "robot_" + bot.Id, new List<CodeBlock>());
             int health = Battle.Simulation.BaseHealth;
             DevTest.StartWave(); Time.timeScale = 3;
-            // A wave can time out before its enemies arrive; survivors carry into the next one.
             yield return Wait(() =>
             {
                 if (Battle.Simulation.Phase == BattlePhase.Reward) { Battle.ClaimRewards(); Battle.StartBattle(); }

@@ -111,10 +111,6 @@ static class Check
         var crossBomb=new DefenseSimulation(Setup());var crossThrower=Place(crossBomb,RobotRole.Warrior,-8,3);crossThrower.AutoExecute=false;
         crossBomb.Start();Advance(crossBomb,.2);crossBomb.RequestAction(crossThrower.Id,RobotAction.Boom);crossBomb.RemoveRobot(crossThrower.Id);Advance(crossBomb,1);
         Assert(crossBomb.Enemies[0].Health==99.5f,"cross-role projectile retains ten percent damage after source removal");
-        var deadlineSetup=Setup();deadlineSetup.PlayerFlow=true;deadlineSetup.WaveSeconds=.5f;
-        var deadline=new DefenseSimulation(deadlineSetup);var late=Place(deadline,RobotRole.Bomber,-8,3);late.AutoExecute=false;
-        deadline.Start();Advance(deadline,.2);deadline.RequestAction(late.Id,RobotAction.Boom);Advance(deadline,1);
-        Assert(deadline.Phase==BattlePhase.Reward&&deadline.Projectiles.Count==0&&deadline.PendingDrops.Count==0&&deadline.Kills==0,"timeout cancels in-flight bombs without drops");
 
         var buffSim = new DefenseSimulation(Setup());
         var buffer = Place(buffSim, RobotRole.Buffer, -5, 3); buffer.AutoExecute = false;
