@@ -61,8 +61,7 @@ namespace CodingGame.Defense.Editor
                 var old = File.Exists(path) ? JsonUtility.FromJson<PlayCacheFile>(File.ReadAllText(path)) : null;
                 var merged = PlayLog.Merge(old, file);
                 File.WriteAllText(path, JsonUtility.ToJson(merged, true));
-                string dropped = old?.steps != null && old.fingerprint != file.fingerprint ? $" (예전 기록 {old.steps.Length}개는 데이터가 바뀌어 버림)" : "";
-                return $"PlayCache_{file.stage}.json: 이번 {file.steps.Length}개, 전체 {merged.steps.Length}개" + dropped;
+                return $"PlayCache_{file.stage}.json: 이번 {file.steps.Length}개, 전체 {merged.steps.Length}개";
             }).ToArray();
             if (folder.StartsWith("Assets/")) AssetDatabase.Refresh();
             string summary = string.Join("\n", lines);

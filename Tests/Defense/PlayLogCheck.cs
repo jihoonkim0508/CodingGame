@@ -63,7 +63,8 @@ static class PlayLogCheck
         Assert(string.Join(" ", merged.steps.Select(s => s.id)) == "1-1.A01 1-1.E07 1-3.B01" && merged.runs.Length == 3 &&
             merged.steps.All(s => merged.runs[s.replay.run].inputs.Length >= s.replay.input) && merged.runs[merged.steps[2].replay.run].inputs.Length == 3,
             "a merge keeps the old steps with their runs and takes the new one: " + string.Join(", ", merged.steps.Select(s => s.id + "@" + s.replay.run)));
-        Assert(PlayLog.Merge(new PlayCacheFile { fingerprint = "b", steps = old.steps, runs = old.runs }, again).steps.Length == 1, "a file from other data is not merged");
+        // Other data does not drop the old steps: a jump checks its own replay.
+        Assert(PlayLog.Merge(new PlayCacheFile { fingerprint = "b", steps = old.steps, runs = old.runs }, again).steps.Length == 3, "a file from other data is merged too");
         Console.WriteLine("Play log checks passed");
     }
 }

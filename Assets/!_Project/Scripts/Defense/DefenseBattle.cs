@@ -382,9 +382,9 @@ namespace CodingGame.Defense
 
         // F1 panel (developer rights): "1-3.C05" opens that line as the play recorded with Tools/Develop/캐시 제작 had it
         // ("1-3" at its start): that play's session set up again and its inputs replayed to the line (PlayLog), enemies in
-        // mid-battle too. Without a recording of the line, or with one older than the campaign or the lessons, the wave starts
-        // over and the lesson opens there. folder: read the stage's file from there instead of Resources (checks). Returns a
-        // notice, or null.
+        // mid-battle too. Without a recording of the line the wave starts over and the lesson opens there. A recording made
+        // before the data changed is replayed all the same; a replay that ends off the recorded state says so. folder: read the
+        // stage's file from there instead of Resources (checks). Returns a notice, or null; the notice shows on the HUD too.
         public string DeveloperJump(string id, string folder = null)
         {
             if (!DeveloperTools || !tutorial) return "개발자 권한이 없습니다.";
@@ -396,9 +396,8 @@ namespace CodingGame.Defense
             SetDeveloperMode(false);
             stage = sequence.stage;
             var cache = PlayCache(stage, folder);
-            bool fresh = cache?.fingerprint == StageFingerprint(stage);
-            var mark = fresh ? cache.steps.FirstOrDefault(m => m.id == sequence.sequenceId + "." + sequence.steps[step].stepId) : null;
-            if (mark != null) return ReplayTo(cache, mark, sequence, step);
+            var mark = cache?.steps.FirstOrDefault(m => m.id == sequence.sequenceId + "." + sequence.steps[step].stepId);
+            if (mark != null) return Notice(ReplayTo(cache, mark, sequence, step));
             var setup = MakeSetup(campaign, stage);
             setup.InitialWave = sequence.wave - 1; setup.PreviousStageRewards = true;
 #if UNITY_EDITOR
@@ -406,7 +405,7 @@ namespace CodingGame.Defense
 #endif
             ResetSession(setup);
             tutorial.JumpWhenBegun(sequence.sequenceId, step);
-            return (cache == null ? "캐시 없음" : fresh ? "캐시에 없는 대사" : "캐시 오래됨") + ": Tools/Develop/캐시 제작으로 기록하세요";
+            return Notice((cache == null ? "캐시 없음" : "캐시에 없는 대사") + ": Tools/Develop/캐시 제작으로 기록하세요");
         }
         // F1 panel (developer rights): "2-4" starts that stage-wave in its preparation as the recorded play began it
         // (Tools/Develop/캐시 제작), robots and code included; a wave whose lesson begins in its preparation opens at the
@@ -424,16 +423,17 @@ namespace CodingGame.Defense
             SetDeveloperMode(false);
             stage = s;
             var cache = PlayCache(s, folder);
-            bool fresh = cache?.fingerprint == StageFingerprint(s);
-            var mark = fresh ? cache.steps.FirstOrDefault(m => m.id == s + "-" + w) : null;
-            if (mark != null) return ReplayTo(cache, mark, null, 0);
+            var mark = cache?.steps.FirstOrDefault(m => m.id == s + "-" + w);
+            if (mark != null) return Notice(ReplayTo(cache, mark, null, 0));
             var setup = MakeSetup(campaign, s); setup.InitialWave = w - 1; setup.PreviousStageRewards = true;
 #if UNITY_EDITOR
             setup.TestOptions = EditorOptions;
 #endif
             ResetSession(setup);
-            return (cache == null ? "캐시 없음" : fresh ? "캐시에 없는 웨이브" : "캐시 오래됨") + ": Tools/Develop/캐시 제작으로 기록하세요";
+            return Notice((cache == null ? "캐시 없음" : "캐시에 없는 웨이브") + ": Tools/Develop/캐시 제작으로 기록하세요");
         }
+        // The F1 panel closes with the jump (SetDeveloperMode(false)), its notice line with it: the HUD's status line keeps it.
+        string Notice(string text) { if (text != null) Tell(text); return text; }
         public static string PlayCachePath(int stage) => "Dev/PlayCache_" + stage;
         static PlayCacheFile PlayCache(int stage, string folder)
         {
@@ -443,8 +443,9 @@ namespace CodingGame.Defense
             var cache = json == null ? null : JsonUtility.FromJson<PlayCacheFile>(json);
             return cache?.steps == null || cache.runs == null ? null : cache;
         }
-        // What a stage's recorded play depends on: the campaign (its robots and enemies too) and the stage's lessons, without
-        // the asset references, whose ids change from session to session.
+        // What a stage's recorded play depended on, written into the cache for reference only (a jump replays regardless and
+        // checks the replayed state): the campaign (its robots and enemies too) and the stage's lessons, without the asset
+        // references, whose ids change from session to session.
         public string StageFingerprint(int stage)
         {
             var assets = new UnityEngine.Object[] { campaign }.Concat(campaign.robots).Concat(campaign.enemies).Concat(tutorial.Sequences.Where(s => s && s.stage == stage));

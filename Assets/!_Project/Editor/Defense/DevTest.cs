@@ -136,7 +136,7 @@ namespace CodingGame.Defense.Editor
         public static string CacheFolder;
         public static bool JumpPending => SessionState.GetString(RequestKey + ".jump", "") != "";
         // The F1 panel's jump (DefenseBattle.DeveloperJump "2-3.A01", or DeveloperJumpWave "2-4" for a wave without a lesson):
-        // the recorded play's state from the play cache; without a fresh recording the wave starts over with the robots and
+        // the recorded play's state from the play cache; without a recording of it the wave starts over with the robots and
         // code the stage's earlier lessons left. step: 0-based. Starts the Defense scene first when there is no battle.
         public static void JumpTutorial(int stage, int wave, int step)
         {
@@ -165,7 +165,7 @@ namespace CodingGame.Defense.Editor
             RestoreTutorialWork(b, stage, wave, step);
             LastJump = Describe(note);
         }
-        static string Describe(string note) => (note.StartsWith("캐시 오래됨") ? "오래된 캐시" : note.StartsWith("캐시") ? "캐시 없음" : note) + ": 웨이브 시작 상태 (수업 로봇·정답 코드 복원)";
+        static string Describe(string note) => (note.StartsWith("캐시") ? "캐시 없음" : note) + ": 웨이브 시작 상태 (수업 로봇·정답 코드 복원)";
 
         // Stage 1 jump inside the running session, synchronous (the lesson checks and screen tours step through 1-x with it);
         // elsewhere the F1 jump above.

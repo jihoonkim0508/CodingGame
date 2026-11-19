@@ -250,11 +250,11 @@ namespace CodingGame.Defense
                 Level = b.level, UpgradeCostPaid = b.upgradeCostPaid, Health = b.hasHealth ? b.health : (float?)null, Name = b.name, Code = b.code == null ? null : Unflatten(b.code) }).ToArray(),
         };
 
-        // A stage's file after a recording: the steps recorded now in place of the same ids, the others kept, unless the file
-        // was made from other campaign or lesson data (then only the new ones). The runs are those the steps replay.
+        // A stage's file after a recording: the steps recorded now in place of the same ids, the others kept, also when they
+        // were made from other campaign or lesson data (a jump checks its replay). The runs are those the steps replay.
         public static PlayCacheFile Merge(PlayCacheFile old, PlayCacheFile recorded)
         {
-            if (old?.steps == null || old.runs == null || old.fingerprint != recorded.fingerprint) return recorded;
+            if (old?.steps == null || old.runs == null) return recorded;
             var replaced = new HashSet<string>(recorded.steps.Select(s => s.id));
             var kept = old.steps.Where(s => !replaced.Contains(s.id)).ToList();
             var oldRuns = kept.Select(s => s.replay.run).Distinct().OrderBy(r => r).ToList();
