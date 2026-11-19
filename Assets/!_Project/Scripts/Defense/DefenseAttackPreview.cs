@@ -129,8 +129,9 @@ namespace CodingGame.Defense
             // range, so a shot fired on entry leaves it reloading while the enemy passes close, and a shot held until close fells it.
             bool approach = live.Setup.Stage == 2 && live.WaveIndex == 2;
             // One normal enemy for the shooter and for the break lessons (2-6, 2-7): in a crowd the player could not tell which
-            // enemy the code picked (the user, 2026-11-19). It walks in from beyond the range and out of it, so the robot is seen to
-            // take it and let it go. 2-5 and 2-8 keep theirs: they teach the next enemy and the enemy's kind.
+            // enemy the code picked (the user, 2026-11-19). It starts in the picture, as the crowd did (the shooter's range runs
+            // past the picture's edge, so one walking in from beyond it was shot out of sight). 2-5 and 2-8 keep theirs: they
+            // teach the next enemy and the enemy's kind.
             int wave = live.WaveIndex + 1; bool stageTwo = live.Setup.Stage == 2;
             bool breakLesson = stageTwo && (wave == 6 || wave == 7);
             bool single = breakLesson || selected.Spec.role == RobotRole.Shooter && !(stageTwo && (wave == 5 || wave == 8));
@@ -139,15 +140,15 @@ namespace CodingGame.Defense
             IReadOnlyList<SpawnGroup> groups = live.CurrentWave;
             if (single && groups.Any(g => g.Enemy.type == kind)) groups = groups.Where(g => g.Enemy.type == kind).ToArray();
             var demo = DefenseSimulation.PreviewWave(groups, approach || single ? 1 : 3);
-            // The break lessons send a second one as the first is about to leave the range, still one in it at a time: code
-            // that keeps aiming at the first lets the second walk past, break lets the first go and shoots the second (the user,
-            // 2026-11-19: the preview did not show what break does).
-            if (breakLesson) { demo[0].Count = 2; demo[0].Interval = (Math.Max(0, selected.Range + 1) + 3) / Math.Max(.1f, demo[0].Enemy.speed); }
+            // The break lessons send a second one as the first is about to leave the range (8 along the road from the start, the
+            // robot 1.8 off it): code that keeps aiming at the first lets the second walk past, break lets the first go and
+            // shoots the second (the user, 2026-11-19: the preview did not show what break does).
+            if (breakLesson) { demo[0].Count = 2; demo[0].Interval = Math.Max(1, 2 + (float)Math.Sqrt(Math.Max(0, selected.Range * selected.Range - 1.8f * 1.8f)) - 1) / Math.Max(.1f, demo[0].Enemy.speed); }
             var setup = new BattleSetup {
                 TestOptions = live.Options,
                 Min = new Point(-50,-50), Max = new Point(50,50), BaseHealth = 100,
                 Routes = new[] { new Route(new[] {
-                    approach || single ? new Point(Math.Max(approach ? 7 : 0, selected.Range + 1), 0) : new Point(2,0),
+                    approach ? new Point(Math.Max(7, selected.Range + 1), 0) : new Point(2,0),
                     new Point(-20,0) }, .75f) }, // narrow, so the robot at 1.8 is clear of it under the placement rule
                 Waves = new[] { demo }
             };
