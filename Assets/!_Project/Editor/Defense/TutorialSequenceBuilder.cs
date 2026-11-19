@@ -399,7 +399,9 @@ namespace CodingGame.Defense.Editor
             L("3-1.B01", Click(TutorialKeys.RobotButton((int)RobotRole.Tank), s => s.Dim = true)),
             L("3-1.B02", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => s.Dim = true, Focus(Route)))),
             L("3-1.B03"), L("3-1.B04"),
-            L("3-1.E01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code31; s.Battle = true; }),
+            // The praise only for a wave held without a leak; otherwise E01a (shown on a leak) says what to change.
+            L("3-1.E01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code31; s.Battle = true; s.SkipIf = TutorialSignals.Leak; }),
+            L("3-1.E01a", s => s.Trigger = TutorialSignals.Leak),
             L("3-1.E02", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
         };
 

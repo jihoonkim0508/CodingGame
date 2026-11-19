@@ -389,11 +389,61 @@ MonoBehaviour:
     allowPreview: 0
     highlightPadding: 10
     trigger: WaveCleared
-    skipIf: 
+    skipIf: Leak
     expectedCode: 
     pointerKey: 
     autoSelectSlot: 
     hintCode: "while True:\n    enemy = get_nearest_enemy()\n    block(enemy)"
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    placeShooter: 0
+    placeWarrior: 0
+    prepareBaselineExample: 0
+    prepareExample: 
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
+  - stepId: E01a
+    kind: 0
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "\uD734, \uBC84\uD17C\uC9C0\uB9CC \uC624\uB958 \uCF54\uB4DC\uAC00 \uBE60\uC838\uB098\uAC14\uC5B4.\n<b>\uD0F1\uCEE4\uD615</b>\uC744
+        \uC801\uC774 \uC9C0\uB098\uAC00\uB294 \uAE38 \uC704\uC5D0 \uC138\uC6B0\uACE0,
+        \uB2E4\uB978 \uB85C\uBD07\uC740 \uADF8 \uB458\uB808\uC5D0\uC11C \uACF5\uACA9\uD558\uAC8C
+        \uD574 \uBD10!"
+      focusKeys: []
+      highlightKeys: []
+    targetKeys: []
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    completionMode: 0
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 0
+    slowBattle: 0
+    allowPreview: 0
+    highlightPadding: 10
+    trigger: Leak
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    autoSelectSlot: 
+    hintCode: 
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
