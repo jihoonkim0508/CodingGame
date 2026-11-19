@@ -76,7 +76,10 @@ namespace CodingGame.Defense
         static readonly int AttackTrigger = Animator.StringToHash("Attack"), AttackState = Animator.StringToHash("Attack");
         // The attack clip plays faster when the robot attacks more often than the clip lasts (0.8 s ranged clip);
         // a slash plays it so the sword passes straight ahead when the simulation's strike lands.
-        float attackClip, attackInterval, strikeSpeed, pace = 1;
+        float attackClip, attackInterval, strikeSpeed, pace = 1, walkRate = 1;
+        // The tanker's walk (MonsterTankerWalk.anim, baked by TankerWalk) keeps its feet planted at this speed in world units a
+        // second at Heavy's scale 1.3; the view plays it faster or slower with the enemy's own speed.
+        public const float TankerWalkSpeed = 1.6f;
         // Melee_Attack (1 s): the sampled sword sweeps clockwise from the left (-64° at .40, -10° at .45, +22° at .50).
         const float StrikeAt = .46f;
         Color baseColor;
@@ -108,6 +111,10 @@ namespace CodingGame.Defense
             // Faces the way it walks (the monster model has a walk cycle).
             var step = position - transform.position; step.y = 0;
             if (step.sqrMagnitude > 1e-6f) transform.rotation = Quaternion.LookRotation(step);
+            // The tanker's planted feet stay put at any speed (slowed, 1.0-1.95 by stage, the boss 1.65 times as big) and stand
+            // still while it is stunned or blocked.
+            if (enemy.Spec.type == EnemyType.Tank)
+                walkRate = enemy.BlockedBy != 0 || enemy.Stunned(time) ? 0 : enemy.Speed(time) / (TankerWalkSpeed * transform.lossyScale.z / 1.3f);
             Sync(position, enemy.Stunned(time), enemy.Speed(time) < enemy.Spec.speed, false);
         }
         // Animation speed follows the battle clock: 0 while paused, 2-3 at 2x/3x.
@@ -163,7 +170,7 @@ namespace CodingGame.Defense
             if (animator)
             {
                 bool attacking = animator.GetCurrentAnimatorStateInfo(0).shortNameHash == AttackState || animator.GetNextAnimatorStateInfo(0).shortNameHash == AttackState;
-                animator.speed = pace * (attacking ? AttackSpeed : 1);
+                animator.speed = pace * (attacking ? AttackSpeed : walkRate);
             }
             if (spinSeconds > 0)
             {

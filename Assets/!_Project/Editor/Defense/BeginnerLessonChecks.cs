@@ -198,7 +198,7 @@ namespace CodingGame.Defense.Editor
             {
                 if (sim.Phase == BattlePhase.Victory) { End("PASS 2-1 to 2-10 completed: variables, conditions, is_dead(), break, continue lessons, free waves, boss; core=" + sim.BaseHealth); return; }
                 if (sim.Phase == BattlePhase.Defeat) { End("FAIL stage 2 wave " + (sim.WaveIndex + 1) + " lost; kills=" + sim.Kills + " leaks=" + sim.Leaks); return; }
-                // 2-2 has no lesson to claim its reward, so the checker does.
+                // A wave whose lesson does not claim its reward: the checker does.
                 if (sim.Phase == BattlePhase.Reward && !director.IsActive)
                 {
                     Log("CLEAR wave=" + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills +
@@ -357,7 +357,7 @@ namespace CodingGame.Defense.Editor
                 speed.onClick.Invoke(); Require(battle.BattleSpeed == 2, "Speed did not change to 2x in 1-2");
                 speed.onClick.Invoke(); Require(battle.BattleSpeed == 3, "Speed cannot reach 3x in 1-2");
                 speed.onClick.Invoke();
-                if (GameFlow.Developer) { Require(battle.BattleSpeed == 5, "Developer rights do not add 5x after 3x"); speed.onClick.Invoke(); }
+                if (GameFlow.FastSpeed) { Require(battle.BattleSpeed == 5, "Developer rights do not add 5x after 3x"); speed.onClick.Invoke(); }
                 Require(battle.BattleSpeed == 1, "Speed cannot return to 1x after 3x");
                 controlsTried = true;
             }
@@ -367,7 +367,8 @@ namespace CodingGame.Defense.Editor
             if (key == "1/C05" || key == "1/C08")
                 Require(!battle.TutorialBlocksPreview && Field<DefenseAttackPreview>(battle, "attackPreview").IsShowing,
                     "1-1 preview stopped while placing blocks at " + key);
-            if (!string.IsNullOrWhiteSpace(step.dragDemo))
+            // Until its slot holds a block (a filled one needs no demo: 2-3 C06 waits on the name typed after the drop).
+            if (!string.IsNullOrWhiteSpace(step.dragDemo) && step.dragDemo.Split('|').Select(pair => pair.Split('>')).Any(ends => ends.Length == 2 && !battle.CodeEditor.DemoDone(ends[1].Trim())))
                 Require(Field<TutorialPointer>(director, "pointer").IsDragVisible,
                     "Block placement drag preview is missing at " + key);
             // A line on screen holds the battle (no 0.2x): the Play, pause and speed lessons too.
@@ -392,7 +393,7 @@ namespace CodingGame.Defense.Editor
             director.EditorFinishTyping(); Canvas.ForceUpdateCanvases();
             foreach (var text in view.GetComponentsInChildren<TMP_Text>().Where(t => t.name == "Dialogue"))
             { text.ForceMeshUpdate(); Require(!text.isTextOverflowing, "Dialogue overflow at " + key); }
-            foreach (var target in step.texts.SelectMany(t => t.focusKeys).Where(TutorialKeys.IsEditorArea))
+            foreach (var target in step.texts.SelectMany(t => t.focusKeys).Where(k => TutorialKeys.IsEditorArea(k) || k == TutorialKeys.Goal))
                 Require(director.EditorBridge.TryGetArea(target, out _), "Missing focus " + target + " at " + key);
             if (step.kind != TutorialStepKind.ActionGuide) { director.EditorNext(); return; }
             var editor = battle.CodeEditor; var panel = editor.Panel;

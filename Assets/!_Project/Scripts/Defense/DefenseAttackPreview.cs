@@ -151,11 +151,16 @@ namespace CodingGame.Defense
             // robot 1.8 off it): code that keeps aiming at the first lets the second walk past, break lets the first go and
             // shoots the second (the user, 2026-11-19: the preview did not show what break does).
             if (breakLesson) { demo[0].Count = 2; demo[0].Interval = Math.Max(1, 2 + (float)Math.Sqrt(Math.Max(0, selected.Range * selected.Range - 1.8f * 1.8f)) - 1) / Math.Max(.1f, demo[0].Enemy.speed); }
+            float approachStart = Math.Max(7, selected.Range + 1);
+            // 2-3's warrior: the enemy timed so `while True: slash()` lets it through and the if fells it (see TimeMeleeDemo).
+            if (approach && selected.Spec.role == RobotRole.Warrior)
+                DefenseSimulation.TimeMeleeDemo(demo[0], selected.Range, 1.8f, approachStart, live.ActionInterval(selected, RobotAction.Slash),
+                    live.ActionInterval(selected, RobotAction.Slash) * (float)selected.Spec.strikeShare, live.ActionDamage(selected, RobotAction.Slash));
             var setup = new BattleSetup {
                 TestOptions = live.Options,
                 Min = new Point(-50,-50), Max = new Point(50,50), BaseHealth = 100,
                 Routes = new[] { new Route(new[] {
-                    approach ? new Point(Math.Max(7, selected.Range + 1), 0) : new Point(2,0),
+                    approach ? new Point(approachStart, 0) : new Point(2,0),
                     new Point(-20,0) }, .75f) }, // narrow, so the robot at 1.8 is clear of it under the placement rule
                 Waves = new[] { demo }
             };

@@ -22,7 +22,7 @@ namespace CodingGame
         static void ResetSession()
         {
             if (instance) SceneManager.sceneLoaded -= instance.OnSceneLoaded;
-            instance = null; Loading = false; Developer = Debug.isDebugBuild; // the Editor and development builds start with it
+            instance = null; Loading = false; Developer = Debug.isDebugBuild; developerByHand = false; // the Editor and development builds start with it
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -119,6 +119,10 @@ namespace CodingGame
         // on from the start in the Editor and development builds; in a release build ten clicks in a row on the screen's
         // top-left corner, in any scene, turn them on, ten more off. They last while the game runs, shown by "Dev" in the bottom-left corner.
         public static bool Developer { get; private set; }
+        // 5x battle speed: in the Editor, or once developer mode is turned on by hand (the corner clicks). A development build
+        // starts with developer rights for its tools, and its play testers met 5x where players stop at 3x (play feedback 2-9).
+        public static bool FastSpeed => Developer && (Application.isEditor || developerByHand);
+        static bool developerByHand;
         TMPro.TextMeshProUGUI devMark;
         const int DeveloperClicks = 10;
         const float DeveloperCorner = 120, DeveloperClickGap = 1; // 1080p pixels from the corner; seconds between clicks
@@ -147,7 +151,7 @@ namespace CodingGame
             cornerClicks = !inCorner ? 0 : Time.unscaledTime - lastCornerClick <= DeveloperClickGap ? cornerClicks + 1 : 1;
             lastCornerClick = Time.unscaledTime;
             if (cornerClicks < DeveloperClicks) return;
-            cornerClicks = 0; Developer = !Developer;
+            cornerClicks = 0; Developer = developerByHand = !Developer;
             ShowToast(Developer ? "개발자 모드 켜짐" : "개발자 모드 꺼짐");
         }
         void ShowToast(string text)

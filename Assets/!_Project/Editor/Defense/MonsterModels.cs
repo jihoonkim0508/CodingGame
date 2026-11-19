@@ -59,26 +59,22 @@ namespace CodingGame.Defense.Editor
         }
 
         // The team's rigged tanker (3ds Max, 17 bones, the same texture as the static MonsterTank it replaces) on Heavy: the
-        // model from MonsterTanker.fbx, its walk (1 s, the four legs) from MonsterTankerWalk.fbx looping on the model's Animator.
+        // model from MonsterTanker.fbx, its walk (1 s, a trot with planted feet) baked by TankerWalk looping on the model's
+        // Animator. The artist's walk (MonsterTankerWalk.fbx) slid its feet and was replaced (시안/탱커 걷기).
         public static void Tanker()
         {
-            foreach (var file in new[] { "MonsterTanker.fbx", "MonsterTankerWalk.fbx" })
-            {
-                var importer = (ModelImporter)AssetImporter.GetAtPath(Folder + file);
-                importer.materialImportMode = ModelImporterMaterialImportMode.None; // MonsterTank.mat (URP Lit) is set on the prefab
-                importer.animationType = ModelImporterAnimationType.Generic;
-                importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
-                importer.importAnimation = true;
-                if (file == "MonsterTankerWalk.fbx")
-                {
-                    var take = importer.defaultClipAnimations[0];
-                    take.name = "MonsterTanker_Walk"; take.loopTime = true;
-                    importer.clipAnimations = new[] { take };
-                }
-                importer.SaveAndReimport();
-            }
-            var walk = AssetDatabase.LoadAllAssetsAtPath(Folder + "MonsterTankerWalk.fbx").OfType<AnimationClip>().First(c => c.name == "MonsterTanker_Walk");
-            var controller = UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPathWithClip(Folder + "MonsterTanker.controller", walk);
+            var importer = (ModelImporter)AssetImporter.GetAtPath(Folder + "MonsterTanker.fbx");
+            importer.materialImportMode = ModelImporterMaterialImportMode.None; // MonsterTank.mat (URP Lit) is set on the prefab
+            importer.animationType = ModelImporterAnimationType.Generic;
+            importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
+            importer.importAnimation = true;
+            importer.SaveAndReimport();
+            var walk = TankerWalk.Bake();
+            var controller = AssetDatabase.LoadAssetAtPath<UnityEditor.Animations.AnimatorController>(Folder + "MonsterTanker.controller");
+            if (!controller) controller = UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPathWithClip(Folder + "MonsterTanker.controller", walk);
+            var state = controller.layers[0].stateMachine.defaultState;
+            state.name = "Walk"; state.motion = walk;
+            EditorUtility.SetDirty(controller);
             Fit("Heavy", "MonsterTanker", 1.1f, "MonsterTank", controller);
             AssetDatabase.SaveAssets();
             RobotIcons.Build();

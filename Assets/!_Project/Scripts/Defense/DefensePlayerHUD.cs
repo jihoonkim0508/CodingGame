@@ -258,6 +258,7 @@ namespace CodingGame.Defense
                 if (!ReferenceEquals(lessonGoal, shownGoal)) guide.text = "목표 · " + lessonGoal;
                 shownGoal = lessonGoal;
                 AnimateGoal();
+                battle.Tutorial?.RegisterUITarget(TutorialKeys.Goal, goalRect);
             }
             else
             {
