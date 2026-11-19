@@ -98,7 +98,7 @@ namespace CodingGame.Defense
         public bool ShowHitRanges { get; private set; }
         public bool HelpOpen { get; internal set; }
         public bool HasDialogueBlockingWindow => HelpOpen || (inventoryUI && inventoryUI.IsOpen) || (codeEditor && codeEditor.HintOpen) || (playerHUD && playerHUD.MenuOpen);
-        int palette = -1, selected;
+        int palette = -1, selected, moving; // moving: the placed robot being moved (MoveSelected), 0 for none
         bool draggingRobot;
         public DefenseSimulation Simulation { get; private set; }
         public int SelectedId => selected;
@@ -113,8 +113,9 @@ namespace CodingGame.Defense
         int tutorialUnits;
         public bool TutorialBlocksInput => tutorial && tutorial.BlocksGameplayInput;
         public bool TutorialBlocksPreview => tutorial && tutorial.BlocksPreview;
-        public bool CanShowRobotActions => Simulation != null && Simulation.CanPrepare && !DeveloperMode && !HelpOpen && !codeEditor.IsOpen && !inventoryUI.IsOpen &&
-            (TutorialAllows("Battle.Develop") || TutorialAllows("Battle.Upgrade") || TutorialAllows("Battle.Recall"));
+        public bool CanShowRobotActions => Simulation != null && Simulation.CanPrepare && !DeveloperMode && !HelpOpen && !codeEditor.IsOpen && !inventoryUI.IsOpen && moving == 0 &&
+            (TutorialAllows("Battle.Develop") || TutorialAllows("Battle.Upgrade") || TutorialAllows("Battle.Recall") || TutorialAllows("Battle.Move"));
+        bool Placing => palette >= 0 || moving != 0;
         public string DefinitionName(int index) => robots[index].displayName;
         public RobotRole DefinitionRole(int index) => robots[index].stats.role;
         public string RoleName(RobotRole role) => robots.FirstOrDefault(r => r.stats.role == role)?.displayName ?? role.ToString();
@@ -665,7 +666,7 @@ namespace CodingGame.Defense
             if (!Simulation.CanPrepare || index < 0 || index >= robots.Length) return;
             string error = Simulation.DeploymentError(robots[index].stats.role);
             if (error != null) { palette = -1; RejectPlacement(index, error); return; }
-            palette = index; selected = 0;
+            palette = index; selected = 0; moving = 0;
             // The marker under the cursor is the robot's body as the placement rules see it (play feedback 3: a 0.9 disc under a
             // 1.5 body made it hard to judge what fits).
             float body = robots[index].stats.radius * 2;
@@ -842,6 +843,39 @@ namespace CodingGame.Defense
             Tell("로봇과 사용 블록을 인벤토리로 회수했습니다."); SyncViews(0); RefreshHUD();
             ReportTutorialAction("Battle.Recall", "TargetClicked", "RobotRecalled");
         }
+        // 이동: the robot is picked up into placement mode (its body marker and range ring follow the cursor); a click on a
+        // spot that fits moves it there as it is, right-click or Esc leaves it where it stood. Gated like recall.
+        public void MoveSelected()
+        {
+            if (!TutorialAllows("Battle.Move")) return;
+            if (!Simulation.CanPrepare) return;
+            if (!Simulation.RecallUnlocked) { Tell(DefenseSimulation.MoveLocked); return; }
+            var bot = Simulation.FindRobot(selected);
+            if (bot == null) return;
+            codeEditor.Close(); palette = -1; moving = bot.Id;
+            float body = bot.Spec.radius * 2;
+            placementMarker.localScale = new Vector3(body, placementMarker.localScale.y, body);
+            Tell(robots[bot.DefinitionIndex].displayName + " 이동 · 허용 위치 클릭 / 우클릭 또는 ESC 취소");
+            RefreshHUD();
+            ReportTutorialAction("Battle.Move", "TargetClicked");
+        }
+        public bool MoveRobot(Vector3 position)
+        {
+            var bot = Simulation.FindRobot(moving);
+            if (bot == null || tutorial && !tutorial.AllowsWorldPoint(position)) return false;
+            if (!Simulation.MoveRobot(bot.Id, new Point(position.x, position.z), out var error)) { RejectPlacement(bot.DefinitionIndex, error); return false; }
+            HidePlacement(); selected = bot.Id;
+            if (robotViews.TryGetValue(bot.Id, out var view))
+            {
+                view.transform.position = DefenseViews.World(bot.Position); view.Face(battleCamera.transform.position);
+                RegisterSelectedRobot(bot, view);
+            }
+            sounds.Play("place");
+            Tell(robots[bot.DefinitionIndex].displayName + " 이동 완료");
+            SyncViews(0); RefreshHUD();
+            ReportTutorialAction("Battle.Move", "RobotMoved");
+            return true;
+        }
         void Update()
         {
             if (Simulation == null || HelpOpen) return;
@@ -863,7 +897,7 @@ namespace CodingGame.Defense
             // included (play feedback: there was no way out of a lesson). The code editor and inventory use Esc themselves.
             var esc = Keyboard.current;
             if (esc != null && esc.escapeKey.wasPressedThisFrame && !DeveloperMode && !codeEditor.IsOpen && !inventoryUI.IsOpen)
-            { if (!tutorialActive && (palette >= 0 || draggingRobot)) CancelPlacement(); else playerHUD.ToggleMenu(); }
+            { if (!tutorialActive && (Placing || draggingRobot)) CancelPlacement(); else playerHUD.ToggleMenu(); }
             if (keyboard != null && keyboard.fKey.wasPressedThisFrame && SpeedUnlocked && !DeveloperMode &&
                 !codeEditor.IsOpen && !inventoryUI.IsOpen) ToggleSpeed();
             if (draggingRobot && mouse != null && mouse.leftButton.wasReleasedThisFrame) EndRobotDrag(mouse.position.ReadValue());
@@ -872,13 +906,14 @@ namespace CodingGame.Defense
                 if (!tutorialActive && mouse.rightButton.wasPressedThisFrame) CancelPlacement();
                 if (!eventSystem.IsPointerOverGameObject() && PointerPosition(mouse.position.ReadValue(), out var point))
                 {
-                    if (palette >= 0)
+                    if (Placing)
                     {
-                        var def = robots[palette]; string error = Simulation.PlacementError(def.stats, new Point(point.x, point.z));
+                        var spot = new Point(point.x, point.z); var bot = Simulation.FindRobot(moving);
+                        string error = bot != null ? Simulation.MoveError(bot.Id, spot) : Simulation.PlacementError(robots[palette].stats, spot);
                         bool tutorialAllowed = !tutorial || tutorial.AllowsWorldPoint(point);
                         placementMarker.gameObject.SetActive(true); placementMarker.position = point + Vector3.up * .08f;
-                        rangeRing.Show(point, def.stats.range, error == null ? RangeColor : new Color(.55f,.55f,.58f));
-                        if (mouse.leftButton.wasPressedThisFrame && tutorialAllowed) PlaceRobot(palette, point);
+                        rangeRing.Show(point, bot != null ? bot.Range : robots[palette].stats.range, error == null ? RangeColor : new Color(.55f,.55f,.58f));
+                        if (mouse.leftButton.wasPressedThisFrame && tutorialAllowed) { if (bot != null) MoveRobot(point); else PlaceRobot(palette, point); }
                     }
                     else if (mouse.leftButton.wasPressedThisFrame)
                     {
@@ -887,7 +922,7 @@ namespace CodingGame.Defense
                         else if (!tutorialActive) { selected = 0; rangeRing.Hide(); }
                     }
                 }
-                else if (palette >= 0) { placementMarker.gameObject.SetActive(false); rangeRing.Hide(); }
+                else if (Placing) { placementMarker.gameObject.SetActive(false); rangeRing.Hide(); }
             }
             MarkWave();
             double previous = Simulation.Time;
@@ -918,17 +953,21 @@ namespace CodingGame.Defense
             var current = Simulation.FindRobot(selected);
             // A tutorial highlight (Robot.Range.N) shows that robot's range glowing, selected or not.
             var lit = tutorial ? TutorialWatcher.OrderedRobots(Simulation).Where((r, i) => tutorial.Highlighted(TutorialKeys.Range(i))).FirstOrDefault() : null;
-            if (lit != null && palette < 0 && !codeEditor.IsOpen)
+            if (lit != null && !Placing && !codeEditor.IsOpen)
                 rangeRing.Show(DefenseViews.World(lit.Position), lit.Range, RangeColor, .65f + .35f * Mathf.Sin(Time.unscaledTime * 5));
-            else if (Simulation.Options.ranges && current != null && palette < 0 && !codeEditor.IsOpen && !inventoryUI.IsOpen && !DeveloperMode)
+            else if (Simulation.Options.ranges && current != null && !Placing && !codeEditor.IsOpen && !inventoryUI.IsOpen && !DeveloperMode)
                 rangeRing.Show(DefenseViews.World(current.Position), current.Range, RangeColor, 0);
-            else if (palette < 0) rangeRing.Hide();
+            else if (!Placing) rangeRing.Hide();
             if (current == null) selected = 0;
             RefreshHUD();
         }
         void CancelPlacement()
-        { draggingRobot = false; HidePlacement(); rangeRing.Hide(); Tell("배치 취소 · 설치한 로봇을 클릭하면 상세 정보를 볼 수 있습니다."); }
-        void HidePlacement() { palette = -1; placementMarker.gameObject.SetActive(false); }
+        {
+            bool move = moving != 0;
+            draggingRobot = false; HidePlacement(); rangeRing.Hide();
+            Tell(move ? "이동 취소 · 로봇은 제자리에 있습니다." : "배치 취소 · 설치한 로봇을 클릭하면 상세 정보를 볼 수 있습니다.");
+        }
+        void HidePlacement() { palette = -1; moving = 0; placementMarker.gameObject.SetActive(false); }
         void ClearCombatVisuals()
         {
             effectRing.Hide();

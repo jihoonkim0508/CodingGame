@@ -342,9 +342,11 @@ namespace CodingGame.Defense
         }
         // The road is drawn past its walking half-width (border, round corners): others keep this much further off it.
         const float PathClearance = .25f, PlacementLean = .6f;
-        public string PlacementError(RobotSpec spec, Vector2 point)
+        public string PlacementError(RobotSpec spec, Vector2 point) => PlacementError(spec, point, null);
+        // moving: a placed robot being moved (MoveRobot). It needs no stock or free slot and its own spot does not block it.
+        string PlacementError(RobotSpec spec, Vector2 point, RobotState moving)
         {
-            string error = DeploymentError(spec.role);
+            string error = moving == null ? DeploymentError(spec.role) : MoveBlocked();
             if (error != null) return error;
             // Checked with most of the body, not all of it (9차 102: placing felt strict): a robot may lean a little past the
             // map's edge, a neighbour, an obstacle or, a tank, the road's edge.
@@ -354,7 +356,7 @@ namespace CodingGame.Defense
             // The map is not a rectangle: the centre and the body's four edges must all be over a floor or road tile.
             if (Setup.Floor.Length > 0 && new[] { Vector2.Zero, new Vector2(r, 0), new Vector2(-r, 0), new Vector2(0, r), new Vector2(0, -r) }
                 .Any(offset => !Setup.Floor.Any(tile => tile.Contains(point + offset)))) return "맵 밖에는 설치할 수 없습니다.";
-            if (Robots.Any(bot => Vector2.Distance(bot.Position, point) < (bot.Spec.radius + spec.radius) * .9f)) return "다른 로봇과 겹칩니다.";
+            if (Robots.Any(bot => bot != moving && Vector2.Distance(bot.Position, point) < (bot.Spec.radius + spec.radius) * .9f)) return "다른 로봇과 겹칩니다.";
             if (Setup.Obstacles.Any(area => area.Overlaps(point, r))) return "장애물 또는 목표 시설과 겹칩니다.";
             bool pathFits = Setup.Routes.Any(route => route.Distance(point) + r <= route.HalfWidth);
             // Others keep their whole body off the drawn road (radius is the model's half-width, Defense/Data).
@@ -387,6 +389,21 @@ namespace CodingGame.Defense
             // 인벤토리는 종류별 수량만 보관하므로 강화 비용을 환급하고 Lv.1 로봇으로 돌려줍니다.
             Coins = (int)Math.Min(int.MaxValue, (long)Coins + bot.UpgradeCostPaid);
             Detach(bot); Log("remove", id);
+            return true;
+        }
+        // Moving follows recall's rules: while preparing, from 1-3. The robot keeps its id, level, code, name and health.
+        string MoveBlocked() => Setup.PlayerFlow && !CanPrepare ? "로봇 이동은 웨이브 준비 중에만 가능합니다." : !RecallUnlocked ? MoveLocked : null;
+        // No stage named: the gate is recall's (RecallUnlocked), wherever that opens.
+        public const string MoveLocked = "이동은 회수와 함께 열립니다.";
+        public string MoveError(int id, Vector2 point) => FindRobot(id) is RobotState bot ? PlacementError(bot.Spec, point, bot) : "로봇을 선택하세요.";
+        public bool MoveRobot(int id, Vector2 point, out string error)
+        {
+            error = MoveError(id, point);
+            if (error != null) return false;
+            var bot = FindRobot(id);
+            bot.Position = point;
+            foreach (var e in Enemies) if (e.BlockedBy == bot.Id) e.BlockedBy = 0;
+            var input = Log("move", id); input.x = point.X; input.y = point.Y;
             return true;
         }
         // Level-up opens from Stage 1 wave 2 in the campaign.

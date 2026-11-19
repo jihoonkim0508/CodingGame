@@ -185,6 +185,7 @@ namespace CodingGame.Defense
                     var spec = input.spec ?? (input.index >= 0 && input.index < sim.Setup.ActionProfiles.Length ? sim.Setup.ActionProfiles[input.index] : null);
                     return spec != null && sim.Place(spec, input.index, new Vector2(input.x, input.y), out _) != null;
                 case "remove": return sim.RemoveRobot(input.id);
+                case "move": return sim.MoveRobot(input.id, new Vector2(input.x, input.y), out _);
                 case "upgrade": return sim.UpgradeRobot(input.id);
                 case "program":
                     // It was applied once, so it fits: a test runner's code may have gone in with the stock lifted (BeginnerLessonChecks.Loops).

@@ -29,6 +29,7 @@ namespace CodingGame.Defense
         [SerializeField] Camera battleCamera;
         [SerializeField] RectTransform robotActions;
         [SerializeField] Button upgradeRobotButton, developRobotButton, recallRobotButton;
+        Button moveRobotButton;
         [SerializeField] TMP_Text upgradeRobotLabel;
         RawImage[] enemyImages;
         DefenseHoverInfo[] enemyHovers;
@@ -95,6 +96,13 @@ namespace CodingGame.Defense
             upgradeRobotButton.onClick.AddListener(battle.UpgradeSelected);
             developRobotButton.onClick.AddListener(battle.DevelopSelected);
             recallRobotButton.onClick.AddListener(battle.RemoveSelected);
+            // 이동 (the user, 2026-11-19): a copy of 회수 built here so the scene stays as it is; the bottom row holds 이동 on the
+            // left and 회수 on the right, under 레벨업 and 개발.
+            moveRobotButton = Instantiate(recallRobotButton, recallRobotButton.transform.parent);
+            moveRobotButton.name = "Move"; moveRobotButton.onClick = new Button.ButtonClickedEvent();
+            moveRobotButton.onClick.AddListener(battle.MoveSelected);
+            if (moveRobotButton.transform.Find("Label")?.GetComponent<TMP_Text>() is TMP_Text moveLabel) moveLabel.text = "이동";
+            if (moveRobotButton.transform.Find("Icon")?.GetComponent<Image>() is Image moveIcon && Resources.Load<Sprite>("UI/ui_move") is Sprite moveSprite) moveIcon.sprite = moveSprite;
             if (!baked) Bake(battle.RobotDefinitions);
             toastPosition = ((RectTransform)placementToast.transform).anchoredPosition;
             placementToast.alpha = 0;
@@ -407,10 +415,11 @@ namespace CodingGame.Defense
             robotActions.anchoredPosition = point;
             foreach (var button in upperRobotButtons)
             { var r = (RectTransform)button.transform; r.anchoredPosition = new Vector2(r.anchoredPosition.x, above + r.rect.height / 2); }
-            var recall = (RectTransform)recallRobotButton.transform;
-            recall.anchoredPosition = new Vector2(recall.anchoredPosition.x, -below - recall.rect.height / 2);
+            var recall = (RectTransform)recallRobotButton.transform; var move = (RectTransform)moveRobotButton.transform;
+            move.anchoredPosition = new Vector2(((RectTransform)upgradeRobotButton.transform).anchoredPosition.x, -below - move.rect.height / 2);
+            recall.anchoredPosition = new Vector2(((RectTransform)developRobotButton.transform).anchoredPosition.x, -below - recall.rect.height / 2);
             upgradeRobotButton.interactable = sim.UpgradeError(selected.Id) == null;
-            recallRobotButton.interactable = sim.RecallUnlocked;
+            recallRobotButton.interactable = moveRobotButton.interactable = sim.RecallUnlocked;
             upgradeRobotLabel.text = !sim.UpgradeUnlocked ? "레벨업\n1-2 해금" : selected.IsMaxLevel ? "최고 레벨" : $"레벨업\n{sim.UpgradeCostFor(selected)} 코인";
         }
         // A tag over each robot's head (DefenseDebrief.LiveStatus). Labels sit in a layer behind the other HUD parts; the

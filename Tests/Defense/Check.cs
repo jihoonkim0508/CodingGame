@@ -201,6 +201,7 @@ static class Check
         RangedFocusCheck.RunAll();
         AllocCheck.Run();
         PlacementCheck.Run();
+        MoveCheck.Run();
         AuditCheck.Run();
         PlayLogCheck.Run();
         GameDataCheck.Run();
