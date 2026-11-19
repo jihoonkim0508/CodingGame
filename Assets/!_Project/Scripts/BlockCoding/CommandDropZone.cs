@@ -99,9 +99,9 @@ namespace CodingGame.BlockCoding
             if (!freePlacement) return blocks.Select(b => b.Read()).ToList();
             var roots = Roots().ToList();
             if (roots.Count == 0) return new List<CodeBlock>();
-            if (roots.Count != 1) throw new FormatException("미완성 · 모든 명령 블록을 하나의 흐름으로 연결해 주세요.");
+            if (roots.Count != 1) throw new FormatException("모든 명령 블록을 하나의 흐름으로 연결해 주세요.");
             // The program starts at the top-left anchor; a chain parked anywhere else does not run.
-            if (!AtStart(roots[0])) throw new FormatException("미완성 · 첫 블록을 왼쪽 위 시작 위치에 붙여 주세요.");
+            if (!AtStart(roots[0])) throw new FormatException("첫 블록을 왼쪽 위 시작 위치에 붙여 주세요.");
             return Group(roots[0]).Select(b => b.Read()).ToList();
         }
         internal void Load(IReadOnlyList<CodeBlock> source)
