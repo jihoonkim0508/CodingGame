@@ -77,11 +77,11 @@ try
     Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Buff));
     preview.PreviewSimulation.Advance(.25); Status();
     Check(label.text.Contains("호환되지 않는 명령"),"incompatible command explained");
-    // The demo plays code as one wave would: the function is called once, and new code starts the demo over.
+    // The demo calls the function again whenever it ends (the user's choice), and new code starts the demo over.
     Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Block,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.NearestEnemy)));
     var once=preview.PreviewSimulation; once.Robots.Single().Health=1e6f;
     for(int i=0;i<40;i++) Advance(.1f);
-    Check(preview.PreviewSimulation==once&&once.Robots.Single().Program.CompletedRuns==1&&once.Robots.Single().Executions==1,"function is called once per demo");
+    Check(preview.PreviewSimulation==once&&once.Robots.Single().Program.CompletedRuns>1,"function is called again whenever it ends");
     editor.Panel.LoadProgram("guard",new CodingGame.BlockCoding.CodeBlock[0]); Advance(.01f);
     Check(preview.PreviewSimulation!=once&&!preview.PreviewSimulation.Robots.Single().BlockingEnabled&&preview.PreviewSimulation.Enemies.Count==0,"new code starts the demo over with a clean robot");
     Check(Stock()==stock&&battle.Simulation.Time==time&&battle.Simulation.BaseHealth==baseHealth&&actualTank.Health==health,

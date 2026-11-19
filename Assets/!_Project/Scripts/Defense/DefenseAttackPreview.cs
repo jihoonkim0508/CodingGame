@@ -208,9 +208,10 @@ namespace CodingGame.Defense
         void Spare(TextMeshPro text) { if (text) { text.gameObject.SetActive(false); spareDamage.Push(text); } }
         void AdvancePreview(float dt)
         {
-            // The demo plays the code as one wave would: the function is called once, at the start, and a new level or new code
-            // starts the demo over with a clean robot. Calling it again whenever it ended made code without a loop look like a loop.
+            // A new level or new code starts the demo over with a clean robot. The function is called again whenever it ends (the
+            // user's choice, 2026-11-19), so the preview keeps showing what the code does instead of standing still.
             if (sourceLevel != selected.Level || source != selected.Program) ResetPreview();
+            if (simulation.Robots.FirstOrDefault() is RobotState demo) simulation.Invoke(demo.Id);
             bool wasOver = DemoOver;
             simulation.Advance(dt);
             if (!DemoOver) { emptyElapsed = 0; return; }

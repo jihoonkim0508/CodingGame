@@ -43,7 +43,7 @@ public static class BattleAuditCheck
         {
             ("A1 a won stage is recorded when it is won", WonStageIsRecorded),
             ("A2 real clears and stars are kept after the developer key Z", RealClearAfterDeveloperKey),
-            ("A3a the preview calls the code once per demo", PreviewCallsCodeOnce),
+            ("A3a the preview calls the code again whenever it ends", PreviewCallsCodeOnce),
             ("A3b new code starts the demo robot clean", NewCodeStartsDemoClean),
             ("A3c a preview held by a lesson keeps its actors in place", HeldPreviewKeepsPlaces),
             ("A4a the boss's entrance waits behind the Esc menu", BossEntranceWaitsForMenu),
@@ -210,17 +210,16 @@ public static class BattleAuditCheck
         for (int i = 0; i < seconds * 60 + 60 && preview.PreviewSimulation == demo && demo.Time < seconds && (until == null || !until()); i++) Step(preview);
     }
 
-    // A3a. The preview plays code as one wave would: the function is called once per demo, so slash() with no loop swings
-    // once and the robot then stands while the enemies walk by; when they are past, the demo starts over. (The function was
-    // called again whenever it ended, so code without a loop looked like a loop.) A hit still tells the tutorial.
+    // A3a. The preview calls the function again whenever it ends (the user's choice, 2026-11-19), so slash() with no loop keeps
+    // swinging instead of standing still; when the enemies are past, the demo starts over. A hit still tells the tutorial.
     static async Task PreviewCallsCodeOnce(DefenseBattle battle)
     {
         var preview = OpenPreview(battle, RobotRole.Warrior, new CodeBlock(BlockKind.Slash));
         var signals = Field<HashSet<string>>(battle.Tutorial, "signals"); signals.Remove(TutorialSignals.PreviewHit);
         var demo = preview.PreviewSimulation; var bot = demo.Robots[0];
         Play(preview, demo, 4);
-        Require(bot.Program.CompletedRuns == 1 && bot.Executions == 1,
-            $"slash() with no loop ran {bot.Program.CompletedRuns} times ({bot.Executions} swings) in 4 s of one demo; a wave calls it once");
+        Require(bot.Program.CompletedRuns > 1 && bot.Executions > 1,
+            $"slash() with no loop ran {bot.Program.CompletedRuns} times ({bot.Executions} swings) in 4 s of one demo; the preview should call it again");
         await Frames(3); // the preview's Update reads the demo's events
         Require(signals.Contains(TutorialSignals.PreviewHit), "the swing hit an enemy but the tutorial got no PreviewHit");
         Play(preview, demo, 20);
