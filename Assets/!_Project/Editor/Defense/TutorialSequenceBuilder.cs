@@ -711,7 +711,7 @@ namespace CodingGame.Defense.Editor
             crowd.FindPropertyRelative("enemy").objectReferenceValue = basicEnemy;
             crowd.FindPropertyRelative("route").intValue = 0;
             crowd.FindPropertyRelative("count").intValue = 1;
-            crowd.FindPropertyRelative("delay").floatValue = 4;
+            crowd.FindPropertyRelative("delay").floatValue = 5; // 2 s behind the second, like before the 1 s start delay
             crowd.FindPropertyRelative("interval").floatValue = .6f;
             crowd.FindPropertyRelative("healthOverride").floatValue = 14;
             crowd.FindPropertyRelative("speedOverride").floatValue = 1.4f;
