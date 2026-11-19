@@ -22,6 +22,7 @@
     <Compile Include="../../Assets/!_Project/Editor/Defense/TutorialAnswers.cs" />
     <Compile Include="AllocCheck.cs" />
     <Compile Include="PlacementCheck.cs" />
+    <Compile Include="MoveCheck.cs" />
     <Compile Include="AuditCheck.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/Tutorial/GuideSpeech.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/Tutorial/GuideMood.cs" />
