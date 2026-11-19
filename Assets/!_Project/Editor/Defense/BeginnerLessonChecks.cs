@@ -24,6 +24,8 @@ namespace CodingGame.Defense.Editor
         static bool practiced, practicedFour, practicedFive, bossVisualSeen, gapPressed, controlsTried;
         static double tankFrom = -1, tankTo = -1, rushFrom = -1;
         static int coreAtThirdWave, killsAtThirdWave, leaksAtThirdWave, killsAtFifthWave, codedWave;
+        // The boss pause check: 1 paused, 2 aura sampled, then held and resumed (0 again).
+        static int pauseStage; static float[] pausedMotes; static float pausedClock;
         static BeginnerLessonChecks()
         {
             EditorApplication.update += Tick;
@@ -249,7 +251,7 @@ namespace CodingGame.Defense.Editor
                 {
                     var views = Field<System.Collections.Generic.Dictionary<int, DefenseActorView>>(battle, "enemyViews");
                     if (views.TryGetValue(boss.Id, out var enemyView) &&
-                        GameClock.Now - Field<float>(enemyView.GetComponent<DefenseBossAura>(), "appearedAt") >= 1.2f) // the aura's own clock
+                        Field<float>(enemyView.GetComponent<DefenseBossAura>(), "clock") >= 1.2f) // the aura's own battle clock
                     {
                         Require(sim.Kills >= killsAtFifthWave + 3 && sim.Enemies.All(enemy => enemy.Boss),
                             "Boss appeared before every minion died");
@@ -257,10 +259,27 @@ namespace CodingGame.Defense.Editor
                             enemyView.GetComponentInChildren<ParticleSystem>().isPlaying &&
                             enemyView.GetComponentInChildren<Light>().intensity > 1 && Field<bool>(battle, "bossEntranceStarted"),
                             "Boss must use the basic enemy model with visible enlarged aura");
-                        CaptureBoss(battle);
+                        CaptureBoss(battle, "TestResults/Editor/boss-entrance.png");
                         bossVisualSeen = true;
+                        sim.TogglePause(); pauseStage = 1; return;
                     }
                 }
+            }
+            // Paused, the boss aura's motes, flicker and grow-in stand still on the battle clock and the core shows its normal
+            // look; sampled a tick after the pause (the views take the pace on their next frame), checked a tick later.
+            if (pauseStage > 0)
+            {
+                var aura = Field<System.Collections.Generic.Dictionary<int, DefenseActorView>>(battle, "enemyViews").Values
+                    .Select(v => v.GetComponent<DefenseBossAura>()).First(a => a); var motes = aura.GetComponentsInChildren<ParticleSystem>();
+                Require(sim.Phase == BattlePhase.Paused, "The pause check's battle is not paused");
+                if (pauseStage == 1) { pausedMotes = motes.Select(p => p.time).ToArray(); pausedClock = Field<float>(aura, "clock"); pauseStage = 2; return; }
+                Require(motes.All(p => p.main.simulationSpeed == 0) && motes.Select(p => p.time).SequenceEqual(pausedMotes) &&
+                    Field<float>(aura, "clock") == pausedClock, "Boss aura kept playing while paused");
+                var glitch = Field<DefenseCoreGlitch>(battle, "coreGlitch");
+                Require(!glitch || Field<Material[][]>(glitch, "shown") != Field<Material[][]>(glitch, "hitLook"), "Core hit glitch shown while paused");
+                CaptureBoss(battle, "TestResults/Editor/boss-paused.png");
+                Log("PAUSE boss aura held: motes t=" + string.Join(",", pausedMotes.Select(t => t.ToString("0.000"))) + " clock=" + pausedClock.ToString("0.000"));
+                sim.TogglePause(); pauseStage = 0; return;
             }
             var step = director.EditorStep;
             if (step == null) return;
@@ -671,22 +690,22 @@ namespace CodingGame.Defense.Editor
             Require(battle.Simulation.Phase == BattlePhase.Running, "1-5 battle did not start");
         }
 
-        static void CaptureBoss(DefenseBattle battle)
+        static void CaptureBoss(DefenseBattle battle, string path)
         {
             var camera = Field<Camera>(battle, "battleCamera");
             var priorTarget = camera.targetTexture;
             var priorActive = RenderTexture.active;
-            var target = RenderTexture.GetTemporary(960, 540, 24);
+            var target = RenderTexture.GetTemporary(1920, 1080, 24);
             Texture2D image = null;
             try
             {
                 camera.targetTexture = target;
                 camera.Render();
                 RenderTexture.active = target;
-                image = new Texture2D(960, 540, TextureFormat.RGB24, false);
-                image.ReadPixels(new Rect(0, 0, 960, 540), 0, 0);
+                image = new Texture2D(1920, 1080, TextureFormat.RGB24, false);
+                image.ReadPixels(new Rect(0, 0, 1920, 1080), 0, 0);
                 image.Apply();
-                File.WriteAllBytes("TestResults/Editor/boss-entrance.png", image.EncodeToPNG());
+                File.WriteAllBytes(path, image.EncodeToPNG());
             }
             catch (Exception error) { Log("Boss screenshot unavailable: " + error.Message); }
             finally

@@ -14,7 +14,7 @@ namespace CodingGame.Defense
         Renderer[] parts;
         Material[][] original, hitLook, deathLook, shown;
         int health = -1;
-        float until;
+        float remaining;
 
         void Awake()
         {
@@ -47,12 +47,14 @@ namespace CodingGame.Defense
             return copy;
         }
 
-        // Called every frame with the simulation's core health; a drop starts the hit glitch.
-        public void Show(int baseHealth, bool defeated)
+        // Called every frame with the simulation's core health and the battle pace; a drop starts the hit glitch, counted in
+        // battle time. The shader wobbles on global time, so while paused the core shows its normal look and the rest waits.
+        public void Show(int baseHealth, bool defeated, float pace)
         {
-            if (health >= 0 && baseHealth < health) until = Time.time + hitSeconds;
+            if (health >= 0 && baseHealth < health) remaining = hitSeconds;
             health = baseHealth;
-            var look = defeated ? deathLook : Time.time < until ? hitLook : original;
+            remaining -= Time.deltaTime * pace;
+            var look = defeated ? deathLook : remaining > 0 && pace > 0 ? hitLook : original;
             if (look == shown) return;
             shown = look;
             for (int i = 0; i < parts.Length; i++) if (parts[i]) parts[i].sharedMaterials = look[i];
