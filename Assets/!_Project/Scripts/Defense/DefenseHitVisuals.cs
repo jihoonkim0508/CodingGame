@@ -89,9 +89,16 @@ namespace CodingGame.Defense
             if (!Options.hitEffects) return;
             if ((evt.Kind != "hit" && evt.Kind != "projectile-hit") || evt.Amount <= 0) return;
             // The laser's impact is drawn where the enemy is when the hit lands, not where it was at launch.
-            if (laser) { Play(active, shotImpactPrefab, offset + DefenseViews.World(evt.Position, .45f), rotation, parent); return; }
+            if (laser) { Play(active, shotImpactPrefab, offset + DefenseViews.World(evt.Position, .45f) + Scatter(), rotation, parent); return; }
             // Manual simulation keeps every child particle in sync with battle pause and speed.
-            Play(active, prefab, offset + DefenseViews.World(evt.Position, .45f), rotation, parent);
+            Play(active, prefab, offset + DefenseViews.World(evt.Position, .45f) + Scatter(), rotation, parent);
+        }
+        // A random nudge round a hit point, so hits landing together on one enemy (two warriors' 7s) burst and number
+        // apart instead of exactly on top of each other. Visuals only: UnityEngine.Random never touches the simulation.
+        internal static Vector3 Scatter()
+        {
+            var flat = UnityEngine.Random.insideUnitCircle * .35f;
+            return new Vector3(flat.x, UnityEngine.Random.Range(-.1f, .15f), flat.y);
         }
         void Later(float wait, Action show)
         {
