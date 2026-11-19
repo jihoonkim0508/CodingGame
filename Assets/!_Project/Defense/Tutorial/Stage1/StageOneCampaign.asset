@@ -69,12 +69,8 @@ MonoBehaviour:
       robots:
       - role: 1
         count: 1
-      blocks:
-      - kind: 19
-        count: 1
-      rewards:
-      - kind: 19
-        count: 1
+      blocks: []
+      rewards: []
     - stage: 1
       wave: 3
       topic: "\uBC18\uBCF5\uBB38"
@@ -93,7 +89,9 @@ MonoBehaviour:
       robots:
       - role: 1
         count: 1
-      blocks: []
+      blocks:
+      - kind: 19
+        count: 1
       rewards: []
     - stage: 1
       wave: 5

@@ -534,12 +534,12 @@ namespace CodingGame.Defense.Editor
             // and variables open at 2-1, conditions at 2-3, the tank at 3-1 (13차 179).
             Lesson(1, "베기와 실행 버튼", 1, (BlockKind.Slash, 1));
             // Grants and rewards give what the robots' code needs and no more (play feedback: eight slash() for three warriors,
-            // value blocks with nothing to use them on): one slash() and, from the loop on, one while per warrior, plus 1-2's
-            // second swing a call (slash() twice, before loops; that warrior may keep it). A reward is the next wave's need
-            // (1-1's slash() for 1-2's warrior, 1-2's slash() and 1-3's while for 1-4's), else nothing.
-            Lesson(2, "베기 자유 플레이", 1, (BlockKind.Slash, 1));
+            // value blocks with nothing to use them on): one slash() per warrior and, from the loop on, one while per warrior. A
+            // reward is the next wave's need (1-1's slash() for 1-2's warrior, 1-3's while for 1-4's); 1-4 brings its third
+            // warrior's slash() itself. (1-2 used to grant a second slash() and reward another: two spare in 1-2 and 1-3.)
+            Lesson(2, "베기 자유 플레이", 1);
             Lesson(3, "반복문", 0, (BlockKind.While, 2));
-            Rewards(1, 1, (BlockKind.Slash, 1)); Rewards(1, 2, (BlockKind.Slash, 1)); Rewards(1, 3, (BlockKind.While, 1));
+            Rewards(1, 1, (BlockKind.Slash, 1)); Rewards(1, 2); Rewards(1, 3, (BlockKind.While, 1));
             SetupIntroEncounter(so);
             // Balance (play feedback): from 1-2 a basic enemy takes three of the warrior's swings (17.5 health: about 3 s from
             // the first hit to the kill) and walks at about 2 per second, so one warrior lets some through and every robot the
@@ -559,7 +559,7 @@ namespace CodingGame.Defense.Editor
                 so.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(campaign);
                 return "campaign: lessons 1-1 to 1-3 only";
             }
-            Lesson(4, "반복 자유 플레이", 1);
+            Lesson(4, "반복 자유 플레이", 1, (BlockKind.Slash, 1));
             Lesson(5, "반복 보스 실습", 0);
             Rewards(1, 4); Rewards(1, 5); Rewards(2, 1); Rewards(2, 2);
             // Stage 2: variables at 2-1 (two shooters), conditions at 2-3 (a warrior the lesson stands by the road, with its

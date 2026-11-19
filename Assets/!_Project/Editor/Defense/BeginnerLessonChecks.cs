@@ -485,8 +485,8 @@ namespace CodingGame.Defense.Editor
             Require(sim.StartError() == null, "1-2 free play must start with an uncoded new robot: " + sim.StartError());
             battle.SelectRobot(second.Id); battle.DevelopSelected();
             var panel = battle.CodeEditor.Panel;
-            panel.LoadProgram("practice", TutorialAnswers.Parse("slash()\nslash()"));
-            Require(panel.IsApplied, "Two swings a call did not compile");
+            panel.LoadProgram("practice", TutorialAnswers.Parse("slash()"));
+            Require(panel.IsApplied, "The new warrior's slash() did not compile");
             var hint = Field<Button>(battle.CodeEditor, "hintButton");
             Require(hint.gameObject.activeSelf, "Optional hint unavailable"); hint.onClick.Invoke();
             Require(battle.CodeEditor.HintOpen, "Hint did not open"); hint.onClick.Invoke();
@@ -495,11 +495,11 @@ namespace CodingGame.Defense.Editor
             battle.CodeEditor.Close(); Require(!battle.CodeEditor.IsOpen, "Incomplete draft cannot close in free play");
             battle.DevelopSelected();
             Require(!panel.IsApplied, "Incomplete draft not preserved on reopen");
-            panel.LoadProgram("practice", TutorialAnswers.Parse("slash()\nslash()"));
+            panel.LoadProgram("practice", TutorialAnswers.Parse("slash()"));
             Require(panel.IsApplied && first.Program.Source == preserved, "Free practice changed the original robot");
             battle.CodeEditor.Close(); battle.StartBattle();
             Require(sim.Phase == BattlePhase.Running, "Free play cannot start battle");
-            Log("PASS free play: two swings a call, extra warrior, optional hint, close/reopen unfinished draft, original code retained, battle start");
+            Log("PASS free play: one slash() for the extra warrior, optional hint, close/reopen unfinished draft, original code retained, battle start");
         }
 
         static BlockKind PaletteKind(string pointer) => (BlockKind)Enum.Parse(typeof(BlockKind),
