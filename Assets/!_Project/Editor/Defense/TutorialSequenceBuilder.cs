@@ -591,7 +591,6 @@ namespace CodingGame.Defense.Editor
                     }
                 }
             }
-            stages.GetArrayElementAtIndex(0).FindPropertyRelative("waveSeconds").floatValue = 120; // 1-1's lesson talks through its battle
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(campaign);
             foreach (var stats in data.Robots)

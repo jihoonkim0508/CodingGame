@@ -141,7 +141,6 @@ namespace CodingGame.Defense
         public DefenseBalanceRules RulesConfig = new DefenseBalanceRules();
         public DefenseTestOptions TestOptions = new DefenseTestOptions();
         public SpawnGroup[][][] CampaignWaves;
-        public float[] CampaignSeconds;
         public int InitialWave;
         public bool PreviousStageRewards = true;
         public Vector2 Min, Max;
@@ -151,7 +150,6 @@ namespace CodingGame.Defense
         public int Stage;
         public int BaseHealth = 12, RobotLimit = 18;
         public bool PlayerFlow;
-        public float WaveSeconds;
         public DefenseProgression Progression = new DefenseProgression();
         public ActionPermission[] Permissions = Array.Empty<ActionPermission>();
         public RobotSpec[] ActionProfiles = Array.Empty<RobotSpec>();
@@ -163,7 +161,6 @@ namespace CodingGame.Defense
             RulesConfig.Validate();
             if (TestOptions == null || InitialWave < 0) throw new ArgumentException("테스트 설정·초기 웨이브 오류");
             if (Stage < 0) throw new ArgumentException("스테이지는 0 이상이어야 합니다.");
-            if (!Rules.Nonnegative(WaveSeconds)) throw new ArgumentException("웨이브 시간은 0 이상이어야 합니다.");
             if (PlayerFlow) { if (Progression == null) throw new ArgumentException("보상 설정 누락"); Progression.Validate(); }
             if (!Rules.ValidBox(Min, Max) || BaseHealth < 1 || RobotLimit < 1 || Routes == null || Routes.Length == 0 ||
                 Routes.Any(r => r == null) || Waves == null || Waves.Length == 0 || Permissions == null || Obstacles == null)
@@ -188,8 +185,8 @@ namespace CodingGame.Defense
             if (InitialWave >= Waves.Length) throw new ArgumentException("초기 웨이브 범위 오류");
             if (CampaignWaves != null)
             {
-                if (CampaignSeconds == null || CampaignSeconds.Length != CampaignWaves.Length || Stage < 1 || Stage > CampaignWaves.Length)
-                    throw new ArgumentException("캠페인 단계·시간 설정 오류");
+                if (Stage < 1 || Stage > CampaignWaves.Length)
+                    throw new ArgumentException("캠페인 단계 설정 오류");
                 foreach (var stageWaves in CampaignWaves)
                     if (stageWaves == null || stageWaves.Length == 0 || stageWaves.Any(w => w == null || w.Length == 0 || w.Any(g => g == null || g.RouteIndex < 0 || g.RouteIndex >= Routes.Length)))
                         throw new ArgumentException("캠페인 경로·웨이브 설정 오류");

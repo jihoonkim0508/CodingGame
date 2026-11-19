@@ -187,7 +187,6 @@ namespace CodingGame.Defense
             if(map&&map.hasBase&&core)core.position=map.CellPosition(map.baseCell);
             return new BattleSetup {
                 PlayerFlow=true, Stage=selectedStage, BaseHealth=content.baseHealth, RobotLimit=content.robotLimit,
-                WaveSeconds=content.stages[selectedStage-1].waveSeconds,
                 RulesConfig=JsonUtility.FromJson<DefenseBalanceRules>(JsonUtility.ToJson(content.rules)),
                 Progression=content.progression.Copy(),
                 Permissions=content.permissions.Select(p=>p.Copy()).ToArray(),
@@ -197,8 +196,7 @@ namespace CodingGame.Defense
                 Obstacles=blockedAreas.Select(a=>a.bounds).Concat(MapProps(map)).Select(b=>new PlacementObstacle {Min=new Point(b.min.x,b.min.z),Max=new Point(b.max.x,b.max.z)}).ToArray(),
                 Floor=tiles,
                 Waves=ReadWaves(content,selectedStage),
-                CampaignWaves=Enumerable.Range(1,content.stages.Length).Select(s=>ReadWaves(content,s)).ToArray(),
-                CampaignSeconds=content.stages.Select(s=>s.waveSeconds).ToArray()
+                CampaignWaves=Enumerable.Range(1,content.stages.Length).Select(s=>ReadWaves(content,s)).ToArray()
             };
         }
         // Stage 1 plays on a short straight road and Stages 2·3 on the workshop (play feedback: the workshop was too big for the
@@ -543,14 +541,14 @@ namespace CodingGame.Defense
             Trace("wave-start " + string.Join(", ", Simulation.UpcomingWave.Select(g => $"{enemies[g.DefinitionIndex].name} x{g.Count} HP={g.Enemy.health:0.0} speed={g.Enemy.speed:0.00}")));
             Trace(InventoryLine());
             Simulation.Start();
-            Tell(Simulation.FinalRush ? "마지막 웨이브 · 시간이 끝나면 남은 적이 모두 코어로 돌진합니다." : "전투 중 · 웨이브 종료 후 지정 보상을 수령하세요.");
+            Tell("전투 중 · 웨이브 종료 후 지정 보상을 수령하세요.");
             RefreshHUD();
             ReportTutorialAction("Battle.Start", "TargetClicked", "BattleStarted");
         }
         public void ClaimRewards()
         {
             if (!TutorialAllows("Battle.ClaimRewards") && !(Simulation.Phase == BattlePhase.Reward && TutorialAllows("Battle.ContinueCampaign"))) return;
-            if (Simulation.Phase == BattlePhase.Reward) Trace($"wave-end kills={Simulation.Kills} leaks={Simulation.Leaks} survivors={Simulation.LastSurvivors} rewards={Simulation.PendingDrops.Count}");
+            if (Simulation.Phase == BattlePhase.Reward) Trace($"wave-end kills={Simulation.Kills} leaks={Simulation.Leaks} rewards={Simulation.PendingDrops.Count}");
             if (!Simulation.ClaimRewards()) return;
             // The stage is won here, so it counts here: the Esc menu's buttons leave the result screen without ContinueCampaign.
             if (Simulation.Phase == BattlePhase.Victory && FromStageMap)

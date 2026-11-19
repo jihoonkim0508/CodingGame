@@ -103,7 +103,7 @@ public static class CampaignFiveStagesCheck
                 foreach(var bot in sim.Robots.OrderByDescending(r=>r.Damage))sim.UpgradeRobot(bot.Id);
                 battle.StartBattle();int kills=sim.Kills;
                 for(int tick=0;tick<10000&&sim.Phase==BattlePhase.Running;tick++)sim.Advance(1.0/60);
-                lines.Add($"S{stage} W{wave}: {sim.Phase}, core={sim.BaseHealth}, kills={sim.Kills-kills}, survivors={sim.LastSurvivors}, robots={sim.Robots.Count}, rewards={sim.PendingDrops.Count}");
+                lines.Add($"S{stage} W{wave}: {sim.Phase}, core={sim.BaseHealth}, kills={sim.Kills-kills}, leaks={sim.WaveLeaks}, robots={sim.Robots.Count}, rewards={sim.PendingDrops.Count}");
                 if(sim.Phase!=BattlePhase.Reward)throw new Exception("Campaign failed: "+string.Join(" | ",lines));
                 var tankHealth=sim.Robots.Where(r=>r.Health.HasValue).ToDictionary(r=>r.Id,r=>r.Health);
                 button.onClick.Invoke();
