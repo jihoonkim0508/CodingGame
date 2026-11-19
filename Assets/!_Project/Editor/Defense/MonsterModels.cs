@@ -28,11 +28,11 @@ namespace CodingGame.Defense.Editor
                 var light = new GameObject("Light").AddComponent<Light>(); light.type = LightType.Directional; light.intensity = 1.2f;
                 UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(light.gameObject, scene);
                 light.transform.rotation = Quaternion.Euler(40, 30, 0);
-                foreach (var name in new[] { "MonsterTank", "MonsterRunner" })
+                foreach (var (name, material) in new[] { ("MonsterTanker", "MonsterTank"), ("MonsterRunner", "MonsterRunner") })
                 {
                     var model = (GameObject)Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(Folder + name + ".fbx"));
                     UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(model, scene);
-                    foreach (var r in model.GetComponentsInChildren<Renderer>()) r.sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>(Folder + name + ".mat");
+                    foreach (var r in model.GetComponentsInChildren<Renderer>()) r.sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>(Folder + material + ".mat");
                     var bounds = Bounds(model);
                     camera.orthographicSize = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z) * .6f;
                     foreach (var (side, direction) in new[] { ("front", Vector3.forward), ("right", Vector3.right), ("back", Vector3.back), ("left", Vector3.left) })
@@ -53,9 +53,36 @@ namespace CodingGame.Defense.Editor
         // the walk turns it, and it becomes the body DefenseActorView tints when stunned or slowed.
         public static void Apply()
         {
-            Fit("Heavy", "MonsterTank", 1.1f);
+            Tanker();
             Runner();
             Debug.Log("[MonsterModels] Heavy and Runner use the team's models");
+        }
+
+        // The team's rigged tanker (3ds Max, 17 bones, the same texture as the static MonsterTank it replaces) on Heavy: the
+        // model from MonsterTanker.fbx, its walk (1 s, the four legs) from MonsterTankerWalk.fbx looping on the model's Animator.
+        public static void Tanker()
+        {
+            foreach (var file in new[] { "MonsterTanker.fbx", "MonsterTankerWalk.fbx" })
+            {
+                var importer = (ModelImporter)AssetImporter.GetAtPath(Folder + file);
+                importer.materialImportMode = ModelImporterMaterialImportMode.None; // MonsterTank.mat (URP Lit) is set on the prefab
+                importer.animationType = ModelImporterAnimationType.Generic;
+                importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
+                importer.importAnimation = true;
+                if (file == "MonsterTankerWalk.fbx")
+                {
+                    var take = importer.defaultClipAnimations[0];
+                    take.name = "MonsterTanker_Walk"; take.loopTime = true;
+                    importer.clipAnimations = new[] { take };
+                }
+                importer.SaveAndReimport();
+            }
+            var walk = AssetDatabase.LoadAllAssetsAtPath(Folder + "MonsterTankerWalk.fbx").OfType<AnimationClip>().First(c => c.name == "MonsterTanker_Walk");
+            var controller = UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPathWithClip(Folder + "MonsterTanker.controller", walk);
+            Fit("Heavy", "MonsterTanker", 1.1f, "MonsterTank", controller);
+            AssetDatabase.SaveAssets();
+            RobotIcons.Build();
+            Debug.Log("[MonsterModels] Heavy walks as the team's rigged tanker");
         }
 
         // The runner flies: lifted off the ground and bobbing (DefenseActorView.hover), a flame from each foot (the two
@@ -181,7 +208,7 @@ namespace CodingGame.Defense.Editor
             return flame;
         }
 
-        static void Fit(string enemy, string model, float height)
+        static void Fit(string enemy, string model, float height, string material = null, RuntimeAnimatorController walk = null)
         {
             string path = Prefabs + enemy + ".prefab";
             var root = PrefabUtility.LoadPrefabContents(path);
@@ -194,9 +221,15 @@ namespace CodingGame.Defense.Editor
                 if (old) Object.DestroyImmediate(old.gameObject);
                 var instance = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(Folder + model + ".fbx"), root.transform);
                 instance.name = "Model";
-                var renderer = instance.GetComponentInChildren<MeshRenderer>();
-                renderer.sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>(Folder + model + ".mat");
+                var renderer = instance.GetComponentInChildren<Renderer>();
+                renderer.sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>(Folder + (material ?? model) + ".mat");
                 renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                if (walk)
+                {
+                    // The Generic FBX's own Animator and avatar; the walk turns with the enemy, no root motion.
+                    var animator = instance.GetComponent<Animator>();
+                    animator.runtimeAnimatorController = walk; animator.applyRootMotion = false; animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                }
                 // Size and place in the enemy's local space: as tall as asked, centred, standing on the ground. The
                 // FBX root keeps its own rotation and scale (3ds Max axes: the tank turned 270° on X, the runner scaled -0.04).
                 var source = AssetDatabase.LoadAssetAtPath<GameObject>(Folder + model + ".fbx").transform;
@@ -215,9 +248,9 @@ namespace CodingGame.Defense.Editor
         }
 
         // A renderer's mesh bounds in another transform's local space.
-        static Bounds LocalBounds(Transform space, MeshRenderer renderer)
+        static Bounds LocalBounds(Transform space, Renderer renderer)
         {
-            var mesh = renderer.GetComponent<MeshFilter>().sharedMesh;
+            var mesh = renderer is SkinnedMeshRenderer skinned ? skinned.sharedMesh : renderer.GetComponent<MeshFilter>().sharedMesh; // skinned: its bind pose
             var toSpace = space.worldToLocalMatrix * renderer.transform.localToWorldMatrix;
             var b = mesh.bounds; var result = new Bounds(toSpace.MultiplyPoint3x4(b.center), Vector3.zero);
             for (int i = 0; i < 8; i++)
