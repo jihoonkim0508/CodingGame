@@ -117,6 +117,8 @@ namespace CodingGame.Defense
             upcomingPositions = nextWaveParts.Select(r => r.anchoredPosition).ToArray();
             combatParts = new[] { combatControls.transform as RectTransform, combatControls.transform.parent.Find("Header/Info") as RectTransform }.Where(r => r).ToArray();
             combatPositions = combatParts.Select(r => r.anchoredPosition).ToArray();
+            // The core health bar stays under them, so it comes down with them (it was left under the lowered buttons).
+            if (combatControls.transform.parent.GetComponentInChildren<DefenseCoreHealthBar>(true) is DefenseCoreHealthBar coreBar) coreBar.KeepBelow = combatParts;
 
             for (int i = 0; i < robotButtons.Length; i++) { int index = i; robotButtons[i].onClick.AddListener(() => battle.ChooseRobot(index)); }
             enemyImages = enemyCards.Select(c => c.GetComponentInChildren<RawImage>(true)).ToArray();
