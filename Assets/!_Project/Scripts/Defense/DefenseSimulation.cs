@@ -163,8 +163,11 @@ namespace CodingGame.Defense
                 AddStock(RobotInventory, stock.role, stock.count);
             // Starting mid-stage (dev tests) also carries the earlier waves of this stage. Stage 1's road keeps its warriors and
             // their blocks: the workshop stages start with their own robots (the user, 2026-11-19: 2-1 opened with three
-            // warriors and two shooters in the dock); Stage 3 follows on from Stage 2 on the same map.
-            if (setup.PlayerFlow && setup.PreviousStageRewards) foreach (var lesson in setup.Progression.lessons.Where(l => l.stage > 1 && l.stage < setup.Stage || l.stage == setup.Stage && l.wave <= setup.InitialWave))
+            // warriors and two shooters in the dock); Stage 3 follows on from Stage 2 on the same map. The previous stage's last
+            // clear reward always comes along (GameData/Award.md: 1-5's row is what 2-1 starts with).
+            var lessons = setup.Progression.lessons;
+            if (setup.PlayerFlow && setup.PreviousStageRewards) foreach (var lesson in lessons.Where(l => l.stage > 1 && l.stage < setup.Stage || l.stage == setup.Stage && l.wave <= setup.InitialWave ||
+                l.stage == setup.Stage - 1 && l.wave == lessons.Where(x => x.stage == l.stage).Max(x => x.wave)))
             {
                 foreach(var stock in lesson.robots.Concat(lesson.rewardRobots ?? Array.Empty<RobotStock>())) AddRobots(stock.role,stock.count);
                 foreach(var stock in lesson.blocks.Concat(lesson.rewards)) AddBlocks(stock.kind,stock.count);
