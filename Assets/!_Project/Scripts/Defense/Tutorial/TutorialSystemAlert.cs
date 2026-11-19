@@ -32,6 +32,8 @@ namespace CodingGame.Defense
         int sounded;
         [SerializeField, HideInInspector] RectTransform bar, stripes, shake;
         [SerializeField, HideInInspector] Image vignette;
+        Image[] stripeImages;
+        float stripeOuter;
         [SerializeField, HideInInspector] List<RectTransform> cardRects = new List<RectTransform>();
         [SerializeField, HideInInspector] List<CanvasGroup> cardGroups = new List<CanvasGroup>();
         readonly List<(RectTransform rect, CanvasGroup group)> cards = new List<(RectTransform, CanvasGroup)>();
@@ -46,6 +48,7 @@ namespace CodingGame.Defense
         {
             if (!panel || !fade || !message || !warning) throw new InvalidOperationException(name + ": 시스템 경고 UI 참조 누락");
             if (!baked) Build();
+            FitStripes();
             for (int i = 0; i < cardRects.Count; i++) cards.Add((cardRects[i], cardGroups[i]));
             panel.SetActive(false);
         }
@@ -99,7 +102,16 @@ namespace CodingGame.Defense
             bar.localScale = new Vector3(1 - (1 - open) * (1 - open), 1, 1);
             float lit = t - barStart - .2f;
             message.alpha = lit < 0 ? 0 : lit < .35f ? (Mathf.Sin(lit * 90) > -.2f ? 1 : .15f) : .93f + .07f * Mathf.Sin(t * 9);
-            stripes.anchoredPosition = new Vector2(-Mathf.Repeat(t * 70, 40), 0);
+            // Each side's stripes march left and wrap inside their band; the alpha follows the position (in over the first
+            // spacing, out to nothing at the frame), so a stripe appears and leaves transparent and is never seen cut.
+            int half = stripeImages.Length / 2; float band = half * StripeSpacing;
+            for (int i = 0; i < stripeImages.Length; i++)
+            {
+                float side = i < half ? -1 : 1, d = Mathf.Repeat(i % half * StripeSpacing - side * t * 70, band);
+                stripeImages[i].rectTransform.anchoredPosition = new Vector2(side * (stripeOuter - band + d), 0);
+                var c = stripeImages[i].color; c.a = .85f * Mathf.Clamp01(Mathf.Min(d / StripeSpacing, (band - d) / (band - StripeSpacing)));
+                stripeImages[i].color = c;
+            }
             // A short jolt when the cards land.
             float jolt = Mathf.Clamp01(1 - (withCards ? t - barStart : t) / .25f);
             if (withCards) for (int i = 0; i < cards.Count; i++) jolt = Mathf.Max(jolt, Mathf.Clamp01(1 - Mathf.Abs(t - Land(i) - .2f) / .25f));
@@ -134,17 +146,15 @@ namespace CodingGame.Defense
             if (!glow) { glow = new Material(message.fontSharedMaterial); Glow(glow); }
 
             bar = New("Alarm bar", shake); bar.sizeDelta = new Vector2(1560, 92);
-            Panel(bar, 40, 16, new Color(.36f, 0, .04f, .92f));
+            Panel(bar, BarWide, BarRadius, new Color(.36f, 0, .04f, .92f));
             var mask = Stretch(New("Stripes mask", bar)); mask.gameObject.AddComponent<RectMask2D>();
             stripes = New("Stripes", mask); stripes.anchorMin = stripes.anchorMax = new Vector2(.5f, .5f); stripes.sizeDelta = new Vector2(1560, 92);
-            // Four slanted stripes at each end, scrolling; the middle stays clear for the message.
-            foreach (float side in new[] { -1f, 1f })
-                for (int i = 0; i < 6; i++)
-                {
-                    var stripe = Rounded(NewImage("Stripe", stripes, null, new Color(1, .1f, .15f, .85f - i * .1f)), 7).rectTransform;
-                    stripe.sizeDelta = new Vector2(18, 70); stripe.localEulerAngles = new Vector3(0, 0, -25);
-                    stripe.anchoredPosition = new Vector2(side * (600 + i * 40), 0);
-                }
+            // Six slanted stripes at each end, scrolling (laid out by Animate); the middle stays clear for the message.
+            for (int i = 0; i < 12; i++)
+            {
+                var stripe = Rounded(NewImage("Stripe", stripes, null, new Color(1, .1f, .15f, .85f)), 7).rectTransform;
+                stripe.sizeDelta = new Vector2(18, 70); stripe.localEulerAngles = new Vector3(0, 0, -25);
+            }
             message.transform.SetParent(bar, false);
             var text = message.rectTransform;
             text.anchorMin = text.anchorMax = text.pivot = new Vector2(.5f, .5f);
@@ -172,6 +182,18 @@ namespace CodingGame.Defense
                 if (UITheme.Bold) { body.font = UITheme.Bold; body.fontSharedMaterial = UITheme.Bold.material; }
                 cardRects.Add(card); cardGroups.Add(group);
             }
+        }
+        // The bar's fill reaches BarWide past its rect on each side; the stripe mask covers that fill less its rounded corners
+        // (RectMask2D is square), and a stripe (18x70 at -25 deg, about 23 px either side of its centre) stops inside it.
+        // Also run on a baked scene, whose mask was the bar's rect and cut the outer stripes 40 px inside the frame.
+        const float BarWide = 40, BarRadius = 16, StripeHalf = 23, StripeSpacing = 40;
+        void FitStripes()
+        {
+            var mask = (RectTransform)stripes.parent;
+            mask.offsetMin = new Vector2(BarRadius - BarWide, 0); mask.offsetMax = new Vector2(BarWide - BarRadius, 0);
+            stripes.anchoredPosition = Vector2.zero;
+            stripeImages = stripes.GetComponentsInChildren<Image>(true);
+            stripeOuter = bar.rect.width / 2 + BarWide - BarRadius - StripeHalf;
         }
         // The banner's letters: a red glow, a dark maroon outline and a hard dark drop over the heading font's material.
         public static void Glow(Material glow)
