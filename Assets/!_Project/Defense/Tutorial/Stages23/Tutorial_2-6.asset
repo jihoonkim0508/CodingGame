@@ -43,6 +43,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -93,6 +94,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -143,6 +145,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -192,6 +195,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 1
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -246,6 +250,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 1
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -297,6 +302,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 1
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -348,6 +354,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 1
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -401,6 +408,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -454,6 +462,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -485,8 +494,9 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uC67C\uCABD \uCE78\uC5D4 <b>\u2018variable\u2019</b>\uC744 \uB123\uACE0\n\uAE00\uC790\uB97C
-        <b>`enemy`.</b> \uB85C \uBC14\uAFD4 \uC918. \uC810(.)\uAE4C\uC9C0!"
+      text: "\uC67C\uCABD \uCE78\uC5D0 <b>\u2018variable\u2019</b>\uC744 \uAEBC\uB0B4
+        \uB123\uACE0,\n\uC774\uB984\uC744 <b>`enemy`.</b> \uB85C \uBC14\uAFD4 \uC918.
+        \uB05D\uC5D0 \uC810(.)\uB3C4 \uAF2D!"
       focusKeys:
       - Editor.Palette.Variable
       - Editor.Code.Arg.1/2/1.0.0
@@ -507,6 +517,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -558,6 +569,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -611,6 +623,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -664,6 +677,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -717,6 +731,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 1
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -768,6 +783,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 1
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -819,6 +835,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 1
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -871,11 +888,63 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 1
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
     expectedCode: 
     pointerKey: Editor.Code.Line.1
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    placeShooter: 0
+    placeWarrior: 0
+    prepareBaselineExample: 0
+    prepareExample: 
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
+  - stepId: F02a
+    kind: 1
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "<b>\u2018\uB2EB\uAE30\u2019</b>\uB97C \uB20C\uB7EC \uC791\uC5C5 \uACF5\uAC04\uC744
+        \uB2EB\uC544 \uC918."
+      focusKeys: []
+      highlightKeys: []
+    targetKeys:
+    - Editor.Close
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    roundFocus: 0
+    completionMode: 1
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 1
+    rushTank: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: Editor.Close
     autoSelectSlot: 
     hintCode: 
     pointerDelay: 0
@@ -921,6 +990,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -929,7 +999,7 @@ MonoBehaviour:
     autoSelectSlot: 
     hintCode: 
     pointerDelay: 0
-    closeEditor: 1
+    closeEditor: 0
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
@@ -971,6 +1041,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -1021,6 +1092,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -1070,6 +1142,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 1
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -1122,6 +1195,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 1
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -1175,6 +1249,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 1
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -1187,6 +1262,57 @@ MonoBehaviour:
     clearProgram: 0
     openEditor: 0
     robotIndex: -1
+    prepareDistanceExample: 0
+    placeShooter: 0
+    placeWarrior: 0
+    prepareBaselineExample: 0
+    prepareExample: 
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
+  - stepId: E00
+    kind: 1
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "<b>\u2018\uB2EB\uAE30\u2019</b>\uB97C \uB20C\uB7EC \uC791\uC5C5 \uACF5\uAC04\uC744
+        \uB2EB\uC544 \uC918."
+      focusKeys: []
+      highlightKeys: []
+    targetKeys:
+    - Editor.Close
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    roundFocus: 0
+    completionMode: 1
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 1
+    rushTank: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: Editor.Close
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
     prepareDistanceExample: 0
     placeShooter: 0
     placeWarrior: 0
@@ -1224,6 +1350,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -1234,7 +1361,7 @@ MonoBehaviour:
       if enemy.distance(get_my_pos()) > my_attack_range():\n            break\n       
       shoot(enemy)"
     pointerDelay: 0
-    closeEditor: 1
+    closeEditor: 0
     clearProgram: 0
     openEditor: 0
     robotIndex: 0
@@ -1272,9 +1399,10 @@ MonoBehaviour:
     requiredSlotBlock: 
     sourceKey: 
     destinationKey: 
-    pauseBattle: 0
+    pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: WaveCleared
     skipIf: 
@@ -1323,9 +1451,10 @@ MonoBehaviour:
     requiredSlotBlock: 
     sourceKey: 
     destinationKey: 
-    pauseBattle: 0
+    pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 

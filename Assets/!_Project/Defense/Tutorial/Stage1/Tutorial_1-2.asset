@@ -20,6 +20,163 @@ MonoBehaviour:
   speakerPortrait: {fileID: 0}
   typeSpeed: 40
   steps:
+  - stepId: A00
+    kind: 1
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "\uB85C\uBD07\uC744 \uB204\uB974\uBA74 \uC4F8 \uC218 \uC788\uB294 \uBC84\uD2BC\uC774
+        \uB354 \uC788\uC5B4.\n\uCC98\uC74C \uC138\uC6B4 \uC804\uC0AC\uB97C \uB20C\uB7EC
+        \uC918!"
+      focusKeys: []
+      highlightKeys: []
+    targetKeys:
+    - Robot.Unit.0
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    roundFocus: 0
+    completionMode: 1
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    rushTank: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: Robot.Unit.0
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    placeShooter: 0
+    placeWarrior: 0
+    prepareBaselineExample: 0
+    prepareExample: 
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
+  - stepId: A00a
+    kind: 0
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "<b>\u2018\uB808\uBCA8\uC5C5\u2019</b>\uC740 \uCF54\uC778\uC744 \uC368\uC11C
+        \uB85C\uBD07\uC744 \uB354 \uC138\uAC8C \uB9CC\uB4E4\uC5B4.\n\uB808\uBCA8\uC774
+        \uC624\uB97C\uC218\uB85D \uB4DC\uB294 \uCF54\uC778\uB3C4 \uB298\uC5B4\uB098!"
+      focusKeys:
+      - Battle.Upgrade
+      highlightKeys: []
+    targetKeys: []
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    roundFocus: 0
+    completionMode: 0
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    rushTank: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: Battle.Upgrade
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    placeShooter: 0
+    placeWarrior: 0
+    prepareBaselineExample: 0
+    prepareExample: 
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
+  - stepId: A00b
+    kind: 0
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "<b>\u2018\uD68C\uC218\u2019</b>\uB97C \uB204\uB974\uBA74 \uB85C\uBD07\uACFC
+        \uCF54\uB4DC\uC5D0 \uC4F4 \uBE14\uB85D\uC774\n\uC778\uBCA4\uD1A0\uB9AC\uB85C
+        \uB3CC\uC544\uC640. \uB2E4\uB978 \uC790\uB9AC\uC5D0 \uB2E4\uC2DC \uC138\uC6B8
+        \uB54C \uC368!"
+      focusKeys:
+      - Battle.Recall
+      highlightKeys: []
+    targetKeys: []
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    roundFocus: 0
+    completionMode: 0
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    rushTank: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: Battle.Recall
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    placeShooter: 0
+    placeWarrior: 0
+    prepareBaselineExample: 0
+    prepareExample: 
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
   - stepId: A01
     kind: 0
     dialoguePosition: 0
@@ -44,6 +201,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -94,6 +252,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -144,6 +303,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -151,6 +311,111 @@ MonoBehaviour:
     pointerKey: 
     autoSelectSlot: 
     hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    placeShooter: 0
+    placeWarrior: 0
+    prepareBaselineExample: 0
+    prepareExample: 
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
+  - stepId: A04
+    kind: 0
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "<b>\u2018\uC77C\uC2DC\uC815\uC9C0\u2019</b>\uB97C \uB204\uB974\uBA74
+        \uC804\uD22C\uAC00 \uBA48\uCD94\uACE0,\n\uD55C \uBC88 \uB354 \uB204\uB974\uBA74
+        \uB2E4\uC2DC \uC6C0\uC9C1\uC5EC. \uB2E8\uCD95\uD0A4\uB294 <b>\uC2A4\uD398\uC774\uC2A4
+        \uBC14</b>\uC57C!"
+      focusKeys:
+      - Battle.Pause
+      highlightKeys: []
+    targetKeys: []
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    roundFocus: 0
+    completionMode: 0
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    rushTank: 0
+    highlightPadding: 10
+    trigger: BattleStarted
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    autoSelectSlot: 
+    hintCode: slash()
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    placeShooter: 0
+    placeWarrior: 0
+    prepareBaselineExample: 0
+    prepareExample: 
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
+  - stepId: A05
+    kind: 0
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "<b>\u20181x\u2019</b>\uB294 \uBC30\uC18D \uBC84\uD2BC\uC774\uC57C. \uB204\uB97C
+        \uB54C\uB9C8\uB2E4\n2\uBC30\uC18D, 3\uBC30\uC18D, \uB2E4\uC2DC 1\uBC30\uC18D!
+        \uB2E8\uCD95\uD0A4\uB294 <b>F</b>\uC57C."
+      focusKeys:
+      - Battle.ToggleSpeed
+      highlightKeys: []
+    targetKeys: []
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    roundFocus: 0
+    completionMode: 0
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    rushTank: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    autoSelectSlot: 
+    hintCode: slash()
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0
@@ -189,9 +454,10 @@ MonoBehaviour:
     requiredSlotBlock: 
     sourceKey: 
     destinationKey: 
-    pauseBattle: 0
+    pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: WaveCleared
     skipIf: 
@@ -238,9 +504,10 @@ MonoBehaviour:
     requiredSlotBlock: 
     sourceKey: 
     destinationKey: 
-    pauseBattle: 0
+    pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -287,9 +554,10 @@ MonoBehaviour:
     requiredSlotBlock: 
     sourceKey: 
     destinationKey: 
-    pauseBattle: 0
+    pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
