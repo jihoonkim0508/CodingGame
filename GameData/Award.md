@@ -10,28 +10,28 @@
 
 3-1은 2-10까지 받은 것을 이어받음
 
-| S-W   | 로봇      | 블록                                                                                                                             | 해금       |
-|:-----:|:-------:|:------------------------------------------------------------------------------------------------------------------------------:|:--------:|
-| start | 전사형 ×1  | slash() × 1                                                                                                                    |          |
-| 1-1   | 전사형 ×1  | slash() ×1                                                                                                                     | 일시정지, 배속 |
-| 1-2   | -       | while ×2                                                                                                                       | 레벨업      |
-| 1-3   | 전사형 ×1  | slash() ×1, while ×1                                                                                                           | 회수       |
-| 1-4   | 전사형 ×1  | slash() ×1, while ×1                                                                                                           | -        |
-| 1-5   | 원거리형 ×1 | while ×1, shoot() ×1, 변수 = 값 ×1, variable ×1, get_nearest_enemy() ×1                                                           | -        |
-| 2-1   | -       | -                                                                                                                              | 복사·붙여넣기  |
-| 2-2   | 전사형 ×1  | while True ×1, slash() ×1, if ×1, 비교 ×1, get_my_pos() ×1, variable ×1, my_attack_range() ×1, 변수 = 값 ×1, get_nearest_enemy() ×1 | -        |
-| 2-3   | -       | -                                                                                                                              | -        |
-| 2-4   | -       | 변수 = 값 ×1, get_nearest_enemy() ×1, if ×1, is_dead() ×1, variable ×1                                                            | -        |
-| 2-5   | 원거리형 ×1 | while True ×3, if ×1, break ×2, 비교 ×2, get_my_pos() ×2, my_attack_range() ×2, variable ×2, shoot() ×1                          | -        |
-| 2-6   | -       | if ×2, is_dead() ×1, variable ×2, break ×2                                                                                     | -        |
-| 2-7   | -       | if ×1, 비교 ×1, variable ×1, Enemy.Tank ×1, continue ×1                                                                          | -        |
-| 2-8   | -       | -                                                                                                                              | -        |
-| 2-9   | -       | -                                                                                                                              | -        |
-| 2-10  | 탱커형 ×1  | while True ×1, 변수 = 값 ×1, get_nearest_enemy() ×1, variable ×1, block() ×1                                                      | -        |
-| 3-1   | -       | -                                                                                                                              | -        |
-| 3-2   | -       | -                                                                                                                              | -        |
-| 3-3   | -       | -                                                                                                                              | -        |
-| 3-4   | -       | -                                                                                                                              | -        |
+| S-W   | 로봇              | 블록                                                                                                                                                                                        | 해금       |
+|:-----:|:---------------:|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:--------:|
+| start | 전사형 ×1          | slash() × 1                                                                                                                                                                               |          |
+| 1-1   | 전사형 ×1          | slash() ×1                                                                                                                                                                                | 일시정지, 배속 |
+| 1-2   | -               | while ×2                                                                                                                                                                                  | 레벨업      |
+| 1-3   | 전사형 ×1          | slash() ×1, while ×1                                                                                                                                                                      | 회수       |
+| 1-4   | 전사형 ×1          | slash() ×1, while ×1                                                                                                                                                                      | -        |
+| 1-5   | 원거리형 ×1, 전사형 ×1 | while ×2, shoot() ×1, 변수 = 값 ×1, variable ×1, get_nearest_enemy() ×1, slash() ×1                                                                                                          | -        |
+| 2-1   | -               | -                                                                                                                                                                                         | 복사·붙여넣기  |
+| 2-2   | -               | if ×1, 비교 ×1, get_my_pos() ×1, variable ×1, my_attack_range() ×1, 변수 = 값 ×1, get_nearest_enemy() ×1                                                                                       | -        |
+| 2-3   | -               | -                                                                                                                                                                                         | -        |
+| 2-4   | -               | 변수 = 값 ×1, get_nearest_enemy() ×1, if ×1, is_dead() ×1, variable ×1                                                                                                                       | -        |
+| 2-5   | 원거리형 ×1         | while True ×3, if ×1, break ×2, 비교 ×2, get_my_pos() ×2, my_attack_range() ×2, variable ×2, shoot() ×1                                                                                     | -        |
+| 2-6   | -               | if ×2, is_dead() ×1, variable ×2, break ×2                                                                                                                                                | -        |
+| 2-7   | -               | if ×2, 비교 ×2, variable ×2, Enemy.Tank ×2, continue ×2                                                                                                                                     | -        |
+| 2-8   | 원거리형 ×1, 전사형 ×1 | while ×3, if ×4, 비교 ×3, variable ×4, 변수 = 값 ×2, get_nearest_enemy() ×2, get_my_pos() ×2, my_attack_range() ×2, shoot() ×1, slash() ×1, break ×2, continue ×1, is_dead() ×1, Enemy.Tank ×1 | -        |
+| 2-9   | -               | -                                                                                                                                                                                         | -        |
+| 2-10  | 탱커형 ×1          | while True ×1, 변수 = 값 ×1, get_nearest_enemy() ×1, variable ×1, block() ×1                                                                                                                 | -        |
+| 3-1   | -               | -                                                                                                                                                                                         | -        |
+| 3-2   | -               | -                                                                                                                                                                                         | -        |
+| 3-3   | -               | -                                                                                                                                                                                         | -        |
+| 3-4   | -               | -                                                                                                                                                                                         | -        |
 
 ## 코인
 

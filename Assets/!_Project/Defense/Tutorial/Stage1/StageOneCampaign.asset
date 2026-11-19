@@ -128,7 +128,7 @@ MonoBehaviour:
       blocks: []
       rewards:
       - kind: 2
-        count: 1
+        count: 2
       - kind: 22
         count: 1
       - kind: 14
@@ -137,8 +137,12 @@ MonoBehaviour:
         count: 1
       - kind: 6
         count: 1
+      - kind: 19
+        count: 1
       rewardRobots:
       - role: 4
+        count: 1
+      - role: 1
         count: 1
       startCoins: -1
       coinsPerKill: 5
@@ -161,10 +165,6 @@ MonoBehaviour:
       robots: []
       blocks: []
       rewards:
-      - kind: 2
-        count: 1
-      - kind: 19
-        count: 1
       - kind: 3
         count: 1
       - kind: 11
@@ -179,9 +179,7 @@ MonoBehaviour:
         count: 1
       - kind: 6
         count: 1
-      rewardRobots:
-      - role: 1
-        count: 1
+      rewardRobots: []
       startCoins: -1
       coinsPerKill: 5
     - stage: 2
@@ -320,15 +318,15 @@ MonoBehaviour:
       blocks: []
       rewards:
       - kind: 3
-        count: 1
+        count: 2
       - kind: 11
-        count: 1
+        count: 2
       - kind: 15
-        count: 1
+        count: 2
       - kind: 31
-        count: 1
+        count: 2
       - kind: 18
-        count: 1
+        count: 2
       rewardRobots: []
       startCoins: -1
       coinsPerKill: 5
@@ -340,8 +338,40 @@ MonoBehaviour:
         \uC804\uC0AC\uD615\uC774"
       robots: []
       blocks: []
-      rewards: []
-      rewardRobots: []
+      rewards:
+      - kind: 2
+        count: 3
+      - kind: 3
+        count: 4
+      - kind: 11
+        count: 3
+      - kind: 15
+        count: 4
+      - kind: 14
+        count: 2
+      - kind: 6
+        count: 2
+      - kind: 27
+        count: 2
+      - kind: 26
+        count: 2
+      - kind: 22
+        count: 1
+      - kind: 19
+        count: 1
+      - kind: 17
+        count: 2
+      - kind: 18
+        count: 1
+      - kind: 28
+        count: 1
+      - kind: 31
+        count: 1
+      rewardRobots:
+      - role: 4
+        count: 1
+      - role: 1
+        count: 1
       startCoins: -1
       coinsPerKill: 5
     - stage: 2
@@ -507,7 +537,7 @@ MonoBehaviour:
         count: 6
         delay: 0
         interval: 2.5
-        healthOverride: 9.2
+        healthOverride: 15.2
         speedOverride: 1.95
         leakDamageOverride: 0
         boss: 0
@@ -516,7 +546,7 @@ MonoBehaviour:
         count: 2
         delay: 6
         interval: 4
-        healthOverride: 15.8
+        healthOverride: 26.1
         speedOverride: 1.95
         leakDamageOverride: 0
         boss: 0
@@ -526,7 +556,7 @@ MonoBehaviour:
         count: 5
         delay: 0
         interval: 2.5
-        healthOverride: 7.9
+        healthOverride: 11.5
         speedOverride: 1.88
         leakDamageOverride: 0
         boss: 0
@@ -535,7 +565,7 @@ MonoBehaviour:
         count: 2
         delay: 5
         interval: 5
-        healthOverride: 13.6
+        healthOverride: 19.7
         speedOverride: 1.83
         leakDamageOverride: 0
         boss: 0
@@ -544,7 +574,7 @@ MonoBehaviour:
         count: 2
         delay: 12
         interval: 2.5
-        healthOverride: 7.9
+        healthOverride: 11.5
         speedOverride: 1.84
         leakDamageOverride: 0
         boss: 0
@@ -563,7 +593,7 @@ MonoBehaviour:
         count: 4
         delay: 25
         interval: 5
-        healthOverride: 22.4
+        healthOverride: 14.6
         speedOverride: 2.1
         leakDamageOverride: 0
         boss: 0
@@ -611,7 +641,7 @@ MonoBehaviour:
         count: 3
         delay: 0
         interval: 3.12
-        healthOverride: 48
+        healthOverride: 43.2
         speedOverride: 1.46
         leakDamageOverride: 0
         boss: 0
@@ -630,7 +660,7 @@ MonoBehaviour:
         count: 4
         delay: 0
         interval: 3
-        healthOverride: 13.4
+        healthOverride: 15.4
         speedOverride: 1.6
         leakDamageOverride: 0
         boss: 0
@@ -639,7 +669,7 @@ MonoBehaviour:
         count: 4
         delay: 4
         interval: 3.5
-        healthOverride: 17.9
+        healthOverride: 20.6
         speedOverride: 1.3
         leakDamageOverride: 0
         boss: 0
@@ -648,7 +678,7 @@ MonoBehaviour:
         count: 2
         delay: 10
         interval: 6
-        healthOverride: 19
+        healthOverride: 21.9
         speedOverride: 1.2
         leakDamageOverride: 0
         boss: 0
@@ -658,7 +688,7 @@ MonoBehaviour:
         count: 7
         delay: 0
         interval: 3.15
-        healthOverride: 4.5
+        healthOverride: 3.8
         speedOverride: 1.7
         leakDamageOverride: 0
         boss: 0
@@ -676,7 +706,7 @@ MonoBehaviour:
         count: 3
         delay: 29
         interval: 4.5
-        healthOverride: 6.8
+        healthOverride: 3.7
         speedOverride: 1.84
         leakDamageOverride: 0
         boss: 0
@@ -686,7 +716,7 @@ MonoBehaviour:
         count: 5
         delay: 0
         interval: 6.75
-        healthOverride: 7.5
+        healthOverride: 15.8
         speedOverride: 1.6
         leakDamageOverride: 0
         boss: 0
@@ -704,7 +734,7 @@ MonoBehaviour:
         count: 2
         delay: 9
         interval: 12
-        healthOverride: 32.6
+        healthOverride: 130.4
         speedOverride: 1.14
         leakDamageOverride: 0
         boss: 0
@@ -714,7 +744,7 @@ MonoBehaviour:
         count: 4
         delay: 0
         interval: 2.1
-        healthOverride: 12.5
+        healthOverride: 16.9
         speedOverride: 1.5
         leakDamageOverride: 0
         boss: 0
@@ -732,7 +762,7 @@ MonoBehaviour:
         count: 1
         delay: 0
         interval: 1
-        healthOverride: 48
+        healthOverride: 144
         speedOverride: 1.3
         leakDamageOverride: 12
         boss: 1

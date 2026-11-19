@@ -575,29 +575,38 @@ namespace CodingGame.Defense.Editor
         static void StageTwoFree(DefenseBattle battle)
         {
             var sim = battle.Simulation;
-            // Stage 2's own robots: 2-1's shooter, from 2-3 the lesson's warrior, from 2-6 a second shooter (2-8's continue leaves
-            // the small ones to the warrior and the second shooter).
-            int shooter = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => battle.DefinitionRole(i) == RobotRole.Shooter);
-            if (sim.RobotAvailable(RobotRole.Shooter) > 0 && sim.Robots.Count(r => r.Spec.role == RobotRole.Shooter) < 2) { battle.ChooseRobot(shooter); PlaceBest(battle, shooter); }
-            foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Shooter && (r.Program == null || r.Program.IsEmpty)).ToArray())
-                sim.ApplyProgram(bot.Id, "free_" + bot.Id, TutorialAnswers.Parse("while True:\n    enemy = get_nearest_enemy()\n    shoot(enemy)"));
+            // Stage 2's own robots: 2-1's shooter and warrior (1-5's clear), from 2-6 a second shooter, from 2-9 a third shooter
+            // and a second warrior (2-8's clear); every robot in stock is placed, as a player places what they have.
+            // The first warrior stands where the lessons stand theirs (2-3 and 2-8 used to: by the road, DefenseBattle.PlaceLessonRobot).
+            if (sim.RobotAvailable(RobotRole.Warrior) > 0 && !sim.Robots.Any(r => r.Spec.role == RobotRole.Warrior))
+            { battle.PlaceLessonRobot(RobotRole.Warrior); Require(sim.Robots.Any(r => r.Spec.role == RobotRole.Warrior), "2-1's warrior was not stood by the road"); }
+            foreach (var role in new[] { RobotRole.Shooter, RobotRole.Warrior })
+            {
+                int index = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => battle.DefinitionRole(i) == role);
+                while (sim.RobotAvailable(role) > 0) { battle.ChooseRobot(index); PlaceBest(battle, index); }
+            }
+            foreach (var bot in sim.Robots.Where(r => r.Program == null || r.Program.IsEmpty).ToArray())
+                sim.ApplyProgram(bot.Id, "free_" + bot.Id, TutorialAnswers.Parse(bot.Spec.role == RobotRole.Shooter ? TutorialSequenceBuilder.Code21 : "while True:\n    slash()"));
         }
 
         // Each wave's answer code at battle start: the lessons (2-5, 2-6, 2-8) teach the first shooter, the free waves' hints
         // go to it too (2-7: break on is_dead() or range, 2-9: continue to tanks); the second shooter keeps 2-1's code until
         // 2-7's, the warrior 2-3's condition. Within the stock, as a player: code that does not fit keeps the robot's last
         // one, and the second shooter keeps 2-7's code into 2-8's lesson (whose prepared code tops up the blocks it holds).
+        // From 2-8 every shooter shoots only the big ones (2-8's line: small ones to the warrior, big ones to the shooters) and
+        // from 2-9 the robots 2-8's clear gave get 2-8's codes too.
         static readonly string[] SecondShooter = {
             TutorialSequenceBuilder.Code21, TutorialSequenceBuilder.Code21, TutorialSequenceBuilder.Code21, TutorialSequenceBuilder.Code21,
-            TutorialSequenceBuilder.Code21, TutorialSequenceBuilder.Code26, TutorialSequenceBuilder.Code27, TutorialSequenceBuilder.Code27,
-            TutorialSequenceBuilder.Code27, TutorialSequenceBuilder.Code27 };
+            TutorialSequenceBuilder.Code21, TutorialSequenceBuilder.Code26, TutorialSequenceBuilder.Code27, TutorialSequenceBuilder.Code28,
+            TutorialSequenceBuilder.Code28, TutorialSequenceBuilder.Code28 };
         static void StageTwoCodes(DefenseSimulation sim, bool battle)
         {
             var teacher = TutorialWatcher.TeachingRobot(sim); int wave = sim.WaveIndex;
-            var second = sim.Robots.Where(r => r.Spec.role == RobotRole.Shooter && r != teacher).OrderBy(r => r.Id).FirstOrDefault();
-            if (!battle) { if (second != null && (second.Program == null || second.Program.IsEmpty)) Apply(sim, second, TutorialSequenceBuilder.Code21); return; }
-            if (second != null) Apply(sim, second, SecondShooter[wave]);
-            if ((wave == 6 || wave == 8) && teacher != null) Apply(sim, teacher, wave == 6 ? TutorialSequenceBuilder.Code27 : TutorialSequenceBuilder.Code28);
+            var others = sim.Robots.Where(r => r.Spec.role == RobotRole.Shooter && r != teacher).OrderBy(r => r.Id).ToArray();
+            if (!battle) { foreach (var bot in others.Where(r => r.Program == null || r.Program.IsEmpty)) Apply(sim, bot, TutorialSequenceBuilder.Code21); return; }
+            foreach (var bot in others) Apply(sim, bot, SecondShooter[wave]);
+            if ((wave == 6 || wave == 8 || wave == 9) && teacher != null) Apply(sim, teacher, wave == 6 ? TutorialSequenceBuilder.Code27 : TutorialSequenceBuilder.Code28);
+            if (wave >= 8) foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Warrior)) Apply(sim, bot, TutorialSequenceBuilder.Code23);
         }
         static void Apply(DefenseSimulation sim, RobotState bot, string code)
         {
@@ -607,8 +616,8 @@ namespace CodingGame.Defense.Editor
         static void StageTwoStart(DefenseBattle battle)
         {
             var sim = battle.Simulation;
-            Require(sim.Robots.Count(r => r.Spec.role == RobotRole.Shooter) == (sim.WaveIndex >= 5 ? 2 : 1) && sim.Robots.Count(r => r.Spec.role == RobotRole.Warrior) == (sim.WaveIndex >= 2 ? 1 : 0),
-                "Stage 2 must be played with one shooter, from 2-3 a warrior, from 2-6 a second shooter: " + string.Join(",", sim.Robots.Select(r => r.Spec.role)));
+            Require(sim.Robots.Count(r => r.Spec.role == RobotRole.Shooter) == (sim.WaveIndex >= 8 ? 3 : sim.WaveIndex >= 5 ? 2 : 1) && sim.Robots.Count(r => r.Spec.role == RobotRole.Warrior) == (sim.WaveIndex >= 8 ? 2 : 1),
+                "Stage 2 must be played with a shooter and a warrior, from 2-6 a second shooter, from 2-9 a third shooter and a second warrior: " + string.Join(",", sim.Robots.Select(r => r.Spec.role)));
             StageTwoCodes(sim, true);
             battle.StartBattle();
             Log("START " + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills + " leaks=" + sim.Leaks + " robots=" +
