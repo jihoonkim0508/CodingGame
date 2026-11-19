@@ -62,9 +62,6 @@ namespace CodingGame.Defense
         public bool IsActive => active && view && (view.IsVisible || bannerUp || guideDismissed);
         // A lesson is loaded, shown or not (its hidden free-play steps still point at robots and the road).
         public bool HasSequence => active;
-        public bool ShowFreePlayGoal => active &&
-            (active.sequenceId == "1-2" || active.sequenceId == "1-4" || active.sequenceId == "1-5") &&
-            Current?.stepId == "B01" && !view.IsVisible;
         public bool BlocksGameplayInput => IsActive && InputLimited;
         public bool BlocksPreview => BlocksGameplayInput && !AllowPreview;
         // Tutorial off, idle, or with input limiting disabled in the developer options.

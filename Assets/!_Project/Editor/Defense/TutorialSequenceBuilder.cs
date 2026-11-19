@@ -507,8 +507,12 @@ namespace CodingGame.Defense.Editor
             { var lesson = Lesson(stage, wave); lesson.FindPropertyRelative("topic").stringValue = topic; lesson.FindPropertyRelative("goal").stringValue = goal; }
             // 1-1 the swing and the Play button, 1-2 free, 1-3 the loop, 1-4 free, 1-5 the boss; the shooter and variables at 2-1,
             // conditions at 2-3, is_dead() 2-5, break 2-6, continue 2-8, the boss 2-10; the tank at 3-1 (13차 179).
-            Topic(1, 1, "베기와 실행 버튼"); Topic(1, 2, "베기 자유 플레이"); Topic(1, 3, "반복문"); Topic(1, 4, "반복 자유 플레이"); Topic(1, 5, "반복 보스 실습");
-            Topic(2, 1, "변수: 찾은 적을 상자에 담기(원거리)");
+            Topic(1, 1, "베기와 실행 버튼", "전사를 배치하고 slash()와 '실행'으로 적 막기");
+            Topic(1, 2, "베기 자유 플레이", "새 전사를 배치하고 '실행'으로 베기");
+            Topic(1, 3, "반복문", "반복문으로 slash()를 여러 번 실행해 적 8마리 막기");
+            Topic(1, 4, "반복 자유 플레이", "새 전사와 반복문으로 몰려오는 적 막기");
+            Topic(1, 5, "반복 보스 실습", "반복문으로 작은 적을 모두 막고 보스 쓰러뜨리기");
+            Topic(2, 1, "변수: 찾은 적을 상자에 담기(원거리)", "찾은 적을 변수에 담아 원거리형으로 공격하기");
             Topic(2, 2, "변수 자유 플레이", "찾은 적을 변수에 담아 원거리형 하나로 무리 막기");
             Topic(2, 3, "조건문: 벨 때 고르기(전사형)", "적이 공격 범위에 들어왔을 때만 베는 조건문으로 막기");
             Topic(2, 4, "조건 자유 플레이", "적이 공격 범위에 들어왔을 때만 공격하는 조건문으로 무리 막기");
