@@ -106,7 +106,7 @@ static class CampaignCheck
         foreach (int wave in new[]{0,1,2})
         {
             early=Setup();early.Stage=1;early.InitialWave=wave;first=new DefenseSimulation(early);firstBot=Place(first,RobotRole.Warrior);
-            Assert(first.RecallUnlocked==(wave>=2)&&first.RemoveRobot(firstBot.Id)==(wave>=2),"recall locked through 1-2, opens in 1-3 (wave "+wave+")");
+            Assert(first.RecallUnlocked==(wave>=1)&&first.RemoveRobot(firstBot.Id)==(wave>=1),"recall locked in 1-1, opens in 1-2 (wave "+wave+")");
         }
         var setup=Setup();setup.Progression.initialCoins=49;
         var poor=new DefenseSimulation(setup);var poorBot=Place(poor,RobotRole.Warrior);

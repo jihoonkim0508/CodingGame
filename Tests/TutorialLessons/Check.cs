@@ -106,8 +106,29 @@ static class Check
             $"Play at each enemy must fell the basic ones and let only the tank-bodied one through: kills={sim.Kills}, leaks={sim.Leaks}, core={sim.BaseHealth}");
         Require(emptyAt < 0, $"1-1's pace and pause lines must have enemies to watch: the road emptied {emptyAt:0.0}s after the first kill");
     }
+    // 1-1 E05a/E05: a basic enemy at the core is a Leak only, the tank-bodied one a Leak and a LeakTank, in either order.
+    static void LeakKinds(bool tankFirst)
+    {
+        var basic = new EnemySpec { health = 12.6f, speed = 3, leakDamage = 1 };
+        var tank = new EnemySpec { type = EnemyType.Tank, health = 500, speed = 3, leakDamage = 1 };
+        var setup = new BattleSetup {
+            Min = new Vector2(-12, -4), Max = new Vector2(12, 4), BaseHealth = 12,
+            ActionProfiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(role => new RobotSpec { role = role }).ToArray(),
+            Routes = new[] { new Route(new[] { new Vector2(8, 0), new Vector2(-10, 0) }, 1.65f) },
+            Waves = new[] { new[] {
+                new SpawnGroup { Enemy = tankFirst ? tank : basic, Count = 1, Interval = 2 },
+                new SpawnGroup { Enemy = tankFirst ? basic : tank, Count = 1, Delay = 3, Interval = 2 } } }
+        };
+        var sim = new DefenseSimulation(setup); var watcher = new TutorialWatcher(); var seen = new System.Collections.Generic.List<string>();
+        sim.Start();
+        for (int i = 0; i < 60 * 60 && sim.Phase == BattlePhase.Running; i++)
+        { sim.Advance(1.0 / 60); seen.AddRange(watcher.Poll(sim).Where(s => s == TutorialSignals.Leak || s == TutorialSignals.LeakTank)); }
+        string wanted = tankFirst ? "Leak,LeakTank,Leak" : "Leak,Leak,LeakTank";
+        Require(string.Join(",", seen) == wanted, $"Leak signals ({(tankFirst ? "tank" : "basic")} first): {string.Join(",", seen)}, wanted {wanted}");
+    }
     static void Main()
     {
+        LeakKinds(false); LeakKinds(true);
         const string answer = "enemy = get_nearest_enemy()\nif enemy.distance(get_my_pos()) <= my_attack_range():\n    slash()";
         Require(Attacks("<=") > 0, "True distance condition must execute the slash inside if");
         Require(Attacks(">") == 0, "False condition must skip the slash even when the enemy is in attack range");

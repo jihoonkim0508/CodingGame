@@ -87,7 +87,7 @@ namespace CodingGame.Defense.Editor
             public int Robot;
             public float Padding = 10;
             public string[] Highlight = Array.Empty<string>();
-            public bool Intro, Cards, Undimmed, Dismissable, Round;
+            public bool Intro, Cards, Undimmed, Dismissable, Round, Rush;
             public float Auto;
             public string SkipIf;
             public string Demo;
@@ -157,7 +157,10 @@ namespace CodingGame.Defense.Editor
             L("1-1.E04", s => s.Trigger = TutorialSignals.KillSwingEnded),
             // Pause and speed are only told about in 1-2 (the user: '1-1 보상 이후로, 클릭하지 말고 말로만').
             L("1-1.E04d"),
-            L("1-1.E05", With(Fight, Focus(Core), s => s.Trigger = TutorialSignals.Leak)),
+            // A basic enemy at the core first: only that the core lost health (once); the tank's arrival, first or later,
+            // the line about the tough one. Meanwhile the tank, once past the warrior, walks the rest fast (rushTank).
+            L("1-1.E05a", With(Fight, Focus(Core), s => { s.Trigger = TutorialSignals.Leak; s.SkipIf = TutorialSignals.LeakTank; s.Rush = true; })),
+            L("1-1.E05", With(Fight, Focus(Core), s => { s.Trigger = TutorialSignals.LeakTank; s.Rush = true; })),
             L("1-1.E06", s => s.Trigger = TutorialSignals.WaveCleared),
             L("1-1.E07"),
             // Claiming the reward starts 1-2, so it comes last.
@@ -169,11 +172,16 @@ namespace CodingGame.Defense.Editor
             // The trigger hides the guide and releases input until the wave ends. Keep all player code.
             // Free play has no exact answer, compulsory editor visit or forced clear.
             return new List<S> {
+                // The robot's 레벨업 and 회수, told about first (no press: 회수 would take the warrior away); both open from 1-2.
+                L("1-2.A00", Click(Unit0, s => s.Pointer = Unit0)),
+                L("1-2.A00a", With(Focus("Battle.Upgrade"), s => s.Pointer = "Battle.Upgrade")),
+                L("1-2.A00b", With(Focus("Battle.Recall"), s => s.Pointer = "Battle.Recall")),
                 L("1-2.A01"), L("1-2.A02"), L("1-2.A03"),
                 // The battle's controls show from its start: told about there, under a held battle, no click asked (both work
                 // from 1-2 on, DefenseBattle.SpeedUnlocked).
-                L("1-2.A04", s => { s.Trigger = TutorialSignals.BattleStarted; s.Focus = new[] { TutorialKeys.Pause }; }),
-                L("1-2.A05", Focus(TutorialKeys.Speed)),
+                // A04 waits, hidden, through the free setup: the hint (slash()) is there already.
+                L("1-2.A04", s => { s.Trigger = TutorialSignals.BattleStarted; s.Focus = new[] { TutorialKeys.Pause }; s.HintCode = Code11; }),
+                L("1-2.A05", With(Focus(TutorialKeys.Speed), s => s.HintCode = Code11)),
                 L("1-2.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code11; s.Battle = true; }),
                 L("1-2.B02"),
                 L("1-2.B03", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
@@ -467,7 +475,7 @@ namespace CodingGame.Defense.Editor
                 return new TutorialStep {
                     stepId = s.Id, kind = s.Kind, dialoguePosition = s.Top ? TutorialDialoguePosition.Top : TutorialDialoguePosition.Bottom,
                     texts = s.Lines.Select((line, i) => new TutorialText { textId = "t" + (i + 1), speaker = line.Speaker, text = line.Text, focusKeys = s.Focus, highlightKeys = s.Highlight }).ToArray(),
-                    targetKeys = s.Targets, dim = s.Dim, blockInput = true, outline = true, roundFocus = s.Round,
+                    targetKeys = s.Targets, dim = s.Dim, blockInput = true, outline = true, roundFocus = s.Round, rushTank = s.Rush,
                     completionMode = s.Kind == TutorialStepKind.ActionGuide ? s.Mode : TutorialCompletionMode.Unconfigured, completionSignal = s.Signal,
                     requiredSlotBlock = s.RequiredSlotBlock,
                     // A line on screen holds the battle, a hidden step's wait lets it run (the user: '대사 나올 때에는 0.2배속이 아닌 일시정지').

@@ -10,6 +10,8 @@ namespace CodingGame.Defense
             PreviewSingleHit = "PreviewSingleHit", PreviewMultiHit = "PreviewMultiHit";
         // Produced by TutorialWatcher from the live simulation.
         public const string FirstKill = "FirstKill", FirstAttack = "FirstAttack", Leak = "Leak", WaveCleared = "WaveCleared", ProgramMatches = "ProgramMatches";
+        // A tank-bodied enemy reached the core (besides Leak; 1-1 E05 waits for it, E05a is skipped by it).
+        public const string LeakTank = "LeakTank";
         // The teaching robot's function has run to its end once this wave; an enemy has come into its range (1-1's Play lesson).
         public const string FunctionEnded = "FunctionEnded", EnemyInRange = "EnemyInRange";
         // A run of the teaching robot's function has ended and its swing played out, each run; a step that waits for it counts

@@ -114,7 +114,10 @@ namespace CodingGame.Defense
         public bool TutorialBlocksInput => tutorial && tutorial.BlocksGameplayInput;
         public bool TutorialBlocksPreview => tutorial && tutorial.BlocksPreview;
         public bool CanShowRobotActions => Simulation != null && Simulation.CanPrepare && !DeveloperMode && !HelpOpen && !codeEditor.IsOpen && !inventoryUI.IsOpen &&
-            (TutorialAllows("Battle.Develop") || TutorialAllows("Battle.Upgrade") || TutorialAllows("Battle.Recall"));
+            (TutorialAllows("Battle.Develop") || TutorialAllows("Battle.Upgrade") || TutorialAllows("Battle.Recall") ||
+             tutorial && (tutorial.Focused("Battle.Upgrade") || tutorial.Focused("Battle.Recall")));
+        // The battle's pace: the player's speed under the tutorial's hold, or the tutorial's own rush in its place.
+        float Pace => tutorial && tutorial.Rushing ? tutorial.BattlePace : BattleSpeed * (tutorial ? tutorial.BattlePace : 1f);
         public string DefinitionName(int index) => robots[index].displayName;
         public RobotRole DefinitionRole(int index) => robots[index].stats.role;
         public string RoleName(RobotRole role) => robots.FirstOrDefault(r => r.stats.role == role)?.displayName ?? role.ToString();
@@ -836,7 +839,7 @@ namespace CodingGame.Defense
         {
             if (!TutorialAllows("Battle.Recall")) return;
             if (!Simulation.CanPrepare) return;
-            if (!Simulation.RecallUnlocked) { Tell("회수는 1-3부터 열립니다."); return; }
+            if (!Simulation.RecallUnlocked) { Tell("회수는 1-2부터 열립니다."); return; }
             codeEditor.Close();
             if (robotViews.TryGetValue(selected, out var removed)) tutorial?.UnregisterRuntimeTarget(TutorialKeys.SelectedRobot, removed.gameObject);
             Simulation.RemoveRobot(selected); selected = 0; rangeRing.Hide();
@@ -896,7 +899,7 @@ namespace CodingGame.Defense
             if (bossEntranceStarted && !bossCameraRestored && GameClock.Now >= bossCameraRestoreAt)
             { selectionCamera.Restore(); bossCameraRestored = true; }
             if (!bossEntranceStarted || GameClock.Now >= bossEntranceUntil)
-                Simulation.Advance(UnityEngine.Time.deltaTime * BattleSpeed * (tutorial ? tutorial.BattlePace : 1f));
+                Simulation.Advance(UnityEngine.Time.deltaTime * Pace);
             float elapsed = (float)(Simulation.Time - previous);
             SyncViews(elapsed);
             SyncTutorialTargets();
@@ -1050,7 +1053,7 @@ namespace CodingGame.Defense
             foreach (var id in goneIds) { DefenseViews.Discard(enemyViews[id]); enemyViews.Remove(id); }
             // Animations follow the battle: still while paused (or held by the tutorial), faster at 2x/3x, normal outside a wave.
             float pace = Simulation.Phase == BattlePhase.Paused ? 0 : Simulation.Phase == BattlePhase.Running
-                ? BattleSpeed * (tutorial ? tutorial.BattlePace : 1f) : 1;
+                ? Pace : 1;
             foreach (var bot in Simulation.Robots)
             {
                 // A robot placed straight into the simulation (dev tools, tests) has no view; skip it instead of throwing every frame.

@@ -46,6 +46,8 @@ namespace CodingGame.Defense
         public string requiredSlotBlock;
         public string sourceKey, destinationKey;
         public bool pauseBattle = true, slowBattle, allowPreview;
+        [Tooltip("이 단계가 숨어서 기다리는 동안, 길 위에 탱커 모습의 적만 남고 그 적이 로봇 사거리를 벗어난 지 2초(전투 시간)가 지나면 1배속에서 5배속까지 천천히 올려 기지에 빨리 닿게 합니다(1-1).")]
+        public bool rushTank;
         [Min(0)] public float highlightPadding = 10;
         [Tooltip("이 신호가 올 때까지 단계를 숨기고 기다립니다(예: FirstKill, WaveCleared, EditorClosed). 비우면 바로 표시.")]
         public string trigger;

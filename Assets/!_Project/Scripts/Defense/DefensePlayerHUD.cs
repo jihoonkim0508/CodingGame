@@ -268,9 +268,9 @@ namespace CodingGame.Defense
             pauseButton.interactable = fighting;
             speedButton.interactable = fighting && battle.SpeedUnlocked;
             pauseLabel.text = sim.Phase == BattlePhase.Paused ? "계속" : "일시정지";
-            bool slowed = fighting && battle.Tutorial && Mathf.Approximately(battle.Tutorial.BattlePace, .2f);
-            if (Changed(ref shownSpeed, (slowed ? -1 : Mathf.RoundToInt(battle.BattleSpeed * 100), 0, 0)))
-                speedLabel.text = slowed ? "0.2x" : battle.BattleSpeed + "x";
+            // The tutorial's rush (1-1's tank) shows its own pace, 1x to 5x.
+            int speed = fighting && battle.Tutorial && battle.Tutorial.Rushing ? Mathf.RoundToInt(battle.Tutorial.BattlePace) : Mathf.RoundToInt(battle.BattleSpeed);
+            if (Changed(ref shownSpeed, (speed, 0, 0))) speedLabel.text = speed + "x";
             RefreshRobotButtons(battle, robotButtons, robotLabels, "\nx");
             RefreshRobotIcons(sim);
             RefreshRobotActions(sim);

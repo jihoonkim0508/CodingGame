@@ -71,10 +71,33 @@ namespace CodingGame.Defense
         bool Unrestricted => !initialized || !IsActive || !InputLimited;
         bool InputLimited => !battle || battle.Simulation == null || battle.Simulation.Options.tutorialInput;
         public bool PauseBattle => IsActive && bridge && bridge.PauseBattle;
-        public float BattlePace => PauseBattle ? 0 : IsActive && bridge && bridge.SlowBattle ? .2f : 1f;
+        public float BattlePace => PauseBattle ? 0 : Rushing ? rushPace : IsActive && bridge && bridge.SlowBattle ? .2f : 1f;
+        // The tutorial's rush sets the pace by itself, over the player's speed (DefenseBattle.Pace).
+        public bool Rushing => rushPace > 1;
+        float rushPace = 1, rushStart = -1; double rushOut = -1; bool rushReached; int rushWave = -1;
+        // rushTank (1-1 E05a, E05): the tank-bodied enemy meant to get through walks the rest fast. Once it has been in a
+        // robot's reach and left it, with no other enemy on the road, 2 s of battle time later the pace eases from 1x to
+        // 5x over 2.5 s and stays there until it is off the road (the leak), then 1x at once.
+        void UpdateRush(TutorialStep step)
+        {
+            if (session.WaveIndex != rushWave) { rushWave = session.WaveIndex; rushReached = false; }
+            var road = session.Enemies.Where(e => e.Active).ToArray();
+            bool tankInReach = road.Any(e => e.Spec.type == EnemyType.Tank && session.Robots.Any(r =>
+                System.Numerics.Vector2.DistanceSquared(e.Position, r.Position) <= r.Range * r.Range));
+            rushReached |= tankInReach;
+            bool on = step != null && step.rushTank && !IsActive && session.Phase == BattlePhase.Running && rushReached && !tankInReach &&
+                road.Length > 0 && road.All(e => e.Spec.type == EnemyType.Tank);
+            if (!on) { rushOut = -1; rushStart = -1; rushPace = 1; return; }
+            if (rushOut < 0) rushOut = session.Time;
+            if (session.Time - rushOut < 2) return;
+            if (rushStart < 0) rushStart = GameClock.Now;
+            rushPace = Mathf.Lerp(1, 5, Mathf.SmoothStep(0, 1, (GameClock.Now - rushStart) / 2.5f));
+        }
         public bool SpeedControlAvailable => battle && battle.SpeedUnlocked;
         public bool AllowPreview => IsActive && bridge && bridge.AllowPreview;
         public IReadOnlyList<TutorialSequence> Sequences => sequences;
+        // The line on screen lights this target (1-2 A00a: the robot's 레벨업 shows while it is told about).
+        public bool Focused(string key) => initialized && IsActive && view.IsVisible && Array.IndexOf(focused, key) >= 0;
         // The dialogue on screen asks the game to make this target glow (e.g. Robot.Range.0).
         public bool Highlighted(string key) => initialized && IsActive && view.IsVisible && Array.IndexOf(highlight, key) >= 0;
         TutorialStep Current => active && progressStep < active.steps.Length ? active.steps[progressStep] : null;
@@ -119,6 +142,7 @@ namespace CodingGame.Defense
             var step = Current;
             foreach (var signal in watcher.Poll(session, step != null && step.completionSignal == TutorialSignals.ProgramMatches ? step.expectedCode : null, step?.robotIndex ?? 0))
                 Signal(signal);
+            UpdateRush(active ? Current : null);
             if (active) { Tick(); return; }
             var phase = EntryPhase(session.Phase);
             if (phase == null) return;
@@ -502,15 +526,12 @@ namespace CodingGame.Defense
             Enter(progressStep + 1);
         }
 
-        // A hidden step's wait frees the game, but not a button the lesson has yet to teach (1-1: 실행 pressed between the
-        // battle start and E03b called the function again, and E03a's hold then froze that call before its swing).
+        // A hidden step's wait frees the game, but not a button a step still to come asks for (1-1: 실행 pressed before E03b
+        // or E03c called the function again, and the step's hold then froze that call, so its own press did nothing).
         public bool CanPerformAction(string key) => !initialized || !InputLimited ||
             (IsActive ? bridge.CanPerformAction(key, null) : !active || !Untaught(key));
-        bool Untaught(string key)
-        {
-            int taught = Array.FindIndex(active.steps, s => s.kind == TutorialStepKind.ActionGuide && Array.IndexOf(s.targetKeys, key) >= 0);
-            return taught >= progressStep; // its own step still hidden counts as not taught yet
-        }
+        bool Untaught(string key) => Array.FindLastIndex(active.steps,
+            s => s.kind == TutorialStepKind.ActionGuide && Array.IndexOf(s.targetKeys, key) >= 0) >= progressStep;
         // The player pressed something this step does not take yet (play test: 전투 시작 'did nothing' while a line waited).
         public void NudgeBlocked()
         {

@@ -22,6 +22,7 @@ namespace CodingGame.Defense.Editor
         static string last;
         static double since, next;
         static bool practiced, practicedFour, practicedFive, bossVisualSeen, gapPressed, controlsTried;
+        static double tankFrom = -1, tankTo = -1, rushFrom = -1;
         static int coreAtThirdWave, killsAtThirdWave, leaksAtThirdWave, killsAtFifthWave, codedWave;
         static BeginnerLessonChecks()
         {
@@ -308,15 +309,24 @@ namespace CodingGame.Defense.Editor
             if (battle.Stage == 1 && sim.WaveIndex == 2 && !director.IsActive && sim.Phase == BattlePhase.Ready) { battle.StartBattle(); return; }
             // 1-1 between the battle start and E03b (E03a and E03b waiting hidden): 실행 does nothing yet, so the battle start's
             // swing plays out and E03b's press is the one that calls the function again.
-            if ((key == "1/E03a" || key == "1/E03b") && !director.IsActive && sim.Phase == BattlePhase.Running)
+            if ((key == "1/E03a" || key == "1/E03b" || key == "1/E03c") && !director.IsActive && sim.Phase == BattlePhase.Running)
             {
                 var teacher = TutorialWatcher.TeachingRobot(sim); bool running = teacher.Program.Running; int runs = teacher.Program.CompletedRuns;
                 battle.PlayRobot(teacher.Id);
                 Require(!battle.TutorialAllows(TutorialKeys.Play(0)) && teacher.Program.Running == running && teacher.Program.CompletedRuns == runs,
-                    "실행 called the function before E03b at " + key);
+                    "실행 called the function before its step at " + key);
                 gapPressed = true;
             }
-            if (key == "1/E03c") Require(gapPressed, "실행 was never pressed between the battle start and E03b");
+            if (key == "1/E04") Require(gapPressed, "실행 was never pressed between the battle start and E03c");
+            // 1-1's tank: from its arrival to the core (the leak), in battle seconds, and when the tutorial's rush began.
+            if (battle.Stage == 1 && sim.WaveIndex == 0)
+            {
+                var tank = sim.Enemies.FirstOrDefault(e => e.Active && e.Spec.type == EnemyType.Tank);
+                if (tank != null && tankFrom < 0) tankFrom = sim.Time;
+                if (director.Rushing && rushFrom < 0) { rushFrom = sim.Time; Log("RUSH from battle " + (rushFrom - tankFrom).ToString("0.0") + " s after the tank came"); }
+                if (tank == null && tankFrom >= 0 && tankTo < 0 && sim.Leaks > 0 && (key == "1/E05" || key == "1/E06" || sim.Phase != BattlePhase.Running))
+                { tankTo = sim.Time; Log("TANK walk battle " + (tankTo - tankFrom).ToString("0.0") + " s, rush from " + (rushFrom < 0 ? "never" : (rushFrom - tankFrom).ToString("0.0") + " s")); }
+            }
             // Told about in 1-2 (A04, A05), pause and speed work in its free play at once.
             if (key == "2/B01" && !director.IsActive && sim.Phase == BattlePhase.Running && !controlsTried)
             {
@@ -354,8 +364,12 @@ namespace CodingGame.Defense.Editor
             }
             // 1-2 A04 and A05 tell about pause and speed, the buttons lit, while the battle stands still.
             if (key == "2/A04" || key == "2/A05")
-                Require(sim.Phase == BattlePhase.Running && step.texts.All(t => t.focusKeys.All(k => director.EditorBridge.TryGetArea(k, out _))),
-                    "The battle's controls are not on screen at " + key);
+                Require(sim.Phase == BattlePhase.Running, "1-2's controls lines came before its battle at " + key);
+            // 1-2 A00a, A00b (레벨업, 회수 on the selected warrior) and A04, A05: what the line tells about is on screen.
+            if (key == "2/A00a" || key == "2/A00b" || key == "2/A04" || key == "2/A05")
+                Require(step.texts.All(t => t.focusKeys.All(k => director.EditorBridge.TryGetArea(k, out _))) && director.EditorBridge.TryGetArea(step.pointerKey ?? step.texts[0].focusKeys[0], out _),
+                    "What the line tells about is not on screen at " + key);
+            if (key == "2/A00b") Require(sim.RecallUnlocked && sim.UpgradeUnlocked, "레벨업 or 회수 is still locked as 1-2 tells about them");
             director.EditorFinishTyping(); Canvas.ForceUpdateCanvases();
             foreach (var text in view.GetComponentsInChildren<TMP_Text>().Where(t => t.name == "Dialogue"))
             { text.ForceMeshUpdate(); Require(!text.isTextOverflowing, "Dialogue overflow at " + key); }
