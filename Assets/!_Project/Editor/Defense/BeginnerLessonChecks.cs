@@ -124,6 +124,13 @@ namespace CodingGame.Defense.Editor
             DevTest.JumpTutorial(4, 0);
         }
 
+        // The play cache's checks (Tests/Unity/BattleAuditCheck J1-J4): the run records as a person's play would
+        // (Tools/Develop/캐시 제작) and, once it passes, writes its files to CheckCache instead of Resources/Dev.
+        const string Record = "CodingGame.BeginnerLessons.Record";
+        public const string CheckCache = "TestResults/Editor/PlayCacheCheck";
+        public static void RecordAllFiveForCheck() { RunAllFive(); SessionState.SetBool(Record, true); }
+        public static void RecordStageTwoForCheck() { RunStageTwo(); SessionState.SetBool(Record, true); }
+
         static void Log(string value) => File.AppendAllText(LogPath, value + "\n");
         static void Require(bool value, string message) { if (!value) throw new InvalidOperationException(message); }
         static T Field<T>(object owner, string name) => (T)owner.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(owner);
@@ -158,6 +165,12 @@ namespace CodingGame.Defense.Editor
         static void End(string result)
         {
             Log(result); SessionState.SetBool(Running, false); Time.timeScale = 1;
+            if (SessionState.GetBool(Record, false))
+            {
+                SessionState.SetBool(Record, false);
+                var recording = DefenseBattle.StopRecording();
+                if (result.StartsWith("PASS")) Log("PLAY CACHE " + PlayCacheWindow.Write(recording, CheckCache).Replace("\n", "; "));
+            }
             if (result.StartsWith("FAIL")) Debug.LogError(result); else Debug.Log(result);
             // A batchmode run (a worktree without the open editor) ends with the result.
             if (Application.isBatchMode) EditorApplication.Exit(result.StartsWith("FAIL") ? 1 : 0);
@@ -171,6 +184,7 @@ namespace CodingGame.Defense.Editor
             next = now + .4;
             var battle = DevTest.Battle; var sim = DevTest.Sim; var director = battle.Tutorial;
             if (!director.EditorSynced) return;
+            if (SessionState.GetBool(Record, false) && DefenseBattle.Recording == null) DefenseBattle.StartRecording();
             if (sim.Phase == BattlePhase.Running && !Field<TutorialDialogueView>(director, "view").IsVisible)
                 foreach (var robot in sim.Robots.ToArray())
                     if (robot.Program != null && !robot.Program.Running &&

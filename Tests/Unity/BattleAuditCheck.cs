@@ -50,8 +50,11 @@ public static class BattleAuditCheck
             ("A4b every stage's boss gets the entrance", EveryBossGetsEntrance),
             ("A6 the deployment bounds cover the map's floor", BoundsCoverFloor),
             ("J1 the F1 jump to 1-1.E07 opens on the won wave's reward, and its claim goes on to 1-2", JumpToRewardLine),
-            ("J2 the F1 jump to 2-3.D07 has the robots and code the lesson made", JumpMidLesson),
-            ("J3 a jump's replay stands where the cached play stood", ReplayMatchesPlay),
+            ("J2 the F1 jump to 2-3.D07 has the robots, code and editor the recorded play had", JumpMidLesson),
+            ("J3 a jump into mid-battle stands where the recorded play stood, enemies too", ReplayMatchesPlay),
+            ("J4 recording again in part keeps the other steps", RecordingAgainKeepsTheRest),
+            ("F1 the F2 window's edit of 2-3's first group comes with the wave, Reset gives the authored one back", WaveBalanceEdit),
+            ("F2 the F1 jump to 2-4 opens that wave's preparation", JumpToWave),
         };
         var failures = new List<string>();
         bool background = Application.runInBackground;
@@ -356,25 +359,40 @@ public static class BattleAuditCheck
         return Task.CompletedTask;
     }
 
-    // The F1 panel's dialogue jump, at the step it names, as the lesson left it (the lesson's session is the jump's own).
-    static async Task<string> Jump(DefenseBattle battle, string id)
+    // The F1 panel's dialogue jump, at the step it names, as the recorded play left it (the jump's session is its own). The
+    // recordings are the lesson runner's, played as a person would with the recorder on (BeginnerLessonChecks.
+    // RecordAllFiveForCheck / RecordStageTwoForCheck write CheckCache), never the committed Resources/Dev files.
+    static string CacheFolder => CodingGame.Defense.Editor.BeginnerLessonChecks.CheckCache;
+    static async Task<string> Jump(DefenseBattle battle, string id, string folder = null)
     {
         battle.EditorStartSession(1, 1, true, new DefenseTestOptions()); // a normal play's options, not the sandbox's
-        string message = battle.DeveloperJump(id);
+        string message = battle.DeveloperJump(id, folder ?? CacheFolder);
         var director = battle.Tutorial;
         await Until(() => director.EditorSynced && director.EditorStep != null, 10, $"setup: the lesson of {id} did not begin ({message})");
         await Frames(5);
         return message;
     }
     static string Active(TutorialDirector director) => Field<TutorialSequence>(director, "active")?.sequenceId;
+    static PlayCacheFile Cache(int stage, string folder = null)
+    {
+        string path = $"{folder ?? CacheFolder}/PlayCache_{stage}.json";
+        Require(File.Exists(path), $"setup: no recorded stage {stage} play at {path} (run BeginnerLessonChecks.Record{(stage == 1 ? "AllFive" : "StageTwo")}ForCheck)");
+        return JsonUtility.FromJson<PlayCacheFile>(File.ReadAllText(path));
+    }
+    static PlayStep Mark(PlayCacheFile cache, string id)
+    {
+        var mark = cache.steps.FirstOrDefault(m => m.id == id);
+        Require(mark != null, $"setup: the stage {cache.stage} recording has no step {id}");
+        return mark;
+    }
 
     // J1. 1-1.E07 comes after the wave is won: the jump opens on its reward screen, and E09's 보상 받기 claims it and goes on to
-    // 1-2. (The jump only started the wave over: no robot, no fought wave, no reward, so E09 could never be done.)
+    // 1-2. (A jump that only starts the wave over has no robot, no fought wave, no reward, so E09 could never be done.)
     static async Task JumpToRewardLine(DefenseBattle battle)
     {
         string message = await Jump(battle, "1-1.E07");
         var director = battle.Tutorial; var sim = battle.Simulation;
-        Require(sim.Phase == BattlePhase.Reward && director.EditorStep.stepId == "E07",
+        Require(message == null && sim.Phase == BattlePhase.Reward && director.EditorStep.stepId == "E07",
             $"the jump to 1-1.E07 shows step {director.EditorStep.stepId} in phase {sim.Phase} (wave {sim.WaveIndex + 1}, {sim.Robots.Count} robots, {sim.Kills} kills), not the won wave's reward" + (message != null ? $" ({message})" : ""));
         Require(Field<GameObject>(Object.FindFirstObjectByType<DefensePlayerHUD>(), "rewardPanel").activeInHierarchy, "1-1.E07: the reward panel is not shown");
         for (int i = 0; i < 20 && director.EditorStep?.stepId != "E09"; i++) { director.EditorFinishTyping(); director.EditorNext(); await Frames(2); }
@@ -386,61 +404,122 @@ public static class BattleAuditCheck
         Require(battle.Simulation == sim && sim.WaveIndex == 1 && sim.Phase == BattlePhase.Ready, $"after the claim: wave {sim.WaveIndex + 1} in {sim.Phase}");
     }
 
-    static StageCache Cache(int stage)
-    {
-        var text = Resources.Load<TextAsset>(DefenseBattle.StageCachePath(stage));
-        Require(text, $"no stage {stage} cache (Tools/Develop/스테이지 캐시)");
-        return JsonUtility.FromJson<StageCache>(text.text);
-    }
-    static PlayMarker Mark(StageCache cache, string id)
-    {
-        var mark = cache.markers.FirstOrDefault(m => m.id == id);
-        Require(mark != null, $"the stage {cache.stage} cache has no mark for {id}");
-        return mark;
-    }
-
-    // J2. 2-3.D07 comes once the warrior's if is written: the jump has every robot the play had placed by then, each with the
-    // code last applied to it in the play (read off the cache's inputs), and the warrior's editor open as it was.
+    // J2. 2-3.D07 comes once the warrior's if is written: the jump has the robots the play had then, where it had them, each
+    // with the code it had, and the editor open on the robot the play had it open on.
     static async Task JumpMidLesson(DefenseBattle battle)
     {
         var mark = Mark(Cache(2), "2-3.D07");
         string message = await Jump(battle, "2-3.D07");
-        var sim = battle.Simulation; var inputs = Cache(2).inputs.Take(mark.input).ToArray();
-        Require(!inputs.Any(i => i.kind == "remove"), "setup: the play recalled a robot before 2-3.D07");
-        string Robot(int definition, Point at) => $"{definition}@{at.X:0.000},{at.Y:0.000}";
-        var placed = inputs.Where(i => i.kind == "place").Select(i => Robot(i.index, new Point(i.x, i.y))).OrderBy(s => s).ToArray();
-        var standing = sim.Robots.Select(r => Robot(r.DefinitionIndex, r.Position)).OrderBy(s => s).ToArray();
-        Require(standing.SequenceEqual(placed), $"2-3.D07 has robots [{string.Join(" ", standing)}], the play had placed [{string.Join(" ", placed)}]" + (message != null ? $" ({message})" : ""));
-        foreach (var bot in sim.Robots)
-        {
-            var last = inputs.LastOrDefault(i => i.kind == "program" && i.id == bot.Id);
-            string expected = last == null ? null : new DefenseProgram(last.name, PlayLog.Unflatten(last.code)).Source;
-            Require((bot.Program?.Source) == expected, $"robot {bot.Id} at 2-3.D07 runs\n{bot.Program?.Source}\nbut the play had\n{expected}");
-        }
-        Require(mark.editing != 0 && battle.CodeEditor.IsOpen && battle.CodeEditor.EditingId == mark.editing,
-            $"2-3.D07: the play had robot {mark.editing}'s editor open, the jump has {(battle.CodeEditor.IsOpen ? "robot " + battle.CodeEditor.EditingId + "'s" : "none")}");
+        var sim = battle.Simulation;
+        string Robot(int definition, float x, float y, string source) => FormattableString.Invariant($"{definition}@{x:0.000},{y:0.000} {source}");
+        var recorded = mark.robots.Select(r => Robot(r.definition, r.x, r.y, r.source)).OrderBy(s => s).ToArray();
+        var standing = sim.Robots.Select(r => Robot(r.DefinitionIndex, r.Position.X, r.Position.Y, r.Program?.Source)).OrderBy(s => s).ToArray();
+        Require(recorded.Length > 0 && recorded.Any(r => r.Contains("if")), "setup: the recording has no robot with an if at 2-3.D07");
+        Require(standing.SequenceEqual(recorded), $"2-3.D07 has robots\n{string.Join("\n", standing)}\nthe play had\n{string.Join("\n", recorded)}" + (message != null ? $" ({message})" : ""));
+        Require(mark.ui.editing != 0 && battle.CodeEditor.IsOpen && battle.CodeEditor.EditingId == mark.ui.editing,
+            $"2-3.D07: the play had robot {mark.ui.editing}'s editor open, the jump has {(battle.CodeEditor.IsOpen ? "robot " + battle.CodeEditor.EditingId + "'s" : "none")}");
         Require(battle.Tutorial.EditorStep?.stepId == "D07" && message == null, $"2-3.D07: at {battle.Tutorial.EditorStep?.stepId} ({message})");
     }
 
-    // J3. Replayed to a mark, the session agrees with the state the cache run recorded there (robots, code, coins, kills, core,
-    // wave, phase, stock): the middle and the last mark of each stage.
+    // J3. A step in mid-battle comes back with the battle as it was, enemies too: the jump replays its session to the step and
+    // says when the state differs from the recorded one (robots, enemies, coins, kills, core, wave, phase, stock), and a second
+    // replay on a session of its own, the same way, matches it here.
     static async Task ReplayMatchesPlay(DefenseBattle battle)
     {
         var wrong = new List<string>();
-        for (int stage = 1; stage <= DefenseBattle.PrototypeLastStage; stage++)
+        var battleSteps = new[] { 1, 2 }.Select(stage => Cache(stage)).SelectMany(cache => cache.steps.Where(s => s.phase == "Running" && s.enemies > 0).Select(s => (cache, s))).ToArray();
+        Require(battleSteps.Length > 0, "setup: the recordings have no step in mid-battle with enemies on the map");
+        foreach (var (cache, mark) in new[] { battleSteps[0], battleSteps[battleSteps.Length / 2], battleSteps[battleSteps.Length - 1] }.Distinct())
         {
-            var cache = Cache(stage);
-            foreach (var mark in new[] { cache.markers[cache.markers.Length / 2], cache.markers[cache.markers.Length - 1] })
-            {
-                // The jump checks the state right after its replay (before the step's entry effects) and says when it differs;
-                // a second replay on a session of its own, the same way, is compared here.
-                string message = await Jump(battle, mark.id);
-                var setup = battle.EditorReadSetup(); setup.PreviousStageRewards = true; setup.TestOptions = cache.options;
-                var sim = new DefenseSimulation(setup);
-                string diverged = PlayLog.Replay(sim, cache.inputs, mark.input, mark.tick), now = PlayLog.Digest(sim);
-                if (now != mark.digest || message != null || diverged != null) wrong.Add($"{mark.id}: {message ?? diverged}\n  replayed {now}\n  recorded {mark.digest}");
-            }
+            string message = await Jump(battle, mark.id);
+            var run = cache.runs[mark.replay.run];
+            var setup = battle.EditorReadSetup(); setup.Stage = run.stage; setup.InitialWave = run.wave; setup.PreviousStageRewards = run.previous; setup.TestOptions = run.options;
+            if (run.stage != battle.Stage) { wrong.Add($"{mark.id}: setup: the jump left stage {battle.Stage}, the run began in {run.stage}"); continue; }
+            var sim = new DefenseSimulation(setup);
+            if (run.retry) sim.Restore(PlayLog.Load(run.restore, sim.Setup));
+            string diverged = PlayLog.Replay(sim, run.inputs, mark.replay.input, mark.replay.tick), now = PlayLog.Digest(sim);
+            if (now != mark.replay.digest || message != null || diverged != null) wrong.Add($"{mark.id}: {message ?? diverged}\n  replayed {now}\n  recorded {mark.replay.digest}");
+            else if (battle.Simulation.Enemies.Count(e => e.Active) == 0) wrong.Add($"{mark.id}: the jump has no enemy on the map, the play had {mark.enemies}");
         }
         Require(wrong.Count == 0, "replay differs from the play at " + string.Join("; ", wrong));
+    }
+
+    // J4. Recording again in part (1-3 alone, say) changes only the steps recorded then: the file keeps the others, and they
+    // still open as they were.
+    static async Task RecordingAgainKeepsTheRest(DefenseBattle battle)
+    {
+        var whole = Cache(1);
+        string folder = CacheFolder + "/merge";
+        if (Directory.Exists(folder)) Directory.Delete(folder, true);
+        var first = whole.steps.Where(s => s.id.StartsWith("1-1.")).ToArray();
+        var again = whole.steps.Where(s => s.id.StartsWith("1-2.")).Take(1).Concat(first.Skip(1).Take(1)).ToArray();
+        Require(first.Length > 2 && again.Length == 2, "setup: the stage 1 recording has too few 1-1 or 1-2 steps");
+        PlayCacheFile Part(PlayStep[] steps, int coins) => new PlayCacheFile { stage = 1, fingerprint = whole.fingerprint, recordedAt = "check " + coins, runs = whole.runs,
+            steps = steps.Select(s => { var copy = s.WithRun(s.replay.run); copy.coins = coins; return copy; }).ToArray() };
+        CodingGame.Defense.Editor.PlayCacheWindow.Write(new[] { Part(first, 1) }, folder);
+        CodingGame.Defense.Editor.PlayCacheWindow.Write(new[] { Part(again, 2) }, folder);
+        var merged = Cache(1, folder);
+        string Ids(IEnumerable<PlayStep> steps) => string.Join(" ", steps.Select(s => s.id).OrderBy(s => s));
+        Require(Ids(merged.steps) == Ids(first.Concat(again).GroupBy(s => s.id).Select(g => g.First())), $"after recording {Ids(again)} again the file has {Ids(merged.steps)}");
+        var changed = merged.steps.Where(s => s.coins == 2).Select(s => s.id).OrderBy(s => s).ToArray();
+        Require(changed.SequenceEqual(again.Select(s => s.id).OrderBy(s => s)), $"the steps recorded again are {string.Join(" ", changed)}, not {Ids(again)}");
+        Require(merged.steps.All(s => s.replay.run < merged.runs.Length && merged.runs[s.replay.run].inputs.Length >= s.replay.input), "a merged step replays a run it does not have");
+        var kept = first.Last();
+        string message = await Jump(battle, kept.id, folder);
+        Require(message == null && battle.Tutorial.EditorStep != null && "1-1." + battle.Tutorial.EditorStep.stepId == kept.id,
+            $"the kept step {kept.id} opens at {battle.Tutorial.EditorStep?.stepId} ({message})");
+    }
+
+    // F1. The F2 window edits the stage-wave on screen: 2-3's first group with another health comes out with it (as the stage
+    // scales it), the wave's other group and the other waves keep theirs, later battles of 2-3 keep the edit, and Reset gives
+    // the authored numbers back.
+    static async Task WaveBalanceEdit(DefenseBattle battle)
+    {
+        battle.EditorStartSession(2, 3, true, Sandbox);
+        var sim = battle.Simulation;
+        var authored = sim.Setup.Waves[2].Select(g => g.Enemy.health).ToArray();
+        float nextWave = sim.Setup.CampaignWaves[1][3][0].Enemy.health;
+        var first = sim.Setup.Waves[2][0];
+        try
+        {
+            bool now = battle.SetWaveGroup(2, 2, 0, new DefenseBattle.GroupEdit { count = first.Count, delay = first.Delay, interval = first.Interval,
+                health = 77, speed = first.Enemy.speed, leak = first.Enemy.leakDamage });
+            Require(now, "an edit made in 2-3's preparation is not taken by the wave now");
+            float expected = sim.Setup.RulesConfig.Scale(sim.Setup.Waves[2][0].Enemy, 2, 2).health;
+            Place(battle, RobotRole.Warrior); battle.StartBattle();
+            await Until(() => sim.Enemies.Any(e => e.DefinitionIndex == first.DefinitionIndex), 15, "setup: 2-3's first group did not come out");
+            var enemy = sim.Enemies.First(e => e.DefinitionIndex == first.DefinitionIndex);
+            Require(Mathf.Abs(enemy.Spec.health - expected) < .001f && Mathf.Abs(enemy.Health - expected) < .001f,
+                $"2-3's first group comes out with {enemy.Spec.health} health, the edit scaled is {expected}");
+            Require(sim.Setup.Waves[2][1].Enemy.health == authored[1] && sim.Setup.CampaignWaves[1][3][0].Enemy.health == nextWave, "the edit changed another group or wave");
+            battle.EditorStartSession(2, 3, true, Sandbox);
+            Require(battle.Simulation.Setup.Waves[2][0].Enemy.health == 77 && battle.WaveGroupEdited(2, 2, 0), "a new battle of 2-3 has lost the edit");
+        }
+        finally { battle.SetWaveGroup(2, 2, 0, null); }
+        Require(battle.Simulation.Setup.Waves[2][0].Enemy.health == authored[0] && !battle.WaveGroupEdited(2, 2, 0), "Reset does not give 2-3's first group its authored health back");
+        battle.EditorStartSession(2, 3, true, Sandbox);
+        Require(battle.Simulation.Setup.Waves[2][0].Enemy.health == authored[0], "a new battle after Reset still has the edit");
+    }
+
+    // F2. The F1 panel's stage-wave jump: "2-4" (a wave without a lesson) opens its preparation, with the robots the recorded
+    // play had then, or with the stage's stock when there is no recording.
+    static async Task JumpToWave(DefenseBattle battle)
+    {
+        string none = CacheFolder + "/none";
+        Directory.CreateDirectory(none);
+        battle.EditorStartSession(1, 1, true, new DefenseTestOptions());
+        string message = battle.DeveloperJumpWave("2-4", none);
+        await Frames(5);
+        var sim = battle.Simulation;
+        Require(battle.Stage == 2 && sim.WaveIndex == 3 && sim.Phase == BattlePhase.Ready && message != null && message.StartsWith("캐시 없음"),
+            $"without a recording, the jump to 2-4 is at stage {battle.Stage} wave index {sim.WaveIndex} in {sim.Phase} ({message})");
+        var mark = Mark(Cache(2), "2-4");
+        battle.EditorStartSession(1, 1, true, new DefenseTestOptions());
+        message = battle.DeveloperJumpWave("2-4", CacheFolder);
+        await Frames(5);
+        sim = battle.Simulation;
+        Require(message == null && battle.Stage == 2 && sim.WaveIndex == 3 && sim.Phase == BattlePhase.Ready && mark.robots.Length > 0 &&
+            sim.Robots.Select(r => r.Program?.Source).OrderBy(s => s).SequenceEqual(mark.robots.Select(r => r.source).OrderBy(s => s)),
+            $"with the recording, the jump to 2-4 is at stage {battle.Stage} wave index {sim.WaveIndex} in {sim.Phase} with {sim.Robots.Count} robots, the play had {mark.robots.Length} ({message})");
     }
 }

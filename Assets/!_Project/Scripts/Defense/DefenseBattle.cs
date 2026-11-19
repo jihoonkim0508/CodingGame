@@ -194,8 +194,8 @@ namespace CodingGame.Defense
                 Routes=routes.Select(r=>r.Read()).ToArray(),
                 Obstacles=blockedAreas.Select(a=>a.bounds).Concat(MapProps(map)).Select(b=>new PlacementObstacle {Min=new Point(b.min.x,b.min.z),Max=new Point(b.max.x,b.max.z)}).ToArray(),
                 Floor=tiles,
-                Waves=content.ReadWaves(selectedStage),
-                CampaignWaves=Enumerable.Range(1,content.stages.Length).Select(content.ReadWaves).ToArray(),
+                Waves=ReadWaves(content,selectedStage),
+                CampaignWaves=Enumerable.Range(1,content.stages.Length).Select(s=>ReadWaves(content,s)).ToArray(),
                 CampaignSeconds=content.stages.Select(s=>s.waveSeconds).ToArray()
             };
         }
@@ -305,7 +305,11 @@ namespace CodingGame.Defense
             setup.TestOptions=EditorOptions;
 #endif
             ResetSession(setup);
-            try { Simulation.Restore(checkpoint); }
+            try
+            {
+                Simulation.Restore(checkpoint); sessionRun.retry = true; sessionRun.restore = PlayLog.Save(checkpoint);
+                if (waveEdits.Keys.Any(k => k.stage == stage && k.wave == checkpoint.Wave)) Simulation.SetWaveGroups(stage, checkpoint.Wave, Simulation.Setup.Waves[checkpoint.Wave]);
+            }
             catch (Exception error) when (error is ArgumentException || error is FormatException)
             {
                 Trace("retry-failed " + error.Message);
@@ -326,39 +330,57 @@ namespace CodingGame.Defense
             ClearDrops();
             projectileViews.Clear();
             hitEffects.Clear();
-            Simulation = new DefenseSimulation(setup); PlayMarkers.Clear();
+            Simulation = new DefenseSimulation(setup);
+            sessionRun = new PlayRun { stage = setup.Stage, wave = setup.InitialWave, previous = setup.PreviousStageRewards, options = setup.TestOptions.Copy() };
             bossEntranceStarted = bossCameraRestored = false;
             bossEntranceUntil = bossCameraRestoreAt = 0;
             selectionCamera.Restore();
             selected = 0; BattleSpeed = 1; HidePlacement();
             rangeRing.Hide(); effectRing.Hide(); resultPanel.SetActive(false);
-            foreach (var pair in enemyStats) Simulation.SetEnemyStats(pair.Key, pair.Value);
             Tell("로봇을 선택하고 허용 영역을 클릭하세요. 탱커만 경로 위에 설치합니다.");
             RefreshHUD();
         }
 
-        // F2 balance window (developer rights): fixed health, speed, attack damage and core damage per enemy definition,
-        // applied to the battle under way and kept for every battle until the game quits; null gives the authored ones back.
-        static readonly Dictionary<int, DefenseSimulation.EnemyStats> enemyStats = new Dictionary<int, DefenseSimulation.EnemyStats>();
+        // F2 balance window (developer rights): a stage-wave's enemy groups (count, delay, interval, health, speed, core damage,
+        // as the campaign asset has them before the stage's scaling) changed by hand, for the battle under way and every battle
+        // until the game quits; null gives the authored ones back.
+        public sealed class GroupEdit { public int count, leak; public float delay, interval, health, speed; }
+        static readonly Dictionary<(int stage, int wave, int group), GroupEdit> waveEdits = new Dictionary<(int, int, int), GroupEdit>();
         DefenseDevWindow devWindow;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetBalance() => enemyStats.Clear();
+        static void ResetBalance() => waveEdits.Clear();
         public IReadOnlyList<EnemyDefinition> EnemyDefinitions => enemies;
-        public bool EnemyStatsSet(int definition) => enemyStats.ContainsKey(definition);
-        public EnemySpec EnemyNow(int definition) => Simulation.EnemyNow(definition, enemies[definition].stats);
-        public void SetEnemyStats(int definition, DefenseSimulation.EnemyStats stats)
+        public bool WaveGroupEdited(int stage, int wave, int group) => waveEdits.ContainsKey((stage, wave, group));
+        // A stage's waves as authored, with the edits made in F2.
+        static SpawnGroup[][] ReadWaves(DefenseCampaignDefinition content, int stage) => content.ReadWaves(stage).Select((groups, wave) =>
         {
-            Simulation.SetEnemyStats(definition, stats);
-            if (stats == null) enemyStats.Remove(definition); else enemyStats[definition] = stats;
+            for (int i = 0; i < groups.Length; i++)
+                if (waveEdits.TryGetValue((stage, wave, i), out var e))
+                {
+                    var g = groups[i]; g.Count = e.count; g.Delay = e.delay; g.Interval = e.interval;
+                    g.Enemy.health = e.health; g.Enemy.speed = e.speed; g.Enemy.leakDamage = e.leak;
+                }
+            return groups;
+        }).ToArray();
+        // True when the battle takes it now (DefenseSimulation.SetWaveGroups).
+        public bool SetWaveGroup(int stage, int wave, int group, GroupEdit edit)
+        {
+            if (edit != null && (edit.count < 1 || !(edit.delay >= 0) || !(edit.interval > 0) || !(edit.health > 0) || !(edit.speed > 0) || edit.leak < 1))
+                throw new ArgumentException("수 1 이상, 출현 0 이상, 간격·체력·속도 0보다 크게, 코어 피해 1 이상");
+            if (edit == null) waveEdits.Remove((stage, wave, group)); else waveEdits[(stage, wave, group)] = edit;
+            bool now = Simulation.SetWaveGroups(stage, wave, ReadWaves(campaign, stage)[wave]);
             SyncViews(0); RefreshHUD();
-            Trace(stats == null ? $"balance {enemies[definition].name} authored" :
-                $"balance {enemies[definition].name} hp {stats.health} speed {stats.speed} damage {stats.damage} leak {stats.leakDamage}");
+            Trace(edit == null ? $"balance {stage}-{wave + 1} group {group + 1} authored" :
+                $"balance {stage}-{wave + 1} group {group + 1}: x{edit.count} at {edit.delay}s every {edit.interval}s hp {edit.health} speed {edit.speed} leak {edit.leak}" + (now ? "" : " (from the wave's next start)"));
+            return now;
         }
 
-        // F1 panel (developer rights): "1-3.C05" opens that line as a play that reached it left the battle ("1-3" at its start):
-        // the stage from its first wave with the stage cache's play replayed up to the line (PlayLog). Without a cache, or with
-        // one older than the campaign or the lessons, the wave starts over and the lesson opens there. Returns a notice, or null.
-        public string DeveloperJump(string id)
+        // F1 panel (developer rights): "1-3.C05" opens that line as the play recorded with Tools/Develop/캐시 제작 had it
+        // ("1-3" at its start): that play's session set up again and its inputs replayed to the line (PlayLog), enemies in
+        // mid-battle too. Without a recording of the line, or with one older than the campaign or the lessons, the wave starts
+        // over and the lesson opens there. folder: read the stage's file from there instead of Resources (checks). Returns a
+        // notice, or null.
+        public string DeveloperJump(string id, string folder = null)
         {
             if (!DeveloperTools || !tutorial) return "개발자 권한이 없습니다.";
             var parts = (id ?? "").Trim().Split('.');
@@ -368,8 +390,9 @@ namespace CodingGame.Defense
             if (step < 0) return "없는 대사 ID: " + id;
             SetDeveloperMode(false);
             stage = sequence.stage;
-            var cache = Resources.Load<TextAsset>(StageCachePath(stage)) is TextAsset text ? JsonUtility.FromJson<StageCache>(text.text) : null;
-            var mark = cache?.fingerprint == StageFingerprint(stage) ? cache.markers.FirstOrDefault(m => m.id == sequence.sequenceId + "." + sequence.steps[step].stepId) : null;
+            var cache = PlayCache(stage, folder);
+            bool fresh = cache?.fingerprint == StageFingerprint(stage);
+            var mark = fresh ? cache.steps.FirstOrDefault(m => m.id == sequence.sequenceId + "." + sequence.steps[step].stepId) : null;
             if (mark != null) return ReplayTo(cache, mark, sequence, step);
             var setup = MakeSetup(campaign, stage);
             setup.InitialWave = sequence.wave - 1; setup.PreviousStageRewards = true;
@@ -378,10 +401,44 @@ namespace CodingGame.Defense
 #endif
             ResetSession(setup);
             tutorial.JumpWhenBegun(sequence.sequenceId, step);
-            return (cache == null ? "캐시 없음" : mark == null && cache.fingerprint == StageFingerprint(stage) ? "캐시에 없는 대사" : "캐시 오래됨") + ": Tools/Develop/스테이지 캐시를 실행하세요";
+            return (cache == null ? "캐시 없음" : fresh ? "캐시에 없는 대사" : "캐시 오래됨") + ": Tools/Develop/캐시 제작으로 기록하세요";
         }
-        public static string StageCachePath(int stage) => "Dev/StageCache_" + stage;
-        // What a stage's cached play depends on: the campaign (its robots and enemies too) and the stage's lessons, without
+        // F1 panel (developer rights): "2-4" starts that stage-wave in its preparation as the recorded play began it
+        // (Tools/Develop/캐시 제작), robots and code included; a wave whose lesson begins in its preparation opens at the
+        // lesson's first line. Without a recording, the wave starts with the stock the waves before it give
+        // (BattleSetup.PreviousStageRewards). Returns a notice, or null.
+        public string DeveloperJumpWave(string id, string folder = null)
+        {
+            if (!DeveloperTools || !tutorial) return "개발자 권한이 없습니다.";
+            var parts = (id ?? "").Trim().Split('-');
+            if (parts.Length != 2 || !int.TryParse(parts[0], out int s) || !int.TryParse(parts[1], out int w) ||
+                s < 1 || s > Math.Min(campaign.stages.Length, PrototypeLastStage) || w < 1 || w > campaign.stages[s - 1].waves.Length)
+                return "없는 스테이지-웨이브: " + id;
+            var lesson = tutorial.Sequences.FirstOrDefault(q => q && q.enabled && q.stage == s && q.wave == w && q.entryPhase == TutorialEntryPhase.Preparation && q.steps.Length > 0);
+            if (lesson) return DeveloperJump(lesson.sequenceId, folder);
+            SetDeveloperMode(false);
+            stage = s;
+            var cache = PlayCache(s, folder);
+            bool fresh = cache?.fingerprint == StageFingerprint(s);
+            var mark = fresh ? cache.steps.FirstOrDefault(m => m.id == s + "-" + w) : null;
+            if (mark != null) return ReplayTo(cache, mark, null, 0);
+            var setup = MakeSetup(campaign, s); setup.InitialWave = w - 1; setup.PreviousStageRewards = true;
+#if UNITY_EDITOR
+            setup.TestOptions = EditorOptions;
+#endif
+            ResetSession(setup);
+            return (cache == null ? "캐시 없음" : fresh ? "캐시에 없는 웨이브" : "캐시 오래됨") + ": Tools/Develop/캐시 제작으로 기록하세요";
+        }
+        public static string PlayCachePath(int stage) => "Dev/PlayCache_" + stage;
+        static PlayCacheFile PlayCache(int stage, string folder)
+        {
+            string path = folder + "/PlayCache_" + stage + ".json";
+            string json = folder != null ? (System.IO.File.Exists(path) ? System.IO.File.ReadAllText(path) : null)
+                : Resources.Load<TextAsset>(PlayCachePath(stage)) is TextAsset text ? text.text : null;
+            var cache = json == null ? null : JsonUtility.FromJson<PlayCacheFile>(json);
+            return cache?.steps == null || cache.runs == null ? null : cache;
+        }
+        // What a stage's recorded play depends on: the campaign (its robots and enemies too) and the stage's lessons, without
         // the asset references, whose ids change from session to session.
         public string StageFingerprint(int stage)
         {
@@ -391,43 +448,84 @@ namespace CodingGame.Defense
                 foreach (char c in System.Text.RegularExpressions.Regex.Replace(JsonUtility.ToJson(asset), "\"instanceID\":-?\\d+", "")) { hash ^= c; hash *= 1099511628211; }
             return hash.ToString("x16");
         }
-        // The stage started over as from the stage map, the cached play replayed headless up to the mark, then the views, the
-        // robot and editor the line had on screen, and the lesson at the line as that play left it.
-        string ReplayTo(StageCache cache, PlayMarker mark, TutorialSequence sequence, int step)
+        // The step's session set up again as it began, its inputs replayed headless to the step, then the views, the robot,
+        // editor and inventory the step had on screen, and the lesson at the step as the play left it (sequence null: a wave's
+        // start, where the wave's lesson begins by itself).
+        string ReplayTo(PlayCacheFile cache, PlayStep mark, TutorialSequence sequence, int step)
         {
-            var setup = MakeSetup(campaign, stage); setup.PreviousStageRewards = true;
-            setup.TestOptions = cache.options ?? new DefenseTestOptions();
+            if (mark.replay == null || mark.replay.run < 0 || mark.replay.run >= cache.runs.Length) return "캐시 재생이 어긋남(기록 없음): Tools/Develop/캐시 제작으로 다시 기록하세요";
+            var run = cache.runs[mark.replay.run];
+            stage = run.stage;
+            var setup = MakeSetup(campaign, stage); setup.InitialWave = run.wave; setup.PreviousStageRewards = run.previous;
+            setup.TestOptions = run.options ?? new DefenseTestOptions();
 #if UNITY_EDITOR
             EditorOptions = setup.TestOptions;
 #endif
             ResetSession(setup);
-            string diverged = PlayLog.Replay(Simulation, cache.inputs, mark.input, mark.tick);
-            if (diverged == null && PlayLog.Digest(Simulation) != mark.digest) diverged = "상태가 기록과 다릅니다";
+            string diverged = null;
+            if (run.retry)
+                try { Simulation.Restore(PlayLog.Load(run.restore, Simulation.Setup)); sessionRun.retry = true; sessionRun.restore = run.restore; }
+                catch (ArgumentException error) { diverged = error.Message; }
+            diverged = diverged ?? PlayLog.Replay(Simulation, run.inputs ?? Array.Empty<PlayInput>(), mark.replay.input, mark.replay.tick);
+            if (diverged == null && PlayLog.Digest(Simulation) != mark.replay.digest) diverged = "상태가 기록과 다릅니다";
+            stage = Simulation.Setup.Stage;
             // Only this wave's block drops are still on the ground.
             Simulation.Events.RemoveAll(e => e.Kind != "drop");
             foreach (var bot in Simulation.Robots) SpawnRobotView(bot);
             SyncViews(0);
-            if (robotViews.TryGetValue(mark.selected, out var view)) { selected = mark.selected; RegisterSelectedRobot(Simulation.FindRobot(selected), view); }
-            if (mark.editing != 0)
+            var ui = mark.ui ?? new PlayUI();
+            if (robotViews.TryGetValue(ui.selected, out var view)) { selected = ui.selected; RegisterSelectedRobot(Simulation.FindRobot(selected), view); }
+            if (ui.editing != 0)
             {
-                codeEditor.Open(mark.editing);
-                if (codeEditor.IsOpen && mark.draft != null) codeEditor.Panel.LoadProgram(mark.draftName, PlayLog.Unflatten(mark.draft));
+                codeEditor.Open(ui.editing);
+                if (codeEditor.IsOpen && ui.draft != null) codeEditor.Panel.LoadProgram(ui.draftName, PlayLog.Unflatten(ui.draft));
             }
+            if (ui.inventory && !inventoryUI.IsOpen) inventoryUI.Toggle();
             RefreshHUD();
             tutorial.JumpFromCache(sequence, step, mark);
-            Trace($"jump {mark.id} replayed {mark.input} inputs to tick {mark.tick}" + (diverged == null ? "" : " · " + diverged));
-            return diverged == null ? null : "캐시 재생이 어긋남(" + diverged + "): Tools/Develop/스테이지 캐시를 다시 실행하세요";
+            Trace($"jump {mark.id} replayed {mark.replay.input} inputs to tick {mark.replay.tick}" + (diverged == null ? "" : " · " + diverged));
+            return diverged == null ? null : "캐시 재생이 어긋남(" + diverged + "): Tools/Develop/캐시 제작으로 다시 기록하세요";
         }
-        // The play log's tutorial marks: where this session's inputs stood as each step began (the first time it began).
-        public readonly List<PlayMarker> PlayMarkers = new List<PlayMarker>();
+
+        // Tools/Develop/캐시 제작: while Recording is set, every tutorial step this game enters (the first time a session
+        // enters it) and every wave's start is saved with the session it belongs to. Static, so it goes on across sessions and
+        // scenes until it is stopped.
+        public static PlayRecording Recording { get; private set; }
+        public static void StartRecording() => Recording = new PlayRecording();
+        public static PlayRecording StopRecording() { var recording = Recording; Recording = null; return recording; }
+        PlayRun sessionRun; // how this session began; its log is Simulation.Inputs
         public void MarkTutorialStep(string id, IEnumerable<string> signals, IEnumerable<string> completed, IEnumerable<string> launched)
         {
-            if (Simulation == null || PlayMarkers.Exists(m => m.id == id)) return;
+            if (Recording == null || Simulation == null) return;
+            MarkWave();
+            Mark(id, signals, completed, launched);
+        }
+        // A wave's start (its preparation, "2-4"), so a wave without a lesson can be opened as the play had it too. The lesson
+        // that begins with the wave is left out of it, so that lesson begins again after the jump.
+        void MarkWave()
+        {
+            if (Recording == null || Simulation == null || Simulation.Phase != BattlePhase.Ready) return;
+            int wave = Simulation.WaveIndex + 1, at = Simulation.Setup.Stage;
+            string id = at + "-" + wave;
+            if (Recording.Has(id, sessionRun)) return;
+            // No signals: the lesson forgets them as a wave begins.
+            var state = tutorial ? tutorial.CacheState() : new[] { new string[0], new string[0] };
+            Mark(id, new string[0], state[0], state[1].Where(s => !tutorial.Sequences.Any(q => q && q.sequenceId == s && q.stage == at && q.wave == wave)));
+        }
+        void Mark(string id, IEnumerable<string> signals, IEnumerable<string> completed, IEnumerable<string> launched)
+        {
+            if (Recording.Has(id, sessionRun)) return;
+            int at = Simulation.Setup.Stage;
+            if (!Recording.Fingerprints.ContainsKey(at)) Recording.Fingerprints[at] = StageFingerprint(at);
+            var step = PlayLog.Snapshot(Simulation, id);
             bool open = codeEditor.IsOpen;
-            PlayMarkers.Add(new PlayMarker { id = id, input = Simulation.Inputs.Count, tick = Simulation.Ticks, digest = PlayLog.Digest(Simulation),
-                selected = selected, editing = open ? codeEditor.EditingId : 0,
-                draftName = open ? codeEditor.Panel.FunctionName : null, draft = open ? PlayLog.Flatten(codeEditor.Panel.Program.StartChain().Select(b => b.Read())) : null,
-                signals = signals.ToArray(), completed = completed.ToArray(), launched = launched.ToArray() });
+            step.recordedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            step.ui = new PlayUI { selected = selected, editing = open ? codeEditor.EditingId : 0, inventory = inventoryUI.IsOpen,
+                paused = Simulation.Phase == BattlePhase.Paused, reward = Simulation.Phase == BattlePhase.Reward,
+                draftName = open ? codeEditor.Panel.FunctionName : null, draft = open ? PlayLog.Flatten(codeEditor.Panel.Program.StartChain().Select(b => b.Read())) : null };
+            step.signals = signals.ToArray(); step.completed = completed.ToArray(); step.launched = launched.ToArray();
+            sessionRun.live = Simulation.Inputs;
+            Recording.Add(step, sessionRun);
         }
         public void StartBattle()
         {
@@ -781,6 +879,7 @@ namespace CodingGame.Defense
                 }
                 else if (palette >= 0) { placementMarker.gameObject.SetActive(false); rangeRing.Hide(); }
             }
+            MarkWave();
             double previous = Simulation.Time;
             // The entrance runs on GameClock, which stands still behind the Esc menu.
             if (bossEntranceStarted && !bossCameraRestored && GameClock.Now >= bossCameraRestoreAt)
