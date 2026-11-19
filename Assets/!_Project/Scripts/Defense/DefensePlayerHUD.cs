@@ -797,7 +797,7 @@ namespace CodingGame.Defense
                 float p = Mathf.Clamp01((t - StarsFrom - StarTurn[i] * StarStagger) / StarPop);
                 stars[i].rectTransform.localScale = Vector3.one * (p < .55f ? Mathf.Lerp(0, 1.4f, p / .55f) : Mathf.Lerp(1.4f, 1, (p - .55f) / .45f));
                 stars[i].rectTransform.localEulerAngles = new Vector3(0, 0, (1 - p) * (1 - p) * 360);
-                if (p > 0 && i < starsEarned && (starsRung & 1 << i) == 0) { starsRung |= 1 << i; battle.PlaySound("star" + ++starsChimed); }
+                if (p > 0 && StarTurn[i] < starsEarned && (starsRung & 1 << i) == 0) { starsRung |= 1 << i; battle.PlaySound("star" + ++starsChimed); }
             }
             // Blocks come in pairs with their counts.
             for (int i = 0; i < popping.Count; i++)
@@ -914,7 +914,8 @@ namespace CodingGame.Defense
         [SerializeField, HideInInspector] System.Collections.Generic.List<TextMeshProUGUI> stars = new System.Collections.Generic.List<TextMeshProUGUI>();
         [SerializeField, HideInInspector] RectTransform starRow;
         int starsEarned, starsRung, starsChimed; // starsRung: a bit for each star that has rung
-        // The landing turn of the left, middle and right star: the middle one comes last.
+        // The landing turn of the left, middle and right star: the middle one comes last, and the stars fill in that order
+        // (2 stars: left and right, the middle stays empty).
         static readonly int[] StarTurn = { 0, 2, 1 };
         const float StarsFrom = 1.7f, StarStagger = .4f, StarPop = .5f, StarRowHeight = 110;
         void ShowStars(DefenseSimulation sim)
@@ -926,7 +927,7 @@ namespace CodingGame.Defense
             starsEarned = sim.StageStars; starsRung = starsChimed = 0;
             for (int i = 0; i < stars.Count; i++)
             {
-                stars[i].color = i < starsEarned ? UITheme.Sunny : UITheme.PaperDeep;
+                stars[i].color = StarTurn[i] < starsEarned ? UITheme.Sunny : UITheme.PaperDeep;
                 stars[i].rectTransform.localScale = Vector3.zero;
             }
             starRow.anchoredPosition = new Vector2(0, -ListTop);
