@@ -499,20 +499,20 @@ MonoBehaviour:
     - groups:
       - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
         route: 0
-        count: 4
+        count: 5
         delay: 0
-        interval: 4.5
-        healthOverride: 9.8
+        interval: 3
+        healthOverride: 10
         speedOverride: 1.43
         leakDamageOverride: 0
         boss: 0
       - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
         route: 0
         count: 5
-        delay: 18
-        interval: 4.5
-        healthOverride: 23.3
-        speedOverride: 1.86
+        delay: 9
+        interval: 3
+        healthOverride: 13
+        speedOverride: 1.7
         leakDamageOverride: 0
         boss: 0
     - groups:

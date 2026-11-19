@@ -656,7 +656,9 @@ namespace CodingGame.Defense.Editor
             // 2-3: fast ones 6.25 s apart, so the warrior's swing is ready when the next walks in: slashing only once one is in
             // range fells them, slashing at air lets one through; then basic ones the shooter and the warrior share. +18/-28
             Groups(2, 3, ("Runner", 6, 0, 6.25f, 10.7f, 1.6f, 0, false), ("Enemy", 4, 25, 5, 22.4f, 2.1f, 0, false));
-            Groups(2, 4, ("Runner", 4, 0, 4.5f, 9.8f, 1.43f, 0, false), ("Enemy", 5, 18, 4.5f, 23.3f, 1.86f, 0, false)); // +16/-16
+            // 2-4 (the user, 2026-11-19: it felt loose and slow): the basic ones start while the fast ones still come, every
+            // enemy within 21 s instead of one at a time to 36 s. +26/-26
+            Groups(2, 4, ("Runner", 5, 0, 3, 10, 1.43f, 0, false), ("Enemy", 5, 9, 3, 13, 1.7f, 0, false));
             // 2-5: slow Heavies of two shots, then quick basic ones: a shooter that picks the nearest anew each shot leaves them
             // hurt and one gets through; keeping the enemy until is_dead() fells them all. +10/-22
             Groups(2, 5, ("Heavy", 5, 0, 4.62f, 12.5f, 1.01f, 0, false), ("Enemy", 2, 9, 1.6f, 27, 1.69f, 0, false));
