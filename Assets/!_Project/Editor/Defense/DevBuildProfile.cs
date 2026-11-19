@@ -1,34 +1,21 @@
 using System.IO;
-using System.Linq;
 using System.Text;
 using UnityEditor;
-using UnityEditor.Build.Reporting;
 using UnityEditorInternal;
 using UnityEngine;
 
 namespace CodingGame.Defense.Editor
 {
-    // A Windows development build of the enabled scenes into Builds/Dev (git-ignored), and a report of a profile that build recorded.
-    //   Build:  Tools/Develop/Development Build, or Unity.exe -batchmode -projectPath . -executeMethod CodingGame.Defense.Editor.DevBuildProfile.Build
-    //   Record: Builds/Dev/CodingGame.exe -profiler-enable -profiler-log-file Builds/Dev/profile.raw -profiler-capture-frame-count 600
+    // A report of a profile recorded by a development build. The build itself is Unity's own: Build Profiles (File > Build
+    // Profiles), Windows, Development Build checked, into Build/ (Unity's build folder for this project, git-ignored).
+    //   Record: Build/CodingGame.exe -profiler-enable -profiler-log-file Build/profile.raw -profiler-capture-frame-count 600
     //           (the first 600 frames from start-up; close the game after a few seconds)
-    //   Report: Tools/Develop/Development Build Profile Report, or the same with -executeMethod ...DevBuildProfile.Report -quit;
-    //           TestResults/Editor/devbuild-profile.txt then holds every frame over 50 ms with its main-thread call tree.
+    //   Report: Tools/Develop/Development Build Profile Report, or Unity.exe -batchmode -projectPath . -executeMethod
+    //           CodingGame.Defense.Editor.DevBuildProfile.Report -quit; TestResults/Editor/devbuild-profile.txt then holds
+    //           every frame over 50 ms with its main-thread call tree.
     public static class DevBuildProfile
     {
-        const string Exe = "Builds/Dev/CodingGame.exe", Raw = "Builds/Dev/profile.raw", Out = "TestResults/Editor/devbuild-profile.txt";
-
-        [MenuItem("Tools/Develop/Development Build")]
-        public static void Build()
-        {
-            var r = BuildPipeline.BuildPlayer(new BuildPlayerOptions
-            {
-                scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray(),
-                target = BuildTarget.StandaloneWindows64, locationPathName = Exe, options = BuildOptions.Development,
-            });
-            Debug.Log($"Development build {r.summary.result} · {r.summary.totalSize / 1048576}MB · {r.summary.totalTime:mm\\:ss} · {Path.GetFullPath(Exe)}");
-            if (Application.isBatchMode) EditorApplication.Exit(r.summary.result == BuildResult.Succeeded ? 0 : 1);
-        }
+        const string Raw = "Build/profile.raw", Out = "TestResults/Editor/devbuild-profile.txt";
 
         [MenuItem("Tools/Develop/Development Build Profile Report")]
         public static void Report()
