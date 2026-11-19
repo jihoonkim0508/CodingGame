@@ -8,13 +8,13 @@ namespace CodingGame.Defense.Editor
     // stream for welded outline normals, leaving the surface's hard normals intact.
     public sealed class CharacterOutlineImporter : AssetPostprocessor
     {
-        public override uint GetVersion() => 1;
+        public override uint GetVersion() => 2;
 
         void OnPostprocessModel(GameObject root)
         {
             const string folder = "Assets/!_Project/Resources/Models/CharacterAnimation/FBX/";
             if (assetPath != folder + "Monster.fbx" && assetPath != folder + "AttackRobot.fbx" &&
-                assetPath != folder + "ShotRobot.fbx") return;
+                assetPath != folder + "ShotRobot.fbx" && assetPath != folder + "TankRobot.fbx") return;
 
             var meshes = new HashSet<Mesh>();
             foreach (var renderer in root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
