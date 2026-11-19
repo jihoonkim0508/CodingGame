@@ -39,20 +39,27 @@ namespace CodingGame.Defense
         Coroutine placementFeedback;
         Vector2 toastPosition;
         RectTransform goalRect;
-        RectTransform[] nextWaveParts = Array.Empty<RectTransform>(); Vector2[] upcomingPositions = Array.Empty<Vector2>(); bool upcomingLowered;
-        // Moves the next-wave tab and cards just below the goal bar (by the bar's resting place, so its gentle bob does not shake them).
+        RectTransform[] nextWaveParts = Array.Empty<RectTransform>(), combatParts = Array.Empty<RectTransform>();
+        Vector2[] upcomingPositions = Array.Empty<Vector2>(), combatPositions = Array.Empty<Vector2>(); bool upcomingLowered;
+        // Moves the next-wave tab and cards, and on the right the pause/speed buttons with the i, just below the goal bar
+        // (by the bar's resting place, so its gentle bob does not shake them). Each group drops as one by what it needs.
         void LowerUpcoming(bool lower)
         {
             upcomingLowered = lower;
-            for (int i = 0; i < nextWaveParts.Length; i++) nextWaveParts[i].anchoredPosition = upcomingPositions[i];
-            if (!lower || nextWaveParts.Length == 0) return;
+            Lower(nextWaveParts, upcomingPositions, lower);
+            Lower(combatParts, combatPositions, lower);
+        }
+        void Lower(RectTransform[] parts, Vector2[] positions, bool lower)
+        {
+            for (int i = 0; i < parts.Length; i++) parts[i].anchoredPosition = positions[i];
+            if (!lower || parts.Length == 0) return;
             var bar = new Vector3[4]; var tab = new Vector3[4];
             var at = goalRect.anchoredPosition; goalRect.anchoredPosition = goalPosition;
             goalRect.GetWorldCorners(bar); goalRect.anchoredPosition = at;
             float top = float.MinValue;
-            foreach (var r in nextWaveParts) { r.GetWorldCorners(tab); top = Mathf.Max(top, tab[1].y); }
-            float drop = Mathf.Max(0, top - bar[0].y + 8 * nextWaveParts[0].lossyScale.y) / nextWaveParts[0].lossyScale.y;
-            for (int i = 0; i < nextWaveParts.Length; i++) nextWaveParts[i].anchoredPosition = upcomingPositions[i] + Vector2.down * drop;
+            foreach (var r in parts) { r.GetWorldCorners(tab); top = Mathf.Max(top, tab[1].y); }
+            float drop = Mathf.Max(0, top - bar[0].y + 8 * parts[0].lossyScale.y) / parts[0].lossyScale.y;
+            for (int i = 0; i < parts.Length; i++) parts[i].anchoredPosition = positions[i] + Vector2.down * drop;
         }
         Image goalBackground;
         Vector2 goalPosition;
@@ -85,6 +92,8 @@ namespace CodingGame.Defense
             nextWaveParts = new[] { upcoming.rectTransform, goalRect.parent.Find("UpcomingTab") as RectTransform, enemyCards.Length > 0 ? enemyCards[0].transform.parent as RectTransform : null }
                 .Where(r => r).ToArray();
             upcomingPositions = nextWaveParts.Select(r => r.anchoredPosition).ToArray();
+            combatParts = new[] { combatControls.transform as RectTransform, combatControls.transform.parent.Find("Header/Info") as RectTransform }.Where(r => r).ToArray();
+            combatPositions = combatParts.Select(r => r.anchoredPosition).ToArray();
 
             for (int i = 0; i < robotButtons.Length; i++) { int index = i; robotButtons[i].onClick.AddListener(() => battle.ChooseRobot(index)); }
             enemyImages = enemyCards.Select(c => c.GetComponentInChildren<RawImage>(true)).ToArray();

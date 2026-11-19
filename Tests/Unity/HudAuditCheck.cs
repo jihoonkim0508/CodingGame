@@ -107,7 +107,12 @@ public static class HudAuditCheck
             if (!parent.gameObject.activeSelf) return "test setup: goal banner not shown in 2-1";
             string all = string.Join(" | ", parent.GetComponentsInChildren<TMP_Text>(false).Select(t => t.text));
             int count = Regex.Matches(all, "목표").Count;
-            return count == 1 ? null : $"\"목표\" appears {count} times in the banner: {all}";
+            if (count != 1) return $"\"목표\" appears {count} times in the banner: {all}";
+            // The pause/speed buttons and the i drop below the bar while it shows (the i was hidden under it).
+            Rect Box(Transform t) { var c = new Vector3[4]; ((RectTransform)t).GetWorldCorners(c); return Rect.MinMaxRect(c[0].x, c[0].y, c[2].x, c[2].y); }
+            var canvas = Get<GameObject>(hud, "combatControls").transform.parent;
+            var under = new[] { canvas.Find("CombatControls"), canvas.Find("Header/Info") }.Where(t => t && Box(t).Overlaps(Box(parent))).Select(t => t.name).ToList();
+            return under.Count == 0 ? null : "under the goal bar: " + string.Join(", ", under);
         });
 
         Run("H3 boss gets its own next-wave card", () =>
