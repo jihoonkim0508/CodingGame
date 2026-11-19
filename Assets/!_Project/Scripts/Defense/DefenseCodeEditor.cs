@@ -204,12 +204,16 @@ namespace CodingGame.Defense
             LoadLesson(code);
             if (!panel.IsApplied) throw new InvalidOperationException(id + " 준비 코드의 블록 지급량을 확인하세요.");
         }
-        // The lesson supplies every block of the code it prepares, so the robot takes nothing from the others and the stock after it
-        // is the same for every player (play-test 2-8).
+        // The lesson supplies the blocks of the code it prepares that the stock lacks, so the robot takes nothing from the others
+        // (play-test 2-8). Only what is lacking: the robot's own code goes back to the stock as this one replaces it, and a full
+        // grant left those blocks spare (the user, 2026-11-19: each lesson gives exactly what its answer needs).
         void LoadLesson(CodeBlock[] code)
         {
             foreach (var group in DefenseProgression.Used(code).GroupBy(DefenseProgression.Canonical))
-                editingSession.GrantBlock(group.Key, group.Count());
+            {
+                int lack = group.Count() - editingSession.Available(group.Key, editingId);
+                if (lack > 0) editingSession.GrantBlock(group.Key, lack);
+            }
             panel.LoadProgram(panel.FunctionName, code);
         }
         static CodeBlock Loop(params CodeBlock[] body)

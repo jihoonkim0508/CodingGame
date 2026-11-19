@@ -302,7 +302,7 @@ namespace CodingGame.Defense.Editor
             L("2-5.A01", s => s.Cards = true), L("2-5.A02"),
             L("2-5.A03", Click(Unit0, s => s.Pointer = Unit0)),
             L("2-5.A04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
-            // Held past the first hit until the first enemy is down (two shots, 6 s apart) and the shooter has stood still.
+            // Held past the first hit until the first enemy is down (two shots, 2.4 s apart) and the shooter has stood still.
             L("2-5.A05", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(
                 s => { s.Example = "2-5"; s.RestartPreview = true; s.Preview = true; s.Hold = 10; }, Focus("Editor.Code.Line.1", Preview)))),
             L("2-5.B01", With(Ed, Focus("Editor.Code.Line.1", Preview))), L("2-5.B02", With(Ed, Focus("Editor.Code.Line.1"))),
@@ -541,18 +541,16 @@ namespace CodingGame.Defense.Editor
             Lesson(3, "반복문", 0, (BlockKind.While, 2));
             Rewards(1, 1, (BlockKind.Slash, 1)); Rewards(1, 2); Rewards(1, 3, (BlockKind.While, 1));
             SetupIntroEncounter(so);
-            // Balance (play feedback): from 1-2 a basic enemy takes three of the warrior's swings (17.5 health: about 3 s from
-            // the first hit to the kill) and walks at about 2 per second, so one warrior lets some through and every robot the
-            // lessons give has work; Stage 2's Heavies are the shooter's (45 health, 1.5 speed: two shots at the edge of its
-            // range, one from within about 4.8). Health and speed are written before the stage's scaling, which brings them to
-            // those numbers.
-            // 1-3: eight basic enemies 1.2 s apart, three swings each: the two warriors' while True loops hold the road.
+            // Balance (the user, 2026-11-19): every wave has its own enemies, tuned with the headless balance run (the waves
+            // with the robots and answer codes of intended play, each robot where the lesson check stands it) so the robots
+            // the stage has by then clear it, and one robot fewer of any kind does not. Health and speed are written before
+            // the stage's scaling. 1-2 to 1-5 take a warrior four to six swings an enemy.
+            // 1-3: eight basic enemies 1.2 s apart: the two warriors' while True loops hold the road, one alone does not. +60/-18
             var practiceGroup = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves").GetArrayElementAtIndex(2)
                 .FindPropertyRelative("groups").GetArrayElementAtIndex(0);
             practiceGroup.FindPropertyRelative("count").intValue = 8;
             practiceGroup.FindPropertyRelative("interval").floatValue = 1.2f;
-            // The regular monster with the numbers the tutorial monster had (one monster per kind; F2 tunes it everywhere).
-            practiceGroup.FindPropertyRelative("healthOverride").floatValue = 15.2f;
+            practiceGroup.FindPropertyRelative("healthOverride").floatValue = 22.8f;
             practiceGroup.FindPropertyRelative("speedOverride").floatValue = 1.81f;
             if (firstThreeOnly)
             {
@@ -567,37 +565,47 @@ namespace CodingGame.Defense.Editor
             // second shooter at 2-5, where its code is copied from the first.
             StageLesson(2, 1, "변수: 찾은 적을 상자에 담기(원거리)", RobotRole.Shooter, 1, (BlockKind.While, 1), (BlockKind.Shot, 1),
                 (BlockKind.DeclareVariable, 1), (BlockKind.Variable, 1), (BlockKind.NearestEnemy, 1));
-            StageLesson(2, 3, "조건문: 벨 때 고르기(전사형)", RobotRole.Warrior, 1, (BlockKind.While, 1), (BlockKind.Slash, 1), (BlockKind.If, 2),
-                (BlockKind.Comparison, 2), (BlockKind.MyPos, 2), (BlockKind.DeclareVariable, 2), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 2),
-                (BlockKind.MyAttackRange, 2));
+            // Every grant from here is what the wave's answer codes hold and nothing more (the user, 2026-11-19). The lesson
+            // brings the blocks of its prepared code too, so the preparation takes nothing (DefenseCodeEditor.LoadLesson grants
+            // only what is lacking) and a stage started from the map has the same stock. 2-3: the warrior's code.
+            StageLesson(2, 3, "조건문: 벨 때 고르기(전사형)", RobotRole.Warrior, 1, (BlockKind.While, 1), (BlockKind.Slash, 1), (BlockKind.If, 1),
+                (BlockKind.Comparison, 1), (BlockKind.MyPos, 1), (BlockKind.Variable, 1), (BlockKind.MyAttackRange, 1),
+                (BlockKind.DeclareVariable, 1), (BlockKind.NearestEnemy, 1));
             Goal(2, 3, "적이 공격 범위에 들어왔을 때만 베는 조건문으로 막기");
-            Rewards(2, 3);
-            // Free waves bring nothing new: 2-1 and 2-3 already give two of each block their codes use.
             FreeLesson(2, 2, "변수 자유 플레이", "찾은 적을 변수에 담아 원거리형 하나로 무리 막기");
             FreeLesson(2, 4, "조건 자유 플레이", "적이 공격 범위에 들어왔을 때만 공격하는 조건문으로 무리 막기");
-            // 2-5 to 2-10 (원거리_집중공격_설계 7): is_dead(), break, free, continue with enemy.type, free, the boss. Each lesson
-            // brings what its new lines need on top of the shooter's code before it; 2-7 and 2-9 what their hints add.
-            StageLesson(2, 5, "is_dead(): 한 적을 끝까지", RobotRole.Shooter, 1, (BlockKind.IsDead, 2), (BlockKind.If, 1),
-                (BlockKind.DeclareVariable, 1), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 2));
+            // 2-5 to 2-10 (원거리_집중공격_설계 7): is_dead(), break, free, continue with enemy.type, free, the boss. 2-5: the
+            // teacher's is_dead() lines.
+            StageLesson(2, 5, "is_dead(): 한 적을 끝까지", RobotRole.Shooter, 0, (BlockKind.DeclareVariable, 1), (BlockKind.NearestEnemy, 1),
+                (BlockKind.If, 1), (BlockKind.IsDead, 1), (BlockKind.Variable, 1));
             Goal(2, 5, "쓰러진 적이면 새로 찾는 is_dead()로 한 적씩 끝내기");
-            StageLesson(2, 6, "break: 사거리를 벗어나면 놓아주기", RobotRole.Shooter, 0, (BlockKind.While, 1), (BlockKind.Break, 2),
-                (BlockKind.If, 1), (BlockKind.Comparison, 1), (BlockKind.MyPos, 1), (BlockKind.MyAttackRange, 1), (BlockKind.Variable, 1));
-            Goal(2, 6, "빠른 적 등장 · 사거리 밖으로 나간 적은 break로 놓아주기");
-            StageLesson(2, 7, "자유 실습: 쓰러지거나 멀어지면 break", RobotRole.Shooter, 0, (BlockKind.IsDead, 1), (BlockKind.If, 1),
-                (BlockKind.Variable, 1), (BlockKind.Break, 1));
+            // 2-6: the teacher's loop in a loop and its break, and a second shooter with a copy of it (copying takes the blocks
+            // from the stock; the right-click 복사 copies a line with what is inside it, and this code is one while True). The
+            // teacher's is_dead() line is left over until 2-7.
+            StageLesson(2, 6, "break: 사거리를 벗어나면 놓아주기", RobotRole.Shooter, 1, (BlockKind.While, 3), (BlockKind.If, 1), (BlockKind.Break, 2),
+                (BlockKind.Comparison, 2), (BlockKind.MyPos, 2), (BlockKind.MyAttackRange, 2), (BlockKind.Variable, 2), (BlockKind.Shot, 1));
+            Goal(2, 6, "빠른 적 등장 · 사거리 밖으로 나간 적은 break로 놓아주기 · 새 원거리형엔 코드 복사");
+            // 2-7: both shooters to the hint's code (is_dead() or out of range, break).
+            StageLesson(2, 7, "자유 실습: 쓰러지거나 멀어지면 break", RobotRole.Shooter, 0, (BlockKind.If, 2), (BlockKind.IsDead, 1),
+                (BlockKind.Variable, 2), (BlockKind.Break, 2));
             Goal(2, 7, "쓰러진 적도, 멀어진 적도 break로 놓아주고 다음 적 잡기");
             StageLesson(2, 8, "continue와 enemy.type", RobotRole.Shooter, 0, (BlockKind.If, 1), (BlockKind.Comparison, 1),
-                (BlockKind.Variable, 1), (BlockKind.EnemyTypeName, 2), (BlockKind.Continue, 2), (BlockKind.While, 1), (BlockKind.Slash, 1));
+                (BlockKind.Variable, 1), (BlockKind.EnemyTypeName, 1), (BlockKind.Continue, 1));
             Goal(2, 8, "단단한 적 등장 · 원거리형은 continue로 단단한 적만, 작은 적은 전사형이");
-            StageLesson(2, 9, "자유 종합", RobotRole.Shooter, 0, (BlockKind.If, 2), (BlockKind.IsDead, 1), (BlockKind.Break, 1),
-                (BlockKind.Continue, 1), (BlockKind.Comparison, 1), (BlockKind.Variable, 2), (BlockKind.While, 1));
+            // 2-9 is played with 2-8's codes.
+            StageLesson(2, 9, "자유 종합", RobotRole.Shooter, 0);
             Goal(2, 9, "모든 종류의 적 · is_dead(), break, continue로 로봇마다 맡을 적 나누기");
             FreeLesson(2, 10, "보스", "보스 등장 · 작은 적을 모두 막고 보스를 쓰러뜨리기");
-            StageLesson(3, 1, "탱커형 소개", RobotRole.Tank, 1, (BlockKind.While, 1), (BlockKind.Block, 1));
+            // 3-1: the tank's loop.
+            StageLesson(3, 1, "탱커형 소개", RobotRole.Tank, 1, (BlockKind.While, 1), (BlockKind.DeclareVariable, 1), (BlockKind.NearestEnemy, 1),
+                (BlockKind.Variable, 1), (BlockKind.Block, 1));
             Goal(3, 1, "탱커형으로 길을 막고 다른 로봇으로 공격하기");
             FreeLesson(3, 2, "자유 플레이", "적이 두 번에 나눠 와요 · 탱커형과 함께 끝까지 막기");
             FreeLesson(3, 3, "자유 플레이", "탱커병 뒤로 적이 줄지어 와요 · 길을 막고 한꺼번에 공격하기");
             FreeLesson(3, 4, "보스", "마지막 보스 · 작은 적을 모두 막고 보스를 쓰러뜨리기");
+            // No rewards past Stage 1: each lesson brings what its wave needs, and a reward was a block nothing used.
+            for (int wave = 3; wave <= 10; wave++) Rewards(2, wave);
+            for (int wave = 1; wave <= 4; wave++) Rewards(3, wave);
             DropLesson(3, 5);
             // Stage 2 has ten waves, its boss at 2-10; Stage 3 ends at its boss (3-4, the old last wave with a boss behind it).
             var stages = so.FindProperty("stages");
@@ -623,48 +631,45 @@ namespace CodingGame.Defense.Editor
                     g.FindPropertyRelative("boss").boolValue = x.boss;
                 }
             }
-            // A boss is a Heavy about four times as tough as the wave's own (base health before the stage's scaling), coming
-            // once every minion is down; reaching the core ends the stage, as 1-5's does.
-            Groups(1, 2, ("Enemy", 4, 0, 2, 16.7f, 1.95f, 0, false));
-            // Stage 2 is held by its own robots alone (no Stage 1 warriors): two shooters (32 a shot, 6 s reload), from 2-3 one
-            // warrior (7 a swing, 1.6 s) with each lesson's answer code; health and speed below are before the stage's scaling.
-            // 2-1 and 2-2: the two shooters (a Heavy gets through 2-1, two enemies 2-2).
-            Groups(2, 1, ("Enemy", 6, 0, 2.5f, 15.4f, 1.95f, 0, false), ("Heavy", 2, 6, 4, 26.4f, 1.95f, 0, false));
-            Groups(2, 2, ("Enemy", 5, 0, 2.5f, 13.2f, 1.88f, 0, false), ("Heavy", 2, 5, 5, 22.7f, 1.83f, 0, false), ("Runner", 2, 12, 2.5f, 13.2f, 1.84f, 0, false));
-            // 2-3: one at a time, 5 s apart (so the warrior's swing is ready when the next walks in), each in its range for
-            // about 1.8 s: two swings fell a fast one (13 health), which slashing only once one is in range lands and slashing at
-            // air mostly does not (the warrior alone: 5 felled against 1). Then basic ones of 41 health, a shot and two swings.
-            Groups(2, 3, ("Runner", 5, 0, 5, 11.9f, 1.6f, 0, false), ("Enemy", 4, 25, 5, 28, 2.1f, 0, false));
-            // 2-4: the same pair, a little closer together.
-            Groups(2, 4, ("Runner", 4, 0, 4.5f, 10.3f, 1.43f, 0, false), ("Enemy", 5, 18, 4.5f, 24.5f, 1.86f, 0, false));
-            // 2-5: slow Heavies 3 s apart, two shots each: the nearest changes between shots, so a shooter that picks it anew
-            // each shot leaves one hurt and it gets through, the one that keeps its enemy until is_dead() fells them all. The
-            // Heavy comes first: the preview's shooter stops once it is down.
-            Groups(2, 5, ("Heavy", 4, 0, 3, 26, 1.1f, 0, false), ("Enemy", 3, 14, 2.5f, 15, 1.6f, 0, false));
-            // 2-6: three fast ones of three shots (72 health) outrun the lesson shooter's range alive, basic ones of one shot
-            // right behind them: without break it keeps aiming at a fast one out of range and fires nothing while the basic
-            // ones walk past (team: 3 felled, 4 through); with break it lets go and fells them (6 felled, 1 through).
-            Groups(2, 6, ("Runner", 3, 0, 2.5f, 60, 1.35f, 0, false), ("Enemy", 4, 6, 2.5f, 18.8f, 1.5f, 0, false));
-            Groups(2, 7, ("Enemy", 4, 0, 3, 17.9f, 1.6f, 0, false), ("Runner", 4, 4, 3.5f, 23.9f, 1.3f, 0, false), ("Heavy", 2, 10, 6, 25.4f, 1.2f, 0, false));
-            // 2-8: small ones of two swings before and after two Heavies of three shots: the shooter that continues past them
-            // keeps its shots for the Heavies and the warrior takes the small ones (without the warrior two get through).
-            Groups(2, 8, ("Enemy", 6, 0, 4.5f, 7.5f, 1.7f, 0, false), ("Heavy", 2, 3, 8, 34.2f, 1.17f, 0, false), ("Enemy", 3, 29, 4.5f, 7.5f, 1.7f, 0, false));
-            Groups(2, 9, ("Enemy", 5, 0, 4.5f, 7.5f, 1.6f, 0, false), ("Runner", 3, 20, 4.5f, 7, 1.2f, 0, false), ("Heavy", 2, 6, 8, 32.6f, 1.14f, 0, false));
-            // 2-10: the old 2-6 boss (a Heavy), its minions small since a minion at the core ends a boss wave at once (12a8df8).
-            // The boss, 173 health at 1.41 once scaled, falls to the shooters in about 44 s of the 50.
-            Groups(2, 10, ("Enemy", 4, 0, 3.5f, 15.6f, 1.5f, 0, false), ("Runner", 2, 16, 4, 7, 1.1f, 0, false), ("Heavy", 1, 0, 2, 60, 1.3f, 12, true));
-            // No tank-bodied minions before the last boss: the boss comes only once they are all down, and with them it came
-            // after Stage 3's 50 s and walked in at the time-up (campaign run, 13차 179).
-            // 3-4 at the asset's numbers (fast 87 health at 2.8, basic 116 at 2.7 once scaled) let one minion through the six
-            // robots' plain loops every time, ending the boss wave at once (play-test 2026-11-19). Scaled now: fast 55 at 2.2,
-            // basic 85 at 2.3, the boss 238 at 1.2 - all felled with a few seconds of the 50 to spare (3-3 still costs 4 core).
-            Groups(3, 4, ("Runner", 4, 0, 1.3f, 35, 1.3f, 0, false), ("Enemy", 5, 4, 1.2f, 40, 1.4f, 0, false), ("Heavy", 1, 0, 2, 75, 1f, 12, true));
+            // Each wave below with what the headless run measured for the intended team: "+a/-b" is how much tougher every enemy
+            // can be with the team still clearing the wave, and how much weaker with every setup one robot short (and each
+            // lesson's old code) still failing. A boss comes once every minion is down; reaching the core ends the stage.
+            Groups(1, 2, ("Enemy", 4, 0, 2, 23.4f, 1.95f, 0, false)); // two warriors pressing Play; +62/-14
+            // Stage 2 is held by its own robots: one shooter (16 a shot, 2.4 s), from 2-3 a warrior (7 a swing, 1.6 s), from 2-5 a
+            // second shooter, each with its wave's answer code.
+            Groups(2, 1, ("Enemy", 6, 0, 2.5f, 9.2f, 1.95f, 0, false), ("Heavy", 2, 6, 4, 15.8f, 1.95f, 0, false)); // +52
+            Groups(2, 2, ("Enemy", 5, 0, 2.5f, 7.9f, 1.88f, 0, false), ("Heavy", 2, 5, 5, 13.6f, 1.83f, 0, false), ("Runner", 2, 12, 2.5f, 7.9f, 1.84f, 0, false)); // +18
+            // 2-3: fast ones 6.25 s apart, so the warrior's swing is ready when the next walks in: slashing only once one is in
+            // range fells them, slashing at air lets one through; then basic ones the shooter and the warrior share. +18/-28
+            Groups(2, 3, ("Runner", 6, 0, 6.25f, 10.7f, 1.6f, 0, false), ("Enemy", 4, 25, 5, 22.4f, 2.1f, 0, false));
+            Groups(2, 4, ("Runner", 4, 0, 4.5f, 9.8f, 1.43f, 0, false), ("Enemy", 5, 18, 4.5f, 23.3f, 1.86f, 0, false)); // +16/-16
+            // 2-5: slow Heavies of two shots, then quick basic ones: a shooter that picks the nearest anew each shot leaves them
+            // hurt and one gets through; keeping the enemy until is_dead() fells them all. +10/-22
+            Groups(2, 5, ("Heavy", 5, 0, 4.62f, 12.5f, 1.01f, 0, false), ("Enemy", 2, 9, 1.6f, 27, 1.69f, 0, false));
+            // 2-6: fast ones of four shots outrun the teacher's range alive, basic ones right behind: without break it keeps
+            // aiming at a fast one out of range while a basic one walks past; with break it lets go. +16/-16
+            Groups(2, 6, ("Runner", 3, 0, 3.12f, 48, 1.46f, 0, false), ("Enemy", 4, 5.4f, 2.25f, 24.4f, 1.5f, 0, false));
+            Groups(2, 7, ("Enemy", 4, 0, 3, 13.4f, 1.6f, 0, false), ("Runner", 4, 4, 3.5f, 17.9f, 1.3f, 0, false), ("Heavy", 2, 10, 6, 19, 1.2f, 0, false)); // +32/-28
+            // 2-8: small ones of one swing round two Heavies that take the teacher's every shot: the shooter that continues past
+            // the small ones fells the Heavies and the warrior takes the small ones (without continue or without the warrior
+            // some get through). +16/-10
+            Groups(2, 8, ("Enemy", 7, 0, 3.15f, 4.5f, 1.7f, 0, false), ("Heavy", 2, 3, 8, 68.4f, 1.08f, 0, false), ("Enemy", 3, 29, 4.5f, 6.8f, 1.84f, 0, false));
+            Groups(2, 9, ("Enemy", 5, 0, 6.75f, 7.5f, 1.6f, 0, false), ("Runner", 3, 30, 6.75f, 7, 1.2f, 0, false), ("Heavy", 2, 9, 12, 32.6f, 1.14f, 0, false)); // +44
+            // 2-10: the boss (a Heavy) behind small minions, since a minion at the core ends a boss wave at once (12a8df8). +42/-32
+            Groups(2, 10, ("Enemy", 4, 0, 2.1f, 12.5f, 1.5f, 0, false), ("Runner", 2, 9.6f, 2.4f, 5.6f, 1.1f, 0, false), ("Heavy", 1, 0, 1.2f, 48, 1.3f, 12, true));
+            // Stage 3: Stage 2's three robots with their codes and, in 3-1, the tank. The tank falls in 3-1 (the enemies it holds
+            // hit it), so 3-2 on are held by the other three. No tank-bodied minions before the last boss (it comes only once
+            // they are all down: with them it walked in at the time-up, 13차 179).
+            Groups(3, 1, ("Enemy", 8, 0, .96f, 19.8f, 1.5f, 0, false)); // without the tank one gets through; +28/-18
+            Groups(3, 2, ("Enemy", 5, 0, 1.2f, 15, 1.73f, 0, false), ("Enemy", 5, 15.4f, 1.32f, 15, 1.47f, 0, false));  // +18/-36
+            Groups(3, 3, ("Heavy", 3, 0, 1.6f, 21, 1.4f, 0, false), ("Enemy", 5, .8f, .64f, 11.2f, 1.6f, 0, false)); // +10/-44
+            Groups(3, 4, ("Runner", 4, 0, 1.3f, 10.2f, 1.49f, 0, false), ("Enemy", 5, 4.4f, 1.32f, 8.8f, 1.4f, 0, false), ("Heavy", 1, 0, 1.8f, 47.3f, 1f, 12, true));  // +22/-14
             stages.GetArrayElementAtIndex(2).FindPropertyRelative("waves").arraySize = 4;
             var waves = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves");
             var fourth = waves.GetArrayElementAtIndex(3).FindPropertyRelative("groups").GetArrayElementAtIndex(0);
             fourth.FindPropertyRelative("count").intValue = 8;
-            fourth.FindPropertyRelative("interval").floatValue = .8f;
-            fourth.FindPropertyRelative("healthOverride").floatValue = 13.3f;
+            fourth.FindPropertyRelative("interval").floatValue = .72f; // three warriors; +38/-20
+            fourth.FindPropertyRelative("healthOverride").floatValue = 26.6f;
             fourth.FindPropertyRelative("speedOverride").floatValue = 1.93f;
             var fifth = waves.GetArrayElementAtIndex(4).FindPropertyRelative("groups");
             var basic = Data("Enemy");
@@ -674,7 +679,7 @@ namespace CodingGame.Defense.Editor
             minions.FindPropertyRelative("count").intValue = 3;
             minions.FindPropertyRelative("delay").floatValue = 0;
             minions.FindPropertyRelative("interval").floatValue = 2;
-            minions.FindPropertyRelative("healthOverride").floatValue = 14.5f;
+            minions.FindPropertyRelative("healthOverride").floatValue = 21; // with the boss: +24/-18
             minions.FindPropertyRelative("speedOverride").floatValue = 1.99f;
             minions.FindPropertyRelative("leakDamageOverride").intValue = 0;
             minions.FindPropertyRelative("boss").boolValue = false;
@@ -684,7 +689,7 @@ namespace CodingGame.Defense.Editor
             boss.FindPropertyRelative("count").intValue = 1;
             boss.FindPropertyRelative("delay").floatValue = 0;
             boss.FindPropertyRelative("interval").floatValue = 2;
-            boss.FindPropertyRelative("healthOverride").floatValue = 84;
+            boss.FindPropertyRelative("healthOverride").floatValue = 121.8f;
             boss.FindPropertyRelative("speedOverride").floatValue = .65f;
             boss.FindPropertyRelative("leakDamageOverride").intValue = 12;
             boss.FindPropertyRelative("boss").boolValue = true;
