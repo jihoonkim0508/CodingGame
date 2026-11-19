@@ -86,6 +86,20 @@ try
     Check(preview.PreviewSimulation!=once&&!preview.PreviewSimulation.Robots.Single().BlockingEnabled&&preview.PreviewSimulation.Enemies.Count==0,"new code starts the demo over with a clean robot");
     Check(Stock()==stock&&battle.Simulation.Time==time&&battle.Simulation.BaseHealth==baseHealth&&actualTank.Health==health,
         "preview does not consume actual inventory, time or health");
+    // A shooter's preview puts a yellow crosshair over the enemy its shot went at; a restart takes it away.
+    int shooterIndex=Enumerable.Range(0,battle.RobotDefinitions.Count).First(i=>battle.DefinitionRole(i)==CodingGame.Defense.RobotRole.Shooter);
+    var shooterSpec=battle.RobotDefinition(shooterIndex).stats; bool placed=false;
+    for(float x=-12;x<12&&!placed;x+=.5f) for(float y=-8;y<8&&!placed;y+=.5f)
+        placed=battle.Simulation.PlacementError(shooterSpec,new System.Numerics.Vector2(x,y))==null&&battle.PlaceRobot(shooterIndex,new UnityEngine.Vector3(x,0,y));
+    Check(placed,"place shooter");
+    battle.SelectRobot(battle.SelectedId); battle.DevelopSelected();
+    Show(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Attack,"0",new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.NearestEnemy)));
+    var aiming=preview.PreviewSimulation;
+    Check(preview.CrosshairTarget==0,"no crosshair before the first shot");
+    for(int i=0;i<40&&preview.CrosshairTarget==0;i++) { Advance(.1f); preview.SendMessage("Update"); }
+    Check(preview.PreviewSimulation==aiming&&preview.CrosshairTarget!=0&&aiming.Enemies.Any(e=>e.Active&&e.Id==preview.CrosshairTarget),"crosshair over the shooter's target");
+    preview.SendMessage("ResetPreview");
+    Check(preview.CrosshairTarget==0,"restart takes the crosshair away");
     preview.Close();
     Check(!preview.IsShowing&&preview.PreviewSimulation==null,"closing clears preview simulation");
     return $"Defense preview checks passed: {checks}";

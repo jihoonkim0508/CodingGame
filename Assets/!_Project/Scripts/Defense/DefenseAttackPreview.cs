@@ -38,6 +38,12 @@ namespace CodingGame.Defense
         int sourceLevel;
         bool firstHitReported;
         int firstHitCount;
+        // The shooter's aim (the user, 2026-11-19): a yellow crosshair over the enemy its last shot went at, pinching on each shot.
+        RawImage crosshair;
+        int aimed;
+        float pinch = PinchSeconds;
+        const float PinchSeconds = .2f;
+        public int CrosshairTarget => crosshair && crosshair.gameObject.activeSelf ? aimed : 0;
         #if UNITY_EDITOR
         public void EditorApplyOptions(DefenseTestOptions options)
         {
@@ -118,6 +124,7 @@ namespace CodingGame.Defense
             hitEffects.Clear(); ClearDamage();
             foreach (var view in views.Values) Spare(view);
             views.Clear(); effectRing.Hide();
+            aimed = 0; if (crosshair) crosshair.gameObject.SetActive(false);
             if (healthBars) healthBars.Flush();
         }
         void ResetPreview()
@@ -290,6 +297,7 @@ namespace CodingGame.Defense
                 battle.EditorObserve("Preview",simulation,e);
 #endif
                 hitEffects.Show(e, arena, arena.position, previewCamera.transform.rotation, view, effectRing);
+                if (e.Kind == "shot") { aimed = e.Target; pinch = 0; }
                 if ((e.Kind == "hit" || e.Kind == "projectile-hit") && e.Amount > 0)
                 { PopDamage(e); battle.ReportTutorialAction(TutorialKeys.Preview, TutorialSignals.PreviewHit); }
             }
@@ -305,8 +313,61 @@ namespace CodingGame.Defense
                 }
             }
             simulation.Events.Clear();
+            ShowCrosshair(dt);
             TickDamage(dt);
             RefreshStatus();
+        }
+        void ShowCrosshair(float dt)
+        {
+            EnemyState enemy = null;
+            if (aimed != 0) foreach (var e in simulation.Enemies) if (e.Id == aimed && e.Active) enemy = e;
+            if (enemy == null || !views.TryGetValue(aimed, out var view)) { aimed = 0; if (crosshair) crosshair.gameObject.SetActive(false); return; }
+            if (!crosshair)
+            {
+                crosshair = new GameObject("Preview crosshair", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
+                // On the bars' layer, which keeps them inside the picture, so one on an enemy walking out is cut at the edge too.
+                crosshair.rectTransform.SetParent(healthBars ? healthBars.transform : previewImage.rectTransform, false);
+                crosshair.rectTransform.anchorMin = crosshair.rectTransform.anchorMax = Vector2.zero;
+                crosshair.texture = CrosshairTexture(); crosshair.raycastTarget = false;
+            }
+            crosshair.gameObject.SetActive(true);
+            // Over the enemy's middle, the ring about its width (the texture's ring is .6 of its size), as the health bar is placed.
+            var area = ((RectTransform)crosshair.rectTransform.parent).rect;
+            var center = (view.transform.position + view.HealthAnchor) * .5f;
+            Vector3 at = previewCamera.WorldToViewportPoint(center);
+            Vector3 edge = previewCamera.WorldToViewportPoint(center + previewCamera.transform.right * (view.HealthWidth * .5f));
+            pinch += dt;
+            float scale = pinch < PinchSeconds ? 1 - .2f * Mathf.Sin(Mathf.PI * pinch / PinchSeconds) : 1;
+            float size = Mathf.Abs(edge.x - at.x) * area.width * 2 / .6f * scale;
+            crosshair.rectTransform.anchoredPosition = new Vector2(at.x * area.width, at.y * area.height);
+            crosshair.rectTransform.sizeDelta = new Vector2(size, size);
+        }
+        static Texture2D crosshairTexture;
+        // Kenney's thin crosshair: a ring, four ticks across it and a centre dot, yellow with an ink outline dropped down-right.
+        static Texture2D CrosshairTexture()
+        {
+            if (crosshairTexture) return crosshairTexture;
+            const int n = 128; crosshairTexture = new Texture2D(n, n) { wrapMode = TextureWrapMode.Clamp };
+            const float pixel = 2f / n;
+            for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
+            {
+                float dx = (x + .5f) / n * 2 - 1, dy = (y + .5f) / n * 2 - 1;
+                float yellow = Mathf.Clamp01(.5f - Shape(dx, dy) / pixel);
+                float ink = Mathf.Clamp01(.5f - (Shape(dx - .025f, dy + .035f) - .045f) / pixel);
+                float a = yellow + ink * (1 - yellow);
+                var c = a > 0 ? (UITheme.Sunny * yellow + UITheme.Ink * ink * (1 - yellow)) / a : Color.clear;
+                c.a = a; crosshairTexture.SetPixel(x, y, c);
+            }
+            crosshairTexture.Apply();
+            return crosshairTexture;
+        }
+        // Distance outside the crosshair's shape (negative inside), the texture spanning -1..1.
+        static float Shape(float x, float y)
+        {
+            float r = Mathf.Sqrt(x * x + y * y), ax = Mathf.Abs(x), ay = Mathf.Abs(y);
+            float ring = Mathf.Abs(r - .6f) - .045f, dot = r - .11f;
+            float across = Mathf.Max(Mathf.Abs(ax - .6f) - .2f, ay - .045f), down = Mathf.Max(Mathf.Abs(ay - .6f) - .2f, ax - .045f);
+            return Mathf.Min(Mathf.Min(ring, dot), Mathf.Min(across, down));
         }
         void RefreshStatus()
         {
