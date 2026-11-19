@@ -13,20 +13,23 @@ namespace CodingGame.Defense
         static GameObject visual;
         static bool looked;
         Vector3 fullScale;
-        float appearedAt;
+        // The grow-in, motes and flicker run on the battle clock (the enemy view's pace): still while paused, faster at 2x-5x.
+        DefenseActorView view;
+        ParticleSystem[] motes;
+        float clock, shownPace = 1;
         void Awake()
         {
             fullScale = transform.localScale * 1.65f;
             transform.localScale = fullScale * .08f;
-            appearedAt = GameClock.Now; // the grow-in waits behind the Esc menu
+            view = GetComponent<DefenseActorView>();
             if (!looked) { visual = Resources.Load<GameObject>("Effects/BossAura"); looked = true; }
             if (visual)
             {
                 var made = Instantiate(visual, transform, false); made.name = "Boss aura";
                 glow = made.GetComponentInChildren<Light>(); halo = made.GetComponentInChildren<LineRenderer>();
-                return;
             }
-            Build(transform, out glow, out halo, out haloMaterial);
+            else Build(transform, out glow, out halo, out haloMaterial);
+            motes = GetComponentsInChildren<ParticleSystem>(true);
         }
         // The visuals under parent (the boss, or the prefab's root when the editor saves them).
         public static void Build(Transform parent, out Light glow, out LineRenderer halo, out Material haloMaterial)
@@ -87,10 +90,12 @@ namespace CodingGame.Defense
 
         void Update()
         {
-            float reveal = Mathf.Clamp01((GameClock.Now - appearedAt) / 1.15f);
-            transform.localScale = fullScale * Mathf.SmoothStep(.08f, 1f, reveal);
-            if (glow) glow.intensity = 1.6f + .45f * Mathf.Sin(Time.unscaledTime * 3.2f);
-            if (halo) halo.widthMultiplier = .05f + .015f * Mathf.Sin(Time.unscaledTime * 3.2f);
+            float pace = view ? view.Pace : 1;
+            if (pace != shownPace) { shownPace = pace; foreach (var p in motes) { var main = p.main; main.simulationSpeed = pace; } }
+            clock += Time.deltaTime * pace;
+            transform.localScale = fullScale * Mathf.SmoothStep(.08f, 1f, Mathf.Clamp01(clock / 1.15f));
+            if (glow) glow.intensity = 1.6f + .45f * Mathf.Sin(clock * 3.2f);
+            if (halo) halo.widthMultiplier = .05f + .015f * Mathf.Sin(clock * 3.2f);
         }
 
         void OnDestroy()

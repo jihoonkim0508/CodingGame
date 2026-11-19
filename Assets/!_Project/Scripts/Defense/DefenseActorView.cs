@@ -111,6 +111,7 @@ namespace CodingGame.Defense
             Sync(position, enemy.Stunned(time), enemy.Speed(time) < enemy.Spec.speed, false);
         }
         // Animation speed follows the battle clock: 0 while paused, 2-3 at 2x/3x.
+        public float Pace => pace;
         public void SetPace(float pace)
         {
             if (pace == this.pace) return;

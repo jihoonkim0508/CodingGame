@@ -41,6 +41,7 @@ namespace CodingGame.Defense
         [Tooltip("Moved onto the painted map's base cell when the routes come from a map.")]
         [SerializeField] Transform core;
         DefenseCoreGlitch coreGlitch;
+        float particlePace = 1;
         static readonly Color RangeColor = new Color(.35f, .9f, 1); // attack ranges: a MOBA-like cyan rim; the tutorial highlight pulses blue and fills (DefenseRangeRing)
         Bounds[] floorParts, firstSpotPart;
         [SerializeField] RobotDefinition[] robots = Array.Empty<RobotDefinition>();
@@ -1109,7 +1110,18 @@ namespace CodingGame.Defense
         }
         void SyncViews(float elapsed)
         {
-            if (coreGlitch) coreGlitch.Show(Simulation.BaseHealth, Simulation.Phase == BattlePhase.Defeat);
+            // Animations follow the battle: still while paused (or held by the tutorial), faster at 2x/3x, normal outside a wave.
+            float pace = Simulation.Phase == BattlePhase.Paused ? 0 : Simulation.Phase == BattlePhase.Running
+                ? Pace : 1;
+            if (coreGlitch) coreGlitch.Show(Simulation.BaseHealth, Simulation.Phase == BattlePhase.Defeat, pace);
+            // Every self-playing particle under the actors keeps the pace too (hit effects are stepped by hitEffects.Tick and
+            // stay paused between steps, so they are left alone).
+            // ponytail: applied when the pace changes; a self-playing effect spawned mid-wave at 2x plays at 1x until the next change.
+            if (pace != particlePace)
+            {
+                particlePace = pace;
+                foreach (var p in actorsRoot.GetComponentsInChildren<ParticleSystem>()) if (!p.isPaused) { var main = p.main; main.simulationSpeed = pace; }
+            }
             if (Simulation.Options.projectiles) projectileViews.Sync(Simulation, projectilePrefab, actorsRoot, Vector3.zero);
             else projectileViews.Clear();
             // Views of robots and enemies that are gone, found with a set instead of a search per view (13차 134).
@@ -1119,9 +1131,6 @@ namespace CodingGame.Defense
             liveIds.Clear(); foreach (var e in Simulation.Enemies) liveIds.Add(e.Id);
             goneIds.Clear(); foreach (var id in enemyViews.Keys) if (!liveIds.Contains(id)) goneIds.Add(id);
             foreach (var id in goneIds) { DefenseViews.Discard(enemyViews[id]); enemyViews.Remove(id); }
-            // Animations follow the battle: still while paused (or held by the tutorial), faster at 2x/3x, normal outside a wave.
-            float pace = Simulation.Phase == BattlePhase.Paused ? 0 : Simulation.Phase == BattlePhase.Running
-                ? Pace : 1;
             foreach (var bot in Simulation.Robots)
             {
                 // A robot placed straight into the simulation (dev tools, tests) has no view; skip it instead of throwing every frame.
