@@ -144,8 +144,8 @@ namespace CodingGame.Defense.Editor
             L("1-1.D10"),
             L("1-1.E01", Focus(TutorialKeys.NextWave)),
             L("1-1.E03", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => s.Top = true)),
-            // Battle start called the function once and it ended (a swing, likely at nobody); then, slowed, the first enemy
-            // in range is the moment for the robot's Play button.
+            // Battle start called the function once and it ended (a swing, likely at nobody); then the first enemy in range is
+            // the moment for the robot's Play button, which does nothing before (TutorialDirector.CanPerformAction).
             // The swing-paced lines (E03a, E03c, E04) come when the robot's swing has played out, so they follow its attack
             // speed instead of fixed delays (the user: '공속 가져와서, 하드코딩하지 말고').
             L("1-1.E03a", s => s.Trigger = TutorialSignals.FunctionEnded),
@@ -155,13 +155,8 @@ namespace CodingGame.Defense.Editor
             L("1-1.E03c", Click(TutorialKeys.Play(0), s => { s.Trigger = TutorialSignals.PlayEnded; s.Pointer = TutorialKeys.Play(0); s.Top = true; })),
             // After the kill the battle runs on at 1x until the killing swing is over, then stands still under the line.
             L("1-1.E04", s => s.Trigger = TutorialSignals.KillSwingEnded),
-            // The press shows: the button turns to 계속 (the battle stands still under every line anyway).
-            L("1-1.E04a", Click(TutorialKeys.Pause, s => s.Pointer = TutorialKeys.Pause)),
-            L("1-1.E04b", Click(TutorialKeys.Pause, s => s.Pointer = TutorialKeys.Pause)),
+            // Pause and speed are only told about in 1-2 (the user: '1-1 보상 이후로, 클릭하지 말고 말로만').
             L("1-1.E04d"),
-            // Fast forward once only the tank-bodied one is left (play test: players turned on 2x with basic enemies on the
-            // road and let them through).
-            L("1-1.E04c", Click(TutorialKeys.Speed, s => { s.Trigger = TutorialSignals.OnlyTanksLeft; s.Pointer = TutorialKeys.Speed; })),
             L("1-1.E05", With(Fight, Focus(Core), s => s.Trigger = TutorialSignals.Leak)),
             L("1-1.E06", s => s.Trigger = TutorialSignals.WaveCleared),
             L("1-1.E07"),
@@ -175,6 +170,10 @@ namespace CodingGame.Defense.Editor
             // Free play has no exact answer, compulsory editor visit or forced clear.
             return new List<S> {
                 L("1-2.A01"), L("1-2.A02"), L("1-2.A03"),
+                // The battle's controls show from its start: told about there, under a held battle, no click asked (both work
+                // from 1-2 on, DefenseBattle.SpeedUnlocked).
+                L("1-2.A04", s => { s.Trigger = TutorialSignals.BattleStarted; s.Focus = new[] { TutorialKeys.Pause }; }),
+                L("1-2.A05", Focus(TutorialKeys.Speed)),
                 L("1-2.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code11; s.Battle = true; }),
                 L("1-2.B02"),
                 L("1-2.B03", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),

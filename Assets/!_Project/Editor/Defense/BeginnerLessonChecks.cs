@@ -21,7 +21,7 @@ namespace CodingGame.Defense.Editor
         static double bodyReadyAt;
         static string last;
         static double since, next;
-        static bool practiced, practicedFour, practicedFive, bossVisualSeen, gapPressed;
+        static bool practiced, practicedFour, practicedFive, bossVisualSeen, gapPressed, controlsTried;
         static int coreAtThirdWave, killsAtThirdWave, leaksAtThirdWave, killsAtFifthWave, codedWave;
         static BeginnerLessonChecks()
         {
@@ -317,6 +317,21 @@ namespace CodingGame.Defense.Editor
                 gapPressed = true;
             }
             if (key == "1/E03c") Require(gapPressed, "실행 was never pressed between the battle start and E03b");
+            // Told about in 1-2 (A04, A05), pause and speed work in its free play at once.
+            if (key == "2/B01" && !director.IsActive && sim.Phase == BattlePhase.Running && !controlsTried)
+            {
+                var hud = Field<DefensePlayerHUD>(battle, "playerHUD");
+                Button pause = Field<Button>(hud, "pauseButton"), speed = Field<Button>(hud, "speedButton");
+                pause.onClick.Invoke(); Require(sim.Phase == BattlePhase.Paused, "Pause did not stop 1-2's battle");
+                pause.onClick.Invoke(); Require(sim.Phase == BattlePhase.Running, "Continue did not resume 1-2's battle");
+                Require(battle.SpeedUnlocked && speed.interactable, "Speed is locked in 1-2's free play");
+                speed.onClick.Invoke(); Require(battle.BattleSpeed == 2, "Speed did not change to 2x in 1-2");
+                speed.onClick.Invoke(); Require(battle.BattleSpeed == 3, "Speed cannot reach 3x in 1-2");
+                speed.onClick.Invoke();
+                if (GameFlow.Developer) { Require(battle.BattleSpeed == 5, "Developer rights do not add 5x after 3x"); speed.onClick.Invoke(); }
+                Require(battle.BattleSpeed == 1, "Speed cannot return to 1x after 3x");
+                controlsTried = true;
+            }
             if (!director.IsActive) { Time.timeScale = 3; return; }
             var view = Field<TutorialDialogueView>(director, "view");
             if (!view.IsVisible) return; // System banner.
@@ -329,19 +344,18 @@ namespace CodingGame.Defense.Editor
             // A line on screen holds the battle (no 0.2x): the Play, pause and speed lessons too.
             if (sim.Phase == BattlePhase.Running || sim.Phase == BattlePhase.Paused)
                 Require(director.BattlePace == 0, "The battle runs under a line at " + key);
-            if (key == "1/E04" || key == "1/E04a" || key == "1/E04b" || key == "1/E04d")
+            if (key == "1/E04" || key == "1/E04d")
             {
                 var speed = Field<Button>(Field<DefensePlayerHUD>(battle, "playerHUD"), "speedButton");
                 Require(!battle.SpeedUnlocked && !speed.interactable && battle.BattleSpeed == 1,
-                    "Speed is available before its 1-1 introduction at " + key);
+                    "Speed is available in 1-1 at " + key);
                 battle.ToggleSpeed();
                 Require(battle.BattleSpeed == 1, "Speed changed while locked at " + key);
             }
-            if (key == "1/E04b")
-                Require(sim.Phase == BattlePhase.Paused, "Pause button did not fully stop the battle");
-            if (key == "1/E04c")
-                Require(sim.Phase == BattlePhase.Running && sim.Enemies.All(e => !e.Active || e.Spec.type == EnemyType.Tank),
-                    "The speed lesson came while a basic enemy is on the road or the battle still paused");
+            // 1-2 A04 and A05 tell about pause and speed, the buttons lit, while the battle stands still.
+            if (key == "2/A04" || key == "2/A05")
+                Require(sim.Phase == BattlePhase.Running && step.texts.All(t => t.focusKeys.All(k => director.EditorBridge.TryGetArea(k, out _))),
+                    "The battle's controls are not on screen at " + key);
             director.EditorFinishTyping(); Canvas.ForceUpdateCanvases();
             foreach (var text in view.GetComponentsInChildren<TMP_Text>().Where(t => t.name == "Dialogue"))
             { text.ForceMeshUpdate(); Require(!text.isTextOverflowing, "Dialogue overflow at " + key); }
@@ -368,30 +382,6 @@ namespace CodingGame.Defense.Editor
                     "The robot's Play button is not offered at " + key);
                 battle.PlayRobot(teacher.Id);
                 Require(teacher.Program.Running, "Play did not call the robot's function at " + key);
-                return;
-            }
-            if (step.targetKeys.Contains(TutorialKeys.Pause))
-            {
-                Require(battle.TutorialAllows(TutorialKeys.Pause), "Pause control blocked at " + key);
-                Field<Button>(Field<DefensePlayerHUD>(battle, "playerHUD"), "pauseButton").onClick.Invoke();
-                Require(sim.Phase == (step.stepId == "E04a" ? BattlePhase.Paused : BattlePhase.Running), "Pause/resume failed at " + key);
-                return;
-            }
-            if (step.targetKeys.Contains(TutorialKeys.Speed))
-            {
-                Require(battle.SpeedUnlocked && battle.TutorialAllows(TutorialKeys.Speed) &&
-                    Field<Button>(Field<DefensePlayerHUD>(battle, "playerHUD"), "speedButton").interactable,
-                    "Speed control did not unlock at " + key);
-                var speed = Field<Button>(Field<DefensePlayerHUD>(battle, "playerHUD"), "speedButton");
-                speed.onClick.Invoke();
-                Require(battle.BattleSpeed == 2, "Speed did not change to 2x at " + key);
-                Require(director.CanPerformAction(TutorialKeys.Speed) && speed.interactable,
-                    "Speed became locked again immediately after the lesson");
-                speed.onClick.Invoke();
-                Require(battle.BattleSpeed == 3, "Speed cannot reach 3x after the tutorial introduction");
-                speed.onClick.Invoke();
-                if (GameFlow.Developer) { Require(battle.BattleSpeed == 5, "Developer rights do not add 5x after 3x"); speed.onClick.Invoke(); }
-                Require(battle.BattleSpeed == 1, "Speed cannot return to 1x after 3x");
                 return;
             }
             // The editor's 닫기 (no step closes it on its own): the start button waits until it is pressed.

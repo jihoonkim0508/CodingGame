@@ -64,7 +64,7 @@ namespace CodingGame.Defense
         public bool HasSequence => active;
         public bool ShowFreePlayGoal => active &&
             (active.sequenceId == "1-2" || active.sequenceId == "1-4" || active.sequenceId == "1-5") &&
-            Current?.stepId == "B01" && !view.IsVisible;
+            (Current?.stepId == "B01" || active.sequenceId == "1-2" && Current?.stepId == "A04") && !view.IsVisible;
         public bool BlocksGameplayInput => IsActive && InputLimited;
         public bool BlocksPreview => BlocksGameplayInput && !AllowPreview;
         // Tutorial off, idle, or with input limiting disabled in the developer options.
@@ -72,15 +72,6 @@ namespace CodingGame.Defense
         bool InputLimited => !battle || battle.Simulation == null || battle.Simulation.Options.tutorialInput;
         public bool PauseBattle => IsActive && bridge && bridge.PauseBattle;
         public float BattlePace => PauseBattle ? 0 : IsActive && bridge && bridge.SlowBattle ? .2f : 1f;
-        public bool SpeedLessonReached
-        {
-            get
-            {
-                if (!active || active.stage != 1 || active.wave != 1) return false;
-                int index = Array.FindIndex(active.steps, step => step.stepId == "E04c");
-                return index >= 0 && (progressStep > index || progressStep == index && IsActive);
-            }
-        }
         public bool SpeedControlAvailable => battle && battle.SpeedUnlocked;
         public bool AllowPreview => IsActive && bridge && bridge.AllowPreview;
         public IReadOnlyList<TutorialSequence> Sequences => sequences;

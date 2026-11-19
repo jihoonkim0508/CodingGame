@@ -106,7 +106,7 @@ namespace CodingGame.Defense
         public int PlacingDefinition => palette;
         public float BattleSpeed { get; private set; } = 1;
         public bool SpeedUnlocked => Simulation != null && (!Simulation.Setup.PlayerFlow || !Simulation.Options.tutorial ||
-            Stage != 1 || Simulation.WaveIndex > 0 || tutorial && tutorial.SpeedLessonReached);
+            Stage != 1 || Simulation.WaveIndex > 0);
         public string StatusMessage { get; private set; }
         public TutorialDirector Tutorial => tutorial;
         public DefenseCodeEditor CodeEditor => codeEditor;
