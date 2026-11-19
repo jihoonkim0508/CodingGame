@@ -175,7 +175,9 @@ namespace CodingGame.Defense
                 if (AddArea(TutorialKeys.Speed) > 0) { Show(start, false); for (int i = start; i < screenAreas.Count; i++) clickAreas.Add(screenAreas[i]); }
             }
             // Focus uses the same spotlight as action steps: dim everything but the holes.
-            bool dim = currentStep == null || !currentStep.undimmed && !dismissed && (currentStep.dim || focus.Length > 0 || Acting);
+            // A claim step leaves the result lit: its MVP and advice are read before claiming (the button keeps its outline and arrow).
+            bool dim = currentStep == null || !currentStep.undimmed && !dismissed && !currentStep.targetKeys.Contains("Battle.ClaimRewards") &&
+                (currentStep.dim || focus.Length > 0 || Acting);
             spotlight.SetRoad(roadBoxes, roadDim);
             spotlight.SetRounded(roundedAreas);
             spotlight.SetHoles(clickAreas, visibleAreas, outlinedAreas, roundAreas, currentStep?.highlightPadding ?? 0, dim);
