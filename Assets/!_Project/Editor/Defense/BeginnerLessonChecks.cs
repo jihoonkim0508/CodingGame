@@ -198,7 +198,7 @@ namespace CodingGame.Defense.Editor
             {
                 if (sim.Phase == BattlePhase.Victory) { End("PASS 2-1 to 2-10 completed: variables, conditions, is_dead(), break, continue lessons, free waves, boss; core=" + sim.BaseHealth); return; }
                 if (sim.Phase == BattlePhase.Defeat) { End("FAIL stage 2 wave " + (sim.WaveIndex + 1) + " lost; kills=" + sim.Kills + " leaks=" + sim.Leaks); return; }
-                // 2-2 has no lesson to claim its reward, so the checker does.
+                // A wave whose lesson does not claim its reward: the checker does.
                 if (sim.Phase == BattlePhase.Reward && !director.IsActive)
                 {
                     Log("CLEAR wave=" + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills +
@@ -392,7 +392,7 @@ namespace CodingGame.Defense.Editor
             director.EditorFinishTyping(); Canvas.ForceUpdateCanvases();
             foreach (var text in view.GetComponentsInChildren<TMP_Text>().Where(t => t.name == "Dialogue"))
             { text.ForceMeshUpdate(); Require(!text.isTextOverflowing, "Dialogue overflow at " + key); }
-            foreach (var target in step.texts.SelectMany(t => t.focusKeys).Where(TutorialKeys.IsEditorArea))
+            foreach (var target in step.texts.SelectMany(t => t.focusKeys).Where(k => TutorialKeys.IsEditorArea(k) || k == TutorialKeys.Goal))
                 Require(director.EditorBridge.TryGetArea(target, out _), "Missing focus " + target + " at " + key);
             if (step.kind != TutorialStepKind.ActionGuide) { director.EditorNext(); return; }
             var editor = battle.CodeEditor; var panel = editor.Panel;

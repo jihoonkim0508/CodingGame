@@ -278,6 +278,23 @@ namespace CodingGame.Defense
                 foreach (var g in groups) if (g.Count > round && picks.Count < count) picks.Add(g);
             return picks.Select((g, i) => { var one = CopyGroup(g); one.Count = 1; one.Delay = i * 1.4f; one.Interval = 1.4f; one.RouteIndex = 0; one.Boss = false; return one; }).ToArray();
         }
+        // 2-3's warrior demo (the if lesson). The strike hits whoever is inside the ring when it lands (c799e7c), so the wave's
+        // enemy took two or three swings of `while True: slash()` while crossing the ring and fell, and '허공을 베고 쉬는 사이
+        // 지나가 버렸어' showed nothing of the kind (play test 2026-11-20). The demo's one enemy (the robot `offset` off the road,
+        // the road from x = startX) now crosses the ring in a time that fits two strikes of a swing started as it enters but only
+        // one of a loop swinging at air, comes in just after one of those air swings landed, and falls to two strikes.
+        // ponytail: assumes the loop's first swing at the demo's start (the preview calls the function on its first frame).
+        public static void TimeMeleeDemo(SpawnGroup demo, float range, float offset, float startX, float interval, float strike, float damage)
+        {
+            float late = .1f * interval;
+            float half = (float)Math.Sqrt(range * range - offset * offset);
+            // Midway between the guarded swing's second strike (strike + interval after entry) and the loop's (2 interval - late).
+            float crossing = (strike + 3 * interval - late) / 2;
+            demo.Count = 1; demo.Enemy.speed = 2 * half / crossing; demo.Enemy.health = 1.5f * damage;
+            float walk = (startX - half) / demo.Enemy.speed, enter = strike + late;
+            while (enter < walk) enter += interval;
+            demo.Delay = enter - walk;
+        }
         public void Restore(WaveCheckpoint checkpoint)
         {
             if (Phase != BattlePhase.Ready || Robots.Count > 0 || checkpoint.Stage != Setup.Stage || checkpoint.Wave != WaveIndex)

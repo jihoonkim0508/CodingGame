@@ -1022,14 +1022,15 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uAE38 \uC606 \uBE48\uC790\uB9AC\uB97C \uB20C\uB7EC \uC138\uC6CC \uC918!"
-      focusKeys:
-      - Battle.Route
+      text: "<b>\uAE38 \uC606 \uBE48\uC790\uB9AC</b>\uB97C \uB20C\uB7EC \uC138\uC6CC
+        \uC918!\n\uC6D0\uAC70\uB9AC\uD615\uC740 \uAE38 \uC704\uC5D0\uB294 \uC124
+        \uC218 \uC5C6\uC5B4."
+      focusKeys: []
       highlightKeys: []
     targetKeys:
     - Battle.DeploymentArea
-    dim: 1
-    undimmed: 0
+    dim: 0
+    undimmed: 1
     blockInput: 1
     outline: 1
     roundFocus: 0

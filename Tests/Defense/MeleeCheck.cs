@@ -74,6 +74,34 @@ static class MeleeCheck
         Assert(Dist(leaving) > bot.Range && Dist(coming) <= bot.Range, $"setup: B outside, A inside when the sword lands {Dist(leaving):0.00} {Dist(coming):0.00}");
         Assert(coming.Health < 10000 && leaving.Health == 10000, "the strike hits the enemy inside the ring when it lands, not the one that walked out");
 
+        // 2-3's preview, as DefenseAttackPreview builds it (TimeMeleeDemo): `while True: slash()` lets the enemy through with
+        // one strike (2-3 B01 '허공을 베고 쉬는 사이 지나가 버렸어'), the if-guarded slash fells it (D07 '들어오자마자 벴어').
+        foreach (bool guarded in new[] { false, true })
+        foreach (float waveSpeed in new[] { 1.1f, 1.6f, 2.4f }) // the wave's own pace no longer matters
+        {
+            var demo = new SpawnGroup { Enemy = new EnemySpec { health = 10.7f, speed = waveSpeed }, Count = 1, Interval = 1.4f };
+            DefenseSimulation.TimeMeleeDemo(demo, 3.6f, 1.8f, 7, 1.6f, 1.6f * .4f, 7);
+            sim = new DefenseSimulation(new BattleSetup {
+                Progression = FixtureProgression.Create(), Min = new Vector2(-50, -50), Max = new Vector2(50, 50), BaseHealth = 100,
+                ActionProfiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(r => new RobotSpec { role = r, damage = 7, interval = 1.6f, range = 3.6f }).ToArray(),
+                Routes = new[] { new Route(new[] { new Vector2(7, 0), new Vector2(-20, 0) }, .75f) }, Waves = new[] { new[] { demo } } });
+            bot = sim.Place(new RobotSpec { role = RobotRole.Warrior, range = 3.6f, damage = 7, interval = 1.6f }, (int)RobotRole.Warrior, new Vector2(0, 1.8f), out var error);
+            Assert(bot != null, "the demo warrior stands 1.8 off the road: " + error);
+            sim.ApplyProgram(bot.Id, "demo", CodingGame.Defense.Editor.TutorialAnswers.Parse(guarded
+                ? "while True:\n    enemy = get_nearest_enemy()\n    if enemy.distance(get_my_pos()) <= my_attack_range():\n        slash()"
+                : "while True:\n    slash()"));
+            sim.Start();
+            int hits = 0; float last = demo.Enemy.health; // strikes it survived (a fallen enemy leaves the list)
+            for (int i = 0; i < 60 * 12; i++)
+            {
+                sim.Invoke(bot.Id); sim.Advance(1.0 / 60);
+                var walker = sim.Enemies.FirstOrDefault();
+                if (walker != null && walker.Health < last) { hits++; last = walker.Health; }
+            }
+            Assert(guarded ? sim.Kills == 1 && hits == 1 : sim.Kills == 0 && hits == 1,
+                $"2-3 demo at the wave's speed {waveSpeed}: {(guarded ? "the if fells the enemy with two strikes" : "the loop strikes once and the enemy walks through")} (kills={sim.Kills} hits={hits})");
+        }
+
         Console.WriteLine($"Melee checks passed: {checks}");
     }
 }

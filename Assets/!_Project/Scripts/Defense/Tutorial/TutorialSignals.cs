@@ -41,6 +41,8 @@ namespace CodingGame.Defense
             DropZone = "Editor.ProgramDropZone", Palette = "Editor.BlockPalette", Close = "Editor.Close", RestoreAutomatic = "Editor.RestoreAutomatic",
             Hint = "Editor.Hint", Preview = "Editor.Preview", CoreHealth = "Battle.CoreHealth", Route = "Battle.Route", RewardPanel = "Battle.RewardPanel", NextWave = "Battle.NextWave",
             Floor = "Battle.Floor";
+        // The wave's goal bar at the top (DefensePlayerHUD registers it while it shows): 2-2's first line points at it.
+        public const string Goal = "Battle.Goal";
         public const string CodePrefix = "Editor.Code.", PalettePrefix = "Editor.Palette.";
         // The code editor's bottom line (errors and state): 1-1 introduces it as the debugging line.
         public const string Status = CodePrefix + "Status";
@@ -58,7 +60,7 @@ namespace CodingGame.Defense
         public static string PaletteTab(int category) => PaletteTabPrefix + category;
         public static bool IsRange(string key) => key != null && key.StartsWith(RangePrefix, System.StringComparison.Ordinal);
         // World targets the game registers at run time; they need no scene binding.
-        public static bool IsRuntime(string key) => key != null && (key == Route || key == Floor || key.StartsWith(UnitPrefix) || key.StartsWith(RangePrefix) || key.StartsWith(PlayPrefix));
+        public static bool IsRuntime(string key) => key != null && (key == Route || key == Floor || key == Goal || key.StartsWith(UnitPrefix) || key.StartsWith(RangePrefix) || key.StartsWith(PlayPrefix));
         // Positions inside the code editor (Editor.Code.*, Editor.Palette.*), resolved by DefenseCodeEditor each frame.
         public static bool IsEditorArea(string key) => key != null && (key.StartsWith(CodePrefix) || key.StartsWith(PalettePrefix));
     }

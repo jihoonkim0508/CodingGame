@@ -366,7 +366,9 @@ namespace CodingGame.Defense.Editor
             L("2-6.F02", Signal(TutorialSignals.CodeCopied, new[] { Drop }, With(s => { s.Pointer = "Editor.Code.Line.1"; s.Preview = true; }, Focus("Editor.Code.Line.1")))),
             L("2-6.F02a", CloseClick),
             L("2-6.F03", Click(TutorialKeys.RobotButton((int)RobotRole.Shooter), s => s.Dim = true)),
-            L("2-6.F04", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => s.Dim = true, Focus(Route)))),
+            // Beside the road, so no road lit (play test 2026-11-20: the lit road drew the click onto it, where only a tank may
+            // stand) and no dim: the whole map shows, and the placement ring greys over the road.
+            L("2-6.F04", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, s => s.Undimmed = true)),
             L("2-6.F05", Click(Newest, s => { s.Pointer = Newest; s.Robot = -1; })),
             L("2-6.F06", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; s.Robot = -1; })),
             // Pasted where it was clicked; near the start slot it snaps there.
@@ -398,9 +400,23 @@ namespace CodingGame.Defense.Editor
             L("2-8.D02", With(Ed, Focus("Editor.Code.Line.1/2"))),
         }.Concat(Battle("2-8", Code28)).ToList();
 
-        // 2-7, 2-9, 2-10: lines before free play (as 1-4, 1-5), the hint holding the code to build on.
+        // 2-2, 2-4, 2-7, 2-9, 2-10: lines before free play (as 1-4, 1-5), the hint holding the code to build on. 2-2 had no line
+        // and 2-4 none either (play test 2026-11-20: '뭘 하라는 거지?'); each says what differs from the wave before and what
+        // to do, and the goal bar, where every wave's task is written, is lit on the line that says it.
+        static List<S> TwoTwo() => new List<S> {
+            L("2-2.A01", s => s.Cards = true), L("2-2.A02"), L("2-2.A03"), L("2-2.A04", Focus(TutorialKeys.Goal)),
+            L("2-2.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code21; s.Battle = true; }),
+            L("2-2.B02", Claim),
+        };
+        static List<S> TwoFour() => new List<S> {
+            L("2-4.A01", s => s.Cards = true), L("2-4.A02"), L("2-4.A03", Focus(TutorialKeys.Goal)), L("2-4.A04"),
+            L("2-4.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code23; s.Battle = true; }),
+            L("2-4.B02", Claim),
+        };
+        // 2-7: the one new thing is the is_dead() break (2-6's code lets a fallen enemy go already: its distance reads as
+        // infinite), so the lines and the goal name that line and where it goes, not '두 가지를 합쳐' (play test 2026-11-20).
         static List<S> TwoSeven() => new List<S> {
-            L("2-7.A01", s => s.Cards = true), L("2-7.A02"), L("2-7.A03"), L("2-7.A04"),
+            L("2-7.A01", s => s.Cards = true), L("2-7.A02"), L("2-7.A03"), L("2-7.A04", Focus(TutorialKeys.Goal)),
             L("2-7.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code27; s.Battle = true; }),
             L("2-7.B02", Claim),
         };
@@ -530,12 +546,12 @@ namespace CodingGame.Defense.Editor
             Topic(1, 4, "반복 자유 플레이", "새 전사와 반복문으로 몰려오는 적 막기");
             Topic(1, 5, "반복 보스 실습", "반복문으로 작은 적을 모두 막고 보스 쓰러뜨리기");
             Topic(2, 1, "변수: 찾은 적을 상자에 담기(원거리)", "찾은 적을 변수에 담아 원거리형으로 공격하기");
-            Topic(2, 2, "변수 자유 플레이", "찾은 적을 변수에 담아 원거리형 하나로 무리 막기");
+            Topic(2, 2, "변수 자유 플레이", "2-1에서 만든 코드로 원거리형 하나가 혼자 막기 · 빠른 적 첫 등장");
             Topic(2, 3, "조건문: 벨 때 고르기(전사형)", "적이 공격 범위에 들어왔을 때만 베는 조건문으로 막기");
-            Topic(2, 4, "조건 자유 플레이", "적이 공격 범위에 들어왔을 때만 공격하는 조건문으로 무리 막기");
+            Topic(2, 4, "조건 자유 플레이", "빠른 적이 먼저 와요 · 조건문 전사형과 원거리형이 함께 막기");
             Topic(2, 5, "is_dead(): 한 적을 끝까지", "쓰러진 적이면 새로 찾는 is_dead()로 한 적씩 끝내기");
             Topic(2, 6, "break: 사거리를 벗어나면 놓아주기", "빠른 적 등장 · 사거리 밖으로 나간 적은 break로 놓아주기 · 새 원거리형엔 코드 복사");
-            Topic(2, 7, "자유 실습: 쓰러지거나 멀어지면 break", "쓰러진 적도, 멀어진 적도 break로 놓아주고 다음 적 잡기");
+            Topic(2, 7, "자유 실습: 쓰러지면 break", "원거리형 안쪽 반복 맨 위에 if enemy.is_dead(): break 넣기");
             Topic(2, 8, "continue와 enemy.type", "단단한 적 등장 · 원거리형은 continue로 단단한 적만, 작은 적은 전사형이");
             Topic(2, 9, "자유 종합", "모든 종류의 적 · is_dead(), break, continue로 로봇마다 맡을 적 나누기");
             Topic(2, 10, "보스", "보스 등장 · 작은 적을 모두 막고 보스를 쓰러뜨리기");
@@ -636,7 +652,7 @@ namespace CodingGame.Defense.Editor
             var sequences = new[] { Write("1-1", 1, OneOne()), Write("1-2", 2, OneTwo()), Write("1-3", 3, OneThree()), Write("1-4", 4, OneFour()), Write("1-5", 5, OneFive()),
                 Write("2-1", 1, TwoOne(), 2), Write("2-3", 3, TwoThree(), 2), Write("2-5", 5, TwoFive(), 2), Write("2-6", 6, TwoSix(), 2),
                 Write("2-7", 7, TwoSeven(), 2), Write("2-8", 8, TwoEight(), 2), Write("2-9", 9, TwoNine(), 2), Write("2-10", 10, TwoTen(), 2),
-                Write("3-1", 1, ThreeOne(), 3) };
+                Write("3-1", 1, ThreeOne(), 3), Write("2-2", 2, TwoTwo(), 2), Write("2-4", 4, TwoFour(), 2) };
             foreach (var s in sequences) log.AppendLine(s.sequenceId + ": " + s.steps.Length + " steps");
             log.AppendLine(Campaign());
             AssetDatabase.SaveAssets();
