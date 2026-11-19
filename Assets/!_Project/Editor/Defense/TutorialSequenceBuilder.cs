@@ -137,7 +137,8 @@ namespace CodingGame.Defense.Editor
             L("1-1.D06", Focus("Editor.Code.Line.1", Preview)),
             L("1-1.D08", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(
                 s => { s.Preview = true; s.RestartPreview = true; s.Hold = 3; }, Focus(Preview)))),
-            L("1-1.D09", With(Ed, Focus(Preview))),
+            // "베었다!" over the preview: it plays the swing again (slash() runs once per demo and stood still for this line).
+            L("1-1.D09", With(Ed, With(s => { s.Preview = true; s.RestartPreview = true; }, Focus(Preview)))),
             // Before the first workspace closes: the bottom line is where the code's problems show (debugging).
             L("1-1.D09a", With(Ed, Focus(TutorialKeys.Status))),
             L("1-1.D10", s => s.CloseEditor = true),
