@@ -879,6 +879,9 @@ namespace CodingGame.Defense
                     newCount.font = rewardItems.font; newCount.fontSize = 26; newCount.alignment = TextAlignmentOptions.MidlineLeft; newCount.raycastTarget = false;
                     newCount.color = new Color(.81f, .87f, .91f);
                     rewardShown[group.Key] = made = (DefenseViews.GraphicCopy(view.Rect, rewardBlocks), newCount);
+                    // An edge on the block itself (not its slot wells): a while True was the panel's own blue.
+                    foreach (var block in made.copy.GetComponentsInChildren<CodingGame.BlockCoding.CommandBlockView>(true))
+                        if (block.TryGetComponent<CodingGame.BlockCoding.CommandBlockShape>(out var shape)) shape.Outline = RewardOutline;
                 }
                 var copy = made.copy;
                 copy.gameObject.SetActive(true);
@@ -898,6 +901,8 @@ namespace CodingGame.Defense
             rewardItems.margin = new Vector4(8, ListTop + RewardTop + y + rowHeight + 16, 8, 12);
         }
         const float RewardTop = 14, RewardInset = 6;
+        // 시안 (블록 외곽선 보상창): the look the user picks stays.
+        const CodingGame.BlockCoding.CommandBlockShape.OutlineLook RewardOutline = CodingGame.BlockCoding.CommandBlockShape.OutlineLook.Dark;
         // The scroll area reaches up to the title band and the list starts ListTop under its top: the area cuts what goes
         // past its edge, and the stars popping to 1.4x lost their tops on it while they sat right under it.
         const float ListTop = 36;
