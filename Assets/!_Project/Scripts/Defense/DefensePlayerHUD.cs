@@ -74,7 +74,7 @@ namespace CodingGame.Defense
                 !upcoming || !brand || !canvasRoot || !rewardPanel || !counters || !guide || !inventory || !notice || !pauseLabel || !speedLabel ||
                 !rewardTitle || !rewardItems || !claimLabel || !startButton || !pauseButton || !speedButton || !claimButton ||
                 robotLabels.Length != 6 || robotLabels.Any(t => !t) || robotButtons.Length != 6 || robotButtons.Any(b => !b)) throw new InvalidOperationException("DefensePlayerHUD Inspector 참조를 연결하세요.");
-            startButton.onClick.AddListener(battle.StartBattle);
+            startButton.onClick.AddListener(battle.RequestStartBattle);
             pauseButton.onClick.AddListener(battle.TogglePause); speedButton.onClick.AddListener(battle.ToggleSpeed);
             // The speed button's "F" key hint reads 2 sizes under the "3x" label, bold, set here so the scene stays as it is.
             if (speedButton.transform.Find("Shortcut") is RectTransform shortcutRect && shortcutRect.GetComponent<TMP_Text>() is TMP_Text shortcut)
@@ -1073,6 +1073,57 @@ namespace CodingGame.Defense
             leaveButton = Add("타이틀로", -200, UITheme.Coral);
             Text("스테이지 도중에 나가면 이 스테이지 진행은 저장되지 않아요.", -290, 19).color = UITheme.Muted;
             menu.SetActive(false); // built closed, so the first Esc opens it
+        }
+        // The 전투 시작 check (the user, 2026-11-19): what is left over, then 예 starts and 아니요 (or Esc) closes. Built at run
+        // time in the Esc menu's look; the shade catches clicks so none reach the map or the HUD behind.
+        GameObject startConfirm; TMP_Text startConfirmBody; Action startConfirmed;
+        public bool ConfirmOpen => startConfirm && startConfirm.activeSelf;
+        public void ConfirmStart(System.Collections.Generic.IEnumerable<string> problems, Action start)
+        {
+            if (!startConfirm) BuildStartConfirm();
+            startConfirmBody.text = string.Join("\n", problems.Select(p => "· " + p));
+            startConfirmed = start;
+            startConfirm.SetActive(true); startConfirm.transform.SetAsLastSibling();
+        }
+        public void CloseConfirm() { if (startConfirm) startConfirm.SetActive(false); startConfirmed = null; }
+        void BuildStartConfirm()
+        {
+            var shade = new GameObject("StartConfirm", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
+            shade.SetParent(canvasRoot.transform, false); shade.anchorMin = Vector2.zero; shade.anchorMax = Vector2.one; shade.sizeDelta = Vector2.zero;
+            shade.GetComponent<Image>().color = new Color(UITheme.Night.r, UITheme.Night.g, UITheme.Night.b, .75f);
+            startConfirm = shade.gameObject;
+            var layer = startConfirm.AddComponent<Canvas>(); layer.overrideSorting = true; layer.sortingOrder = 90; startConfirm.AddComponent<GraphicRaycaster>();
+            var card = new GameObject("Card", typeof(RectTransform), typeof(Image)).GetComponent<RectTransform>();
+            card.SetParent(shade, false); card.anchorMin = card.anchorMax = new Vector2(.5f, .5f); card.sizeDelta = new Vector2(640, 440);
+            UITheme.Style(card.GetComponent<Image>(), UITheme.Card, UITheme.Paper);
+            TMP_Text Text(string text, float y, float size, float height)
+            {
+                var label = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                label.rectTransform.SetParent(card, false); label.rectTransform.sizeDelta = new Vector2(560, height); label.rectTransform.anchoredPosition = new Vector2(0, y);
+                label.font = rewardTitle.font; label.fontSize = size; label.alignment = TextAlignmentOptions.Center; label.raycastTarget = false; label.text = text;
+                label.color = UITheme.Ink; label.textWrappingMode = TextWrappingModes.Normal;
+                return label;
+            }
+            Button Add(string text, float x, Color fill, Action click)
+            {
+                var button = Instantiate(claimButton, card);
+                var r = (RectTransform)button.transform;
+                r.anchorMin = r.anchorMax = new Vector2(.5f, .5f); r.sizeDelta = new Vector2(240, 66); r.anchoredPosition = new Vector2(x, -150);
+                button.interactable = true; button.gameObject.SetActive(true);
+                UITheme.Style((Image)button.targetGraphic, UITheme.Button, fill);
+                var label = button.GetComponentInChildren<TMP_Text>(); label.text = text; label.color = UITheme.Ink;
+                button.onClick.AddListener(() => click());
+                return button;
+            }
+            var title = Text("아직 준비가 덜 됐어요", 160, 42, 60);
+            if (UITheme.Display) title.font = UITheme.Display;
+            startConfirmBody = Text("", 40, 25, 150);
+            startConfirmBody.alignment = TextAlignmentOptions.MidlineLeft; startConfirmBody.enableAutoSizing = true;
+            startConfirmBody.fontSizeMin = 16; startConfirmBody.fontSizeMax = 25; startConfirmBody.lineSpacing = 12;
+            Text("그래도 전투를 시작할까요?", -68, 26, 50).fontStyle = FontStyles.Bold;
+            Add("예", -130, UITheme.Primary, () => { var start = startConfirmed; CloseConfirm(); start?.Invoke(); });
+            Add("아니요", 130, UITheme.PaperDeep, CloseConfirm);
+            startConfirm.SetActive(false);
         }
         // The menu's calls, added at run time (a baked menu keeps none).
         void WireMenu()
