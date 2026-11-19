@@ -318,6 +318,7 @@ namespace CodingGame.Defense
         {
             if (Phase != BattlePhase.Ready || Robots.Count > 0 || checkpoint.Stage != Setup.Stage || checkpoint.Wave != WaveIndex)
                 throw new ArgumentException("웨이브 재도전은 같은 웨이브의 빈 정비 단계에서만 할 수 있습니다.");
+            int logged = Inputs.Count; // the play log keeps the restore as the session's start, not as its placings (PlayRun.restore)
             foreach (var saved in checkpoint.Robots)
             {
                 var bot = Place(saved.Spec, saved.DefinitionIndex, saved.Position, out var error);
@@ -329,6 +330,7 @@ namespace CodingGame.Defense
             currentWave = checkpoint.Groups.Select(CopyGroup).ToArray(); groupCounts = new int[currentWave.Length];
             Coins = checkpoint.Coins; BaseHealth = checkpoint.BaseHealth; Kills = checkpoint.Kills;
             Leaks = waveLeaksAtStart = checkpoint.Leaks;
+            Inputs.RemoveRange(logged, Inputs.Count - logged);
         }
         public bool ClaimRewards()
         {

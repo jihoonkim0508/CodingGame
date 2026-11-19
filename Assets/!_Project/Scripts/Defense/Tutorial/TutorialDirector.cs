@@ -335,26 +335,30 @@ namespace CodingGame.Defense
         // after it then play in order up to the one asked for.
         string jumpSequence; int jumpStep; bool jumping;
         public void JumpWhenBegun(string sequenceId, int step) { jumpSequence = sequenceId; jumpStep = step; }
-        // A jump replayed from the stage cache (DefenseBattle.DeveloperJump): the lesson at the step as the cached play left it,
-        // on the replayed session. The watcher takes the replayed state as already seen, so its signals do not come again.
-        public void JumpFromCache(TutorialSequence sequence, int step, PlayMarker mark)
+        // A jump replayed from the play cache (DefenseBattle.DeveloperJump): the lesson at the step as the recorded play left
+        // it, on the replayed session (sequence null: a wave's start, whose lesson then begins by itself). The watcher takes the
+        // replayed state as already seen, so its signals do not come again.
+        public void JumpFromCache(TutorialSequence sequence, int step, PlayStep mark)
         {
             if (!initialized) return;
             Finish(); session = battle.Simulation; jumpSequence = null; jumping = false;
-            launched.Clear(); launched.UnionWith(mark.launched); rejected.Clear(); duplicateEntries.Clear(); visitedText.Clear();
-            completedStep.Clear(); completedStep.UnionWith(mark.completed);
+            launched.Clear(); launched.UnionWith(mark.launched ?? new string[0]); rejected.Clear(); duplicateEntries.Clear(); visitedText.Clear();
+            completedStep.Clear(); completedStep.UnionWith(mark.completed ?? new string[0]);
             signals.Clear(); signalAt.Clear(); signalWave = session.WaveIndex;
-            foreach (var signal in mark.signals) Remember(signal);
+            foreach (var signal in mark.signals ?? new string[0]) Remember(signal);
             watcher.Poll(session);
+            if (!sequence) return;
             active = sequence; shownText = null;
             Enter(step);
         }
+        // What a recorded wave start keeps of the lesson: the steps done in the lesson under way and the lessons begun.
+        public string[][] CacheState() => new[] { completedStep.ToArray(), launched.ToArray() };
 
         // Makes step index the progress step: applies its entry effects, then shows it unless it waits for a trigger.
         void Enter(int index)
         {
             if (index >= active.steps.Length) { Finish(); return; }
-            // The play log's mark, before the step's own entry effects: a cached jump replays to here and lets Enter do them.
+            // The play cache's mark, before the step's own entry effects: a cached jump replays to here and lets Enter do them.
             battle.MarkTutorialStep(active.sequenceId + "." + active.steps[index].stepId, signals, completedStep, launched);
             progressStep = viewedStep = index; viewedText = 0; stepEntered = GameClock.Now; guideDismissed = false;
             targetsSeen = false; targetsLostAt = -1;
