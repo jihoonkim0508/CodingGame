@@ -41,6 +41,9 @@ namespace CodingGame.Defense
         readonly List<Vector2[]> roadDim = new List<Vector2[]>();
         const float RoadCorner = .6f; // world units
         readonly List<Rect> outlinedAreas = new List<Rect>();
+        // The round focus's shapes (see AddSoft); their corners are rounded by this share of the shorter side.
+        readonly List<(Vector2[] shape, bool outlined)> softAreas = new List<(Vector2[], bool)>();
+        const float SoftCorner = .25f;
         readonly Dictionary<string, TutorialTargetBinding> byKey = new Dictionary<string, TutorialTargetBinding>();
         readonly Dictionary<string, RuntimeTarget> runtimeTargets = new Dictionary<string, RuntimeTarget>();
         // UI made at run time (a robot's Play button), by key.
@@ -140,16 +143,18 @@ namespace CodingGame.Defense
         void RefreshAreas()
         {
             if (!spotlight) return;
-            screenAreas.Clear(); outlinedAreas.Clear(); visibleAreas.Clear(); roundAreas.Clear(); roadBoxes.Clear(); roadDim.Clear();
+            screenAreas.Clear(); outlinedAreas.Clear(); visibleAreas.Clear(); roundAreas.Clear(); roadBoxes.Clear(); roadDim.Clear(); softAreas.Clear();
+            bool soft = currentStep != null && currentStep.roundFocus;
             if (allowActions && currentStep != null)
                 foreach (var key in currentStep.targetKeys)
                 {
-                    bool outlined = currentStep.outline;
+                    // With a focus on screen the focus carries the box; the action targets only stay lit.
+                    bool outlined = currentStep.outline && focus.Length == 0 && !dismissed && !TutorialKeys.IsRange(key);
                     int start = screenAreas.Count;
+                    if (soft && key != TutorialKeys.Deployment && AddSoft(key, outlined)) continue;
                     // The placement area is the whole map: clickable (AddArea adds it to the clicks), but drawing it would hide the focus.
                     if (AddRoad(key) || AddArea(key) == 0 || key == TutorialKeys.Deployment) continue;
-                    // With a focus on screen the focus carries the box; the action targets only stay lit.
-                    Show(start, outlined && focus.Length == 0 && !dismissed && !TutorialKeys.IsRange(key));
+                    Show(start, outlined);
                 }
             clickAreas.Clear(); clickAreas.AddRange(screenAreas);
             if (currentStep != null && !dismissed)
@@ -159,7 +164,7 @@ namespace CodingGame.Defense
                     {
                         string target = option.Trim();
                         int start = screenAreas.Count;
-                        if (AddRoad(target)) break;
+                        if (soft && AddSoft(target, !TutorialKeys.IsRange(target)) || AddRoad(target)) break;
                         if (AddArea(target) > 0) { Show(start, !TutorialKeys.IsRange(target)); break; }
                     }
             // Once taught, speed remains clickable even while a later tutorial step limits other input.
@@ -172,6 +177,7 @@ namespace CodingGame.Defense
             // Focus uses the same spotlight as action steps: dim everything but the holes.
             bool dim = currentStep == null || !currentStep.undimmed && !dismissed && (currentStep.dim || focus.Length > 0 || Acting);
             spotlight.SetRoad(roadBoxes, roadDim);
+            spotlight.SetSoft(softAreas);
             spotlight.SetHoles(clickAreas, visibleAreas, outlinedAreas, roundAreas, currentStep?.highlightPadding ?? 0, dim);
         }
 
@@ -222,7 +228,6 @@ namespace CodingGame.Defense
             }
             // Outer corners of the whole road (nothing just beside, above or past them) get the gap outside a quarter circle dimmed.
             var done = new List<Vector2>();
-            if (key != TutorialKeys.Floor) // 1-1's floor cell keeps the map tile's square corners
             foreach (var b in parts)
                 for (int q = 0; q < 4; q++)
                 {
@@ -239,6 +244,37 @@ namespace CodingGame.Defense
                     }
                 }
             roadBoxes.Add(box);
+            return true;
+        }
+        // The round focus (TutorialStep.roundFocus): each of the key's areas becomes a rounded shape with a soft edge, and its
+        // screen box stays clickable. A ground part is rounded on the ground and projected, so it follows the perspective;
+        // a UI rect is padded and rounded on screen. False for a key not on screen and for round parts (attack ranges),
+        // which keep their ellipse.
+        bool AddSoft(string key, bool outlined)
+        {
+            int start = screenAreas.Count;
+            if (TryGetParts(key, out var parts, out bool round))
+            {
+                if (round) return false;
+                if (IsBox(key)) { var all = parts[0]; foreach (var b in parts) all.Encapsulate(b); parts = new[] { all }; }
+                foreach (var b in parts)
+                {
+                    var ground = Rect.MinMaxRect(b.min.x, b.min.z, b.max.x, b.max.z);
+                    var shape = TutorialSpotlight.RoundedRect(ground, SoftCorner * Mathf.Min(ground.width, ground.height));
+                    for (int i = 0; i < shape.Length; i++) if (!ToLocal(new Vector3(shape[i].x, b.center.y, shape[i].y), out shape[i])) return false;
+                    var box = new Rect(shape[0], Vector2.zero);
+                    foreach (var p in shape) box = Rect.MinMaxRect(Mathf.Min(box.xMin, p.x), Mathf.Min(box.yMin, p.y), Mathf.Max(box.xMax, p.x), Mathf.Max(box.yMax, p.y));
+                    screenAreas.Add(box); softAreas.Add((shape, false)); // on the ground, like the road: no frame
+                }
+                return screenAreas.Count > start;
+            }
+            if (AddArea(key) == 0) return false;
+            float pad = currentStep.highlightPadding;
+            for (int i = start; i < screenAreas.Count; i++)
+            {
+                var r = screenAreas[i]; r = Rect.MinMaxRect(r.xMin - pad, r.yMin - pad, r.xMax + pad, r.yMax + pad);
+                softAreas.Add((TutorialSpotlight.RoundedRect(r, SoftCorner * Mathf.Min(r.width, r.height)), outlined && screenAreas.Count - start == 1));
+            }
             return true;
         }
         static bool OnRoad(Bounds[] parts, Vector2 ground) => Array.Exists(parts, b => ground.x >= b.min.x && ground.x <= b.max.x && ground.y >= b.min.z && ground.y <= b.max.z);

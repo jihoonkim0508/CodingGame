@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -16,6 +17,12 @@ namespace CodingGame.Defense
         // A ground shape (the road): its box is left out of the grid and roadDim, already in perspective, dims the box off the road.
         readonly List<Rect> roadBoxes = new List<Rect>();
         readonly List<Vector2[]> roadDim = new List<Vector2[]>();
+        // The round focus (TutorialStep.roundFocus): convex holes with rounded corners whose edge fades into the dark over
+        // Feather units instead of a hard cut; drawn as a box left out of the grid, dimmed outside the feathered shape.
+        readonly List<Vector2[]> softs = new List<Vector2[]>();
+        readonly List<bool> softOutlined = new List<bool>();
+        const float Feather = 28; // canvas units: px at the 1920x1080 reference
+        const int FeatherRings = 4, CornerSegments = 8;
         // The frame (Docs/References/튜토리얼_포커스_조사.md 3-2): a sunny band with a thin ink edge outside it, 3:1 or more against
         // both the cream UI and the dark (the cyan line read 1.15:1 on cream).
         const float FrameWidth = 5, EdgeWidth = 2;
@@ -33,13 +40,19 @@ namespace CodingGame.Defense
         public void Pulse() => introStart = GameClock.Now;
         float Intro => Mathf.Clamp01((GameClock.Now - introStart - IntroDelay) / IntroSeconds);
         bool Waiting => GameClock.Now - introStart < IntroDelay;
-        void Update() { if (dim || outlines.Count > 0) SetVerticesDirty(); }
+        void Update() { if (dim || outlines.Count > 0 || softs.Count > 0) SetVerticesDirty(); }
         // Shown again after a wait (spotlight off): fade the dark in rather than snapping to it.
         protected override void OnEnable() { base.OnEnable(); dimStart = GameClock.Now; }
         // Call before SetHoles. boxes are not padded.
         public void SetRoad(IEnumerable<Rect> boxes, IEnumerable<Vector2[]> dimmed)
         {
             roadBoxes.Clear(); roadBoxes.AddRange(boxes); roadDim.Clear(); roadDim.AddRange(dimmed);
+        }
+        // Call before SetHoles. Each shape is convex (see RoundedRect), already padded.
+        public void SetSoft(IEnumerable<(Vector2[] shape, bool outlined)> shapes)
+        {
+            softs.Clear(); softOutlined.Clear();
+            foreach (var (shape, outlined) in shapes) { softs.Add(shape); softOutlined.Add(outlined); }
         }
         public void SetHoles(IEnumerable<Rect> clickable, IEnumerable<Rect> visible, IEnumerable<Rect> outlined, IEnumerable<Rect> round, float padding, bool darken)
         {
@@ -76,7 +89,8 @@ namespace CodingGame.Defense
             // Grown for this frame only (the stored rects stay as set), so the hole closes in on its target.
             if (grow > .01f) { Grow(holes, grow); Grow(outlines, grow); Grow(rounds, grow); }
             var color = this.color; color.a = DimAlpha * Mathf.SmoothStep(0, 1, (GameClock.Now - dimStart) / DimSeconds);
-            try { Populate(vh, color, k); }
+            var soft = softs.ConvertAll(s => Offset(s, grow));
+            try { Populate(vh, color, soft); }
             finally { if (grow > .01f) { Grow(holes, -grow); Grow(outlines, -grow); Grow(rounds, -grow); } }
         }
         static void Grow(List<Rect> rects, float by)
@@ -84,10 +98,12 @@ namespace CodingGame.Defense
             for (int i = 0; i < rects.Count; i++) { var r = rects[i]; rects[i] = Rect.MinMaxRect(r.xMin - by, r.yMin - by, r.xMax + by, r.yMax + by); }
         }
 
-        void Populate(VertexHelper vh, Color color, float intro)
+        void Populate(VertexHelper vh, Color color, List<List<Vector2>> soft)
         {
             var bounds = rectTransform.rect;
-            var lit = new List<Rect>(holes); lit.AddRange(roadBoxes);
+            var outer = soft.ConvertAll(s => Offset(s, Feather));
+            var softBoxes = outer.ConvertAll(Box);
+            var lit = new List<Rect>(holes); lit.AddRange(roadBoxes); lit.AddRange(softBoxes);
             var xs = new List<float> { bounds.xMin, bounds.xMax };
             var ys = new List<float> { bounds.yMin, bounds.yMax };
             foreach (var r in lit) { xs.Add(r.xMin); xs.Add(r.xMax); ys.Add(r.yMin); ys.Add(r.yMax); }
@@ -108,7 +124,24 @@ namespace CodingGame.Defense
                 {
                     var pieces = new List<List<Vector2>> { new List<Vector2>(shape) };
                     foreach (var h in holes) pieces = SubtractAll(pieces, rounds.Contains(h) ? EllipsePolygon(h) : Corners(h));
+                    foreach (var s in soft) pieces = SubtractAll(pieces, s);
                     foreach (var p in pieces) AddPolygon(vh, p, color);
+                }
+                // A round-focus hole: its box minus the feathered shape (and the other holes in it), then the feather, clear
+                // at the shape's edge and as dark as the rest at its outer edge (smoothstep over a few rings).
+                for (int i = 0; i < soft.Count; i++)
+                {
+                    var pieces = Around(outer[i], softBoxes[i]);
+                    foreach (var h in holes) pieces = SubtractAll(pieces, rounds.Contains(h) ? EllipsePolygon(h) : Corners(h));
+                    foreach (var box in roadBoxes) pieces = SubtractAll(pieces, Corners(box));
+                    for (int j = 0; j < soft.Count; j++) if (j != i) pieces = SubtractAll(pieces, soft[j]);
+                    foreach (var p in pieces) AddPolygon(vh, p, color);
+                    for (int k = 0; k < FeatherRings; k++)
+                    {
+                        float t0 = k / (float)FeatherRings, t1 = (k + 1) / (float)FeatherRings;
+                        Color c0 = color, c1 = color; c0.a *= Mathf.SmoothStep(0, 1, t0); c1.a *= Mathf.SmoothStep(0, 1, t1);
+                        Strip(vh, Offset(soft[i], t0 * Feather), Offset(soft[i], t1 * Feather), c0, c1);
+                    }
                 }
                 // A round hole: the grid left its whole rect lit; dim the corners between the rect and the ellipse in small
                 // pieces, leaving out pieces that lie wholly inside another hole and the parts in a road box (dimmed above).
@@ -132,16 +165,102 @@ namespace CodingGame.Defense
             float since = GameClock.Now - introStart - IntroDelay - IntroSeconds;
             float ripple = since < 0 ? -1 : since % RippleEvery / RippleSeconds;
             var sunny = UITheme.Sunny; var ripples = sunny; ripples.a = .8f * (1 - Mathf.Clamp01(ripple));
-            foreach (var r in outlines)
+            void Frame(Action<float, float, Color> band)
             {
-                Band(vh, r, 0, FrameWidth, sunny);
-                Band(vh, r, FrameWidth, FrameWidth + EdgeWidth, UITheme.Ink);
+                band(0, FrameWidth, sunny);
+                band(FrameWidth, FrameWidth + EdgeWidth, UITheme.Ink);
                 if (ripple >= 0 && ripple < 1)
                 {
                     float from = FrameWidth + EdgeWidth + ripple * RippleGrow;
-                    Band(vh, r, from, from + 3, ripples);
+                    band(from, from + 3, ripples);
                 }
             }
+            foreach (var r in outlines) Frame((from, to, c) => Band(vh, r, from, to, c));
+            for (int i = 0; i < soft.Count; i++)
+                if (softOutlined[i]) Frame((from, to, c) => Strip(vh, Offset(soft[i], from), Offset(soft[i], to), c, c));
+        }
+        // The ring between two offsets of one convex shape, each edge a quad from colour a (inner) to b (outer).
+        static void Strip(VertexHelper vh, List<Vector2> inner, List<Vector2> outer, Color a, Color b)
+        {
+            int start = vh.currentVertCount, n = inner.Count;
+            UIVertex v = UIVertex.simpleVert;
+            for (int i = 0; i < n; i++)
+            {
+                v.color = a; v.position = inner[i]; vh.AddVert(v);
+                v.color = b; v.position = outer[i]; vh.AddVert(v);
+            }
+            for (int i = 0; i < n; i++)
+            {
+                int j = (i + 1) % n;
+                vh.AddTriangle(start + 2 * i, start + 2 * i + 1, start + 2 * j + 1);
+                vh.AddTriangle(start + 2 * j + 1, start + 2 * j, start + 2 * i);
+            }
+        }
+        // A convex shape pushed out by d along each point's normal (the bisector of its two edges).
+        static List<Vector2> Offset(IList<Vector2> shape, float d)
+        {
+            int n = shape.Count; var middle = Vector2.zero; foreach (var p in shape) middle += p; middle /= n;
+            var result = new List<Vector2>(n);
+            for (int i = 0; i < n; i++)
+            {
+                var along = shape[(i + 1) % n] - shape[(i + n - 1) % n];
+                var normal = new Vector2(along.y, -along.x).normalized;
+                if (Vector2.Dot(normal, shape[i] - middle) < 0) normal = -normal;
+                result.Add(shape[i] + normal * d);
+            }
+            return result;
+        }
+        // A rect with corners rounded by radius, as a convex polygon (CornerSegments per corner, counter-clockwise).
+        public static Vector2[] RoundedRect(Rect r, float radius)
+        {
+            var points = new Vector2[4 * (CornerSegments + 1)];
+            for (int q = 0; q < 4; q++)
+            {
+                var center = new Vector2(q == 0 || q == 3 ? r.xMax - radius : r.xMin + radius, q < 2 ? r.yMax - radius : r.yMin + radius);
+                for (int i = 0; i <= CornerSegments; i++)
+                {
+                    float a = (q + i / (float)CornerSegments) * Mathf.PI * .5f;
+                    points[q * (CornerSegments + 1) + i] = center + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * radius;
+                }
+            }
+            return points;
+        }
+        // The box minus a convex shape inside it, as one convex wedge per shape edge between rays from the shape's middle:
+        // the wedges share the shape's own points, so no pinholes open along the feather (as cut pieces left).
+        static List<List<Vector2>> Around(List<Vector2> shape, Rect box)
+        {
+            int n = shape.Count; var middle = Vector2.zero; foreach (var p in shape) middle += p; middle /= n;
+            Vector2 Border(Vector2 p)
+            {
+                var d = p - middle;
+                float tx = d.x > 0 ? (box.xMax - middle.x) / d.x : d.x < 0 ? (box.xMin - middle.x) / d.x : float.MaxValue;
+                float ty = d.y > 0 ? (box.yMax - middle.y) / d.y : d.y < 0 ? (box.yMin - middle.y) / d.y : float.MaxValue;
+                var hit = middle + d * Mathf.Min(tx, ty);
+                // Exactly on the border, so the wedges meet the grid's quads without cracks.
+                if (tx <= ty) hit.x = d.x > 0 ? box.xMax : box.xMin; else hit.y = d.y > 0 ? box.yMax : box.yMin;
+                return hit;
+            }
+            float Cross(Vector2 a, Vector2 b) => a.x * b.y - a.y * b.x;
+            var hits = new List<Vector2>(n); foreach (var p in shape) hits.Add(Border(p));
+            var corners = Corners(box); var result = new List<List<Vector2>>(n);
+            for (int i = 0; i < n; i++)
+            {
+                int j = (i + 1) % n;
+                Vector2 a = hits[i] - middle, b = hits[j] - middle; float turn = Mathf.Sign(Cross(a, b));
+                var piece = new List<Vector2> { shape[i], hits[i] };
+                // Box corners inside the wedge, in order from a to b.
+                piece.AddRange(corners.Where(c => Cross(a, c - middle) * turn > 0 && Cross(c - middle, b) * turn > 0)
+                    .OrderBy(c => Vector2.Angle(a, c - middle)));
+                piece.Add(hits[j]); piece.Add(shape[j]);
+                result.Add(piece);
+            }
+            return result;
+        }
+        static Rect Box(List<Vector2> points)
+        {
+            Vector2 min = points[0], max = points[0];
+            foreach (var p in points) { min = Vector2.Min(min, p); max = Vector2.Max(max, p); }
+            return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
         }
         // The ring between from and to px outside r (an ellipse for a round hole).
         void Band(VertexHelper vh, Rect r, float from, float to, Color color)
@@ -201,16 +320,7 @@ namespace CodingGame.Defense
             }
             return sides;
         }
-        static bool Overlaps(List<Vector2> a, List<Vector2> b)
-        {
-            Rect Box(List<Vector2> ps)
-            {
-                Vector2 min = ps[0], max = ps[0];
-                foreach (var p in ps) { min = Vector2.Min(min, p); max = Vector2.Max(max, p); }
-                return Rect.MinMaxRect(min.x, min.y, max.x, max.y);
-            }
-            return Box(a).Overlaps(Box(b));
-        }
+        static bool Overlaps(List<Vector2> a, List<Vector2> b) => Box(a).Overlaps(Box(b));
         static List<Vector2> EllipsePolygon(Rect r)
         {
             var points = new List<Vector2>(RoundSegments);

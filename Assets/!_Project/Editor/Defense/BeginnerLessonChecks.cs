@@ -397,6 +397,14 @@ namespace CodingGame.Defense.Editor
                 }
                 if (key == "1/B02")
                 {
+                    // The lit cell stays off the road the spotlight lights (1.25× the walkable half-width, DefenseBattle's Route).
+                    var cell = battle.FirstSpotCell;
+                    for (int i = 0; i <= 16; i++)
+                        foreach (var (u, v) in new[] { (i / 16f, 0f), (i / 16f, 1f), (0f, i / 16f), (1f, i / 16f) })
+                        {
+                            var edge = new System.Numerics.Vector2(Mathf.Lerp(cell.min.x, cell.max.x, u), Mathf.Lerp(cell.min.z, cell.max.z, v));
+                            Require(sim.Setup.Routes.All(r => r.Distance(edge) >= r.HalfWidth * 1.25f - .01f), "1-1's lit cell reaches the road at " + edge);
+                        }
                     // 1-1 takes only the lit cell: a click beside it is turned away, one inside it stands on the spot.
                     Require(!battle.PlaceRobot(Field<int>(battle, "palette"), DefenseBattle.FirstWarriorPosition + new Vector3(3, 0, 0)) && sim.Robots.Count == 0,
                         "1-1 placed the warrior off the lit cell");
