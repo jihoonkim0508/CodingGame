@@ -871,7 +871,7 @@ MonoBehaviour:
         \uC624\uB978\uCABD \uBC84\uD2BC</b>\uC73C\uB85C \uB204\uB974\uACE0\n<b>\u2018\uBCF5\uC0AC\u2019</b>\uB97C
         \uACE8\uB77C \uC918! \uC548\uCABD \uC904\uB3C4 \uD568\uAED8 \uBCF5\uC0AC\uB3FC."
       focusKeys:
-      - Editor.Code.Line.1
+      - Editor.Code.Head.1
       highlightKeys: []
     targetKeys:
     - Editor.ProgramDropZone
@@ -893,7 +893,7 @@ MonoBehaviour:
     trigger: 
     skipIf: 
     expectedCode: 
-    pointerKey: Editor.Code.Line.1
+    pointerKey: Editor.Code.Head.1
     autoSelectSlot: 
     hintCode: 
     pointerDelay: 0

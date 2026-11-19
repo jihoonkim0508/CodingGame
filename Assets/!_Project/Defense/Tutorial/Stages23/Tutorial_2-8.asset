@@ -818,7 +818,7 @@ MonoBehaviour:
         \uCF54\uB4DC\uB97C \uB123\uC790!\n\uB9E8 \uC717\uC904 <b>`while True`</b>\uB97C
         \uC624\uB978\uCABD \uBC84\uD2BC\uC73C\uB85C \uB20C\uB7EC <b>\u2018\uBCF5\uC0AC\u2019</b>!"
       focusKeys:
-      - Editor.Code.Line.1
+      - Editor.Code.Head.1
       highlightKeys: []
     targetKeys:
     - Editor.ProgramDropZone
@@ -840,7 +840,7 @@ MonoBehaviour:
     trigger: 
     skipIf: 
     expectedCode: 
-    pointerKey: Editor.Code.Line.1
+    pointerKey: Editor.Code.Head.1
     autoSelectSlot: 
     hintCode: 
     pointerDelay: 0

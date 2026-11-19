@@ -376,7 +376,9 @@ namespace CodingGame.Defense.Editor
             // The second shooter gets this code by copy and paste (the user, 2026-11-19: the right-click 복사 where a second robot
             // needs the first one's code). The right-click on the top line, while True, copies the loop with every line in it.
             L("2-6.F01", With(Ed, Focus("Editor.Code.Line.1"))),
-            L("2-6.F02", Signal(TutorialSignals.CodeCopied, new[] { Drop }, With(s => { s.Pointer = "Editor.Code.Line.1"; s.Preview = true; }, Focus("Editor.Code.Line.1")))),
+            // The arrow and the outline on while True's own row (Editor.Code.Head.1): round the whole loop they left the line no
+            // place clear of the row to right-click (2-8 F01, the longer code, put the line over it).
+            L("2-6.F02", Signal(TutorialSignals.CodeCopied, new[] { Drop }, With(s => { s.Pointer = "Editor.Code.Head.1"; s.Preview = true; }, Focus("Editor.Code.Head.1")))),
             L("2-6.F02a", CloseClick),
             L("2-6.F03", Click(TutorialKeys.RobotButton((int)RobotRole.Shooter), s => s.Dim = true)),
             // Beside the road, so no road lit (play test 2026-11-20: the lit road drew the click onto it, where only a tank may
@@ -413,7 +415,7 @@ namespace CodingGame.Defense.Editor
             L("2-8.D02", With(Ed, Focus("Editor.Code.Line.1/2"))),
             // The second shooter (2-6's, the newest robot) still shoots the small ones with 2-6's or 2-7's code: it gets this one
             // by copy and paste as in 2-6, its old code cleared first (2-7's clear holds a second set of the new blocks).
-            L("2-8.F01", Signal(TutorialSignals.CodeCopied, new[] { Drop }, With(s => { s.Pointer = "Editor.Code.Line.1"; s.Preview = true; }, Focus("Editor.Code.Line.1")))),
+            L("2-8.F01", Signal(TutorialSignals.CodeCopied, new[] { Drop }, With(s => { s.Pointer = "Editor.Code.Head.1"; s.Preview = true; }, Focus("Editor.Code.Head.1")))),
             L("2-8.F02", CloseClick),
             L("2-8.F03", Click(Newest, s => { s.Pointer = Newest; s.Robot = -1; })),
             L("2-8.F04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; s.Robot = -1; })),

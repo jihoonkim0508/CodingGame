@@ -323,6 +323,9 @@ namespace CodingGame.Defense
                     var bodySlot = BodyArgument(parts);
                     return Corners(parts[0] == "BodyArg" ? bodySlot?.Rect : bodySlot?.Blocks.FirstOrDefault()?.InputRect, null, corners);
                 case "Line": return Corners(block.Rect, null, corners);
+                // Line N's own row without its body (the right-click 복사 on a long loop: the whole block left the line no
+                // place clear of it, 2-8 F01).
+                case "Head": var head = block.Rect.rect; return Corners(block.Rect, new Rect(head.xMin, head.yMax - block.HeaderHeight, head.width, block.HeaderHeight), corners);
                 // The slot where the next block snaps: one line high, right under line N.
                 case "After": var r = block.Rect.rect; return Corners(block.Rect, new Rect(r.xMin, r.yMin - r.height, r.width, r.height), corners);
                 // The upper half of line N: a block dropped there goes in front of it (2-5's if above shoot(enemy)).
