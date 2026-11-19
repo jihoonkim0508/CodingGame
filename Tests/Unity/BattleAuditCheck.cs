@@ -53,6 +53,8 @@ public static class BattleAuditCheck
             ("J2 the F1 jump to 2-3.D07 has the robots, code and editor the recorded play had", JumpMidLesson),
             ("J3 a jump into mid-battle stands where the recorded play stood, enemies too", ReplayMatchesPlay),
             ("J4 recording again in part keeps the other steps", RecordingAgainKeepsTheRest),
+            ("F1 the F2 window's edit of 2-3's first group comes with the wave, Reset gives the authored one back", WaveBalanceEdit),
+            ("F2 the F1 jump to 2-4 opens that wave's preparation", JumpToWave),
         };
         var failures = new List<string>();
         bool background = Application.runInBackground;
@@ -466,5 +468,58 @@ public static class BattleAuditCheck
         string message = await Jump(battle, kept.id, folder);
         Require(message == null && battle.Tutorial.EditorStep != null && "1-1." + battle.Tutorial.EditorStep.stepId == kept.id,
             $"the kept step {kept.id} opens at {battle.Tutorial.EditorStep?.stepId} ({message})");
+    }
+
+    // F1. The F2 window edits the stage-wave on screen: 2-3's first group with another health comes out with it (as the stage
+    // scales it), the wave's other group and the other waves keep theirs, later battles of 2-3 keep the edit, and Reset gives
+    // the authored numbers back.
+    static async Task WaveBalanceEdit(DefenseBattle battle)
+    {
+        battle.EditorStartSession(2, 3, true, Sandbox);
+        var sim = battle.Simulation;
+        var authored = sim.Setup.Waves[2].Select(g => g.Enemy.health).ToArray();
+        float nextWave = sim.Setup.CampaignWaves[1][3][0].Enemy.health;
+        var first = sim.Setup.Waves[2][0];
+        try
+        {
+            bool now = battle.SetWaveGroup(2, 2, 0, new DefenseBattle.GroupEdit { count = first.Count, delay = first.Delay, interval = first.Interval,
+                health = 77, speed = first.Enemy.speed, leak = first.Enemy.leakDamage });
+            Require(now, "an edit made in 2-3's preparation is not taken by the wave now");
+            float expected = sim.Setup.RulesConfig.Scale(sim.Setup.Waves[2][0].Enemy, 2, 2).health;
+            Place(battle, RobotRole.Warrior); battle.StartBattle();
+            await Until(() => sim.Enemies.Any(e => e.DefinitionIndex == first.DefinitionIndex), 15, "setup: 2-3's first group did not come out");
+            var enemy = sim.Enemies.First(e => e.DefinitionIndex == first.DefinitionIndex);
+            Require(Mathf.Abs(enemy.Spec.health - expected) < .001f && Mathf.Abs(enemy.Health - expected) < .001f,
+                $"2-3's first group comes out with {enemy.Spec.health} health, the edit scaled is {expected}");
+            Require(sim.Setup.Waves[2][1].Enemy.health == authored[1] && sim.Setup.CampaignWaves[1][3][0].Enemy.health == nextWave, "the edit changed another group or wave");
+            battle.EditorStartSession(2, 3, true, Sandbox);
+            Require(battle.Simulation.Setup.Waves[2][0].Enemy.health == 77 && battle.WaveGroupEdited(2, 2, 0), "a new battle of 2-3 has lost the edit");
+        }
+        finally { battle.SetWaveGroup(2, 2, 0, null); }
+        Require(battle.Simulation.Setup.Waves[2][0].Enemy.health == authored[0] && !battle.WaveGroupEdited(2, 2, 0), "Reset does not give 2-3's first group its authored health back");
+        battle.EditorStartSession(2, 3, true, Sandbox);
+        Require(battle.Simulation.Setup.Waves[2][0].Enemy.health == authored[0], "a new battle after Reset still has the edit");
+    }
+
+    // F2. The F1 panel's stage-wave jump: "2-4" (a wave without a lesson) opens its preparation, with the robots the recorded
+    // play had then, or with the stage's stock when there is no recording.
+    static async Task JumpToWave(DefenseBattle battle)
+    {
+        string none = CacheFolder + "/none";
+        Directory.CreateDirectory(none);
+        battle.EditorStartSession(1, 1, true, new DefenseTestOptions());
+        string message = battle.DeveloperJumpWave("2-4", none);
+        await Frames(5);
+        var sim = battle.Simulation;
+        Require(battle.Stage == 2 && sim.WaveIndex == 3 && sim.Phase == BattlePhase.Ready && message != null && message.StartsWith("캐시 없음"),
+            $"without a recording, the jump to 2-4 is at stage {battle.Stage} wave index {sim.WaveIndex} in {sim.Phase} ({message})");
+        var mark = Mark(Cache(2), "2-4");
+        battle.EditorStartSession(1, 1, true, new DefenseTestOptions());
+        message = battle.DeveloperJumpWave("2-4", CacheFolder);
+        await Frames(5);
+        sim = battle.Simulation;
+        Require(message == null && battle.Stage == 2 && sim.WaveIndex == 3 && sim.Phase == BattlePhase.Ready && mark.robots.Length > 0 &&
+            sim.Robots.Select(r => r.Program?.Source).OrderBy(s => s).SequenceEqual(mark.robots.Select(r => r.source).OrderBy(s => s)),
+            $"with the recording, the jump to 2-4 is at stage {battle.Stage} wave index {sim.WaveIndex} in {sim.Phase} with {sim.Robots.Count} robots, the play had {mark.robots.Length} ({message})");
     }
 }

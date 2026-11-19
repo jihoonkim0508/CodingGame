@@ -194,8 +194,8 @@ namespace CodingGame.Defense
                 Routes=routes.Select(r=>r.Read()).ToArray(),
                 Obstacles=blockedAreas.Select(a=>a.bounds).Concat(MapProps(map)).Select(b=>new PlacementObstacle {Min=new Point(b.min.x,b.min.z),Max=new Point(b.max.x,b.max.z)}).ToArray(),
                 Floor=tiles,
-                Waves=content.ReadWaves(selectedStage),
-                CampaignWaves=Enumerable.Range(1,content.stages.Length).Select(content.ReadWaves).ToArray(),
+                Waves=ReadWaves(content,selectedStage),
+                CampaignWaves=Enumerable.Range(1,content.stages.Length).Select(s=>ReadWaves(content,s)).ToArray(),
                 CampaignSeconds=content.stages.Select(s=>s.waveSeconds).ToArray()
             };
         }
@@ -305,7 +305,11 @@ namespace CodingGame.Defense
             setup.TestOptions=EditorOptions;
 #endif
             ResetSession(setup);
-            try { Simulation.Restore(checkpoint); sessionRun.retry = true; sessionRun.restore = PlayLog.Save(checkpoint); }
+            try
+            {
+                Simulation.Restore(checkpoint); sessionRun.retry = true; sessionRun.restore = PlayLog.Save(checkpoint);
+                if (waveEdits.Keys.Any(k => k.stage == stage && k.wave == checkpoint.Wave)) Simulation.SetWaveGroups(stage, checkpoint.Wave, Simulation.Setup.Waves[checkpoint.Wave]);
+            }
             catch (Exception error) when (error is ArgumentException || error is FormatException)
             {
                 Trace("retry-failed " + error.Message);
@@ -333,27 +337,42 @@ namespace CodingGame.Defense
             selectionCamera.Restore();
             selected = 0; BattleSpeed = 1; HidePlacement();
             rangeRing.Hide(); effectRing.Hide(); resultPanel.SetActive(false);
-            foreach (var pair in enemyStats) Simulation.SetEnemyStats(pair.Key, pair.Value);
             Tell("로봇을 선택하고 허용 영역을 클릭하세요. 탱커만 경로 위에 설치합니다.");
             RefreshHUD();
         }
 
-        // F2 balance window (developer rights): fixed health, speed, attack damage and core damage per enemy definition,
-        // applied to the battle under way and kept for every battle until the game quits; null gives the authored ones back.
-        static readonly Dictionary<int, DefenseSimulation.EnemyStats> enemyStats = new Dictionary<int, DefenseSimulation.EnemyStats>();
+        // F2 balance window (developer rights): a stage-wave's enemy groups (count, delay, interval, health, speed, core damage,
+        // as the campaign asset has them before the stage's scaling) changed by hand, for the battle under way and every battle
+        // until the game quits; null gives the authored ones back.
+        public sealed class GroupEdit { public int count, leak; public float delay, interval, health, speed; }
+        static readonly Dictionary<(int stage, int wave, int group), GroupEdit> waveEdits = new Dictionary<(int, int, int), GroupEdit>();
         DefenseDevWindow devWindow;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetBalance() => enemyStats.Clear();
+        static void ResetBalance() => waveEdits.Clear();
         public IReadOnlyList<EnemyDefinition> EnemyDefinitions => enemies;
-        public bool EnemyStatsSet(int definition) => enemyStats.ContainsKey(definition);
-        public EnemySpec EnemyNow(int definition) => Simulation.EnemyNow(definition, enemies[definition].stats);
-        public void SetEnemyStats(int definition, DefenseSimulation.EnemyStats stats)
+        public bool WaveGroupEdited(int stage, int wave, int group) => waveEdits.ContainsKey((stage, wave, group));
+        // A stage's waves as authored, with the edits made in F2.
+        static SpawnGroup[][] ReadWaves(DefenseCampaignDefinition content, int stage) => content.ReadWaves(stage).Select((groups, wave) =>
         {
-            Simulation.SetEnemyStats(definition, stats);
-            if (stats == null) enemyStats.Remove(definition); else enemyStats[definition] = stats;
+            for (int i = 0; i < groups.Length; i++)
+                if (waveEdits.TryGetValue((stage, wave, i), out var e))
+                {
+                    var g = groups[i]; g.Count = e.count; g.Delay = e.delay; g.Interval = e.interval;
+                    g.Enemy.health = e.health; g.Enemy.speed = e.speed; g.Enemy.leakDamage = e.leak;
+                }
+            return groups;
+        }).ToArray();
+        // True when the battle takes it now (DefenseSimulation.SetWaveGroups).
+        public bool SetWaveGroup(int stage, int wave, int group, GroupEdit edit)
+        {
+            if (edit != null && (edit.count < 1 || !(edit.delay >= 0) || !(edit.interval > 0) || !(edit.health > 0) || !(edit.speed > 0) || edit.leak < 1))
+                throw new ArgumentException("수 1 이상, 출현 0 이상, 간격·체력·속도 0보다 크게, 코어 피해 1 이상");
+            if (edit == null) waveEdits.Remove((stage, wave, group)); else waveEdits[(stage, wave, group)] = edit;
+            bool now = Simulation.SetWaveGroups(stage, wave, ReadWaves(campaign, stage)[wave]);
             SyncViews(0); RefreshHUD();
-            Trace(stats == null ? $"balance {enemies[definition].name} authored" :
-                $"balance {enemies[definition].name} hp {stats.health} speed {stats.speed} damage {stats.damage} leak {stats.leakDamage}");
+            Trace(edit == null ? $"balance {stage}-{wave + 1} group {group + 1} authored" :
+                $"balance {stage}-{wave + 1} group {group + 1}: x{edit.count} at {edit.delay}s every {edit.interval}s hp {edit.health} speed {edit.speed} leak {edit.leak}" + (now ? "" : " (from the wave's next start)"));
+            return now;
         }
 
         // F1 panel (developer rights): "1-3.C05" opens that line as the play recorded with Tools/Develop/캐시 제작 had it
@@ -383,6 +402,32 @@ namespace CodingGame.Defense
             ResetSession(setup);
             tutorial.JumpWhenBegun(sequence.sequenceId, step);
             return (cache == null ? "캐시 없음" : fresh ? "캐시에 없는 대사" : "캐시 오래됨") + ": Tools/Develop/캐시 제작으로 기록하세요";
+        }
+        // F1 panel (developer rights): "2-4" starts that stage-wave in its preparation as the recorded play began it
+        // (Tools/Develop/캐시 제작), robots and code included; a wave whose lesson begins in its preparation opens at the
+        // lesson's first line. Without a recording, the wave starts with the stock the waves before it give
+        // (BattleSetup.PreviousStageRewards). Returns a notice, or null.
+        public string DeveloperJumpWave(string id, string folder = null)
+        {
+            if (!DeveloperTools || !tutorial) return "개발자 권한이 없습니다.";
+            var parts = (id ?? "").Trim().Split('-');
+            if (parts.Length != 2 || !int.TryParse(parts[0], out int s) || !int.TryParse(parts[1], out int w) ||
+                s < 1 || s > Math.Min(campaign.stages.Length, PrototypeLastStage) || w < 1 || w > campaign.stages[s - 1].waves.Length)
+                return "없는 스테이지-웨이브: " + id;
+            var lesson = tutorial.Sequences.FirstOrDefault(q => q && q.enabled && q.stage == s && q.wave == w && q.entryPhase == TutorialEntryPhase.Preparation && q.steps.Length > 0);
+            if (lesson) return DeveloperJump(lesson.sequenceId, folder);
+            SetDeveloperMode(false);
+            stage = s;
+            var cache = PlayCache(s, folder);
+            bool fresh = cache?.fingerprint == StageFingerprint(s);
+            var mark = fresh ? cache.steps.FirstOrDefault(m => m.id == s + "-" + w) : null;
+            if (mark != null) return ReplayTo(cache, mark, null, 0);
+            var setup = MakeSetup(campaign, s); setup.InitialWave = w - 1; setup.PreviousStageRewards = true;
+#if UNITY_EDITOR
+            setup.TestOptions = EditorOptions;
+#endif
+            ResetSession(setup);
+            return (cache == null ? "캐시 없음" : fresh ? "캐시에 없는 웨이브" : "캐시 오래됨") + ": Tools/Develop/캐시 제작으로 기록하세요";
         }
         public static string PlayCachePath(int stage) => "Dev/PlayCache_" + stage;
         static PlayCacheFile PlayCache(int stage, string folder)
