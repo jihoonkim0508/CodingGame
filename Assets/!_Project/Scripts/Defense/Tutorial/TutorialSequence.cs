@@ -38,7 +38,7 @@ namespace CodingGame.Defense
         public bool blockInput = true;
         [Tooltip("Draw outlines around highlighted targets.")]
         public bool outline = true;
-        [Tooltip("둥근 focus: 구멍 모서리를 둥글게, 가장자리는 부드럽게 어두워집니다. 끄면 각진 focus(딱 잘린 가장자리).")]
+        [Tooltip("둥근 focus: 구멍 모서리를 둥글게 자릅니다. 끄면 각진 focus.")]
         public bool roundFocus;
         public TutorialCompletionMode completionMode;
         public string completionSignal;

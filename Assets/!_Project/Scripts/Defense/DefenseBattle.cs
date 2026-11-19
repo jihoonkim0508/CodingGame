@@ -749,9 +749,8 @@ namespace CodingGame.Defense
         // 1-1's first warrior stands at one spot by the road: the lesson lights a square round it, only a click inside it
         // places the robot, and the robot stands exactly on the spot, the square's centre. The square (1.4 map cells, 2.24)
         // sits in the road's inner corner with its sides on the painted road's edges (x 3.3, z -.9: the walkable half-width
-        // 1.2 × 1.25), so the clear part lights none of the road (the round focus's soft edge fades over it). The spot is
-        // 2.62 from the road's middle, in the warrior's reach of 3.6; .36 further off (the glow off the road too) the third
-        // enemy of 1-1 got through the Play lesson.
+        // 1.2 × 1.25), so it lights none of the road. The spot is 2.62 from the road's middle, in the warrior's reach of 3.6;
+        // .36 further off (2.98) the third enemy of 1-1 got through the Play lesson.
         static readonly Point FirstWarriorSpot = new Point(2.18f, .22f);
         public static Vector3 FirstWarriorPosition => DefenseViews.World(FirstWarriorSpot);
         // Lit on the ground in line with the map (a square in perspective, not a screen rect), as the round focus (1-1 B02).
