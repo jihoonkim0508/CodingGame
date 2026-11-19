@@ -383,6 +383,14 @@ namespace CodingGame.Defense.Editor
                 Require(battle.BattleSpeed == 1, "Speed cannot return to 1x after 3x");
                 return;
             }
+            // The editor's 닫기 (no step closes it on its own): the start button waits until it is pressed.
+            if (step.targetKeys.Contains(TutorialKeys.Close))
+            {
+                Require(editor.IsOpen && !battle.TutorialAllows(TutorialKeys.Start), "The editor is shut or the start button free before 닫기 at " + key);
+                Field<Button>(editor, "closeButton").onClick.Invoke();
+                Require(!editor.IsOpen, "닫기 did not close the editor at " + key);
+                return;
+            }
             var robotButton = step.targetKeys.FirstOrDefault(k => k.StartsWith(TutorialKeys.RobotButtonPrefix, StringComparison.Ordinal));
             if (robotButton != null) { battle.ChooseRobot(int.Parse(robotButton.Substring(TutorialKeys.RobotButtonPrefix.Length))); return; }
             if (step.completionSignal == TutorialSignals.RobotPlaced)
