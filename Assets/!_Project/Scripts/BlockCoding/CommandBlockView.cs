@@ -220,7 +220,8 @@ namespace CodingGame.BlockCoding
 
         void PrepareHeader()
         {
-            header.GetComponent<HorizontalLayoutGroup>().childAlignment = kind is BlockKind.For or BlockKind.While
+            // Blocks with a body widen with what is inside: their header stays at the left, by the body's spine.
+            header.GetComponent<HorizontalLayoutGroup>().childAlignment = kind is BlockKind.For or BlockKind.While or BlockKind.If or BlockKind.Elif or BlockKind.Else
                 ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter;
             foreach (var label in header.GetComponentsInChildren<TMP_Text>(true))
             {
