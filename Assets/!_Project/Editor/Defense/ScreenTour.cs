@@ -34,6 +34,19 @@ namespace CodingGame.Defense.Editor
         [MenuItem("Tools/Develop/시연 영상 촬영")]
         public static void RunDemo() => Start("TestResults/Demo/footage", Demo());
 
+        // The tank monster (Heavy) walking in 2-1, its first wave: TestResults/Editor/tanker/01_tanker.png.
+        public static void RunTanker() => Start("TestResults/Editor/tanker", Tanker());
+        static IEnumerator Tanker()
+        {
+            DevTest.PlayDefense(2, 1, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy(); DevTest.Battle.StartBattle();
+            yield return Until(() => DevTest.Sim.Enemies.Any(e => e.Active && e.Spec.type == EnemyType.Tank), 60);
+            yield return Seconds(3);
+            yield return Shot("tanker");
+        }
+
         static void Start(string into, IEnumerator steps)
         {
             folder = into;
