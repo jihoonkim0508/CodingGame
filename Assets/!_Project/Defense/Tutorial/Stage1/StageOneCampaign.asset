@@ -321,7 +321,7 @@ MonoBehaviour:
       - kind: 11
         count: 2
       - kind: 15
-        count: 2
+        count: 1
       - kind: 31
         count: 2
       - kind: 18
