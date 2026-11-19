@@ -29,6 +29,9 @@ namespace CodingGame.Defense
         static readonly Color Red = new Color(1, .16f, .2f), DarkRed = new Color(.32f, .02f, .04f);
         float clock, duration;
         bool withCards;
+        // The scene's first alarm (1-1 A01, right as the loading black lifts) is black from its first frame: fading the
+        // black in let the HUD and map show through (play test). Later ones (1-1 D10, mid battle) still fade in.
+        bool shown, instant;
         int sounded;
         [SerializeField, HideInInspector] RectTransform bar, stripes, shake;
         [SerializeField, HideInInspector] Image vignette;
@@ -65,6 +68,7 @@ namespace CodingGame.Defense
             // The bar sits under the cards, or in the middle on its own.
             bar.anchoredPosition = new Vector2(0, showCards ? -40 : 0);
             panel.SetActive(true);
+            instant = !shown; shown = true;
             sounded = 0;
             Animate();
             if (!showCards && warning.clip) warning.Play();
@@ -87,7 +91,7 @@ namespace CodingGame.Defense
         void Animate()
         {
             float t = clock;
-            fade.alpha = Mathf.Min(Mathf.Clamp01(t / .12f), Mathf.Clamp01((duration - t) / fadeSeconds));
+            fade.alpha = Mathf.Min(instant ? 1 : Mathf.Clamp01(t / .12f),Mathf.Clamp01((duration - t) / fadeSeconds));
             vignette.color = new Color(Red.r, Red.g, Red.b, .24f + .16f * Mathf.Sin(t * 7));
             // Cards slam in one after another (big and clear, then settle).
             for (int i = 0; i < cards.Count; i++)

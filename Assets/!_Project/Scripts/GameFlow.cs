@@ -190,6 +190,8 @@ namespace CodingGame
             if (loadingCard.alpha > 0) yield return new WaitForSecondsRealtime(.15f); // the full bar, briefly
             loadingCard.alpha = 0; loadingFill.anchorMax = new Vector2(0, 1);
             Loading = false;
+            // One frame still under full black with Loading off, so what waits for it (1-1's alarm) is up before the black lifts.
+            yield return null;
             yield return FadeTo(0f);
             changingScene = false;
             fade.raycastTarget = false;
