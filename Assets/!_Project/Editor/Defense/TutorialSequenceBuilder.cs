@@ -354,7 +354,9 @@ namespace CodingGame.Defense.Editor
             L("2-6.C03a", Member("1/2/1.0.0", nameof(BlockKind.Distance))),
             L("2-6.C03b", Signal(TutorialSignals.ConditionBuilt, new[] { Drop, Palette }, With(s => {
                 s.Expected = "enemy.distance(get_my_pos()) > my_attack_range()"; s.AutoSlot = "Editor.Code.Arg.1/2/1.0.0";
-                s.Pointer = "Editor.Palette.MyPos"; s.Demo = "Editor.Palette.MyPos>Editor.Code.Arg.1/2/1.0.0.0"; },
+                // get_my_pos() first, then my_attack_range(): the arrow and the drag demo move on once the bracket is filled.
+                s.Pointer = "Editor.Palette.MyPos|Editor.Palette.MyAttackRange";
+                s.Demo = "Editor.Palette.MyPos>Editor.Code.Arg.1/2/1.0.0.0|Editor.Palette.MyAttackRange>Editor.Code.Arg.1/2/1.0.1"; },
                 Focus("Editor.Code.Arg.1/2/1.0.0", "Editor.Code.Arg.1/2/1.0.1")))),
             L("2-6.C04", With(EditSignal(TutorialSignals.ProgramMatches, Code26, "Editor.Palette.Break", "Editor.Palette.Break", "Editor.Code.Body.1/2/1"),
                 s => { s.AutoSlot = "Editor.Code.Body.1/2/1"; s.Demo = "Editor.Palette.Break>Editor.Code.Body.1/2/1"; })),

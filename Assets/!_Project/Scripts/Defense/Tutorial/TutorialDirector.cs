@@ -237,8 +237,8 @@ namespace CodingGame.Defense
         {
             if (!pointer) return;
             Rect area = default; string chosen = null;
-            bool show = viewedStep == progressStep && !completedStep.Contains(step.stepId) && !string.IsNullOrWhiteSpace(step.pointerKey) && !(Editor && Editor.HintOpen) && !DemoSourceDone(step) &&
-                GameClock.Now - stepEntered >= step.pointerDelay && bridge.TryGetArea(step.pointerKey, out area, out chosen);
+            bool show = viewedStep == progressStep && !completedStep.Contains(step.stepId) && !string.IsNullOrWhiteSpace(step.pointerKey) && !(Editor && Editor.HintOpen) && LivePointer(step) is string live &&
+                GameClock.Now - stepEntered >= step.pointerDelay && bridge.TryGetArea(live, out area, out chosen);
             // Slots under or inside a code line are pointed at from below; from above the arrow would cover the line above. So are
             // palette blocks: from above the arrow sat on the category tabs and read as pointing at a tab (play test).
             if (show) pointer.Show(view ? view.Portrait : null, area, chosen.Contains(".After.") || chosen.Contains(".Arg.") || chosen.Contains(".Name.") || chosen.Contains(".Option.") || chosen.Contains(".Body") ||
@@ -295,11 +295,14 @@ namespace CodingGame.Defense
             if (pathPoints.Count > 1) pointer.ShowPath(pathPoints); else pointer.HidePath();
         }
 
-        // The arrow on a palette block whose every demo slot is filled has nothing left to show (2-6 C03b's get_my_pos()).
-        bool DemoSourceDone(TutorialStep step)
+        // The arrow on a palette block whose every demo slot is filled has nothing left to show (2-6 C03b's get_my_pos()): of a
+        // pointer "a|b" the options still to drag are left, so the arrow moves on to the next block (null: none left).
+        string LivePointer(TutorialStep step)
         {
-            var pairs = (step.dragDemo ?? "").Split('|').Select(pair => pair.Split('>')).Where(ends => ends.Length == 2 && ends[0].Trim() == step.pointerKey.Trim()).ToArray();
-            return Editor && pairs.Length > 0 && pairs.All(ends => Editor.DemoDone(ends[1].Trim()));
+            var demos = (step.dragDemo ?? "").Split('|').Select(pair => pair.Split('>')).Where(ends => ends.Length == 2).ToArray();
+            var live = step.pointerKey.Split('|').Select(k => k.Trim()).Where(key => !(Editor && demos.Any(ends => ends[0].Trim() == key) &&
+                demos.Where(ends => ends[0].Trim() == key).All(ends => Editor.DemoDone(ends[1].Trim())))).ToArray();
+            return live.Length > 0 ? string.Join("|", live) : null;
         }
         // The first "palette>slot" pair with both ends on screen and its slot still empty plays as a drag demo until the step is done.
         void UpdateDragDemo(TutorialStep step)

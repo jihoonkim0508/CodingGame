@@ -628,7 +628,7 @@ MonoBehaviour:
     trigger: 
     skipIf: 
     expectedCode: enemy.distance(get_my_pos()) > my_attack_range()
-    pointerKey: Editor.Palette.MyPos
+    pointerKey: Editor.Palette.MyPos|Editor.Palette.MyAttackRange
     autoSelectSlot: Editor.Code.Arg.1/2/1.0.0
     hintCode: 
     pointerDelay: 0
@@ -644,7 +644,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: Editor.Palette.MyPos>Editor.Code.Arg.1/2/1.0.0.0
+    dragDemo: Editor.Palette.MyPos>Editor.Code.Arg.1/2/1.0.0.0|Editor.Palette.MyAttackRange>Editor.Code.Arg.1/2/1.0.1
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0
