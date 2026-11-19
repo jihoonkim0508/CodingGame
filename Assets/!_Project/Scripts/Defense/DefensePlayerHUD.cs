@@ -76,6 +76,12 @@ namespace CodingGame.Defense
                 robotLabels.Length != 6 || robotLabels.Any(t => !t) || robotButtons.Length != 6 || robotButtons.Any(b => !b)) throw new InvalidOperationException("DefensePlayerHUD Inspector 참조를 연결하세요.");
             startButton.onClick.AddListener(battle.StartBattle);
             pauseButton.onClick.AddListener(battle.TogglePause); speedButton.onClick.AddListener(battle.ToggleSpeed);
+            // The speed button's "F" key hint reads 2 sizes under the "3x" label, bold, set here so the scene stays as it is.
+            if (speedButton.transform.Find("Shortcut") is RectTransform shortcutRect && shortcutRect.GetComponent<TMP_Text>() is TMP_Text shortcut)
+            {
+                shortcut.fontSize = (speedLabel.enableAutoSizing ? speedLabel.fontSizeMax : speedLabel.fontSize) - 2; shortcut.fontStyle |= FontStyles.Bold;
+                shortcutRect.sizeDelta = new Vector2(20, 26);
+            }
             claimButton.onClick.AddListener(battle.ContinueCampaign);
             upgradeRobotButton.onClick.AddListener(battle.UpgradeSelected);
             developRobotButton.onClick.AddListener(battle.DevelopSelected);
