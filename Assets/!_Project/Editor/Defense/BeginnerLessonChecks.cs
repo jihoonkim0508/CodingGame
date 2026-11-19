@@ -199,7 +199,7 @@ namespace CodingGame.Defense.Editor
                 if (sim.Phase == BattlePhase.Reward && !director.IsActive)
                 {
                     Log("CLEAR wave=" + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills +
-                        " leaks=" + sim.Leaks + " survivors=" + sim.LastSurvivors + " timedOut=" + sim.LastWaveTimedOut);
+                        " leaks=" + sim.Leaks);
                     battle.ClaimRewards(); return;
                 }
                 // Free time (a wave without a lesson, or a lesson waiting for the wave's end): a second shooter with 2-1's code,
@@ -341,7 +341,7 @@ namespace CodingGame.Defense.Editor
             if (step.targetKeys.Contains("Battle.ClaimRewards"))
             {
                 Log("CLEAR wave=" + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills +
-                    " leaks=" + sim.Leaks + " survivors=" + sim.LastSurvivors + " timedOut=" + sim.LastWaveTimedOut);
+                    " leaks=" + sim.Leaks);
                 // 1-1: the Play presses fell the three basic enemies (two swings each); the tank-bodied one still gets through.
                 if (battle.Stage == 1 && sim.WaveIndex == 0) Require(sim.Kills >= 3 && sim.Leaks >= 1 && sim.BaseHealth >= 8,
                     "1-1's Play lesson did not hold the road; core=" + sim.BaseHealth + " kills=" + sim.Kills + " leaks=" + sim.Leaks);

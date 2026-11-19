@@ -10,7 +10,7 @@ static class PlayLogCheck
     static void Assert(bool value, string message) { if (!value) throw new Exception(message); }
     static RobotSpec Spec(RobotRole role) => new RobotSpec { role = role, damage = 4, range = 8, interval = .1f, projectileSpeed = 200 };
     static BattleSetup Setup() => new BattleSetup { Progression = FixtureProgression.Create(), TestOptions = new DefenseTestOptions(),
-        PlayerFlow = true, Stage = 2, WaveSeconds = 30, Min = new Vector2(-20, -10), Max = new Vector2(20, 10), BaseHealth = 7,
+        PlayerFlow = true, Stage = 2, Min = new Vector2(-20, -10), Max = new Vector2(20, 10), BaseHealth = 7,
         Routes = new[] { new Route(new[] { new Vector2(-10, 0), new Vector2(10, 0) }, 1.1f) },
         ActionProfiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(Spec).ToArray(),
         Waves = Enumerable.Range(0, 3).Select(i => new[] { new SpawnGroup { Count = 3 + i, Interval = .4f, Enemy = new EnemySpec { health = 1, speed = 1.5f } } }).ToArray() };

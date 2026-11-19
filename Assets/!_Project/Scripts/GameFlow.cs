@@ -32,6 +32,7 @@ namespace CodingGame
             var root = new GameObject("GameFlow");
             DontDestroyOnLoad(root);
             instance = root.AddComponent<GameFlow>();
+            root.AddComponent<Defense.DefenseDevWindow>(); // F1·F2 in every scene (developer rights)
         }
 
         void Awake()
@@ -114,7 +115,7 @@ namespace CodingGame
             loadingFill.anchorMax = new Vector2(Mathf.Max(loadingFill.anchorMax.x, Mathf.Clamp01(progress)), 1);
         }
 
-        // Developer rights (the battle's F1 panel and F2 balance window, 5x speed, the dialogue ids, the stage map's Z/Q keys):
+        // Developer rights (the F1 jump panel and F2 balance window in every scene, the battle's F1 panel, 5x speed, the dialogue ids, the stage map's Z/Q keys):
         // on from the start in the Editor and development builds; in a release build ten clicks in a row on the screen's
         // top-left corner, in any scene, turn them on, ten more off. They last while the game runs, shown by "Dev" in the bottom-left corner.
         public static bool Developer { get; private set; }
@@ -227,11 +228,13 @@ namespace CodingGame
             while (!load.isDone) { ShowLoading(load.progress); yield return null; } // 0 to .9 while loading
         }
 
-        // delay: seconds to wait before the fade starts (the stage map's camera flies to the stage first).
-        public static void LoadScene(string sceneName, float delay = 0)
+        // delay: seconds to wait before the fade starts (the stage map's camera flies to the stage first). False while a
+        // change is under way (nothing happens then).
+        public static bool LoadScene(string sceneName, float delay = 0)
         {
-            if (!instance || instance.changingScene) return;
+            if (!instance || instance.changingScene) return false;
             instance.StartCoroutine(instance.ChangeScene(sceneName, delay));
+            return true;
         }
 
         static void QuitGame()

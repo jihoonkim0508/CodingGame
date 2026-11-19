@@ -11,8 +11,8 @@ namespace CodingGame.Defense
     {
         // Most serious first; the headline picks the first robot with the smallest issue.
         public enum Issue { NoCode, Fault, NoEnemyInRange, NeverActed, LoopSpun, OutOfRuns, Reduced, None }
-        // Enemies this wave let through or left alive (survivors are only counted once the wave has ended, not on a defeat).
-        public static int Missed(DefenseSimulation sim) => sim.WaveLeaks + (sim.Phase == BattlePhase.Defeat ? 0 : sim.LastSurvivors);
+        // Enemies this wave let through (a wave has no time limit, so none are left alive at its end).
+        public static int Missed(DefenseSimulation sim) => sim.WaveLeaks;
 
         public static Issue Diagnose(DefenseSimulation sim, RobotState bot)
         {
@@ -109,7 +109,6 @@ namespace CodingGame.Defense
                     return stars >= 3 ? (GuideMood.Happy, "별 세 개다!\n코어가 끄떡없이 버텼어!")
                         : (GuideMood.Happy, $"이 구역은 지켜 냈어!\n코어를 {DefenseSimulation.CoreForStars(stars + 1, sim.Setup.BaseHealth)} 이상 지키면 별 하나 더!");
                 default:
-                    if (sim.LastWaveTimedOut && sim.LastSurvivors > 0) return (GuideMood.Worried, $"앗, 시간이 다 됐어!\n남은 {sim.LastSurvivors}마리가 다음 웨이브에 합류해.");
                     if (sim.WaveLeaks > 0) return (GuideMood.Worried, $"{sim.WaveLeaks}마리가 코어까지 갔어.\n팁 보고 길목을 다시 막자!");
                     return (GuideMood.Happy, "완벽 방어!\n한 마리도 못 지나갔어!");
             }

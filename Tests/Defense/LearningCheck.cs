@@ -13,7 +13,7 @@ static class LearningCheck
         Require(progression.initial.Length == 0 && progression.robots.Length == 0, "No blanket starting stock");
         Require(progression.lessons.Length == 15, "15 explicit lessons");
         var profiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(r => new RobotSpec { role=r }).ToArray();
-        var setup = new BattleSetup { Stage=1, PlayerFlow=true, Progression=progression, WaveSeconds=.1f,
+        var setup = new BattleSetup { Stage=1, PlayerFlow=true, Progression=progression,
             Min=new Vector2(-20,-20), Max=new Vector2(20,20), ActionProfiles=profiles,
             Routes=new[]{new Route(new[]{new Vector2(-10,0),new Vector2(10,0)},1)},
             Waves=Enumerable.Range(0,5).Select(_=>new[]{new SpawnGroup { Enemy=new EnemySpec(), Count=1, Interval=1 }}).ToArray() };
@@ -45,7 +45,7 @@ static class LearningCheck
             {
                 Require(sim.WaveIndex==wave-1 && sim.Lesson.stage==stage && sim.Lesson.wave==wave,"Correct lesson");
                 var expected=sim.Lesson.rewards.SelectMany(s=>Enumerable.Repeat(s.kind,s.count)).ToArray();
-                sim.Start();for(int i=0;i<20 && sim.Phase==BattlePhase.Running;i++)sim.Advance(.05);
+                sim.Start();for(int i=0;i<4000 && sim.Phase==BattlePhase.Running;i++)sim.Advance(.05);
                 Require(sim.Phase==BattlePhase.Reward && sim.PendingDrops.SequenceEqual(expected),"Fixed rewards independent of kills");
                 Require(sim.ClaimRewards() && !sim.ClaimRewards(),"Claim exactly once");
                 if(tank!=null)Require(tank.Health==37,"Tank health survives transitions");

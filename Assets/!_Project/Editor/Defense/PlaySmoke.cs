@@ -63,14 +63,14 @@ namespace CodingGame.Defense.Editor
                     DevTest.RunWave(); Step = 3; break;
                 case 3:
                     if (!Waited(20)) return;
-                    Note($"2-5 ended: {sim.Phase}, core {sim.BaseHealth}, rush {sim.LastRush}, debrief shown {Shown("Debrief")}, tags {Tags()}");
+                    Note($"2-5 ended: {sim.Phase}, core {sim.BaseHealth}, leaks {sim.WaveLeaks}, debrief shown {Shown("Debrief")}, tags {Tags()}");
                     Expect(sim.Phase != BattlePhase.Running && Shown("Debrief"), "2-5 ends with the debrief shown");
                     if (sim.Phase == BattlePhase.Reward) battle.ContinueCampaign();
                     Step = 4; break;
                 case 4:
                     if (!Waited(20)) return;
                     Note($"2-5 after claim: {sim.Phase}, stars {sim.StageStars}");
-                    // 3-5 with one robot: the rush should take the core, then retry the wave.
+                    // 3-5 with one robot: the leaks should take the core, then retry the wave.
                     DevTest.PlayDefense(3, 5, true, Sandbox); Step = 5; break;
                 case 5:
                     DevTest.AutoDeploy();
@@ -78,7 +78,7 @@ namespace CodingGame.Defense.Editor
                     battle.StartBattle(); DevTest.RunWave(); Step = 6; break;
                 case 6:
                     if (!Waited(20)) return;
-                    Note($"3-5 one robot ended: {sim.Phase}, core {sim.BaseHealth}, rush {sim.LastRush}, can retry {battle.CanRetryWave}, debrief shown {Shown("Debrief")}, restart button {Shown("RestartStage")}");
+                    Note($"3-5 one robot ended: {sim.Phase}, core {sim.BaseHealth}, leaks {sim.WaveLeaks}, can retry {battle.CanRetryWave}, debrief shown {Shown("Debrief")}, restart button {Shown("RestartStage")}");
                     Expect(sim.Phase == BattlePhase.Defeat && battle.CanRetryWave && Shown("RestartStage"), "3-5 lost with retry and restart offered");
                     if (battle.CanRetryWave) battle.RetryWave();
                     Step = 7; break;

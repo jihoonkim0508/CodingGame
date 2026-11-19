@@ -8,7 +8,6 @@ namespace CodingGame.Defense
     public sealed class DefenseCampaignStage
     {
         public DefenseBattle.Wave[] waves = Array.Empty<DefenseBattle.Wave>();
-        public float waveSeconds = 35;
     }
 
     [CreateAssetMenu(menuName = "CodingGame/Defense/Campaign")]
@@ -44,7 +43,7 @@ namespace CodingGame.Defense
             foreach (var r in robots) r.stats.Validate();
             foreach (var e in enemies) e.stats.Validate();
             foreach (var s in stages)
-                if (s == null || !Rules.Positive(s.waveSeconds) || s.waves == null || s.waves.Length == 0 ||
+                if (s == null || s.waves == null || s.waves.Length == 0 ||
                     s.waves.Any(w => w == null || w.groups == null || w.groups.Length == 0 ||
                         w.groups.Any(g => g == null || !g.enemy || !enemies.Contains(g.enemy) || g.count < 1 || g.route < 0 ||
                             !Rules.Nonnegative(g.delay) || !Rules.Positive(g.interval) ||

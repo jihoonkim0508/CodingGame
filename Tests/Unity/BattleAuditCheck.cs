@@ -6,7 +6,8 @@
 //   run_script entry BattleAuditCheck.Main    "RUNNING: <check>" until the run is over, then the result
 // The result (also Temp/BattleAudit.txt): one line per failing check, then "AUDIT battle: <passed>/<total> passed".
 // It starts its own battle sessions (2-1's lesson among them), opens the code editor and the Esc menu (3.5 s), puts
-// StageProgress back as it found it and ends in a Stage 2 test session.
+// StageProgress back as it found it, goes to the stage map and back twice (F3, F4: a new Defense scene each time) and ends
+// in a Stage 2 session.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -55,6 +56,9 @@ public static class BattleAuditCheck
             ("J4 recording again in part keeps the other steps", RecordingAgainKeepsTheRest),
             ("F1 the F2 window's edit of 2-3's first group comes with the wave, Reset gives the authored one back", WaveBalanceEdit),
             ("F2 the F1 jump to 2-4 opens that wave's preparation", JumpToWave),
+            // Last: these leave the Defense scene for the stage map, and the battle the run began with is gone after them.
+            ("F3 on the stage map, the F1 jump to 2-4 opens Defense at 2-4's preparation", JumpFromStageMap),
+            ("F4 an F2 edit of 2-3's first group made on the stage map comes with 2-3", BalanceFromStageMap),
         };
         var failures = new List<string>();
         bool background = Application.runInBackground;
@@ -493,10 +497,10 @@ public static class BattleAuditCheck
                 $"2-3's first group comes out with {enemy.Spec.health} health, the edit scaled is {expected}");
             Require(sim.Setup.Waves[2][1].Enemy.health == authored[1] && sim.Setup.CampaignWaves[1][3][0].Enemy.health == nextWave, "the edit changed another group or wave");
             battle.EditorStartSession(2, 3, true, Sandbox);
-            Require(battle.Simulation.Setup.Waves[2][0].Enemy.health == 77 && battle.WaveGroupEdited(2, 2, 0), "a new battle of 2-3 has lost the edit");
+            Require(battle.Simulation.Setup.Waves[2][0].Enemy.health == 77 && DefenseBattle.WaveGroupEdited(2, 2, 0), "a new battle of 2-3 has lost the edit");
         }
         finally { battle.SetWaveGroup(2, 2, 0, null); }
-        Require(battle.Simulation.Setup.Waves[2][0].Enemy.health == authored[0] && !battle.WaveGroupEdited(2, 2, 0), "Reset does not give 2-3's first group its authored health back");
+        Require(battle.Simulation.Setup.Waves[2][0].Enemy.health == authored[0] && !DefenseBattle.WaveGroupEdited(2, 2, 0), "Reset does not give 2-3's first group its authored health back");
         battle.EditorStartSession(2, 3, true, Sandbox);
         Require(battle.Simulation.Setup.Waves[2][0].Enemy.health == authored[0], "a new battle after Reset still has the edit");
     }
@@ -521,5 +525,69 @@ public static class BattleAuditCheck
         Require(message == null && battle.Stage == 2 && sim.WaveIndex == 3 && sim.Phase == BattlePhase.Ready && mark.robots.Length > 0 &&
             sim.Robots.Select(r => r.Program?.Source).OrderBy(s => s).SequenceEqual(mark.robots.Select(r => r.source).OrderBy(s => s)),
             $"with the recording, the jump to 2-4 is at stage {battle.Stage} wave index {sim.WaveIndex} in {sim.Phase} with {sim.Robots.Count} robots, the play had {mark.robots.Length} ({message})");
+    }
+
+    // The F1 and F2 windows outside the battle (DefenseDevWindow on GameFlow's root): the stage map up, no battle.
+    static async Task<DefenseDevWindow> ToStageMap()
+    {
+        await Until(() => CodingGame.GameFlow.LoadScene(CodingGame.GameFlow.StageScene), 10, "setup: a scene change never ended"); // taken once the last one's fade is over
+        await Until(() => Object.FindFirstObjectByType<StageMapController>() && !Object.FindFirstObjectByType<DefenseBattle>() && !CodingGame.GameFlow.Loading, 30, "setup: the stage map did not come up");
+        await Seconds(.6f); // the fade in: the window's Go is refused until it is over
+        var window = DefenseDevWindow.Instance;
+        Require(window && !window.Battle && CodingGame.GameFlow.Developer, "setup: no developer window on GameFlow's root, or it still has a battle");
+        return window;
+    }
+    // The window's Go, as its button does: the Defense scene comes up and the battle has made the jump.
+    static async Task<DefenseBattle> GoFromStageMap(DefenseDevWindow window, string waveId)
+    {
+        string message = (string)typeof(DefenseDevWindow).GetMethod("Jump", Any).Invoke(window, new object[] { true, waveId });
+        await Until(() => window.Battle && window.Battle.Simulation != null && Field<object>(window, "pending") == null, 30,
+            $"Go with {waveId} on the stage map did not bring the battle up and jump ({message})");
+        await Frames(5);
+        return window.Battle;
+    }
+
+    // F3. On the stage map F1's S-W box starts the Defense scene as the stage map does (the battle counts as entered from it) and
+    // jumps there once the battle has started: "2-4" is at stage 2, wave index 3, in its preparation.
+    static async Task JumpFromStageMap(DefenseBattle _)
+    {
+        using (new BorrowedProgress())
+        {
+            var battle = await GoFromStageMap(await ToStageMap(), "2-4");
+            var sim = battle.Simulation;
+            Require(battle.Stage == 2 && sim.WaveIndex == 3 && sim.Phase == BattlePhase.Ready && battle.FromStageMap && StageProgress.SelectedStage == 2,
+                $"the jump to 2-4 from the stage map is at stage {battle.Stage} wave index {sim.WaveIndex} in {sim.Phase} (selected stage {StageProgress.SelectedStage})");
+        }
+    }
+
+    // F4. On the stage map the F2 window edits a picked stage-wave of the campaign asset the battle uses, in the store the battle
+    // reads: 2-3's first group with health 77 there, then 2-3 started (F1's "2-3") has it.
+    static async Task BalanceFromStageMap(DefenseBattle _)
+    {
+        using (new BorrowedProgress())
+            try
+            {
+                var window = await ToStageMap();
+                // The window's stage and wave pickers at 2 and 3, and the groups it shows for them.
+                typeof(DefenseDevWindow).GetField("pickStage", Any).SetValue(window, 2);
+                typeof(DefenseDevWindow).GetField("pickWave", Any).SetValue(window, 3);
+                var args = new object[] { 0, 0 };
+                SpawnGroup[] Shown() => (SpawnGroup[])typeof(DefenseDevWindow).GetMethod("Groups", Any).Invoke(window, args);
+                Require(Shown() != null, "setup: the F2 window has no campaign outside the battle (Resources/DefenseCampaign)");
+                Require((int)args[0] == 2 && (int)args[1] == 2, $"setup: the window picked {args[0]}-{(int)args[1] + 1}, not 2-3");
+                var first = Shown()[0];
+                var edit = new DefenseBattle.GroupEdit { count = first.Count, delay = first.Delay, interval = first.Interval, health = 77, speed = first.Enemy.speed, leak = first.Enemy.leakDamage };
+                typeof(DefenseDevWindow).GetMethod("Set", Any).Invoke(window, new object[] { 2, 2, 0, edit }); // what its Apply does
+                Require(DefenseBattle.WaveGroupEdited(2, 2, 0), "Apply in the F2 window on the stage map did not store the edit");
+                var shown = Shown()[0];
+                Require(shown.Enemy.health == 77, $"the F2 window on the stage map shows 2-3's first group with {shown.Enemy.health} health after Apply 77");
+                var battle = await GoFromStageMap(window, "2-3");
+                var sim = battle.Simulation;
+                Require(Resources.Load<DefenseCampaignLink>("DefenseCampaign").campaign == battle.EditorCampaign, "Resources/DefenseCampaign is not the campaign the battle uses");
+                Require(battle.Stage == 2 && sim.WaveIndex == 2, $"setup: F1's 2-3 from the stage map is at stage {battle.Stage} wave index {sim.WaveIndex}");
+                Require(sim.Setup.Waves[2][0].Enemy.health == 77 && sim.Setup.Waves[2][0].Count == first.Count,
+                    $"2-3 started after the edit on the stage map has its first group with {sim.Setup.Waves[2][0].Enemy.health} health, not 77");
+            }
+            finally { DefenseBattle.StoreWaveGroup(2, 2, 0, null); }
     }
 }

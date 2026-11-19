@@ -137,9 +137,6 @@ static class CampaignCheck
         Assert(Math.Abs(ally.Buffs.Single().Damage-1.3f)<.001f&&Math.Abs(ally.Buffs.Single().Range-1.18f)<.001f&&Math.Abs(ally.Buffs.Single().Interval-.76f)<.001f,
             "buffer upgrade strengthens bonus portions by twenty percent");
 
-        var timeoutSetup=Setup();timeoutSetup.WaveSeconds=.2f;
-        var timeout=new DefenseSimulation(timeoutSetup);Place(timeout,RobotRole.Tank);timeout.Start();RunWave(timeout);
-        Assert(timeout.Kills==0&&timeout.Coins==100,"timeout cleanup awards no coins");
         var leakSetup=Setup();leakSetup.Waves=new[]{new[]{new SpawnGroup{Count=1,Interval=1,Enemy=new EnemySpec{speed=500}}}};
         var leak=new DefenseSimulation(leakSetup);Place(leak,RobotRole.Warrior);leak.Start();RunWave(leak);
         Assert(leak.Leaks==1&&leak.Coins==100,"leaked enemies award no coins");
@@ -155,7 +152,7 @@ static class CampaignCheck
         CheckUpgrades();
         CheckTutorialWatcher();
         CheckHealthTrail();
-        var scaledSetup=Setup();scaledSetup.Stage=2;scaledSetup.WaveSeconds=.2f;
+        var scaledSetup=Setup();scaledSetup.Stage=2;
         var scaled=new DefenseSimulation(scaledSetup);
         Assert(Math.Abs(scaled.UpcomingWave[0].Enemy.health-11.3625f)<.001f&&
             Math.Abs(scaled.UpcomingWave[0].Enemy.speed-1.02375f)<.001f,"stage and first-wave enemy scaling");
@@ -170,22 +167,14 @@ static class CampaignCheck
             Math.Abs(heavy.UpcomingWave[0].Enemy.speed-.7678125f)<.001f,"tank enemy type multipliers");
         scaledSetup.Waves[0][0].Enemy.type=EnemyType.Normal;
         Place(scaled,RobotRole.Tank);scaled.Start();RunWave(scaled);scaled.ClaimRewards();
-        Assert(scaled.UpcomingWave.Sum(g=>g.Count)==5&&
-            Math.Abs(scaled.UpcomingWave.Single(g=>g.Count==2).Enemy.health-11.3625f)<.001f&&
-            Math.Abs(scaled.UpcomingWave.Single(g=>g.Count==3).Enemy.health-13.24f)<.001f,
-            "carried enemies keep prior stats while new enemies use next-wave scaling");
-        var cappedSetup=Setup();cappedSetup.Stage=4;cappedSetup.WaveSeconds=.1f;
+        Assert(scaled.UpcomingWave.Sum(g=>g.Count)==3&&Math.Abs(scaled.UpcomingWave.Single().Enemy.health-13.24f)<.001f,
+            "next wave uses next-wave scaling and carries nothing over");
+        var cappedSetup=Setup();cappedSetup.Stage=4;
         var capped=new DefenseSimulation(cappedSetup);Place(capped,RobotRole.Tank);
         for(int wave=0;wave<4;wave++) { capped.Start();RunWave(capped);capped.ClaimRewards(); }
         Assert(Math.Abs(capped.UpcomingWave[0].Enemy.health-23.965f)<.001f&&
             Math.Abs(capped.UpcomingWave[0].Enemy.speed-1.6555f)<.001f,
             "final wave uses tuned stage progress formula");
-        var carriedSetup=Setup();carriedSetup.Stage=2;carriedSetup.WaveSeconds=1.1f;
-        var carried=new DefenseSimulation(carriedSetup);Place(carried,RobotRole.Tank);
-        for(int wave=0;wave<2;wave++) { carried.Start();RunWave(carried);carried.ClaimRewards(); }
-        Assert(carried.UpcomingWave.Any(g=>g.Count==2&&Math.Abs(g.Enemy.health-11.3625f)<.001f)&&
-            carried.UpcomingWave.Any(g=>g.Count==3&&Math.Abs(g.Enemy.health-13.24f)<.001f),
-            "carried enemies from separate waves retain their own stats");
         var neededSetup=Setup();neededSetup.Waves[0][0].Count=5;
         var needed=new DefenseSimulation(neededSetup);var neededBot=Place(needed,RobotRole.Shooter);
         needed.ApplyProgram(neededBot.Id,"fire",new[]{new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy))});needed.Start();RunWave(needed);
@@ -263,25 +252,19 @@ static class CampaignCheck
         Assert(items.RobotAvailable(RobotRole.Tank)==stock&&items.Available(BlockKind.Block)==1,"destroyed robot consumed, blocks returned");
         Assert(DefenseProgression.ItemKinds.All(DefenseProgression.Consumes),"all block types are inventory items");
         items.GrantBlock(BlockKind.Shot,10000); Assert(items.Inventory[BlockKind.Shot]==10005,"block grants have no gameplay cap");
-        var timedSetup=Setup();timedSetup.WaveSeconds=20;
-        timedSetup.Waves[0][0].Count=3;timedSetup.Waves[0][0].Interval=30;timedSetup.Waves[0][0].Enemy.speed=.1f;
-        var timed=new DefenseSimulation(timedSetup);Place(timed,RobotRole.Shooter);
-        Assert(timed.RemainingEnemies==3&&timed.WaveRemaining==20,"ready counts queued enemies and full timer");
-        timed.Start();timed.Advance(5);timed.TogglePause();double frozen=timed.WaveRemaining;timed.Advance(100);
-        Assert(timed.WaveRemaining==frozen,"pause freezes deadline");timed.TogglePause();RunWave(timed);
-        Assert(timed.Phase==BattlePhase.Reward&&Math.Abs(timed.Time-20)<.001,"twenty second deadline");
-        Assert(timed.LastSurvivors==3&&timed.WaveSurvivors.SequenceEqual(new[]{3})&&timed.Enemies.Count==0,"alive and queued enemies recorded and removed");
-        Assert(timed.PendingDrops.Count==0&&timed.Kills==0&&timed.Leaks==0,"timeout removal gives neither kills drops nor leaks");
-        Assert(timed.UpcomingWave.Sum(g=>g.Count)==6,"next wave preview includes carry");
-        timed.ClaimRewards();Assert(timed.RemainingEnemies==6&&timed.WaveRemaining==20,"carry applied exactly once with fresh timer");
-        timed.Start();RunWave(timed);Assert(timed.WaveSurvivors.Count==2,"survivor history retained");
-        var displaySetup=Setup();displaySetup.WaveSeconds=35;displaySetup.Waves[0][0].Enemy.speed=.1f;
-        var display=new DefenseSimulation(displaySetup);Place(display,RobotRole.Shooter);display.Start();RunWave(display);
-        Assert(display.Phase==BattlePhase.Reward&&display.LastWaveTimedOut&&display.WaveRemaining==0&&Math.Ceiling(display.WaveRemaining)==0,"35 second timeout displays zero despite fractional tick drift");
-        display.ClaimRewards();Assert(display.WaveRemaining==35,"next ready phase restores full 35 seconds");
-        var fastSetup=Setup();fastSetup.WaveSeconds=20;var fast=new DefenseSimulation(fastSetup);var fastBot=Place(fast,RobotRole.Shooter);
+        // No wave time limit: a wave with enemies alive (or still to come) runs until each one is killed or reaches the core.
+        var untimedSetup=Setup();
+        untimedSetup.Waves[0][0].Count=3;untimedSetup.Waves[0][0].Interval=30;
+        var untimed=new DefenseSimulation(untimedSetup);Place(untimed,RobotRole.Shooter);
+        Assert(untimed.RemainingEnemies==3,"ready counts queued enemies");
+        untimed.Start();for(int i=0;i<55*60;i++)untimed.Advance(1.0/60);
+        Assert(untimed.Phase==BattlePhase.Running&&untimed.RemainingEnemies==1&&untimed.Leaks==2,"past the old 35-50 s the wave still runs with its last enemy on the road");
+        RunWave(untimed);
+        Assert(untimed.Phase==BattlePhase.Reward&&untimed.Leaks==3&&untimed.Kills==0&&untimed.Enemies.Count==0&&untimed.Time>75,"the wave ends when its last enemy reaches the core");
+        untimed.ClaimRewards();Assert(untimed.RemainingEnemies==3,"the next wave brings only its own enemies");
+        var fast=new DefenseSimulation(Setup());var fastBot=Place(fast,RobotRole.Shooter);
         fast.ApplyProgram(fastBot.Id,"fire",new[]{new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy))});fast.Start();RunWave(fast);
-        Assert(fast.Time<20&&!fast.LastWaveTimedOut&&fast.LastSurvivors==0,"all dead ends before deadline");
+        Assert(fast.Phase==BattlePhase.Reward&&fast.Kills==2&&fast.Leaks==0,"all dead ends the wave");
         Console.WriteLine($"Campaign checks passed: {checks}");
     }
 }
