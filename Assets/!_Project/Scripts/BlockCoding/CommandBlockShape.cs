@@ -18,11 +18,12 @@ namespace CodingGame.BlockCoding
         // Out of stock or left behind while dragged: the face mixes towards the dark workspace. Lifted marks the dragged copy.
         public float Fade { get; set; }
         public bool Lifted { get; set; }
-        // 시안 (block outline): three looks for the edge drawn round every block; the user keeps one and the others go.
+        // An edge round the block, for the reward panel's previews only (the editor's blocks have none): there a while True
+        // the colour of the panel was lost on it. 시안: three looks; the user keeps one and the others go.
         public enum OutlineLook { None, Dark, Light, Bevel }
-        public static OutlineLook Outline = OutlineLook.Dark;
+        OutlineLook outline;
+        public OutlineLook Outline { get => outline; set { if (outline == value) return; outline = value; SetVerticesDirty(); } }
         const float OutlineWidth = 2;
-        bool outlined;
         Color Tint => Fade > 0 ? Color.Lerp(color, new Color(.12f, .18f, .25f, color.a), Fade) : color;
         readonly List<UIVertex> hitTriangles = new List<UIVertex>();
         Texture2D generatedSurface;
@@ -33,8 +34,6 @@ namespace CodingGame.BlockCoding
             base.OnEnable();
             generatedSurface = Resources.Load<Texture2D>("LearningSkins/JellySurface");
             openSurface = Resources.Load<Texture2D>("LearningSkins/ControlOpenFrameV2");
-            // Blocks only: the empty-slot wells and the function-name field share this graphic.
-            outlined = GetComponent<CommandBlockView>();
             SetMaterialDirty(); SetVerticesDirty();
         }
 #if UNITY_EDITOR
@@ -123,7 +122,7 @@ namespace CodingGame.BlockCoding
                 vh.AddVert(new Vector3(x[column+1],y[row]),Tint,new Vector2(u[column+1],v[row]));
                 vh.AddTriangle(start,start+1,start+2);vh.AddTriangle(start,start+2,start+3);
             }
-            if(!outlined || Outline==OutlineLook.None)return;
+            if(Outline==OutlineLook.None)return;
             // The C traced on the texture's own edge (its pixels, y down), rounded there and mapped through the same
             // nine cells, so the outline bends with the stretched corners. Joined to an elif/else: no footer, open at the bottom.
             var corners=JoinNext
@@ -217,7 +216,7 @@ namespace CodingGame.BlockCoding
                     Mathf.Lerp(controlFamily && !control ? .94f : .84f,controlFamily && !control ? .62f : .16f,(p.y-min.y)/Mathf.Max(.001f,size.y))));
             for (int i = 1; i < points.Length - 1; i++) vh.AddTriangle(start, start + i, start + i + 1);
             // A C block's pieces overlap; its outline is traced whole in OpenFrame.
-            if (!outlined || control || Outline == OutlineLook.None) return;
+            if (control || Outline == OutlineLook.None) return;
             var path = new List<Vector2>();
             foreach (var p in points) path.Add(new Vector2(r.xMin + p.x, r.yMax - p.y));
             if (mainTexture == openSurface) Stroke(vh, path, true, new Vector2(.5f, .8f), new Color(.761f, .769f, .788f));
