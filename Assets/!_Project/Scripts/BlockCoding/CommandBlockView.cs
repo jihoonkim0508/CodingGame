@@ -274,8 +274,11 @@ namespace CodingGame.BlockCoding
             stockLabel.text = count >= int.MaxValue / 2 ? "∞" : "×" + count; // unlimited stock minus blocks in use is still unlimited
             stockLabel.gameObject.SetActive(counted);
             // Out-of-stock palette blocks stay visible (so players learn they exist) but read as unavailable.
-            if (counted) SetFaded(count <= 0);
+            outOfStock = counted && count <= 0;
+            SetFaded(outOfStock || dragged);
         }
+        // Faded while either holds: a drag's end must not brighten a palette block its own drop just used up.
+        bool outOfStock, dragged;
         void LateUpdate()
         {
             if(body){
@@ -353,7 +356,8 @@ namespace CodingGame.BlockCoding
         // deeper shadow (비주얼_레퍼런스.md 4).
         public void SetDragAppearance(bool dragged)
         {
-            SetFaded(dragged);
+            this.dragged = dragged;
+            SetFaded(dragged || outOfStock);
             canvasGroup.blocksRaycasts = !dragged;
         }
         // Shapes mix towards the paper (CommandBlockShape.Fade, opaque); texts and fields dim through their renderers.

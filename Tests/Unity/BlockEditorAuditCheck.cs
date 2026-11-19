@@ -1,4 +1,4 @@
-// Audit of the block editor (B1-B9). Run in Play Mode in the Defense scene through the Unity MCP run_script tool, entry
+// Audit of the block editor (B1-B10). Run in Play Mode in the Defense scene through the Unity MCP run_script tool, entry
 // BlockEditorAuditCheck.Main: one "FAIL Bn ...: ..." line per failing check, then "AUDIT blocks: <passed>/<total> passed".
 // Each check starts its own Stage 2 session (tutorial off, two warriors, 50 more of every block; a check that counts stock
 // sets it exactly) and fails today for the reason in its comment. A message that starts with "setup:" or "guard:" is not the
@@ -49,6 +49,7 @@ public static class BlockEditorAuditCheck
             Run("B7 drag copy keeps the operator", DragCopyKeepsOperator);
             Run("B8 rejected draft keeps the stock at zero or more", RejectedDraftWithinStock);
             Run("B9 a program taller than the code area scrolls into reach", TallProgramScrolls);
+            Run("B10 palette blocks at ×0 are dimmed", ZeroStockDims);
         }
         finally { battle.Restart(); }
         report.Add("AUDIT blocks: " + passed + "/" + total + " passed");
@@ -337,6 +338,48 @@ public static class BlockEditorAuditCheck
         Require(program.StartChain().Last().BaseKind == BlockKind.Wait, "scrolled, wait() dragged under the last line did not join the program: " + Program());
         Require(Vector2.Distance(under.preview, under.landed) < 1, "scrolled, the landing preview was at " + under.preview + ", the block landed at " + under.landed);
     }
+    // --- B10 ---
+    // A palette block with none left reads dimmed, whatever its kind and however it got to ×0: another robot holding all of
+    // a kind (commands, values, the variable chip, comparisons), or this robot's drag of the last one. The drag's end undid
+    // the dimming: EndDrag un-faded the palette block it had faded, after the drop had already set it to ×0.
+    static void ZeroStockDims()
+    {
+        CodeBlock Enemy() => new CodeBlock(BlockKind.Variable, "enemy");
+        var loop = new CodeBlock(BlockKind.While);
+        loop.Body.Add(new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)));
+        var far = new CodeBlock(BlockKind.If, "0", new CodeBlock(BlockKind.Comparison, ">", new CodeBlock(BlockKind.Distance, "0", Enemy(), new CodeBlock(BlockKind.MyPos)), new CodeBlock(BlockKind.MyAttackRange)));
+        far.Body.Add(new CodeBlock(BlockKind.Wait, "0", new CodeBlock(BlockKind.Number, "1")));
+        var dead = new CodeBlock(BlockKind.If, "0", new CodeBlock(BlockKind.IsDead, "0", Enemy()));
+        dead.Body.Add(new CodeBlock(BlockKind.Continue));
+        loop.Body.Add(far); loop.Body.Add(dead); loop.Body.Add(new CodeBlock(BlockKind.Slash));
+        Open(a); Load(loop);
+        Require(panel.IsApplied, "setup: robot a's program is applied: " + Status());
+        foreach (var used in DefenseProgression.Used(new[] { loop }).GroupBy(k => k)) sim.Inventory[used.Key] = used.Count();
+        Open(b);
+        var zero = new List<string>(); var bright = new List<string>();
+        foreach (int category in panel.Palette.Select(item => item.category).Distinct().ToList())
+        {
+            panel.ShowCategory(category);
+            foreach (var view in panel.Palette.Where(item => item.category == category).Select(item => item.view).Append(category == 2 ? panel.VariableTemplate : null))
+            {
+                if (!view || !view.gameObject.activeSelf || Get<TMP_Text>(view, "stockLabel").text != "×0") continue;
+                zero.Add(view.Kind.ToString()); if (!Faded(view)) bright.Add(view.Kind.ToString());
+            }
+        }
+        Require(zero.Count >= 10, "setup: robot a holds every block of ten kinds or more, listed ×0 for robot b: " + string.Join(", ", zero));
+        Require(bright.Count == 0, "listed ×0 but not dimmed: " + string.Join(", ", bright));
+        // This robot drags the last slash() into its program.
+        Open(a); Load(); sim.Inventory[BlockKind.Slash] = 1; panel.RefreshPalette();
+        Require(Listed(BlockKind.Slash) == "×1" && !Faded(Palette(BlockKind.Slash)), "setup: one slash() left, not dimmed: " + Listed(BlockKind.Slash));
+        var slash = Palette(BlockKind.Slash);
+        Carry(BlockKind.Slash, Start);
+        // Read as the drop left it: Listed and Palette show the tab again, which redraws the counts.
+        Require(Get<TMP_Text>(slash, "stockLabel").text == "×0", "setup: the drag took the last slash(): " + Get<TMP_Text>(slash, "stockLabel").text + ", " + Program());
+        Require(Faded(slash), "the last slash(), dragged into the program, leaves its palette block at ×0 but not dimmed");
+    }
+    static bool Faded(CommandBlockView view) =>
+        view.GetComponentsInChildren<CommandBlockShape>(true).Where(s => s.GetComponentInParent<CommandBlockView>(true) == view).All(s => s.Fade > 0);
+
     static float Bottom(RectTransform r) { var c = new Vector3[4]; r.GetWorldCorners(c); return c[0].y; }
     static float Top(RectTransform r) { var c = new Vector3[4]; r.GetWorldCorners(c); return c[1].y; }
 
