@@ -62,8 +62,8 @@ namespace CodingGame.Defense
         [SerializeField] DefenseAttackPreview attackPreview;
         [SerializeField, Min(1)] int stage = 1;
         public int Stage => stage;
-        // The prototype is built up to Stage 2 (2-10): winning it ends the play-through with a notice instead of Stage 3.
-        public const int PrototypeLastStage = 2;
+        // The prototype is built up to Stage 3 (3-4): winning it ends the play-through with a notice (Stage 2 goes on to Stage 3).
+        public const int PrototypeLastStage = 3;
         public bool PrototypeEnded => Simulation != null && Simulation.Phase == BattlePhase.Victory && stage >= PrototypeLastStage;
         public bool FromStageMap => StageMap.StageProgress.SelectedStage > 0;
         public RobotDefinition RobotDefinition(int index) => robots[index];
