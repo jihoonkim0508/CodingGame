@@ -21,7 +21,8 @@ namespace CodingGame.Defense.Editor
         static double bodyReadyAt;
         static string last;
         static double since, next;
-        static bool practiced, practicedFour, practicedFive, bossVisualSeen;
+        static bool practiced, practicedFour, practicedFive, bossVisualSeen, gapPressed, controlsTried;
+        static double tankFrom = -1, tankTo = -1, rushFrom = -1;
         static int coreAtThirdWave, killsAtThirdWave, leaksAtThirdWave, killsAtFifthWave, codedWave;
         static BeginnerLessonChecks()
         {
@@ -306,6 +307,41 @@ namespace CodingGame.Defense.Editor
             { FreePlayFive(battle); practicedFive = true; return; }
             // 1-3 leaves the battle start to the player after the loop lesson.
             if (battle.Stage == 1 && sim.WaveIndex == 2 && !director.IsActive && sim.Phase == BattlePhase.Ready) { battle.StartBattle(); return; }
+            // 1-1 between the battle start and E03b (E03a and E03b waiting hidden): 실행 does nothing yet, so the battle start's
+            // swing plays out and E03b's press is the one that calls the function again.
+            if ((key == "1/E03a" || key == "1/E03b" || key == "1/E03c") && !director.IsActive && sim.Phase == BattlePhase.Running)
+            {
+                var teacher = TutorialWatcher.TeachingRobot(sim); bool running = teacher.Program.Running; int runs = teacher.Program.CompletedRuns;
+                battle.PlayRobot(teacher.Id);
+                Require(!battle.TutorialAllows(TutorialKeys.Play(0)) && teacher.Program.Running == running && teacher.Program.CompletedRuns == runs,
+                    "실행 called the function before its step at " + key);
+                gapPressed = true;
+            }
+            if (key == "1/E04") Require(gapPressed, "실행 was never pressed between the battle start and E03c");
+            // 1-1's tank: from its arrival to the core (the leak), in battle seconds, and when the tutorial's rush began.
+            if (battle.Stage == 1 && sim.WaveIndex == 0)
+            {
+                var tank = sim.Enemies.FirstOrDefault(e => e.Active && e.Spec.type == EnemyType.Tank);
+                if (tank != null && tankFrom < 0) tankFrom = sim.Time;
+                if (director.Rushing && rushFrom < 0) { rushFrom = sim.Time; Log("RUSH from battle " + (rushFrom - tankFrom).ToString("0.0") + " s after the tank came"); }
+                if (tank == null && tankFrom >= 0 && tankTo < 0 && sim.Leaks > 0 && (key == "1/E05" || key == "1/E06" || sim.Phase != BattlePhase.Running))
+                { tankTo = sim.Time; Log("TANK walk battle " + (tankTo - tankFrom).ToString("0.0") + " s, rush from " + (rushFrom < 0 ? "never" : (rushFrom - tankFrom).ToString("0.0") + " s")); }
+            }
+            // Told about in 1-2 (A04, A05), pause and speed work in its free play at once.
+            if (key == "2/B01" && !director.IsActive && sim.Phase == BattlePhase.Running && !controlsTried)
+            {
+                var hud = Field<DefensePlayerHUD>(battle, "playerHUD");
+                Button pause = Field<Button>(hud, "pauseButton"), speed = Field<Button>(hud, "speedButton");
+                pause.onClick.Invoke(); Require(sim.Phase == BattlePhase.Paused, "Pause did not stop 1-2's battle");
+                pause.onClick.Invoke(); Require(sim.Phase == BattlePhase.Running, "Continue did not resume 1-2's battle");
+                Require(battle.SpeedUnlocked && speed.interactable, "Speed is locked in 1-2's free play");
+                speed.onClick.Invoke(); Require(battle.BattleSpeed == 2, "Speed did not change to 2x in 1-2");
+                speed.onClick.Invoke(); Require(battle.BattleSpeed == 3, "Speed cannot reach 3x in 1-2");
+                speed.onClick.Invoke();
+                if (GameFlow.Developer) { Require(battle.BattleSpeed == 5, "Developer rights do not add 5x after 3x"); speed.onClick.Invoke(); }
+                Require(battle.BattleSpeed == 1, "Speed cannot return to 1x after 3x");
+                controlsTried = true;
+            }
             if (!director.IsActive) { Time.timeScale = 3; return; }
             var view = Field<TutorialDialogueView>(director, "view");
             if (!view.IsVisible) return; // System banner.
@@ -315,22 +351,25 @@ namespace CodingGame.Defense.Editor
             if (!string.IsNullOrWhiteSpace(step.dragDemo))
                 Require(Field<TutorialPointer>(director, "pointer").IsDragVisible,
                     "Block placement drag preview is missing at " + key);
-            if (key == "1/E04" || key == "1/E04a")
-                Require(sim.Phase == BattlePhase.Running && Math.Abs(director.BattlePace - .2f) < .001f,
-                    "1-1 pause introduction must show a moving slow-motion battle at " + key);
-            if (key == "1/E04" || key == "1/E04a" || key == "1/E04b")
+            // A line on screen holds the battle (no 0.2x): the Play, pause and speed lessons too.
+            if (sim.Phase == BattlePhase.Running || sim.Phase == BattlePhase.Paused)
+                Require(director.BattlePace == 0, "The battle runs under a line at " + key);
+            if (key == "1/E04" || key == "1/E04d")
             {
                 var speed = Field<Button>(Field<DefensePlayerHUD>(battle, "playerHUD"), "speedButton");
                 Require(!battle.SpeedUnlocked && !speed.interactable && battle.BattleSpeed == 1,
-                    "Speed is available before its 1-1 introduction at " + key);
+                    "Speed is available in 1-1 at " + key);
                 battle.ToggleSpeed();
                 Require(battle.BattleSpeed == 1, "Speed changed while locked at " + key);
             }
-            if (key == "1/E04b")
-                Require(sim.Phase == BattlePhase.Paused, "Pause button did not fully stop the battle");
-            if (key == "1/E04c")
-                Require(sim.Phase == BattlePhase.Running && Math.Abs(director.BattlePace - 1f) < .001f,
-                    "Battle did not return to normal speed after Continue");
+            // 1-2 A04 and A05 tell about pause and speed, the buttons lit, while the battle stands still.
+            if (key == "2/A04" || key == "2/A05")
+                Require(sim.Phase == BattlePhase.Running, "1-2's controls lines came before its battle at " + key);
+            // 1-2 A00a, A00b (레벨업, 회수 on the selected warrior) and A04, A05: what the line tells about is on screen.
+            if (key == "2/A00a" || key == "2/A00b" || key == "2/A04" || key == "2/A05")
+                Require(step.texts.All(t => t.focusKeys.All(k => director.EditorBridge.TryGetArea(k, out _))) && director.EditorBridge.TryGetArea(step.pointerKey ?? step.texts[0].focusKeys[0], out _),
+                    "What the line tells about is not on screen at " + key);
+            if (key == "2/A00b") Require(sim.RecallUnlocked && sim.UpgradeUnlocked, "레벨업 or 회수 is still locked as 1-2 tells about them");
             director.EditorFinishTyping(); Canvas.ForceUpdateCanvases();
             foreach (var text in view.GetComponentsInChildren<TMP_Text>().Where(t => t.name == "Dialogue"))
             { text.ForceMeshUpdate(); Require(!text.isTextOverflowing, "Dialogue overflow at " + key); }
@@ -359,28 +398,12 @@ namespace CodingGame.Defense.Editor
                 Require(teacher.Program.Running, "Play did not call the robot's function at " + key);
                 return;
             }
-            if (step.targetKeys.Contains(TutorialKeys.Pause))
+            // The editor's 닫기 (no step closes it on its own): the start button waits until it is pressed.
+            if (step.targetKeys.Contains(TutorialKeys.Close))
             {
-                Require(battle.TutorialAllows(TutorialKeys.Pause), "Pause control blocked at " + key);
-                Field<Button>(Field<DefensePlayerHUD>(battle, "playerHUD"), "pauseButton").onClick.Invoke();
-                Require(sim.Phase == (step.stepId == "E04a" ? BattlePhase.Paused : BattlePhase.Running), "Pause/resume failed at " + key);
-                return;
-            }
-            if (step.targetKeys.Contains(TutorialKeys.Speed))
-            {
-                Require(battle.SpeedUnlocked && battle.TutorialAllows(TutorialKeys.Speed) &&
-                    Field<Button>(Field<DefensePlayerHUD>(battle, "playerHUD"), "speedButton").interactable,
-                    "Speed control did not unlock at " + key);
-                var speed = Field<Button>(Field<DefensePlayerHUD>(battle, "playerHUD"), "speedButton");
-                speed.onClick.Invoke();
-                Require(battle.BattleSpeed == 2, "Speed did not change to 2x at " + key);
-                Require(director.CanPerformAction(TutorialKeys.Speed) && speed.interactable,
-                    "Speed became locked again immediately after the lesson");
-                speed.onClick.Invoke();
-                Require(battle.BattleSpeed == 3, "Speed cannot reach 3x after the tutorial introduction");
-                speed.onClick.Invoke();
-                if (GameFlow.Developer) { Require(battle.BattleSpeed == 5, "Developer rights do not add 5x after 3x"); speed.onClick.Invoke(); }
-                Require(battle.BattleSpeed == 1, "Speed cannot return to 1x after 3x");
+                Require(editor.IsOpen && !battle.TutorialAllows(TutorialKeys.Start), "The editor is shut or the start button free before 닫기 at " + key);
+                Field<Button>(editor, "closeButton").onClick.Invoke();
+                Require(!editor.IsOpen, "닫기 did not close the editor at " + key);
                 return;
             }
             var robotButton = step.targetKeys.FirstOrDefault(k => k.StartsWith(TutorialKeys.RobotButtonPrefix, StringComparison.Ordinal));

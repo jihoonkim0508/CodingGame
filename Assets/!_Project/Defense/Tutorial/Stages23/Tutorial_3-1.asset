@@ -44,6 +44,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -94,6 +95,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -144,6 +146,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -194,6 +197,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -246,6 +250,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -296,6 +301,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -346,6 +352,7 @@ MonoBehaviour:
     pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 
@@ -392,9 +399,10 @@ MonoBehaviour:
     requiredSlotBlock: 
     sourceKey: 
     destinationKey: 
-    pauseBattle: 0
+    pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: WaveCleared
     skipIf: Leak
@@ -443,9 +451,10 @@ MonoBehaviour:
     requiredSlotBlock: 
     sourceKey: 
     destinationKey: 
-    pauseBattle: 0
+    pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: Leak
     skipIf: 
@@ -492,9 +501,10 @@ MonoBehaviour:
     requiredSlotBlock: 
     sourceKey: 
     destinationKey: 
-    pauseBattle: 0
+    pauseBattle: 1
     slowBattle: 0
     allowPreview: 0
+    rushTank: 0
     highlightPadding: 10
     trigger: 
     skipIf: 

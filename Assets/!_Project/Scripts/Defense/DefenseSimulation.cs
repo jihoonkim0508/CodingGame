@@ -380,8 +380,8 @@ namespace CodingGame.Defense
             var input = Log("place", 0, definitionIndex); input.spec = spec.Copy(); input.x = point.X; input.y = point.Y;
             return bot;
         }
-        // Recall stays locked through the Stage 1 tutorial (1-1, 1-2) so the teaching robot keeps its code.
-        public bool RecallUnlocked => !Setup.PlayerFlow || Setup.Stage != 1 || WaveIndex >= 2;
+        // Recall opens with 1-2, whose start tells about it (1-1's warrior keeps its code through the first lesson).
+        public bool RecallUnlocked => !Setup.PlayerFlow || Setup.Stage != 1 || WaveIndex >= 1;
         public bool RemoveRobot(int id)
         {
             if (Setup.PlayerFlow && !CanPrepare || !RecallUnlocked) return false;

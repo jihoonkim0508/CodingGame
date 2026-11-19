@@ -83,11 +83,11 @@ namespace CodingGame.Defense.Editor
             public TutorialCompletionMode Mode;
             public string Signal, Trigger, Expected, Pointer, HintCode, AutoSlot, RequiredSlotBlock;
             public float PointerDelay;
-            public bool Dim, CloseEditor, ClearProgram, OpenEditor, Preview, Battle, HoldBattle, SlowBattle;
+            public bool Dim, ClearProgram, OpenEditor, Preview, Battle;
             public int Robot;
             public float Padding = 10;
             public string[] Highlight = Array.Empty<string>();
-            public bool Intro, Cards, Undimmed, Dismissable, Round;
+            public bool Intro, Cards, Undimmed, Dismissable, Round, Rush;
             public float Auto;
             public string SkipIf;
             public string Demo;
@@ -113,6 +113,8 @@ namespace CodingGame.Defense.Editor
         static Action<S> Highlight(params string[] keys) => s => s.Highlight = keys;
         static Action<S> With(params Action<S>[] parts) => s => { foreach (var part in parts) part?.Invoke(s); };
         static Action<S> Ed => s => s.Preview = true;
+        // The player closes the editor with its 닫기 (no step closes it: the user, 2026-11-19); the code is applied as it is built.
+        static Action<S> CloseClick => Click(Close, s => { s.Pointer = Close; s.Preview = true; });
         static Action<S> Fight => s => s.Battle = true;
         // 디버's entrance lines: the HUD dims with the greyed map, so the dialogue is the one bright thing (focus report 1-3).
         static Action<S> Intro => s => { s.Intro = true; s.Dim = true; };
@@ -138,25 +140,27 @@ namespace CodingGame.Defense.Editor
             L("1-1.D09", With(Ed, With(s => { s.Preview = true; s.RestartPreview = true; }, Focus(Preview)))),
             // Before the first workspace closes: the bottom line is where the code's problems show (debugging).
             L("1-1.D09a", With(Ed, Focus(TutorialKeys.Status))),
-            L("1-1.D10", s => s.CloseEditor = true),
+            L("1-1.D09b", CloseClick),
+            L("1-1.D10"),
             L("1-1.E01", Focus(TutorialKeys.NextWave)),
             L("1-1.E03", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => s.Top = true)),
-            // Battle start called the function once and it ended (a swing, likely at nobody); then, slowed, the first enemy
-            // in range is the moment for the robot's Play button.
+            // Battle start called the function once and it ended (a swing, likely at nobody); then the first enemy in range is
+            // the moment for the robot's Play button, which does nothing before (TutorialDirector.CanPerformAction).
             // The swing-paced lines (E03a, E03c, E04) come when the robot's swing has played out, so they follow its attack
             // speed instead of fixed delays (the user: '공속 가져와서, 하드코딩하지 말고').
-            L("1-1.E03a", s => { s.Trigger = TutorialSignals.FunctionEnded; s.HoldBattle = true; }),
-            L("1-1.E03b", Click(TutorialKeys.Play(0), s => { s.Trigger = TutorialSignals.EnemyInRange; s.Pointer = TutorialKeys.Play(0); s.SlowBattle = true; s.Top = true; })),
+            L("1-1.E03a", s => s.Trigger = TutorialSignals.FunctionEnded),
+            L("1-1.E03b", Click(TutorialKeys.Play(0), s => { s.Trigger = TutorialSignals.EnemyInRange; s.Pointer = TutorialKeys.Play(0); s.Top = true; })),
             // A basic enemy takes two swings (the warrior's 7 against 12.6): once the pressed call has ended and its swing has
             // landed and played out, at normal speed (FunctionEnded came at the battle start's call), the second press.
-            L("1-1.E03c", Click(TutorialKeys.Play(0), s => { s.Trigger = TutorialSignals.PlayEnded; s.Pointer = TutorialKeys.Play(0); s.SlowBattle = true; s.Top = true; })),
-            // After the kill the battle runs on at 1x until the killing swing is over, then slows under the line.
-            L("1-1.E04", s => { s.Trigger = TutorialSignals.KillSwingEnded; s.SlowBattle = true; }),
-            L("1-1.E04a", Click(TutorialKeys.Pause, s => { s.Pointer = TutorialKeys.Pause; s.SlowBattle = true; })),
-            L("1-1.E04b", Click(TutorialKeys.Pause, s => { s.Pointer = TutorialKeys.Pause; s.HoldBattle = true; })),
-            L("1-1.E04c", Click(TutorialKeys.Speed, s => s.Pointer = TutorialKeys.Speed)),
+            L("1-1.E03c", Click(TutorialKeys.Play(0), s => { s.Trigger = TutorialSignals.PlayEnded; s.Pointer = TutorialKeys.Play(0); s.Top = true; })),
+            // After the kill the battle runs on at 1x until the killing swing is over, then stands still under the line.
+            L("1-1.E04", s => s.Trigger = TutorialSignals.KillSwingEnded),
+            // Pause and speed are only told about in 1-2 (the user: '1-1 보상 이후로, 클릭하지 말고 말로만').
             L("1-1.E04d"),
-            L("1-1.E05", With(Fight, Focus(Core), s => s.Trigger = TutorialSignals.Leak)),
+            // A basic enemy at the core first: only that the core lost health (once); the tank's arrival, first or later,
+            // the line about the tough one. Meanwhile the tank, once past the warrior, walks the rest fast (rushTank).
+            L("1-1.E05a", With(Fight, Focus(Core), s => { s.Trigger = TutorialSignals.Leak; s.SkipIf = TutorialSignals.LeakTank; s.Rush = true; })),
+            L("1-1.E05", With(Fight, Focus(Core), s => { s.Trigger = TutorialSignals.LeakTank; s.Rush = true; })),
             L("1-1.E06", s => s.Trigger = TutorialSignals.WaveCleared),
             L("1-1.E07"),
             // Claiming the reward starts 1-2, so it comes last.
@@ -168,7 +172,16 @@ namespace CodingGame.Defense.Editor
             // The trigger hides the guide and releases input until the wave ends. Keep all player code.
             // Free play has no exact answer, compulsory editor visit or forced clear.
             return new List<S> {
+                // The robot's 레벨업 and 회수, told about first (no press: 회수 would take the warrior away); both open from 1-2.
+                L("1-2.A00", Click(Unit0, s => s.Pointer = Unit0)),
+                L("1-2.A00a", With(Focus("Battle.Upgrade"), s => s.Pointer = "Battle.Upgrade")),
+                L("1-2.A00b", With(Focus("Battle.Recall"), s => s.Pointer = "Battle.Recall")),
                 L("1-2.A01"), L("1-2.A02"), L("1-2.A03"),
+                // The battle's controls show from its start: told about there, under a held battle, no click asked (both work
+                // from 1-2 on, DefenseBattle.SpeedUnlocked).
+                // A04 waits, hidden, through the free setup: the hint (slash()) is there already.
+                L("1-2.A04", s => { s.Trigger = TutorialSignals.BattleStarted; s.Focus = new[] { TutorialKeys.Pause }; s.HintCode = Code11; }),
+                L("1-2.A05", With(Focus(TutorialKeys.Speed), s => s.HintCode = Code11)),
                 L("1-2.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code11; s.Battle = true; }),
                 L("1-2.B02"),
                 L("1-2.B03", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
@@ -195,7 +208,8 @@ namespace CodingGame.Defense.Editor
                 Focus("Editor.Palette.Slash", "Editor.Code.Body.1")))),
             L("1-3.C10", With(Ed, Focus("Editor.Code.Line.1"))),
             L("1-3.D01", With(Ed, Focus("Editor.Code.Line.1", Preview))),
-            L("1-3.D02", s => s.CloseEditor = true),
+            L("1-3.D01a", CloseClick),
+            L("1-3.D02"),
             L("1-3.E01"),
             L("1-3.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code13; s.Battle = true; }),
             L("1-3.B03", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
@@ -235,7 +249,8 @@ namespace CodingGame.Defense.Editor
                 s => s.AutoSlot = "Editor.Code.Arg.1/2.0")),
             L("2-1.B07", EditSignal(TutorialSignals.ProgramMatches, Code21, "Editor.Code.Name.1/2.0", "Editor.Code.Name.1/2.0")),
             L("2-1.C02", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(s => { s.Preview = true; s.RestartPreview = true; s.Hold = 2; }, Focus(Preview)))),
-            L("2-1.D01", s => s.CloseEditor = true),
+            L("2-1.C02a", CloseClick),
+            L("2-1.D01"),
             L("2-1.D02"),
             L("2-1.E01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code21; s.Battle = true; }),
             L("2-1.E02", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
@@ -272,7 +287,8 @@ namespace CodingGame.Defense.Editor
                 s => { s.AutoSlot = "Editor.Code.Body.1/2"; s.Demo = "Editor.Palette.Slash>Editor.Code.Body.1/2"; })),
             L("2-3.D06", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(s => { s.Preview = true; s.RestartPreview = true; s.Hold = 3; }, Focus(Preview)))),
             L("2-3.D07", With(Ed, Focus("Editor.Code.Body.1/2"))),
-            L("2-3.E01", s => s.CloseEditor = true),
+            L("2-3.D07a", CloseClick),
+            L("2-3.E01"),
             L("2-3.E02", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => s.Top = true)),
             // A beat after the warrior's first swing, so the player sees it before '벴다!'.
             L("2-3.E03", With(Fight, s => { s.Trigger = TutorialSignals.FirstAttack; s.TriggerDelay = 1.2f; })),
@@ -281,9 +297,10 @@ namespace CodingGame.Defense.Editor
         }.Select(s => { s.Robot = -1; return s; }).ToList();
 
         static Action<S> Claim => Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; });
-        // The editor closes, the start button, then the wave (2-5, 2-6, 2-8 E01 to E03).
+        // 닫기, the start button, then the wave (2-5, 2-6, 2-8 E00 to E03).
         static S[] Battle(string wave, string hint) => new[] {
-            L(wave + ".E01", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => { s.CloseEditor = true; s.Top = true; s.HintCode = hint; })),
+            L(wave + ".E00", CloseClick),
+            L(wave + ".E01", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => { s.Top = true; s.HintCode = hint; })),
             L(wave + ".E02", With(Fight, s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = hint; })),
             L(wave + ".E03", Claim) };
         // A variable block put in the slot and named, said in one line: enemy, or `enemy.` up to the dot that opens its member picker.
@@ -347,7 +364,8 @@ namespace CodingGame.Defense.Editor
             // needs the first one's code). The right-click on the top line, while True, copies the loop with every line in it.
             L("2-6.F01", With(Ed, Focus("Editor.Code.Line.1"))),
             L("2-6.F02", Signal(TutorialSignals.CodeCopied, new[] { Drop }, With(s => { s.Pointer = "Editor.Code.Line.1"; s.Preview = true; }, Focus("Editor.Code.Line.1")))),
-            L("2-6.F03", Click(TutorialKeys.RobotButton((int)RobotRole.Shooter), s => { s.CloseEditor = true; s.Dim = true; })),
+            L("2-6.F02a", CloseClick),
+            L("2-6.F03", Click(TutorialKeys.RobotButton((int)RobotRole.Shooter), s => s.Dim = true)),
             L("2-6.F04", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => s.Dim = true, Focus(Route)))),
             L("2-6.F05", Click(Newest, s => { s.Pointer = Newest; s.Robot = -1; })),
             L("2-6.F06", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; s.Robot = -1; })),
@@ -452,22 +470,21 @@ namespace CodingGame.Defense.Editor
             if (!sequence) { sequence = ScriptableObject.CreateInstance<TutorialSequence>(); AssetDatabase.CreateAsset(sequence, path); }
             sequence.sequenceId = id; sequence.enabled = true; sequence.stage = stage; sequence.wave = wave;
             sequence.entryPhase = TutorialEntryPhase.Preparation; sequence.typeSpeed = 40;
-            bool battle = false;
             sequence.steps = steps.Select(s =>
             {
-                battle |= s.Battle || s.Trigger != null;
                 return new TutorialStep {
                     stepId = s.Id, kind = s.Kind, dialoguePosition = s.Top ? TutorialDialoguePosition.Top : TutorialDialoguePosition.Bottom,
                     texts = s.Lines.Select((line, i) => new TutorialText { textId = "t" + (i + 1), speaker = line.Speaker, text = line.Text, focusKeys = s.Focus, highlightKeys = s.Highlight }).ToArray(),
-                    targetKeys = s.Targets, dim = s.Dim, blockInput = true, outline = true, roundFocus = s.Round,
+                    targetKeys = s.Targets, dim = s.Dim, blockInput = true, outline = true, roundFocus = s.Round, rushTank = s.Rush,
                     completionMode = s.Kind == TutorialStepKind.ActionGuide ? s.Mode : TutorialCompletionMode.Unconfigured, completionSignal = s.Signal,
                     requiredSlotBlock = s.RequiredSlotBlock,
-                    skipIf = s.SkipIf, pauseBattle = s.HoldBattle || !battle, slowBattle = s.SlowBattle,
+                    // A line on screen holds the battle, a hidden step's wait lets it run (the user: '대사 나올 때에는 0.2배속이 아닌 일시정지').
+                    skipIf = s.SkipIf, pauseBattle = true, slowBattle = false,
                     allowPreview = s.Preview || id == "1-1" &&
                         ((s.Id.StartsWith("C", StringComparison.Ordinal) || s.Id.StartsWith("D", StringComparison.Ordinal)) && s.Id != "D10"),
                     highlightPadding = s.Padding, trigger = s.Trigger, expectedCode = s.Expected,
                     pointerKey = s.Pointer, autoSelectSlot = s.AutoSlot, hintCode = s.HintCode, pointerDelay = s.PointerDelay,
-                    closeEditor = s.CloseEditor, clearProgram = s.ClearProgram, openEditor = s.OpenEditor, robotIndex = s.Robot,
+                    closeEditor = false, clearProgram = s.ClearProgram, openEditor = s.OpenEditor, robotIndex = s.Robot,
                     prepareDistanceExample = s.DistanceExample, prepareBaselineExample = s.BaselineExample, prepareExample = s.Example, restartPreview = s.RestartPreview, placeShooter = s.PlaceShooter, placeWarrior = s.PlaceWarrior,
                     introEntrance = s.Intro, undimmed = s.Undimmed, alertCards = s.Cards, autoAdvance = s.Auto, dismissable = s.Dismissable, holdSeconds = s.Hold, triggerDelay = s.TriggerDelay, dragDemo = s.Demo };
             }).ToArray();

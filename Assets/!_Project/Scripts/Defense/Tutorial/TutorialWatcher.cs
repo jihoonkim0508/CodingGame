@@ -17,6 +17,7 @@ namespace CodingGame.Defense
         int runsSeen;
         DefenseProgram watchedProgram;
         readonly List<string> signals = new List<string>();
+        readonly List<EnemyState> road = new List<EnemyState>();
 
         // Installation order: Robot.Unit.0 is the first robot placed (1-3's loop lesson teaches the warrior from 1-1).
         public static IReadOnlyList<RobotState> OrderedRobots(DefenseSimulation sim) =>
@@ -72,7 +73,7 @@ namespace CodingGame.Defense
             if (sim == null) return signals;
             if (sim != session || sim.WaveIndex != wave)
             {
-                session = sim; wave = sim.WaveIndex; killsAtWaveStart = sim.Kills; leaks = sim.Leaks; firstKill = firstAttack = cleared = ended = near = killSwingEnded = false; swingEnds = playEnds = killSwingEnds = -1;
+                session = sim; wave = sim.WaveIndex; killsAtWaveStart = sim.Kills; leaks = sim.Leaks; firstKill = firstAttack = cleared = ended = near = killSwingEnded = false; road.Clear(); swingEnds = playEnds = killSwingEnds = -1;
             }
             if (!firstKill && sim.Kills > killsAtWaveStart)
             {
@@ -86,6 +87,9 @@ namespace CodingGame.Defense
             if (!firstAttack && Robot(sim, robotIndex)?.AttacksThisWave > 0)
             { firstAttack = true; signals.Add(TutorialSignals.FirstAttack); }
             if (sim.Leaks > leaks) { leaks = sim.Leaks; signals.Add(TutorialSignals.Leak); }
+            // An enemy on the road last poll, now off it with health left, reached the core (a killed one has none).
+            if (road.Any(e => !e.Active && e.Health > 0 && e.Spec.type == EnemyType.Tank)) signals.Add(TutorialSignals.LeakTank);
+            road.Clear(); road.AddRange(sim.Enemies.Where(e => e.Active));
             var teacher = TeachingRobot(sim);
             // Once the first run has ended and its swing has played out (the robot could act again), at any attack speed; a
             // later 실행 does not push it back.
