@@ -46,7 +46,7 @@ namespace CodingGame.Defense
                 case Issue.OutOfRuns:
                     return $"함수가 끝나 멈춰 있었어요(이번 웨이브 {bot.Program.CompletedRuns}번 실행). 적이 올 때 로봇 아래 '실행'을 눌러 다시 부르거나 " +
                         (sim.LoopsUnlocked ? "반복문으로 계속 공격하게 해 보세요." : "함수 안에 공격 블록을 더 넣어 보세요.");
-                case Issue.Reduced: return $"다른 직군 명령이라 힘이 10%만 나왔어요. 이 로봇은 {native}가 제일 강해요.";
+                case Issue.Reduced: return $"다른 직군 명령이라 힘이 {sim.Setup.RulesConfig.reducedStrength:0%}만 나왔어요. 이 로봇은 {native}가 제일 강해요.";
                 default: return null;
             }
         }
@@ -107,7 +107,7 @@ namespace CodingGame.Defense
                 case BattlePhase.Victory:
                     int stars = sim.StageStars;
                     return stars >= 3 ? (GuideMood.Happy, "별 세 개다!\n코어가 끄떡없이 버텼어!")
-                        : (GuideMood.Happy, $"이 구역은 지켜 냈어!\n코어를 {DefenseSimulation.CoreForStars(stars + 1, sim.Setup.BaseHealth)} 이상 지키면 별 하나 더!");
+                        : (GuideMood.Happy, $"이 구역은 지켜 냈어!\n코어를 {DefenseSimulation.CoreForStars(stars + 1, sim.Setup.BaseHealth, sim.Setup.RulesConfig)} 이상 지키면 별 하나 더!");
                 default:
                     if (sim.WaveLeaks > 0) return (GuideMood.Worried, $"{sim.WaveLeaks}마리가 코어까지 갔어.\n팁 보고 길목을 다시 막자!");
                     return (GuideMood.Happy, "완벽 방어!\n한 마리도 못 지나갔어!");

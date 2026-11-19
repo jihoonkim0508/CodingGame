@@ -27,20 +27,28 @@ namespace CodingGame.Defense
         public float speedLinear = .025f, speedQuadratic = .0005f, speedCap = 1.7f;
         public float fastHealth = .75f, tankHealth = 1.5f, fastSpeed = 1.3f, tankSpeed = .75f;
         public float[] waveMultipliers = { .9f, 1f, 1.05f, 1.15f, 1f };
+        // Difficulty steps a stage adds to the health/speed curves (progress = (stage - 1) * stageProgress + wave).
+        public int stageProgress = 5;
+        // Strength of another role's action that needs no permission row (Rules.NeedsPermission false).
+        public float reducedStrength = .1f;
+        // Stage result: 3 stars with this % of the core left, 2 with twoStarCorePercent, 1 for a clear.
+        public int threeStarCorePercent = 80, twoStarCorePercent = 40;
         public void Validate()
         {
             if (maxLevel < 1 || !Rules.Positive(upgradeMultiplier) ||
                 roleLimits == null || roleLimits.Length != 6 || roleLimits.Any(v => v < 1) ||
                 waveMultipliers == null || waveMultipliers.Length == 0 || waveMultipliers.Any(v => !Rules.Positive(v)) ||
                 new[] { healthLinear, healthQuadratic, speedLinear, speedQuadratic }.Any(v => !Rules.Nonnegative(v)) ||
-                new[] { speedCap, fastHealth, tankHealth, fastSpeed, tankSpeed }.Any(v => !Rules.Positive(v)))
+                new[] { speedCap, fastHealth, tankHealth, fastSpeed, tankSpeed }.Any(v => !Rules.Positive(v)) ||
+                stageProgress < 0 || !Rules.Positive(reducedStrength) || reducedStrength > 1 ||
+                twoStarCorePercent < 0 || threeStarCorePercent < twoStarCorePercent || threeStarCorePercent > 100)
                 throw new ArgumentException("밸런스 규칙 범위를 확인하세요.");
         }
         public EnemySpec Scale(EnemySpec original, int stage, int wave)
         {
             var enemy = original.Copy();
             if (stage == 0) return enemy;
-            int progress = (stage - 1) * 5 + wave;
+            int progress = (stage - 1) * stageProgress + wave;
             float multiplier = wave < waveMultipliers.Length ? waveMultipliers[wave] : 1;
             enemy.health *= (1 + healthLinear * progress + healthQuadratic * progress * progress) *
                 (enemy.type == EnemyType.Fast ? fastHealth : enemy.type == EnemyType.Tank ? tankHealth : 1) * multiplier;

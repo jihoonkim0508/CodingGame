@@ -22,6 +22,8 @@ namespace CodingGame.Defense
         public float effectRadius = 2, duration = 2, slowMultiplier = .5f;
         public float projectileSpeed = 4;
         public float buffDamage = 1.25f, buffRange = 1.15f, buffInterval = .8f;
+        // Slash: the sword passes the front (and the damage lands) this share of the interval after the swing starts.
+        public double strikeShare = .4; // double: the strike time is computed in double
         public RobotSpec Copy() => (RobotSpec)MemberwiseClone();
         public RobotAction NativeAction => Rules.NativeAction(role);
         public void Validate()
@@ -30,7 +32,7 @@ namespace CodingGame.Defense
                 !Rules.Positive(interval) || !Rules.Positive(radius) || !Rules.Positive(effectRadius) || !Rules.Positive(projectileSpeed) ||
                 !Rules.Positive(duration) || !Rules.Positive(slowMultiplier) || slowMultiplier > 1 ||
                 !Rules.Positive(buffDamage) || buffDamage < 1 || !Rules.Positive(buffRange) || buffRange < 1 ||
-                !Rules.Positive(buffInterval) || buffInterval > 1 ||
+                !Rules.Positive(buffInterval) || buffInterval > 1 || !(strikeShare >= 0 && strikeShare <= 1) ||
                 (role == RobotRole.Tank && (!Rules.Positive(health) || !Rules.Positive(blockRadius) || blockCapacity < 1)))
                 throw new ArgumentException("로봇 수치가 올바르지 않습니다: " + role);
         }
