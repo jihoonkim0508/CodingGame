@@ -326,9 +326,9 @@ namespace CodingGame.Defense.Editor
             L("2-6.A01", s => s.Cards = true), L("2-6.A02"),
             L("2-6.A03", Click(Unit0, s => s.Pointer = Unit0)),
             L("2-6.A04", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
-            // No line of its own for the demo: B01's '봤지?' waits on the preview until the target has run out of range.
+            // No line of its own for the demo: B01's '봤지?' waits on the preview until the second fast one has walked past.
             L("2-6.B01", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(
-                s => { s.Example = "2-6"; s.RestartPreview = true; s.Preview = true; s.Hold = 8; }, Focus("Editor.Code.Line.1/2", Preview)))),
+                s => { s.Example = "2-6"; s.RestartPreview = true; s.Preview = true; s.Hold = 11; }, Focus("Editor.Code.Line.1/2", Preview)))),
             L("2-6.B02", With(Ed, Focus("Editor.Code.Line.1/2"))), L("2-6.B03", With(Ed, Focus("Editor.Code.Line.1/2"))),
             L("2-6.C01", With(EditSignal(TutorialSignals.CodeLinePlaced, "1/2/1:If", "Editor.Palette.If", "Editor.Palette.If", "Editor.Code.Before.1/2/1"),
                 s => s.Demo = "Editor.Palette.If>Editor.Code.Before.1/2/1")),
