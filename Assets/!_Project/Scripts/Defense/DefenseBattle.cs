@@ -151,7 +151,8 @@ namespace CodingGame.Defense
             removeButton.onClick.AddListener(RemoveSelected);
             for (int i = 0; i < robotButtons.Length; i++) { int index = i; robotButtons[i].onClick.AddListener(() => inventoryUI.SelectRobotItem(index)); }
             if (FromStageMap) stage = StageMap.StageProgress.SelectedStage;
-            devWindow = gameObject.AddComponent<DefenseDevWindow>();
+            devWindow = DefenseDevWindow.Instance; // on GameFlow's root, in every scene
+            if (devWindow) devWindow.Battle = this;
             if (core) core.TryGetComponent(out coreGlitch);
             Restart();
         }
@@ -350,9 +351,9 @@ namespace CodingGame.Defense
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetBalance() => waveEdits.Clear();
         public IReadOnlyList<EnemyDefinition> EnemyDefinitions => enemies;
-        public bool WaveGroupEdited(int stage, int wave, int group) => waveEdits.ContainsKey((stage, wave, group));
+        public static bool WaveGroupEdited(int stage, int wave, int group) => waveEdits.ContainsKey((stage, wave, group));
         // A stage's waves as authored, with the edits made in F2.
-        static SpawnGroup[][] ReadWaves(DefenseCampaignDefinition content, int stage) => content.ReadWaves(stage).Select((groups, wave) =>
+        internal static SpawnGroup[][] ReadWaves(DefenseCampaignDefinition content, int stage) => content.ReadWaves(stage).Select((groups, wave) =>
         {
             for (int i = 0; i < groups.Length; i++)
                 if (waveEdits.TryGetValue((stage, wave, i), out var e))
@@ -362,12 +363,17 @@ namespace CodingGame.Defense
                 }
             return groups;
         }).ToArray();
-        // True when the battle takes it now (DefenseSimulation.SetWaveGroups).
-        public bool SetWaveGroup(int stage, int wave, int group, GroupEdit edit)
+        // Kept for every later battle of that stage-wave; outside a battle (the F2 window on the stage map) this is all of it.
+        public static void StoreWaveGroup(int stage, int wave, int group, GroupEdit edit)
         {
             if (edit != null && (edit.count < 1 || !(edit.delay >= 0) || !(edit.interval > 0) || !(edit.health > 0) || !(edit.speed > 0) || edit.leak < 1))
                 throw new ArgumentException("수 1 이상, 출현 0 이상, 간격·체력·속도 0보다 크게, 코어 피해 1 이상");
             if (edit == null) waveEdits.Remove((stage, wave, group)); else waveEdits[(stage, wave, group)] = edit;
+        }
+        // True when the battle takes it now (DefenseSimulation.SetWaveGroups).
+        public bool SetWaveGroup(int stage, int wave, int group, GroupEdit edit)
+        {
+            StoreWaveGroup(stage, wave, group, edit);
             bool now = Simulation.SetWaveGroups(stage, wave, ReadWaves(campaign, stage)[wave]);
             SyncViews(0); RefreshHUD();
             Trace(edit == null ? $"balance {stage}-{wave + 1} group {group + 1} authored" :
