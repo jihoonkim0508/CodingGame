@@ -54,34 +54,10 @@ namespace CodingGame.Defense.Editor
             Debug.Log($"[RobotIcons] {definitions.Length} robot icons → {Folder}, {enemies.Length} enemy icons → {EnemyFolder}");
         }
 
-        // The characters' screen-space outline is ~2 px, which vanishes when the 256 px photo is shown at ~64 px: the picture
-        // gets its own outline instead, the silhouette grown by OutlineWidth behind the model. White: the cards are dark navy, so
-        // the characters' own navy outline colour did not show on them.
-        const int OutlineWidth = 7;
-        static readonly Color32 OutlineColor = new Color32(255, 255, 255, 255);
-        static void Outline(Texture2D image)
-        {
-            var src = image.GetPixels32(); var dst = (Color32[])src.Clone();
-            for (int y = 0; y < Size; y++)
-                for (int x = 0; x < Size; x++)
-                {
-                    int i = y * Size + x; if (src[i].a >= 250) continue;
-                    byte near = 0;
-                    for (int dy = -OutlineWidth; dy <= OutlineWidth && near < 255; dy++)
-                        for (int dx = -OutlineWidth; dx <= OutlineWidth; dx++)
-                        {
-                            int sx = x + dx, sy = y + dy;
-                            if (sx < 0 || sy < 0 || sx >= Size || sy >= Size || dx * dx + dy * dy > OutlineWidth * OutlineWidth) continue;
-                            if (src[sy * Size + sx].a > near) near = src[sy * Size + sx].a;
-                        }
-                    if (near == 0) continue;
-                    // The model over the outline: blend its own (partly transparent edge) pixel onto the outline colour.
-                    float a = src[i].a / 255f;
-                    dst[i] = new Color32((byte)(OutlineColor.r + (src[i].r - OutlineColor.r) * a), (byte)(OutlineColor.g + (src[i].g - OutlineColor.g) * a),
-                        (byte)(OutlineColor.b + (src[i].b - OutlineColor.b) * a), (byte)Mathf.Max(src[i].a, near));
-                }
-            image.SetPixels32(dst); image.Apply();
-        }
+        // The characters' own shader outline (CharacterSurface, screen-space pixels) is ~2 px and vanished once the 256 px photo
+        // was shown at ~64 px: for the photo it is drawn IconOutlineScale times wider, so it reads at card size as it does in battle.
+        const float IconOutlineScale = 4;
+        static readonly int OutlineWidthId = Shader.PropertyToID("_OutlineWidth");
 
         static byte[] Photograph(GameObject prefab)
         {
@@ -99,6 +75,11 @@ namespace CodingGame.Defense.Editor
                 foreach (var overlay in actor.GetComponentsInChildren<Renderer>(true).Where(r => r.name == "Beam" || r.GetComponentsInParent<Transform>(true).Any(t => t.name == "Health")))
                     overlay.enabled = false;
                 var renderers = actor.GetComponentsInChildren<Renderer>().Where(r => r.enabled && (r is MeshRenderer || r is SkinnedMeshRenderer)).ToArray();
+                foreach (var r in renderers.Where(r => r.sharedMaterial && r.sharedMaterial.HasProperty(OutlineWidthId)))
+                {
+                    var block = new MaterialPropertyBlock(); r.GetPropertyBlock(block);
+                    block.SetFloat(OutlineWidthId, r.sharedMaterial.GetFloat(OutlineWidthId) * IconOutlineScale); r.SetPropertyBlock(block);
+                }
                 var bounds = renderers[0].bounds;
                 foreach (var r in renderers) bounds.Encapsulate(r.bounds);
                 var light = lightObject.AddComponent<Light>(); light.type = LightType.Directional; light.intensity = 1.2f;
@@ -114,7 +95,6 @@ namespace CodingGame.Defense.Editor
                 camera.targetTexture = target; camera.Render();
                 RenderTexture.active = target;
                 image.ReadPixels(new Rect(0, 0, Size, Size), 0, 0); image.Apply();
-                Outline(image);
                 return image.EncodeToPNG();
             }
             finally
