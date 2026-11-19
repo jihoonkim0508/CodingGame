@@ -608,7 +608,8 @@ namespace CodingGame.Defense
         public void PlayRobot(int id)
         {
             string key = TutorialKeys.Play(TutorialWatcher.RobotIndex(Simulation, id));
-            if (!TutorialAllows(key) || !Simulation.Invoke(id)) return;
+            if (!TutorialAllows(key)) { if (tutorial) tutorial.NudgeBlocked(); return; }
+            if (!Simulation.Invoke(id)) return;
             UISound.Play("click"); ReportTutorialAction(key, TutorialSignals.TargetClicked);
         }
         public void ReportTutorialAction(string key, params string[] signals) { if (tutorial) foreach (var signal in signals) tutorial.ReportSuccess(key, signal); }

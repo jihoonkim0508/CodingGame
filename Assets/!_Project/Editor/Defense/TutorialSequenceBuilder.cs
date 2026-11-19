@@ -83,7 +83,7 @@ namespace CodingGame.Defense.Editor
             public TutorialCompletionMode Mode;
             public string Signal, Trigger, Expected, Pointer, HintCode, AutoSlot, RequiredSlotBlock;
             public float PointerDelay;
-            public bool Dim, ClearProgram, OpenEditor, Preview, Battle, HoldBattle, SlowBattle;
+            public bool Dim, ClearProgram, OpenEditor, Preview, Battle;
             public int Robot;
             public float Padding = 10;
             public string[] Highlight = Array.Empty<string>();
@@ -148,17 +148,20 @@ namespace CodingGame.Defense.Editor
             // in range is the moment for the robot's Play button.
             // The swing-paced lines (E03a, E03c, E04) come when the robot's swing has played out, so they follow its attack
             // speed instead of fixed delays (the user: '공속 가져와서, 하드코딩하지 말고').
-            L("1-1.E03a", s => { s.Trigger = TutorialSignals.FunctionEnded; s.HoldBattle = true; }),
-            L("1-1.E03b", Click(TutorialKeys.Play(0), s => { s.Trigger = TutorialSignals.EnemyInRange; s.Pointer = TutorialKeys.Play(0); s.SlowBattle = true; s.Top = true; })),
+            L("1-1.E03a", s => s.Trigger = TutorialSignals.FunctionEnded),
+            L("1-1.E03b", Click(TutorialKeys.Play(0), s => { s.Trigger = TutorialSignals.EnemyInRange; s.Pointer = TutorialKeys.Play(0); s.Top = true; })),
             // A basic enemy takes two swings (the warrior's 7 against 12.6): once the pressed call has ended and its swing has
             // landed and played out, at normal speed (FunctionEnded came at the battle start's call), the second press.
-            L("1-1.E03c", Click(TutorialKeys.Play(0), s => { s.Trigger = TutorialSignals.PlayEnded; s.Pointer = TutorialKeys.Play(0); s.SlowBattle = true; s.Top = true; })),
-            // After the kill the battle runs on at 1x until the killing swing is over, then slows under the line.
-            L("1-1.E04", s => { s.Trigger = TutorialSignals.KillSwingEnded; s.SlowBattle = true; }),
-            L("1-1.E04a", Click(TutorialKeys.Pause, s => { s.Pointer = TutorialKeys.Pause; s.SlowBattle = true; })),
-            L("1-1.E04b", Click(TutorialKeys.Pause, s => { s.Pointer = TutorialKeys.Pause; s.HoldBattle = true; })),
-            L("1-1.E04c", Click(TutorialKeys.Speed, s => s.Pointer = TutorialKeys.Speed)),
+            L("1-1.E03c", Click(TutorialKeys.Play(0), s => { s.Trigger = TutorialSignals.PlayEnded; s.Pointer = TutorialKeys.Play(0); s.Top = true; })),
+            // After the kill the battle runs on at 1x until the killing swing is over, then stands still under the line.
+            L("1-1.E04", s => s.Trigger = TutorialSignals.KillSwingEnded),
+            // The press shows: the button turns to 계속 (the battle stands still under every line anyway).
+            L("1-1.E04a", Click(TutorialKeys.Pause, s => s.Pointer = TutorialKeys.Pause)),
+            L("1-1.E04b", Click(TutorialKeys.Pause, s => s.Pointer = TutorialKeys.Pause)),
             L("1-1.E04d"),
+            // Fast forward once only the tank-bodied one is left (play test: players turned on 2x with basic enemies on the
+            // road and let them through).
+            L("1-1.E04c", Click(TutorialKeys.Speed, s => { s.Trigger = TutorialSignals.OnlyTanksLeft; s.Pointer = TutorialKeys.Speed; })),
             L("1-1.E05", With(Fight, Focus(Core), s => s.Trigger = TutorialSignals.Leak)),
             L("1-1.E06", s => s.Trigger = TutorialSignals.WaveCleared),
             L("1-1.E07"),
@@ -460,17 +463,16 @@ namespace CodingGame.Defense.Editor
             if (!sequence) { sequence = ScriptableObject.CreateInstance<TutorialSequence>(); AssetDatabase.CreateAsset(sequence, path); }
             sequence.sequenceId = id; sequence.enabled = true; sequence.stage = stage; sequence.wave = wave;
             sequence.entryPhase = TutorialEntryPhase.Preparation; sequence.typeSpeed = 40;
-            bool battle = false;
             sequence.steps = steps.Select(s =>
             {
-                battle |= s.Battle || s.Trigger != null;
                 return new TutorialStep {
                     stepId = s.Id, kind = s.Kind, dialoguePosition = s.Top ? TutorialDialoguePosition.Top : TutorialDialoguePosition.Bottom,
                     texts = s.Lines.Select((line, i) => new TutorialText { textId = "t" + (i + 1), speaker = line.Speaker, text = line.Text, focusKeys = s.Focus, highlightKeys = s.Highlight }).ToArray(),
                     targetKeys = s.Targets, dim = s.Dim, blockInput = true, outline = true, roundFocus = s.Round,
                     completionMode = s.Kind == TutorialStepKind.ActionGuide ? s.Mode : TutorialCompletionMode.Unconfigured, completionSignal = s.Signal,
                     requiredSlotBlock = s.RequiredSlotBlock,
-                    skipIf = s.SkipIf, pauseBattle = s.HoldBattle || !battle, slowBattle = s.SlowBattle,
+                    // A line on screen holds the battle, a hidden step's wait lets it run (the user: '대사 나올 때에는 0.2배속이 아닌 일시정지').
+                    skipIf = s.SkipIf, pauseBattle = true, slowBattle = false,
                     allowPreview = s.Preview || id == "1-1" &&
                         ((s.Id.StartsWith("C", StringComparison.Ordinal) || s.Id.StartsWith("D", StringComparison.Ordinal)) && s.Id != "D10"),
                     highlightPadding = s.Padding, trigger = s.Trigger, expectedCode = s.Expected,

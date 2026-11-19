@@ -11,7 +11,7 @@ namespace CodingGame.Defense
     {
         DefenseSimulation session;
         int wave = -1, killsAtWaveStart, leaks;
-        bool firstKill, firstAttack, cleared, ended, near;
+        bool firstKill, firstAttack, cleared, ended, near, onlyTanks;
         double swingEnds, playEnds, killSwingEnds;
         bool killSwingEnded;
         int runsSeen;
@@ -72,7 +72,7 @@ namespace CodingGame.Defense
             if (sim == null) return signals;
             if (sim != session || sim.WaveIndex != wave)
             {
-                session = sim; wave = sim.WaveIndex; killsAtWaveStart = sim.Kills; leaks = sim.Leaks; firstKill = firstAttack = cleared = ended = near = killSwingEnded = false; swingEnds = playEnds = killSwingEnds = -1;
+                session = sim; wave = sim.WaveIndex; killsAtWaveStart = sim.Kills; leaks = sim.Leaks; firstKill = firstAttack = cleared = ended = near = onlyTanks = killSwingEnded = false; swingEnds = playEnds = killSwingEnds = -1;
             }
             if (!firstKill && sim.Kills > killsAtWaveStart)
             {
@@ -99,6 +99,9 @@ namespace CodingGame.Defense
             if (!near && teacher != null && sim.Phase == BattlePhase.Running && sim.Enemies.Any(e => e.Active &&
                 System.Numerics.Vector2.DistanceSquared(e.Position, teacher.Position) <= teacher.Range * teacher.Range))
             { near = true; signals.Add(TutorialSignals.EnemyInRange); }
+            if (!onlyTanks && sim.Phase == BattlePhase.Running && sim.Enemies.Any(e => e.Active) &&
+                sim.Enemies.All(e => !e.Active || e.Spec.type == EnemyType.Tank))
+            { onlyTanks = true; signals.Add(TutorialSignals.OnlyTanksLeft); }
             if (!cleared && sim.BaseHealth > 0 && (sim.Phase == BattlePhase.Reward || sim.Phase == BattlePhase.Victory))
             { cleared = true; signals.Add(TutorialSignals.WaveCleared); }
             if (!string.IsNullOrWhiteSpace(expectedCode) && Matches(Robot(sim, robotIndex)?.Program, expectedCode)) signals.Add(TutorialSignals.ProgramMatches);

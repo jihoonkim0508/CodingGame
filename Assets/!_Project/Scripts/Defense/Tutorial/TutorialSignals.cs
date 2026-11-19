@@ -18,6 +18,8 @@ namespace CodingGame.Defense
         // The swing that made the wave's first kill has played out (the robot could act again): 1-1 E04 waits for it, so the
         // line comes when the swing is over at whatever attack speed, not a fixed time after the kill.
         public const string KillSwingEnded = "KillSwingEnded";
+        // Every enemy on the road is tank-bodied (1-1 E04c: fast forward once the basic ones are down or through).
+        public const string OnlyTanksLeft = "OnlyTanksLeft";
         // Produced by TutorialDirector: a loose condition block in the editor reads as the step's expectedCode.
         public const string ConditionBuilt = "ConditionBuilt";
         // Produced by TutorialDirector: the editor slot named by the step's expectedCode (an Editor.Code.Arg.* key) holds a block,

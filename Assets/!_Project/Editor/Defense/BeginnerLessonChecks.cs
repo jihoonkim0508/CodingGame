@@ -21,7 +21,7 @@ namespace CodingGame.Defense.Editor
         static double bodyReadyAt;
         static string last;
         static double since, next;
-        static bool practiced, practicedFour, practicedFive, bossVisualSeen;
+        static bool practiced, practicedFour, practicedFive, bossVisualSeen, gapPressed;
         static int coreAtThirdWave, killsAtThirdWave, leaksAtThirdWave, killsAtFifthWave, codedWave;
         static BeginnerLessonChecks()
         {
@@ -306,6 +306,17 @@ namespace CodingGame.Defense.Editor
             { FreePlayFive(battle); practicedFive = true; return; }
             // 1-3 leaves the battle start to the player after the loop lesson.
             if (battle.Stage == 1 && sim.WaveIndex == 2 && !director.IsActive && sim.Phase == BattlePhase.Ready) { battle.StartBattle(); return; }
+            // 1-1 between the battle start and E03b (E03a and E03b waiting hidden): 실행 does nothing yet, so the battle start's
+            // swing plays out and E03b's press is the one that calls the function again.
+            if ((key == "1/E03a" || key == "1/E03b") && !director.IsActive && sim.Phase == BattlePhase.Running)
+            {
+                var teacher = TutorialWatcher.TeachingRobot(sim); bool running = teacher.Program.Running; int runs = teacher.Program.CompletedRuns;
+                battle.PlayRobot(teacher.Id);
+                Require(!battle.TutorialAllows(TutorialKeys.Play(0)) && teacher.Program.Running == running && teacher.Program.CompletedRuns == runs,
+                    "실행 called the function before E03b at " + key);
+                gapPressed = true;
+            }
+            if (key == "1/E03c") Require(gapPressed, "실행 was never pressed between the battle start and E03b");
             if (!director.IsActive) { Time.timeScale = 3; return; }
             var view = Field<TutorialDialogueView>(director, "view");
             if (!view.IsVisible) return; // System banner.
@@ -315,10 +326,10 @@ namespace CodingGame.Defense.Editor
             if (!string.IsNullOrWhiteSpace(step.dragDemo))
                 Require(Field<TutorialPointer>(director, "pointer").IsDragVisible,
                     "Block placement drag preview is missing at " + key);
-            if (key == "1/E04" || key == "1/E04a")
-                Require(sim.Phase == BattlePhase.Running && Math.Abs(director.BattlePace - .2f) < .001f,
-                    "1-1 pause introduction must show a moving slow-motion battle at " + key);
-            if (key == "1/E04" || key == "1/E04a" || key == "1/E04b")
+            // A line on screen holds the battle (no 0.2x): the Play, pause and speed lessons too.
+            if (sim.Phase == BattlePhase.Running || sim.Phase == BattlePhase.Paused)
+                Require(director.BattlePace == 0, "The battle runs under a line at " + key);
+            if (key == "1/E04" || key == "1/E04a" || key == "1/E04b" || key == "1/E04d")
             {
                 var speed = Field<Button>(Field<DefensePlayerHUD>(battle, "playerHUD"), "speedButton");
                 Require(!battle.SpeedUnlocked && !speed.interactable && battle.BattleSpeed == 1,
@@ -329,8 +340,8 @@ namespace CodingGame.Defense.Editor
             if (key == "1/E04b")
                 Require(sim.Phase == BattlePhase.Paused, "Pause button did not fully stop the battle");
             if (key == "1/E04c")
-                Require(sim.Phase == BattlePhase.Running && Math.Abs(director.BattlePace - 1f) < .001f,
-                    "Battle did not return to normal speed after Continue");
+                Require(sim.Phase == BattlePhase.Running && sim.Enemies.All(e => !e.Active || e.Spec.type == EnemyType.Tank),
+                    "The speed lesson came while a basic enemy is on the road or the battle still paused");
             director.EditorFinishTyping(); Canvas.ForceUpdateCanvases();
             foreach (var text in view.GetComponentsInChildren<TMP_Text>().Where(t => t.name == "Dialogue"))
             { text.ForceMeshUpdate(); Require(!text.isTextOverflowing, "Dialogue overflow at " + key); }

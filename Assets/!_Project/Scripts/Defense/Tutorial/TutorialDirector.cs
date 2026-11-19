@@ -78,7 +78,7 @@ namespace CodingGame.Defense
             {
                 if (!active || active.stage != 1 || active.wave != 1) return false;
                 int index = Array.FindIndex(active.steps, step => step.stepId == "E04c");
-                return index >= 0 && progressStep >= index;
+                return index >= 0 && (progressStep > index || progressStep == index && IsActive);
             }
         }
         public bool SpeedControlAvailable => battle && battle.SpeedUnlocked;
@@ -511,11 +511,19 @@ namespace CodingGame.Defense
             Enter(progressStep + 1);
         }
 
-        public bool CanPerformAction(string key) => Unrestricted || bridge.CanPerformAction(key, null);
+        // A hidden step's wait frees the game, but not a button the lesson has yet to teach (1-1: 실행 pressed between the
+        // battle start and E03b called the function again, and E03a's hold then froze that call before its swing).
+        public bool CanPerformAction(string key) => !initialized || !InputLimited ||
+            (IsActive ? bridge.CanPerformAction(key, null) : !active || !Untaught(key));
+        bool Untaught(string key)
+        {
+            int taught = Array.FindIndex(active.steps, s => s.kind == TutorialStepKind.ActionGuide && Array.IndexOf(s.targetKeys, key) >= 0);
+            return taught >= progressStep; // its own step still hidden counts as not taught yet
+        }
         // The player pressed something this step does not take yet (play test: 전투 시작 'did nothing' while a line waited).
         public void NudgeBlocked()
         {
-            if (!IsActive) return;
+            if (!active) return;
             UISound.Play("deny");
             if (view.IsVisible) view.Nudge();
         }
