@@ -118,49 +118,104 @@ namespace CodingGame.Defense.Editor
             if (EditorApplication.isPlaying) GameFlow.LoadScene(GameFlow.TitleScene);
         }
 
-        // Stage 1 tutorial steps of a wave ("stepId first line"), from the TutorialSequence assets.
-        public static string[] TutorialSections(int wave)
+        // Every enabled lesson (skips the disabled SequenceTest sample); Sequence(stage, wave) is null for a free-play wave.
+        public static TutorialSequence[] Lessons => AssetDatabase.FindAssets("t:TutorialSequence")
+            .Select(guid => AssetDatabase.LoadAssetAtPath<TutorialSequence>(AssetDatabase.GUIDToAssetPath(guid))).Where(s => s && s.enabled).ToArray();
+        public static TutorialSequence Sequence(int stage, int wave) => Lessons.FirstOrDefault(s => s.stage == stage && s.wave == wave);
+        // A lesson's steps ("stepId first line"); empty for a wave without one.
+        public static string[] TutorialSections(int stage, int wave)
         {
-            var sequence = StageOneSequence(wave);
+            var sequence = Sequence(stage, wave);
             return sequence ? sequence.steps.Select(s => s.stepId + " " + (s.texts.Length > 0 ? s.texts[0].text : "")).ToArray() : Array.Empty<string>();
         }
-        static TutorialSequence StageOneSequence(int wave) => AssetDatabase.FindAssets("t:TutorialSequence")
-            .Select(guid => AssetDatabase.LoadAssetAtPath<TutorialSequence>(AssetDatabase.GUIDToAssetPath(guid)))
-            .FirstOrDefault(s => s && s.enabled && s.stage == 1 && s.wave == wave); // skips the disabled SequenceTest sample
-        // Jumps to a Stage 1 tutorial step (0-based), starting that wave with the tutorial when needed.
+        public static string[] TutorialSections(int wave) => TutorialSections(1, wave);
+
+        // Which state the last jump or test Play started from (the dev editor shows it); null: a plain start.
+        public static string LastJump { get; private set; }
+        // Where the play cache is read: null for Resources/Dev, or a folder with PlayCache_<stage>.json (an empty one: no cache).
+        public static string CacheFolder;
+        public static bool JumpPending => SessionState.GetString(RequestKey + ".jump", "") != "";
+        // The F1 panel's jump (DefenseBattle.DeveloperJump "2-3.A01", or DeveloperJumpWave "2-4" for a wave without a lesson):
+        // the recorded play's state from the play cache; without a fresh recording the wave starts over with the robots and
+        // code the stage's earlier lessons left. step: 0-based. Starts the Defense scene first when there is no battle.
+        public static void JumpTutorial(int stage, int wave, int step)
+        {
+            var b = Battle;
+            if (b && b.Simulation != null && !b.Tutorial) throw new InvalidOperationException(NoTutorial);
+            if (b && b.Simulation != null) { Jump(b, stage, wave, step); return; }
+            SessionState.SetString(RequestKey + ".jump", stage + "," + wave + "," + step);
+            if (EditorApplication.isPlaying) { SceneManager.LoadScene(GameFlow.DefenseScene); return; }
+            StartFrom(GameFlow.DefenseScene); EditorApplication.isPlaying = true;
+        }
+        static void Jump(DefenseBattle b, int stage, int wave, int step)
+        {
+            var sequence = Sequence(stage, wave);
+            if (sequence && (step < 0 || step >= sequence.steps.Length)) throw new ArgumentOutOfRangeException(nameof(step), $"{stage}-{wave}에 {step + 1}번째 단계가 없습니다.");
+            if (!Options.tutorial) { Options = Options.Copy(); Options.tutorial = Options.tutorialInput = true; }
+            b.EditorSetOptions(Options);
+            var session = b.Simulation;
+            string note = sequence ? b.DeveloperJump(sequence.sequenceId + "." + sequence.steps[step].stepId, CacheFolder) : b.DeveloperJumpWave(stage + "-" + wave, CacheFolder);
+            Events.Clear(); Metrics.Clear(); Subscribe(b);
+            if (note == null || note.StartsWith("캐시 재생")) { LastJump = note ?? "캐시로 이동"; return; } // a replay that diverged stays as replayed
+            if (b.Simulation == session) // not started over (a stage past the F1 panel's): the wave's start as a test Play gives it
+            {
+                b.EditorStartSession(stage, wave, true, Options);
+                if (sequence) b.Tutorial.JumpWhenBegun(sequence.sequenceId, step);
+            }
+            RestoreTutorialWork(b, stage, wave, step);
+            LastJump = Describe(note);
+        }
+        static string Describe(string note) => (note.StartsWith("캐시 오래됨") ? "오래된 캐시" : note.StartsWith("캐시") ? "캐시 없음" : note) + ": 웨이브 시작 상태 (수업 로봇·정답 코드 복원)";
+
+        // Stage 1 jump inside the running session, synchronous (the lesson checks and screen tours step through 1-x with it);
+        // elsewhere the F1 jump above.
         public static void JumpTutorial(int wave, int step)
         {
             var b = Battle;
             if (b && b.Simulation != null && !b.Tutorial) throw new InvalidOperationException(NoTutorial);
-            if (OnStageOneWave(b, wave)) { JumpNow(b, wave, step); return; }
-            SessionState.SetString(RequestKey + ".jump", wave + "," + step);
-            PlayDefense(1, wave, true, wave > 1);
-        }
-        static bool OnStageOneWave(DefenseBattle b, int wave) => b && b.Simulation != null && b.Stage == 1 && b.Simulation.WaveIndex + 1 == wave;
-        static void JumpNow(DefenseBattle b, int wave, int step)
-        {
-            var sequence = StageOneSequence(wave);
+            if (!(b && b.Simulation != null && b.Stage == 1 && b.Simulation.WaveIndex + 1 == wave && b.Tutorial.EditorSynced)) { JumpTutorial(1, wave, step); return; }
+            var sequence = Sequence(1, wave);
             if (!sequence) throw new InvalidOperationException($"1-{wave} 튜토리얼 시퀀스가 없습니다.");
-            RestoreTutorialWork(b, wave, step);
+            RestoreTutorialWork(b, 1, wave, step);
             b.Tutorial.EditorRun(sequence, step);
         }
-        // A player who followed the Stage 1 tutorials up to (wave, step) has the warriors those tutorials placed and the code
-        // they taught on each warrior; restarting or jumping there rebuilds that. Code a robot already has is left alone.
-        static void RestoreTutorialWork(DefenseBattle b, int wave, int step = 0)
+        // A player who followed a stage's lessons up to (wave, step) has the robots they placed (by the lesson's own entry,
+        // placeShooter / placeWarrior, or by the player at a RobotPlaced step: the dock button an earlier step pointed at) and
+        // the code each answer step taught on its robot (robotIndex: installation order, negative from the newest). Rebuilt in
+        // lesson order on top of the session; robots already there count, and code on a robot that had code is left alone.
+        // Each stage starts on its own (from the stage map); the stock comes from the session (Award.md rewards).
+        static void RestoreTutorialWork(DefenseBattle b, int stage, int wave, int step = 0)
         {
-            var current = StageOneSequence(wave);
-            var done = Enumerable.Range(1, wave - 1).Select(StageOneSequence).Where(s => s).SelectMany(s => s.steps)
-                .Concat(current ? current.steps.Take(step) : Enumerable.Empty<TutorialStep>()).ToList();
-            int robots = done.Count(s => s.completionSignal == TutorialSignals.RobotPlaced);
-            while (b.Simulation.Robots.Count < robots) PlaceTeachingRobot(b, RobotRole.Warrior);
-            var warriors = b.Simulation.Robots.Where(r => r.Spec.role == RobotRole.Warrior).OrderBy(r => r.Id).ToList();
-            foreach (var answers in done.Where(s => s.completionSignal == TutorialSignals.ProgramMatches).GroupBy(s => s.robotIndex))
+            var current = Sequence(stage, wave);
+            var done = Enumerable.Range(1, wave - 1).Select(w => Sequence(stage, w)).Where(s => s).SelectMany(s => s.steps)
+                .Concat(current ? current.steps.Take(step) : Enumerable.Empty<TutorialStep>());
+            var sim = b.Simulation;
+            var coded = new HashSet<int>(sim.Robots.Where(r => r.Program != null).Select(r => r.Id));
+            var roles = new List<RobotRole>(); var dock = RobotRole.Warrior;
+            foreach (var s in done)
             {
-                var bot = answers.Key < warriors.Count ? warriors[answers.Key] : null;
-                if (bot == null || bot.Program != null) continue;
-                try { b.Simulation.ApplyProgram(bot.Id, "robot_" + bot.Id, TutorialAnswers.Parse(answers.Last().expectedCode)); }
-                catch (FormatException e) { Debug.LogWarning($"튜토리얼 코드 복원 실패 (로봇 {bot.Id}): {e.Message}"); }
+                var button = (s.targetKeys ?? Array.Empty<string>()).LastOrDefault(k => k.StartsWith(TutorialKeys.RobotButtonPrefix));
+                if (button != null && int.TryParse(button.Substring(TutorialKeys.RobotButtonPrefix.Length), out int i) && i >= 0 && i < sim.Setup.ActionProfiles.Length) dock = b.DefinitionRole(i);
+                if (s.placeShooter) Place(b, roles, RobotRole.Shooter, false, true);
+                if (s.placeWarrior) Place(b, roles, RobotRole.Warrior, s.robotIndex < 0, true);
+                if (s.completionSignal == TutorialSignals.RobotPlaced) Place(b, roles, dock, true, false);
+                if (s.completionSignal != TutorialSignals.ProgramMatches) continue;
+                var bot = sim.Robots.OrderBy(r => r.Id).ElementAtOrDefault(s.robotIndex < 0 ? roles.Count + s.robotIndex : s.robotIndex);
+                if (bot == null || coded.Contains(bot.Id)) continue;
+                try { sim.ApplyProgram(bot.Id, "robot_" + bot.Id, TutorialAnswers.Parse(s.expectedCode)); }
+                catch (FormatException e) { Debug.LogWarning($"튜토리얼 코드 복원 실패 ({stage}-{wave} 로봇 {bot.Id}): {e.Message}"); }
             }
+        }
+        // The lesson's robot of the role, unless it stood already (another: one more); by the road as the lesson puts it, or
+        // at the best route coverage for one the player placed.
+        static void Place(DefenseBattle b, List<RobotRole> roles, RobotRole role, bool another, bool byRoad)
+        {
+            if (!another && roles.Contains(role)) return;
+            roles.Add(role);
+            var sim = b.Simulation;
+            if (sim.Robots.Count >= roles.Count) return;
+            if (byRoad) { if (sim.RobotAvailable(role) < 1) sim.GrantRobot(role, 1); b.PlaceLessonRobot(role, true); }
+            if (sim.Robots.Count < roles.Count) PlaceTeachingRobot(b, role);
         }
         // Lifts the tutorial input lock just for this placement; the best route-coverage cell is used.
         internal static void PlaceTeachingRobot(DefenseBattle b, RobotRole role)
@@ -196,18 +251,31 @@ namespace CodingGame.Defense.Editor
             var jump = SessionState.GetString(RequestKey + ".jump", "");
             if (jump == "") return;
             if (!EditorApplication.isPlayingOrWillChangePlaymode) { SessionState.EraseString(RequestKey + ".jump"); return; }
-            var parts = jump.Split(','); int wave = int.Parse(parts[0]), step = int.Parse(parts[1]);
+            var parts = jump.Split(',');
+            if (parts.Length != 3) { SessionState.EraseString(RequestKey + ".jump"); return; }
             var b = Battle;
             if (b && b.Simulation != null && !b.Tutorial) { SessionState.EraseString(RequestKey + ".jump"); Debug.LogWarning(NoTutorial); return; }
-            if (!OnStageOneWave(b, wave) || !b.Tutorial.EditorSynced) return; // the session starts, and the tutorial resets for it, on a later Update
+            if (!b || b.Simulation == null || !b.Tutorial.EditorSynced) return; // the session starts, and the tutorial resets for it, on a later Update
             SessionState.EraseString(RequestKey + ".jump");
-            try { JumpNow(b, wave, step); } catch (Exception e) { Debug.LogException(e); }
+            try { Jump(b, int.Parse(parts[0]), int.Parse(parts[1]), int.Parse(parts[2])); } catch (Exception e) { Debug.LogException(e); }
         }
         static void Begin(DefenseBattle battle, int stage, int wave, bool previousStageRewards)
         {
             battle.EditorStartSession(stage, wave, previousStageRewards, Options, pendingContent);
-            // Starting mid Stage 1 with the earlier rewards: also the robots and code the earlier tutorials left.
-            if (stage == 1 && wave > 1 && previousStageRewards) RestoreTutorialWork(battle, wave);
+            LastJump = null;
+            // Starting past 1-1 with the earlier rewards: the state a player would have there, the recorded play's wave start
+            // (F1 "2-4") when the play cache has it, else the wave's start with the robots and code the stage's lessons left.
+            if (previousStageRewards && (stage > 1 || wave > 1))
+            {
+                var note = battle.DeveloperJumpWave(stage + "-" + wave, CacheFolder);
+                if (note == null) { battle.EditorSetOptions(Options); LastJump = "캐시로 이동"; }
+                else
+                {
+                    battle.EditorStartSession(stage, wave, previousStageRewards, Options, pendingContent); // the window's content and options again
+                    RestoreTutorialWork(battle, stage, wave);
+                    LastJump = Describe(note);
+                }
+            }
             Events.Clear(); Metrics.Clear(); Subscribe(battle);
         }
 

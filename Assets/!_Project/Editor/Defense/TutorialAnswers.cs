@@ -6,11 +6,11 @@ using CodingGame.BlockCoding;
 
 namespace CodingGame.Defense.Editor
 {
-    // Reads the Stage 1 tutorial answers (TutorialStep.expectedCode) into blocks: "name = get_nearest_enemy()",
+    // Reads the lessons' answers (TutorialStep.expectedCode) into blocks: "name = get_nearest_enemy()",
     // "x = enemy.distance(get_my_pos())", "name = my_attack_range()", "slash()", "shoot(enemy)", "if a <= b:" (any comparison),
     // "if x.is_dead():", "a * b" (one of + - * /), "x.type", "Enemy.Tank", "break", "continue", "for i in range(n):" and
     // "while True:" with a body indented deeper (any width).
-    // ponytail: only what the Stage 1 answers use; a new answer shape needs a case here.
+    // ponytail: only what the lesson answers use; a new answer shape needs a case here.
     public static class TutorialAnswers
     {
         public static CodeBlock[] Parse(string code)

@@ -17,13 +17,13 @@ namespace CodingGame.Defense.Editor
         [SerializeField] DefenseCampaignDefinition campaign;
         [SerializeField] int testStage = 1, testWave = 1, coins = 100, campaignStages = 5;
         [SerializeField] bool previousStageRewards = true, tutorial;
-        [SerializeField] int jumpWave = 1, jumpSection;
+        [SerializeField] int jumpStage = 1, jumpWave = 1, jumpSection;
         [SerializeField] string scenePath;
         [SerializeField] DefenseTestOptions options = new DefenseTestOptions();
         DefenseCampaignDefinition playContent;
         readonly List<Object> copies = new List<Object>();
         ScrollView content;
-        Label status, feedback, live;
+        Label status, feedback, live, jumpPath;
         string tab = Tabs[0];
         bool hadBattle;
         double nextRefresh;
@@ -92,7 +92,7 @@ namespace CodingGame.Defense.Editor
         void Build()
         {
             if (content == null) return;
-            content.Clear(); live = null;
+            content.Clear(); live = jumpPath = null;
             switch (tab)
             {
                 case "밸런스": Balance(); break;
@@ -173,17 +173,29 @@ namespace CodingGame.Defense.Editor
                 if (!EditorUtility.DisplayDialog("저장 데이터 초기화", "클리어한 스테이지 등 저장된 정보를 모두 지우고 처음 설치한 상태로 되돌립니다.", "초기화", "취소")) return;
                 DevTest.ResetSaveData(); feedback.text = "저장 데이터를 초기화했습니다.";
             }));
+            // Every stage-wave of the campaign: a wave with a lesson lists its steps, a free-play wave opens at its start.
+            var lessons = DevTest.Lessons;
+            int stages = campaign ? campaign.stages.Length : lessons.Select(s => s.stage).DefaultIfEmpty(1).Max();
+            jumpStage = Mathf.Clamp(jumpStage, 1, stages);
+            int waveCount = campaign ? campaign.stages[jumpStage - 1].waves.Length : lessons.Where(s => s.stage == jumpStage).Select(s => s.wave).DefaultIfEmpty(1).Max();
+            jumpWave = Mathf.Clamp(jumpWave, 1, waveCount);
+            string WaveName(int w) => $"{jumpStage}-{w}" + (lessons.Any(s => s.stage == jumpStage && s.wave == w) ? " 튜토리얼" : " 웨이브 시작");
             var row = new VisualElement(); row.AddToClassList("row");
-            jumpWave = Mathf.Clamp(jumpWave, 1, 5);
-            var waves = new PopupField<int>("Stage 1 튜토리얼", Enumerable.Range(1, 5).ToList(), jumpWave - 1, w => "1-" + w, w => "1-" + w);
-            var titles = DevTest.TutorialSections(jumpWave).Select((t, i) => $"{i + 1}. {t}").ToList();
-            if (titles.Count == 0) titles.Add("(구간 없음)");
+            var stagePopup = new PopupField<int>("구간", Enumerable.Range(1, stages).ToList(), jumpStage - 1, s => "Stage " + s, s => "Stage " + s);
+            var wavePopup = new PopupField<int>(Enumerable.Range(1, waveCount).ToList(), jumpWave - 1, WaveName, WaveName);
+            stagePopup.RegisterValueChangedCallback(e => { jumpStage = e.newValue; jumpWave = 1; jumpSection = 0; Build(); });
+            wavePopup.RegisterValueChangedCallback(e => { jumpWave = e.newValue; jumpSection = 0; Build(); });
+            row.Add(stagePopup); row.Add(wavePopup); content.Add(row);
+            row = new VisualElement(); row.AddToClassList("row");
+            var titles = DevTest.TutorialSections(jumpStage, jumpWave).Select((t, i) => $"{i + 1}. {t}").ToList();
+            if (titles.Count == 0) titles.Add("웨이브 시작 (튜토리얼 없음)");
             var sections = new PopupField<string>(titles, Mathf.Clamp(jumpSection, 0, titles.Count - 1));
-            waves.RegisterValueChangedCallback(e => { jumpWave = e.newValue; jumpSection = 0; Build(); });
             sections.RegisterValueChangedCallback(e => jumpSection = titles.IndexOf(e.newValue));
-            row.Add(waves); row.Add(sections);
-            row.Add(new Button(() => Act(() => DevTest.JumpTutorial(jumpWave, jumpSection))) { text = "이 구간으로" });
+            row.Add(sections);
+            row.Add(new Button(() => Act(() => DevTest.JumpTutorial(jumpStage, jumpWave, Mathf.Clamp(jumpSection, 0, titles.Count - 1)))) { text = "이 구간으로" });
             content.Add(row);
+            Note("F1 패널과 같은 이동: 캐시(Tools/Develop/캐시 제작)가 있으면 기록된 상태로, 없거나 오래됐으면 웨이브 시작에 앞 수업의 로봇·정답 코드를 넣습니다.");
+            jumpPath = new Label(); jumpPath.AddToClassList("readout"); content.Add(jumpPath);
         }
 
         // Play Mode edits go to copies so a test never changes the asset until "원본에 저장".
@@ -311,6 +323,7 @@ namespace CodingGame.Defense.Editor
         void Refresh()
         {
             if (status == null) return;
+            if (jumpPath != null) jumpPath.text = "시작 상태: " + (DevTest.JumpPending ? "전투를 불러오는 중" : DevTest.LastJump ?? "-");
             var sim = DevTest.Sim;
             status.text = $"{(EditorApplication.isPlaying ? "Play" : "Edit")} · {UnityEngine.SceneManagement.SceneManager.GetActiveScene().name} · 속도 x{Time.timeScale:0.#}";
             if (sim == null) { if (live != null) live.text = ""; return; }
