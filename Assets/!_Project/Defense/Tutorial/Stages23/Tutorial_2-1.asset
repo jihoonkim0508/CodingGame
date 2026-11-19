@@ -682,8 +682,9 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uB2E4\uB978 \uC6D0\uAC70\uB9AC \uB85C\uBD07\uB3C4 \uC138\uC6CC\uB3C4
-        \uC88B\uC544.\n\uC900\uBE44\uB418\uBA74 <b>\u2018\uC804\uD22C \uC2DC\uC791\u2019</b>!"
+      text: "\uC774\uBC88 \uBB34\uB9AC\uB294 \uC6D0\uAC70\uB9AC \uB85C\uBD07 <b>\uD558\uB098</b>\uB85C
+        \uB9C9\uC544 \uBCF4\uC790.\n\uC900\uBE44\uB418\uBA74 <b>\u2018\uC804\uD22C
+        \uC2DC\uC791\u2019</b>!"
       focusKeys: []
       highlightKeys: []
     targetKeys: []

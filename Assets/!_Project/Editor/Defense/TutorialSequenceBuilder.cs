@@ -562,21 +562,22 @@ namespace CodingGame.Defense.Editor
             Lesson(4, "반복 자유 플레이", 1, (BlockKind.Slash, 1));
             Lesson(5, "반복 보스 실습", 0);
             Rewards(1, 4); Rewards(1, 5); Rewards(2, 1); Rewards(2, 2);
-            // Stage 2: variables at 2-1 (two shooters), conditions at 2-3 (a warrior the lesson stands by the road, with its
-            // while True: slash() to compare and the blocks of its if).
-            StageLesson(2, 1, "변수: 찾은 적을 상자에 담기(원거리)", RobotRole.Shooter, 2, (BlockKind.While, 2), (BlockKind.Shot, 2),
-                (BlockKind.DeclareVariable, 2), (BlockKind.Variable, 2), (BlockKind.NearestEnemy, 2));
+            // Stage 2 (the user, 2026-11-19: too many robots too early): variables at 2-1 with one shooter, conditions at 2-3 (a
+            // warrior the lesson stands by the road, with its while True: slash() to compare and the blocks of its if), the
+            // second shooter at 2-5, where its code is copied from the first.
+            StageLesson(2, 1, "변수: 찾은 적을 상자에 담기(원거리)", RobotRole.Shooter, 1, (BlockKind.While, 1), (BlockKind.Shot, 1),
+                (BlockKind.DeclareVariable, 1), (BlockKind.Variable, 1), (BlockKind.NearestEnemy, 1));
             StageLesson(2, 3, "조건문: 벨 때 고르기(전사형)", RobotRole.Warrior, 1, (BlockKind.While, 1), (BlockKind.Slash, 1), (BlockKind.If, 2),
                 (BlockKind.Comparison, 2), (BlockKind.MyPos, 2), (BlockKind.DeclareVariable, 2), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 2),
                 (BlockKind.MyAttackRange, 2));
             Goal(2, 3, "적이 공격 범위에 들어왔을 때만 베는 조건문으로 막기");
             Rewards(2, 3);
             // Free waves bring nothing new: 2-1 and 2-3 already give two of each block their codes use.
-            FreeLesson(2, 2, "변수 자유 플레이", "찾은 적을 변수에 담아 두 원거리형으로 무리 막기");
+            FreeLesson(2, 2, "변수 자유 플레이", "찾은 적을 변수에 담아 원거리형 하나로 무리 막기");
             FreeLesson(2, 4, "조건 자유 플레이", "적이 공격 범위에 들어왔을 때만 공격하는 조건문으로 무리 막기");
             // 2-5 to 2-10 (원거리_집중공격_설계 7): is_dead(), break, free, continue with enemy.type, free, the boss. Each lesson
             // brings what its new lines need on top of the shooter's code before it; 2-7 and 2-9 what their hints add.
-            StageLesson(2, 5, "is_dead(): 한 적을 끝까지", RobotRole.Shooter, 0, (BlockKind.IsDead, 2), (BlockKind.If, 1),
+            StageLesson(2, 5, "is_dead(): 한 적을 끝까지", RobotRole.Shooter, 1, (BlockKind.IsDead, 2), (BlockKind.If, 1),
                 (BlockKind.DeclareVariable, 1), (BlockKind.NearestEnemy, 1), (BlockKind.Variable, 2));
             Goal(2, 5, "쓰러진 적이면 새로 찾는 is_dead()로 한 적씩 끝내기");
             StageLesson(2, 6, "break: 사거리를 벗어나면 놓아주기", RobotRole.Shooter, 0, (BlockKind.While, 1), (BlockKind.Break, 2),

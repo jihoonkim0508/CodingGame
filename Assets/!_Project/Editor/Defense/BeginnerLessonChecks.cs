@@ -507,10 +507,9 @@ namespace CodingGame.Defense.Editor
         static void StageTwoFree(DefenseBattle battle)
         {
             var sim = battle.Simulation;
-            // Stage 2's own robots only: two shooters, from 2-3 the lesson's warrior (no Stage 1 warriors; 2-8's continue leaves
+            // Stage 2's own robots: 2-1's shooter, from 2-3 the lesson's warrior, from 2-5 a second shooter (2-8's continue leaves
             // the small ones to the warrior and the second shooter).
             int shooter = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => battle.DefinitionRole(i) == RobotRole.Shooter);
-            // Two shooters: 2-1 gives the variable blocks for two copies of its code.
             if (sim.RobotAvailable(RobotRole.Shooter) > 0 && sim.Robots.Count(r => r.Spec.role == RobotRole.Shooter) < 2) { battle.ChooseRobot(shooter); PlaceBest(battle, shooter); }
             foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Shooter && (r.Program == null || r.Program.IsEmpty)).ToArray())
                 sim.ApplyProgram(bot.Id, "free_" + bot.Id, TutorialAnswers.Parse("while True:\n    enemy = get_nearest_enemy()\n    shoot(enemy)"));
@@ -522,7 +521,7 @@ namespace CodingGame.Defense.Editor
         // one, and the second shooter keeps 2-7's code into 2-8's lesson (whose prepared code tops up the blocks it holds).
         static readonly string[] SecondShooter = {
             TutorialSequenceBuilder.Code21, TutorialSequenceBuilder.Code21, TutorialSequenceBuilder.Code21, TutorialSequenceBuilder.Code21,
-            TutorialSequenceBuilder.Code21, TutorialSequenceBuilder.Code21, TutorialSequenceBuilder.Code27, TutorialSequenceBuilder.Code27,
+            TutorialSequenceBuilder.Code25, TutorialSequenceBuilder.Code25, TutorialSequenceBuilder.Code27, TutorialSequenceBuilder.Code27,
             TutorialSequenceBuilder.Code27, TutorialSequenceBuilder.Code27 };
         static void StageTwoCodes(DefenseSimulation sim, bool battle)
         {
@@ -540,8 +539,8 @@ namespace CodingGame.Defense.Editor
         static void StageTwoStart(DefenseBattle battle)
         {
             var sim = battle.Simulation;
-            Require(sim.Robots.Count(r => r.Spec.role == RobotRole.Shooter) <= 2 && sim.Robots.Count(r => r.Spec.role == RobotRole.Warrior) == (sim.WaveIndex >= 2 ? 1 : 0),
-                "Stage 2 must be played with two shooters and, from 2-3, one warrior: " + string.Join(",", sim.Robots.Select(r => r.Spec.role)));
+            Require(sim.Robots.Count(r => r.Spec.role == RobotRole.Shooter) == (sim.WaveIndex >= 4 ? 2 : 1) && sim.Robots.Count(r => r.Spec.role == RobotRole.Warrior) == (sim.WaveIndex >= 2 ? 1 : 0),
+                "Stage 2 must be played with one shooter, from 2-3 a warrior, from 2-5 a second shooter: " + string.Join(",", sim.Robots.Select(r => r.Spec.role)));
             StageTwoCodes(sim, true);
             battle.StartBattle();
             Log("START " + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills + " leaks=" + sim.Leaks + " robots=" +
