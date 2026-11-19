@@ -399,7 +399,7 @@ MonoBehaviour:
     skipIf: 
     expectedCode: 2/1:If
     pointerKey: Editor.Palette.If
-    autoSelectSlot: 
+    autoSelectSlot: Editor.Code.Before.2/1
     hintCode: 
     pointerDelay: 0
     closeEditor: 0

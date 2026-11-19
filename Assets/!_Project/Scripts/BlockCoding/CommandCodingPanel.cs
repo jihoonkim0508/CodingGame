@@ -35,6 +35,7 @@ namespace CodingGame.BlockCoding
         readonly Vector3[] dragCorners = new Vector3[4];
         readonly List<Image> tabDots = new List<Image>();
         CommandDropZone selected;
+        int selectedIndex = -1;
         CommandDropZone snapTarget;
         CommandBlockView openingBody;
         PointerEventData dragEvent;
@@ -180,9 +181,10 @@ namespace CodingGame.BlockCoding
                 categoryButtons[i].transform.localScale = Vector3.one * (chosen ? 1.06f : 1);
             }
         }
-        internal void Select(CommandDropZone zone)
+        // index: where a clicked block goes in the zone (a tutorial step's place mid-body); -1 at its end.
+        internal void Select(CommandDropZone zone, int index = -1)
         {
-            selected = zone;
+            selected = zone; selectedIndex = index;
             // Selecting the command area says nothing: the message line keeps showing the last syntax error.
             if (zone.Slot != BlockSlotKind.Statement)
                 ShowMessage(zone.Slot == BlockSlotKind.Condition ? "조건 슬롯 선택됨 · 논리 블록을 선택하세요." : "값 슬롯 선택됨 · 값 블록을 선택하세요.");
@@ -196,10 +198,12 @@ namespace CodingGame.BlockCoding
             {
                 if (PythonTreeCompiler.OutputSlot(source.Kind) != BlockSlotKind.Statement && source.BaseKind != BlockKind.Variable)
                 { ShowMessage("값을 넣을 빈 슬롯을 선택하세요."); return; }
-                program.Insert(source, program.Blocks.Count);
+                if (!program.Insert(source, program.Blocks.Count)) ShowMessage("작업 공간 아래가 가득 찼어요. 블록을 끌어다 빈 곳에 놓아 주세요.");
                 return;
             }
-            if (!target.Insert(source, target.Blocks.Count)) ShowMessage("먼저 맞는 모양의 빈 슬롯을 선택하거나, 블록을 원하는 위치로 드래그하세요.");
+            int at = target == selected && selectedIndex >= 0 ? Mathf.Min(selectedIndex, target.Blocks.Count) : target.Blocks.Count;
+            selectedIndex = -1;
+            if (!target.Insert(source, at)) ShowMessage("먼저 맞는 모양의 빈 슬롯을 선택하거나, 블록을 원하는 위치로 드래그하세요.");
         }
         public void ShowMessage(string text) => status.text = text;
         internal void FillNewLoop(CommandBlockView block)

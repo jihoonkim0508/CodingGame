@@ -314,6 +314,15 @@ namespace CodingGame.Defense
 
         public bool SelectTutorialSlot(string key)
         {
+            // Editor.Code.Before.N / After.N: a click on the palette puts its block right there (2-5, 2-6, 2-8 C01).
+            var place = IsOpen && key != null && key.StartsWith(TutorialKeys.CodePrefix) ? key.Substring(TutorialKeys.CodePrefix.Length).Split('.') : new string[0];
+            if (place.Length == 2 && (place[0] == "Before" || place[0] == "After"))
+            {
+                var line = Line(place[1]);
+                if (!line || !line.Owner || line.Owner.FreePlacement) return false;
+                panel.Select(line.Owner, line.Owner.Blocks.ToList().IndexOf(line) + (place[0] == "After" ? 1 : 0));
+                return true;
+            }
             var slot = TutorialSlot(key);
             if (slot == null) return false;
             // A player may have filled the slot before this guide started. Keep their work;

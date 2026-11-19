@@ -129,7 +129,7 @@ namespace CodingGame.Defense.Editor
         static CommandDropZone Slot(DefenseCodeEditor editor, string key) => (CommandDropZone)typeof(DefenseCodeEditor)
             .GetMethod("TutorialSlot", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(editor, new object[] { key });
         static void Select(CommandCodingPanel panel, CommandDropZone slot) => typeof(CommandCodingPanel)
-            .GetMethod("Select", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(panel, new object[] { slot });
+            .GetMethod("Select", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(panel, new object[] { slot, -1 });
         static void Add(CommandCodingPanel panel, BlockKind kind) => panel.AddFromPalette(kind == BlockKind.Variable
             ? panel.VariableTemplate : panel.Palette.First(p => p.view.BaseKind == kind).view);
 
@@ -403,7 +403,8 @@ namespace CodingGame.Defense.Editor
                 var placed = step.expectedCode.Split(':'); var kind = (BlockKind)Enum.Parse(typeof(BlockKind), placed[1]);
                 int cut = placed[0].LastIndexOf('/');
                 // A line inside a body goes where the step says (2-5's if in front of shoot(enemy)), as a drag would put it.
-                if (cut < 0) Add(panel, kind);
+                // A step with an AutoSlot (2-3, 2-5, 2-6, 2-8 C01) has its place chosen: a click on the palette puts the line there.
+                if (cut < 0 || !string.IsNullOrEmpty(step.autoSelectSlot)) Add(panel, kind);
                 else editor.Line(placed[0].Substring(0, cut)).Body.Insert(panel.Palette.First(p => p.view.BaseKind == kind).view, int.Parse(placed[0].Substring(cut + 1)) - 1);
                 return;
             }

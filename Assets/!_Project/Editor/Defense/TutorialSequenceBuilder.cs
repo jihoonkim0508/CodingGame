@@ -305,9 +305,9 @@ namespace CodingGame.Defense.Editor
             L("2-5.A05", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(
                 s => { s.Example = "2-5"; s.RestartPreview = true; s.Preview = true; s.Hold = 10; }, Focus("Editor.Code.Line.1", Preview)))),
             L("2-5.B01", With(Ed, Focus("Editor.Code.Line.1", Preview))), L("2-5.B02", With(Ed, Focus("Editor.Code.Line.1"))),
-            // In front of shoot(enemy), the loop's first line: dragged there (a click adds at the end).
+            // In front of shoot(enemy), the loop's first line: dragged there, or clicked (AutoSlot puts it there).
             L("2-5.C01", With(EditSignal(TutorialSignals.CodeLinePlaced, "2/1:If", "Editor.Palette.If", "Editor.Palette.If", "Editor.Code.Before.2/1"),
-                s => s.Demo = "Editor.Palette.If>Editor.Code.Before.2/1")),
+                s => { s.AutoSlot = "Editor.Code.Before.2/1"; s.Demo = "Editor.Palette.If>Editor.Code.Before.2/1"; })),
             L("2-5.C02", EnemyIn("2/1.0")),
             L("2-5.C03", Dead("2/1.0")),
             L("2-5.C04", With(Ed, Focus("Editor.Code.Arg.2/1.0"))),
@@ -330,7 +330,7 @@ namespace CodingGame.Defense.Editor
                 s => { s.Example = "2-6"; s.RestartPreview = true; s.Preview = true; s.Hold = 8; }, Focus("Editor.Code.Line.1/2", Preview)))),
             L("2-6.B02", With(Ed, Focus("Editor.Code.Line.1/2"))), L("2-6.B03", With(Ed, Focus("Editor.Code.Line.1/2"))),
             L("2-6.C01", With(EditSignal(TutorialSignals.CodeLinePlaced, "1/2/1:If", "Editor.Palette.If", "Editor.Palette.If", "Editor.Code.Before.1/2/1"),
-                s => s.Demo = "Editor.Palette.If>Editor.Code.Before.1/2/1")),
+                s => { s.AutoSlot = "Editor.Code.Before.1/2/1"; s.Demo = "Editor.Palette.If>Editor.Code.Before.1/2/1"; })),
             L("2-6.C02", With(EditSignal(TutorialSignals.DraftValueMatches, "1/2/1.0|>", "Editor.Code.Option.1/2/1.0|Editor.Palette.Comparison", "Editor.Palette.Comparison", "Editor.Code.Arg.1/2/1.0"),
                 s => { s.AutoSlot = "Editor.Code.Arg.1/2/1.0"; s.Demo = "Editor.Palette.Comparison>Editor.Code.Arg.1/2/1.0"; })),
             // Both sides in one line: enemy. with distance( and get_my_pos() on the left, my_attack_range() on the right.
@@ -353,7 +353,7 @@ namespace CodingGame.Defense.Editor
             L("2-8.B01", With(Ed, s => s.Example = "2-8", Focus("Editor.Code.Line.1/1"))),
             L("2-8.B02", With(Ed, Focus("Editor.Code.Line.1/2"))), L("2-8.B03", With(Ed, Focus("Editor.Code.Line.1"))),
             L("2-8.C01", With(EditSignal(TutorialSignals.CodeLinePlaced, "1/2:If", "Editor.Palette.If", "Editor.Palette.If", "Editor.Code.After.1/1"),
-                s => s.Demo = "Editor.Palette.If>Editor.Code.After.1/1")),
+                s => { s.AutoSlot = "Editor.Code.After.1/1"; s.Demo = "Editor.Palette.If>Editor.Code.After.1/1"; })),
             // The comparison put in the if and its sign turned to != (one line: the block, then its picker).
             L("2-8.C02", With(EditSignal(TutorialSignals.DraftValueMatches, "1/2.0|!=", "Editor.Code.Option.1/2.0|Editor.Palette.Comparison", "Editor.Palette.Comparison", "Editor.Code.Arg.1/2.0"),
                 s => { s.AutoSlot = "Editor.Code.Arg.1/2.0"; s.Demo = "Editor.Palette.Comparison>Editor.Code.Arg.1/2.0"; })),
