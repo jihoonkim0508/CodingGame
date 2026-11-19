@@ -64,8 +64,9 @@ namespace CodingGame.BlockCoding
         static bool IsBranch(CommandBlockView block) => PythonTreeCompiler.IsBranch(block.Kind);
         static float BranchOverlap(CommandBlockView before,CommandBlockView after)=>IsBranch(after)?before.FooterOverlap:0;
         float Overlap(int index) => slot == BlockSlotKind.Statement ? BranchOverlap(blocks[index-1],blocks[index]) : 0;
-        // The workspace does not scroll: a block's top-left stays inside it, at least a line's height and a block's start in view.
-        Vector2 ClampToWorkspace(Vector2 p) => new Vector2(Mathf.Clamp(p.x, 4, Mathf.Max(4, rect.rect.width - 80)), Mathf.Clamp(p.y, Mathf.Min(-4, 44 - rect.rect.height), -4));
+        // A block's top-left stays right of and below the workspace's top-left, and a block's start in from its right edge; below,
+        // the workspace (a ScrollRect's content) grows with its lowest block.
+        Vector2 ClampToWorkspace(Vector2 p) => new Vector2(Mathf.Clamp(p.x, 4, Mathf.Max(4, rect.rect.width - 80)), Mathf.Min(-4, p.y));
         // A palette source moves alone; a placed block brings its chain (and if/elif/else group).
         internal static List<CommandBlockView> Moving(CommandBlockView source) => source.IsPalette ? new List<CommandBlockView> { source } : source.Owner.Group(source);
         // Widest member of the if/elif/else group that contains list[i], so the group renders as one column.
@@ -200,10 +201,7 @@ namespace CodingGame.BlockCoding
                 // A clicked block goes to the end of the program, or starts it: the list's last block is the one placed last,
                 // which may sit mid-chain or lie loose elsewhere.
                 var last = StartChain().LastOrDefault();
-                var end = last ? last.Rect.anchoredPosition + new Vector2(0, -last.preferredHeight) : FirstPosition;
-                // Past the workspace's bottom it could not be seen or reached (no scrolling): the caller says to drag it instead.
-                if (-end.y + source.preferredHeight > rect.rect.height) return false;
-                return PlaceFree(source, end);
+                return PlaceFree(source, last ? last.Rect.anchoredPosition + new Vector2(0, -last.preferredHeight) : FirstPosition);
             }
             if (ParentBlock && ParentBlock.IsPalette) return false;
             if (!Takes(source)) return false;

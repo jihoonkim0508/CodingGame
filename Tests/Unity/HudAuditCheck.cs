@@ -84,6 +84,13 @@ public static class HudAuditCheck
                 int waves = sim.Setup.Waves.Length, all = sim.Setup.CampaignWaves.Sum(s => s.Length);
                 Late(hud); SetPhase(sim, BattlePhase.Victory); Late(hud);
                 string text = Get<TMP_Text>(hud, "rewardItems").text;
+                // The last built stage (3-4 won) shows the prototype end, whose wave count is the stage's last wave, "3-4까지".
+                if (battle.PrototypeEnded)
+                {
+                    if (!text.Contains("프로토타입") || !text.Contains($"{stage}-{waves}까지")) problems.Add($"stage {stage} prototype-end text lacks '{stage}-{waves}까지': {text}");
+                    continue;
+                }
+                if (stage == 3) problems.Add("stage 3 won without the prototype end");
                 var said = Regex.Match(text, @"(\d+)개 웨이브 방어 성공");
                 if (said.Success && int.Parse(said.Groups[1].Value) != waves) problems.Add($"stage {stage} has {waves} waves but the victory text says {said.Groups[1].Value}");
                 if (!said.Success && !text.Contains($"총 {all}개 웨이브")) problems.Add($"stage {stage} final text lacks the real total {all}");

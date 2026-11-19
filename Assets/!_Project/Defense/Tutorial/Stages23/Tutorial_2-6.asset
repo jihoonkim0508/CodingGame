@@ -398,7 +398,7 @@ MonoBehaviour:
     skipIf: 
     expectedCode: 1/2/1:If
     pointerKey: Editor.Palette.If
-    autoSelectSlot: Editor.Code.Before.1/2/1
+    autoSelectSlot: 
     hintCode: 
     pointerDelay: 0
     closeEditor: 0

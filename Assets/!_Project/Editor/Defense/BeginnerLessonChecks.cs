@@ -97,13 +97,14 @@ namespace CodingGame.Defense.Editor
             DevTest.PlayDefense(2, 1, true, true);
         }
 
-        // 3-1 (13차 179): the tank's introduction and placement on the road; ends when 3-2 begins.
-        [MenuItem("Tools/Develop/Verify Stage 3 Lesson 3-1")]
+        // 3-1 (13차 179): the tank's introduction and placement on the road, then 3-2 to 3-4 with the whole stock placed;
+        // ends with the stage won and the prototype end.
+        [MenuItem("Tools/Develop/Verify Stage 3 Lessons 3-1 to 3-4")]
         public static void RunStageThree()
         {
             TutorialSequenceBuilder.ApplyAllFive();
             Directory.CreateDirectory(Path.GetDirectoryName(LogPath));
-            File.WriteAllText(LogPath, "START stage 3 lesson 3-1 integration check\n");
+            File.WriteAllText(LogPath, "START stage 3 lessons 3-1 to 3-4 integration check\n");
             last = null; practiced = practicedFour = practicedFive = bossVisualSeen = false;
             next = 0;
             SessionState.SetBool(Running, true);
@@ -195,21 +196,28 @@ namespace CodingGame.Defense.Editor
             }
             if (battle.Stage == 3)
             {
-                if (sim.WaveIndex >= 1)
+                if (sim.Phase == BattlePhase.Victory)
                 {
-                    Require(sim.Kills >= 4 && sim.BaseHealth >= 6, "3-1's wave was not held; kills=" + sim.Kills + " core=" + sim.BaseHealth);
-                    End("PASS 3-1 completed: the tank introduced, stood on the road, the wave held; kills=" + sim.Kills + " core=" + sim.BaseHealth); return;
+                    Require(battle.PrototypeEnded, "3-4 won without the prototype end");
+                    End("PASS 3-1 to 3-4 completed: the tank introduced and stood on the road, every wave held, the boss won; kills=" + sim.Kills + " core=" + sim.BaseHealth); return;
                 }
-                if (sim.Phase == BattlePhase.Defeat) { End("FAIL 3-1 lost; kills=" + sim.Kills + " leaks=" + sim.Leaks); return; }
-                // The lesson waits for the wave's end (E01): the tank stands on the road, then every robot is placed with a loop.
-                if (sim.Phase == BattlePhase.Ready && director.EditorStep?.stepId == "E01")
+                if (sim.Phase == BattlePhase.Defeat) { End("FAIL stage 3 wave " + (sim.WaveIndex + 1) + " lost; kills=" + sim.Kills + " leaks=" + sim.Leaks); return; }
+                if (sim.Phase == BattlePhase.Reward && !director.IsActive)
                 {
-                    var tank = sim.Robots.SingleOrDefault(r => r.Spec.role == RobotRole.Tank);
-                    Require(tank != null, "3-1 did not place the tank");
-                    try { DevTest.AutoDeploy(); } catch (FormatException) { } // it places them, then stops at a target-less shoot()
-                    Loops(sim);
+                    Log("CLEAR wave=3-" + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills + " leaks=" + sim.Leaks);
+                    battle.ClaimRewards(); return;
+                }
+                // 3-1's lesson waits for the wave's end (E01): the tank stands on the road, then the rest of the stock is placed
+                // with loops, as a player places every robot they have; 3-2 to 3-4 the same with what the stock holds then.
+                bool waiting = director.EditorStep?.stepId == "E01" || !director.IsActive;
+                if (sim.Phase == BattlePhase.Ready && waiting)
+                {
+                    if (sim.WaveIndex == 0) Require(sim.Robots.Any(r => r.Spec.role == RobotRole.Tank), "3-1 did not place the tank");
+                    // 3-1's reward is claimed by its lesson (E02): whether its wave was held is seen as 3-2 begins.
+                    if (sim.WaveIndex == 1) Require(sim.Kills >= 4 && sim.BaseHealth >= 6, "3-1's wave was not held; kills=" + sim.Kills + " core=" + sim.BaseHealth);
+                    PlaceStock(sim);
                     battle.StartBattle();
-                    Log("START 3-1 robots=" + sim.Robots.Count + " tank at " + tank.Position);
+                    Log("START 3-" + (sim.WaveIndex + 1) + " robots=" + sim.Robots.Count + " [" + string.Join(",", sim.Robots.Select(r => r.Spec.role)) + "]");
                     return;
                 }
             }
@@ -226,7 +234,7 @@ namespace CodingGame.Defense.Editor
                 {
                     var views = Field<System.Collections.Generic.Dictionary<int, DefenseActorView>>(battle, "enemyViews");
                     if (views.TryGetValue(boss.Id, out var enemyView) &&
-                        Time.unscaledTime - Field<float>(enemyView.GetComponent<DefenseBossAura>(), "appearedAt") >= 1.2f)
+                        GameClock.Now - Field<float>(enemyView.GetComponent<DefenseBossAura>(), "appearedAt") >= 1.2f) // the aura's own clock
                     {
                         Require(sim.Kills >= killsAtFifthWave + 3 && sim.Enemies.All(enemy => enemy.Boss),
                             "Boss appeared before every minion died");
@@ -405,8 +413,8 @@ namespace CodingGame.Defense.Editor
                 var placed = step.expectedCode.Split(':'); var kind = (BlockKind)Enum.Parse(typeof(BlockKind), placed[1]);
                 int cut = placed[0].LastIndexOf('/');
                 // A line inside a body goes where the step says (2-5's if in front of shoot(enemy)), as a drag would put it.
-                // A step with an AutoSlot (2-3, 2-5, 2-6, 2-8 C01) has its place chosen: a click on the palette puts the line there.
-                if (cut < 0 || !string.IsNullOrEmpty(step.autoSelectSlot)) Add(panel, kind);
+                // A step with a drag demo or an AutoSlot has its place chosen: a click on the palette puts the line there.
+                if (cut < 0 || !string.IsNullOrEmpty(step.dragDemo) || !string.IsNullOrEmpty(step.autoSelectSlot)) Add(panel, kind);
                 else editor.Line(placed[0].Substring(0, cut)).Body.Insert(panel.Palette.First(p => p.view.BaseKind == kind).view, int.Parse(placed[0].Substring(cut + 1)) - 1);
                 return;
             }
@@ -538,6 +546,9 @@ namespace CodingGame.Defense.Editor
             battle.StartBattle();
             Log("START " + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills + " leaks=" + sim.Leaks + " robots=" +
                 string.Join(",", TutorialWatcher.OrderedRobots(sim).Select(r => r.Spec.role + ":" + r.Program?.Name)));
+            // The stock at the wave's start, owned/free per block kind (what a lesson's preparation leaves behind).
+            Log("STOCK " + (sim.WaveIndex + 1) + " " + string.Join(" ", sim.Inventory.Where(p => p.Value > 0).OrderBy(p => p.Key.ToString())
+                .Select(p => DefenseProgression.Label(p.Key) + " " + p.Value + "/" + sim.Available(p.Key))));
         }
 
         static void FreePlayFour(DefenseBattle battle)
@@ -562,6 +573,17 @@ namespace CodingGame.Defense.Editor
 
         // Every robot without code gets its own action in a loop, on a found enemy where the action needs one (block, attack,
         // slow, boom); the stock is not counted (test only, as the screen tour does).
+        // Every robot in stock on the map (AutoDeploy places one of each kind a call), the ones without code on loops.
+        static void PlaceStock(DefenseSimulation sim)
+        {
+            for (int before = -1; sim.Robots.Count != before;)
+            {
+                before = sim.Robots.Count;
+                try { DevTest.AutoDeploy(); } catch (FormatException) { } // it places them, then stops at a target-less shoot()
+            }
+            Loops(sim);
+        }
+
         public static void Loops(DefenseSimulation sim)
         {
             var setup = sim.Setup; var options = setup.TestOptions;

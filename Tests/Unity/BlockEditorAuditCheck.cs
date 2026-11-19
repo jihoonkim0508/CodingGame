@@ -1,4 +1,4 @@
-// Audit of the block editor (B1-B8). Run in Play Mode in the Defense scene through the Unity MCP run_script tool, entry
+// Audit of the block editor (B1-B9). Run in Play Mode in the Defense scene through the Unity MCP run_script tool, entry
 // BlockEditorAuditCheck.Main: one "FAIL Bn ...: ..." line per failing check, then "AUDIT blocks: <passed>/<total> passed".
 // Each check starts its own Stage 2 session (tutorial off, two warriors, 50 more of every block; a check that counts stock
 // sets it exactly) and fails today for the reason in its comment. A message that starts with "setup:" or "guard:" is not the
@@ -48,6 +48,7 @@ public static class BlockEditorAuditCheck
             Run("B6 landing preview is where the drop lands", PreviewIsTheLanding);
             Run("B7 drag copy keeps the operator", DragCopyKeepsOperator);
             Run("B8 rejected draft keeps the stock at zero or more", RejectedDraftWithinStock);
+            Run("B9 a program taller than the code area scrolls into reach", TallProgramScrolls);
         }
         finally { battle.Restart(); }
         report.Add("AUDIT blocks: " + passed + "/" + total + " passed");
@@ -283,6 +284,61 @@ public static class BlockEditorAuditCheck
         Require(free >= 0 && Slashes(b) == 1, "after robot a's rejected undo " + free + " slash() are free of 2 owned (expected 0 or more); robot b, reopened, holds " +
             Slashes(b) + " slash() (expected 1)");
     }
+
+    // --- B9 ---
+    // 2-8's finished code (ten lines) is taller than the code area. The wheel scrolls it to the bottom: its last line,
+    // shoot(enemy), is then inside the area and a press there reaches it; a palette click still adds a line at the program's
+    // end (93d7345 refused it once the code reached the area's bottom), and a drag under the last line lands where its
+    // preview showed, scrolled.
+    static void TallProgramScrolls()
+    {
+        Open(a);
+        CodeBlock Enemy() => new CodeBlock(BlockKind.Variable, "enemy");
+        CodeBlock Leave(CodeBlock condition) { var check = new CodeBlock(BlockKind.If, "0", condition); check.Body.Add(new CodeBlock(BlockKind.Break)); return check; }
+        var inner = new CodeBlock(BlockKind.While);
+        inner.Body.Add(Leave(new CodeBlock(BlockKind.IsDead, "0", Enemy())));
+        inner.Body.Add(Leave(new CodeBlock(BlockKind.Comparison, ">", new CodeBlock(BlockKind.Distance, "0", Enemy(), new CodeBlock(BlockKind.MyPos)), new CodeBlock(BlockKind.MyAttackRange))));
+        inner.Body.Add(new CodeBlock(BlockKind.Shot, "0", Enemy()));
+        var tanks = new CodeBlock(BlockKind.If, "0", new CodeBlock(BlockKind.Comparison, "!=", new CodeBlock(BlockKind.EnemyTypeOf, "0", Enemy()), new CodeBlock(BlockKind.EnemyTypeName, "Tank")));
+        tanks.Body.Add(new CodeBlock(BlockKind.Continue));
+        var outer = new CodeBlock(BlockKind.While);
+        outer.Body.Add(new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)));
+        outer.Body.Add(tanks);
+        outer.Body.Add(inner);
+        Load(outer);
+        var last = editor.Line("1/3/3");
+        Require(last && last.BaseKind == BlockKind.Shot, "setup: 2-8's code has shoot(enemy) as line 1/3/3: " + Program());
+        var scroll = program.GetComponentInParent<ScrollRect>();
+        var view = scroll ? (scroll.viewport ? scroll.viewport : (RectTransform)scroll.transform) : (RectTransform)program.transform.parent;
+        Require(Bottom(last.Rect) < Bottom(view) - 1, "setup: the code is taller than the code area (its last line is in view unscrolled)");
+        Require(scroll && scroll.vertical && scroll.content == program.Rect, "the code area has no vertical ScrollRect on the program");
+        // The wheel over a line of code bubbles up to the code area's ScrollRect (no frame has drawn the editor yet, so it is
+        // sent to the line itself rather than to a raycast hit).
+        for (int i = 0; i < 40; i++)
+            ExecuteEvents.ExecuteHierarchy(program.StartChain()[0].gameObject, new PointerEventData(EventSystem.current) { scrollDelta = new Vector2(0, -1) }, ExecuteEvents.scrollHandler);
+        Layout();
+        Require(Bottom(last.Rect) >= Bottom(view) - 1 && Top(last.Rect) <= Top(view) + 1, "after the wheel (scroll position " + scroll.verticalNormalizedPosition.ToString("F2") +
+            "), shoot(enemy) is still outside the code area");
+        // A press there reaches it: inside the area's mask, on the line's own raycast graphic.
+        var corners = new Vector3[4]; last.Rect.GetWorldCorners(corners);
+        var at = RectTransformUtility.WorldToScreenPoint(raycaster.eventCamera, (corners[0] + corners[2]) / 2);
+        var graphic = last.GetComponent<Graphic>();
+        Require(RectTransformUtility.RectangleContainsScreenPoint(view, at, raycaster.eventCamera) && graphic && graphic.raycastTarget &&
+            graphic.Raycast(at, raycaster.eventCamera), "a press on shoot(enemy), scrolled into view, does not reach it");
+        // A palette click at the bottom of the tall program adds the line at its end.
+        int lines = program.StartChain().Count;
+        panel.AddFromPalette(Palette(BlockKind.Slash)); Layout();
+        Require(program.StartChain().Count == lines + 1 && program.StartChain().Last().BaseKind == BlockKind.Slash,
+            "a palette click with the code past the area's bottom added nothing: " + Status());
+        // Scrolled, a drag under the program's last line lands where its preview was.
+        scroll.verticalNormalizedPosition = 0; Layout();
+        var end = program.StartChain().Last();
+        var under = Carry(BlockKind.Wait, end.Rect.anchoredPosition + new Vector2(0, -end.preferredHeight));
+        Require(program.StartChain().Last().BaseKind == BlockKind.Wait, "scrolled, wait() dragged under the last line did not join the program: " + Program());
+        Require(Vector2.Distance(under.preview, under.landed) < 1, "scrolled, the landing preview was at " + under.preview + ", the block landed at " + under.landed);
+    }
+    static float Bottom(RectTransform r) { var c = new Vector3[4]; r.GetWorldCorners(c); return c[0].y; }
+    static float Top(RectTransform r) { var c = new Vector3[4]; r.GetWorldCorners(c); return c[1].y; }
 
     // --- helpers ---
     // A fresh Stage 2 session with the stock limit on: 50 more of every block, two warriors.

@@ -44,6 +44,12 @@ namespace CodingGame.Defense
             // while one this robot used up stayed as ×0): the count beside it says none is left.
             panel.IsAvailable = kind => editingSession == null || editingSession.Options.unlockAll || editingSession.Owned(kind) > 0 || editingSession.Available(kind, editingId) > 0;
             panel.Remaining = kind => editingSession == null ? 0 : Math.Max(0, editingSession.Available(kind, editingId) - panel.Program.AllBlocks().Count(b => DefenseProgression.Canonical(b.Kind) == DefenseProgression.Canonical(kind)));
+            // A click on the block a tutorial step's demo drags puts it where the demo drops it (1-3 C08: slash() inside the while).
+            panel.PaletteClicking = source =>
+            {
+                foreach (var ends in (TutorialDemo ?? "").Split('|').Select(pair => pair.Split('>')).Where(ends => ends.Length == 2))
+                    if (TutorialPaletteItem(ends[0].Trim()) == source.Rect) { SelectTutorialSlot(ends[1].Trim()); return; }
+            };
             closeButton.onClick.AddListener(() => Close());
             automaticButton.onClick.AddListener(RestoreAutomatic);
             if (hintButton) hintButton.onClick.AddListener(ToggleHint);
@@ -198,14 +204,12 @@ namespace CodingGame.Defense
             LoadLesson(code);
             if (!panel.IsApplied) throw new InvalidOperationException(id + " 준비 코드의 블록 지급량을 확인하세요.");
         }
-        // The lesson hands over what its prepared code is short of, so it loads even when other robots hold those blocks (play-test 2-8).
+        // The lesson supplies every block of the code it prepares, so the robot takes nothing from the others and the stock after it
+        // is the same for every player (play-test 2-8).
         void LoadLesson(CodeBlock[] code)
         {
             foreach (var group in DefenseProgression.Used(code).GroupBy(DefenseProgression.Canonical))
-            {
-                int missing = group.Count() - editingSession.Available(group.Key, editingId);
-                if (missing > 0) editingSession.GrantBlock(group.Key, missing);
-            }
+                editingSession.GrantBlock(group.Key, group.Count());
             panel.LoadProgram(panel.FunctionName, code);
         }
         static CodeBlock Loop(params CodeBlock[] body)
@@ -316,6 +320,8 @@ namespace CodingGame.Defense
         {
             // Editor.Code.Before.N / After.N: a click on the palette puts its block right there (2-5, 2-6, 2-8 C01).
             var place = IsOpen && key != null && key.StartsWith(TutorialKeys.CodePrefix) ? key.Substring(TutorialKeys.CodePrefix.Length).Split('.') : new string[0];
+            // Editor.Code.Start (1-1 C05, 1-3 C05, on an empty program): the program itself, where a click starts the code.
+            if (place.Length == 1 && place[0] == "Start") { panel.Select(panel.Program); return true; }
             if (place.Length == 2 && (place[0] == "Before" || place[0] == "After"))
             {
                 var line = Line(place[1]);
@@ -493,7 +499,7 @@ namespace CodingGame.Defense
         {
             if (!panel) return;
             panel.BlockDropped -= OnBlockDropped;
-            panel.ApplyToTarget = null; panel.IsAvailable = null; panel.Remaining = null;
+            panel.ApplyToTarget = null; panel.IsAvailable = null; panel.Remaining = null; panel.PaletteClicking = null;
         }
     }
 }

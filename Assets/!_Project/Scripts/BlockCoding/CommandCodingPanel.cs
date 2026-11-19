@@ -64,6 +64,8 @@ namespace CodingGame.BlockCoding
         public Func<BlockKind, bool> IsAvailable { get; set; }
         public Func<BlockKind, int> Remaining { get; set; }
         public event Action<BlockKind, RectTransform, RectTransform> BlockDropped;
+        // A palette block clicked, before it is added: the host may choose where it goes (a tutorial step's demo place).
+        public Action<CommandBlockView> PaletteClicking { get; set; }
         // "block-pick" when a drag takes a block, "block-delete" when blocks leave the program; the host plays a sound.
         public event Action<string> Feedback;
         readonly HashSet<CommandDropZone> zones = new HashSet<CommandDropZone>();
@@ -192,13 +194,14 @@ namespace CodingGame.BlockCoding
         public void AddFromPalette(CommandBlockView source)
         {
             if (!CanTake(source)) { ShowMessage("보유 수량을 모두 사용했습니다."); return; }
+            PaletteClicking?.Invoke(source);
             var target = selected ? selected : program;
             if (PythonTreeCompiler.OutputSlot(source.Kind) == BlockSlotKind.Statement && target.Slot != BlockSlotKind.Statement) target = program;
             if (target == program && program.FreePlacement)
             {
                 if (PythonTreeCompiler.OutputSlot(source.Kind) != BlockSlotKind.Statement && source.BaseKind != BlockKind.Variable)
                 { ShowMessage("값을 넣을 빈 슬롯을 선택하세요."); return; }
-                if (!program.Insert(source, program.Blocks.Count)) ShowMessage("작업 공간 아래가 가득 찼어요. 블록을 끌어다 빈 곳에 놓아 주세요.");
+                program.Insert(source, program.Blocks.Count);
                 return;
             }
             int at = target == selected && selectedIndex >= 0 ? Mathf.Min(selectedIndex, target.Blocks.Count) : target.Blocks.Count;

@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using CodingGame;
 using CodingGame.BlockCoding;
 using CodingGame.Defense;
+using CodingGame.Defense.Editor;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -22,9 +23,10 @@ public static class TutorialAuditCheck
 {
     const string T1 = "T1 highlighted-only area takes no pointer", Lit = "T1-guard highlighted area stays lit and framed",
         Target = "T1-guard target area takes the pointer", Both = "T1-guard focus that is also a target takes the pointer",
-        Survey = "T1-guard no action step needs a focus-only area";
+        Survey = "T1-guard no action step needs a focus-only area",
+        Click = "Click palette click lands at the step's demo place", Prep = "Prep lesson preparation supplies its own blocks";
     // Every check, so one the run never reached still counts as failed.
-    static readonly string[] Names = { T1, Lit, Target, Both, Survey };
+    static readonly string[] Names = { T1, Lit, Target, Both, Survey, Click, Prep };
     const string SlashLine = "Editor.Code.Line.1", PaletteSlash = "Editor.Palette.Slash";
 
     public static async Task<string> Main()
@@ -76,9 +78,14 @@ public static class TutorialAuditCheck
 
         // Every sequence: an action step whose line focuses on something outside all its targets would need the pointer on a
         // highlight, and would never finish once highlights stop taking it.
+        // A step finished by something the player only watches (the preview's hit, a kill, a leak, the wave's end) takes no
+        // pointer on its focus: 2-5 A05 and 2-6 B01 restart the preview themselves and wait for its hit.
+        var watched = new HashSet<string> { TutorialSignals.PreviewHit, TutorialSignals.PreviewSingleHit, TutorialSignals.PreviewMultiHit,
+            TutorialSignals.FirstKill, TutorialSignals.FirstAttack, TutorialSignals.Leak, TutorialSignals.WaveCleared,
+            TutorialSignals.EnemyInRange, TutorialSignals.KillSwingEnded };
         var needy = new List<string>();
         foreach (var sequence in director.Sequences.Where(s => s))
-            foreach (var step in sequence.steps.Where(s => s.kind == TutorialStepKind.ActionGuide))
+            foreach (var step in sequence.steps.Where(s => s.kind == TutorialStepKind.ActionGuide && !(s.completionMode == TutorialCompletionMode.ExternalSignal && watched.Contains(s.completionSignal))))
                 foreach (string key in step.texts.SelectMany(t => t.focusKeys ?? new string[0]).SelectMany(k => k.Split('|')).Select(k => k.Trim()).Distinct())
                     if (!Covered(step, key)) needy.Add(sequence.sequenceId + " " + step.stepId + " " + key);
         Check(Survey, needy.Count == 0, "focus outside every target of its step: " + string.Join(", ", needy));
@@ -143,6 +150,127 @@ public static class TutorialAuditCheck
         if (t1 != null && panel.Program.StartChain().Count == 0)
             Check(T1, false, t1 + "; at D08, which waits for the preview to hit, the pointer on the palette's slash() lands on " +
                 Name(Pointer(bridge, PaletteSlash)) + ", so the line cannot be put back");
+        director.EditorStop();
+
+        // Click: every step with a drag demo, its lesson's code on screen with the demo's place open, nothing selected; a click on
+        // the demo's palette block must put the block at the demo's destination (1-3 C08: slash() inside the while).
+        var wrong = new List<string>(); int tried = 0;
+        foreach (var sequence in director.Sequences.Where(s => s))
+        {
+            var demos = sequence.steps.Where(s => !string.IsNullOrWhiteSpace(s.dragDemo)).ToList();
+            if (demos.Count == 0) continue;
+            string answer = sequence.steps.Select(s => s.hintCode).Concat(sequence.steps.Where(s => s.completionSignal == TutorialSignals.ProgramMatches).Select(s => s.expectedCode))
+                .Where(c => !string.IsNullOrWhiteSpace(c)).OrderByDescending(c => c.Length).FirstOrDefault() ?? "";
+            var id = sequence.sequenceId.Split('-');
+            Open(battle, int.Parse(id[0]), int.Parse(id[1]), answer.Contains("slash(") ? RobotRole.Warrior : RobotRole.Shooter, false);
+            yield return null;
+            foreach (var step in demos)
+            {
+                var ends = step.dragDemo.Split('|')[0].Split('>').Select(e => e.Trim()).ToArray();
+                string where = sequence.sequenceId + " " + step.stepId + " " + step.dragDemo;
+                var code = TutorialAnswers.Parse(answer).ToArray();
+                var place = ends[1].Substring(TutorialKeys.CodePrefix.Length).Split('.');
+                if (place[0] == "Start") code = new CodeBlock[0];
+                else if (place[0] == "Arg" && !Empty(code, place)) { wrong.Add(where + ": the answer has no such slot"); continue; }
+                panel.LoadProgram(panel.FunctionName, code);
+                Set(panel, "selected", null); Set(panel, "selectedIndex", -1);
+                editor.TutorialDemo = step.dragDemo;
+                yield return null;
+                var before = new HashSet<CommandBlockView>(panel.Program.AllBlocks());
+                var item = editor.TutorialPaletteItem(ends[0]);
+                for (int tab = 0; !item && tab < 8; tab++) { try { panel.ShowCategory(tab); } catch (Exception) { break; } item = editor.TutorialPaletteItem(ends[0]); } // its tab shown
+                if (!item) { wrong.Add(where + ": no palette block " + ends[0]); continue; }
+                tried++;
+                panel.AddFromPalette(item.GetComponent<CommandBlockView>());
+                var kind = item.GetComponent<CommandBlockView>().BaseKind;
+                var added = panel.Program.AllBlocks().FirstOrDefault(b => !before.Contains(b) && b.BaseKind == kind);
+                string landed = Landed(editor, panel, place, added);
+                if (landed != null) wrong.Add(where + ": " + landed);
+                editor.TutorialDemo = null;
+            }
+        }
+        Check(Click, wrong.Count == 0 && tried > 0, tried + " demo steps clicked; " + string.Join("; ", wrong));
+
+        // Prep: 2-8's prepared code, once with the second shooter on 2-7's code (two breaks) and once with it emptied. The lesson
+        // supplies its own code's blocks: what the preparation adds to the stock (owned, and free) is the same both times.
+        var runs = new List<string>();
+        foreach (bool holding in new[] { true, false })
+        {
+            Open(battle, 2, 8, RobotRole.Shooter, true);
+            var sim = battle.Simulation; var teacher = sim.Robots[0];
+            int second = Place(battle, RobotRole.Shooter);
+            sim.ApplyProgram(second, "second", holding ? TutorialAnswers.Parse(Code27).ToArray() : new CodeBlock[0]);
+            battle.SelectRobot(teacher.Id); battle.DevelopSelected();
+            yield return null;
+            int owned = sim.Owned(BlockKind.Break), spare = sim.Available(BlockKind.Break);
+            editor.PrepareExample("2-8");
+            runs.Add($"owned +{sim.Owned(BlockKind.Break) - owned} free {sim.Available(BlockKind.Break) - spare:+0;-0;0}");
+        }
+        Check(Prep, runs[0] == runs[1], "2-8's preparation with the second shooter on 2-7's code: " + runs[0] + "; with it emptied: " + runs[1]);
+        editor.Close(false);
+    }
+
+    const string Code27 = "while True:\n    enemy = get_nearest_enemy()\n    while True:\n        if enemy.is_dead():\n            break\n" +
+        "        if enemy.distance(get_my_pos()) > my_attack_range():\n            break\n        shoot(enemy)";
+    static void Set(object target, string name, object value) => target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic).SetValue(target, value);
+    // A session at the lesson's wave, the tutorial off, one robot of the role standing and its editor open.
+    static void Open(DefenseBattle battle, int stage, int wave, RobotRole role, bool stock)
+    {
+        battle.EditorStartSession(stage, wave, true, new DefenseTestOptions { tutorial = false, tutorialInput = false, unlockAll = !stock, inventoryLimit = stock });
+        int id = Place(battle, role);
+        battle.SelectRobot(id); battle.DevelopSelected();
+        Require(battle.CodeEditor.IsOpen, "the code editor did not open at " + stage + "-" + wave);
+    }
+    static int Place(DefenseBattle battle, RobotRole role)
+    {
+        var sim = battle.Simulation;
+        int index = Enumerable.Range(0, battle.RobotDefinitions.Count).First(i => battle.DefinitionRole(i) == role);
+        for (float x = sim.Setup.Min.X + 1; x < sim.Setup.Max.X - 1; x++)
+            for (float y = sim.Setup.Min.Y + 1; y < sim.Setup.Max.Y - 1; y++)
+                if (sim.PlacementError(battle.RobotDefinition(index).stats, new System.Numerics.Vector2(x, y)) == null && battle.PlaceRobot(index, new Vector3(x, 0, y)))
+                    return sim.Robots.Last().Id;
+        throw new Exception("no legal placement for " + role);
+    }
+    // Empties the answer's slot at Arg.N.i[.j…] (receiver-taking members count their arguments after the receiver).
+    static bool Empty(CodeBlock[] code, string[] place)
+    {
+        var block = LineOf(code, place[1]);
+        for (int i = 2; block != null && i < place.Length; i++)
+        {
+            int skip = block.Kind == BlockKind.Distance || block.Kind == BlockKind.Hp || block.Kind == BlockKind.IsDead || block.Kind == BlockKind.EnemyTypeOf ? 1 : 0;
+            int at = int.Parse(place[i]) + skip;
+            if (at >= block.Arguments.Count) return false;
+            if (i == place.Length - 1) { block.Arguments[at] = null; return true; }
+            block = block.Arguments[at];
+        }
+        return false;
+    }
+    static CodeBlock LineOf(CodeBlock[] code, string token)
+    {
+        var steps = token.Split('/').Select(int.Parse).ToArray();
+        if (steps[0] > code.Length) return null;
+        var block = code[steps[0] - 1];
+        foreach (int k in steps.Skip(1)) { if (k > block.Body.Count) return null; block = block.Body[k - 1]; }
+        return block;
+    }
+    // Null when the added block sits at the place: Start (the first line), Body.N (its body's last line), Before.N (line N now),
+    // After.N (the line after N), Arg.N.i… (in that slot).
+    static string Landed(DefenseCodeEditor editor, CommandCodingPanel panel, string[] place, CommandBlockView added)
+    {
+        if (!added) return "nothing was added (" + panel.StatusLine.GetComponentInChildren<TMPro.TMP_Text>()?.text + ")";
+        CommandBlockView Line(string token) => editor.Line(token);
+        string Next(string token) { var p = token.Split('/'); p[p.Length - 1] = (int.Parse(p[p.Length - 1]) + 1).ToString(); return string.Join("/", p); }
+        switch (place[0])
+        {
+            case "Start": return panel.Program.StartChain().FirstOrDefault() == added ? null : "not the first line";
+            case "Body": return Line(place[1])?.Body?.Blocks.LastOrDefault() == added ? null : "not at the end of line " + place[1] + "'s body";
+            case "Before": return Line(place[1]) == added ? null : "not in front of line " + place[1];
+            case "After": return Line(Next(place[1])) == added ? null : "not after line " + place[1];
+            case "Arg":
+                var slot = (CommandDropZone)typeof(DefenseCodeEditor).GetMethod("TutorialSlot", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(editor, new object[] { TutorialKeys.CodePrefix + string.Join(".", place) });
+                return slot && slot.Blocks.Contains(added) ? null : "not in slot " + string.Join(".", place);
+        }
+        return "unknown place " + place[0];
     }
 
     // A focus key the step's own targets already open to the pointer: a target itself, a palette block or tab inside the palette
