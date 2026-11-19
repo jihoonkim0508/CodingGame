@@ -357,7 +357,7 @@ namespace CodingGame.Defense.Editor
                 speed.onClick.Invoke(); Require(battle.BattleSpeed == 2, "Speed did not change to 2x in 1-2");
                 speed.onClick.Invoke(); Require(battle.BattleSpeed == 3, "Speed cannot reach 3x in 1-2");
                 speed.onClick.Invoke();
-                if (GameFlow.Developer) { Require(battle.BattleSpeed == 5, "Developer rights do not add 5x after 3x"); speed.onClick.Invoke(); }
+                if (GameFlow.FastSpeed) { Require(battle.BattleSpeed == 5, "Developer rights do not add 5x after 3x"); speed.onClick.Invoke(); }
                 Require(battle.BattleSpeed == 1, "Speed cannot return to 1x after 3x");
                 controlsTried = true;
             }
@@ -367,7 +367,8 @@ namespace CodingGame.Defense.Editor
             if (key == "1/C05" || key == "1/C08")
                 Require(!battle.TutorialBlocksPreview && Field<DefenseAttackPreview>(battle, "attackPreview").IsShowing,
                     "1-1 preview stopped while placing blocks at " + key);
-            if (!string.IsNullOrWhiteSpace(step.dragDemo))
+            // Until its slot holds a block (a filled one needs no demo: 2-3 C06 waits on the name typed after the drop).
+            if (!string.IsNullOrWhiteSpace(step.dragDemo) && step.dragDemo.Split('|').Select(pair => pair.Split('>')).Any(ends => ends.Length == 2 && !battle.CodeEditor.DemoDone(ends[1].Trim())))
                 Require(Field<TutorialPointer>(director, "pointer").IsDragVisible,
                     "Block placement drag preview is missing at " + key);
             // A line on screen holds the battle (no 0.2x): the Play, pause and speed lessons too.

@@ -7,7 +7,7 @@ using CodingGame.BlockCoding;
 namespace CodingGame.Defense.Editor
 {
     // Reads the lessons' answers (TutorialStep.expectedCode) into blocks: "name = get_nearest_enemy()",
-    // "x = enemy.distance(get_my_pos())", "name = my_attack_range()", "slash()", "shoot(enemy)", "if a <= b:" (any comparison),
+    // "x = enemy.distance(get_my_pos())", "name = my_attack_range()", "slash()", "shoot(enemy)", "block(enemy)", "if a <= b:" (any comparison),
     // "if x.is_dead():", "a * b" (one of + - * /), "x.type", "Enemy.Tank", "break", "continue", "for i in range(n):" and
     // "while True:" with a body indented deeper (any width).
     // ponytail: only what the lesson answers use; a new answer shape needs a case here.
@@ -49,6 +49,7 @@ namespace CodingGame.Defense.Editor
                 else if (line == "break") result.Add(new CodeBlock(BlockKind.Break));
                 else if (line == "continue") result.Add(new CodeBlock(BlockKind.Continue));
                 else if (line.StartsWith("shoot(") && line.EndsWith(")")) result.Add(new CodeBlock(BlockKind.Shot, "0", Value(line.Substring(6, line.Length - 7))));
+                else if (line.StartsWith("block(") && line.EndsWith(")")) result.Add(new CodeBlock(BlockKind.Block, "0", Value(line.Substring(6, line.Length - 7))));
                 else
                 {
                     var parts = line.Split(new[] { " = " }, 2, StringSplitOptions.None);

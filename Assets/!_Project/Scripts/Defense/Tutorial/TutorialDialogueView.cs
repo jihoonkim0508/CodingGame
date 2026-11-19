@@ -203,6 +203,8 @@ namespace CodingGame.Defense
             else { panelRect.localScale = Vector3.one; SetGrey(0); }
             centered = on;
         }
+        // Gliding, shrinking or punching in: the panel is not where Place put it yet.
+        public bool Moving => entrance != null;
         // Glides from where the panel was to where Place just put it.
         public void SlideFrom(Vector3 from)
         {
