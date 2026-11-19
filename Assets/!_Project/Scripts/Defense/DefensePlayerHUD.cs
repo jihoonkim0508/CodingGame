@@ -236,19 +236,16 @@ namespace CodingGame.Defense
             if (coinCounter && Changed(ref shownCoins, (sim.Coins, 0, 0))) coinCounter.text = sim.Coins.ToString("N0");
             combatControls.SetActive(fighting);
             RefreshEnemyCards(sim, fighting);
-            // Stage 1 goals come with its tutorial; later stages show the lesson's own goal line.
-            string lessonGoal = battle.Stage > 1 ? sim.Lesson?.goal : null;
-            bool freePlayGoal = (battle.Tutorial && battle.Tutorial.ShowFreePlayGoal || !string.IsNullOrEmpty(lessonGoal)) && !reward && !ended;
+            // Every wave shows its lesson's goal while preparing and fighting; a tutorial line at the top or centred hides it, so the bar never covers the line.
+            string lessonGoal = sim.Lesson?.goal;
+            var line = battle.Tutorial ? battle.Tutorial.DialogueView : null;
+            bool freePlayGoal = !string.IsNullOrEmpty(lessonGoal) && !reward && !ended && !(line && line.IsVisible && (line.AtTop || line.IsCentered));
             if (freePlayGoal && !goalRect.gameObject.activeSelf) goalAnimationStart = Time.unscaledTime;
             guide.transform.parent.gameObject.SetActive(freePlayGoal);
             if (freePlayGoal != upcomingLowered) LowerUpcoming(freePlayGoal);
             if (freePlayGoal)
             {
-                if (!ReferenceEquals(lessonGoal, shownGoal) || string.IsNullOrEmpty(lessonGoal)) guide.text = !string.IsNullOrEmpty(lessonGoal) ? "목표 · " + lessonGoal :
-                    sim.WaveIndex == 1 ? "목표 · 새 전사를 배치하고 '실행'으로 베기" :
-                    sim.WaveIndex == 2 ? "목표 · 반복문으로 한 번에 여러 번 베기" :
-                    sim.WaveIndex == 3 ? "목표 · 새 전사와 반복문으로 몰려오는 적 막기" :
-                    "목표 · 반복문으로 작은 적을 모두 막고 보스 쓰러뜨리기";
+                if (!ReferenceEquals(lessonGoal, shownGoal)) guide.text = "목표 · " + lessonGoal;
                 shownGoal = lessonGoal;
                 AnimateGoal();
             }
