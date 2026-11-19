@@ -782,6 +782,9 @@ namespace CodingGame.Defense
             if (!cardRestSet) { cardRest = card.anchoredPosition; cardRestSet = true; }
             float target = 0;
             var line = battle.Tutorial ? battle.Tutorial.DialogueView : null;
+            // A bottom line covered the card's lower half, the debrief and its MVP (the user: 'MVP 기능이 잘 안 보임'):
+            // over the result every line goes to the top, and the card moves down under it.
+            if (rewardPanel.activeInHierarchy && line && line.IsVisible && !line.AtTop && !line.IsCentered) line.Place(TutorialDialoguePosition.Top);
             if (rewardPanel.activeInHierarchy && line && line.IsVisible && line.AtTop && card.rect.height > 0)
             {
                 float top = ScreenY(card, true), perUnit = (top - ScreenY(card, false)) / card.rect.height;
@@ -1207,6 +1210,7 @@ namespace CodingGame.Defense
                 var card = i < debriefCards.Count ? debriefCards[i] : MakeDebriefCard();
                 card.root.gameObject.SetActive(true);
                 card.stripe.color = line.Mvp ? MvpColor : line.Issue != DefenseDebrief.Issue.None ? AdviceColor : FineColor;
+                card.title.color = UITheme.Ink; // the reward text's light colour left the robot's name unreadable on the paper card (baked cards too)
                 card.title.text = $"<b>{line.Name}</b>" + (line.Mvp ? $"  <color={UITheme.GoodHex}><size=80%>MVP</size></color>" : "") +
                     $"\n<color={UITheme.MutedHex}><size=88%>{line.Stats}</size></color>";
                 card.share.rectTransform.anchorMax = new Vector2(line.Bot.DamageThisWave / most, 1);
