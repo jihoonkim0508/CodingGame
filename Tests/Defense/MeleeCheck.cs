@@ -59,6 +59,21 @@ static class MeleeCheck
         Assert(bot.Executions == 0 && bot.LoopTurnsThisWave == 2 && !bot.Program.Running && bot.Program.Fault == null,
             "a loop turn whose if is false is spent (synchronous: nothing waits for the condition)");
 
+        // The sword hits who is inside the range ring when it lands, not who was there at the swing's start (user report
+        // 2026-11-19: hits did not match the ring). A runs into the ring during the swing, B runs out of it.
+        sim = Make(new[] { line }, new SpawnGroup { Enemy = new EnemySpec { health = 10000, speed = 4 }, Count = 2, Interval = 1.15f });
+        bot = Warrior(sim, 0, 2f);
+        sim.ApplyProgram(bot.Id, "idle", new[] { new CodeBlock(BlockKind.Wait, "0", N("100")) });
+        sim.Start();
+        while (sim.Enemies.Count < 2 || sim.Enemies[0].Position.X < 2) sim.Advance(1.0 / 60);
+        EnemyState leaving = sim.Enemies[0], coming = sim.Enemies[1];
+        float Dist(EnemyState e) => Vector2.Distance(e.Position, bot.Position);
+        Assert(Dist(leaving) <= bot.Range && Dist(coming) > bot.Range, $"setup: B inside, A outside at the swing {Dist(leaving):0.00} {Dist(coming):0.00}");
+        Assert(sim.RequestAction(bot.Id, RobotAction.Slash) == ActionResult.Executed, "the swing starts");
+        while (leaving.Health == 10000 && coming.Health == 10000 && sim.Time < 10) sim.Advance(1.0 / 60);
+        Assert(Dist(leaving) > bot.Range && Dist(coming) <= bot.Range, $"setup: B outside, A inside when the sword lands {Dist(leaving):0.00} {Dist(coming):0.00}");
+        Assert(coming.Health < 10000 && leaving.Health == 10000, "the strike hits the enemy inside the ring when it lands, not the one that walked out");
+
         Console.WriteLine($"Melee checks passed: {checks}");
     }
 }
