@@ -143,7 +143,7 @@ namespace CodingGame.Defense
             sounds = gameObject.AddComponent<DefenseSounds>();
             developerRoot.SetActive(false);
             developerHint.SetActive(false); // PR #19's header puts the coin stat in this corner; F1 still works in developer mode
-            startButton.onClick.AddListener(StartBattle);
+            startButton.onClick.AddListener(RequestStartBattle);
             pauseButton.onClick.AddListener(TogglePause);
             speedButton.onClick.AddListener(ToggleSpeed);
             resetButton.onClick.AddListener(Restart);
@@ -532,6 +532,35 @@ namespace CodingGame.Defense
             sessionRun.live = Simulation.Inputs;
             Recording.Add(step, sessionRun);
         }
+        // The 전투 시작 button and Space (the user, 2026-11-19): robots or blocks left over ask first. A tutorial step that
+        // guides the click starts directly (lessons leave blocks unused on purpose); free play in a lesson asks too.
+        public void RequestStartBattle()
+        {
+            var problems = TutorialBlocksInput || Simulation.StartError() != null ? null : LeftoverProblems();
+            if (problems == null) StartBattle(); else playerHUD.ConfirmStart(problems, StartBattle);
+        }
+        // Robots the player could place now and blocks no robot uses, in the palette's names; null when nothing is left.
+        public List<string> LeftoverProblems()
+        {
+            var sim = Simulation;
+            if (!sim.Setup.PlayerFlow || !sim.Options.inventoryLimit) return null; // sandbox stock is endless
+            bool limits = sim.Options.deploymentLimit;
+            int room = limits ? sim.Setup.RobotLimit - sim.Robots.Count : int.MaxValue;
+            var robotsLeft = new List<string>();
+            foreach (var stock in sim.RobotInventory.OrderBy(p => p.Key))
+            {
+                int n = Math.Min(stock.Value, room);
+                if (limits) n = Math.Min(n, sim.Setup.RulesConfig.roleLimits[(int)stock.Key] - sim.Robots.Count(r => r.Spec.role == stock.Key));
+                if (n <= 0) continue;
+                room -= n; robotsLeft.Add($"{RoleName(stock.Key)} {n}대");
+            }
+            var blocksLeft = sim.Inventory.Keys.OrderBy(k => k).Select(k => (k, n: sim.Available(k))).Where(x => x.n > 0)
+                .Select(x => $"{DefenseProgression.Label(x.k)} {x.n}개").ToList();
+            var problems = new List<string>();
+            if (robotsLeft.Count > 0) problems.Add("배치하지 않은 로봇: " + string.Join(", ", robotsLeft));
+            if (blocksLeft.Count > 0) problems.Add("쓰지 않은 블록: " + string.Join(", ", blocksLeft));
+            return problems.Count > 0 ? problems : null;
+        }
         public void StartBattle()
         {
             if (!TutorialAllows("Battle.Start")) { if (tutorial) tutorial.NudgeBlocked(); return; }
@@ -845,7 +874,10 @@ namespace CodingGame.Defense
         void Update()
         {
             if (Simulation == null || HelpOpen) return;
-            bool dialogueInput = tutorial && tutorial.DialogueInputCaptured;
+            // The start check takes all input: Esc answers 아니요, and nothing reaches the map or the menu behind it.
+            bool confirming = playerHUD.ConfirmOpen;
+            if (confirming && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) playerHUD.CloseConfirm();
+            bool dialogueInput = confirming || (tutorial && tutorial.DialogueInputCaptured);
             var mouse = dialogueInput ? null : Mouse.current; var keyboard = dialogueInput ? null : Keyboard.current;
             bool tutorialActive = TutorialBlocksInput;
             // F1 works in a tutorial too (its dialogue-id jump is for the tutorial); the tutorial does not gate it.
@@ -857,11 +889,11 @@ namespace CodingGame.Defense
             }
             if (!tutorialActive && keyboard != null && !DeveloperMode && !codeEditor.IsOpen && !inventoryUI.IsOpen)
             {
-                if (keyboard.spaceKey.wasPressedThisFrame && !playerHUD.MenuOpen) { if (Simulation.Phase == BattlePhase.Ready) StartBattle(); else TogglePause(); }
+                if (keyboard.spaceKey.wasPressedThisFrame && !playerHUD.MenuOpen) { if (Simulation.Phase == BattlePhase.Ready) RequestStartBattle(); else TogglePause(); }
             }
             // Esc first drops a robot being placed (outside the tutorial); otherwise it opens or closes the menu, the tutorial
             // included (play feedback: there was no way out of a lesson). The code editor and inventory use Esc themselves.
-            var esc = Keyboard.current;
+            var esc = confirming ? null : Keyboard.current;
             if (esc != null && esc.escapeKey.wasPressedThisFrame && !DeveloperMode && !codeEditor.IsOpen && !inventoryUI.IsOpen)
             { if (!tutorialActive && (palette >= 0 || draggingRobot)) CancelPlacement(); else playerHUD.ToggleMenu(); }
             if (keyboard != null && keyboard.fKey.wasPressedThisFrame && SpeedUnlocked && !DeveloperMode &&
