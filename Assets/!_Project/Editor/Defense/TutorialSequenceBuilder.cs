@@ -264,9 +264,10 @@ namespace CodingGame.Defense.Editor
             L("2-3.C03", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/2.0", "Editor.Palette.Comparison", "Editor.Palette.Comparison", "Editor.Code.Arg.1/2.0"), s => s.AutoSlot = "Editor.Code.Arg.1/2.0")),
             L("2-3.C04", EditSignal(TutorialSignals.DraftValueMatches, "1/2.0|<=", "Editor.Code.Option.1/2.0", "Editor.Code.Option.1/2.0")),
             // enemy.distance() is the variable block named enemy. with distance( chosen after the dot (no block of its own).
-            L("2-3.C06", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/2.0.0:Distance",
-                "Editor.Code.Option.1/2.0.0|Editor.Code.Name.1/2.0.0|Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.Arg.1/2.0.0"),
-                s => { s.AutoSlot = "Editor.Code.Arg.1/2.0.0"; s.Demo = "Editor.Palette.Variable>Editor.Code.Arg.1/2.0.0"; })),
+            // `enemy.` typed up to the dot, then distance( from the picker the dot opens: two steps (the user, 2026-11-19: players
+            // typed ".distance" on and skipped the step; the field now takes nothing after the dot).
+            L("2-3.C06", EnemyIn("1/2.0.0", "enemy.")),
+            L("2-3.C06a", Member("1/2.0.0", nameof(BlockKind.Distance))),
             L("2-3.C07", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/2.0.0.0:MyPos", "Editor.Palette.MyPos", "Editor.Palette.MyPos", "Editor.Code.Arg.1/2.0.0.0"), s => s.AutoSlot = "Editor.Code.Arg.1/2.0.0.0")),
             L("2-3.C09", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/2.0.1:MyAttackRange", "Editor.Palette.MyAttackRange", "Editor.Palette.MyAttackRange", "Editor.Code.Arg.1/2.0.1"), s => s.AutoSlot = "Editor.Code.Arg.1/2.0.1")),
             L("2-3.C10", With(Ed, Focus("Editor.Code.Arg.1/2.0"))),
@@ -288,13 +289,13 @@ namespace CodingGame.Defense.Editor
             L(wave + ".E01", Signal(TutorialSignals.BattleStarted, new[] { Start }, s => { s.CloseEditor = true; s.Top = true; s.HintCode = hint; })),
             L(wave + ".E02", With(Fight, s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = hint; })),
             L(wave + ".E03", Claim) };
-        // A variable block put in the slot and named enemy, said in one line (2-5 and 2-6 C02).
-        static Action<S> EnemyIn(string path) => With(EditSignal(TutorialSignals.DraftValueMatches, path + "|enemy",
+        // A variable block put in the slot and named, said in one line: enemy, or `enemy.` up to the dot that opens its member picker.
+        static Action<S> EnemyIn(string path, string name = "enemy") => With(EditSignal(TutorialSignals.DraftValueMatches, path + "|" + name,
             "Editor.Code.Name." + path + "|Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.Arg." + path),
             s => { s.AutoSlot = "Editor.Code.Arg." + path; s.Demo = "Editor.Palette.Variable>Editor.Code.Arg." + path; });
-        // `enemy.` and is_dead() from its list: the slot then holds a condition.
-        static Action<S> Dead(string path) => EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg." + path + ":IsDead",
-            "Editor.Code.Option." + path + "|Editor.Code.Name." + path, "Editor.Code.Arg." + path);
+        // The member chosen from the picker `enemy.` opened (distance(, is_dead(), type), the picker in the spotlight.
+        static Action<S> Member(string path, string kind) => EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg." + path + ":" + kind,
+            "Editor.Code.Option." + path, "Editor.Code.Option." + path);
 
         // 2-5 (원거리_집중공격_설계 4-5): the enemy found once before the loop is shot until it falls, then the shooter stands
         // still; the player adds the if that finds a new one once enemy.is_dead().
@@ -309,8 +310,8 @@ namespace CodingGame.Defense.Editor
             // In front of shoot(enemy), the loop's first line: dragged there, or clicked (a click goes where the demo drops it).
             L("2-5.C01", With(EditSignal(TutorialSignals.CodeLinePlaced, "2/1:If", "Editor.Palette.If", "Editor.Palette.If", "Editor.Code.Before.2/1"),
                 s => s.Demo = "Editor.Palette.If>Editor.Code.Before.2/1")),
-            L("2-5.C02", EnemyIn("2/1.0")),
-            L("2-5.C03", Dead("2/1.0")),
+            L("2-5.C02", EnemyIn("2/1.0", "enemy.")),
+            L("2-5.C03", Member("2/1.0", nameof(BlockKind.IsDead))),
             L("2-5.C04", With(Ed, Focus("Editor.Code.Arg.2/1.0"))),
             L("2-5.D01", With(EditSignal(TutorialSignals.CodeLinePlaced, "2/1/1:DeclareVariable", "Editor.Palette.DeclareVariable", "Editor.Palette.DeclareVariable", "Editor.Code.Body.2/1"),
                 s => s.AutoSlot = "Editor.Code.Body.2/1")),
@@ -334,10 +335,12 @@ namespace CodingGame.Defense.Editor
                 s => s.Demo = "Editor.Palette.If>Editor.Code.Before.1/2/1")),
             L("2-6.C02", With(EditSignal(TutorialSignals.DraftValueMatches, "1/2/1.0|>", "Editor.Code.Option.1/2/1.0|Editor.Palette.Comparison", "Editor.Palette.Comparison", "Editor.Code.Arg.1/2/1.0"),
                 s => { s.AutoSlot = "Editor.Code.Arg.1/2/1.0"; s.Demo = "Editor.Palette.Comparison>Editor.Code.Arg.1/2/1.0"; })),
-            // Both sides in one line: enemy. with distance( and get_my_pos() on the left, my_attack_range() on the right.
-            L("2-6.C03", Signal(TutorialSignals.ConditionBuilt, new[] { Drop, Palette }, With(s => {
+            // `enemy.` and distance( from its picker, then get_my_pos() in its brackets and my_attack_range() on the right.
+            L("2-6.C03", EnemyIn("1/2/1.0.0", "enemy.")),
+            L("2-6.C03a", Member("1/2/1.0.0", nameof(BlockKind.Distance))),
+            L("2-6.C03b", Signal(TutorialSignals.ConditionBuilt, new[] { Drop, Palette }, With(s => {
                 s.Expected = "enemy.distance(get_my_pos()) > my_attack_range()"; s.AutoSlot = "Editor.Code.Arg.1/2/1.0.0";
-                s.Pointer = "Editor.Palette.Variable"; s.Demo = "Editor.Palette.Variable>Editor.Code.Arg.1/2/1.0.0"; },
+                s.Pointer = "Editor.Palette.MyPos"; s.Demo = "Editor.Palette.MyPos>Editor.Code.Arg.1/2/1.0.0.0"; },
                 Focus("Editor.Code.Arg.1/2/1.0.0", "Editor.Code.Arg.1/2/1.0.1")))),
             L("2-6.C04", With(EditSignal(TutorialSignals.ProgramMatches, Code26, "Editor.Palette.Break", "Editor.Palette.Break", "Editor.Code.Body.1/2/1"),
                 s => { s.AutoSlot = "Editor.Code.Body.1/2/1"; s.Demo = "Editor.Palette.Break>Editor.Code.Body.1/2/1"; })),
@@ -370,9 +373,8 @@ namespace CodingGame.Defense.Editor
             // The comparison put in the if and its sign turned to != (one line: the block, then its picker).
             L("2-8.C02", With(EditSignal(TutorialSignals.DraftValueMatches, "1/2.0|!=", "Editor.Code.Option.1/2.0|Editor.Palette.Comparison", "Editor.Palette.Comparison", "Editor.Code.Arg.1/2.0"),
                 s => { s.AutoSlot = "Editor.Code.Arg.1/2.0"; s.Demo = "Editor.Palette.Comparison>Editor.Code.Arg.1/2.0"; })),
-            L("2-8.C03", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/2.0.0:EnemyTypeOf",
-                "Editor.Code.Option.1/2.0.0|Editor.Code.Name.1/2.0.0|Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.Arg.1/2.0.0"),
-                s => { s.AutoSlot = "Editor.Code.Arg.1/2.0.0"; s.Demo = "Editor.Palette.Variable>Editor.Code.Arg.1/2.0.0"; })),
+            L("2-8.C03", EnemyIn("1/2.0.0", "enemy.")),
+            L("2-8.C03a", Member("1/2.0.0", nameof(BlockKind.EnemyTypeOf))),
             L("2-8.C04", With(EditSignal(TutorialSignals.DraftValueMatches, "1/2.0.1|Tank", "Editor.Code.Option.1/2.0.1|Editor.Palette.EnemyTypeName", "Editor.Palette.EnemyTypeName", "Editor.Code.Arg.1/2.0.1"),
                 s => { s.AutoSlot = "Editor.Code.Arg.1/2.0.1"; s.Demo = "Editor.Palette.EnemyTypeName>Editor.Code.Arg.1/2.0.1"; })),
             L("2-8.C05", With(EditSignal(TutorialSignals.ProgramMatches, Code28, "Editor.Palette.Continue", "Editor.Palette.Continue", "Editor.Code.Body.1/2"),

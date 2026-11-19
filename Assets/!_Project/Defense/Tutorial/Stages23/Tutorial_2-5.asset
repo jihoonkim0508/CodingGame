@@ -426,8 +426,8 @@ MonoBehaviour:
     - textId: t1
       speaker: "\uB514\uBC84"
       text: "\uC870\uAC74 \uCE78\uC5D4 <b>\u2018variable\u2019</b> \uBE14\uB85D\uC744
-        \uB123\uACE0\n\uAE00\uC790\uB97C \uB20C\uB7EC <b>`enemy`</b>\uB85C \uBC14\uAFD4
-        \uC918."
+        \uB123\uACE0\n\uAE00\uC790\uB97C <b>`enemy`.</b> \uB85C \uBC14\uAFD4 \uC918.
+        \uC810(.)\uAE4C\uC9C0!"
       focusKeys:
       - Editor.Palette.Variable
       - Editor.Code.Arg.2/1.0
@@ -450,7 +450,7 @@ MonoBehaviour:
     highlightPadding: 10
     trigger: 
     skipIf: 
-    expectedCode: 2/1.0|enemy
+    expectedCode: 2/1.0|enemy.
     pointerKey: Editor.Code.Name.2/1.0|Editor.Palette.Variable
     autoSelectSlot: Editor.Code.Arg.2/1.0
     hintCode: 
@@ -478,10 +478,10 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "`enemy` \uB4A4\uC758 \uC810(.)\uC744 \uB20C\uB7EC\n<b>`is_dead()`</b>\uB97C
-        \uACE8\uB77C \uC918!"
+      text: "\uC810\uC744 \uCC0D\uC73C\uB2C8 \uBAA9\uB85D\uC774 \uB098\uC654\uC9C0?\n\uC5EC\uAE30\uC11C
+        <b>`is_dead()`</b>\uB97C \uACE8\uB77C \uC918!"
       focusKeys:
-      - Editor.Code.Arg.2/1.0
+      - Editor.Code.Option.2/1.0
       highlightKeys: []
     targetKeys:
     - Editor.ProgramDropZone
@@ -502,7 +502,7 @@ MonoBehaviour:
     trigger: 
     skipIf: 
     expectedCode: Editor.Code.Arg.2/1.0:IsDead
-    pointerKey: Editor.Code.Option.2/1.0|Editor.Code.Name.2/1.0
+    pointerKey: Editor.Code.Option.2/1.0
     autoSelectSlot: 
     hintCode: 
     pointerDelay: 0

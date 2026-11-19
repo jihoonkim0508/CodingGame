@@ -576,11 +576,64 @@ MonoBehaviour:
     - textId: t1
       speaker: "\uB514\uBC84"
       text: "\uC67C\uCABD \uCE78\uC5D4 \uC801\uAE4C\uC9C0\uC758 \uAC70\uB9AC\uAC00
-        \uB4E4\uC5B4\uAC00.\n\uAC12 \uD0ED\uC758 <b>`enemy.distance()`</b> \uBE14\uB85D\uC744
-        \uB20C\uB7EC \uC918."
+        \uB4E4\uC5B4\uAC00. \uAC12 \uD0ED\uC758 <b>\u2018variable\u2019</b>\uC744
+        \uB123\uACE0\n\uAE00\uC790\uB97C <b>`enemy`.</b> \uB85C \uBC14\uAFD4 \uC918.
+        \uC810(.)\uAE4C\uC9C0!"
       focusKeys:
       - Editor.Palette.Variable
       - Editor.Code.Arg.1/2.0.0
+      highlightKeys: []
+    targetKeys:
+    - Editor.ProgramDropZone
+    - Editor.BlockPalette
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    completionMode: 3
+    completionSignal: DraftValueMatches
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 1/2.0.0|enemy.
+    pointerKey: Editor.Code.Name.1/2.0.0|Editor.Palette.Variable
+    autoSelectSlot: Editor.Code.Arg.1/2.0.0
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: -1
+    prepareDistanceExample: 0
+    placeShooter: 0
+    placeWarrior: 0
+    prepareBaselineExample: 0
+    prepareExample: 
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: Editor.Palette.Variable>Editor.Code.Arg.1/2.0.0
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
+  - stepId: C06a
+    kind: 1
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "\uC810\uC744 \uCC0D\uC73C\uB2C8 \uACE0\uB97C \uC218 \uC788\uB294 \uBAA9\uB85D\uC774
+        \uB098\uC654\uC9C0?\n\uC5EC\uAE30\uC11C <b>distance()</b>\uB97C \uACE8\uB77C
+        \uC918."
+      focusKeys:
+      - Editor.Code.Option.1/2.0.0
       highlightKeys: []
     targetKeys:
     - Editor.ProgramDropZone
@@ -601,8 +654,8 @@ MonoBehaviour:
     trigger: 
     skipIf: 
     expectedCode: Editor.Code.Arg.1/2.0.0:Distance
-    pointerKey: Editor.Code.Option.1/2.0.0|Editor.Code.Name.1/2.0.0|Editor.Palette.Variable
-    autoSelectSlot: Editor.Code.Arg.1/2.0.0
+    pointerKey: Editor.Code.Option.1/2.0.0
+    autoSelectSlot: 
     hintCode: 
     pointerDelay: 0
     closeEditor: 0
@@ -617,7 +670,7 @@ MonoBehaviour:
     restartPreview: 0
     introEntrance: 0
     alertCards: 0
-    dragDemo: Editor.Palette.Variable>Editor.Code.Arg.1/2.0.0
+    dragDemo: 
     autoAdvance: 0
     dismissable: 0
     holdSeconds: 0

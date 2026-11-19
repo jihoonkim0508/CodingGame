@@ -100,6 +100,9 @@ namespace CodingGame.BlockCoding
                 if (input) input.onValueChanged.AddListener(InputChanged);
                 // Only a Python name can be typed (a name like "123" left the code unapplied without a word).
                 if (input && kind == BlockKind.DeclareVariable) input.onValidateInput = (text, index, c) => c == '_' || char.IsLetter(c) || (char.IsDigit(c) && index > 0) ? c : '\0';
+                // After `enemy.` the picker chooses the member: typing on (".distance") made a name no variable has and skipped
+                // the lesson's step (the user, 2026-11-19). The name before the dot can still be edited, and backspace takes the dot.
+                if (input && kind == BlockKind.Variable) input.onValidateInput = (text, index, c) => text.IndexOf('.') is int dot && dot >= 0 && (c == '.' || index > dot) ? '\0' : c;
                 if (input && !IsStatement && input.TryGetComponent<LayoutElement>(out var field))
                 {
                     // A field in a value block fits its 28 px pill; its text area has no vertical inset, so 17 px text is not clipped.
