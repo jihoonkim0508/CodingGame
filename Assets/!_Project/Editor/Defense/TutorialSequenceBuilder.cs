@@ -651,7 +651,10 @@ namespace CodingGame.Defense.Editor
             Groups(2, 10, ("Enemy", 4, 0, 3.5f, 15.6f, 1.5f, 0, false), ("Runner", 2, 16, 4, 7, 1.1f, 0, false), ("Heavy", 1, 0, 2, 60, 1.3f, 12, true));
             // No tank-bodied minions before the last boss: the boss comes only once they are all down, and with them it came
             // after Stage 3's 50 s and walked in at the time-up (campaign run, 13차 179).
-            Groups(3, 4, ("Runner", 4, 0, 1.3f, 0, 0, 0, false), ("Enemy", 5, 4, 1.2f, 0, 0, 0, false), ("Heavy", 1, 0, 2, 130, 1.1f, 12, true));
+            // 3-4 at the asset's numbers (fast 87 health at 2.8, basic 116 at 2.7 once scaled) let one minion through the six
+            // robots' plain loops every time, ending the boss wave at once (play-test 2026-11-19). Scaled now: fast 55 at 2.2,
+            // basic 85 at 2.3, the boss 238 at 1.2 - all felled with a few seconds of the 50 to spare (3-3 still costs 4 core).
+            Groups(3, 4, ("Runner", 4, 0, 1.3f, 35, 1.3f, 0, false), ("Enemy", 5, 4, 1.2f, 40, 1.4f, 0, false), ("Heavy", 1, 0, 2, 75, 1f, 12, true));
             stages.GetArrayElementAtIndex(2).FindPropertyRelative("waves").arraySize = 4;
             var waves = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves");
             var fourth = waves.GetArrayElementAtIndex(3).FindPropertyRelative("groups").GetArrayElementAtIndex(0);

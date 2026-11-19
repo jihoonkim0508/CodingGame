@@ -742,8 +742,8 @@ MonoBehaviour:
         count: 4
         delay: 0
         interval: 1.3
-        healthOverride: 0
-        speedOverride: 0
+        healthOverride: 35
+        speedOverride: 1.3
         leakDamageOverride: 0
         boss: 0
       - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
@@ -751,8 +751,8 @@ MonoBehaviour:
         count: 5
         delay: 4
         interval: 1.2
-        healthOverride: 0
-        speedOverride: 0
+        healthOverride: 40
+        speedOverride: 1.4
         leakDamageOverride: 0
         boss: 0
       - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
@@ -760,8 +760,8 @@ MonoBehaviour:
         count: 1
         delay: 0
         interval: 2
-        healthOverride: 130
-        speedOverride: 1.1
+        healthOverride: 75
+        speedOverride: 1
         leakDamageOverride: 12
         boss: 1
     waveSeconds: 50
