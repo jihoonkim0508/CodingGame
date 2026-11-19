@@ -169,10 +169,6 @@ namespace CodingGame.Defense
                 robotButtons.Any(b => !b) || blockedAreas.Any(area => !area) || enemies.Length == 0 || enemies.Any(e => !e || !e.prefab) || routes.Length == 0 || routes.Any(r => !r))
                 throw new InvalidOperationException("로봇·적·경로·버튼 목록의 Inspector 참조를 확인하세요.");
             foreach (var r in robots) r.stats.Validate();
-            var warrior = robots.FirstOrDefault(r => r.stats.role == RobotRole.Warrior);
-            var bomber = robots.FirstOrDefault(r => r.stats.role == RobotRole.Bomber);
-            if (warrior && bomber && Mathf.Abs(bomber.stats.range - warrior.stats.range * 1.5f) > .001f)
-                throw new InvalidOperationException("시험 정의의 폭탄 사거리는 전사 기본 사거리의 1.5배여야 합니다.");
         }
         BattleSetup MakeSetup(DefenseCampaignDefinition content, int selectedStage)
         {
@@ -1089,7 +1085,7 @@ namespace CodingGame.Defense
             switch (Simulation.Compatibility(bot, bot.Action))
             {
                 case ActionCompatibility.Native: return "전문 행동 · 정상 실행";
-                case ActionCompatibility.Reduced: return !Rules.NeedsPermission(bot.Action) ? "비전문 행동 · 효율 10%" : "승인된 비전문 행동 · 낮은 효율";
+                case ActionCompatibility.Reduced: return !Rules.NeedsPermission(bot.Action) ? "비전문 행동 · 효율 " + Simulation.Setup.RulesConfig.reducedStrength.ToString("0%") : "승인된 비전문 행동 · 낮은 효율";
                 case ActionCompatibility.Ineffective: return "실행 무효 · 이 로봇에서는 " + ActionName(bot.Action) + "이 동작하지 않습니다.";
                 default: return "호환 미정 · 효과를 실행하지 않습니다. 기획 확정 후 데이터에 등록하세요.";
             }

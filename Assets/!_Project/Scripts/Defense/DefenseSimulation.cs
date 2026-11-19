@@ -17,8 +17,7 @@ namespace CodingGame.Defense
         readonly List<ProjectileState> due = new List<ProjectileState>();
         public readonly List<EnemyState> Enemies = new List<EnemyState>();
         public readonly List<ProjectileState> Projectiles = new List<ProjectileState>();
-        // 근접 베기: 휘두른 검이 정면을 지날 때(공격 간격의 40% 뒤) 피해를 줍니다(기획: 이펙트·애니메이션과 같은 순간).
-        const double StrikeShare = .4;
+        // 근접 베기: 휘두른 검이 정면을 지날 때(공격 간격의 RobotSpec.strikeShare 뒤) 피해를 줍니다(기획: 이펙트·애니메이션과 같은 순간).
         readonly List<(double at, RobotState bot, float damage)> strikes = new List<(double, RobotState, float)>();
         readonly List<(double at, RobotState bot, float damage)> dueStrikes = new List<(double, RobotState, float)>();
         public readonly List<CombatEvent> Events = new List<CombatEvent>();
@@ -34,11 +33,14 @@ namespace CodingGame.Defense
         public int Leaks { get; private set; }
         public int Spawned { get; private set; }
         public int WaveLeaks => Leaks - waveLeaksAtStart;
-        // Stage result: 3 stars with 80%+ of the core left, 2 with 40%+, 1 for a clear (12 HP: 10 and 5). Forgiving on
-        // purpose: 1-1 lets one enemy through by design.
-        public static int Stars(int core, int max) => core * 5 >= max * 4 ? 3 : core * 5 >= max * 2 ? 2 : 1;
-        public static int CoreForStars(int stars, int max) => stars >= 3 ? (max * 4 + 4) / 5 : stars == 2 ? (max * 2 + 4) / 5 : 1;
-        public int StageStars => Phase == BattlePhase.Victory ? Stars(BaseHealth, Setup.BaseHealth) : 0;
+        // Stage result: DefenseBalanceRules' star thresholds (80%/40% of the core: 12 HP needs 10 and 5). Forgiving on
+        // purpose: 1-1 lets one enemy through by design. No rules: the class defaults (tests).
+        static readonly DefenseBalanceRules DefaultRules = new DefenseBalanceRules();
+        public static int Stars(int core, int max, DefenseBalanceRules rules = null)
+        { rules ??= DefaultRules; return core * 100 >= max * rules.threeStarCorePercent ? 3 : core * 100 >= max * rules.twoStarCorePercent ? 2 : 1; }
+        public static int CoreForStars(int stars, int max, DefenseBalanceRules rules = null)
+        { rules ??= DefaultRules; return stars >= 3 ? (max * rules.threeStarCorePercent + 99) / 100 : stars == 2 ? (max * rules.twoStarCorePercent + 99) / 100 : 1; }
+        public int StageStars => Phase == BattlePhase.Victory ? Stars(BaseHealth, Setup.BaseHealth, Setup.RulesConfig) : 0;
         // Read every tick: plain loops, no LINQ (13차 129).
         public int RemainingEnemies
         {
@@ -456,7 +458,7 @@ namespace CodingGame.Defense
             var compatibility = Compatibility(bot, action);
             if (compatibility == ActionCompatibility.Native) return 1;
             if (compatibility != ActionCompatibility.Reduced) return 0;
-            return !Rules.NeedsPermission(action) ? .1f : Setup.Permissions.First(p => p.role == bot.Spec.role && p.action == action).strength;
+            return !Rules.NeedsPermission(action) ? Setup.RulesConfig.reducedStrength : Setup.Permissions.First(p => p.role == bot.Spec.role && p.action == action).strength;
         }
         public float ActionDamage(RobotState bot, RobotAction action) => Profile(bot, action).damage * bot.DamageMultiplier * Strength(bot, action);
         // Distance does not change damage: the shooter's inverse-distance bonus was dropped (design decision 2026-11-18).
@@ -530,7 +532,7 @@ namespace CodingGame.Defense
             var direction = target == null ? Vector2.UnitY : target.Position - bot.Position;
             if (direction.LengthSquared() < .000001f) direction = Vector2.UnitY;
             direction = Vector2.Normalize(direction);
-            double strike = ActionInterval(bot, RobotAction.Slash) * StrikeShare;
+            double strike = ActionInterval(bot, RobotAction.Slash) * bot.Spec.strikeShare;
             Events.Add(new CombatEvent { Kind = "slash", Source = bot.Id, Target = target?.Id ?? 0,
                 Origin = bot.Position, Position = bot.Position + direction, Radius = bot.Range, Seconds = (float)strike });
             // A spin all the way round; who it hits is decided when the sword gets there (ResolveStrikes). The event still

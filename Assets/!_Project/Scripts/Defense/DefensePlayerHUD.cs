@@ -261,7 +261,7 @@ namespace CodingGame.Defense
             notice.text = battle.StatusMessage;
             if (Changed(ref shownPlaced, (sim.Robots.Count, sim.Setup.RobotLimit, 0)))
             {
-                inventory.text = $"설치 {sim.Robots.Count} / {sim.Setup.RobotLimit}대  ·  버프형 최대 1대  ·  Esc 메뉴";
+                inventory.text = $"설치 {sim.Robots.Count} / {sim.Setup.RobotLimit}대  ·  버프형 최대 {sim.Setup.RulesConfig.roleLimits[(int)RobotRole.Buffer]}대  ·  Esc 메뉴";
                 inventory.color = sim.Robots.Count >= sim.Setup.RobotLimit ? new Color(.64f,.2f,.14f) : new Color(.1f,.28f,.36f);
             }
             startButton.interactable = ready;
@@ -919,7 +919,7 @@ namespace CodingGame.Defense
             int earned = sim.StageStars, max = sim.Setup.BaseHealth;
             int best = battle.FromStageMap ? battle.BestStarsBefore : 0; // this clear is already recorded when the screen draws
             string line = earned > best && best > 0 ? $"<color={UITheme.GoodHex}><b>새 기록!</b></color>   " : best > earned ? $"<color={UITheme.MutedHex}>최고 기록 {new string('★', best)}</color>   " : "";
-            line += $"코어 {sim.BaseHealth} / {max} · " + (earned < 3 ? $"코어를 {DefenseSimulation.CoreForStars(earned + 1, max)} 이상 남기면 ★{earned + 1}" : "최고 등급!");
+            line += $"코어 {sim.BaseHealth} / {max} · " + (earned < 3 ? $"코어를 {DefenseSimulation.CoreForStars(earned + 1, max, sim.Setup.RulesConfig)} 이상 남기면 ★{earned + 1}" : "최고 등급!");
             return line;
         }
         // Three large stars in the reward text's top margin (stage clear has no reward blocks there), gold when earned.

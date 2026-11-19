@@ -44,6 +44,10 @@ MonoBehaviour:
     - 1.05
     - 1.15
     - 1
+    stageProgress: 5
+    reducedStrength: 0.1
+    threeStarCorePercent: 80
+    twoStarCorePercent: 40
   progression:
     initialCoins: 100
     coinsPerKill: 5
