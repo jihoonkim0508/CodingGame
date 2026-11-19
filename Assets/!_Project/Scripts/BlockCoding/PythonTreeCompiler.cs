@@ -140,12 +140,12 @@ namespace CodingGame.BlockCoding
                 if (HasEnemyArgument(block.Kind) && (block.Arguments == null || block.Arguments.Count == 0 || block.Arguments[0] == null))
                     throw new FormatException("공격 대상을 넣어 주세요. 예: enemy = get_nearest_enemy() 다음에 " + (block.Kind == BlockKind.Shot || block.Kind == BlockKind.Attack ? "shoot" : block.Kind.ToString().ToLowerInvariant()) + "(enemy)");
                 if (block.Arguments == null || block.Arguments.Count != ArgumentCount(block.Kind))
-                    throw new FormatException($"{block.Kind}: 입력 슬롯을 모두 채워 주세요.");
+                    throw new FormatException($"{Label(block.Kind)}: 빈칸을 모두 채워 주세요.");
                 for (int i = 0; i < block.Arguments.Count; i++)
                     if (block.Arguments[i] == null || !Accepts(ArgumentSlot(block.Kind, i), block.Arguments[i].Kind))
-                        throw new FormatException($"{block.Kind}: {i + 1}번째 슬롯에는 {ArgumentSlot(block.Kind, i)} 블록이 필요합니다.");
+                        throw new FormatException($"{Label(block.Kind)}: {i + 1}번째 빈칸에 {(ArgumentSlot(block.Kind, i) == BlockSlotKind.Condition ? "논리" : "값")} 탭의 블록을 넣어 주세요.");
                 if (block.Body == null || (!HasBody(block.Kind) && block.Body.Count != 0))
-                    throw new FormatException($"{block.Kind}: 내부 명령을 가질 수 없는 블록입니다.");
+                    throw new FormatException($"{Label(block.Kind)}: 안쪽에 명령을 넣을 수 없는 블록입니다.");
                 ValidateTree(block.Arguments.Where(b => b != null).ToList(), path);
                 ValidateTree(block.Body, path);
                 path.Remove(block);
@@ -263,6 +263,14 @@ namespace CodingGame.BlockCoding
             if ((TypeOf(block, variables) & ~allowed) != 0) throw new FormatException(message);
         }
 
+        // A block as the player sees it on screen, for the status line (it showed the enum name: "Comparison", "If").
+        static string Label(BlockKind kind) => kind switch
+        {
+            BlockKind.Comparison => "비교 블록", BlockKind.Arithmetic => "계산 블록", BlockKind.DeclareVariable => "변수 = 값",
+            BlockKind.Distance => "distance()", BlockKind.IsDead => "is_dead()", BlockKind.EnemyTypeOf => "type", BlockKind.Hp => "hp",
+            BlockKind.Shot or BlockKind.Attack => "shoot()", BlockKind.Wait => "wait()", BlockKind.Block => "block()", BlockKind.Boom => "boom()", BlockKind.Slow => "slow()",
+            _ => Call(kind) ?? kind.ToString().ToLowerInvariant(),
+        };
         // Blocks that read as a fixed call or literal.
         static string Call(BlockKind kind)
         {

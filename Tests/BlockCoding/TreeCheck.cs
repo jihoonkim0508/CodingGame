@@ -30,6 +30,12 @@ static class TreeCheck
         programs["tree_loop"] = PythonTreeCompiler.Compile("tree_loop", new[] {
             Body(B(BlockKind.For, N("6")), first, second, otherwise) });
         Assert(programs["tree_loop"].Contains("for i in range(6):\n        if i < 2:"), "Nested indentation.");
+        // The status line names the block and the tab the player knows, not the enum ("Comparison: ... Value 블록").
+        string Why(params CodeBlock[] blocks) { try { PythonTreeCompiler.Compile("test", blocks); } catch (FormatException e) { return e.Message; } return null; }
+        string why = Why(Body(B(BlockKind.If, Compare("<=", B(BlockKind.True), N("5"))), B(BlockKind.Continue)));
+        Assert(why == "비교 블록: 1번째 빈칸에 값 탭의 블록을 넣어 주세요.", "Slot message: " + why);
+        why = Why(Body(B(BlockKind.While), Body(B(BlockKind.If, N("1")), B(BlockKind.Break))));
+        Assert(why == "if: 1번째 빈칸에 논리 탭의 블록을 넣어 주세요.", "Slot message: " + why);
         programs["tree_enemy"] = PythonTreeCompiler.Compile("tree_enemy", new[] {
             Set("enemy", nearest), Body(B(BlockKind.If, Compare("<=",
                 B(BlockKind.Distance, V("enemy"), B(BlockKind.MyPos)), N("5"))),
