@@ -39,6 +39,21 @@ namespace CodingGame.Defense
         Coroutine placementFeedback;
         Vector2 toastPosition;
         RectTransform goalRect;
+        RectTransform[] nextWaveParts = Array.Empty<RectTransform>(); Vector2[] upcomingPositions = Array.Empty<Vector2>(); bool upcomingLowered;
+        // Moves the next-wave tab and cards just below the goal bar (by the bar's resting place, so its gentle bob does not shake them).
+        void LowerUpcoming(bool lower)
+        {
+            upcomingLowered = lower;
+            for (int i = 0; i < nextWaveParts.Length; i++) nextWaveParts[i].anchoredPosition = upcomingPositions[i];
+            if (!lower || nextWaveParts.Length == 0) return;
+            var bar = new Vector3[4]; var tab = new Vector3[4];
+            var at = goalRect.anchoredPosition; goalRect.anchoredPosition = goalPosition;
+            goalRect.GetWorldCorners(bar); goalRect.anchoredPosition = at;
+            float top = float.MinValue;
+            foreach (var r in nextWaveParts) { r.GetWorldCorners(tab); top = Mathf.Max(top, tab[1].y); }
+            float drop = Mathf.Max(0, top - bar[0].y + 8 * nextWaveParts[0].lossyScale.y) / nextWaveParts[0].lossyScale.y;
+            for (int i = 0; i < nextWaveParts.Length; i++) nextWaveParts[i].anchoredPosition = upcomingPositions[i] + Vector2.down * drop;
+        }
         Image goalBackground;
         Vector2 goalPosition;
         Vector3 goalScale;
@@ -66,6 +81,10 @@ namespace CodingGame.Defense
             goalScale = goalRect.localScale;
             goalBackground = goalRect.GetComponent<Image>();
             if (goalBackground) goalColor = goalBackground.color;
+            // The next-wave tab and cards sit under the goal bar's place: they move down below it while a goal shows.
+            nextWaveParts = new[] { upcoming.rectTransform, goalRect.parent.Find("UpcomingTab") as RectTransform, enemyCards.Length > 0 ? enemyCards[0].transform.parent as RectTransform : null }
+                .Where(r => r).ToArray();
+            upcomingPositions = nextWaveParts.Select(r => r.anchoredPosition).ToArray();
 
             for (int i = 0; i < robotButtons.Length; i++) { int index = i; robotButtons[i].onClick.AddListener(() => battle.ChooseRobot(index)); }
             enemyImages = enemyCards.Select(c => c.GetComponentInChildren<RawImage>(true)).ToArray();
@@ -201,6 +220,7 @@ namespace CodingGame.Defense
             bool freePlayGoal = (battle.Tutorial && battle.Tutorial.ShowFreePlayGoal || !string.IsNullOrEmpty(lessonGoal)) && !reward && !ended;
             if (freePlayGoal && !goalRect.gameObject.activeSelf) goalAnimationStart = Time.unscaledTime;
             guide.transform.parent.gameObject.SetActive(freePlayGoal);
+            if (freePlayGoal != upcomingLowered) LowerUpcoming(freePlayGoal);
             if (freePlayGoal)
             {
                 if (!ReferenceEquals(lessonGoal, shownGoal) || string.IsNullOrEmpty(lessonGoal)) guide.text = !string.IsNullOrEmpty(lessonGoal) ? "목표 · " + lessonGoal :
