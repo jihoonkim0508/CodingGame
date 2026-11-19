@@ -109,8 +109,14 @@ MonoBehaviour:
         \uC801 \uB9C9\uAE30"
       robots: []
       blocks: []
-      rewards: []
-      rewardRobots: []
+      rewards:
+      - kind: 19
+        count: 1
+      - kind: 2
+        count: 1
+      rewardRobots:
+      - role: 1
+        count: 1
       startCoins: -1
       coinsPerKill: 5
     - stage: 1
@@ -490,7 +496,7 @@ MonoBehaviour:
         count: 1
         delay: 0
         interval: 1
-        healthOverride: 121.8
+        healthOverride: 170
         speedOverride: 0.65
         leakDamageOverride: 12
         boss: 1

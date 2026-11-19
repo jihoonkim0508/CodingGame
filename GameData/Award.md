@@ -16,7 +16,7 @@
 | 1-1   | 전사형 ×1  | slash() ×1                                                                                                                     | 일시정지, 배속 |
 | 1-2   | -       | while ×2                                                                                                                       | 레벨업      |
 | 1-3   | 전사형 ×1  | slash() ×1, while ×1                                                                                                           | 회수       |
-| 1-4   | -       | -                                                                                                                              | -        |
+| 1-4   | 전사형 ×1  | slash() ×1, while ×1                                                                                                           | -        |
 | 1-5   | 원거리형 ×1 | while ×1, shoot() ×1, 변수 = 값 ×1, variable ×1, get_nearest_enemy() ×1                                                           | -        |
 | 2-1   | -       | -                                                                                                                              | 복사·붙여넣기  |
 | 2-2   | 전사형 ×1  | while True ×1, slash() ×1, if ×1, 비교 ×1, get_my_pos() ×1, variable ×1, my_attack_range() ×1, 변수 = 값 ×1, get_nearest_enemy() ×1 | -        |

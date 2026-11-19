@@ -662,10 +662,19 @@ namespace CodingGame.Defense.Editor
                 groups[0].DefinitionIndex == groups[1].DefinitionIndex &&
                 groups[1].Enemy.health >= 80 && groups[1].Enemy.health > groups[0].Enemy.health * 3,
                 "1-5 boss must strengthen the existing basic enemy only");
-            // The three warriors' loops are all 1-5 needs: it brings no blocks (play feedback: no spare grants); its clear reward is 2-1's.
+            // 1-5 brings no blocks (play feedback: no spare grants); 1-4's clear gave a fourth warrior with its slash() and while,
+            // placed and looped here as 1-4's (three warriors do not hold the boss). Its clear reward is 2-1's.
             Require(sim.Lesson != null && sim.Lesson.blocks.Length == 0 && sim.Lesson.robots.Length == 0,
                 "1-5 should bring no blocks or robots");
-            Require(sim.Robots.Count(r => r.Spec.role == RobotRole.Warrior && r.Program != null && !r.Program.IsEmpty) == 3, "1-5 starts with three coded warriors");
+            Require(sim.RobotAvailable(RobotRole.Warrior) >= 1, "1-5 must have the warrior 1-4's clear gave");
+            int warrior = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => battle.DefinitionRole(i) == RobotRole.Warrior);
+            battle.ChooseRobot(warrior); PlaceBest(battle, warrior);
+            var fourth = sim.Robots.OrderBy(r => r.Id).Last();
+            battle.SelectRobot(fourth.Id); battle.DevelopSelected();
+            battle.CodeEditor.Panel.LoadProgram("loop_practice", TutorialAnswers.Parse("while True:\n    slash()"));
+            Require(battle.CodeEditor.Panel.IsApplied, "1-5 fourth warrior code was not applied: " + Field<TMP_Text>(battle.CodeEditor.Panel, "status").text);
+            battle.CodeEditor.Close();
+            Require(sim.Robots.Count(r => r.Spec.role == RobotRole.Warrior && r.Program != null && !r.Program.IsEmpty) == 4, "1-5 starts with four coded warriors");
             Require(sim.Available(BlockKind.DeclareVariable) == 0 && sim.Available(BlockKind.If) == 0, "Variables and conditions open in Stage 2, not 1-5");
             battle.StartBattle();
             Require(battle.Simulation.Phase == BattlePhase.Running, "1-5 battle did not start");

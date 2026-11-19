@@ -247,6 +247,7 @@ static class CampaignCheck
         items.GrantBlock(BlockKind.Attack,2);Assert(items.Inventory[BlockKind.Shot]==5,"legacy grant canonicalizes attack");
         var method=new CodeBlock(BlockKind.Distance,"0",new CodeBlock(BlockKind.Variable,"enemy"),new CodeBlock(BlockKind.MyPos));
         Assert(DefenseProgression.Used(new[]{method}).SequenceEqual(new[]{BlockKind.Variable,BlockKind.MyPos}),"method receiver not charged twice");
+        Assert(DefenseProgression.Used(new[]{new CodeBlock(BlockKind.IsDead,"0",new CodeBlock(BlockKind.Variable,"enemy"))}).SequenceEqual(new[]{BlockKind.IsDead}),"is_dead() receiver not charged as a variable (the editor's one block)");
         itemTank=Place(items,RobotRole.Tank);items.ApplyProgram(itemTank.Id,"tank",new[]{new CodeBlock(BlockKind.Block,"0",new CodeBlock(BlockKind.NearestEnemy))});items.Start();
         stock=items.RobotAvailable(RobotRole.Tank);items.DamageRobot(itemTank.Id,10000);
         Assert(items.RobotAvailable(RobotRole.Tank)==stock&&items.Available(BlockKind.Block)==1,"destroyed robot consumed, blocks returned");
