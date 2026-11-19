@@ -9,7 +9,7 @@ namespace CodingGame.Defense
         public bool tutorial = true, tutorialInput = true, robotCode = true;
         public bool enemyMovement = true, enemyAttack = true, enemySpawn = true;
         public bool baseDamage = true, robotDamage = true, attackDamage = true;
-        public bool waveTimeout = true, deploymentLimit = true, inventoryLimit = true;
+        public bool deploymentLimit = true, inventoryLimit = true;
         public bool unlockAll;
         public bool supply = true, rewards = true, drops = true;
         public bool ranges = true, hitRanges, launchEffects = true, hitEffects = true, slashEffects = true;

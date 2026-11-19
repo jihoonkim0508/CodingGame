@@ -100,7 +100,8 @@ namespace CodingGame.StageMap
                 for (int i = 0; i < nodes.Length; i++) if (islands[i]) islands[i].SetHovered(nodes[i] == over);
             }
             if (busy) return;
-            if (GameFlow.Developer && keyboard != null) // developer mode only (opened on the title)
+            // Developer mode only (opened on the title); not while the F1·F2 windows are up, whose boxes take typing.
+            if (GameFlow.Developer && keyboard != null && !DefenseDevWindow.Open)
             {
                 if (keyboard.zKey.wasPressedThisFrame) { DeveloperClear(); return; }
                 if (keyboard.qKey.wasPressedThisFrame) { DeveloperReset(); return; }

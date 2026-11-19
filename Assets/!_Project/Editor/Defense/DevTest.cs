@@ -292,7 +292,7 @@ namespace CodingGame.Defense.Editor
                     case BattlePhase.Ready:
                         AutoDeploy(); int kills = sim.Kills, leaks = sim.Leaks; RunWave(maxSecondsPerWave);
                         waves.Add($"S{b.Stage} W{sim.WaveIndex + 1}: {sim.Phase} core={sim.BaseHealth} kills={sim.Kills - kills} leaks={sim.Leaks - leaks} robots={sim.Robots.Count}");
-                        if (sim.Phase == BattlePhase.Running) result = "실패: 웨이브 제한 시간 초과";
+                        if (sim.Phase == BattlePhase.Running) result = $"실패: 웨이브가 {maxSecondsPerWave}초 안에 끝나지 않음";
                         break;
                     case BattlePhase.Reward: b.ContinueCampaign(); break;
                     case BattlePhase.Victory:
