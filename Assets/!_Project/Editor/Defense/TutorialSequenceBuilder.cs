@@ -321,7 +321,7 @@ namespace CodingGame.Defense.Editor
         }.Concat(Battle("2-5", Code25)).ToList();
 
         // 2-6 (게임 논리 검토): the loop in the loop keeps shooting its enemy after it ran out of range; break leaves the inner
-        // loop then, and the outer one finds the nearest again.
+        // loop then, and the outer one finds the nearest again. Then a second shooter gets the code by copy and paste.
         static List<S> TwoSix() => new List<S> {
             L("2-6.A01", s => s.Cards = true), L("2-6.A02"),
             L("2-6.A03", Click(Unit0, s => s.Pointer = Unit0)),
@@ -343,6 +343,18 @@ namespace CodingGame.Defense.Editor
                 s => { s.AutoSlot = "Editor.Code.Body.1/2/1"; s.Demo = "Editor.Palette.Break>Editor.Code.Body.1/2/1"; })),
             L("2-6.D01", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(s => { s.Preview = true; s.RestartPreview = true; s.Hold = 10; }, Focus(Preview)))),
             L("2-6.D02", With(Ed, Focus("Editor.Code.Body.1/2/1"))),
+            // The second shooter gets this code by copy and paste (the user, 2026-11-19: the right-click 복사 where a second robot
+            // needs the first one's code). The right-click on the top line, while True, copies the loop with every line in it.
+            L("2-6.F01", With(Ed, Focus("Editor.Code.Line.1"))),
+            L("2-6.F02", Signal(TutorialSignals.CodeCopied, new[] { Drop }, With(s => { s.Pointer = "Editor.Code.Line.1"; s.Preview = true; }, Focus("Editor.Code.Line.1")))),
+            L("2-6.F03", Click(TutorialKeys.RobotButton((int)RobotRole.Shooter), s => { s.CloseEditor = true; s.Dim = true; })),
+            L("2-6.F04", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => s.Dim = true, Focus(Route)))),
+            L("2-6.F05", Click(Newest, s => { s.Pointer = Newest; s.Robot = -1; })),
+            L("2-6.F06", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; s.Robot = -1; })),
+            // Pasted where it was clicked; near the start slot it snaps there.
+            L("2-6.F07", Signal(TutorialSignals.ProgramMatches, new[] { Drop }, With(s => { s.Expected = Code26; s.Pointer = "Editor.Code.Start"; s.Preview = true; s.Robot = -1; },
+                Focus("Editor.Code.Start")))),
+            L("2-6.F08", With(Ed, s => s.Robot = -1, Focus(Palette))),
         }.Concat(Battle("2-6", Code26)).ToList();
 
         // 2-8: 2-7's hint, then an if under enemy = get_nearest_enemy() that continues while the nearest enemy is no tank; a

@@ -26,6 +26,8 @@ namespace CodingGame.Defense
         // Incomplete programs cannot emit ProgramMatches: inspect the live editor draft instead.
         public const string CodeLinePlaced = "CodeLinePlaced", SlotSelected = "SlotSelected";
         public const string DraftValueMatches = "DraftValueMatches";
+        // A placed block copied with the code area's right-click menu (2-5: the second shooter gets the first one's code).
+        public const string CodeCopied = "CodeCopied";
         // Speaker whose lines show as the system alert banner instead of the dialogue box.
         public const string SystemSpeaker = "시스템";
     }

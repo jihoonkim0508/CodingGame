@@ -68,6 +68,8 @@ namespace CodingGame.BlockCoding
         public Action<CommandBlockView> PaletteClicking { get; set; }
         // "block-pick" when a drag takes a block, "block-delete" when blocks leave the program; the host plays a sound.
         public event Action<string> Feedback;
+        // A placed block copied with the right-click menu (a tutorial step waits on it, 2-5).
+        public event Action Copied;
         readonly HashSet<CommandDropZone> zones = new HashSet<CommandDropZone>();
         internal void RegisterZone(CommandDropZone zone) => zones.Add(zone);
         internal bool CanTake(CommandBlockView source) => !source.IsPalette || (Remaining?.Invoke(source.Kind) ?? int.MaxValue) > 0;
@@ -650,6 +652,7 @@ namespace CodingGame.BlockCoding
             if (!block || block.IsPalette || block.Owner == null) return;
             clipboard = Unit(block).Select(b => b.Read()).ToList();
             ShowMessage("복사했어요. 코드 칸의 빈 곳을 우클릭해 붙여넣으세요.");
+            Copied?.Invoke();
         }
         public void DeleteUnit(CommandBlockView block)
         {

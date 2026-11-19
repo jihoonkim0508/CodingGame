@@ -406,6 +406,10 @@ namespace CodingGame.Defense.Editor
                 panel.CategoryTab(int.Parse(tab.Substring(TutorialKeys.PaletteTabPrefix.Length))).GetComponent<Button>().onClick.Invoke();
                 return;
             }
+            // 2-6 F02 and F07: the right-click 복사 on the top line, 붙여넣기 at the start slot on the second shooter.
+            if (step.completionSignal == TutorialSignals.CodeCopied) { Require(editor.IsOpen && battle.TutorialAllows(TutorialKeys.DropZone), "Copy blocked at " + key); panel.Copy(editor.Line("1")); return; }
+            if (step.completionSignal == TutorialSignals.ProgramMatches && step.pointerKey == "Editor.Code.Start")
+            { Require(panel.Paste(Vector2.zero), "Paste was refused at " + key + " (not enough blocks in the stock?)"); return; }
             Require(editor.IsOpen && battle.TutorialAllows(TutorialKeys.Palette), "Editor action blocked at " + key);
             if (step.completionSignal == TutorialSignals.SlotSelected) { Select(panel, Slot(editor, step.expectedCode)); return; }
             if (step.completionSignal == TutorialSignals.CodeLinePlaced)

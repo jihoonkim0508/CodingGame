@@ -39,6 +39,7 @@ namespace CodingGame.Defense
             panel.BlockDropped += (kind, source, destination) => UISound.Play("block-drop");
             panel.Feedback += kind => UISound.Play(kind);
             panel.CanCopy = () => battle.Stage >= 2; // the right-click menu offers 복사 and 붙여넣기 from Stage 2 (삭제 only in Stage 1)
+            panel.Copied += () => battle.ReportTutorialAction(TutorialKeys.DropZone, TutorialSignals.CodeCopied);
             panel.CategoryChosen += category => battle.ReportTutorialAction(TutorialKeys.PaletteTab(category), TutorialSignals.TargetClicked);
             // A kind the player owns stays on the palette when other robots use all of it (it vanished, as if not unlocked,
             // while one this robot used up stayed as ×0): the count beside it says none is left.
