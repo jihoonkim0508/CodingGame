@@ -87,6 +87,15 @@ namespace CodingGame.Defense.Editor
             Build("typecast", MapLines().ToList());
         }
 
+        // 디버's lines in every stage and the map that have no clip yet (rewritten or new ones); no clip is deleted.
+        [MenuItem("Tools/Develop/디버 음성 만들기 (타입캐스트 시우, 빠진 대사만)")]
+        public static void BuildTypecastMissing()
+        {
+            if (string.IsNullOrEmpty(TypecastKey))
+                throw new System.InvalidOperationException("[GuideVoice] TYPECAST_API_KEY가 없습니다. 프로젝트 폴더의 .env에 TYPECAST_API_KEY=키 를 적어 주세요.");
+            Build("typecast", Lines().Where(t => t.speaker != TutorialSignals.SystemSpeaker && !File.Exists($"{Folder}/{GuideSpeech.Key(t.text)}.ogg")).ToList());
+        }
+
         // only: record just these lines and leave every other clip alone; null records all lines and removes unused clips.
         static void Build(string engine, List<TutorialText> only = null)
         {

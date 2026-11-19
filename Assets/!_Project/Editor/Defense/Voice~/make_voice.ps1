@@ -4,8 +4,11 @@
 # -Engine typecast reads 디버's lines with a Typecast voice (api.typecast.ai, key in TYPECAST_API_KEY) found by -VoiceName,
 # or TYPECAST_VOICE_ID if set; the alert banner keeps the Windows voice. Typecast returns 44.1 kHz WAV, so its clips get
 # their own filter (no pitch shift; pitch and speed are the voice's own).
+# -Engine elevenlabs reads 디버's lines with the ElevenLabs voice ELEVENLABS_VOICE_ID (key in ELEVENLABS_API_KEY; MP3, same filter
+# as Typecast). It replaces clips in place, only after the new one is made, and skips clips already tagged elevenlabs, so a
+# cut-short run resumes; it stops while 300 characters of the month's quota are still left (lines not reached keep their clip).
 param([Parameter(Mandatory)] [string] $Jobs, [Parameter(Mandatory)] [string] $Out,
-      [ValidateSet('windows', 'typecast')] [string] $Engine = 'windows', [string] $VoiceName = '')
+      [ValidateSet('windows', 'typecast', 'elevenlabs')] [string] $Engine = 'windows', [string] $VoiceName = '')
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Speech
 $ffmpeg = (Get-Command ffmpeg).Source
@@ -34,11 +37,24 @@ if ($Engine -eq 'typecast') {
         $voiceId = $match[0].voice_id
     }
 }
+if ($Engine -eq 'elevenlabs') {
+    if (-not $env:ELEVENLABS_API_KEY) { throw 'ELEVENLABS_API_KEY is not set' }
+    $headers = @{ 'xi-api-key' = $env:ELEVENLABS_API_KEY }
+    $voiceId = $env:ELEVENLABS_VOICE_ID
+    $plan = Invoke-RestMethod 'https://api.elevenlabs.io/v1/user/subscription' -Headers $headers
+    $left = $plan.character_limit - $plan.character_count
+    $ffprobe = (Get-Command ffprobe).Source
+}
 $made = 0
 foreach ($line in Get-Content -LiteralPath $Jobs -Encoding UTF8) {
     $key, $voice, $text = $line -split "`t", 3
     $ogg = Join-Path $Out "$key.ogg"
-    if (Test-Path -LiteralPath $ogg) { continue }
+    $eleven = $Engine -eq 'elevenlabs' -and $voice -eq 'guide'
+    if (Test-Path -LiteralPath $ogg) {
+        if (-not $eleven) { continue }
+        if ((& $ffprobe -v error -show_entries stream_tags=comment -of default=nw=1:nk=1 $ogg) -eq 'elevenlabs') { continue }
+    }
+    if ($eleven -and $left - $text.Length -lt 300) { "stopped at $key, $left characters left"; break }
     $wav = Join-Path ([IO.Path]::GetTempPath()) "$key.wav"
     $filter = $filters[$voice]
     if ($Engine -eq 'typecast' -and $voice -eq 'guide') {
@@ -49,12 +65,23 @@ foreach ($line in Get-Content -LiteralPath $Jobs -Encoding UTF8) {
             -ContentType 'application/json; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($body)) -OutFile $wav
         $filter = $filters.typecast
     }
+    elseif ($eleven) {
+        $wav = [IO.Path]::ChangeExtension($wav, '.mp3')
+        $body = @{ text = $text; model_id = 'eleven_multilingual_v2'; language_code = 'ko' } | ConvertTo-Json
+        Invoke-RestMethod -Method Post -Uri "https://api.elevenlabs.io/v1/text-to-speech/$voiceId`?output_format=mp3_44100_128" -Headers $headers `
+            -ContentType 'application/json; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($body)) -OutFile $wav
+        $left -= $text.Length
+        $filter = $filters.typecast
+    }
     else {
         $synth.Rate = if ($voice -eq 'system') { 1 } else { 3 }
         $synth.SetOutputToWaveFile($wav, $format); $synth.Speak($text); $synth.SetOutputToNull()
     }
-    & $ffmpeg -v error -y -i $wav -af $filter -ac 1 -c:a libvorbis -q:a 4 $ogg
+    $tag = if ($eleven) { 'elevenlabs' } else { $Engine }
+    # Encoded beside the clip first, so a failed encode never costs the old clip.
+    & $ffmpeg -v error -y -i $wav -af $filter -ac 1 -c:a libvorbis -q:a 4 -metadata comment=$tag -f ogg "$ogg.new"
     if ($LASTEXITCODE -ne 0) { throw "ffmpeg failed for $key" }
+    Move-Item -LiteralPath "$ogg.new" $ogg -Force
     Remove-Item -LiteralPath $wav
     $made++
 }
