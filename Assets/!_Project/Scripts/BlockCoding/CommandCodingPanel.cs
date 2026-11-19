@@ -201,12 +201,22 @@ namespace CodingGame.BlockCoding
             {
                 if (PythonTreeCompiler.OutputSlot(source.Kind) != BlockSlotKind.Statement && source.BaseKind != BlockKind.Variable)
                 { ShowMessage("값을 넣을 빈 슬롯을 선택하세요."); return; }
-                program.Insert(source, program.Blocks.Count);
+                if (program.Insert(source, program.Blocks.Count)) RevealProgramEnd();
                 return;
             }
             int at = target == selected && selectedIndex >= 0 ? Mathf.Min(selectedIndex, target.Blocks.Count) : target.Blocks.Count;
             selectedIndex = -1;
             if (!target.Insert(source, at)) ShowMessage("먼저 맞는 모양의 빈 슬롯을 선택하거나, 블록을 원하는 위치로 드래그하세요.");
+            else if (target == program && at == program.Blocks.Count - 1) RevealProgramEnd();
+        }
+        // A click-add at the program's end lands below a long program: scroll the workspace down to it.
+        // ponytail: only top-level appends; a block added inside a nested block at the bottom does not scroll.
+        void RevealProgramEnd()
+        {
+            var scroll = program.GetComponentInParent<ScrollRect>();
+            if (!scroll) return;
+            Canvas.ForceUpdateCanvases();
+            scroll.verticalNormalizedPosition = 0;
         }
         public void ShowMessage(string text) => status.text = text;
         internal void FillNewLoop(CommandBlockView block)
