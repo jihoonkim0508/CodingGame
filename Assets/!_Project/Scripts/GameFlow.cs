@@ -115,8 +115,8 @@ namespace CodingGame
         }
 
         // Developer rights (the battle's F1 panel and F2 balance window, 5x speed, the dialogue ids, the stage map's Z/Q keys):
-        // on from the start in the Editor and development builds; in a release build ten clicks in a row on the title's
-        // top-left corner turn them on, ten more off. They last while the game runs, shown by "Dev" in the bottom-left corner.
+        // on from the start in the Editor and development builds; in a release build ten clicks in a row on the screen's
+        // top-left corner, in any scene, turn them on, ten more off. They last while the game runs, shown by "Dev" in the bottom-left corner.
         public static bool Developer { get; private set; }
         TMPro.TextMeshProUGUI devMark;
         const int DeveloperClicks = 10;
@@ -136,10 +136,10 @@ namespace CodingGame
             }
             if (devMark) devMark.gameObject.SetActive(Developer);
             var mouse = UnityEngine.InputSystem.Mouse.current;
-            if (mouse != null && mouse.leftButton.wasPressedThisFrame && SceneManager.GetActiveScene().name == TitleScene) TitleClick(mouse.position.ReadValue());
+            if (mouse != null && mouse.leftButton.wasPressedThisFrame) CornerClick(mouse.position.ReadValue());
         }
-        // A click on the title (screen pixels): the tenth in a row on the corner, each within a second, toggles developer mode.
-        void TitleClick(Vector2 at)
+        // A click in any scene (screen pixels): the tenth in a row on the corner, each within a second, toggles developer mode.
+        void CornerClick(Vector2 at)
         {
             float corner = DeveloperCorner * Screen.height / 1080f;
             bool inCorner = at.x <= corner && at.y >= Screen.height - corner;
