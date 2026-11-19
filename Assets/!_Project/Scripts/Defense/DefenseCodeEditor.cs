@@ -178,15 +178,13 @@ namespace CodingGame.Defense
         {
             if (!IsOpen || !HasCurrentSession) return;
             // 2-3 B02: the warrior's loop finds the nearest enemy; the player adds the if on its distance, and the slash.
-            LoadLesson(new[] { Loop(new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy))) });
-            if (!panel.IsApplied) throw new InvalidOperationException("조건문 기초 코드의 블록 지급량을 확인하세요.");
+            LoadLesson(new[] { Loop(new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy))) }, "2-3 조건문 기초 코드");
         }
         public void PrepareBaselineExample()
         {
             if (!IsOpen || !HasCurrentSession) return;
             // 2-3 A05: the warrior slashing on and on, at air or not (each swing rests it 1.6 s), to compare against.
-            LoadLesson(new[] { Loop(new CodeBlock(BlockKind.Slash)) });
-            if (!panel.IsApplied) throw new InvalidOperationException("비교용 기본 베기 코드의 블록 지급량을 확인하세요.");
+            LoadLesson(new[] { Loop(new CodeBlock(BlockKind.Slash)) }, "2-3 비교용 기본 베기 코드");
             RestartPreview();
         }
         // 2-5: the enemy found once, before the loop; 2-6: a loop in the loop that never lets its enemy go; 2-8: 2-7's hint
@@ -202,20 +200,17 @@ namespace CodingGame.Defense
                 new CodeBlock(BlockKind.MyPos)), new CodeBlock(BlockKind.MyAttackRange));
             var code = id == "2-5" ? new[] { Find(), Loop(Shoot()) } :
                 new[] { Loop(Find(), id == "2-8" ? Loop(Leave(dead), Leave(away), Shoot()) : Loop(Shoot())) };
-            LoadLesson(code);
-            if (!panel.IsApplied) throw new InvalidOperationException(id + " 준비 코드의 블록 지급량을 확인하세요.");
+            LoadLesson(code, id + " 준비 코드");
         }
-        // The lesson supplies the blocks of the code it prepares that the stock lacks, so the robot takes nothing from the others
-        // (play-test 2-8). Only what is lacking: the robot's own code goes back to the stock as this one replaces it, and a full
-        // grant left those blocks spare (the user, 2026-11-19: each lesson gives exactly what its answer needs).
-        void LoadLesson(CodeBlock[] code)
+        // The lesson's prepared code takes its blocks from the stock and grants none (GameData/Award.md gives the blocks, on
+        // wave clears only): with a block missing it stays unapplied in the editor and the lesson warns (no crash).
+        void LoadLesson(CodeBlock[] code, string what)
         {
-            foreach (var group in DefenseProgression.Used(code).GroupBy(DefenseProgression.Canonical))
-            {
-                int lack = group.Count() - editingSession.Available(group.Key, editingId);
-                if (lack > 0) editingSession.GrantBlock(group.Key, lack);
-            }
             panel.LoadProgram(panel.FunctionName, code);
+            if (panel.IsApplied) return;
+            var missing = DefenseProgression.Used(code).GroupBy(DefenseProgression.Canonical).Where(g => g.Count() > editingSession.Available(g.Key, editingId))
+                .Select(g => DefenseProgression.Label(g.Key) + " " + (g.Count() - Math.Max(0, editingSession.Available(g.Key, editingId))) + "개");
+            Debug.LogWarning(what + ": 블록이 모자라 적용되지 않음 (" + string.Join(", ", missing) + ")");
         }
         static CodeBlock Loop(params CodeBlock[] body)
         {

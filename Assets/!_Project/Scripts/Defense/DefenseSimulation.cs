@@ -120,6 +120,8 @@ namespace CodingGame.Defense
         }
         public int Owned(BlockKind kind) => Inventory.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0;
         public readonly List<BlockKind> PendingDrops = new List<BlockKind>();
+        public readonly List<RobotRole> PendingRobots = new List<RobotRole>();
+        public int KillCoins => Lesson != null && Lesson.coinsPerKill >= 0 ? Lesson.coinsPerKill : Setup.Progression.coinsPerKill;
         public bool CanPrepare => Phase == BattlePhase.Ready;
         public WaveLesson Lesson => Setup.Progression.lessons.FirstOrDefault(l => l.stage == Setup.Stage && l.wave == WaveIndex + 1);
         public bool CanAdvanceStage => Phase == BattlePhase.Victory && Setup.Stage > 0 && Setup.Stage < (Setup.CampaignWaves?.Length ?? DefenseCurriculum.StageCount);
@@ -164,7 +166,7 @@ namespace CodingGame.Defense
             // warriors and two shooters in the dock); Stage 3 follows on from Stage 2 on the same map.
             if (setup.PlayerFlow && setup.PreviousStageRewards) foreach (var lesson in setup.Progression.lessons.Where(l => l.stage > 1 && l.stage < setup.Stage || l.stage == setup.Stage && l.wave <= setup.InitialWave))
             {
-                foreach(var stock in lesson.robots) AddRobots(stock.role,stock.count);
+                foreach(var stock in lesson.robots.Concat(lesson.rewardRobots ?? Array.Empty<RobotStock>())) AddRobots(stock.role,stock.count);
                 foreach(var stock in lesson.blocks.Concat(lesson.rewards)) AddBlocks(stock.kind,stock.count);
             }
             PrepareWave();
@@ -176,6 +178,7 @@ namespace CodingGame.Defense
             carry.Clear(); groupCounts = new int[currentWave.Length]; waveStart = Time; spawnElapsed = 0;
             waveLeaksAtStart = Leaks; ObjectiveFailed = false; LastRush = LastRushDamage = 0;
             foreach (var bot in Robots) { bot.AttacksThisWave = bot.ActionsThisWave = bot.KillsThisWave = bot.LoopTurnsThisWave = 0; bot.DamageThisWave = 0; bot.SawEnemyThisWave = false; }
+            if (Setup.PlayerFlow && Lesson != null && Lesson.startCoins >= 0) Coins = Lesson.startCoins;
             if (Setup.PlayerFlow && Lesson != null) GrantSupply(Lesson);
         }
         void GrantSupply(WaveLesson lesson)
@@ -314,7 +317,8 @@ namespace CodingGame.Defense
             Log("claim");
             Emit("rewards",0,WaveIndex+1,Vector2.Zero,PendingDrops.Count);
             foreach (var kind in PendingDrops) AddStock(Inventory, kind, 1);
-            PendingDrops.Clear(); accumulated = 0;
+            foreach (var role in PendingRobots) AddStock(RobotInventory, role, 1);
+            PendingDrops.Clear(); PendingRobots.Clear(); accumulated = 0;
             if (WaveIndex + 1 == Setup.Waves.Length) { Phase = BattlePhase.Victory; return true; }
             WaveIndex++; PrepareWave();
             ResetPrograms();
@@ -609,7 +613,7 @@ namespace CodingGame.Defense
                 e.Active = false; e.BlockedBy = 0; Kills++; Emit("killed", source, e.Id, e.Position);
                 if (Setup.PlayerFlow)
                 {
-                    Coins = (int)Math.Min(int.MaxValue, (long)Coins + Setup.Progression.coinsPerKill);
+                    Coins = (int)Math.Min(int.MaxValue, (long)Coins + KillCoins);
                     if (Options.drops && Lesson == null)
                     {
                         var drop = NeededDrop();
@@ -733,6 +737,8 @@ namespace CodingGame.Defense
             {
                 if (Options.rewards && Lesson != null) foreach (var stock in Lesson.rewards)
                     for (int i = 0; i < stock.count; i++) PendingDrops.Add(DefenseProgression.Canonical(stock.kind));
+                if (Options.rewards && Lesson?.rewardRobots != null) foreach (var stock in Lesson.rewardRobots)
+                    for (int i = 0; i < stock.count; i++) PendingRobots.Add(stock.role);
                 Phase = BattlePhase.Reward; accumulated = 0;
             }
             else if (WaveIndex + 1 == Setup.Waves.Length) Phase = BattlePhase.Victory;

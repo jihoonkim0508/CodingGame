@@ -17,6 +17,10 @@ namespace CodingGame.Defense
         public RobotStock[] robots = Array.Empty<RobotStock>();
         public BlockStock[] blocks = Array.Empty<BlockStock>();
         public BlockStock[] rewards = Array.Empty<BlockStock>();
+        // GameData/Award.md: robots the reward screen gives with the blocks; coins the wave starts with (-1 keeps the ones
+        // the player has) and a kill gives (-1: DefenseProgression.coinsPerKill).
+        public RobotStock[] rewardRobots = Array.Empty<RobotStock>();
+        public int startCoins = -1, coinsPerKill = -1;
     }
     [Serializable] public sealed class DefenseProgression
     {
@@ -41,7 +45,9 @@ namespace CodingGame.Defense
             lessons = lessons.Select(l => new WaveLesson {stage=l.stage,wave=l.wave,topic=l.topic,goal=l.goal,
                 robots=l.robots.Select(r=>new RobotStock {role=r.role,count=r.count}).ToArray(),
                 blocks=l.blocks.Select(b=>new BlockStock {kind=b.kind,count=b.count}).ToArray(),
-                rewards=l.rewards.Select(b=>new BlockStock {kind=b.kind,count=b.count}).ToArray()}).ToArray()
+                rewards=l.rewards.Select(b=>new BlockStock {kind=b.kind,count=b.count}).ToArray(),
+                rewardRobots=(l.rewardRobots??Array.Empty<RobotStock>()).Select(r=>new RobotStock {role=r.role,count=r.count}).ToArray(),
+                startCoins=l.startCoins,coinsPerKill=l.coinsPerKill}).ToArray()
         };
         // The longest stage: Stage 2 has ten waves (원거리_집중공격_설계 7).
         public const int MaxWaves = 10;
@@ -49,7 +55,7 @@ namespace CodingGame.Defense
         {
             if (lessons == null || lessons.Any(l => l == null || l.stage < 1 || l.stage > DefenseCurriculum.StageCount || l.wave < 1 || l.wave > MaxWaves ||
                 string.IsNullOrWhiteSpace(l.topic) || l.robots == null || l.blocks == null || l.rewards == null ||
-                l.robots.Any(r => r == null || !Enum.IsDefined(typeof(RobotRole), r.role) || r.count < 1) ||
+                (l.rewardRobots ?? Array.Empty<RobotStock>()).Concat(l.robots).Any(r => r == null || !Enum.IsDefined(typeof(RobotRole), r.role) || r.count < 1) ||
                 l.blocks.Concat(l.rewards).Any(b => b == null || !Consumes(b.kind) || b.count < 1)) ||
                 lessons.GroupBy(l => (l.stage, l.wave)).Any(g => g.Count() != 1))
                 throw new ArgumentException("스테이지별 보급·보상 설정을 확인하세요.");
