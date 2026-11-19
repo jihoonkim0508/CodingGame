@@ -151,13 +151,17 @@ namespace CodingGame.Defense
         public void HidePath() { pathShowing = false; foreach (var chevron in chevrons) if (chevron) chevron.gameObject.SetActive(false); }
 
         void LateUpdate() { if (IsVisible) Place(); if (ghost) Drag(); }
+        // The arrow's spot over its target with the whole bob, spotlight-local like the areas (the dialogue keeps clear of it).
+        Vector2 rest;
+        public Rect ArrowArea { get { float half = arrow.rect.height * .5f; return new Rect(rest.x - half, rest.y - half - bob, 2 * half, 2 * half + 2 * bob); } }
         void Place()
         {
             float half = arrow.rect.height * .5f, bounce = Mathf.Abs(Mathf.Sin(GameClock.Now * bobSpeed)) * bob;
             // Targets on the top edge (e.g. the editor's hint button) get the arrow underneath, pointing up.
             bool above = !fromBelow && target.yMax + gap + half * 2 + bob <= ((RectTransform)transform).rect.yMax;
             arrow.localEulerAngles = new Vector3(0, 0, above ? 0 : 180);
-            var goal = new Vector2(target.center.x, above ? target.yMax + gap + half + bounce : target.yMin - gap - half - bounce);
+            rest = new Vector2(target.center.x, above ? target.yMax + gap + half : target.yMin - gap - half);
+            var goal = rest + new Vector2(0, above ? bounce : -bounce);
             float fly = Mathf.Clamp01((GameClock.Now - shownAt) / FlySeconds);
             arrow.anchoredPosition = flyFrom.HasValue && fly < 1 ? Vector2.Lerp(flyFrom.Value, goal, 1 - (1 - fly) * (1 - fly) * (1 - fly)) : goal;
             // The shadow falls down the screen whichever way the arrow points (it turns with the arrow).

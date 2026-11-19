@@ -120,6 +120,7 @@ namespace CodingGame.Defense
             if (drafts.TryGetValue(id, out var history)) panel.LoadHistory(history);
             else panel.LoadProgram(robot.Program?.Name ?? "robot_" + id, robot.Program?.CopyBlocks() ?? Array.Empty<CodeBlock>());
             panel.ShowCategory(1); panel.RefreshPalette();
+            ShowHint(); // this robot's own hint
             if (panel.IsApplied) panel.ShowMessage("자동 적용됨 · Ctrl+Z 실행 취소 · Ctrl+Y 다시 실행");
         }
         string Apply(string name, IReadOnlyList<CodeBlock> blocks)
@@ -151,19 +152,77 @@ namespace CodingGame.Defense
             editingId = 0; editingSession = null;
             if (resume && wasOpen) battle.ReportTutorialAction("Editor.Close", "TargetClicked", "EditorClosed");
         }
-        // Code shown by the hint button; null or empty hides the button.
-        public void SetHint(string code)
+        // Code shown by the hint button; null or empty hides the button. earlier: the hint codes before it in play order. The
+        // robot being edited gets the last of them that uses its own action (play feedback: in 2-7 the warrior was shown the
+        // shooter's shoot(enemy) code), as a picture of its blocks when TutorialHintPictures has made one (text code read hard).
+        string[] hints = Array.Empty<string>();
+        public void SetHint(string code, IEnumerable<string> earlier = null)
         {
             if (!hintButton) return;
-            hintButton.gameObject.SetActive(!string.IsNullOrWhiteSpace(code));
-            if (hintText) hintText.text = code ?? "";
+            bool any = !string.IsNullOrWhiteSpace(code);
+            hintButton.gameObject.SetActive(any);
+            hints = any ? (earlier ?? Enumerable.Empty<string>()).Where(c => !string.IsNullOrWhiteSpace(c)).Append(code).ToArray() : Array.Empty<string>();
+            ShowHint();
             if (hintPopup) hintPopup.SetActive(false);
         }
         void ToggleHint()
         {
             if (!battle.TutorialAllows(TutorialKeys.Hint) || !hintPopup) return;
+            ShowHint();
             hintPopup.SetActive(!hintPopup.activeSelf);
             battle.ReportTutorialAction(TutorialKeys.Hint, TutorialSignals.TargetClicked);
+        }
+        public string HintCode
+        {
+            get
+            {
+                var robot = IsOpen && HasCurrentSession ? editingSession.FindRobot(editingId) : null;
+                var action = robot == null ? (BlockKind?)null : DefenseProgression.ActionBlock(robot.Spec.NativeAction);
+                string call = action == null ? null : (action == BlockKind.Shot ? "shoot" : action.ToString().ToLowerInvariant()) + "(";
+                return hints.LastOrDefault(c => call != null && c.Contains(call)) ?? hints.LastOrDefault() ?? "";
+            }
+        }
+        // The picture's Resources path for a hint code (TutorialHintPictures saves it there): named by the code itself, so an
+        // edited hint shows as text until the pictures are made again rather than as an old picture.
+        public static string HintPicture(string code)
+        {
+            uint hash = 2166136261;
+            foreach (char c in (code ?? "").Replace("\r", "").Trim()) hash = (hash ^ c) * 16777619;
+            return "TutorialHints/hint_" + hash.ToString("x8");
+        }
+        Image hintPicture; TextMeshProUGUI hintTitle; Outline hintFrame; Vector2 hintTextSize;
+        const float HintPad = 12, HintTitle = 38; static readonly Vector2 HintMax = new Vector2(760, 640);
+        void ShowHint()
+        {
+            string code = HintCode;
+            if (hintText) hintText.text = code;
+            if (!hintPopup) return;
+            var sprite = code.Length > 0 ? Resources.Load<Sprite>(HintPicture(code)) : null;
+            var popup = (RectTransform)hintPopup.transform;
+            if (hintTextSize == default) hintTextSize = popup.sizeDelta;
+            if (sprite && !hintPicture)
+            {
+                hintPicture = new GameObject("HintPicture", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+                var rect = hintPicture.rectTransform; rect.SetParent(popup, false);
+                rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.offsetMin = Vector2.one * HintPad; rect.offsetMax = new Vector2(-HintPad, -HintPad - HintTitle);
+                hintPicture.preserveAspect = true; hintPicture.raycastTarget = false;
+                // A title and a sky frame, so the picture's blocks do not read as the player's own code under it.
+                hintTitle = new GameObject("HintTitle", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                var title = hintTitle.rectTransform; title.SetParent(popup, false);
+                title.anchorMin = new Vector2(0, 1); title.anchorMax = Vector2.one; title.pivot = new Vector2(.5f, 1);
+                title.offsetMin = new Vector2(HintPad + 4, -HintPad - HintTitle); title.offsetMax = new Vector2(-HintPad, -HintPad);
+                if (UITheme.Display) hintTitle.font = UITheme.Display;
+                hintTitle.fontSize = 22; hintTitle.color = UITheme.Sky; hintTitle.alignment = TextAlignmentOptions.MidlineLeft; hintTitle.raycastTarget = false;
+                if (hintPopup.TryGetComponent<Graphic>(out var back)) { hintFrame = back.gameObject.AddComponent<Outline>(); hintFrame.effectColor = UITheme.Sky; hintFrame.effectDistance = new Vector2(3, -3); }
+            }
+            if (hintPicture) { hintPicture.sprite = sprite; hintPicture.gameObject.SetActive(sprite); hintTitle.gameObject.SetActive(sprite); }
+            if (hintFrame) hintFrame.enabled = sprite;
+            if (hintText) hintText.gameObject.SetActive(!sprite);
+            if (!sprite) { popup.sizeDelta = hintTextSize; return; }
+            hintTitle.text = IsOpen && HasCurrentSession ? "예제 힌트 · " + battle.RobotName(editingId) : "예제 힌트";
+            // Drawn at the editor's own scale (captured at 1080p) or smaller to fit.
+            var size = sprite.rect.size;
+            popup.sizeDelta = size * Mathf.Min(1, HintMax.x / size.x, HintMax.y / size.y) + new Vector2(2 * HintPad, 2 * HintPad + HintTitle);
         }
         // Empties a robot's code (blocks go back to the inventory); through the editor when it is open on that robot.
         public void ClearRobotProgram(int id)
@@ -271,9 +330,10 @@ namespace CodingGame.Defense
                 case "Body":
                     if (!block.Body) return false;
                     if (block.Body.Blocks.Count > 0) return Corners(block.Body.Rect, null, corners);
-                    // An empty body: the place its first line goes, at the size of the block the step's demo drops there.
+                    // An empty body: the place its first line goes, at the size of the block the step's demo drops there (one
+                    // line otherwise: the closed body is an 8 px strip, and a box that thin hung under the header like a broken slot).
                     var bodyRect = block.Body.Rect.rect;
-                    var fit = Incoming(key, block.Body.Rect) ?? new Vector2(Mathf.Min(32, bodyRect.width), bodyRect.height - 2 * CommandDropZone.Inset.y);
+                    var fit = Incoming(key, block.Body.Rect) ?? new Vector2(bodyRect.width - CommandDropZone.Inset.x, 46);
                     return Corners(block.Body.Rect, new Rect(bodyRect.xMin + CommandDropZone.Inset.x, bodyRect.yMax - CommandDropZone.Inset.y - fit.y, fit.x, fit.y), corners);
                 case "Arg":
                     CommandDropZone slot = null;
@@ -289,18 +349,27 @@ namespace CodingGame.Defense
         }
         // The tutorial step's drag demo ("Editor.Palette.X>destination|…", TutorialStep.dragDemo), set by the director.
         public string TutorialDemo { get; set; }
-        // The size, in target's units, of the palette block the demo drops on destination; null when none does.
+        // The size, in target's units, of the palette block the demo drops on destination; null when none does. Kept from when
+        // that block was last on screen: another palette tab hides it (2-1 B02: a click on 제어 shrank the slot's box to a sliver).
+        readonly Dictionary<string, Vector2> incomingSeen = new Dictionary<string, Vector2>();
         Vector2? Incoming(string destination, RectTransform target)
         {
             foreach (var pair in (TutorialDemo ?? "").Split('|'))
             {
                 var ends = pair.Split('>');
-                if (ends.Length != 2 || ends[1].Trim() != destination || !(TutorialPaletteItem(ends[0].Trim()) is RectTransform item)) continue;
-                var view = item.GetComponent<CommandBlockView>();
-                return new Vector2(view.preferredWidth, view.preferredHeight) * (item.lossyScale.x / target.lossyScale.x);
+                if (ends.Length != 2 || ends[1].Trim() != destination) continue;
+                string source = ends[0].Trim();
+                if (TutorialPaletteItem(source) is RectTransform item)
+                {
+                    var view = item.GetComponent<CommandBlockView>();
+                    return incomingSeen[source] = new Vector2(view.preferredWidth, view.preferredHeight) * (item.lossyScale.x / target.lossyScale.x);
+                }
+                if (incomingSeen.TryGetValue(source, out var seen)) return seen;
             }
             return null;
         }
+        // A demo whose value slot holds a block already is done (2-6 C03b: get_my_pos() kept gliding into the filled brackets).
+        public bool DemoDone(string destination) => TutorialSlot(destination) is CommandDropZone slot && slot.Slot != BlockSlotKind.Statement && slot.Blocks.Count > 0;
         // An Editor.Code.Arg.N.i[.j…] slot that holds a block (the slot exists, empty, as soon as its line does).
         public bool SlotFilled(string key)
         {

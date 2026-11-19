@@ -237,7 +237,7 @@ namespace CodingGame.Defense
         {
             if (!pointer) return;
             Rect area = default; string chosen = null;
-            bool show = viewedStep == progressStep && !completedStep.Contains(step.stepId) && !string.IsNullOrWhiteSpace(step.pointerKey) && !(Editor && Editor.HintOpen) &&
+            bool show = viewedStep == progressStep && !completedStep.Contains(step.stepId) && !string.IsNullOrWhiteSpace(step.pointerKey) && !(Editor && Editor.HintOpen) && !DemoSourceDone(step) &&
                 GameClock.Now - stepEntered >= step.pointerDelay && bridge.TryGetArea(step.pointerKey, out area, out chosen);
             // Slots under or inside a code line are pointed at from below; from above the arrow would cover the line above. So are
             // palette blocks: from above the arrow sat on the category tabs and read as pointing at a tab (play test).
@@ -250,22 +250,39 @@ namespace CodingGame.Defense
             if (show) pointedAt = chosen;
         }
 
-        // A bottom dialogue that covers what the step points at or waits on moves to the top, unless the top covers one too.
-        // Checked every frame: targets such as the robot menu or the reward panel appear after the line does.
+        // A dialogue that covers what the step points at or waits on moves to the other edge (top or bottom) when it covers less
+        // there. Checked every frame, both ways: targets such as the robot menu or the reward panel appear after the line does,
+        // and a line raised for a target can end up over it (2-1 A04: the shooter's arrow hidden under the top line while the
+        // bottom one only touched its outline). Over the result panel the HUD keeps the line at the top
+        // (DefensePlayerHUD.ClearOfTutorialLine).
         void AvoidTargets(TutorialStep step)
         {
-            if (!view.IsVisible || view.AtTop || view.IsCentered || viewedStep != progressStep || completedStep.Contains(step.stepId)) return;
-            if (!CoversTarget(step)) return;
-            var from = view.Panel.localPosition;
-            view.Place(TutorialDialoguePosition.Top);
-            if (CoversTarget(step)) view.Place(TutorialDialoguePosition.Bottom); else view.SlideFrom(from);
+            if (!view.IsVisible || view.IsCentered || view.Moving || viewedStep != progressStep || completedStep.Contains(step.stepId)) return;
+            if (view.AtTop && session != null && (session.Phase == BattlePhase.Reward || session.Phase == BattlePhase.Victory || session.Phase == BattlePhase.Defeat)) return;
+            float here = Covered(step);
+            if (here <= 0) return;
+            var from = view.Panel.localPosition; bool top = view.AtTop;
+            view.Place(top ? TutorialDialoguePosition.Bottom : TutorialDialoguePosition.Top);
+            float there = Covered(step);
+            if (there >= here) { view.Place(top ? TutorialDialoguePosition.Top : TutorialDialoguePosition.Bottom); there = here; }
+            // A little still covered (a robot between the two places): the line steps that far further off towards its edge when
+            // that clears it, within the room past its usual place (the bottom sits 170 above the screen's edge, the top 96 under it).
+            if (there > 0 && there + 8 <= NudgeMax) view.Panel.anchoredPosition += new Vector2(0, (view.AtTop ? 1 : -1) * (there + 8));
+            if ((view.Panel.localPosition - from).sqrMagnitude > 1) view.SlideFrom(from);
         }
-        bool CoversTarget(TutorialStep step)
+        const float NudgeMax = 60;
+        // How far the dialogue reaches into what the player must see (spotlight-local height, 0 when clear): what the arrow
+        // points at with the outline drawn round it, and the arrow; without an arrow, the step's targets. (Next to an arrow the
+        // targets are large areas such as the whole code area, which no placement clears.)
+        float Covered(TutorialStep step)
         {
             var panel = bridge.ToLocal(view.Panel);
-            foreach (var key in new[] { step.pointerKey }.Concat(step.targetKeys ?? Array.Empty<string>()))
-                if (bridge.TryGetArea(key, out var area) && area.Overlaps(panel)) return true;
-            return false;
+            float pad = step.highlightPadding, most = 0;
+            void Add(Rect r) { if (r.Overlaps(panel)) most = Mathf.Max(most, Mathf.Min(r.yMax, panel.yMax) - Mathf.Max(r.yMin, panel.yMin)); }
+            foreach (var key in string.IsNullOrWhiteSpace(step.pointerKey) ? step.targetKeys ?? Array.Empty<string>() : new[] { step.pointerKey })
+                if (bridge.TryGetArea(key, out var area)) Add(Rect.MinMaxRect(area.xMin - pad, area.yMin - pad, area.xMax + pad, area.yMax + pad));
+            if (pointer && pointer.IsVisible) Add(pointer.ArrowArea);
+            return most;
         }
 
         // While the road is focused, arrows run along it from the entrance to the core, once it is drawn.
@@ -278,7 +295,13 @@ namespace CodingGame.Defense
             if (pathPoints.Count > 1) pointer.ShowPath(pathPoints); else pointer.HidePath();
         }
 
-        // The first "palette>slot" pair with both ends on screen plays as a drag demo until the step is done.
+        // The arrow on a palette block whose every demo slot is filled has nothing left to show (2-6 C03b's get_my_pos()).
+        bool DemoSourceDone(TutorialStep step)
+        {
+            var pairs = (step.dragDemo ?? "").Split('|').Select(pair => pair.Split('>')).Where(ends => ends.Length == 2 && ends[0].Trim() == step.pointerKey.Trim()).ToArray();
+            return Editor && pairs.Length > 0 && pairs.All(ends => Editor.DemoDone(ends[1].Trim()));
+        }
+        // The first "palette>slot" pair with both ends on screen and its slot still empty plays as a drag demo until the step is done.
         void UpdateDragDemo(TutorialStep step)
         {
             if (Editor) Editor.TutorialDemo = step.dragDemo;
@@ -286,7 +309,7 @@ namespace CodingGame.Defense
                 foreach (var pair in step.dragDemo.Split('|'))
                 {
                     var ends = pair.Split('>');
-                    if (ends.Length == 2 && Editor.TutorialPaletteItem(ends[0].Trim()) is RectTransform item &&
+                    if (ends.Length == 2 && !Editor.DemoDone(ends[1].Trim()) && Editor.TutorialPaletteItem(ends[0].Trim()) is RectTransform item &&
                         bridge.TryGetArea(ends[0].Trim(), out var from) && bridge.TryGetArea(ends[1].Trim(), out var to))
                     { pointer.ShowDrag(item, from, to); return; }
                 }
@@ -405,7 +428,10 @@ namespace CodingGame.Defense
                 pendingAutoSlot = true;
                 Editor.Panel.ShowMessage("안내할 값 칸을 찾을 수 없습니다. 필요한 블록을 시작 위치에 연결하고 값 칸을 확인해 주세요.");
             }
-            Editor.SetHint(step.hintCode);
+            // The hints met so far in play order (lessons by stage and wave, then this one's earlier steps): the editor picks
+            // the one for the robot it is editing.
+            Editor.SetHint(step.hintCode, sequences.Where(s => s && s.enabled && (s.stage < active.stage || s.stage == active.stage && s.wave < active.wave))
+                .OrderBy(s => s.stage).ThenBy(s => s.wave).SelectMany(s => s.steps).Concat(active.steps.Take(progressStep)).Select(s => s.hintCode));
         }
 
         string TextKey(TutorialStep step, TutorialText text) => active.sequenceId + "/" + step.stepId + "/" + text.textId;
