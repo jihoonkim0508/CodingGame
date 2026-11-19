@@ -326,7 +326,7 @@ namespace CodingGame.Defense
             ClearDrops();
             projectileViews.Clear();
             hitEffects.Clear();
-            Simulation = new DefenseSimulation(setup);
+            Simulation = new DefenseSimulation(setup); PlayMarkers.Clear();
             bossEntranceStarted = bossCameraRestored = false;
             bossEntranceUntil = bossCameraRestoreAt = 0;
             selectionCamera.Restore();
@@ -355,8 +355,9 @@ namespace CodingGame.Defense
                 $"balance {enemies[definition].name} hp {stats.health} speed {stats.speed} damage {stats.damage} leak {stats.leakDamage}");
         }
 
-        // F1 panel (developer rights): "1-3.C05" starts that stage and wave over and opens its tutorial at that line ("1-3"
-        // at its start). Returns what went wrong, or null.
+        // F1 panel (developer rights): "1-3.C05" opens that line as a play that reached it left the battle ("1-3" at its start):
+        // the stage from its first wave with the stage cache's play replayed up to the line (PlayLog). Without a cache, or with
+        // one older than the campaign or the lessons, the wave starts over and the lesson opens there. Returns a notice, or null.
         public string DeveloperJump(string id)
         {
             if (!DeveloperTools || !tutorial) return "개발자 권한이 없습니다.";
@@ -367,6 +368,9 @@ namespace CodingGame.Defense
             if (step < 0) return "없는 대사 ID: " + id;
             SetDeveloperMode(false);
             stage = sequence.stage;
+            var cache = Resources.Load<TextAsset>(StageCachePath(stage)) is TextAsset text ? JsonUtility.FromJson<StageCache>(text.text) : null;
+            var mark = cache?.fingerprint == StageFingerprint(stage) ? cache.markers.FirstOrDefault(m => m.id == sequence.sequenceId + "." + sequence.steps[step].stepId) : null;
+            if (mark != null) return ReplayTo(cache, mark, sequence, step);
             var setup = MakeSetup(campaign, stage);
             setup.InitialWave = sequence.wave - 1; setup.PreviousStageRewards = true;
 #if UNITY_EDITOR
@@ -374,7 +378,56 @@ namespace CodingGame.Defense
 #endif
             ResetSession(setup);
             tutorial.JumpWhenBegun(sequence.sequenceId, step);
-            return null;
+            return (cache == null ? "캐시 없음" : mark == null && cache.fingerprint == StageFingerprint(stage) ? "캐시에 없는 대사" : "캐시 오래됨") + ": Tools/Develop/스테이지 캐시를 실행하세요";
+        }
+        public static string StageCachePath(int stage) => "Dev/StageCache_" + stage;
+        // What a stage's cached play depends on: the campaign (its robots and enemies too) and the stage's lessons, without
+        // the asset references, whose ids change from session to session.
+        public string StageFingerprint(int stage)
+        {
+            var assets = new UnityEngine.Object[] { campaign }.Concat(campaign.robots).Concat(campaign.enemies).Concat(tutorial.Sequences.Where(s => s && s.stage == stage));
+            ulong hash = 14695981039346656037; // FNV-1a
+            foreach (var asset in assets)
+                foreach (char c in System.Text.RegularExpressions.Regex.Replace(JsonUtility.ToJson(asset), "\"instanceID\":-?\\d+", "")) { hash ^= c; hash *= 1099511628211; }
+            return hash.ToString("x16");
+        }
+        // The stage started over as from the stage map, the cached play replayed headless up to the mark, then the views, the
+        // robot and editor the line had on screen, and the lesson at the line as that play left it.
+        string ReplayTo(StageCache cache, PlayMarker mark, TutorialSequence sequence, int step)
+        {
+            var setup = MakeSetup(campaign, stage); setup.PreviousStageRewards = true;
+            setup.TestOptions = cache.options ?? new DefenseTestOptions();
+#if UNITY_EDITOR
+            EditorOptions = setup.TestOptions;
+#endif
+            ResetSession(setup);
+            string diverged = PlayLog.Replay(Simulation, cache.inputs, mark.input, mark.tick);
+            if (diverged == null && PlayLog.Digest(Simulation) != mark.digest) diverged = "상태가 기록과 다릅니다";
+            // Only this wave's block drops are still on the ground.
+            Simulation.Events.RemoveAll(e => e.Kind != "drop");
+            foreach (var bot in Simulation.Robots) SpawnRobotView(bot);
+            SyncViews(0);
+            if (robotViews.TryGetValue(mark.selected, out var view)) { selected = mark.selected; RegisterSelectedRobot(Simulation.FindRobot(selected), view); }
+            if (mark.editing != 0)
+            {
+                codeEditor.Open(mark.editing);
+                if (codeEditor.IsOpen && mark.draft != null) codeEditor.Panel.LoadProgram(mark.draftName, PlayLog.Unflatten(mark.draft));
+            }
+            RefreshHUD();
+            tutorial.JumpFromCache(sequence, step, mark);
+            Trace($"jump {mark.id} replayed {mark.input} inputs to tick {mark.tick}" + (diverged == null ? "" : " · " + diverged));
+            return diverged == null ? null : "캐시 재생이 어긋남(" + diverged + "): Tools/Develop/스테이지 캐시를 다시 실행하세요";
+        }
+        // The play log's tutorial marks: where this session's inputs stood as each step began (the first time it began).
+        public readonly List<PlayMarker> PlayMarkers = new List<PlayMarker>();
+        public void MarkTutorialStep(string id, IEnumerable<string> signals, IEnumerable<string> completed, IEnumerable<string> launched)
+        {
+            if (Simulation == null || PlayMarkers.Exists(m => m.id == id)) return;
+            bool open = codeEditor.IsOpen;
+            PlayMarkers.Add(new PlayMarker { id = id, input = Simulation.Inputs.Count, tick = Simulation.Ticks, digest = PlayLog.Digest(Simulation),
+                selected = selected, editing = open ? codeEditor.EditingId : 0,
+                draftName = open ? codeEditor.Panel.FunctionName : null, draft = open ? PlayLog.Flatten(codeEditor.Panel.Program.StartChain().Select(b => b.Read())) : null,
+                signals = signals.ToArray(), completed = completed.ToArray(), launched = launched.ToArray() });
         }
         public void StartBattle()
         {

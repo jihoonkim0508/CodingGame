@@ -30,6 +30,8 @@
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseModels.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseEditorSettings.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseSimulation.cs" />
+    <Compile Include="../../Assets/!_Project/Scripts/Defense/PlayLog.cs" />
+    <Compile Include="PlayLogCheck.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseProgram.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseHealthTrail.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/Tutorial/TutorialSignals.cs" />

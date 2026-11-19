@@ -206,5 +206,6 @@ static class Check
         AllocCheck.Run();
         PlacementCheck.Run();
         AuditCheck.Run();
+        PlayLogCheck.Run();
     }
 }

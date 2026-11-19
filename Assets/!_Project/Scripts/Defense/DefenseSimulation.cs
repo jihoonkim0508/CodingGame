@@ -85,15 +85,22 @@ namespace CodingGame.Defense
         public bool LoopsUnlocked => Setup.PlayerFlow && (Inventory.ContainsKey(BlockKind.For) || Inventory.ContainsKey(BlockKind.While));
         // The robot's Play button: calls its function during a battle unless it is still running (play feedback 4).
         public bool CanInvoke(int robotId) => Phase == BattlePhase.Running && FindRobot(robotId)?.Program is DefenseProgram p && !p.IsEmpty && !p.Running && p.Fault == null;
-        public bool Invoke(int robotId) => CanInvoke(robotId) && FindRobot(robotId).Program.Invoke();
+        public bool Invoke(int robotId) { if (!CanInvoke(robotId) || !FindRobot(robotId).Program.Invoke()) return false; Log("invoke", robotId); return true; }
+        // Every input from outside, by tick from the session's start (PlayLog: the F1 dialogue jump replays them).
+        public readonly List<PlayInput> Inputs = new List<PlayInput>();
+        public long Ticks { get; private set; }
+        PlayInput Log(string kind, int id = 0, int index = 0, int count = 0)
+        { var input = new PlayInput { tick = Ticks, kind = kind, id = id, index = index, count = count }; Inputs.Add(input); return input; }
         // The robot's function runs as `for i in range(5): f()` per wave; once loops unlock it runs once, so the player writes the loop.
-        public void GrantRobot(RobotRole role, int count)
+        public void GrantRobot(RobotRole role, int count) { AddRobots(role, count); Log("robot", 0, (int)role, count); }
+        public void GrantBlock(BlockKind kind, int count) { AddBlocks(kind, count); Log("block", 0, (int)kind, count); }
+        void AddRobots(RobotRole role, int count)
         {
             if (!Enum.IsDefined(typeof(RobotRole), role) || count < 1) throw new ArgumentException("아이템 종류와 양수 수량을 확인하세요.");
             AddStock(RobotInventory, role, count);
             Emit("robot-granted",0,(int)role,Vector2.Zero,count);
         }
-        public void GrantBlock(BlockKind kind, int count)
+        void AddBlocks(BlockKind kind, int count)
         {
             if (!DefenseProgression.Consumes(kind) || count < 1) throw new ArgumentException("아이템 종류와 양수 수량을 확인하세요.");
             kind = DefenseProgression.Canonical(kind); AddStock(Inventory, kind, count);
@@ -130,8 +137,12 @@ namespace CodingGame.Defense
         // A robot holds the blocks of its applied code, or of its unfinished code in the editor when that has more
         // (a syntax error empties the applied code, but the blocks stay in that robot's editor).
         readonly Dictionary<int, Dictionary<BlockKind, int>> drafts = new Dictionary<int, Dictionary<BlockKind, int>>();
-        public void SetDraft(int id, IEnumerable<BlockKind> blocks) =>
-            drafts[id] = blocks.Select(DefenseProgression.Canonical).GroupBy(k => k).ToDictionary(g => g.Key, g => g.Count());
+        public void SetDraft(int id, IEnumerable<BlockKind> blocks)
+        {
+            var kinds = blocks.ToArray();
+            drafts[id] = kinds.Select(DefenseProgression.Canonical).GroupBy(k => k).ToDictionary(g => g.Key, g => g.Count());
+            Log("draft", id).kinds = kinds;
+        }
         public int Reserved(RobotState robot, BlockKind kind) => Math.Max(robot.Program?.BlockCount(kind) ?? 0,
             drafts.TryGetValue(robot.Id, out var draft) && draft.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0);
         int nextId = 1;
@@ -153,8 +164,8 @@ namespace CodingGame.Defense
             // warriors and two shooters in the dock); Stage 3 follows on from Stage 2 on the same map.
             if (setup.PlayerFlow && setup.PreviousStageRewards) foreach (var lesson in setup.Progression.lessons.Where(l => l.stage > 1 && l.stage < setup.Stage || l.stage == setup.Stage && l.wave <= setup.InitialWave))
             {
-                foreach(var stock in lesson.robots) GrantRobot(stock.role,stock.count);
-                foreach(var stock in lesson.blocks.Concat(lesson.rewards)) GrantBlock(stock.kind,stock.count);
+                foreach(var stock in lesson.robots) AddRobots(stock.role,stock.count);
+                foreach(var stock in lesson.blocks.Concat(lesson.rewards)) AddBlocks(stock.kind,stock.count);
             }
             PrepareWave();
         }
@@ -170,8 +181,8 @@ namespace CodingGame.Defense
         void GrantSupply(WaveLesson lesson)
         {
             if (!Options.supply) return;
-            foreach (var stock in lesson.blocks) GrantBlock(stock.kind, stock.count);
-            foreach (var stock in lesson.robots) GrantRobot(stock.role, stock.count);
+            foreach (var stock in lesson.blocks) AddBlocks(stock.kind, stock.count);
+            foreach (var stock in lesson.robots) AddRobots(stock.role, stock.count);
             Emit("supply",lesson.stage,lesson.wave,Vector2.Zero);
         }
         public void ApplyBalance(BattleSetup incoming, RobotSpec[] robots, EnemySpec[] enemies)
@@ -244,7 +255,7 @@ namespace CodingGame.Defense
             Setup.Stage++; WaveIndex = 0;
             if (Setup.CampaignWaves != null) { Setup.Waves = Setup.CampaignWaves[Setup.Stage-1]; Setup.WaveSeconds = Setup.CampaignSeconds[Setup.Stage-1]; } BaseHealth = Setup.BaseHealth;
             nextWave = null; carry.Clear(); WaveSurvivors.Clear(); LastSurvivors = 0; LastWaveTimedOut = false;
-            PrepareWave(); ResetPrograms(); Phase = BattlePhase.Ready; return true;
+            PrepareWave(); ResetPrograms(); Phase = BattlePhase.Ready; Log("advance"); return true;
         }
         void ResetPrograms()
         {
@@ -277,6 +288,7 @@ namespace CodingGame.Defense
         public void Start()
         {
             if (StartError() != null) return;
+            Log("start");
             Checkpoint = Capture(); accumulated = 0; waveStart = Time; Phase = BattlePhase.Running;
             foreach (var bot in Robots) bot.Program?.Invoke();
         }
@@ -321,6 +333,7 @@ namespace CodingGame.Defense
         public bool ClaimRewards()
         {
             if (Phase != BattlePhase.Reward) return false;
+            Log("claim");
             Emit("rewards",0,WaveIndex+1,Vector2.Zero,PendingDrops.Count);
             foreach (var kind in PendingDrops) AddStock(Inventory, kind, 1);
             PendingDrops.Clear(); accumulated = 0;
@@ -329,10 +342,11 @@ namespace CodingGame.Defense
             ResetPrograms();
             Phase = BattlePhase.Ready; return true;
         }
-        public void SetCoins(int value) { if (value < 0) throw new ArgumentException("코인은 0 이상"); Coins = value; }
+        public void SetCoins(int value) { if (value < 0) throw new ArgumentException("코인은 0 이상"); Coins = value; Log("coins", 0, 0, value); }
         public void StepOnce()
         {
             if (Phase != BattlePhase.Paused) throw new InvalidOperationException("일시정지 상태 필요");
+            Log("step");
             Phase = BattlePhase.Running; Tick();
             if (Phase == BattlePhase.Running) Phase = BattlePhase.Paused;
         }
@@ -341,13 +355,16 @@ namespace CodingGame.Defense
             var roles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().ToArray();
             if (roles.Any(r => RobotInventory.TryGetValue(r,out int n) && n > int.MaxValue-10) ||
                 DefenseProgression.ItemKinds.Any(k=>Inventory.TryGetValue(k,out int n) && n > int.MaxValue-50)) throw new OverflowException();
-            foreach(var r in roles) GrantRobot(r,10);
-            foreach(var k in DefenseProgression.ItemKinds) GrantBlock(k,50);
+            foreach(var r in roles) AddRobots(r,10);
+            foreach(var k in DefenseProgression.ItemKinds) AddBlocks(k,50);
+            Log("grantall");
         }
         public void TogglePause()
         {
             if (Phase == BattlePhase.Running) Phase = BattlePhase.Paused;
             else if (Phase == BattlePhase.Paused) Phase = BattlePhase.Running;
+            else return;
+            Log("pause");
         }
         public string DeploymentError(RobotRole role)
         {
@@ -390,7 +407,9 @@ namespace CodingGame.Defense
                 Action = spec.NativeAction, Health = spec.role == RobotRole.Tank ? (float?)spec.health : null,
                 NextAction = Time };
             if (Setup.PlayerFlow && Options.inventoryLimit) RobotInventory[spec.role]--;
-            Robots.Add(bot); return bot;
+            Robots.Add(bot);
+            var input = Log("place", 0, definitionIndex); input.spec = spec.Copy(); input.x = point.X; input.y = point.Y;
+            return bot;
         }
         // Recall stays locked through the Stage 1 tutorial (1-1, 1-2) so the teaching robot keeps its code.
         public bool RecallUnlocked => !Setup.PlayerFlow || Setup.Stage != 1 || WaveIndex >= 2;
@@ -399,10 +418,10 @@ namespace CodingGame.Defense
             if (Setup.PlayerFlow && !CanPrepare || !RecallUnlocked) return false;
             var bot = FindRobot(id);
             if (bot == null) return false;
-            if (Setup.PlayerFlow) GrantRobot(bot.Spec.role, 1);
+            if (Setup.PlayerFlow) AddRobots(bot.Spec.role, 1);
             // 인벤토리는 종류별 수량만 보관하므로 강화 비용을 환급하고 Lv.1 로봇으로 돌려줍니다.
             Coins = (int)Math.Min(int.MaxValue, (long)Coins + bot.UpgradeCostPaid);
-            Detach(bot);
+            Detach(bot); Log("remove", id);
             return true;
         }
         // Level-up opens from Stage 1 wave 2 in the campaign.
@@ -425,6 +444,7 @@ namespace CodingGame.Defense
             int cost = UpgradeCostFor(bot);
             Coins -= cost; bot.UpgradeCostPaid += cost; bot.Level++;
             if (bot.Health.HasValue) bot.Health = bot.MaxHealth * healthRatio;
+            Log("upgrade", id);
             return true;
         }
         void Detach(RobotState bot)
@@ -453,6 +473,7 @@ namespace CodingGame.Defense
             if (Setup.PlayerFlow) foreach (var group in DefenseProgression.Used(blocks).GroupBy(k => k))
                 if (group.Count() > Available(group.Key, id)) throw new FormatException(DefenseProgression.Label(group.Key) + " 블록 수량이 부족합니다. 다른 로봇의 예약 수량도 확인하세요.");
             bot.Program = program; bot.AutoExecute = false;
+            var input = Log("program", id); input.name = name; input.code = PlayLog.Flatten(blocks);
             bot.BlockingEnabled = false;
             foreach (var e in Enemies) if (e.BlockedBy == id) e.BlockedBy = 0;
         }
@@ -656,7 +677,7 @@ namespace CodingGame.Defense
         void Tick()
         {
             const float dt = (float)TickDuration;
-            Time += TickDuration;
+            Time += TickDuration; Ticks++;
             if (Options.enemySpawn) { spawnElapsed += TickDuration; Spawn(); }
             foreach (var bot in Robots)
                 for (int i = bot.Buffs.Count - 1; i >= 0; i--) if (bot.Buffs[i].Until <= Time) bot.Buffs.RemoveAt(i);
