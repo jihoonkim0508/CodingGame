@@ -100,19 +100,41 @@ public static class HudAuditCheck
 
         Run("H2 goal banner says 목표 once", () =>
         {
-            var sim = Fresh(2, 1);
+            var sim = Fresh(2, 2); // 2-1 has no goal line since the campaign asset came from GameData
             Late(hud);
             var guide = Get<TMP_Text>(hud, "guide");
             var parent = guide.transform.parent;
-            if (!parent.gameObject.activeSelf) return "test setup: goal banner not shown in 2-1";
+            if (!parent.gameObject.activeSelf) return "test setup: goal banner not shown in 2-2";
             string all = string.Join(" | ", parent.GetComponentsInChildren<TMP_Text>(false).Select(t => t.text));
             int count = Regex.Matches(all, "목표").Count;
             if (count != 1) return $"\"목표\" appears {count} times in the banner: {all}";
             // The pause/speed buttons and the i drop below the bar while it shows (the i was hidden under it).
             Rect Box(Transform t) { var c = new Vector3[4]; ((RectTransform)t).GetWorldCorners(c); return Rect.MinMaxRect(c[0].x, c[0].y, c[2].x, c[2].y); }
             var canvas = Get<GameObject>(hud, "combatControls").transform.parent;
-            var under = new[] { canvas.Find("CombatControls"), canvas.Find("Header/Info") }.Where(t => t && Box(t).Overlaps(Box(parent))).Select(t => t.name).ToList();
-            return under.Count == 0 ? null : "under the goal bar: " + string.Join(", ", under);
+            var controls = new[] { canvas.Find("CombatControls"), canvas.Find("Header/Info") };
+            var under = controls.Where(t => t && Box(t).Overlaps(Box(parent))).Select(t => t.name).ToList();
+            if (under.Count > 0) return "under the goal bar: " + string.Join(", ", under);
+            // The core health bar (PlayerCanvas/CoreHealth) stays 8 px under the buttons and the i beside it, with a goal (2-2, 3-1)
+            // and without one (1-1 with the tutorial off, 2-1), before and during the fight. Its LateUpdate is run by hand to place it.
+            var problems = new List<string>();
+            var core = canvas.Find("CoreHealth");
+            var coreBar = core.GetComponentInChildren<DefenseCoreHealthBar>(true);
+            float scale = canvas.lossyScale.y;
+            foreach (var (stage, wave) in new[] { (2, 2), (3, 1), (1, 1), (2, 1) })
+            foreach (var phase in new[] { BattlePhase.Ready, BattlePhase.Running })
+            {
+                var s = Fresh(stage, wave); SetPhase(s, phase); Late(hud);
+                typeof(DefenseCoreHealthBar).GetMethod("LateUpdate", All).Invoke(coreBar, null);
+                var bar = Box(core);
+                foreach (var t in controls.Where(t => t && t.gameObject.activeInHierarchy))
+                {
+                    var c = Box(t);
+                    bool beside = c.xMax > bar.xMin && c.xMin < bar.xMax;
+                    float gap = (c.yMin - bar.yMax) / scale;
+                    if (beside && c.yMax > bar.yMin && gap < 8) problems.Add($"{stage}-{wave} {phase}: {t.name} {gap:0} px over the core health bar (needs 8)");
+                }
+            }
+            return problems.Count == 0 ? null : string.Join("; ", problems);
         });
 
         Run("H3 boss gets its own next-wave card", () =>

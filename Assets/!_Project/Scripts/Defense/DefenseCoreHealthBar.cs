@@ -27,6 +27,10 @@ namespace CodingGame.Defense
         bool homeKnown, moved;
         Transform placedModel;
         Vector3 coreTop;
+        static readonly Vector3[] corners = new Vector3[4];
+        // HUD parts beside the frame that it stays 8 px under (DefensePlayerHUD: the pause/speed buttons and the i, which drop
+        // below the goal bar while a goal shows), so the frame comes down with them and goes back up when they do.
+        public RectTransform[] KeepBelow { get; set; } = System.Array.Empty<RectTransform>();
 
         public RectTransform BarRect => (RectTransform)transform.parent;
         public override Texture mainTexture => fillTexture ? fillTexture : base.mainTexture;
@@ -63,12 +67,21 @@ namespace CodingGame.Defense
             var frame = BarRect;
             var parent = (RectTransform)frame.parent;
             Vector2 screen = camera.WorldToScreenPoint(top + Vector3.up * AboveCore);
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, screen, null, out var local);
+            var canvas = frame.GetComponentInParent<Canvas>().rootCanvas;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(parent, screen, canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera, out var local);
             var area = parent.rect;
             var size = frame.rect.size;
             float halfWidth = size.x * .5f + 16;
             local.x = Mathf.Clamp(local.x, area.xMin + halfWidth, area.xMax - halfWidth);
             local.y = Mathf.Clamp(local.y, area.yMin + 16, area.yMax - size.y - 96); // under the top bar
+            foreach (var part in KeepBelow) // pushed down only by a part it would touch, so a low core spot stays where it is
+            {
+                if (!part) continue;
+                part.GetWorldCorners(corners);
+                Vector2 low = parent.InverseTransformPoint(corners[0]), high = parent.InverseTransformPoint(corners[2]);
+                if (high.x > local.x - size.x * .5f && low.x < local.x + size.x * .5f && local.y < high.y + 8 && local.y + size.y > low.y - 8)
+                    local.y = low.y - 8 - size.y;
+            }
             var pivot = local + new Vector2((frame.pivot.x - .5f) * size.x, frame.pivot.y * size.y);
             var anchor = new Vector2(Mathf.Lerp(area.xMin, area.xMax, frame.anchorMin.x), Mathf.Lerp(area.yMin, area.yMax, frame.anchorMin.y));
             return pivot - anchor;
