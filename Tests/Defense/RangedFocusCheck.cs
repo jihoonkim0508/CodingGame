@@ -79,6 +79,11 @@ static class RangedFocusCheck
         Assert(!PythonTreeCompiler.HasStaleEnemyLoop(focus), "a loop that breaks on enemy.is_dead() is not warned as aiming at a gone target");
         Assert(PythonTreeCompiler.HasStaleEnemyLoop(TutorialAnswers.Parse("enemy = get_nearest_enemy()\nwhile True:\n    shoot(enemy)")),
             "a loop that never looks at its target again is still warned");
+        // 2-6: the inner loop breaks out to the outer one, which picks the enemy again; without the break it never does.
+        Assert(!PythonTreeCompiler.HasStaleEnemyLoop(TutorialAnswers.Parse("while True:\n    enemy = get_nearest_enemy()\n    while True:\n        if enemy.distance(get_my_pos()) > my_attack_range():\n            break\n        shoot(enemy)")),
+            "2-6's answer (break out to the loop that picks the enemy again) is not warned");
+        Assert(PythonTreeCompiler.HasStaleEnemyLoop(TutorialAnswers.Parse("while True:\n    enemy = get_nearest_enemy()\n    while True:\n        shoot(enemy)")),
+            "2-6's example (an inner loop that never leaves its enemy) is still warned");
 
         var enemy = B(BlockKind.DeclareVariable, "enemy", B(BlockKind.NearestEnemy));
         CodeBlock[] If(CodeBlock test) { var branch = B(BlockKind.If, "0", test); branch.Body.Add(B(BlockKind.Shot, "0", B(BlockKind.Variable, "enemy"))); return new[] { enemy, branch }; }

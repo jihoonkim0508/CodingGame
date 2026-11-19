@@ -103,12 +103,32 @@ namespace CodingGame.BlockCoding
         public static bool HasStaleEnemyLoop(IReadOnlyList<CodeBlock> blocks)
         {
             var enemies = new HashSet<string>(All(blocks).Where(b => b.Kind == BlockKind.DeclareVariable && b.Arguments.FirstOrDefault()?.Kind == BlockKind.NearestEnemy).Select(b => b.Value));
-            return All(blocks).Any(loop => (loop.Kind == BlockKind.For || loop.Kind == BlockKind.While) &&
-                All(loop.Body).Where(b => b.Kind == BlockKind.Variable && enemies.Contains(b.Value)).Select(b => b.Value)
-                    .Except(All(loop.Body).Where(b => b.Kind == BlockKind.DeclareVariable).Select(b => b.Value))
-                    // `if enemy.is_dead(): break` (or re-assign) watches the target: that loop is not stale.
-                    .Except(All(loop.Body).Where(b => b.Kind == BlockKind.IsDead && b.Arguments.FirstOrDefault()?.Kind == BlockKind.Variable).Select(b => b.Arguments[0].Value)).Any());
+            return StaleLoop(blocks, enemies, new HashSet<string>());
         }
+        // repicked: names an enclosing loop assigns again; a loop that can break out to it is not stale (2-6's answer).
+        static bool StaleLoop(IEnumerable<CodeBlock> blocks, HashSet<string> enemies, HashSet<string> repicked)
+        {
+            foreach (var loop in blocks.Where(b => b != null))
+            {
+                var inner = repicked;
+                if (loop.Kind == BlockKind.For || loop.Kind == BlockKind.While)
+                {
+                    var declared = All(loop.Body).Where(b => b.Kind == BlockKind.DeclareVariable).Select(b => b.Value).ToList();
+                    var stale = All(loop.Body).Where(b => b.Kind == BlockKind.Variable && enemies.Contains(b.Value)).Select(b => b.Value)
+                        .Except(declared)
+                        // `if enemy.is_dead(): break` (or re-assign) watches the target: that loop is not stale.
+                        .Except(All(loop.Body).Where(b => b.Kind == BlockKind.IsDead && b.Arguments.FirstOrDefault()?.Kind == BlockKind.Variable).Select(b => b.Arguments[0].Value));
+                    if (Breaks(loop.Body)) stale = stale.Except(repicked);
+                    if (stale.Any()) return true;
+                    inner = new HashSet<string>(repicked.Concat(declared));
+                }
+                if (StaleLoop(loop.Body, enemies, inner)) return true;
+            }
+            return false;
+        }
+        // A break of this loop: in its body or an if inside it, not in a nested loop.
+        static bool Breaks(IEnumerable<CodeBlock> body) => body.Where(b => b != null).Any(b => b.Kind == BlockKind.Break ||
+            b.Kind != BlockKind.For && b.Kind != BlockKind.While && Breaks(b.Body));
 
         static void ValidateTree(IReadOnlyList<CodeBlock> blocks, HashSet<CodeBlock> path)
         {
