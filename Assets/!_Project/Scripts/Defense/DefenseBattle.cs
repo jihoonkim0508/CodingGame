@@ -117,6 +117,7 @@ namespace CodingGame.Defense
             (TutorialAllows("Battle.Develop") || TutorialAllows("Battle.Upgrade") || TutorialAllows("Battle.Recall"));
         public string DefinitionName(int index) => robots[index].displayName;
         public RobotRole DefinitionRole(int index) => robots[index].stats.role;
+        public string RoleName(RobotRole role) => robots.FirstOrDefault(r => r.stats.role == role)?.displayName ?? role.ToString();
         public EnemyDefinition EnemyAt(int index) => enemies[index];
         public void BeginCodeView(RobotState robot)
         {
@@ -717,7 +718,9 @@ namespace CodingGame.Defense
                         if (role == RobotRole.Warrior)
                         {
                             var loop = new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.While); loop.Body.Add(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Slash));
-                            sim.ApplyProgram(bot.Id, "warrior_" + bot.Id, new[] { loop });
+                            // Without the blocks in stock (GameData/Award.md gives none) the warrior stands without code.
+                            try { sim.ApplyProgram(bot.Id, "warrior_" + bot.Id, new[] { loop }); }
+                            catch (FormatException error) { Debug.LogWarning("수업 전사형 코드를 넣지 못함: " + error.Message); }
                         }
                         sounds.Play("place"); SyncViews(0); RefreshHUD();
                         return;

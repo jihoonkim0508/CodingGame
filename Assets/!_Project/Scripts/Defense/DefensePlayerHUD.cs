@@ -455,8 +455,8 @@ namespace CodingGame.Defense
             if (sim == null || !sim.Options.hitEffects) return;
             if ((evt.Kind == "hit" || evt.Kind == "projectile-hit") && evt.AppliedAmount > 0)
                 Float(evt.Position, Mathf.Max(1, Mathf.RoundToInt(evt.AppliedAmount)).ToString(), Color.white, 30, .6f, 46);
-            else if (evt.Kind == "killed" && sim.Setup.PlayerFlow && sim.Setup.Progression.coinsPerKill > 0)
-                Float(evt.Position, $"+{sim.Setup.Progression.coinsPerKill} 코인", new Color(1, .83f, .42f), 32, 1f, 74);
+            else if (evt.Kind == "killed" && sim.Setup.PlayerFlow && sim.KillCoins > 0)
+                Float(evt.Position, $"+{sim.KillCoins} 코인", new Color(1, .83f, .42f), 32, 1f, 74);
         }
         void Float(System.Numerics.Vector2 position, string text, Color color, float size, float life, float rise)
         {
@@ -1223,7 +1223,7 @@ namespace CodingGame.Defense
                 if (battle.PrototypeEnded) { english = "PROTOTYPE END"; rewardTitle.text = "프로토타입은 여기까지 개발되었어요!"; }
                 if (shownRewardPhase != sim.Phase) ShowEndBanner($"<size=40%>{english}</size>\n{rewardTitle.text}", sim.Phase == BattlePhase.Defeat);
                 // The victory sentence on two lines: in Pretendard Bold it no longer fits the card on one and left "다." alone.
-                rewardItems.text = reward ? (sim.PendingDrops.Count == 0 ? "지급할 블록이 없습니다." : "") :
+                rewardItems.text = reward ? (sim.PendingDrops.Count == 0 && sim.PendingRobots.Count == 0 ? "지급할 보상이 없습니다." : "") :
                     (sim.Phase == BattlePhase.Victory ? battle.FromStageMap ? $"{sim.Setup.Waves.Length}개 웨이브 방어 성공\n스테이지 맵에서 다음 스테이지를 선택하세요." : sim.CanAdvanceStage ? $"{sim.Setup.Waves.Length}개 웨이브 방어 성공\n보유 블록과 로봇을 다음 스테이지로 가져갑니다." : $"1~3스테이지, 총 {sim.Setup.CampaignWaves?.Sum(waves => waves.Length) ?? sim.Setup.Waves.Length}개 웨이브를 완료했습니다." : "방어 실패 · 배치와 코드를 바꿔 도전하세요") + $"\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
                 if (sim.LastRush > 0) rewardItems.text += $"\n\n시간 종료 · 남은 적 {sim.LastRush}마리가 코어로 돌진 (코어 -{sim.LastRushDamage})";
                 else if (reward) rewardItems.text += $"\n\n잔여 적 {sim.LastSurvivors}" + (sim.WaveIndex + 1 < sim.Setup.Waves.Length ? " · 다음 웨이브에 추가" : " · 최종 기록");
@@ -1231,6 +1231,9 @@ namespace CodingGame.Defense
                 if (battle.PrototypeEnded)
                     rewardItems.text = StarLine(sim) + $"\n\n스테이지 {battle.Stage} · {battle.Stage}-{sim.Setup.Waves.Length}까지가 지금 개발된 프로토타입이에요.\n다음 스테이지는 개발 중입니다.\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
                 ShowRewardBlocks(reward ? sim.PendingDrops : null);
+                // Robots rewarded (GameData/Award.md) as a line above the blocks, like a block with no palette item.
+                if (reward && sim.PendingRobots.Count > 0)
+                    rewardItems.text = string.Join("\n", sim.PendingRobots.GroupBy(r => r).Select(g => battle.RoleName(g.Key) + " 로봇   x" + g.Count())) + "\n" + rewardItems.text;
                 ShowStars(sim);
                 ShowDebrief(sim);
                 ShowGuide(sim);

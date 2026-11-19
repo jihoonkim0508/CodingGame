@@ -1,4 +1,4 @@
-// Builds the tutorial sequences from Docs/flow_stage1/tutorial_stage1_대본.md, applies the campaign's waves and lessons,
+// Builds the tutorial sequences from Docs/flow_stage1/tutorial_stage1_대본.md, applies the campaign's waves and rewards from GameData/,
 // and wires the sequences into Defense.unity. Stages (13차 179): 1-1 melee, 1-2 free, 1-3 loops, 1-4 free, 1-5 boss;
 // 2-1 variables and the shooter, 2-2 free, 2-3 conditions, 2-4 and 2-5 free, 2-6 boss; 3-1 the tank, 3-2 and 3-3 free, 3-4 boss.
 // Run from Tools/Develop after editing the script document; Defense.unity must be the open scene.
@@ -32,12 +32,9 @@ namespace CodingGame.Defense.Editor
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Play 종료 후 적용하세요.");
             lines = ParseScript(Path.Combine(Directory.GetCurrentDirectory(), Script));
             var sequence = Write("1-1", 1, OneOne());
-            var campaign = AssetDatabase.LoadAssetAtPath<DefenseCampaignDefinition>($"{Folder}/StageOneCampaign.asset");
-            var so = new SerializedObject(campaign);
-            SetupIntroEncounter(so);
-            so.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(campaign);
+            Campaign();
             AssetDatabase.SaveAssets();
-            Debug.Log("Beginner tutorial 1-1 applied: " + sequence.steps.Length + " steps and intro encounter (other waves unchanged)");
+            Debug.Log("Beginner tutorial 1-1 applied: " + sequence.steps.Length + " steps and the campaign from GameData");
         }
 
         const string Folder = "Assets/!_Project/Defense/Tutorial/Stage1";
@@ -46,9 +43,9 @@ namespace CodingGame.Defense.Editor
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Play 종료 후 적용하세요.");
             lines = ParseScript(Path.Combine(Directory.GetCurrentDirectory(), Script));
             var updated = new[] { Write("1-1", 1, OneOne()), Write("1-2", 2, OneTwo()), Write("1-3", 3, OneThree()) };
-            Campaign(true);
+            Campaign();
             AssetDatabase.SaveAssets();
-            Debug.Log("Beginner lessons applied: " + string.Join(", ", updated.Select(s => s.sequenceId + "=" + s.steps.Length)) + " (1-4 onward unchanged)");
+            Debug.Log("Beginner lessons applied: " + string.Join(", ", updated.Select(s => s.sequenceId + "=" + s.steps.Length)) + " (campaign from GameData)");
         }
         const string Script = "Docs/flow_stage1/tutorial_stage1_대본.md";
         const string Start = TutorialKeys.Start, Develop = TutorialKeys.Develop, Drop = TutorialKeys.DropZone, Palette = TutorialKeys.Palette,
@@ -478,279 +475,137 @@ namespace CodingGame.Defense.Editor
             return sequence;
         }
 
-        // Grants, learning topics, the 1-4 swarm, and the 1-5 boss.
-        static string Campaign(bool firstThreeOnly = false)
+        // GameData/Award.md and Balance.md (GameDataApply): every wave's rewards on its clear, 1-1's start stock (the only
+        // grant at a wave's start), coins, enemy groups and the robots' level-1 numbers; here only the lessons' topics and goals.
+        public static string ApplyGameData()
+        {
+            if (EditorApplication.isPlaying) throw new InvalidOperationException("Play 종료 후 적용하세요.");
+            string log = Campaign();
+            AssetDatabase.SaveAssets();
+            return log;
+        }
+        static string Campaign()
         {
             var campaign = AssetDatabase.LoadAssetAtPath<DefenseCampaignDefinition>($"{Folder}/StageOneCampaign.asset");
+            var data = GameDataApply.Load(campaign.rules.upgradeMultiplier);
             var so = new SerializedObject(campaign);
             var lessons = so.FindProperty("progression.lessons");
-            void Lesson(int wave, string topic, int warriors, params (BlockKind kind, int count)[] blocks) => StageLesson(1, wave, topic, RobotRole.Warrior, warriors, blocks);
-            void StageLesson(int stage, int wave, string topic, RobotRole role, int robotCount, params (BlockKind kind, int count)[] blocks)
+            SerializedProperty Lesson(int stage, int wave)
             {
                 for (int i = 0; i < lessons.arraySize; i++)
                 {
                     var lesson = lessons.GetArrayElementAtIndex(i);
-                    if (lesson.FindPropertyRelative("stage").intValue != stage || lesson.FindPropertyRelative("wave").intValue != wave) continue;
-                    lesson.FindPropertyRelative("topic").stringValue = topic;
-                    var robots = lesson.FindPropertyRelative("robots");
-                    robots.arraySize = robotCount > 0 ? 1 : 0;
-                    if (robotCount > 0) { robots.GetArrayElementAtIndex(0).FindPropertyRelative("role").intValue = (int)role; robots.GetArrayElementAtIndex(0).FindPropertyRelative("count").intValue = robotCount; }
-                    var stock = lesson.FindPropertyRelative("blocks");
-                    stock.arraySize = blocks.Length;
-                    for (int b = 0; b < blocks.Length; b++)
-                    {
-                        stock.GetArrayElementAtIndex(b).FindPropertyRelative("kind").intValue = (int)blocks[b].kind;
-                        stock.GetArrayElementAtIndex(b).FindPropertyRelative("count").intValue = blocks[b].count;
-                    }
-                    return;
+                    if (lesson.FindPropertyRelative("stage").intValue == stage && lesson.FindPropertyRelative("wave").intValue == wave) return lesson;
                 }
-                // A wave without a lesson yet (2-7 to 2-10): a new entry, no rewards.
                 lessons.arraySize++;
                 var added = lessons.GetArrayElementAtIndex(lessons.arraySize - 1);
                 added.FindPropertyRelative("stage").intValue = stage; added.FindPropertyRelative("wave").intValue = wave;
-                added.FindPropertyRelative("rewards").arraySize = 0; added.FindPropertyRelative("goal").stringValue = "";
-                StageLesson(stage, wave, topic, role, robotCount, blocks);
+                added.FindPropertyRelative("topic").stringValue = stage + "-" + wave; added.FindPropertyRelative("goal").stringValue = "";
+                return added;
             }
-            void Rewards(int stage, int wave, params (BlockKind kind, int count)[] blocks)
+            void Topic(int stage, int wave, string topic, string goal = "")
+            { var lesson = Lesson(stage, wave); lesson.FindPropertyRelative("topic").stringValue = topic; lesson.FindPropertyRelative("goal").stringValue = goal; }
+            // 1-1 the swing and the Play button, 1-2 free, 1-3 the loop, 1-4 free, 1-5 the boss; the shooter and variables at 2-1,
+            // conditions at 2-3, is_dead() 2-5, break 2-6, continue 2-8, the boss 2-10; the tank at 3-1 (13차 179).
+            Topic(1, 1, "베기와 실행 버튼"); Topic(1, 2, "베기 자유 플레이"); Topic(1, 3, "반복문"); Topic(1, 4, "반복 자유 플레이"); Topic(1, 5, "반복 보스 실습");
+            Topic(2, 1, "변수: 찾은 적을 상자에 담기(원거리)");
+            Topic(2, 2, "변수 자유 플레이", "찾은 적을 변수에 담아 원거리형 하나로 무리 막기");
+            Topic(2, 3, "조건문: 벨 때 고르기(전사형)", "적이 공격 범위에 들어왔을 때만 베는 조건문으로 막기");
+            Topic(2, 4, "조건 자유 플레이", "적이 공격 범위에 들어왔을 때만 공격하는 조건문으로 무리 막기");
+            Topic(2, 5, "is_dead(): 한 적을 끝까지", "쓰러진 적이면 새로 찾는 is_dead()로 한 적씩 끝내기");
+            Topic(2, 6, "break: 사거리를 벗어나면 놓아주기", "빠른 적 등장 · 사거리 밖으로 나간 적은 break로 놓아주기 · 새 원거리형엔 코드 복사");
+            Topic(2, 7, "자유 실습: 쓰러지거나 멀어지면 break", "쓰러진 적도, 멀어진 적도 break로 놓아주고 다음 적 잡기");
+            Topic(2, 8, "continue와 enemy.type", "단단한 적 등장 · 원거리형은 continue로 단단한 적만, 작은 적은 전사형이");
+            Topic(2, 9, "자유 종합", "모든 종류의 적 · is_dead(), break, continue로 로봇마다 맡을 적 나누기");
+            Topic(2, 10, "보스", "보스 등장 · 작은 적을 모두 막고 보스를 쓰러뜨리기");
+            Topic(3, 1, "탱커형 소개", "탱커형으로 길을 막고 다른 로봇으로 공격하기");
+            Topic(3, 2, "자유 플레이", "적이 두 번에 나눠 와요 · 탱커형과 함께 끝까지 막기");
+            Topic(3, 3, "자유 플레이", "탱커병 뒤로 적이 줄지어 와요 · 길을 막고 한꺼번에 공격하기");
+            Topic(3, 4, "보스", "마지막 보스 · 작은 적을 모두 막고 보스를 쓰러뜨리기");
+            void Stock(SerializedProperty list, string field, IList<(int value, int count)> items)
             {
-                for (int i = 0; i < lessons.arraySize; i++)
+                list.arraySize = items.Count;
+                for (int i = 0; i < items.Count; i++)
                 {
-                    var lesson = lessons.GetArrayElementAtIndex(i);
-                    if (lesson.FindPropertyRelative("stage").intValue != stage || lesson.FindPropertyRelative("wave").intValue != wave) continue;
-                    var stock = lesson.FindPropertyRelative("rewards");
-                    stock.arraySize = blocks.Length;
-                    for (int b = 0; b < blocks.Length; b++)
-                    {
-                        stock.GetArrayElementAtIndex(b).FindPropertyRelative("kind").intValue = (int)blocks[b].kind;
-                        stock.GetArrayElementAtIndex(b).FindPropertyRelative("count").intValue = blocks[b].count;
-                    }
+                    list.GetArrayElementAtIndex(i).FindPropertyRelative(field).intValue = items[i].value;
+                    list.GetArrayElementAtIndex(i).FindPropertyRelative("count").intValue = items[i].count;
                 }
             }
-            void FreeLesson(int stage, int wave, string topic, string goal) { StageLesson(stage, wave, topic, RobotRole.Warrior, 0); Goal(stage, wave, goal); }
-            void Goal(int stage, int wave, string goal)
+            var summary = new System.Text.StringBuilder("GameData 적용\n");
+            var start = data.Awards.FirstOrDefault(a => a.Stage == 0) ?? new GameDataTables.Award();
+            string Items(GameDataTables.Award a)
             {
-                for (int i = 0; i < lessons.arraySize; i++)
-                {
-                    var lesson = lessons.GetArrayElementAtIndex(i);
-                    if (lesson.FindPropertyRelative("stage").intValue == stage && lesson.FindPropertyRelative("wave").intValue == wave)
-                        lesson.FindPropertyRelative("goal").stringValue = goal;
-                }
+                string text = string.Join(", ", a.Robots.Select(r => r.role + " ×" + r.count).Concat(a.Blocks.Select(b => b.kind + " ×" + b.count)));
+                return text.Length > 0 ? text : "-";
             }
-            void DropLesson(int stage, int wave)
+            summary.AppendLine("start: " + Items(start));
+            var waves = data.Groups.Select(g => (g.Stage, g.Wave)).Concat(data.Awards.Where(a => a.Stage > 0).Select(a => (a.Stage, a.Wave))).Distinct().OrderBy(w => w).ToArray();
+            foreach (var (stage, wave) in waves)
             {
-                for (int i = lessons.arraySize - 1; i >= 0; i--)
-                {
-                    var lesson = lessons.GetArrayElementAtIndex(i);
-                    if (lesson.FindPropertyRelative("stage").intValue == stage && lesson.FindPropertyRelative("wave").intValue == wave) lessons.DeleteArrayElementAtIndex(i);
-                }
+                var lesson = Lesson(stage, wave);
+                var award = data.Awards.FirstOrDefault(a => a.Stage == stage && a.Wave == wave) ?? new GameDataTables.Award();
+                // No grants at a wave's start but 1-1's start stock; a wave's row is what its clear gives.
+                var first = stage == 1 && wave == 1 ? start : new GameDataTables.Award();
+                Stock(lesson.FindPropertyRelative("robots"), "role", first.Robots.Select(r => ((int)r.role, r.count)).ToList());
+                Stock(lesson.FindPropertyRelative("blocks"), "kind", first.Blocks.Select(b => ((int)b.kind, b.count)).ToList());
+                Stock(lesson.FindPropertyRelative("rewardRobots"), "role", award.Robots.Select(r => ((int)r.role, r.count)).ToList());
+                Stock(lesson.FindPropertyRelative("rewards"), "kind", award.Blocks.Select(b => ((int)b.kind, b.count)).ToList());
+                var coins = data.CoinRows.FirstOrDefault(c => c.Stage == stage && c.Wave == wave);
+                lesson.FindPropertyRelative("startCoins").intValue = coins?.Start ?? -1;
+                lesson.FindPropertyRelative("coinsPerKill").intValue = coins?.PerKill ?? -1;
+                summary.AppendLine($"{stage}-{wave} 클리어 보상: {Items(award)}" + (coins != null && coins.Start >= 0 ? $" · 시작 코인 {coins.Start}" : ""));
             }
-            // 1-1 the swing and the Play button, 1-2 free, 1-3 the loop, 1-4 free with a third warrior, 1-5 the boss; the shooter
-            // and variables open at 2-1, conditions at 2-3, the tank at 3-1 (13차 179).
-            Lesson(1, "베기와 실행 버튼", 1, (BlockKind.Slash, 1));
-            // Grants and rewards give what the robots' code needs and no more (play feedback: eight slash() for three warriors,
-            // value blocks with nothing to use them on): one slash() per warrior and, from the loop on, one while per warrior. A
-            // reward is the next wave's need (1-1's slash() for 1-2's warrior, 1-3's while for 1-4's); 1-4 brings its third
-            // warrior's slash() itself. (1-2 used to grant a second slash() and reward another: two spare in 1-2 and 1-3.)
-            Lesson(2, "베기 자유 플레이", 1);
-            Lesson(3, "반복문", 0, (BlockKind.While, 2));
-            Rewards(1, 1, (BlockKind.Slash, 1)); Rewards(1, 2); Rewards(1, 3, (BlockKind.While, 1));
-            SetupIntroEncounter(so);
-            // Balance (the user, 2026-11-19): every wave has its own enemies, tuned with the headless balance run (the waves
-            // with the robots and answer codes of intended play, each robot where the lesson check stands it) so the robots
-            // the stage has by then clear it, and one robot fewer of any kind does not. Health and speed are written before
-            // the stage's scaling. 1-2 to 1-5 take a warrior four to six swings an enemy.
-            // 1-3: eight basic enemies 1.2 s apart: the two warriors' while True loops hold the road, one alone does not. +60/-18
-            var practiceGroup = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves").GetArrayElementAtIndex(2)
-                .FindPropertyRelative("groups").GetArrayElementAtIndex(0);
-            practiceGroup.FindPropertyRelative("count").intValue = 8;
-            practiceGroup.FindPropertyRelative("interval").floatValue = 1.2f;
-            practiceGroup.FindPropertyRelative("healthOverride").floatValue = 22.8f;
-            practiceGroup.FindPropertyRelative("speedOverride").floatValue = 1.81f;
-            if (firstThreeOnly)
+            for (int i = lessons.arraySize - 1; i >= 0; i--)
             {
-                so.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(campaign);
-                return "campaign: lessons 1-1 to 1-3 only";
+                var lesson = lessons.GetArrayElementAtIndex(i);
+                if (!waves.Contains((lesson.FindPropertyRelative("stage").intValue, lesson.FindPropertyRelative("wave").intValue))) lessons.DeleteArrayElementAtIndex(i);
             }
-            Lesson(4, "반복 자유 플레이", 1, (BlockKind.Slash, 1));
-            Lesson(5, "반복 보스 실습", 0);
-            Rewards(1, 4); Rewards(1, 5); Rewards(2, 1); Rewards(2, 2);
-            // Stage 2 (the user, 2026-11-19: too many robots too early): variables at 2-1 with one shooter, conditions at 2-3 (a
-            // warrior the lesson stands by the road, with its while True: slash() to compare and the blocks of its if), the
-            // second shooter at 2-5, where its code is copied from the first.
-            StageLesson(2, 1, "변수: 찾은 적을 상자에 담기(원거리)", RobotRole.Shooter, 1, (BlockKind.While, 1), (BlockKind.Shot, 1),
-                (BlockKind.DeclareVariable, 1), (BlockKind.Variable, 1), (BlockKind.NearestEnemy, 1));
-            // Every grant from here is what the wave's answer codes hold and nothing more (the user, 2026-11-19). The lesson
-            // brings the blocks of its prepared code too, so the preparation takes nothing (DefenseCodeEditor.LoadLesson grants
-            // only what is lacking) and a stage started from the map has the same stock. 2-3: the warrior's code.
-            StageLesson(2, 3, "조건문: 벨 때 고르기(전사형)", RobotRole.Warrior, 1, (BlockKind.While, 1), (BlockKind.Slash, 1), (BlockKind.If, 1),
-                (BlockKind.Comparison, 1), (BlockKind.MyPos, 1), (BlockKind.Variable, 1), (BlockKind.MyAttackRange, 1),
-                (BlockKind.DeclareVariable, 1), (BlockKind.NearestEnemy, 1));
-            Goal(2, 3, "적이 공격 범위에 들어왔을 때만 베는 조건문으로 막기");
-            FreeLesson(2, 2, "변수 자유 플레이", "찾은 적을 변수에 담아 원거리형 하나로 무리 막기");
-            FreeLesson(2, 4, "조건 자유 플레이", "적이 공격 범위에 들어왔을 때만 공격하는 조건문으로 무리 막기");
-            // 2-5 to 2-10 (원거리_집중공격_설계 7): is_dead(), break, free, continue with enemy.type, free, the boss. 2-5: the
-            // teacher's is_dead() lines.
-            StageLesson(2, 5, "is_dead(): 한 적을 끝까지", RobotRole.Shooter, 0, (BlockKind.DeclareVariable, 1), (BlockKind.NearestEnemy, 1),
-                (BlockKind.If, 1), (BlockKind.IsDead, 1), (BlockKind.Variable, 1));
-            Goal(2, 5, "쓰러진 적이면 새로 찾는 is_dead()로 한 적씩 끝내기");
-            // 2-6: the teacher's loop in a loop and its break, and a second shooter with a copy of it (copying takes the blocks
-            // from the stock; the right-click 복사 copies a line with what is inside it, and this code is one while True). The
-            // teacher's is_dead() line is left over until 2-7.
-            StageLesson(2, 6, "break: 사거리를 벗어나면 놓아주기", RobotRole.Shooter, 1, (BlockKind.While, 3), (BlockKind.If, 1), (BlockKind.Break, 2),
-                (BlockKind.Comparison, 2), (BlockKind.MyPos, 2), (BlockKind.MyAttackRange, 2), (BlockKind.Variable, 2), (BlockKind.Shot, 1));
-            Goal(2, 6, "빠른 적 등장 · 사거리 밖으로 나간 적은 break로 놓아주기 · 새 원거리형엔 코드 복사");
-            // 2-7: both shooters to the hint's code (is_dead() or out of range, break).
-            StageLesson(2, 7, "자유 실습: 쓰러지거나 멀어지면 break", RobotRole.Shooter, 0, (BlockKind.If, 2), (BlockKind.IsDead, 1),
-                (BlockKind.Variable, 2), (BlockKind.Break, 2));
-            Goal(2, 7, "쓰러진 적도, 멀어진 적도 break로 놓아주고 다음 적 잡기");
-            StageLesson(2, 8, "continue와 enemy.type", RobotRole.Shooter, 0, (BlockKind.If, 1), (BlockKind.Comparison, 1),
-                (BlockKind.Variable, 1), (BlockKind.EnemyTypeName, 1), (BlockKind.Continue, 1));
-            Goal(2, 8, "단단한 적 등장 · 원거리형은 continue로 단단한 적만, 작은 적은 전사형이");
-            // 2-9 is played with 2-8's codes.
-            StageLesson(2, 9, "자유 종합", RobotRole.Shooter, 0);
-            Goal(2, 9, "모든 종류의 적 · is_dead(), break, continue로 로봇마다 맡을 적 나누기");
-            FreeLesson(2, 10, "보스", "보스 등장 · 작은 적을 모두 막고 보스를 쓰러뜨리기");
-            // 3-1: the tank's loop.
-            StageLesson(3, 1, "탱커형 소개", RobotRole.Tank, 1, (BlockKind.While, 1), (BlockKind.DeclareVariable, 1), (BlockKind.NearestEnemy, 1),
-                (BlockKind.Variable, 1), (BlockKind.Block, 1));
-            Goal(3, 1, "탱커형으로 길을 막고 다른 로봇으로 공격하기");
-            FreeLesson(3, 2, "자유 플레이", "적이 두 번에 나눠 와요 · 탱커형과 함께 끝까지 막기");
-            FreeLesson(3, 3, "자유 플레이", "탱커병 뒤로 적이 줄지어 와요 · 길을 막고 한꺼번에 공격하기");
-            FreeLesson(3, 4, "보스", "마지막 보스 · 작은 적을 모두 막고 보스를 쓰러뜨리기");
-            // No rewards past Stage 1: each lesson brings what its wave needs, and a reward was a block nothing used.
-            for (int wave = 3; wave <= 10; wave++) Rewards(2, wave);
-            for (int wave = 1; wave <= 4; wave++) Rewards(3, wave);
-            DropLesson(3, 5);
-            // Stage 2 has ten waves, its boss at 2-10; Stage 3 ends at its boss (3-4, the old last wave with a boss behind it).
+            // Balance.md: a boss comes once every minion is down (its delay unused) and takes 12 core health on reaching it; the
+            // others the enemy's own. Roads stay as they were (1-5's minions walk the second one).
             var stages = so.FindProperty("stages");
             EnemyDefinition Data(string name) => AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"Assets/!_Project/Defense/Data/{name}.asset") ??
                 throw new InvalidOperationException(name + " enemy asset not found");
-            void Groups(int stage, int wave, params (string enemy, int count, float delay, float interval, float health, float speed, int leak, bool boss)[] list)
+            foreach (var stageGroups in data.Groups.GroupBy(g => g.Stage))
             {
-                var waveList = stages.GetArrayElementAtIndex(stage - 1).FindPropertyRelative("waves");
-                if (waveList.arraySize < wave) waveList.arraySize = wave;
-                var groups = waveList.GetArrayElementAtIndex(wave - 1).FindPropertyRelative("groups");
-                groups.arraySize = list.Length;
-                for (int i = 0; i < list.Length; i++)
+                if (stageGroups.Key > stages.arraySize) throw new InvalidOperationException($"캠페인에 {stageGroups.Key}스테이지가 없습니다.");
+                var waveList = stages.GetArrayElementAtIndex(stageGroups.Key - 1).FindPropertyRelative("waves");
+                waveList.arraySize = stageGroups.Max(g => g.Wave);
+                foreach (var waveGroups in stageGroups.GroupBy(g => g.Wave))
                 {
-                    var g = groups.GetArrayElementAtIndex(i); var x = list[i];
-                    g.FindPropertyRelative("enemy").objectReferenceValue = Data(x.enemy);
-                    g.FindPropertyRelative("route").intValue = 0;
-                    g.FindPropertyRelative("count").intValue = x.count;
-                    g.FindPropertyRelative("delay").floatValue = x.delay;
-                    g.FindPropertyRelative("interval").floatValue = x.interval;
-                    g.FindPropertyRelative("healthOverride").floatValue = x.health;
-                    g.FindPropertyRelative("speedOverride").floatValue = x.speed;
-                    g.FindPropertyRelative("leakDamageOverride").intValue = x.leak;
-                    g.FindPropertyRelative("boss").boolValue = x.boss;
+                    var groups = waveList.GetArrayElementAtIndex(waveGroups.Key - 1).FindPropertyRelative("groups");
+                    var routes = Enumerable.Range(0, groups.arraySize).Select(i => groups.GetArrayElementAtIndex(i).FindPropertyRelative("route").intValue).ToArray();
+                    var list = waveGroups.ToArray();
+                    groups.arraySize = list.Length;
+                    for (int i = 0; i < list.Length; i++)
+                    {
+                        var g = groups.GetArrayElementAtIndex(i); var x = list[i];
+                        g.FindPropertyRelative("enemy").objectReferenceValue = Data(x.Enemy);
+                        g.FindPropertyRelative("route").intValue = i < routes.Length ? routes[i] : 0;
+                        g.FindPropertyRelative("count").intValue = x.Count;
+                        g.FindPropertyRelative("delay").floatValue = x.Delay;
+                        g.FindPropertyRelative("interval").floatValue = x.Interval;
+                        g.FindPropertyRelative("healthOverride").floatValue = x.Health;
+                        g.FindPropertyRelative("speedOverride").floatValue = x.Speed;
+                        g.FindPropertyRelative("leakDamageOverride").intValue = x.Boss ? 12 : 0;
+                        g.FindPropertyRelative("boss").boolValue = x.Boss;
+                    }
                 }
             }
-            // Each wave below with what the headless run measured for the intended team: "+a/-b" is how much tougher every enemy
-            // can be with the team still clearing the wave, and how much weaker with every setup one robot short (and each
-            // lesson's old code) still failing. A boss comes once every minion is down; reaching the core ends the stage.
-            Groups(1, 2, ("Enemy", 4, 0, 2, 23.4f, 1.95f, 0, false)); // two warriors pressing Play; +62/-14
-            // Stage 2 is held by its own robots: one shooter (16 a shot, 2.4 s), from 2-3 a warrior (7 a swing, 1.6 s), from 2-5 a
-            // second shooter, each with its wave's answer code.
-            Groups(2, 1, ("Enemy", 6, 0, 2.5f, 9.2f, 1.95f, 0, false), ("Heavy", 2, 6, 4, 15.8f, 1.95f, 0, false)); // +52
-            Groups(2, 2, ("Enemy", 5, 0, 2.5f, 7.9f, 1.88f, 0, false), ("Heavy", 2, 5, 5, 13.6f, 1.83f, 0, false), ("Runner", 2, 12, 2.5f, 7.9f, 1.84f, 0, false)); // +18
-            // 2-3: fast ones 6.25 s apart, so the warrior's swing is ready when the next walks in: slashing only once one is in
-            // range fells them, slashing at air lets one through; then basic ones the shooter and the warrior share. +18/-28
-            Groups(2, 3, ("Runner", 6, 0, 6.25f, 10.7f, 1.6f, 0, false), ("Enemy", 4, 25, 5, 22.4f, 2.1f, 0, false));
-            // 2-4 (the user, 2026-11-19: it felt loose and slow): the basic ones start while the fast ones still come, every
-            // enemy within 21 s instead of one at a time to 36 s. +26/-26
-            Groups(2, 4, ("Runner", 5, 0, 3, 10, 1.43f, 0, false), ("Enemy", 5, 9, 3, 13, 1.7f, 0, false));
-            // 2-5: slow Heavies of two shots, then quick basic ones: a shooter that picks the nearest anew each shot leaves them
-            // hurt and one gets through; keeping the enemy until is_dead() fells them all. +10/-22
-            Groups(2, 5, ("Heavy", 5, 0, 4.62f, 12.5f, 1.01f, 0, false), ("Enemy", 2, 9, 1.6f, 27, 1.69f, 0, false));
-            // 2-6: fast ones of four shots outrun the teacher's range alive, basic ones right behind: without break it keeps
-            // aiming at a fast one out of range while a basic one walks past; with break it lets go. +16/-16
-            Groups(2, 6, ("Runner", 3, 0, 3.12f, 48, 1.46f, 0, false), ("Enemy", 4, 5.4f, 2.25f, 24.4f, 1.5f, 0, false));
-            Groups(2, 7, ("Enemy", 4, 0, 3, 13.4f, 1.6f, 0, false), ("Runner", 4, 4, 3.5f, 17.9f, 1.3f, 0, false), ("Heavy", 2, 10, 6, 19, 1.2f, 0, false)); // +32/-28
-            // 2-8: small ones of one swing round two Heavies that take the teacher's every shot: the shooter that continues past
-            // the small ones fells the Heavies and the warrior takes the small ones (without continue or without the warrior
-            // some get through). +16/-10
-            Groups(2, 8, ("Enemy", 7, 0, 3.15f, 4.5f, 1.7f, 0, false), ("Heavy", 2, 3, 8, 68.4f, 1.08f, 0, false), ("Enemy", 3, 29, 4.5f, 6.8f, 1.84f, 0, false));
-            Groups(2, 9, ("Enemy", 5, 0, 6.75f, 7.5f, 1.6f, 0, false), ("Runner", 3, 30, 6.75f, 7, 1.2f, 0, false), ("Heavy", 2, 9, 12, 32.6f, 1.14f, 0, false)); // +44
-            // 2-10: the boss (a Heavy) behind small minions, since a minion at the core ends a boss wave at once (12a8df8). +42/-32
-            Groups(2, 10, ("Enemy", 4, 0, 2.1f, 12.5f, 1.5f, 0, false), ("Runner", 2, 9.6f, 2.4f, 5.6f, 1.1f, 0, false), ("Heavy", 1, 0, 1.2f, 48, 1.3f, 12, true));
-            // Stage 3: Stage 2's three robots with their codes and, in 3-1, the tank. The tank falls in 3-1 (the enemies it holds
-            // hit it), so 3-2 on are held by the other three. No tank-bodied minions before the last boss (it comes only once
-            // they are all down: with them it walked in at the time-up, 13차 179).
-            Groups(3, 1, ("Enemy", 8, 0, .96f, 19.8f, 1.5f, 0, false)); // without the tank one gets through; +28/-18
-            Groups(3, 2, ("Enemy", 5, 0, 1.2f, 15, 1.73f, 0, false), ("Enemy", 5, 15.4f, 1.32f, 15, 1.47f, 0, false));  // +18/-36
-            Groups(3, 3, ("Heavy", 3, 0, 1.6f, 21, 1.4f, 0, false), ("Enemy", 5, .8f, .64f, 11.2f, 1.6f, 0, false)); // +10/-44
-            Groups(3, 4, ("Runner", 4, 0, 1.3f, 10.2f, 1.49f, 0, false), ("Enemy", 5, 4.4f, 1.32f, 8.8f, 1.4f, 0, false), ("Heavy", 1, 0, 1.8f, 47.3f, 1f, 12, true));  // +22/-14
-            stages.GetArrayElementAtIndex(2).FindPropertyRelative("waves").arraySize = 4;
-            var waves = so.FindProperty("stages").GetArrayElementAtIndex(0).FindPropertyRelative("waves");
-            var fourth = waves.GetArrayElementAtIndex(3).FindPropertyRelative("groups").GetArrayElementAtIndex(0);
-            fourth.FindPropertyRelative("count").intValue = 8;
-            fourth.FindPropertyRelative("interval").floatValue = .72f; // three warriors; +38/-20
-            fourth.FindPropertyRelative("healthOverride").floatValue = 26.6f;
-            fourth.FindPropertyRelative("speedOverride").floatValue = 1.93f;
-            var fifth = waves.GetArrayElementAtIndex(4).FindPropertyRelative("groups");
-            var basic = Data("Enemy");
-            var minions = fifth.GetArrayElementAtIndex(0);
-            minions.FindPropertyRelative("enemy").objectReferenceValue = basic;
-            minions.FindPropertyRelative("route").intValue = 1;
-            minions.FindPropertyRelative("count").intValue = 3;
-            minions.FindPropertyRelative("delay").floatValue = 0;
-            minions.FindPropertyRelative("interval").floatValue = 2;
-            minions.FindPropertyRelative("healthOverride").floatValue = 21; // with the boss: +24/-18
-            minions.FindPropertyRelative("speedOverride").floatValue = 1.99f;
-            minions.FindPropertyRelative("leakDamageOverride").intValue = 0;
-            minions.FindPropertyRelative("boss").boolValue = false;
-            var boss = fifth.GetArrayElementAtIndex(1);
-            boss.FindPropertyRelative("enemy").objectReferenceValue = basic;
-            boss.FindPropertyRelative("route").intValue = 0;
-            boss.FindPropertyRelative("count").intValue = 1;
-            boss.FindPropertyRelative("delay").floatValue = 0;
-            boss.FindPropertyRelative("interval").floatValue = 2;
-            boss.FindPropertyRelative("healthOverride").floatValue = 121.8f;
-            boss.FindPropertyRelative("speedOverride").floatValue = .65f;
-            boss.FindPropertyRelative("leakDamageOverride").intValue = 12;
-            boss.FindPropertyRelative("boss").boolValue = true;
+            stages.GetArrayElementAtIndex(0).FindPropertyRelative("waveSeconds").floatValue = 120; // 1-1's lesson talks through its battle
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(campaign);
-            return "campaign: lessons for 1-1 to 3-4, 1-4 swarm, bosses at 1-5, 2-10 and 3-4";
-        }
-
-        static void SetupIntroEncounter(SerializedObject so)
-        {
-            var stage = so.FindProperty("stages").GetArrayElementAtIndex(0);
-            var firstGroups = stage.FindPropertyRelative("waves").GetArrayElementAtIndex(0).FindPropertyRelative("groups");
-            firstGroups.arraySize = 3;
-            var basicEnemy = AssetDatabase.LoadAssetAtPath<EnemyDefinition>("Assets/!_Project/Defense/Data/Enemy.asset");
-            // Two swings (the warrior's 7 each) fell a basic enemy here (14 x 0.9 = 12.6 for wave 1): two Play presses a kill.
-            firstGroups.GetArrayElementAtIndex(0).FindPropertyRelative("enemy").objectReferenceValue = basicEnemy;
-            firstGroups.GetArrayElementAtIndex(0).FindPropertyRelative("healthOverride").floatValue = 14;
-            firstGroups.GetArrayElementAtIndex(0).FindPropertyRelative("speedOverride").floatValue = 1.4f;
-            // 1 s in, so the battle-start swing cuts air and the enemy enters the circle after it (E03b/E03c); spawns at 1 and 3 s.
-            firstGroups.GetArrayElementAtIndex(0).FindPropertyRelative("delay").floatValue = 1;
-            var tankEnemy = AssetDatabase.LoadAssetAtPath<EnemyDefinition>("Assets/!_Project/Defense/Data/Heavy.asset");
-            if (!basicEnemy || !tankEnemy) throw new InvalidOperationException("1-1의 기본·단단한 적 asset이 없습니다.");
-            // While 디버 slows, pauses and resumes the battle (E04 to E04c) one more walks in from 4s, so there is something to
-            // watch (play feedback 4); it was a bunch of four, cut to one so basic enemies come one at a time (13차 175).
-            var crowd = firstGroups.GetArrayElementAtIndex(1);
-            crowd.FindPropertyRelative("enemy").objectReferenceValue = basicEnemy;
-            crowd.FindPropertyRelative("route").intValue = 0;
-            crowd.FindPropertyRelative("count").intValue = 1;
-            crowd.FindPropertyRelative("delay").floatValue = 5; // 2 s behind the second, like before the 1 s start delay
-            crowd.FindPropertyRelative("interval").floatValue = .6f;
-            crowd.FindPropertyRelative("healthOverride").floatValue = 14;
-            crowd.FindPropertyRelative("speedOverride").floatValue = 1.4f;
-            crowd.FindPropertyRelative("leakDamageOverride").intValue = 0;
-            crowd.FindPropertyRelative("boss").boolValue = false;
-            // The one that reaches the core has the tank's body (play feedback 4: it looked like the others); the tank rule
-            // slows it to 0.75x, so it leaks about four seconds later than the basic body did.
-            var strongGroup = firstGroups.GetArrayElementAtIndex(2);
-            strongGroup.FindPropertyRelative("enemy").objectReferenceValue = tankEnemy;
-            strongGroup.FindPropertyRelative("route").intValue = 0;
-            strongGroup.FindPropertyRelative("count").intValue = 1;
-            strongGroup.FindPropertyRelative("delay").floatValue = 12;
-            strongGroup.FindPropertyRelative("interval").floatValue = 2;
-            strongGroup.FindPropertyRelative("healthOverride").floatValue = 500;
-            strongGroup.FindPropertyRelative("speedOverride").floatValue = 1.6f;
-            stage.FindPropertyRelative("waveSeconds").floatValue = 120;
+            foreach (var stats in data.Robots)
+            {
+                var robot = campaign.robots.FirstOrDefault(r => r && r.stats.role == stats.Role) ?? throw new InvalidOperationException(stats.Role + " 로봇 asset이 캠페인에 없습니다.");
+                var r = new SerializedObject(robot);
+                r.FindProperty("stats.damage").floatValue = stats.Damage;
+                r.FindProperty("stats.interval").floatValue = stats.Interval;
+                r.FindProperty("stats.range").floatValue = stats.Range;
+                r.ApplyModifiedPropertiesWithoutUndo(); EditorUtility.SetDirty(robot);
+            }
+            GameDataApply.MarkApplied();
+            summary.Append($"적 그룹 {data.Groups.Count}개 · 로봇 {data.Robots.Count}종 · 경고 {data.Warnings.Count}개");
+            return summary.ToString();
         }
 
         public static string Run()

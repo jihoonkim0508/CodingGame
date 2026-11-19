@@ -207,5 +207,6 @@ static class Check
         PlacementCheck.Run();
         AuditCheck.Run();
         PlayLogCheck.Run();
+        GameDataCheck.Run();
     }
 }
