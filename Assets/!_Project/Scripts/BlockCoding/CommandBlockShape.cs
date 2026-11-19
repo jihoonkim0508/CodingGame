@@ -18,6 +18,11 @@ namespace CodingGame.BlockCoding
         // Out of stock or left behind while dragged: the face mixes towards the dark workspace. Lifted marks the dragged copy.
         public float Fade { get; set; }
         public bool Lifted { get; set; }
+        // 시안 (block outline): three looks for the edge drawn round every block; the user keeps one and the others go.
+        public enum OutlineLook { None, Dark, Light, Bevel }
+        public static OutlineLook Outline = OutlineLook.Dark;
+        const float OutlineWidth = 2;
+        bool outlined;
         Color Tint => Fade > 0 ? Color.Lerp(color, new Color(.12f, .18f, .25f, color.a), Fade) : color;
         readonly List<UIVertex> hitTriangles = new List<UIVertex>();
         Texture2D generatedSurface;
@@ -28,6 +33,8 @@ namespace CodingGame.BlockCoding
             base.OnEnable();
             generatedSurface = Resources.Load<Texture2D>("LearningSkins/JellySurface");
             openSurface = Resources.Load<Texture2D>("LearningSkins/ControlOpenFrameV2");
+            // Blocks only: the empty-slot wells and the function-name field share this graphic.
+            outlined = GetComponent<CommandBlockView>();
             SetMaterialDirty(); SetVerticesDirty();
         }
 #if UNITY_EDITOR
@@ -116,6 +123,65 @@ namespace CodingGame.BlockCoding
                 vh.AddVert(new Vector3(x[column+1],y[row]),Tint,new Vector2(u[column+1],v[row]));
                 vh.AddTriangle(start,start+1,start+2);vh.AddTriangle(start,start+2,start+3);
             }
+            if(!outlined || Outline==OutlineLook.None)return;
+            // The C traced on the texture's own edge (its pixels, y down), rounded there and mapped through the same
+            // nine cells, so the outline bends with the stretched corners. Joined to an elif/else: no footer, open at the bottom.
+            var corners=JoinNext
+                ?new[]{new Vector3(187,847,0),new Vector3(187,352,30),new Vector3(1750,352,50),new Vector3(1750,48,58),new Vector3(23,48,58),new Vector3(23,847,0)}
+                :new[]{new Vector3(23,48,58),new Vector3(1750,48,58),new Vector3(1750,352,50),new Vector3(187,352,30),
+                    new Vector3(187,716,36),new Vector3(1750,716,45),new Vector3(1750,847,45),new Vector3(23,847,58)};
+            var path=new List<Vector2>();
+            foreach(var p in Rounded(corners,!JoinNext))
+                path.Add(new Vector2(Piece(p.x/1774f,u,x),Piece(1-p.y/887f,v,y)));
+            Stroke(vh,path,!JoinNext,new Vector2(.5f,.8f),new Color(.761f,.769f,.788f));
+        }
+        static float Piece(float t,float[] from,float[] to)
+        {
+            int i=1;while(i<from.Length-1&&t>from[i])i++;
+            return Mathf.LerpUnclamped(to[i-1],to[i],(t-from[i-1])/(from[i]-from[i-1]));
+        }
+        // Corners (x, y, radius) of right-angled outline; each one becomes a quarter arc tangent to its two edges.
+        static List<Vector2> Rounded(Vector3[] corners,bool closed)
+        {
+            var points=new List<Vector2>();int n=corners.Length;
+            for(int i=0;i<n;i++){
+                Vector2 c=corners[i];float radius=corners[i].z;
+                if(radius<=0||!closed&&(i==0||i==n-1)){points.Add(c);continue;}
+                Vector2 a=((Vector2)corners[(i+n-1)%n]-c).normalized,b=((Vector2)corners[(i+1)%n]-c).normalized,center=c+(a+b)*radius;
+                for(int j=0;j<=6;j++)points.Add(center+(Vector2)Vector3.Slerp(-b,-a,j/6f)*radius);
+            }
+            return points;
+        }
+        // A band just inside the edge (the hit area and the layout stay as they were). texel: the surface colour at uv,
+        // divided out so the band shows its own colour. Bevel adds a 1 px light line inside it on the upward-facing edges.
+        void Stroke(VertexHelper vh,List<Vector2> path,bool closed,Vector2 uv,Color texel)
+        {
+            for(int i=path.Count-1;i>0;i--)if((path[i]-path[i-1]).sqrMagnitude<.0001f)path.RemoveAt(i);
+            if(closed&&path.Count>1&&(path[0]-path[path.Count-1]).sqrMagnitude<.0001f)path.RemoveAt(path.Count-1);
+            if(path.Count<2)return;
+            Color edge=Outline==OutlineLook.Light?Color.Lerp(Tint,Color.white,.65f):Color.Lerp(Tint,new Color(.06f,.07f,.12f,Tint.a),.78f);
+            Band(vh,path,closed,0,OutlineWidth,edge,false,uv,texel);
+            if(Outline==OutlineLook.Bevel)Band(vh,path,closed,OutlineWidth,OutlineWidth+1,Color.Lerp(Tint,Color.white,.7f),true,uv,texel);
+        }
+        static void Band(VertexHelper vh,List<Vector2> path,bool closed,float from,float to,Color tone,bool upward,Vector2 uv,Color texel)
+        {
+            int n=path.Count,start=vh.currentVertCount;
+            float area=0;for(int i=0;i<n;i++)area+=Cross(path[i],path[(i+1)%n]);
+            float side=area>0?1:-1;
+            Vector2 Normal(int i,int j){var d=(path[j]-path[i]).normalized;return new Vector2(-d.y,d.x)*side;} // inward
+            var shade=new Color(Mathf.Min(1,tone.r/texel.r),Mathf.Min(1,tone.g/texel.g),Mathf.Min(1,tone.b/texel.b),tone.a);
+            for(int i=0;i<n;i++){
+                bool first=!closed&&i==0,last=!closed&&i==n-1;
+                Vector2 before=first?Normal(0,1):Normal((i+n-1)%n,i),after=last?Normal(n-2,n-1):Normal(i,(i+1)%n);
+                Vector2 miter=(before+after).normalized;float stretch=1/Mathf.Max(.35f,Vector2.Dot(miter,before));
+                var c=shade;if(upward)c.a*=Mathf.Clamp01(-miter.y*1.4f-.2f);
+                vh.AddVert(path[i]+miter*stretch*from,c,uv);
+                vh.AddVert(path[i]+miter*stretch*to,c,uv);
+            }
+            for(int i=0;i<(closed?n:n-1);i++){
+                int a=start+2*i,b=start+2*((i+1)%n);
+                vh.AddTriangle(a,b,b+1);vh.AddTriangle(a,b+1,a+1);
+            }
         }
 
         void RoundedQuad(VertexHelper vh,Rect r,float x,float y,float w,float h,float radius)
@@ -150,6 +216,12 @@ namespace CodingGame.BlockCoding
                 new Vector2(Mathf.Lerp(.14f,.86f,(p.x-min.x)/Mathf.Max(.001f,size.x)),
                     Mathf.Lerp(controlFamily && !control ? .94f : .84f,controlFamily && !control ? .62f : .16f,(p.y-min.y)/Mathf.Max(.001f,size.y))));
             for (int i = 1; i < points.Length - 1; i++) vh.AddTriangle(start, start + i, start + i + 1);
+            // A C block's pieces overlap; its outline is traced whole in OpenFrame.
+            if (!outlined || control || Outline == OutlineLook.None) return;
+            var path = new List<Vector2>();
+            foreach (var p in points) path.Add(new Vector2(r.xMin + p.x, r.yMax - p.y));
+            if (mainTexture == openSurface) Stroke(vh, path, true, new Vector2(.5f, .8f), new Color(.761f, .769f, .788f));
+            else Stroke(vh, path, true, new Vector2(.5f, .5f), new Color(.706f, .749f, .804f));
         }
     }
 }
