@@ -701,6 +701,8 @@ namespace CodingGame.Defense.Editor
             firstGroups.GetArrayElementAtIndex(0).FindPropertyRelative("enemy").objectReferenceValue = basicEnemy;
             firstGroups.GetArrayElementAtIndex(0).FindPropertyRelative("healthOverride").floatValue = 14;
             firstGroups.GetArrayElementAtIndex(0).FindPropertyRelative("speedOverride").floatValue = 1.4f;
+            // 1 s in, so the battle-start swing cuts air and the enemy enters the circle after it (E03b/E03c); spawns at 1 and 3 s.
+            firstGroups.GetArrayElementAtIndex(0).FindPropertyRelative("delay").floatValue = 1;
             var tankEnemy = AssetDatabase.LoadAssetAtPath<EnemyDefinition>("Assets/!_Project/Defense/Data/Heavy.asset");
             if (!basicEnemy || !tankEnemy) throw new InvalidOperationException("1-1의 기본·단단한 적 asset이 없습니다.");
             // While 디버 slows, pauses and resumes the battle (E04 to E04c) one more walks in from 4s, so there is something to
