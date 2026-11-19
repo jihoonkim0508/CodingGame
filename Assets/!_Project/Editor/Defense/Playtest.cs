@@ -29,7 +29,7 @@ namespace CodingGame.Defense.Editor
             ("1-1 E01 뒤로가기에 경고 재생 안 됨", BackSkipsAlert),
             ("1-1 설명 중 블록 미리 꺼내기 막힘", ExplanationBlocksDrag),
             ("1-1 C08 꺼내 둔 블록 연결로 진행", PreplacedBlocksProgress),
-            ("1-3 B01 기초 코드 두 줄 지급", DistanceLines),
+            ("2-3 B02 거리 기초 코드 한 줄 지급", DistanceLines),
             ("1-1 C08 반복 밖 베기는 통과 안 함", SlashInsideLoop),
             ("1-1 D08 바로 적중해도 1.5초 보여 줌", PreviewHitHold),
             ("1-1 E08 보상 집중이 대화창에 안 가림", RewardFocusClear),
@@ -334,28 +334,28 @@ namespace CodingGame.Defense.Editor
             Shot();
         }
 
-        // 1-3 B01 hands the first robot the two given lines; B02 explains the second; C01 asks for the if under them.
+        // The distance lesson moved to 2-3: B02 hands the lesson warrior's loop its first line, enemy = get_nearest_enemy();
+        // C01 asks for the if under it.
         static IEnumerator DistanceLines()
         {
-            DevTest.JumpTutorial(3, 0);
-            yield return Wait(() => Battle.Simulation.WaveIndex == 2 && Director.EditorSynced && StepId == "A01", "1-3 시작", 15);
-            yield return OpenEditor();
-            yield return Jump(3, "B01");
+            DevTest.PlayDefense(2, 3, true, true);
+            yield return Wait(() => Battle.Stage == 2 && Battle.Simulation.WaveIndex == 2 && Director.EditorSynced && StepId == "A01", "2-3 시작", 20);
+            yield return .3f;
+            Battle.CodeEditor.Open(Battle.Simulation.Robots.OrderBy(r => r.Id).Last().Id); // A01 stands the lesson warrior by the road
+            yield return .3f;
+            var sequence = Director.Sequences.Single(s => s.sequenceId == "2-3");
+            Director.EditorRun(sequence, Array.FindIndex(sequence.steps, s => s.stepId == "B02"));
             yield return .3f;
             var lines = Program.StartChain().Count == 1 && Program.StartChain()[0].Body ? Program.StartChain()[0].Body.Blocks : new List<CommandBlockView>();
-            string code = string.Join(" / ", lines.Select(v => v.Kind + (v.DraftValue != null ? " " + v.DraftValue : "")));
-            Check(lines.Count == 2 && lines[1].DraftValue == "enemy_distance", "B01: 반복 안 기초 코드 두 줄 (" + code + ")");
-            foreach (var id in new[] { "B01", "B02" })
-            {
-                var step = Director.EditorStep;
-                Check(step.stepId == id, id + ": \"" + step.texts[0].text + "\"");
-                foreach (var key in step.texts[0].focusKeys ?? Array.Empty<string>())
-                    Check(Director.EditorBridge.TryGetArea(key, out _), $"{id}: 강조 대상 {key} 화면에 있음");
-                if (id == "B02") { Shot(); yield return .1f; }
-                Director.EditorFinishTyping(); Director.EditorNext(); yield return .3f;
-            }
+            string code = string.Join(" / ", lines.Select(v => v.Kind + (v.VariableName != null ? " " + v.VariableName : "")));
+            Check(lines.Count == 1 && lines[0].Kind == BlockKind.DeclareVariable && lines[0].VariableName == "enemy", "B02: 반복 안 기초 코드 한 줄 enemy = get_nearest_enemy() (" + code + ")");
+            var step = Director.EditorStep;
+            Check(step.stepId == "B02", "B02: \"" + step.texts[0].text + "\"");
+            foreach (var key in step.texts[0].focusKeys ?? Array.Empty<string>())
+                Check(Director.EditorBridge.TryGetArea(key, out _), $"B02: 강조 대상 {key} 화면에 있음");
+            Shot(); yield return .1f;
             yield return NextUntil("C01");
-            Check(Director.EditorStep.completionSignal == TutorialSignals.CodeLinePlaced && Director.EditorStep.expectedCode == "1/3:If", "C01: 반복 안 셋째 줄에 if 놓기 단계");
+            Check(Director.EditorStep.completionSignal == TutorialSignals.CodeLinePlaced && Director.EditorStep.expectedCode == "1/2:If", "C01: 반복 안 둘째 줄에 if 놓기 단계");
         }
 
         static void Load(string code) => Battle.CodeEditor.Panel.LoadProgram(Battle.CodeEditor.Panel.FunctionName, TutorialAnswers.Parse(code));

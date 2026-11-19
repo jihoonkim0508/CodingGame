@@ -272,13 +272,15 @@ namespace CodingGame.Defense.Editor
                     Field<System.Collections.Generic.List<Rect>>(bridge, "outlinedAreas").Count == 0 && director.Highlighted(TutorialKeys.Range(0)),
                     "1-1 B05 must highlight the range ring itself, without a spotlight hole or outline over it");
             }
-            if (battle.Stage == 1 && sim.WaveIndex == 1 && !director.IsActive && sim.Phase == BattlePhase.Ready && !practiced)
+            // Free play: the lesson waits for the wave's end (1-2 B01, 1-4 B01, 1-5 B01), its guide hidden and input released.
+            bool free = !director.IsActive || director.EditorStep?.trigger == TutorialSignals.WaveCleared;
+            if (battle.Stage == 1 && sim.WaveIndex == 1 && free && sim.Phase == BattlePhase.Ready && !practiced)
             {
                 FreePlay(battle); practiced = true; return;
             }
-            if (allFive && sim.WaveIndex == 3 && !director.IsActive && sim.Phase == BattlePhase.Ready && !practicedFour)
+            if (allFive && sim.WaveIndex == 3 && free && sim.Phase == BattlePhase.Ready && !practicedFour)
             { FreePlayFour(battle); practicedFour = true; return; }
-            if (allFive && sim.WaveIndex == 4 && !director.IsActive && sim.Phase == BattlePhase.Ready && !practicedFive)
+            if (allFive && sim.WaveIndex == 4 && free && sim.Phase == BattlePhase.Ready && !practicedFive)
             { FreePlayFive(battle); practicedFive = true; return; }
             // 1-3 leaves the battle start to the player after the loop lesson.
             if (battle.Stage == 1 && sim.WaveIndex == 2 && !director.IsActive && sim.Phase == BattlePhase.Ready) { battle.StartBattle(); return; }
@@ -508,8 +510,8 @@ namespace CodingGame.Defense.Editor
 
         // Each wave's answer code at battle start: the lessons (2-5, 2-6, 2-8) teach the first shooter, the free waves' hints
         // go to it too (2-7: break on is_dead() or range, 2-9: continue to tanks); the second shooter keeps 2-1's code until
-        // 2-7's, the warrior 2-3's condition. Between waves the second shooter holds 2-1's code, so the next lesson's guided
-        // blocks are not reserved by it.
+        // 2-7's, the warrior 2-3's condition. Within the stock, as a player: code that does not fit keeps the robot's last
+        // one, and the second shooter keeps 2-7's code into 2-8's lesson (whose prepared code tops up the blocks it holds).
         static readonly string[] SecondShooter = {
             TutorialSequenceBuilder.Code21, TutorialSequenceBuilder.Code21, TutorialSequenceBuilder.Code21, TutorialSequenceBuilder.Code21,
             TutorialSequenceBuilder.Code21, TutorialSequenceBuilder.Code21, TutorialSequenceBuilder.Code27, TutorialSequenceBuilder.Code27,
@@ -518,15 +520,14 @@ namespace CodingGame.Defense.Editor
         {
             var teacher = TutorialWatcher.TeachingRobot(sim); int wave = sim.WaveIndex;
             var second = sim.Robots.Where(r => r.Spec.role == RobotRole.Shooter && r != teacher).OrderBy(r => r.Id).FirstOrDefault();
-            var setup = sim.Setup; var options = setup.TestOptions;
-            setup.TestOptions = options.Copy(); setup.TestOptions.inventoryLimit = false;
-            try
-            {
-                if (second != null) sim.ApplyProgram(second.Id, "second_" + second.Id, TutorialAnswers.Parse(battle ? SecondShooter[wave] : TutorialSequenceBuilder.Code21));
-                if (battle && (wave == 6 || wave == 8) && teacher != null)
-                    sim.ApplyProgram(teacher.Id, "hint_" + teacher.Id, TutorialAnswers.Parse(wave == 6 ? TutorialSequenceBuilder.Code27 : TutorialSequenceBuilder.Code28));
-            }
-            finally { setup.TestOptions = options; }
+            if (!battle) { if (second != null && (second.Program == null || second.Program.IsEmpty)) Apply(sim, second, TutorialSequenceBuilder.Code21); return; }
+            if (second != null) Apply(sim, second, SecondShooter[wave]);
+            if ((wave == 6 || wave == 8) && teacher != null) Apply(sim, teacher, wave == 6 ? TutorialSequenceBuilder.Code27 : TutorialSequenceBuilder.Code28);
+        }
+        static void Apply(DefenseSimulation sim, RobotState bot, string code)
+        {
+            try { sim.ApplyProgram(bot.Id, "code_" + bot.Id, TutorialAnswers.Parse(code)); }
+            catch (FormatException error) { Log("KEEP " + bot.Spec.role + " " + bot.Id + "'s code (wave " + (sim.WaveIndex + 1) + "): " + error.Message); }
         }
         static void StageTwoStart(DefenseBattle battle)
         {
