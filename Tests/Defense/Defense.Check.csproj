@@ -17,6 +17,7 @@
     <Compile Include="GuideMoodCheck.cs" />
     <Compile Include="GuideSpeechCheck.cs" />
     <Compile Include="MeleeCheck.cs" />
+    <Compile Include="SimultaneousHitCheck.cs" />
     <Compile Include="WhileTrueCheck.cs" />
     <Compile Include="RangedFocusCheck.cs" />
     <Compile Include="../../Assets/!_Project/Editor/Defense/TutorialAnswers.cs" />

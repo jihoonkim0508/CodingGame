@@ -208,13 +208,13 @@ namespace CodingGame.Defense
                 text.gameObject.layer = arena.gameObject.layer; text.transform.SetParent(arena, true);
             }
             text.alpha = 1; text.transform.localScale = Vector3.one;
-            text.text = "-" + e.Amount.ToString("0.#"); text.fontSize = 7;
+            text.text = "-" + e.Amount.ToString("0.##"); text.fontSize = 7;
             text.alignment = TextAlignmentOptions.Center; text.color = new Color(1, .82f, .3f);
             // The battle's floating numbers' look: Jalnan with the shared thin ink outline.
             if (UITheme.Display && UITheme.Label) { text.font = UITheme.Display; text.fontSharedMaterial = UITheme.Label; }
             else { if (damageFont) text.font = damageFont; text.fontStyle = FontStyles.Bold; text.outlineWidth = .25f; text.outlineColor = new Color32(40, 10, 0, 255); }
             text.rectTransform.sizeDelta = new Vector2(6, 2);
-            text.transform.position = World(e.Position) + Vector3.up * 1.6f; text.transform.rotation = previewCamera.transform.rotation;
+            text.transform.position = World(e.Position) + Vector3.up * 1.6f + DefenseHitVisuals.Scatter(); text.transform.rotation = previewCamera.transform.rotation;
             damagePopups.Add((text, 0));
         }
         void TickDamage(float dt)
@@ -418,7 +418,7 @@ namespace CodingGame.Defense
         }
         static string Stat(string name) => $"<color={UITheme.MutedHex}>{name}</color>  ";
         string UpgradeValue(float current, float upgraded) => selected.IsMaxLevel || Mathf.Approximately(current, upgraded)
-            ? $"<size=115%>{current:0.#}</size>" : $"<size=115%>{current:0.#}</size> <color={UITheme.GoodHex}>→ {upgraded:0.#}</color>";
+            ? $"<size=115%>{current:0.##}</size>" : $"<size=115%>{current:0.##}</size> <color={UITheme.GoodHex}>→ {upgraded:0.##}</color>";
         public void Close()
         {
             selected = null; HidePreview();

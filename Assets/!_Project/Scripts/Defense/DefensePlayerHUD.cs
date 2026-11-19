@@ -461,7 +461,7 @@ namespace CodingGame.Defense
 
         // The damage a hit did, over the enemy, and "+n 코인" over a kill: rising and fading, so every attack the code makes
         // shows its result. A small pool is reused oldest first, so a burst of hits never piles up labels.
-        sealed class Floater { public TextMeshProUGUI label; public Vector3 world; public float born, life, rise; }
+        sealed class Floater { public TextMeshProUGUI label; public Vector3 world; public float born, life, rise, drift; }
         readonly System.Collections.Generic.List<Floater> floaters = new System.Collections.Generic.List<Floater>();
         [SerializeField, HideInInspector] RectTransform floaterLayer;
         [SerializeField, HideInInspector] System.Collections.Generic.List<TextMeshProUGUI> floaterLabels = new System.Collections.Generic.List<TextMeshProUGUI>();
@@ -472,7 +472,7 @@ namespace CodingGame.Defense
             var sim = battle.Simulation;
             if (sim == null || !sim.Options.hitEffects) return;
             if ((evt.Kind == "hit" || evt.Kind == "projectile-hit") && evt.AppliedAmount > 0)
-                Float(evt.Position, Mathf.Max(1, Mathf.RoundToInt(evt.AppliedAmount)).ToString(), Color.white, 30, .6f, 46);
+                Float(evt.Position, evt.AppliedAmount.ToString("0.##"), Color.white, 30, .6f, 46);
             else if (evt.Kind == "killed" && sim.Setup.PlayerFlow && sim.KillCoins > 0)
                 Float(evt.Position, $"+{sim.KillCoins} 코인", new Color(1, .83f, .42f), 32, 1f, 74);
         }
@@ -488,9 +488,24 @@ namespace CodingGame.Defense
             }
             if (floater == null && floaters.Count < MaxFloaters) floaters.Add(floater = new Floater { label = MakeFloaterLabel() });
             floater ??= oldest;
-            floater.world = DefenseViews.World(position, EnemyHeadHeight);
-            floater.born = Time.unscaledTime; floater.life = life; floater.rise = rise;
+            // Scattered round the head and rising at its own pace, so hits landing together read as separate numbers.
+            floater.world = DefenseViews.World(position, EnemyHeadHeight) + DefenseHitVisuals.Scatter();
+            floater.born = Time.unscaledTime; floater.life = life; floater.rise = rise * UnityEngine.Random.Range(.85f, 1.15f);
+            // px to the side; a number landing on one just shown over the same enemy goes to its other side, so two hits
+            // together never read as one number ("78.4"). ponytail: a third at once may overlap the first; fine at 0.6 s life.
+            Floater beside = null;
+            foreach (var f in floaters)
+                if (f != floater && f.label.gameObject.activeSelf && Time.unscaledTime - f.born < .3f && (f.world - floater.world).sqrMagnitude < 1) beside = f;
             floater.label.text = text; floater.label.fontSize = size; floater.label.color = color;
+            floater.drift = UnityEngine.Random.Range(-30f, 30f);
+            if (beside != null)
+            {
+                // From the same point as that one, clear of its width (with the pop's 1.35x) on its other side; the world
+                // scatter could otherwise undo the side.
+                float gap = (beside.label.preferredWidth + floater.label.preferredWidth) * .5f * 1.35f + UnityEngine.Random.Range(4f, 16f);
+                floater.world = beside.world + Vector3.up * UnityEngine.Random.Range(-.1f, .15f);
+                floater.drift = beside.drift - (beside.drift < 0 ? -1 : 1) * gap;
+            }
             floater.label.gameObject.SetActive(true);
         }
         void BuildFloaterLayer()
@@ -521,7 +536,7 @@ namespace CodingGame.Defense
                 if (k >= 1) { f.label.gameObject.SetActive(false); continue; }
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, battleCamera.WorldToScreenPoint(f.world), null, out var at);
                 // Pops up fast, then drifts; fades over the last half.
-                f.label.rectTransform.anchoredPosition = at + Vector2.up * (f.rise * (1 - (1 - k) * (1 - k)));
+                f.label.rectTransform.anchoredPosition = at + new Vector2(f.drift, f.rise * (1 - (1 - k) * (1 - k)));
                 f.label.alpha = k < .5f ? 1 : 1 - (k - .5f) * 2;
                 f.label.transform.localScale = Vector3.one * (k < .12f ? 1 + .35f * (1 - k / .12f) : 1);
             }
