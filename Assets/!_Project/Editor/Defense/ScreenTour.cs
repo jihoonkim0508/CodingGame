@@ -34,7 +34,8 @@ namespace CodingGame.Defense.Editor
         [MenuItem("Tools/Develop/시연 영상 촬영")]
         public static void RunDemo() => Start("TestResults/Demo/footage", Demo());
 
-        // The tank monster (Heavy) walking in 2-1, its first wave: TestResults/Editor/tanker/01_tanker.png.
+        // The tank monster (Heavy) walking in 2-1, its first wave: TestResults/Editor/tanker/01_tanker.png, and 4 s of it walking
+        // (tanker_walk.mp4, 1920x1080) to check its feet stay planted.
         public static void RunTanker() => Start("TestResults/Editor/tanker", Tanker());
         static IEnumerator Tanker()
         {
@@ -43,7 +44,8 @@ namespace CodingGame.Defense.Editor
             yield return Seconds(.5);
             Deploy(); DevTest.Battle.StartBattle();
             yield return Until(() => DevTest.Sim.Enemies.Any(e => e.Active && e.Spec.type == EnemyType.Tank), 60);
-            yield return Seconds(3);
+            yield return Seconds(1);
+            yield return Record("tanker_walk", 4);
             yield return Shot("tanker");
         }
 
