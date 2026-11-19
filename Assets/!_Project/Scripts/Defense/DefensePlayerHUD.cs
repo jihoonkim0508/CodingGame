@@ -237,7 +237,8 @@ namespace CodingGame.Defense
             RefreshPlayButtons(sim);
             rewardPanel.SetActive(reward || ended);
             if (reward || ended) RefreshRewardPanel(sim, reward);
-            else resultShown = -100; // a restart right after the result clears its banner too, not only after BannerSeconds
+            ShowPrototypeEnd(ended && battle.PrototypeEnded, sim);
+            if (!(reward || ended)) resultShown = -100; // a restart right after the result clears its banner too, not only after BannerSeconds
             AnimateResult(); // after the panel is switched on and its banner started, so its first visible frame is already the start state
             shownRewardPhase = sim.Phase; shownRewardWave = sim.WaveIndex; shownRewardStage = battle.Stage;
         }
@@ -678,6 +679,34 @@ namespace CodingGame.Defense
             resultGroup = rewardPanel.GetComponent<CanvasGroup>();
             if (!resultGroup) resultGroup = rewardPanel.AddComponent<CanvasGroup>();
             resultShown = GameClock.Now; // GameClock stands still behind the Esc menu
+        }
+        // The prototype's last stage won: the whole screen goes black with white Jalnan letters (the planner); a click goes to the stage map.
+        GameObject prototypeEnd;
+        void ShowPrototypeEnd(bool show, DefenseSimulation sim)
+        {
+            if (!show) { if (prototypeEnd) prototypeEnd.SetActive(false); return; }
+            if (!prototypeEnd)
+            {
+                var cover = new GameObject("Prototype end", typeof(RectTransform), typeof(Image), typeof(Button)).GetComponent<RectTransform>();
+                cover.SetParent(canvasRoot.transform, false);
+                cover.anchorMin = Vector2.zero; cover.anchorMax = Vector2.one; cover.offsetMin = cover.offsetMax = Vector2.zero;
+                var black = cover.GetComponent<Image>(); black.color = Color.black;
+                var click = cover.GetComponent<Button>(); click.transition = Selectable.Transition.None; click.onClick.AddListener(battle.ContinueCampaign);
+                var text = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                text.rectTransform.SetParent(cover, false);
+                text.rectTransform.anchorMin = Vector2.zero; text.rectTransform.anchorMax = Vector2.one; text.rectTransform.offsetMin = text.rectTransform.offsetMax = Vector2.zero;
+                text.font = UITheme.Display ? UITheme.Display : rewardItems.font; text.fontStyle = FontStyles.Bold; text.color = Color.white;
+                text.fontSize = 88; text.alignment = TextAlignmentOptions.Center; text.raycastTarget = false;
+                prototypeEnd = cover.gameObject;
+                prototypeEnd.SetActive(false); // the text is filled below as it shows
+            }
+            if (!prototypeEnd.activeSelf)
+            {
+                prototypeEnd.GetComponentInChildren<TextMeshProUGUI>().text =
+                    $"<size=45%>PROTOTYPE END</size>\n프로토타입은 여기까지 개발되었어요!\n\n<size=45%>스테이지 {battle.Stage} · {battle.Stage}-{sim.Setup.Waves.Length}까지가 지금 개발된 프로토타입이에요.\n다음 스테이지는 개발 중입니다.\n\n\n화면을 누르면 스테이지 맵으로 돌아가요</size>";
+                prototypeEnd.SetActive(true);
+            }
+            prototypeEnd.transform.SetAsLastSibling();
         }
         // A dark strip across the screen keeps the letters readable over the bright floor.
         void BuildBanner()
