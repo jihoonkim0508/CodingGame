@@ -51,7 +51,7 @@ static class Check
         var sim = new DefenseSimulation(new BattleSetup {
             Min = new Vector2(-30, -6), Max = new Vector2(30, 6), ActionProfiles = Profiles(),
             Routes = new[] { new Route(new[] { new Vector2(12, 0), new Vector2(-25, 0) }, .75f) },
-            Waves = new[] { new[] { new SpawnGroup { Enemy = new EnemySpec { health = 13, speed = 2.7f }, Count = 5, Delay = lag, Interval = 3 } } }
+            Waves = new[] { new[] { new SpawnGroup { Enemy = new EnemySpec { health = 10.7f, speed = 1.6f }, Count = 5, Delay = lag, Interval = 6.25f } } }
         });
         var robot = sim.Place(Warrior(), (int)RobotRole.Warrior, new Vector2(0, 2.6f), out var error);
         Require(robot != null, error);
@@ -138,8 +138,9 @@ static class Check
         const string swing = "while True:\n    slash()";
         Require(TutorialWatcher.Matches(new DefenseProgram("swing", new[] { Loop(new CodeBlock(BlockKind.Slash)) }), swing), "while True: slash() must finish 1-3's loop lesson");
         Require(!TutorialWatcher.Matches(new DefenseProgram("empty", new[] { Loop() }), swing), "A loop without slash() must not finish 1-3's loop lesson");
-        // 2-3: slashing at air rests the warrior 1.6 s, so an enemy walking in is often swung at once before it is past; the
-        // condition swings the moment one is in range. Never worse, better over the entry moments.
+        // 2-3's fast enemy (Balance.md): slashing at air rests the warrior 1.6 s, and a strike hits only who was in the ring
+        // when the swing started, so an enemy walking in is struck too seldom; the condition swings the moment one is in
+        // range. Never worse, better over the entry moments.
         int plain = 0, guardedKills = 0;
         foreach (float lag in new[] { 0f, .4f, .8f, 1.2f })
         {
