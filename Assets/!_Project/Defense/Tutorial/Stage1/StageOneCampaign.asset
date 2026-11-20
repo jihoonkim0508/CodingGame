@@ -712,29 +712,29 @@ MonoBehaviour:
     - groups:
       - enemy: {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
         route: 0
-        count: 5
-        delay: 0
-        interval: 6.75
-        healthOverride: 15
-        speedOverride: 1.6
+        count: 8
+        delay: 1
+        interval: 1.5
+        healthOverride: 20.5
+        speedOverride: 1.36
         leakDamageOverride: 0
         boss: 0
       - enemy: {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
         route: 0
-        count: 3
-        delay: 30
-        interval: 6.75
-        healthOverride: 7
-        speedOverride: 1.2
+        count: 8
+        delay: 11
+        interval: 7.75
+        healthOverride: 7.5
+        speedOverride: 1.1
         leakDamageOverride: 0
         boss: 0
       - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
         route: 0
-        count: 2
-        delay: 9
-        interval: 12
-        healthOverride: 123.9
-        speedOverride: 1.14
+        count: 3
+        delay: 6.5
+        interval: 8.5
+        healthOverride: 80.5
+        speedOverride: 1.2
         leakDamageOverride: 0
         boss: 0
     - groups:
