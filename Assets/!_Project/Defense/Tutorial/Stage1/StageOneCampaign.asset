@@ -474,7 +474,7 @@ MonoBehaviour:
       - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
         route: 0
         count: 1
-        delay: 10
+        delay: 9
         interval: 2
         healthOverride: 500
         speedOverride: 1.6
