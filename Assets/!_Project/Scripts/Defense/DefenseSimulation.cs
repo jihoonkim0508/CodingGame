@@ -18,8 +18,9 @@ namespace CodingGame.Defense
         public readonly List<EnemyState> Enemies = new List<EnemyState>();
         public readonly List<ProjectileState> Projectiles = new List<ProjectileState>();
         // 근접 베기: 휘두른 검이 정면을 지날 때(공격 간격의 RobotSpec.strikeShare 뒤) 피해를 줍니다(기획: 이펙트·애니메이션과 같은 순간).
-        readonly List<(double at, RobotState bot, float damage)> strikes = new List<(double, RobotState, float)>();
-        readonly List<(double at, RobotState bot, float damage)> dueStrikes = new List<(double, RobotState, float)>();
+        // inRing: the enemies inside the ring when the swing started; the strike hits only those still inside when it lands.
+        readonly List<(double at, RobotState bot, float damage, List<EnemyState> inRing)> strikes = new List<(double, RobotState, float, List<EnemyState>)>();
+        readonly List<(double at, RobotState bot, float damage, List<EnemyState> inRing)> dueStrikes = new List<(double, RobotState, float, List<EnemyState>)>();
         public readonly List<CombatEvent> Events = new List<CombatEvent>();
         public BattlePhase Phase { get; private set; } = BattlePhase.Ready;
         public double Time { get; private set; }
@@ -278,20 +279,20 @@ namespace CodingGame.Defense
                 foreach (var g in groups) if (g.Count > round && picks.Count < count) picks.Add(g);
             return picks.Select((g, i) => { var one = CopyGroup(g); one.Count = 1; one.Delay = i * 1.4f; one.Interval = 1.4f; one.RouteIndex = 0; one.Boss = false; return one; }).ToArray();
         }
-        // 2-3's warrior demo (the if lesson). The strike hits whoever is inside the ring when it lands (c799e7c), so the wave's
-        // enemy took two or three swings of `while True: slash()` while crossing the ring and fell, and '허공을 베고 쉬는 사이
-        // 지나가 버렸어' showed nothing of the kind (play test 2026-11-20). The demo's one enemy (the robot `offset` off the road,
-        // the road from x = startX) now crosses the ring in a time that fits two strikes of a swing started as it enters but only
-        // one of a loop swinging at air, comes in just after one of those air swings landed, and falls to two strikes.
+        // 2-3's warrior demo (the if lesson). A strike hits the enemies inside the ring both when the swing starts and when it
+        // lands (ResolveStrikes). The demo's one enemy (the robot `offset` off the road, the road from x = startX) walks in
+        // halfway through one of the loop's air swings, which lands on it and misses ('허공을 베고'), takes the loop's next
+        // swing, and is out before the one after lands ('지나가 버렸어'); the if swings as it enters and fells it with two strikes.
         // ponytail: assumes the loop's first swing at the demo's start (the preview calls the function on its first frame).
         public static void TimeMeleeDemo(SpawnGroup demo, float range, float offset, float startX, float interval, float strike, float damage)
         {
-            float late = .1f * interval;
+            float mid = strike / 2; // entry, after the air swing started
             float half = (float)Math.Sqrt(range * range - offset * offset);
-            // Midway between the guarded swing's second strike (strike + interval after entry) and the loop's (2 interval - late).
-            float crossing = (strike + 3 * interval - late) / 2;
+            // Midway between the guarded swing's second strike (strike + interval after entry) and the loop's third swing
+            // landing (2 interval + strike after the air swing started).
+            float crossing = (strike + interval + 2 * interval + strike - mid) / 2;
             demo.Count = 1; demo.Enemy.speed = 2 * half / crossing; demo.Enemy.health = 1.5f * damage;
-            float walk = (startX - half) / demo.Enemy.speed, enter = strike + late;
+            float walk = (startX - half) / demo.Enemy.speed, enter = mid;
             while (enter < walk) enter += interval;
             demo.Delay = enter - walk;
         }
@@ -523,7 +524,7 @@ namespace CodingGame.Defense
                 {
                     case RobotAction.Block: Stun(bot, profile, strength, targets, target); break;
                     case RobotAction.Boom: Launch(bot, profile, strength, target); break;
-                    case RobotAction.Slash: Slash(bot, target); break;
+                    case RobotAction.Slash: Slash(bot, target, targets); break;
                     default: Shoot(bot, action, profile, strength, target); break;
                 }
             }
@@ -560,7 +561,7 @@ namespace CodingGame.Defense
                 Damage = profile.damage * bot.DamageMultiplier * strength, Radius = profile.effectRadius });
             Emit("launch", bot.Id, target.Id, target.Position);
         }
-        void Slash(RobotState bot, EnemyState target)
+        void Slash(RobotState bot, EnemyState target, List<EnemyState> inRing)
         {
             target = target ?? Rules.Nearest(Enemies.Where(e => e.Active), bot.Position);
             var direction = target == null ? Vector2.UnitY : target.Position - bot.Position;
@@ -571,11 +572,12 @@ namespace CodingGame.Defense
                 Origin = bot.Position, Position = bot.Position + direction, Radius = bot.Range, Seconds = (float)strike });
             // A spin all the way round; who it hits is decided when the sword gets there (ResolveStrikes). The event still
             // faces the nearest enemy, where the spin starts.
-            strikes.Add((Time + strike, bot, ActionDamage(bot, RobotAction.Slash)));
+            strikes.Add((Time + strike, bot, ActionDamage(bot, RobotAction.Slash), inRing));
         }
-        // A robot recalled before its sword gets there does not hit. The strike hits every enemy inside the range ring when
-        // it lands, as the player sees it: the list at the swing's start was .64 s old by then, and enemies walking 1.1-1.9/s
-        // were hit up to 1.2 past the ring while others 1.0 inside it were missed (2-3 measurement, 2026-11-19).
+        // A robot recalled before its sword gets there does not hit. The strike hits the enemies inside the range ring both
+        // when the swing started and when it lands: landing alone let a blind `while True: slash()` at an empty ring cut
+        // enemies that walked in during the .64 s swing, and it cleared 2-3 without the if the stage teaches (the user,
+        // 2026-11-20). Landing is still checked, so one that walked out of the ring is not hit (2-3 measurement, 2026-11-19).
         void ResolveStrikes()
         {
             dueStrikes.Clear();
@@ -585,7 +587,7 @@ namespace CodingGame.Defense
                 strikes.Remove(strike);
                 if (!Robots.Contains(strike.bot)) continue;
                 float range = strike.bot.Range;
-                foreach (var enemy in Enemies.Where(e => e.Active && Vector2.DistanceSquared(e.Position, strike.bot.Position) <= range * range).ToArray())
+                foreach (var enemy in strike.inRing.Where(e => e.Active && Vector2.DistanceSquared(e.Position, strike.bot.Position) <= range * range).ToArray())
                     Hit(enemy, strike.damage, strike.bot.Id, meleeSource: strike.bot);
             }
         }
