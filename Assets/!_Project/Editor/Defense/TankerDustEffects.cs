@@ -142,11 +142,19 @@ namespace CodingGame.Defense.Editor
         // Each option, the tanker walking 3 s (after 1 s for the dust to build up) at its game speed across a cream road:
         // left the battle camera's angle and distance (47.5° down, 33 units, a 480 px crop of a 1080p screen), right a close
         // three-quarter view following it.
-        public static void Record()
+        public static void Record() { foreach (var o in Options) Record(o.name, o.name, 1); }
+
+        // 시안1 at 40-100% strength (시안/탱커 흙먼지 농도): its puffs' alpha scaled, the brown kept; the same random seed in
+        // each, so only the strength differs between them.
+        public static void RecordStrengths()
         {
-            foreach (var o in Options)
+            for (int percent = 40; percent <= 100; percent += 10) Record(Options[0].name, $"Strength{percent}", percent / 100f, 1);
+        }
+
+        static void Record(string option, string folder, float strength, uint seed = 0)
+        {
             {
-                Directory.CreateDirectory(Out + o.name);
+                Directory.CreateDirectory(Out + folder);
                 var scene = EditorSceneManager.NewPreviewScene();
                 try
                 {
@@ -157,7 +165,19 @@ namespace CodingGame.Defense.Editor
                     var model = heavy.Find("Model").gameObject;
                     model.GetComponent<Animator>().enabled = false;
                     var dust = Dust(heavy.gameObject);
-                    Set(dust, heavy, o.name);
+                    Set(dust, heavy, option);
+                    if (strength < 1 || seed != 0)
+                    {
+                        // A copy of the effect in the preview scene with the strength and seed, for TankerDust to emit from.
+                        var copy = Object.Instantiate(AssetDatabase.LoadAssetAtPath<ParticleSystem>(Folder + option + ".prefab"));
+                        UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(copy.gameObject, scene);
+                        copy.transform.position = Vector3.down * 100;
+                        var main = copy.main; var c = main.startColor;
+                        Color lo = c.colorMin, hi = c.colorMax; lo.a *= strength; hi.a *= strength;
+                        main.startColor = new ParticleSystem.MinMaxGradient(lo, hi);
+                        if (seed != 0) { copy.useAutoRandomSeed = false; copy.randomSeed = seed; }
+                        var so = new SerializedObject(dust); so.FindProperty("effect").objectReferenceValue = copy; so.ApplyModifiedPropertiesWithoutUndo();
+                    }
                     var walk = AssetDatabase.LoadAssetAtPath<AnimationClip>(TankerWalk.Clip);
                     // The skinned mesh does not deform in a preview scene's Camera.Render: its pose is baked into a plain mesh per frame.
                     var skin = model.GetComponentInChildren<SkinnedMeshRenderer>();
@@ -190,18 +210,18 @@ namespace CodingGame.Defense.Editor
                         heavy.position = new Vector3(start + speed * (time + 1), 0, 0);
                         walk.SampleAnimation(model, Mathf.Repeat(time + 1, walk.length));
                         dust.Tick();
-                        particles ??= heavy.GetComponentsInChildren<ParticleSystem>().FirstOrDefault();
+                        particles ??= heavy.GetComponentsInChildren<ParticleSystem>().FirstOrDefault(); // the instance TankerDust made
                         if (particles) particles.Simulate(1 / 30f, true, false, false);
                         if (f < 0) continue;
                         skin.BakeMesh(mesh, true);
                         var middle = new Vector3(start + speed * 2.5f, .5f, 0);
                         camera.fieldOfView = 19;
                         camera.transform.rotation = Quaternion.Euler(47.5f, 0, 0); camera.transform.position = middle - camera.transform.forward * 32.9f;
-                        Shoot(camera, $"{Out}{o.name}/game_{f:00}.png");
+                        Shoot(camera, $"{Out}{folder}/game_{f:00}.png");
                         var look = heavy.position + Vector3.up * .45f;
                         camera.fieldOfView = 19;
                         camera.transform.position = look + new Vector3(.8f, .75f, -1).normalized * 14; camera.transform.LookAt(look);
-                        Shoot(camera, $"{Out}{o.name}/close_{f:00}.png");
+                        Shoot(camera, $"{Out}{folder}/close_{f:00}.png");
                     }
                     Object.DestroyImmediate(checker); Object.DestroyImmediate(ground); Object.DestroyImmediate(mesh);
                 }
