@@ -80,39 +80,24 @@ namespace CodingGame
         // Loading screen: true while the screen is covered for a scene change. Intros that run on their own clock (the map's
         // build, the title, 디버's typing, the system alert) wait for it, so they start when the scene shows.
         public static bool Loading { get; private set; }
-        const float LoadingShowAfter = .25f; // a quick load shows no loading card, only the fade
-        CanvasGroup loadingCard;
-        RectTransform loadingFill;
-        float coveredAt;
-        // The title and the stage map load under plain black; only the battle shows the loading card.
+        const float LoadingMinSeconds = 1; // once shown, the loading screen stays this long (real time) even for a quick load
+        // Assets/ThisIsCodingLoading (the team's loading screen), a nested canvas drawn above the fade.
+        GameObject loadingScreen;
+        float loadingShownAt;
+        // The title and the stage map load under plain black; only the battle shows the loading screen.
         bool blackOnly;
         static bool BlackOnly(string scene) => scene == TitleScene || scene == StageScene;
-        void BuildLoadingCard()
+        void ShowLoading()
         {
-            var card = new GameObject("Loading", typeof(RectTransform), typeof(CanvasGroup)).GetComponent<RectTransform>();
-            card.SetParent(transform, false); card.anchorMin = card.anchorMax = new Vector2(.5f, .5f); card.sizeDelta = new Vector2(520, 160);
-            loadingCard = card.GetComponent<CanvasGroup>(); loadingCard.alpha = 0; loadingCard.blocksRaycasts = false;
-            var label = new GameObject("Text", typeof(RectTransform), typeof(TMPro.TextMeshProUGUI)).GetComponent<TMPro.TextMeshProUGUI>();
-            label.rectTransform.SetParent(card, false); label.rectTransform.sizeDelta = new Vector2(520, 70); label.rectTransform.anchoredPosition = new Vector2(0, 30);
-            label.font = UITheme.Display; label.fontSize = 44; label.alignment = TMPro.TextAlignmentOptions.Center; label.color = UITheme.Paper;
-            label.text = "불러오는 중"; label.raycastTarget = false;
-            Image Bar(string name, Transform parent, Color color)
+            if (!loadingScreen)
             {
-                var image = new GameObject(name, typeof(RectTransform), typeof(Image)).GetComponent<Image>();
-                image.rectTransform.SetParent(parent, false); UITheme.Style(image, UITheme.Pill, color); image.raycastTarget = false;
-                return image;
+                loadingScreen = Instantiate(Resources.Load<GameObject>("LoadingScreen"), transform, false);
+                var rect = (RectTransform)loadingScreen.transform; // the prefab's root is a 0x0 canvas: stretch it over the screen
+                rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.sizeDelta = Vector2.zero;
+                loadingScreen.SetActive(false);
             }
-            var track = Bar("Track", card, new Color(1, 1, 1, .14f)).rectTransform;
-            track.sizeDelta = new Vector2(420, 16); track.anchoredPosition = new Vector2(0, -36);
-            loadingFill = Bar("Fill", track, UITheme.Primary).rectTransform;
-            loadingFill.anchorMin = Vector2.zero; loadingFill.anchorMax = new Vector2(0, 1); loadingFill.pivot = new Vector2(0, .5f); loadingFill.sizeDelta = Vector2.zero;
-        }
-        // The card shows once the cover has lasted LoadingShowAfter; its bar fills to progress (0 to 1).
-        void ShowLoading(float progress)
-        {
-            if (!loadingCard) BuildLoadingCard();
-            loadingCard.alpha = blackOnly ? 0 : Mathf.Clamp01((Time.unscaledTime - coveredAt - LoadingShowAfter) / .15f);
-            loadingFill.anchorMax = new Vector2(Mathf.Max(loadingFill.anchorMax.x, Mathf.Clamp01(progress)), 1);
+            if (blackOnly || loadingScreen.activeSelf) return;
+            loadingScreen.SetActive(true); loadingShownAt = Time.realtimeSinceStartup;
         }
 
         // Developer rights (the F1 jump panel and F2 balance window in every scene, the battle's F1 panel, 5x speed, the dialogue ids, the stage map's Z/Q keys):
@@ -184,15 +169,18 @@ namespace CodingGame
         {
             fade.gameObject.SetActive(true);
             fade.color = Color.black;
-            if (!Loading) { Loading = true; coveredAt = Time.unscaledTime; } // the first scene, or one loaded without LoadScene
-            for (int frame = 0; frame < 3; frame++) { ShowLoading(.9f + frame * .03f); yield return null; }
+            Loading = true; // also the first scene, or one loaded without LoadScene
+            ShowLoading();
+            for (int frame = 0; frame < 3; frame++) yield return null;
 #if UNITY_EDITOR
             for (float waited = 0; !Application.isBatchMode && UnityEditor.ShaderUtil.anythingCompiling && waited < 15; waited += Time.unscaledDeltaTime)
-            { ShowLoading(.97f); yield return null; }
+                yield return null;
 #endif
-            ShowLoading(1);
-            if (loadingCard.alpha > 0) yield return new WaitForSecondsRealtime(.15f); // the full bar, briefly
-            loadingCard.alpha = 0; loadingFill.anchorMax = new Vector2(0, 1);
+            if (loadingScreen.activeSelf)
+            {
+                while (Time.realtimeSinceStartup - loadingShownAt < LoadingMinSeconds) yield return null;
+                loadingScreen.SetActive(false);
+            }
             Loading = false;
             // One frame still under full black with Loading off, so what waits for it (1-1's alarm) is up before the black lifts.
             yield return null;
@@ -229,9 +217,9 @@ namespace CodingGame
             if (delay > 0) yield return new WaitForSecondsRealtime(delay);
             fade.gameObject.SetActive(true);
             yield return FadeTo(1f);
-            Loading = true; coveredAt = Time.unscaledTime; blackOnly = BlackOnly(sceneName);
-            var load = SceneManager.LoadSceneAsync(sceneName);
-            while (!load.isDone) { ShowLoading(load.progress); yield return null; } // 0 to .9 while loading
+            Loading = true; blackOnly = BlackOnly(sceneName);
+            ShowLoading();
+            yield return SceneManager.LoadSceneAsync(sceneName);
         }
 
         // delay: seconds to wait before the fade starts (the stage map's camera flies to the stage first). False while a
