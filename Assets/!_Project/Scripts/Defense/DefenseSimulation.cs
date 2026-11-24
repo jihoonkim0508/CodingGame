@@ -203,8 +203,9 @@ namespace CodingGame.Defense
             Emit("balance-applied",0,0,Vector2.Zero);
         }
         // The F2 balance window: a stage-wave's groups (as authored, before the stage's scaling) replaced for this session.
-        // The wave takes them now while it is being prepared, and so does any wave after it; one under way or over keeps the
-        // groups it began with, so they come when it starts again. True when the battle takes them now.
+        // The wave takes them now while it is being prepared, and so does any wave after it; one under way takes them for the
+        // groups that have not spawned yet (a boss waits for its minions), the rest keep what they began with until the wave
+        // starts again; one over keeps them all. True when the battle takes any of them now.
         public bool SetWaveGroups(int stage, int waveIndex, SpawnGroup[] groups)
         {
             if (Setup.CampaignWaves != null) Setup.CampaignWaves[stage - 1][waveIndex] = groups;
@@ -212,9 +213,19 @@ namespace CodingGame.Defense
             Setup.Waves[waveIndex] = groups;
             if (waveIndex == WaveIndex && Phase == BattlePhase.Ready)
             { currentWave = ScaledWave(waveIndex); groupCounts = new int[currentWave.Length]; return true; }
+            if (waveIndex == WaveIndex && (Phase == BattlePhase.Running || Phase == BattlePhase.Paused))
+            {
+                var scaled = ScaledWave(waveIndex); bool now = false;
+                for (int i = 0; i < currentWave.Length && i < scaled.Length; i++)
+                    if (groupCounts[i] == 0) { now |= Differs(currentWave[i], scaled[i]); currentWave[i] = scaled[i]; }
+                return now;
+            }
             if (waveIndex == WaveIndex + 1 && nextWave != null) nextWave = ScaledWave(waveIndex);
             return waveIndex > WaveIndex;
         }
+        // Only the edited group changes, so an edit to a group already out does not read as taken now.
+        static bool Differs(SpawnGroup a, SpawnGroup b) => a.Count != b.Count || a.Delay != b.Delay || a.Interval != b.Interval ||
+            a.Enemy.health != b.Enemy.health || a.Enemy.speed != b.Enemy.speed || a.Enemy.leakDamage != b.Enemy.leakDamage;
         public bool AdvanceStage()
         {
             if (!CanAdvanceStage) return false;
