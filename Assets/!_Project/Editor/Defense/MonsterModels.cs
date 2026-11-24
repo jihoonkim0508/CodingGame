@@ -76,6 +76,7 @@ namespace CodingGame.Defense.Editor
             state.name = "Walk"; state.motion = walk;
             EditorUtility.SetDirty(controller);
             Fit("Heavy", "MonsterTanker", 1.1f, "MonsterTank", controller);
+            TankerDustEffects.Attach(); // the refitted model's leg bones
             AssetDatabase.SaveAssets();
             RobotIcons.Build();
             Debug.Log("[MonsterModels] Heavy walks as the team's rigged tanker");

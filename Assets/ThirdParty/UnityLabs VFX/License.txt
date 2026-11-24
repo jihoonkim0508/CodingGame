@@ -1,0 +1,6 @@
+Unity Labs "Free VFX Image Sequences & Flipbooks" (2016)
+License: CC0 1.0 Universal (public domain), per https://unity.com/blog/engine-platform/free-vfx-image-sequences-flipbooks
+
+WispySmoke01_8x8.tga  from https://unity3d.com/files/labs/downloads/vfx/assets01/WispySmoke01/WispySmoke01-flipbooks.zip
+
+Only the .tga flipbook was copied (the .exr in the same zip was left out).
