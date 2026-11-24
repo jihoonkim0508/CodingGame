@@ -17,9 +17,9 @@ namespace CodingGame.Defense
         DefenseActorView view;
         ParticleSystem[] motes;
         float clock, shownPace = 1;
-        // Footsteps: while it walks the view jolts down and settles 1.6 times a second, up to half a percent of the screen,
+        // Footsteps: while it walks the view jolts down and settles 1.6 times a second, up to 0.2% of the screen,
         // swaying left and right foot by foot; still while paused or standing (stunned, blocked).
-        const float StepsPerSecond = 1.6f, StepShake = .005f;
+        const float StepsPerSecond = 1.6f, StepShake = .002f;
         Vector3 lastAt;
         float walking, movedAt = -1;
         void Awake()
