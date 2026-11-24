@@ -49,6 +49,25 @@ namespace CodingGame.Defense.Editor
             yield return Shot("tanker");
         }
 
+        // The loading screen (Assets/ThisIsCodingLoading): the stage map loads under black only, then the battle load from it
+        // shows the screen for at least 1 s, photographed half a second in: TestResults/Editor/loading/01_loading.png.
+        public static void RunLoading() => Start("TestResults/Editor/loading", Loading());
+        static IEnumerator Loading()
+        {
+            DevTest.PlayStageMap();
+            GameObject LoadingUp() => GameObject.Find("GameFlow/LoadingScreen(Clone)");
+            bool shown = false;
+            for (double end = EditorApplication.timeSinceStartup + 8; EditorApplication.timeSinceStartup < end; ) { shown |= LoadingUp() != null; yield return null; }
+            Debug.Log($"[ScreenTour] stage map load showed the loading screen: {shown}");
+            GameFlow.LoadScene(GameFlow.DefenseScene);
+            yield return Until(() => LoadingUp(), 30);
+            double shownAt = EditorApplication.timeSinceStartup;
+            yield return Seconds(.5);
+            yield return Shot("loading");
+            yield return Until(() => !LoadingUp(), 30);
+            Debug.Log($"[ScreenTour] battle loading screen up {EditorApplication.timeSinceStartup - shownAt:0.00} s");
+        }
+
         static void Start(string into, IEnumerator steps)
         {
             folder = into;
