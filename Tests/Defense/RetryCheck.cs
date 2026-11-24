@@ -47,7 +47,24 @@ static class RetryCheck
         var twice = new DefenseSimulation(Setup(1)); twice.Restore(checkpoint);
         Throws(() => twice.Restore(checkpoint), "restore only onto an empty field");
         CheckNoTimeLimit();
+        CheckBossEditMidWave();
         Console.WriteLine($"Retry checks passed: {checks}");
+    }
+
+    // F2 mid-wave: the boss (not out yet) takes an edit at once, a minion group already spawning keeps its numbers.
+    static void CheckBossEditMidWave()
+    {
+        SpawnGroup[] Groups(int minions, int boss) => new[] {
+            new SpawnGroup { Count = minions, Interval = .2f, Enemy = new EnemySpec { health = 30, speed = 1 } },
+            new SpawnGroup { Count = boss, Interval = .2f, Boss = true, Enemy = new EnemySpec { health = 90, speed = 1 } } };
+        var setup = Setup(); setup.Waves[0] = Groups(2, 1);
+        var sim = new DefenseSimulation(setup);
+        sim.Place(Spec(RobotRole.Shooter), (int)RobotRole.Shooter, new Vector2(8, 9.5f), out _);
+        sim.Start(); sim.Advance(.1);
+        Assert(sim.Phase == BattlePhase.Running && sim.Spawned == 1, "one minion out, boss waiting");
+        Assert(sim.SetWaveGroups(2, 0, Groups(2, 3)) && sim.CurrentWave[1].Count == 3, "boss edit lands mid-wave");
+        Assert(!sim.SetWaveGroups(2, 0, Groups(5, 3)) && sim.CurrentWave[0].Count == 2, "spawning minion group keeps its count");
+        Assert(sim.Checkpoint.Groups[1].Count == 1, "checkpoint keeps the wave as it began");
     }
 
     // No wave time limit (the user, 2026-11-19): a wave ends only when every enemy has been killed or reached the core.

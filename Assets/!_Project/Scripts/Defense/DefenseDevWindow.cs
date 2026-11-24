@@ -166,7 +166,7 @@ namespace CodingGame.Defense
             y += 50;
             GUI.Label(new Rect(area.x + 16, y, 1170, 34), $"합계 · 적 {count}마리 · 총 체력(실제) {Number(total)} · 마지막 출현 {Number(last)}초" + (boss ? " · 보스는 졸개 처치 후" : ""));
             y += 40;
-            string state = !InBattle ? "전투 밖 · 이 웨이브를 시작하면 적용" : Battle.Simulation.Phase == BattlePhase.Ready ? "준비 중 · 바로 적용" : "전투 중 · 이 웨이브를 다시 시작하면 적용";
+            string state = !InBattle ? "전투 밖 · 이 웨이브를 시작하면 적용" : Battle.Simulation.Phase == BattlePhase.Ready ? "준비 중 · 바로 적용" : "전투 중 · 아직 안 나온 그룹(보스 등)은 바로 적용, 나온 그룹은 다시 시작하면 적용";
             GUI.Label(new Rect(area.x + 16, y, 1040, 34), string.IsNullOrEmpty(message) ? state + " · * 손으로 바꾼 값, Reset: 원래 값" : message);
             if (GUI.Button(new Rect(area.x + area.width - 116, y, 100, 34), "Close")) balanceOpen = false;
         }
