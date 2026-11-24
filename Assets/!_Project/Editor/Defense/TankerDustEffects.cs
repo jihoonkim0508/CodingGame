@@ -18,13 +18,13 @@ namespace CodingGame.Defense.Editor
         public const string Default = "TankerDust1_Kenney";
         static readonly string[] Legs = { "Bone027", "Bone029", "Bone025", "Bone028" };
 
-        // name, texture, flipbook tiles, stretched streaks, size, speed, lifetime, particles per footfall, brightness
-        static readonly (string name, string texture, int tiles, bool streak, float size, float speed, float life, int perStep, float bright)[] Options =
+        // name, texture, flipbook tiles, stretched streaks, size, speed, lifetime, particles per footfall, brightness, alpha (시안1 at 50%: 시안/탱커 흙먼지 농도)
+        static readonly (string name, string texture, int tiles, bool streak, float size, float speed, float life, int perStep, float bright, float alpha)[] Options =
         {
-            ("TankerDust1_Kenney", "Assets/ThirdParty/Kenney/Particles/smoke_07.png", 1, false, 1f, .6f, 1f, 3, 1.1f),
-            ("TankerDust2_Travis", "Assets/ThirdParty/Travis Game Assets/Hit Impact Effects/Textures/HIE_Smoke_01.tga", 1, false, .8f, .65f, .85f, 3, 1f),
-            ("TankerDust3_Piloto", Folder + "Dust_Trail_Alpha.png", 1, true, .45f, 1.7f, .55f, 6, 1.3f),
-            ("TankerDust4_UnityLabs", "Assets/ThirdParty/UnityLabs VFX/WispySmoke01_8x8.tga", 8, false, 1.15f, .5f, 1.1f, 3, 1.5f),
+            ("TankerDust1_Kenney", "Assets/ThirdParty/Kenney/Particles/smoke_07.png", 1, false, 1f, .6f, 1f, 3, 1.1f, .5f),
+            ("TankerDust2_Travis", "Assets/ThirdParty/Travis Game Assets/Hit Impact Effects/Textures/HIE_Smoke_01.tga", 1, false, .8f, .65f, .85f, 3, 1f, 1f),
+            ("TankerDust3_Piloto", Folder + "Dust_Trail_Alpha.png", 1, true, .45f, 1.7f, .55f, 6, 1.3f, 1f),
+            ("TankerDust4_UnityLabs", "Assets/ThirdParty/UnityLabs VFX/WispySmoke01_8x8.tga", 8, false, 1.15f, .5f, 1.1f, 3, 1.5f, 1f),
         };
 
         public static void All() { Build(); Attach(); Record(); }
@@ -67,7 +67,7 @@ namespace CodingGame.Defense.Editor
                     main.startSize = new ParticleSystem.MinMaxCurve(o.size * .7f, o.size);
                     main.startRotation = new ParticleSystem.MinMaxCurve(0, 2 * Mathf.PI);
                     // Earth brown, a lighter and a darker grain.
-                    main.startColor = new ParticleSystem.MinMaxGradient(new Color(.55f, .37f, .2f), new Color(.74f, .56f, .34f));
+                    main.startColor = new ParticleSystem.MinMaxGradient(new Color(.55f, .37f, .2f, o.alpha), new Color(.74f, .56f, .34f, o.alpha));
                     main.simulationSpace = ParticleSystemSimulationSpace.World; main.scalingMode = ParticleSystemScalingMode.Hierarchy;
                     main.gravityModifier = o.streak ? .6f : 0;
                     var emission = dust.emission; emission.rateOverTime = 0; // TankerDust emits on each footfall
