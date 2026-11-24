@@ -7,6 +7,8 @@ namespace CodingGame.Defense
     {
         [SerializeField] Vector2 centerOffset;
         Camera target;
+        // A screen shake on top of the lens (the boss's footsteps, DefenseBossAura): set every frame, never moves the camera.
+        public static Vector2 Shake;
         public void Configure(Vector2 value) { centerOffset=value; }
         void Awake() => target=GetComponent<Camera>();
         void LateUpdate() => Apply();
@@ -16,8 +18,8 @@ namespace CodingGame.Defense
             if (!target) target = GetComponent<Camera>();
             target.ResetProjectionMatrix();
             var projection=target.projectionMatrix;
-            projection.m02-=centerOffset.x*2;
-            projection.m12-=centerOffset.y*2;
+            projection.m02-=(centerOffset.x+Shake.x)*2;
+            projection.m12-=(centerOffset.y+Shake.y)*2;
             target.projectionMatrix=projection;
         }
         void OnDisable() { if(target) target.ResetProjectionMatrix(); }

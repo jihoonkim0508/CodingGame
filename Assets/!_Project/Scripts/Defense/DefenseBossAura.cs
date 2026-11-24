@@ -17,6 +17,11 @@ namespace CodingGame.Defense
         DefenseActorView view;
         ParticleSystem[] motes;
         float clock, shownPace = 1;
+        // Footsteps: while it walks the view jolts down and settles 1.6 times a second, up to half a percent of the screen,
+        // swaying left and right foot by foot; still while paused or standing (stunned, blocked).
+        const float StepsPerSecond = 1.6f, StepShake = .005f;
+        Vector3 lastAt;
+        float walking, movedAt = -1;
         void Awake()
         {
             fullScale = transform.localScale * 1.65f;
@@ -96,7 +101,15 @@ namespace CodingGame.Defense
             transform.localScale = fullScale * Mathf.SmoothStep(.08f, 1f, Mathf.Clamp01(clock / 1.15f));
             if (glow) glow.intensity = 1.6f + .45f * Mathf.Sin(clock * 3.2f);
             if (halo) halo.widthMultiplier = .05f + .015f * Mathf.Sin(clock * 3.2f);
+            // The simulation moves it on fixed ticks, not every rendered frame: walking means it moved within the last .3 s.
+            if ((transform.position - lastAt).sqrMagnitude > 1e-8f) { lastAt = transform.position; movedAt = clock; }
+            walking = Mathf.MoveTowards(walking, movedAt >= 0 && clock - movedAt < .3f ? 1 : 0, Time.deltaTime * 4);
+            float steps = clock * StepsPerSecond, u = steps - Mathf.Floor(steps);
+            float jolt = GameClock.Paused ? 0 : walking * StepShake * Mathf.Exp(-7 * u) * Mathf.Sin(u * 45);
+            DefenseCameraLensOffset.Shake = new Vector2((Mathf.Floor(steps) % 2 == 0 ? .35f : -.35f) * jolt, -jolt);
         }
+
+        void OnDisable() => DefenseCameraLensOffset.Shake = Vector2.zero;
 
         void OnDestroy()
         {

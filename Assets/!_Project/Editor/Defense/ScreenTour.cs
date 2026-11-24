@@ -49,6 +49,23 @@ namespace CodingGame.Defense.Editor
             yield return Shot("tanker");
         }
 
+        // The 1-5 boss walking at 1x from its entrance until it is gone (at most 15 s), then 2 s more, to see its footsteps
+        // shake the view and the view settle after: TestResults/Editor/boss/boss_walk.mp4 (1920x1080). Batchmode like the tour.
+        public static void RunBossWalk() => Start("TestResults/Editor/boss", BossWalk());
+        static IEnumerator BossWalk()
+        {
+            DevTest.PlayDefense(1, 5, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy(); DevTest.Battle.StartBattle(); DevTest.Speed(4);
+            yield return Until(() => DevTest.Battle.EditorBossEntered, 120);
+            DevTest.Speed(1);
+            Begin("boss_walk");
+            yield return Until(() => !DevTest.Sim.Enemies.Any(e => e.Active && e.Boss), 15);
+            yield return Seconds(2);
+            End();
+        }
+
         static void Start(string into, IEnumerator steps)
         {
             folder = into;
