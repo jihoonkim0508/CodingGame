@@ -314,8 +314,9 @@ namespace CodingGame.BlockCoding
         public void LoadHistory(EditHistory history)
         {
             if (history == null || history.index < 0) throw new ArgumentException("편집 기록이 비어 있습니다.");
-            Initialize(); History = history; RestoreHistory(false);
-            if (modeTabs.Length > 0) Enter(false);
+            Initialize(); History = history; quietProblems = true; HideTip();
+            try { RestoreHistory(false); if (modeTabs.Length > 0) Enter(false); }
+            finally { quietProblems = false; }
         }
         // refreshText: an undo in the Python tab shows the restored code (LoadHistory leaves that to Enter and the record).
         void RestoreHistory(bool refreshText = true)
@@ -386,8 +387,9 @@ namespace CodingGame.BlockCoding
                 functionName.SetTextWithoutNotify(name); CommandBlockView.FitInput(functionName, 80); selected = program; program.Load(blocks);
             }
             finally { updating = false; loading = false; }
-            Changed();
-            if (modeTabs.Length > 0) Enter(false);
+            quietProblems = true; HideTip(); // a message of the code that was there goes with it
+            try { Changed(); if (modeTabs.Length > 0) Enter(false); }
+            finally { quietProblems = false; }
         }
         internal CommandBlockView CreateBlock(CodeBlock data, Transform parent)
         {
@@ -776,7 +778,7 @@ namespace CodingGame.BlockCoding
             block.gameObject.SetActive(false);
             Destroy(block.gameObject);
         }
-        void OnDisable() { EndDrag(); CloseMenu(); CloseCompletion(); ShowTip(null, default); }
+        void OnDisable() { EndDrag(); CloseMenu(); CloseCompletion(); HideTip(); }
 
         // ---- The three tabs (Docs/코딩_모드_3탭.md) ----
         // The tab last chosen, kept while the editor closes and opens on another robot.
@@ -819,6 +821,7 @@ namespace CodingGame.BlockCoding
             foreach (var block in program.AllBlocks()) block.SetProblem(null, false);
             MarkBlocks(History.commit, program.StartChain());
             ShowSquiggles();
+            PopNewProblem();
         }
         void MarkBlocks(IReadOnlyList<CodeBlock> data, IReadOnlyList<CommandBlockView> views)
         {
@@ -878,7 +881,7 @@ namespace CodingGame.BlockCoding
         {
             if (mode == Mode) return;
             Initialize();
-            EndDrag(); CloseMenu(); CloseCompletion(); ShowTip(null, default);
+            EndDrag(); CloseMenu(); CloseCompletion(); HideTip();
             // Leaving: a block tab keeps its layout (loose chains too); the Python tab keeps its text as typed (RecordPython).
             if (Mode == CodingMode.Python) { if (pythonDirty) ReadPython(); RecordPython(); }
             else { History.blockRecord = program.CaptureDraft(); History.blockRecordCommit = History.CommitNumber; }
@@ -889,7 +892,7 @@ namespace CodingGame.BlockCoding
         }
         // The tab the next LoadProgram/LoadHistory opens on, without leaving the current one (the editor is switching robots).
         public void UseMode(CodingMode mode) { CloseCompletion(); Mode = chosenMode = mode; ShowTabs(); }
-        public void FlushPython() { if (Mode == CodingMode.Python && pythonDirty) ReadPython(); CloseCompletion(); ShowTip(null, default); }
+        public void FlushPython() { if (Mode == CodingMode.Python && pythonDirty) ReadPython(); CloseCompletion(); HideTip(); }
         void ShowTabs()
         {
             for (int i = 0; i < modeTabs.Length; i++)
@@ -957,33 +960,120 @@ namespace CodingGame.BlockCoding
             box.SetSiblingIndex(workspace.GetSiblingIndex() + 1);
             box.anchorMin = workspace.anchorMin; box.anchorMax = workspace.anchorMax; box.pivot = workspace.pivot;
             box.anchoredPosition = workspace.anchoredPosition; box.sizeDelta = workspace.sizeDelta;
+            // VS Code Dark+: #1E1E1E page, #D4D4D4 text, a #858585 line-number gutter, white caret.
             var back = root.GetComponent<Image>();
-            back.sprite = UITheme.Card; back.type = Image.Type.Sliced; back.color = UITheme.Paper;
+            back.sprite = UITheme.Card; back.type = Image.Type.Sliced; back.color = Dark(0x1E1E1E);
             pythonInput = root.GetComponent<TMP_InputField>();
             pythonInput.lineType = TMP_InputField.LineType.MultiLineNewline;
             pythonInput.richText = false;
             pythonInput.restoreOriginalTextOnEscape = false;
             pythonInput.resetOnDeActivation = false;
-            pythonInput.caretWidth = 2; pythonInput.customCaretColor = true; pythonInput.caretColor = UITheme.Ink;
-            pythonInput.selectionColor = new Color(UITheme.Sky.r, UITheme.Sky.g, UITheme.Sky.b, .35f);
+            pythonInput.caretWidth = 2; pythonInput.customCaretColor = true; pythonInput.caretColor = Color.white;
+            pythonInput.selectionColor = Dark(0x264F78);
             var area = pythonInput.textViewport;
-            area.offsetMin = new Vector2(22, 16); area.offsetMax = new Vector2(-22, -16);
+            area.offsetMin = new Vector2(8, 16); area.offsetMax = new Vector2(-22, -16);
             foreach (var text in new[] { pythonInput.textComponent, pythonInput.placeholder as TMP_Text })
             {
                 if (!text) continue;
                 text.font = pythonPreview.font; text.fontSize = 21; text.alignment = TextAlignmentOptions.TopLeft;
-                text.textWrappingMode = TextWrappingModes.NoWrap; text.lineSpacing = 18; text.color = UITheme.Ink;
+                text.textWrappingMode = TextWrappingModes.NoWrap; text.lineSpacing = 18; text.color = Dark(0xD4D4D4);
+                text.margin = new Vector4(Gutter, 0, 0, 0);
             }
-            if (pythonInput.placeholder is TMP_Text hint) { hint.text = "여기에 파이썬 코드를 입력하세요. 두 글자를 치거나 Ctrl+Space를 누르면 자동 완성이 떠요."; hint.color = new Color(UITheme.Ink.r, UITheme.Ink.g, UITheme.Ink.b, .4f); hint.fontStyle = FontStyles.Normal; }
+            if (pythonInput.placeholder is TMP_Text hint) { hint.text = "여기에 파이썬 코드를 입력하세요. 두 글자를 치거나 Ctrl+Space를 누르면 자동 완성이 떠요."; hint.color = Dark(0x6A6A6A); hint.fontStyle = FontStyles.Normal; }
             pythonInput.onValueChanged.AddListener(_ => PythonEdited());
             pythonInput.onValidateInput = ValidatePython;
+            // The field's own glyphs are clear (it still places the caret and selection by them); the coloured copy, the
+            // current line's band, the line numbers and the underlines are its children, so they scroll with it.
+            var field = pythonInput.textComponent;
+            field.color = Color.clear;
+            RectTransform Layer(GameObject layer)
+            {
+                var r = (RectTransform)layer.transform; r.SetParent(field.rectTransform, false);
+                r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.offsetMin = r.offsetMax = Vector2.zero; r.pivot = field.rectTransform.pivot;
+                return r;
+            }
+            currentLine = new GameObject("CurrentLine", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            Layer(currentLine.gameObject); currentLine.color = Dark(0x2A2D2E); currentLine.raycastTarget = false;
+            TMP_Text Copy(string name, TextAlignmentOptions alignment)
+            {
+                var copy = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                Layer(copy.gameObject);
+                copy.font = field.font; copy.fontSize = field.fontSize; copy.lineSpacing = field.lineSpacing; copy.alignment = alignment;
+                copy.textWrappingMode = TextWrappingModes.NoWrap; copy.richText = true; copy.raycastTarget = false; copy.margin = field.margin;
+                return copy;
+            }
+            coloured = Copy("Coloured", TextAlignmentOptions.TopLeft); coloured.color = Dark(0xD4D4D4);
+            lineNumbers = Copy("LineNumbers", TextAlignmentOptions.TopRight); lineNumbers.color = Dark(0x858585);
+            lineNumbers.margin = Vector4.zero; lineNumbers.rectTransform.anchorMax = new Vector2(0, 1); lineNumbers.rectTransform.sizeDelta = new Vector2(Gutter - 14, 0); lineNumbers.rectTransform.pivot = new Vector2(0, lineNumbers.rectTransform.pivot.y);
             squiggles = new GameObject("Squiggles", typeof(RectTransform), typeof(CodeSquiggles)).GetComponent<CodeSquiggles>();
-            var line = squiggles.rectTransform; line.SetParent(pythonInput.textComponent.rectTransform, false);
-            line.anchorMin = Vector2.zero; line.anchorMax = Vector2.one; line.offsetMin = line.offsetMax = Vector2.zero;
-            line.pivot = pythonInput.textComponent.rectTransform.pivot;
+            Layer(squiggles.gameObject);
             squiggles.raycastTarget = false;
             root.SetActive(false);
         }
+        const float Gutter = 58;
+        Image currentLine;
+        TMP_Text coloured, lineNumbers;
+        readonly List<Button> gutterMarks = new List<Button>();
+        static Color Dark(int rgb) => UITheme.Hex(rgb);
+        // The coloured copy, line numbers, current line band and gutter ! marks for the text as it is now.
+        void PaintPython()
+        {
+            if (!pythonInput) return;
+            string text = pythonInput.text;
+            coloured.text = PythonTreeParser.Colorize(text);
+            int count = text.Count(c => c == '\n') + 1;
+            lineNumbers.text = string.Join("\n", Enumerable.Range(1, count));
+            PlaceCurrentLine();
+            PlaceGutterMarks();
+        }
+        int paintedCaret = -1;
+        void PlaceCurrentLine()
+        {
+            var field = pythonInput.textComponent;
+            field.ForceMeshUpdate();
+            var info = field.textInfo;
+            int line = pythonInput.text.Substring(0, Mathf.Clamp(pythonInput.caretPosition, 0, pythonInput.text.Length)).Count(c => c == '\n');
+            paintedCaret = pythonInput.caretPosition;
+            currentLine.enabled = pythonInput.isFocused && line < info.lineCount;
+            if (!currentLine.enabled) return;
+            var row = info.lineInfo[line]; var r = field.rectTransform.rect;
+            var band = currentLine.rectTransform; band.anchorMin = new Vector2(0, 1); band.anchorMax = Vector2.one;
+            band.offsetMin = new Vector2(0, row.descender - r.yMax); band.offsetMax = new Vector2(0, row.ascender - r.yMax);
+        }
+        // A ! in the gutter on each line with a problem; clicked, it shows the message again.
+        void PlaceGutterMarks()
+        {
+            var lines = Squiggles.Select(s => s.line).Distinct().ToList();
+            var field = pythonInput.textComponent; var info = field.textInfo; var r = field.rectTransform.rect;
+            for (int i = 0; i < Math.Max(lines.Count, gutterMarks.Count); i++)
+            {
+                if (i >= gutterMarks.Count)
+                {
+                    var mark = new GameObject("GutterMark", typeof(RectTransform), typeof(Image), typeof(Button)).GetComponent<Button>();
+                    var box = (RectTransform)mark.transform; box.SetParent(field.rectTransform, false);
+                    box.anchorMin = box.anchorMax = new Vector2(0, 1); box.pivot = new Vector2(.5f, .5f); box.sizeDelta = new Vector2(20, 20);
+                    mark.targetGraphic = mark.GetComponent<Image>(); ((Image)mark.targetGraphic).sprite = UITheme.Circle;
+                    var label = new GameObject("Mark", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                    label.rectTransform.SetParent(box, false); label.rectTransform.anchorMin = Vector2.zero; label.rectTransform.anchorMax = Vector2.one;
+                    label.rectTransform.offsetMin = label.rectTransform.offsetMax = Vector2.zero;
+                    if (UITheme.Bold) label.font = UITheme.Bold;
+                    label.text = "!"; label.fontSize = 15; label.alignment = TextAlignmentOptions.Center; label.raycastTarget = false;
+                    gutterMarks.Add(mark);
+                }
+                var button = gutterMarks[i];
+                bool shown = i < lines.Count && lines[i] - 1 < info.lineCount;
+                button.gameObject.SetActive(shown);
+                if (!shown) continue;
+                int line = lines[i];
+                var row = info.lineInfo[line - 1];
+                bool error = Squiggles.Any(s => s.line == line && s.color == CommandBlockView.ErrorColor);
+                button.targetGraphic.color = error ? CommandBlockView.ErrorColor : CommandBlockView.WarningColor;
+                button.GetComponentInChildren<TMP_Text>().color = error ? Color.white : UITheme.Ink;
+                ((RectTransform)button.transform).anchoredPosition = new Vector2(12, (row.ascender + row.descender) * .5f - r.yMax);
+                button.onClick.RemoveAllListeners(); button.onClick.AddListener(() => ReshowLine(line));
+            }
+        }
+        public IReadOnlyList<Button> GutterMarks => gutterMarks.Where(b => b.gameObject.activeSelf).ToList();
         void ShowCommitText()
         {
             pythonLines = new Dictionary<CodeBlock, int>();
@@ -994,7 +1084,7 @@ namespace CodingGame.BlockCoding
         {
             pythonInput.SetTextWithoutNotify(text);
             pythonInput.caretPosition = pythonInput.selectionAnchorPosition = Mathf.Clamp(caret, 0, text.Length);
-            pythonDirty = false;
+            pythonDirty = false; PaintPython();
             RecordPython();
         }
         void RecordPython()
@@ -1006,7 +1096,7 @@ namespace CodingGame.BlockCoding
         {
             pythonDirty = true; pythonEdited = Time.unscaledTime;
             RecordPython();
-            RefreshCompletion(false);
+            RefreshCompletion(false); PaintPython();
         }
         // Reads the text into blocks: committed when it parses (and differs), else the red underline on the bad line.
         public void ReadPython()
@@ -1030,7 +1120,7 @@ namespace CodingGame.BlockCoding
             catch (PythonSyntaxError error)
             {
                 SyntaxError = error;
-                ShowSquiggles();
+                ShowSquiggles(); PopNewProblem();
                 ShowMessage("코드가 바뀌지 않음 · 로봇은 마지막 정상 코드로 움직여요 · " + Counts(1, 0) + error.Text);
                 // A syntax error says nothing of meaning: the other underlines wait for the text to read again.
             }
@@ -1042,11 +1132,11 @@ namespace CodingGame.BlockCoding
             var marks = new List<(int line, Color color)>();
             if (SyntaxError != null) marks.Add((SyntaxError.Line, CommandBlockView.ErrorColor));
             else foreach (var problem in problems.OrderBy(p => p.error))
-                    // On the light page the 에러 wave is a deeper amber than the blocks' yellow, to be seen.
+                    // 에러 in a bright yellow on the dark page.
                     if (problem.statement != null && pythonLines.TryGetValue(problem.statement, out int line)) marks.Add((line, problem.error ? CommandBlockView.ErrorColor : WarningLine));
-            squiggles.Show(pythonInput.textComponent, marks);
+            squiggles.Show(pythonInput.textComponent, marks); PlaceGutterMarks();
         }
-        public static readonly Color WarningLine = new Color(.92f, .58f, 0);
+        public static readonly Color WarningLine = new Color(1f, .8f, .15f);
         public IReadOnlyList<(int line, Color color)> Squiggles => squiggles ? squiggles.Marks : Array.Empty<(int, Color)>();
         // The message for a Python line (for the hover tip); null when the line is fine.
         public string LineProblem(int line)
@@ -1137,12 +1227,12 @@ namespace CodingGame.BlockCoding
                 bool chosen = i == completionIndex;
                 var row = new GameObject("Item", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
                 row.transform.SetParent(completionBox, false);
-                row.GetComponent<Image>().color = chosen ? new Color(UITheme.Sky.r, UITheme.Sky.g, UITheme.Sky.b, .9f) : Color.clear;
+                row.GetComponent<Image>().color = chosen ? Dark(0x04395E) : Color.clear;
                 row.GetComponent<LayoutElement>().preferredHeight = 34;
                 // ! for ⚠: the code font has no warning sign.
-                var label = PopupText(row.transform, (item.Warning != null ? "<color=#FFC81A>!</color> " : "") + item.Text + "   <size=80%><color=#" +
-                    (chosen ? "262A3E" : "9FB4C8") + ">" + item.Label + (item.Warning != null ? " · " + item.Warning : "") + "</color></size>");
-                label.color = item.Warning != null && !chosen ? new Color(.62f, .66f, .72f) : chosen ? UITheme.Ink : Color.white;
+                var label = PopupText(row.transform, (item.Warning != null ? "<color=#FFC81A>!</color> " : "") + item.Text + "   <size=80%><color=#9D9D9D>" +
+                    item.Label + (item.Warning != null ? " · " + item.Warning : "") + "</color></size>");
+                label.color = item.Warning != null ? Dark(0x808080) : Dark(0xD4D4D4);
             }
             completionBox.anchoredPosition = at;
             if (hintBox.gameObject.activeSelf)
@@ -1150,16 +1240,18 @@ namespace CodingGame.BlockCoding
                 foreach (Transform row in hintBox) Destroy(row.gameObject);
                 var line = new GameObject("Hint", typeof(RectTransform), typeof(LayoutElement));
                 line.transform.SetParent(hintBox, false); line.GetComponent<LayoutElement>().preferredHeight = 32;
-                PopupText(line.transform, HintText).color = new Color(1, .9f, .55f);
+                int words = HintText.IndexOf("  ", StringComparison.Ordinal);
+                PopupText(line.transform, words < 0 ? HintText : HintText.Substring(0, words) + "<color=#9D9D9D>" + HintText.Substring(words) + "</color>").color = Dark(0xD4D4D4);
                 hintBox.anchoredPosition = at;
             }
         }
         RectTransform Popup(string name)
         {
-            var box = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter)).GetComponent<RectTransform>();
+            var box = new GameObject(name, typeof(RectTransform), typeof(CommandProblemFrame), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter)).GetComponent<RectTransform>();
             box.SetParent(pythonInput.transform, false);
             box.anchorMin = box.anchorMax = new Vector2(0, 1); box.pivot = new Vector2(0, 1);
-            var image = box.GetComponent<Image>(); image.sprite = UITheme.Card; image.type = Image.Type.Sliced; image.color = new Color(.11f, .16f, .23f, .97f); image.raycastTarget = false;
+            // VS Code's suggest widget: rounded, #252526 with a #454545 edge.
+            var frame = box.GetComponent<CommandProblemFrame>(); frame.Width = 1; frame.Radius = 8; frame.color = Dark(0x454545); frame.Fill = Dark(0x252526); frame.raycastTarget = false;
             var layout = box.GetComponent<VerticalLayoutGroup>(); layout.padding = new RectOffset(8, 8, 6, 6); layout.spacing = 2;
             layout.childControlWidth = layout.childControlHeight = true; layout.childForceExpandWidth = true; layout.childForceExpandHeight = false;
             var fit = box.GetComponent<ContentSizeFitter>(); fit.horizontalFit = fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
@@ -1203,11 +1295,116 @@ namespace CodingGame.BlockCoding
             hovered.RemoveWhere(v => !v);
             // The innermost line with a problem under the pointer.
             var line = hovered.Where(v => v.Problem != null).OrderByDescending(v => v.transform.GetComponentsInParent<CommandBlockView>().Length).FirstOrDefault();
-            // Right of the line's header, so it does not cover the line.
-            ShowTip(line ? line.Problem : null, line ? line.Rect.TransformPoint(new Vector3(line.Rect.rect.xMin + LineWidth(line) + 12, line.Rect.rect.yMax)) : default,
-                line && line.ProblemIsError);
+            if (line) { StopBubble(); ShowTip(line.Problem, BesideLine(line), line.ProblemIsError); }
+            else if (bubble == null) ShowTip(null, default);
         }
+        // Right of the line's header, so it does not cover the line.
+        static Vector3 BesideLine(CommandBlockView line) => line.Rect.TransformPoint(new Vector3(line.Rect.rect.xMin + LineWidth(line) + 12, line.Rect.rect.yMax));
         static float LineWidth(CommandBlockView line) => line.Body ? LayoutUtility.GetPreferredWidth((RectTransform)line.Rect.GetChild(0)) + 28 : line.Rect.rect.width;
+        // Right of a Python line's last character.
+        Vector3 BesideLine(int line)
+        {
+            var field = pythonInput.textComponent; field.ForceMeshUpdate();
+            var info = field.textInfo;
+            if (line < 1 || line > info.lineCount) return field.rectTransform.TransformPoint(field.rectTransform.rect.center);
+            var row = info.lineInfo[line - 1];
+            float x = row.lastVisibleCharacterIndex >= row.firstCharacterIndex && row.lastVisibleCharacterIndex < info.characterCount
+                ? info.characterInfo[row.lastVisibleCharacterIndex].xAdvance : field.rectTransform.rect.xMin + Gutter;
+            return field.rectTransform.TransformPoint(new Vector3(x + 18, row.ascender + 14));
+        }
+
+        // ---- Message bubbles: a new 오류 or 에러 (and a click on its !) shows its message blinking, for 1.5 s, then fading ----
+        Coroutine bubble;
+        public string BubbleText { get; private set; }
+        public int BubbleBlinks { get; private set; }
+        HashSet<string> seenProblems = new HashSet<string>();
+        bool quietProblems; // a robot's code just opened: its problems are not new
+        void StopBubble()
+        {
+            if (bubble != null) StopCoroutine(bubble);
+            bubble = null; BubbleText = null;
+            if (tip && tip.TryGetComponent<CanvasGroup>(out var group)) group.alpha = 1;
+        }
+        void HideTip() { StopBubble(); ShowTip(null, default); }
+        void Bubble(string text, Vector3 world, bool error)
+        {
+            StopBubble();
+            ShowTip(text, world, error);
+            if (!isActiveAndEnabled) return;
+            BubbleText = text; BubbleBlinks = 0;
+            bubble = StartCoroutine(Blink());
+        }
+        public const float BubbleHold = 1.5f, BubbleFade = .4f;
+        System.Collections.IEnumerator Blink()
+        {
+            if (!tip.TryGetComponent<CanvasGroup>(out var group)) group = tip.gameObject.AddComponent<CanvasGroup>();
+            group.blocksRaycasts = false;
+            for (int i = 0; i < 3; i++)
+            {
+                group.alpha = .15f; yield return new WaitForSecondsRealtime(.09f);
+                group.alpha = 1; BubbleBlinks++; yield return new WaitForSecondsRealtime(.12f);
+            }
+            yield return new WaitForSecondsRealtime(BubbleHold);
+            for (float start = Time.unscaledTime; Time.unscaledTime - start < BubbleFade;) { group.alpha = 1 - (Time.unscaledTime - start) / BubbleFade; yield return null; }
+            group.alpha = 1; bubble = null; BubbleText = null;
+            ShowTip(null, default);
+        }
+        // Lines by their place in the commit ("0", "2/1"): the same in every tab, so a tab switch shows nothing new.
+        Dictionary<CodeBlock, string> Places()
+        {
+            var places = new Dictionary<CodeBlock, string>();
+            void Walk(IReadOnlyList<CodeBlock> list, string prefix)
+            {
+                for (int i = 0; i < list.Count; i++)
+                    if (list[i] != null) { places[list[i]] = prefix + i; Walk(list[i].Body, prefix + i + "/"); }
+            }
+            Walk(History.commit, "");
+            return places;
+        }
+        CommandBlockView ViewAt(string place)
+        {
+            IReadOnlyList<CommandBlockView> list = program.StartChain();
+            CommandBlockView view = null;
+            foreach (var step in place.Split('/'))
+            {
+                int i = int.Parse(step);
+                if (list == null || i >= list.Count) return null;
+                view = list[i]; list = view.Body ? view.Body.Blocks : null;
+            }
+            return view;
+        }
+        // After each read of the code: the first problem not on screen before pops up (오류 first).
+        void PopNewProblem()
+        {
+            var places = Places();
+            var current = new List<(string key, string text, bool error, Func<Vector3?> where)>();
+            bool python = Mode == CodingMode.Python && pythonInput;
+            if (python && SyntaxError != null)
+            {
+                var syntax = SyntaxError;
+                current.Add(("syntax " + syntax.Line + " " + syntax.Message, syntax.Text, true, () => BesideLine(syntax.Line)));
+            }
+            else foreach (var problem in problems.OrderByDescending(p => p.error))
+                {
+                    if (problem.statement == null || !places.TryGetValue(problem.statement, out var place)) continue;
+                    var statement = problem.statement;
+                    current.Add((place + " " + problem.message, python && pythonLines.TryGetValue(statement, out int at) ? at + "번째 줄: " + problem.message : problem.message, problem.error,
+                        () => python ? (pythonLines.TryGetValue(statement, out int line) ? BesideLine(line) : (Vector3?)null) : ViewAt(place) is CommandBlockView view ? BesideLine(view) : (Vector3?)null));
+                }
+            var fresh = current.FirstOrDefault(c => !seenProblems.Contains(c.key));
+            seenProblems = new HashSet<string>(current.Select(c => c.key));
+            if (fresh.key == null || quietProblems || loading || restoringHistory) return;
+            Canvas.ForceUpdateCanvases();
+            if (fresh.where() is Vector3 world) Bubble(fresh.text, world, fresh.error);
+        }
+        // The line block's ! clicked.
+        public void ReshowProblem(CommandBlockView view) { if (view && view.Problem != null) Bubble(view.Problem, BesideLine(view), view.ProblemIsError); }
+        // The Python gutter's ! clicked.
+        public void ReshowLine(int line)
+        {
+            string message = LineProblem(line);
+            if (message != null) Bubble(message, BesideLine(line), SyntaxError != null || problems.Any(p => p.error && message.EndsWith(p.message)));
+        }
         string tipText;
         void ShowTip(string text, Vector3 world, bool error = true)
         {
@@ -1238,6 +1435,7 @@ namespace CodingGame.BlockCoding
         }
         public string TipText => tip && tip.gameObject.activeSelf ? tipText : null;
 
+        string hoverMessage;
         void Update()
         {
             CompletionWasOpen = false;
@@ -1263,6 +1461,7 @@ namespace CodingGame.BlockCoding
             if (pythonInput.isFocused && pythonInput.caretPosition != savedCaret && completion.Count == 0 && HintText != (CodeCompletion.Hint(pythonInput.text, pythonInput.caretPosition)))
             { HintText = CodeCompletion.Hint(pythonInput.text, pythonInput.caretPosition); DrawCompletion(); }
             savedCaret = pythonInput.caretPosition;
+            if (paintedCaret != pythonInput.caretPosition || currentLine.enabled != pythonInput.isFocused) PlaceCurrentLine();
             if (pythonDirty && Time.unscaledTime - pythonEdited >= ReadDelay) ReadPython();
             // The message for the line under the pointer.
             var mouse = UnityEngine.InputSystem.Mouse.current;
@@ -1279,7 +1478,10 @@ namespace CodingGame.BlockCoding
                     where = pythonInput.textComponent.rectTransform.TransformPoint(new Vector3(pythonInput.textComponent.rectTransform.rect.xMin, info.descender - 6));
                 }
             }
-            if (message != tipText) ShowTip(message, where, SyntaxError != null || problems.Any(p => p.error && message != null && message.EndsWith(p.message)));
+            if (message == hoverMessage) return;
+            hoverMessage = message;
+            if (message != null) { StopBubble(); ShowTip(message, where, SyntaxError != null || problems.Any(p => p.error && message.EndsWith(p.message))); }
+            else if (bubble == null) ShowTip(null, default);
         }
     }
 

@@ -105,6 +105,13 @@ static class ModeCheck
         Assert(items.First(i => i.Text == "slash()").Warning == "약하게", "warned function marked");
         Assert(CodeCompletion.Hint("wait(", 5) == "wait(초)  〔초〕 초 기다리기", "wait( hint: " + CodeCompletion.Hint("wait(", 5));
         Assert(CodeCompletion.Hint("wait(1)", 7) == null, "no hint after the call");
+        // Dark+ colours, and nothing but colour tags (the caret is placed by the plain text).
+        string painted = PythonTreeParser.Colorize("if enemy.hp <= 10:  # 약함\n    shoot(enemy)\nx = Enemy.Tank");
+        Assert(painted.Contains("<color=#C586C0>if</color>") && painted.Contains("<color=#9CDCFE>enemy</color>") && painted.Contains("<color=#DCDCAA>shoot</color>") &&
+            painted.Contains("<color=#B5CEA8>10</color>") && painted.Contains("<color=#6A9955># 약함</color>") && painted.Contains("<color=#4EC9B0>Tank</color>") &&
+            painted.Contains("<noparse><</noparse>="), "Dark+ colouring: " + painted);
+        Assert(System.Text.RegularExpressions.Regex.Replace(painted.Replace("<noparse><</noparse>", "\u0001"), "</?color[^>]*>", "").Replace("\u0001", "<") ==
+            "if enemy.hp <= 10:  # 약함\n    shoot(enemy)\nx = Enemy.Tank", "colouring keeps the text");
         Console.WriteLine("PASS: 3 tabs: round trip of every block, semantic errors kept, syntax lines, lint, completion");
     }
 }

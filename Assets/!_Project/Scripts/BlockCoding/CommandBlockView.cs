@@ -222,7 +222,7 @@ namespace CodingGame.BlockCoding
                 problemBadge = new GameObject("Badge", typeof(RectTransform), typeof(Image), typeof(LayoutElement)).GetComponent<Image>();
                 problemBadge.GetComponent<LayoutElement>().ignoreLayout = true;
                 problemBadge.rectTransform.SetParent(rect, false);
-                problemBadge.sprite = UITheme.Circle; problemBadge.raycastTarget = false;
+                problemBadge.sprite = UITheme.Circle; problemBadge.raycastTarget = true; // clicked, it shows the message again
                 var mark = new GameObject("Mark", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
                 mark.rectTransform.SetParent(problemBadge.rectTransform, false);
                 mark.rectTransform.anchorMin = Vector2.zero; mark.rectTransform.anchorMax = Vector2.one; mark.rectTransform.offsetMin = mark.rectTransform.offsetMax = Vector2.zero;
@@ -233,6 +233,9 @@ namespace CodingGame.BlockCoding
             problemFrame.color = color; problemBadge.color = color;
             problemBadge.GetComponentInChildren<TMP_Text>().color = error ? Color.white : UITheme.Ink;
             problemFrame.gameObject.SetActive(true); problemBadge.gameObject.SetActive(true);
+            // A copy (Instantiate) keeps the badge but not its listener.
+            if (!problemBadge.TryGetComponent<Button>(out var again)) again = problemBadge.gameObject.AddComponent<Button>();
+            again.onClick.RemoveAllListeners(); again.onClick.AddListener(() => { if (Panel) Panel.ReshowProblem(this); });
             problemFrame.transform.SetAsLastSibling(); problemBadge.transform.SetAsLastSibling();
             PlaceProblem();
         }

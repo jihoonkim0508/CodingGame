@@ -3,11 +3,12 @@ using UnityEngine.UI;
 
 namespace CodingGame.BlockCoding
 {
-    // A rounded ring round a block's line for 오류 (red) and 에러 (yellow); it takes no pointer hits.
+    // A rounded ring: round a block's line for 오류 (red) and 에러 (yellow), and with Fill the Python tab's rounded popups.
     [RequireComponent(typeof(CanvasRenderer))]
     public sealed class CommandProblemFrame : MaskableGraphic
     {
         public float Width = 4, Radius = 14;
+        public Color Fill = Color.clear;
         const int Segments = 6;
         protected override void OnPopulateMesh(VertexHelper vh)
         {
@@ -28,6 +29,12 @@ namespace CodingGame.BlockCoding
                 int a = i * 2, b = (i + 1) % points * 2;
                 vh.AddTriangle(a, b, a + 1); vh.AddTriangle(a + 1, b, b + 1);
             }
+            if (Fill.a <= 0) return;
+            int start = vh.currentVertCount;
+            vh.AddVert(inside.center, Fill, Vector2.zero);
+            for (int corner = 0; corner < 4; corner++)
+                for (int j = 0; j <= Segments; j++) vh.AddVert(Corner(inside, inner, corner, j), Fill, Vector2.zero);
+            for (int i = 0; i < points; i++) vh.AddTriangle(start, start + 1 + i, start + 1 + (i + 1) % points);
         }
         static Vector2 Corner(Rect rect, float radius, int corner, int segment)
         {

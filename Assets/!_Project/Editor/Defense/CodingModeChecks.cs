@@ -18,7 +18,7 @@ namespace CodingGame.Defense.Editor
     public static class CodingModeChecks
     {
         const string Running = "CodingGame.CodingModes.Check", LogPath = "TestResults/Editor/coding-modes.log";
-        static IEnumerator steps;
+        static readonly System.Collections.Generic.Stack<IEnumerator> run = new System.Collections.Generic.Stack<IEnumerator>();
         static CodingModeChecks()
         {
             EditorApplication.update += Tick;
@@ -29,6 +29,7 @@ namespace CodingGame.Defense.Editor
             Directory.CreateDirectory(Path.GetDirectoryName(LogPath));
             File.WriteAllText(LogPath, "START coding tabs check\n");
             SessionState.SetBool(Running, true);
+            PlayModeWindow.SetCustomRenderingResolution(1920, 1080, "CodingModes");
             DevTest.PlayDefense(2, 1, false, new DefenseTestOptions { tutorial = false, tutorialInput = false, deploymentLimit = false, inventoryLimit = false, unlockAll = true });
         }
         static void Log(string line) { File.AppendAllText(LogPath, line + "\n"); Debug.Log("[CodingModes] " + line); }
@@ -37,14 +38,16 @@ namespace CodingGame.Defense.Editor
             if (!SessionState.GetBool(Running, false) || !EditorApplication.isPlaying || !DevTest.Ready) return;
             try
             {
-                steps ??= Steps();
-                if (!steps.MoveNext()) End("PASS coding tabs: 1-6 example, round trips, errors, 에러, completion, typed code");
+                if (run.Count == 0) run.Push(Steps());
+                var top = run.Peek();
+                if (top.MoveNext()) { if (top.Current is IEnumerator inner) run.Push(inner); }
+                else { run.Pop(); if (run.Count == 0) End("PASS coding tabs: 1-6 example, round trips, errors, 에러, bubbles, completion, typed code"); }
             }
             catch (Exception error) { End("FAIL " + error); }
         }
         static void End(string result)
         {
-            Log(result); SessionState.SetBool(Running, false); steps = null;
+            Log(result); SessionState.SetBool(Running, false); run.Clear();
             if (!Application.isBatchMode) return;
             EditorApplication.playModeStateChanged += state =>
             {
@@ -104,7 +107,7 @@ namespace CodingGame.Defense.Editor
                 "2: whlie gets a red underline on line 2 (" + panel.SyntaxError?.Text + ")");
             Require(panel.History.CommitNumber == five && RobotCode(shooter) == robotBefore, "2: the commit and the robot's code stay");
             yield return Wait(.6);
-            Shot("2026-11-25_파이썬 탭 문법 오류 빨간 물결 밑줄");
+            yield return Shot("2026-11-25_파이썬 탭 문법 오류 빨간 물결 밑줄");
             yield return Wait(.2);
             panel.SetMode(CodingMode.Block);
             yield return Wait(.3);
@@ -147,20 +150,20 @@ namespace CodingGame.Defense.Editor
                 "    if enemy.distance(get_my_pos()) <= my_attack_range():\n        shoot(enemy)\n    wait(0.5)\n";
             panel.LoadProgram("robot_1", PythonTreeParser.Parse(shown).ToArray());
             panel.SetMode(CodingMode.Natural); yield return Wait(.5);
-            Shot("2026-11-25_자연어 탭");
+            yield return Shot("2026-11-25_자연어 탭");
             yield return Wait(.2);
             panel.SetMode(CodingMode.Block); yield return Wait(.5);
-            Shot("2026-11-25_블록 탭");
+            yield return Shot("2026-11-25_블록 탭");
             yield return Wait(.2);
             panel.SetMode(CodingMode.Python); yield return Wait(.5);
-            Shot("2026-11-25_파이썬 탭");
+            yield return Shot("2026-11-25_파이썬 탭 다크 테마");
             yield return Wait(.2);
 
             // Completion and the parameter hint.
             panel.TypePython(shown + "    e = get");
             Require(panel.CompletionItems.Count >= 3 && panel.CompletionItems.All(i => i.Text.StartsWith("get")), "get offers the get_ functions");
             yield return Wait(.3);
-            Shot("2026-11-25_파이썬 탭 자동 완성 목록");
+            yield return Shot("2026-11-25_파이썬 탭 자동 완성 둥근 목록");
             yield return Wait(.2);
             panel.TypePython(shown + "    e = get_n");
             Require(panel.CompletionItems.Count > 0 && panel.CompletionItems[0].Text == "get_nearest_enemy()", "get_n offers get_nearest_enemy() first");
@@ -176,7 +179,7 @@ namespace CodingGame.Defense.Editor
             Require(panel.Squiggles.Any(s => s.line == 3 && s.color == CommandCodingPanel.WarningLine), "yellow underline on line 3");
             Require(panel.StatusLine.GetComponent<TMP_Text>().text.Contains("오류 0 · 에러 2"), "status counts: " + panel.StatusLine.GetComponent<TMP_Text>().text);
             yield return Wait(.3);
-            Shot("2026-11-25_파이썬 탭 에러 노란 밑줄");
+            yield return Shot("2026-11-25_파이썬 탭 에러 노란 밑줄");
             yield return Wait(.2);
             panel.TypePython("enemy = get_nearest_enemy()\nwhile True:\n    shoot(___)\n"); panel.ReadPython();
             string why = panel.Problems.FirstOrDefault(p => p.error).message;
@@ -196,7 +199,7 @@ namespace CodingGame.Defense.Editor
             slash.OnPointerEnter(null);
             Require(panel.TipText != null && panel.TipText.Contains("slash()"), "hovering the yellow line shows its message: " + panel.TipText);
             yield return Wait(.3);
-            Shot("2026-11-25_블록 탭 오류·에러 테두리", () => { slash.OnPointerExit(null); slash.OnPointerEnter(null); });
+            yield return Shot("2026-11-25_블록 탭 오류·에러 테두리");
             yield return Wait(.2);
             slash.OnPointerExit(null);
             Require(panel.TipText == null, "the message goes when the pointer leaves");
@@ -209,6 +212,36 @@ namespace CodingGame.Defense.Editor
             panel.LoadProgram("robot_1", PythonTreeParser.Parse("while True:\n    block(___)\n").ToArray());
             var both = panel.Program.AllBlocks().First(b => b.Kind == BlockKind.Block);
             Require(both.Problem != null && both.ProblemIsError && panel.Problems.Count(p => p.statement != null) == 2, "block(___) on the shooter: 오류 and 에러, the border is red");
+
+            // Message bubbles: a new 오류 blinks in, stays 1.5 s and fades; nothing pops again on an unchanged line; ! shows it again.
+            Require(panel.BubbleText == null, "an opened program's problems do not pop up");
+            panel.LoadProgram("robot_1", PythonTreeParser.Parse("while True:\n    enemy = get_nearest_enemy()\n    shoot(enemy)\n").ToArray());
+            yield return Wait(.3);
+            panel.Program.StartChain()[0].Body.Insert(Palette(BlockKind.Shot), 2);
+            string popped = panel.BubbleText;
+            Require(popped != null && popped.Contains("공격 대상"), "a new 오류 pops its message: " + popped);
+            yield return Wait(.15);
+            yield return Shot("2026-11-25_오류 메시지 깜박임 등장");
+            float shownAt = Time.realtimeSinceStartup;
+            for (double end = EditorApplication.timeSinceStartup + 20; panel.BubbleText != null && EditorApplication.timeSinceStartup < end;) yield return null;
+            float lasted = Time.realtimeSinceStartup - shownAt;
+            Require(panel.BubbleText == null && panel.TipText == null && panel.BubbleBlinks == 3 && lasted >= CommandCodingPanel.BubbleHold,
+                $"it blinked {panel.BubbleBlinks} times, then went after {lasted:0.0} s");
+            var shot = panel.Program.AllBlocks().First(b => b.Kind == BlockKind.Shot && b.Problem != null);
+            Require(shot.ProblemIsError && shot.GetComponentsInChildren<Button>().Any(b => b.name == "Badge"), "the red border and ! stay");
+            panel.FunctionName = "robot_9"; panel.FunctionName = "robot_1";
+            Require(panel.BubbleText == null, "an edit that leaves the 오류 as it was does not pop it again");
+            shot.GetComponentsInChildren<Button>().First(b => b.name == "Badge").onClick.Invoke();
+            Require(panel.BubbleText == popped, "clicking ! shows the message again");
+            yield return Wait(.15);
+            yield return Shot("2026-11-25_느낌표 눌러 다시 보기");
+            panel.SetMode(CodingMode.Python); yield return Wait(.3);
+            Require(panel.BubbleText == popped || panel.BubbleText == null, "a tab switch is no new 오류");
+            var gutter = panel.GutterMarks;
+            Require(gutter.Count == 1, "one ! in the Python gutter (" + gutter.Count + ")");
+            gutter[0].onClick.Invoke();
+            Require(panel.BubbleText != null && panel.BubbleText.StartsWith("4번째 줄: ") && panel.BubbleText.Contains("공격 대상"), "the gutter's ! shows the line's message: " + panel.BubbleText);
+            panel.SetMode(CodingMode.Block);
 
             // The tank: buff() does nothing there.
             Open(tank);
@@ -239,33 +272,30 @@ namespace CodingGame.Defense.Editor
             panel.SetMode(CodingMode.Block);
         }
 
-        // The editor's canvas drawn through a camera into a 1920x1080 picture (batchmode has no game view to capture).
-        static void Shot(string name, Action laidOut = null)
+        // The Game view's own frame at 1920x1080 (ScreenCapture, as ScreenTour takes its shots), so the robot preview keeps the
+        // aspect it has in play; a camera drawing the canvas into a picture stretched it (batchmode's screen is not 16:9).
+        static IEnumerator Shot(string name)
         {
-            var canvas = panel.GetComponentInParent<Canvas>().rootCanvas;
-            var camera = new GameObject("ShotCamera").AddComponent<Camera>();
-            camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = Color.black;
-            camera.cullingMask = 1 << canvas.gameObject.layer; camera.orthographic = true;
-            // Far from the scene: its props on the UI layer stay out of the picture.
-            camera.transform.position = new Vector3(0, -50000, 0); camera.nearClipPlane = .1f; camera.farClipPlane = 50;
-            var target = new RenderTexture(1920, 1080, 24, RenderTextureFormat.ARGB32);
-            camera.targetTexture = target;
-            var mode = canvas.renderMode; var plane = canvas.planeDistance;
-            canvas.renderMode = RenderMode.ScreenSpaceCamera; canvas.worldCamera = camera; canvas.planeDistance = 10;
-            Canvas.ForceUpdateCanvases();
-            LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)canvas.transform);
-            if (laidOut != null) { laidOut(); Canvas.ForceUpdateCanvases(); } // placed after the picture's layout (a hover tip)
-            Canvas.ForceUpdateCanvases();
-            camera.Render();
-            RenderTexture.active = target;
-            var picture = new Texture2D(1920, 1080, TextureFormat.RGB24, false);
-            picture.ReadPixels(new Rect(0, 0, 1920, 1080), 0, 0); picture.Apply();
-            RenderTexture.active = null;
+            bool saved = false;
             Directory.CreateDirectory("Report");
-            File.WriteAllBytes(Path.Combine("Report", name + ".png"), picture.EncodeToPNG());
-            canvas.renderMode = mode; canvas.planeDistance = plane; canvas.worldCamera = null;
-            UnityEngine.Object.DestroyImmediate(picture); camera.targetTexture = null; UnityEngine.Object.DestroyImmediate(target); UnityEngine.Object.DestroyImmediate(camera.gameObject);
-            Log("shot Report/" + name + ".png");
+            var host = new GameObject("CodingModesShot").AddComponent<ShotHost>();
+            host.path = Path.Combine("Report", name + ".png"); host.done = () => saved = true;
+            for (double end = EditorApplication.timeSinceStartup + 30; !saved && EditorApplication.timeSinceStartup < end;) yield return null;
+            if (host) UnityEngine.Object.DestroyImmediate(host.gameObject);
+            if (!saved) throw new Exception("no frame captured for " + name);
+            Log("shot Report/" + name + ".png at " + Screen.width + "x" + Screen.height);
+        }
+        sealed class ShotHost : MonoBehaviour
+        {
+            public string path; public Action done;
+            IEnumerator Start()
+            {
+                yield return new WaitForEndOfFrame();
+                var image = ScreenCapture.CaptureScreenshotAsTexture();
+                File.WriteAllBytes(path, image.EncodeToPNG());
+                Destroy(image); done();
+            }
         }
     }
 }
+

@@ -282,6 +282,41 @@ namespace CodingGame.BlockCoding
                 return result;
             }
         }
+        // The Python tab's text in VS Code Dark+ colours, as TMP rich text drawn over the field (only colour tags, so every
+        // glyph stays where the field puts its caret). Text outside a tag takes the label's own colour (#D4D4D4).
+        static readonly HashSet<string> Flow = new HashSet<string> { "if", "elif", "else", "while", "for", "in", "break", "continue", "pass" };
+        public static string Colorize(string text)
+        {
+            var result = new System.Text.StringBuilder();
+            text ??= "";
+            void Add(string piece, string color)
+            {
+                piece = piece.Replace("<", "<noparse><</noparse>");
+                result.Append(color == null ? piece : "<color=#" + color + ">" + piece + "</color>");
+            }
+            bool afterEnemy = false;
+            for (int i = 0; i < text.Length;)
+            {
+                char c = text[i]; int start = i;
+                if (c == '#') { while (i < text.Length && text[i] != '\n') i++; Add(text.Substring(start, i - start), "6A9955"); continue; }
+                if (char.IsLetter(c) || c == '_')
+                {
+                    while (i < text.Length && (char.IsLetterOrDigit(text[i]) || text[i] == '_')) i++;
+                    string word = text.Substring(start, i - start);
+                    int after = i; while (after < text.Length && text[after] == ' ') after++;
+                    string color = afterEnemy || word == "Enemy" ? "4EC9B0" : Flow.Contains(word) ? "C586C0" : word == "True" || word == "False" ? "569CD6" :
+                        after < text.Length && text[after] == '(' ? "DCDCAA" : "9CDCFE";
+                    afterEnemy = word == "Enemy" && i < text.Length && text[i] == '.';
+                    Add(word, color);
+                    continue;
+                }
+                if (char.IsDigit(c)) { while (i < text.Length && (char.IsDigit(text[i]) || text[i] == '.')) i++; Add(text.Substring(start, i - start), "B5CEA8"); continue; }
+                if (c != '.') afterEnemy = false;
+                i++;
+                Add(c.ToString(), null);
+            }
+            return result.ToString();
+        }
         static bool IsNumber(string token) => token != null && token.Length > 0 && (char.IsDigit(token[0]) || token[0] == '.');
         static bool IsName(string token) => token != null && token.Length > 0 && (char.IsLetter(token[0]) || token[0] == '_');
     }
