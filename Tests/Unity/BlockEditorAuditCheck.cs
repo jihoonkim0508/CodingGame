@@ -50,6 +50,7 @@ public static class BlockEditorAuditCheck
             Run("B8 rejected draft keeps the stock at zero or more", RejectedDraftWithinStock);
             Run("B9 a program taller than the code area scrolls into reach", TallProgramScrolls);
             Run("B10 palette blocks at ×0 are dimmed", ZeroStockDims);
+            Run("B11 the code area pans, zooms and points to blocks out of view", PanZoomAndOffscreenNote);
         }
         finally { battle.Restart(); }
         report.Add("AUDIT blocks: " + passed + "/" + total + " passed");
@@ -287,7 +288,8 @@ public static class BlockEditorAuditCheck
     }
 
     // --- B9 ---
-    // 2-8's finished code (ten lines) is taller than the code area. The wheel scrolls it to the bottom: its last line,
+    // 2-8's finished code (ten lines) is taller than the code area. A drag on its empty space pans it up (the wheel zooms since
+    // 2026-11-25, B11): its last line,
     // shoot(enemy), is then inside the area and a press there reaches it; a palette click still adds a line at the program's
     // end (93d7345 refused it once the code reached the area's bottom), and a drag under the last line lands where its
     // preview showed, scrolled.
@@ -313,12 +315,11 @@ public static class BlockEditorAuditCheck
         var view = scroll ? (scroll.viewport ? scroll.viewport : (RectTransform)scroll.transform) : (RectTransform)program.transform.parent;
         Require(Bottom(last.Rect) < Bottom(view) - 1, "setup: the code is taller than the code area (its last line is in view unscrolled)");
         Require(scroll && scroll.vertical && scroll.content == program.Rect, "the code area has no vertical ScrollRect on the program");
-        // The wheel over a line of code bubbles up to the code area's ScrollRect (no frame has drawn the editor yet, so it is
-        // sent to the line itself rather than to a raycast hit).
-        for (int i = 0; i < 40; i++)
-            ExecuteEvents.ExecuteHierarchy(program.StartChain()[0].gameObject, new PointerEventData(EventSystem.current) { scrollDelta = new Vector2(0, -1) }, ExecuteEvents.scrollHandler);
+        // A drag on the program's empty space bubbles up to the code area's ScrollRect (sent to the program itself: no frame has
+        // drawn the editor yet), up by as much as the last line is below the area.
+        Pan(Vector2.up * (Bottom(view) - Bottom(last.Rect) + 20));
         Layout();
-        Require(Bottom(last.Rect) >= Bottom(view) - 1 && Top(last.Rect) <= Top(view) + 1, "after the wheel (scroll position " + scroll.verticalNormalizedPosition.ToString("F2") +
+        Require(Bottom(last.Rect) >= Bottom(view) - 1 && Top(last.Rect) <= Top(view) + 1, "after the pan (content at " + program.Rect.anchoredPosition +
             "), shoot(enemy) is still outside the code area");
         // A press there reaches it: inside the area's mask, on the line's own raycast graphic.
         var corners = new Vector3[4]; last.Rect.GetWorldCorners(corners);
@@ -338,6 +339,54 @@ public static class BlockEditorAuditCheck
         Require(program.StartChain().Last().BaseKind == BlockKind.Wait, "scrolled, wait() dragged under the last line did not join the program: " + Program());
         Require(Vector2.Distance(under.preview, under.landed) < 1, "scrolled, the landing preview was at " + under.preview + ", the block landed at " + under.landed);
     }
+    // A drag of screen distance by on the program's empty space.
+    static void Pan(Vector2 by)
+    {
+        var start = RectTransformUtility.WorldToScreenPoint(raycaster.eventCamera, program.Rect.TransformPoint(program.Rect.rect.center));
+        var e = new PointerEventData(EventSystem.current) { button = PointerEventData.InputButton.Left, position = start, pressPosition = start };
+        ExecuteEvents.ExecuteHierarchy(program.gameObject, e, ExecuteEvents.initializePotentialDrag);
+        ExecuteEvents.ExecuteHierarchy(program.gameObject, e, ExecuteEvents.beginDragHandler);
+        e.position = start + by; e.delta = by;
+        ExecuteEvents.ExecuteHierarchy(program.gameObject, e, ExecuteEvents.dragHandler);
+        ExecuteEvents.ExecuteHierarchy(program.gameObject, e, ExecuteEvents.endDragHandler);
+    }
+
+    // --- B11 ---
+    // The code area pans and zooms (2026-11-25): the wheel zooms round the pointer within CommandWorkspace's range, a chain
+    // parked out of view raises the 동떨어진 블록이 있어요 note, its click brings the chain into view, and opening a robot puts
+    // the def block at the area's top-left at the zoom it had.
+    static void PanZoomAndOffscreenNote()
+    {
+        Open(a); Load(new CodeBlock(BlockKind.Slash));
+        var space = panel.Workspace;
+        Require(space && panel.DefBlock, "setup: the code area has its workspace view and def block");
+        var view = (RectTransform)space.transform;
+        var line = program.StartChain()[0];
+        var spot = RectTransformUtility.WorldToScreenPoint(raycaster.eventCamera, line.Rect.TransformPoint(line.Rect.rect.center));
+        for (int i = 0; i < 40; i++)
+            ExecuteEvents.ExecuteHierarchy(line.gameObject, new PointerEventData(EventSystem.current) { position = spot, scrollDelta = new Vector2(0, -1) }, ExecuteEvents.scrollHandler);
+        Layout();
+        var after = RectTransformUtility.WorldToScreenPoint(raycaster.eventCamera, line.Rect.TransformPoint(line.Rect.rect.center));
+        Require(Mathf.Approximately(space.Zoom, CommandWorkspace.MinZoom), "40 wheel steps down left the zoom at " + space.Zoom + " (expected " + CommandWorkspace.MinZoom + ")");
+        Require(Vector2.Distance(spot, after) < 2, "the line under the pointer moved from " + spot + " to " + after + " while zooming");
+        // A wait() parked far below and right of everything is out of view.
+        Require(program.PlaceFree(Palette(BlockKind.Wait), new Vector2(4000, -3000)), "setup: a wait() parked far away");
+        Layout(); LateUpdate(space);
+        Require(space.OffscreenTarget && space.Note.gameObject.activeSelf, "a wait() parked out of view raised no note");
+        space.RevealTarget(); Layout(); LateUpdate(space);
+        var parked = program.LooseRoots().First().Rect;
+        Require(Top(parked) <= Top(view) + 1 && Bottom(parked) >= Bottom(view) - 1, "the note's click left the parked wait() out of view");
+        // The def block may now be out of view instead; the note no longer points at the wait().
+        Require(space.OffscreenTarget != parked, "the note still points at the wait() brought into view");
+        // Back on another robot and on this one: the def block at the top-left, the zoom kept.
+        Open(b); Open(a); Layout();
+        var c = new Vector3[4]; panel.DefBlock.GetWorldCorners(c); var v = new Vector3[4]; view.GetWorldCorners(v);
+        var offset = (Vector2)(c[1] - v[1]) / view.lossyScale.x;
+        Require(Vector2.Distance(offset, new Vector2(16, -16)) < 1, "reopened, the def block's top-left is " + offset + " from the area's (expected (16, -16))");
+        Require(Mathf.Approximately(space.Zoom, CommandWorkspace.MinZoom), "reopening changed the zoom to " + space.Zoom);
+    }
+    static void LateUpdate(CommandWorkspace space) => typeof(CommandWorkspace).GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(space, null);
+
     // --- B10 ---
     // A palette block with none left reads dimmed, whatever its kind and however it got to ×0: another robot holding all of
     // a kind (commands, values, the variable chip, comparisons), or this robot's drag of the last one. The drag's end undid

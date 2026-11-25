@@ -58,7 +58,9 @@ namespace CodingGame.BlockCoding
         bool previewBody;
         float bodyReveal;
         CanvasGroup bodyVisibility;
-        public bool BodyExpanded => body && !IsPalette && (previewBody || body.Blocks.Count > 0);
+        // A placed C block shows its open mouth even when empty (as before the 1차 UI change; 2026-11-25 request); the palette's
+        // and the previews' stay one line. bodyReveal still eases a preview body open.
+        public bool BodyExpanded => body && !IsPalette && (!readOnlyPreview || previewBody || body.Blocks.Count > 0);
         public float HeaderHeight => headHeight;
         internal float FooterOverlap => CommandBlockShape.ControlFooterHeight * BodyReveal;
         float BodyReveal => !body || IsPalette ? 0 : body.Blocks.Count > 0 ? 1 : bodyReveal;
@@ -91,7 +93,7 @@ namespace CodingGame.BlockCoding
             Panel = panel;
             Owner = owner;
             IsPalette = palette;
-            previewBody = false; bodyReveal = 0;
+            previewBody = false; bodyReveal = palette ? 0 : 1; // placed: open at once, no opening animation on a drop
             EnsureBodyVisibility();
             if (stockLabel) stockLabel.gameObject.SetActive(palette && panel.Remaining != null);
             // Disable the handlers too so palette inputs forward drag/click events to the block.
