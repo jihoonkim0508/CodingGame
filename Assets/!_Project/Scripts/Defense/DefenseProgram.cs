@@ -15,7 +15,8 @@ namespace CodingGame.Defense
     {
         enum Op { Statement, Condition, Jump, ForInit, ForTest, ForNext }
         sealed class Instruction { public Op Op; public CodeBlock Block; public int Jump, Loop; }
-        sealed class LoopState { public double Count, Index; }
+        // A for-each keeps the enemies it was given (front first) and walks them; reused, so no list per turn.
+        sealed class LoopState { public double Count, Index; public readonly List<int> Enemies = new List<int>(); }
         // A value as a struct, not a boxed object: numbers, truth, enemies and positions are made every tick (13차 130).
         enum ValueKind : byte { Number, Truth, Enemy, Position, Kind }
         readonly struct Val
@@ -92,12 +93,13 @@ namespace CodingGame.Defense
                         } while (true);
                         foreach (var exit in exits) code[exit].Jump = code.Count;
                         break;
-                    case BlockKind.For: case BlockKind.While:
+                    case BlockKind.For: case BlockKind.While: case BlockKind.ForEach:
                         int loop = nextLoop++;
-                        bool counted = b.Kind == BlockKind.For;
-                        if (counted) Emit(Op.ForInit, b.Arguments[0], loop: loop);
+                        bool counted = b.Kind != BlockKind.While;
+                        // ForInit/ForTest carry the loop block: a for-each reads its list and its variable's name from it.
+                        if (counted) Emit(Op.ForInit, b, loop: loop);
                         int start = code.Count;
-                        int test = counted ? Emit(Op.ForTest, loop: loop) : -1;
+                        int test = counted ? Emit(Op.ForTest, b, loop: loop) : -1;
                         var innerBreaks = new List<int>(); var innerContinues = new List<int>();
                         EmitSuite(b.Body, innerBreaks, innerContinues);
                         int step = code.Count;
@@ -130,14 +132,25 @@ namespace CodingGame.Defense
                         case Op.Condition:
                             pc = Truth(Value(instruction.Block, sim, robot)) ? pc + 1 : instruction.Jump;
                             break;
+                        case Op.ForInit when instruction.Block.Kind == BlockKind.ForEach:
+                        {
+                            if (!loops.TryGetValue(instruction.Loop, out var each)) loops[instruction.Loop] = each = new LoopState();
+                            ListEnemies(sim, each.Enemies);
+                            each.Count = each.Enemies.Count; each.Index = 0; pc++; break;
+                        }
                         case Op.ForInit:
-                            double count = Number(Value(instruction.Block, sim, robot));
+                            double count = Number(Value(instruction.Block.Arguments[0], sim, robot));
                             if (count != Math.Truncate(count) || Math.Abs(count) > 1000000000) throw new FormatException("range 횟수는 절댓값 10억 이하 정수여야 합니다.");
                             loops[instruction.Loop] = new LoopState { Count = count }; pc++; break;
                         case Op.ForTest:
                             var state = loops[instruction.Loop];
                             if (state.Index >= state.Count) pc = instruction.Jump;
-                            else { variables["i"] = Val.Of(state.Index); pc++; }
+                            else
+                            {
+                                if (instruction.Block.Kind == BlockKind.ForEach) variables[Identifier(instruction.Block)] = Val.EnemyOf(state.Enemies[(int)state.Index]);
+                                else variables["i"] = Val.Of(state.Index);
+                                pc++;
+                            }
                             break;
                         case Op.ForNext:
                             if (loops.TryGetValue(instruction.Loop, out var turn)) turn.Index++; // while has no counter
@@ -186,6 +199,7 @@ namespace CodingGame.Defense
                 case BlockKind.Attack: case BlockKind.Shot: return RobotAction.Attack;
                 case BlockKind.Slow: return RobotAction.Slow;
                 case BlockKind.Buff: return RobotAction.Buff;
+                case BlockKind.BreakShield: return RobotAction.BreakShield;
                 default: throw new FormatException("지원하지 않는 전투 명령입니다: " + kind);
             }
         }
@@ -199,6 +213,15 @@ namespace CodingGame.Defense
             var enemies = sim.Enemies;
             for (int i = 0; i < enemies.Count; i++) if (enemies[i].Id == id && enemies[i].Active) return enemies[i];
             return null;
+        }
+        // get_enemies(): the active enemies, the one nearest the core (least road left) first, then the older one.
+        static readonly List<(float left, int id)> order = new List<(float, int)>();
+        static void ListEnemies(DefenseSimulation sim, List<int> into)
+        {
+            order.Clear(); into.Clear();
+            foreach (var e in sim.Enemies) if (e.Active) order.Add((sim.RemainingPath(e), e.Id));
+            order.Sort();
+            foreach (var (_, id) in order) into.Add(id);
         }
         static int EnemyId(Val value) => value.Kind == ValueKind.Enemy ? value.Enemy : throw new FormatException("Enemy 객체가 필요합니다.");
         Val Value(CodeBlock block, DefenseSimulation sim, RobotState robot)
@@ -256,6 +279,8 @@ namespace CodingGame.Defense
                     break;
                 case BlockKind.Hp:
                     return Val.Of(Active(sim, EnemyId(Arg(0)))?.Health ?? 0); // a defeated enemy reads as 0 hp
+                case BlockKind.Shield:
+                    return Val.Of(Active(sim, EnemyId(Arg(0)))?.Shield ?? 0);
                 case BlockKind.EnemyTypeOf:
                     return Val.KindOf((int?)Active(sim, EnemyId(Arg(0)))?.Spec.type ?? -1);
                 case BlockKind.EnemyTypeName:

@@ -223,10 +223,12 @@ namespace CodingGame.BlockCoding
         public void ShowMessage(string text) => status.text = text;
         internal void FillNewLoop(CommandBlockView block)
         {
-            if (block.Kind != BlockKind.For || block.Arguments[0].Blocks.Count != 0) return;
-            var number = palette.FirstOrDefault(item => item.view.BaseKind == BlockKind.Number).view;
-            if (number && (IsAvailable?.Invoke(BlockKind.Number) ?? true) && CanTake(number))
-                block.Arguments[0].Load(new[] { new CodeBlock(BlockKind.Number, "10") });
+            // range(10), or a for-each's get_enemies(): the loop comes with the one value it is made for.
+            if (block.Kind != BlockKind.For && block.Kind != BlockKind.ForEach || block.Arguments[0].Blocks.Count != 0) return;
+            var fill = block.Kind == BlockKind.For ? BlockKind.Number : BlockKind.GetEnemies;
+            var value = palette.FirstOrDefault(item => item.view.BaseKind == fill).view;
+            if (value && (IsAvailable?.Invoke(fill) ?? true) && CanTake(value))
+                block.Arguments[0].Load(new[] { new CodeBlock(fill, fill == BlockKind.Number ? "10" : "0") });
         }
         internal bool IsEnemyVariable(string name) => enemyVariables.Contains(name);
         // False when another declaration already has the new name: the uses wait under the old one. Renamed into it they
@@ -246,6 +248,12 @@ namespace CodingGame.BlockCoding
             enemyVariables.Clear();
             foreach (var block in program.AllBlocks())
             {
+                // for e in get_enemies(): e holds an enemy (its members are offered after `e.`).
+                if (block.BaseKind == BlockKind.ForEach)
+                {
+                    try { enemyVariables.Add(PythonTreeCompiler.NormalizeIdentifier(block.VariableName)); } catch (FormatException) { }
+                    continue;
+                }
                 if (block.BaseKind != BlockKind.DeclareVariable) continue;
                 string name;
                 try { name = PythonTreeCompiler.NormalizeIdentifier(block.VariableName); }
@@ -374,9 +382,9 @@ namespace CodingGame.BlockCoding
         {
             if (data.Kind == BlockKind.Attack) data = new CodeBlock(BlockKind.Shot, data.Value, data.Arguments.ToArray());
             // is_dead() and type are a variable's members only (typed after `enemy.`), like distance( and hp.
-            if ((data.Kind == BlockKind.IsDead || data.Kind == BlockKind.EnemyTypeOf) && data.Arguments.FirstOrDefault()?.Kind != BlockKind.Variable)
-                throw new FormatException(data.Kind == BlockKind.IsDead ? "is_dead()는 변수 뒤에 점을 찍어 씁니다. 예: enemy.is_dead()" : "type은 변수 뒤에 점을 찍어 씁니다. 예: enemy.type");
-            bool variable = data.Kind == BlockKind.Variable || data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp || data.Kind == BlockKind.IsDead || data.Kind == BlockKind.EnemyTypeOf;
+            if ((data.Kind == BlockKind.IsDead || data.Kind == BlockKind.EnemyTypeOf || data.Kind == BlockKind.Shield) && data.Arguments.FirstOrDefault()?.Kind != BlockKind.Variable)
+                throw new FormatException(data.Kind == BlockKind.IsDead ? "is_dead()는 변수 뒤에 점을 찍어 씁니다. 예: enemy.is_dead()" : data.Kind == BlockKind.Shield ? "shield는 변수 뒤에 점을 찍어 씁니다. 예: enemy.shield" : "type은 변수 뒤에 점을 찍어 씁니다. 예: enemy.type");
+            bool variable = data.Kind == BlockKind.Variable || data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp || data.Kind == BlockKind.IsDead || data.Kind == BlockKind.EnemyTypeOf || data.Kind == BlockKind.Shield;
             var template = variable ? variablePrefab : palette.FirstOrDefault(item => item.view.BaseKind == data.Kind).view;
             if (!template) throw new FormatException("블록 프리팹이 연결되지 않았습니다: " + data.Kind);
             var view = Instantiate(template, parent);

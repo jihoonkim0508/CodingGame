@@ -625,8 +625,16 @@ namespace CodingGame.Defense.Editor
             // Balance.md: a boss comes once every minion is down (its delay unused) and takes 12 core health on reaching it; the
             // others the enemy's own. Roads stay as they were (1-5's minions walk the second one).
             var stages = so.FindProperty("stages");
-            EnemyDefinition Data(string name) => AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"Assets/!_Project/Defense/Data/{name}.asset") ??
-                throw new InvalidOperationException(name + " enemy asset not found");
+            var enemyList = so.FindProperty("enemies");
+            EnemyDefinition Data(string name)
+            {
+                var enemy = AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"Assets/!_Project/Defense/Data/{name}.asset") ??
+                    throw new InvalidOperationException(name + " enemy asset not found");
+                // A kind the campaign did not have yet (Healer, Shielder) joins its enemy list.
+                if (!Enumerable.Range(0, enemyList.arraySize).Any(i => enemyList.GetArrayElementAtIndex(i).objectReferenceValue == enemy))
+                { enemyList.arraySize++; enemyList.GetArrayElementAtIndex(enemyList.arraySize - 1).objectReferenceValue = enemy; }
+                return enemy;
+            }
             foreach (var stageGroups in data.Groups.GroupBy(g => g.Stage))
             {
                 if (stageGroups.Key > stages.arraySize) throw new InvalidOperationException($"캠페인에 {stageGroups.Key}스테이지가 없습니다.");

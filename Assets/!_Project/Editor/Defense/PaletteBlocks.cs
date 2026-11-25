@@ -13,6 +13,7 @@ namespace CodingGame.Defense.Editor
     // instance holds the palette): the calculation `( ) + ( )` in 값 from the comparison (its picker gets + - * / at run time),
     // and the enemy kind `Enemy. [Tank]` in 값 from the comparison's picker alone (Normal / Fast / Tank at run time).
     // Blocks already in the palette are left alone. is_dead() has no block of its own: it is typed after `enemy.`.
+    // Also the for-each `for [e] in [get_enemies()]:`, get_enemies() and break_shield( ) with their block-help entries.
     public static class PaletteBlocks
     {
         const string Scene = "Assets/!_Project/Scenes/Defense.unity";
@@ -61,7 +62,94 @@ namespace CodingGame.Defense.Editor
                 label.GetComponent<TMP_Text>().text = "Enemy.";
                 view.transform.SetSiblingIndex(Find(BlockKind.NearestEnemy).transform.GetSiblingIndex() + 1);
             });
+            // get_enemies() from get_nearest_enemy(), break_shield( ) from shoot( ), and `for [e] in [ ]:` from the for with the
+            // variable's name field of `name = ` (the list slot gets get_enemies() when the loop is placed: FillNewLoop).
+            void Relabel(CommandBlockView view, string from, string to)
+            {
+                foreach (var label in view.transform.Find("Header").GetComponentsInChildren<TMP_Text>(true))
+                    if (label.text == from) label.text = to;
+            }
+            Append(BlockKind.GetEnemies, BlockKind.NearestEnemy, 2, view => Relabel(view, "get_nearest_enemy()", "get_enemies()"));
+            Append(BlockKind.BreakShield, BlockKind.Shot, 1, view => Relabel(view, "shoot(", "break_shield("));
+            Append(BlockKind.ForEach, BlockKind.For, 0, view =>
+            {
+                var header = view.transform.Find("Header");
+                Relabel(view, "for i in range(", "for"); Relabel(view, "):", ":");
+                var field = Object.Instantiate(Find(BlockKind.DeclareVariable).transform.Find("Header/VariableName").gameObject, header);
+                field.name = "VariableName"; field.transform.SetSiblingIndex(1);
+                var input = field.GetComponent<TMP_InputField>(); input.text = "e";
+                var inLabel = Object.Instantiate(header.GetChild(0).gameObject, header);
+                inLabel.name = "InLabel"; inLabel.transform.SetSiblingIndex(2); inLabel.GetComponent<TMP_Text>().text = "in";
+                header.Find("Slot0/Hint").GetComponent<TMP_Text>().text = "list";
+                var fields = new SerializedObject(view);
+                fields.FindProperty("input").objectReferenceValue = input;
+                fields.ApplyModifiedPropertiesWithoutUndo();
+            });
             so.ApplyModifiedPropertiesWithoutUndo();
+            // Block help (도감) entries for the new blocks, as copies of an existing entry's button.
+            var help = Object.FindObjectsByType<DefenseBlockHelp>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single();
+            var helpSo = new SerializedObject(help);
+            var entries = helpSo.FindProperty("entries");
+            void Help(BlockKind kind, BlockKind after, string title, string description, string example)
+            {
+                int Index(BlockKind k)
+                {
+                    for (int i = 0; i < entries.arraySize; i++) if (entries.GetArrayElementAtIndex(i).FindPropertyRelative("kind").intValue == (int)k) return i;
+                    return -1;
+                }
+                if (Index(kind) >= 0) { log += "help " + kind + " kept; "; return; }
+                int at = Index(after);
+                var source = entries.GetArrayElementAtIndex(at);
+                var button = (UnityEngine.UI.Button)source.FindPropertyRelative("button").objectReferenceValue;
+                var label = (TMP_Text)source.FindPropertyRelative("label").objectReferenceValue;
+                string path = AnimationUtility.CalculateTransformPath(label.transform, button.transform);
+                var copy = Object.Instantiate(button.gameObject, button.transform.parent);
+                copy.name = kind.ToString(); copy.transform.SetSiblingIndex(button.transform.GetSiblingIndex() + 1);
+                entries.InsertArrayElementAtIndex(at);
+                var entry = entries.GetArrayElementAtIndex(at + 1);
+                entry.FindPropertyRelative("kind").intValue = (int)kind;
+                entry.FindPropertyRelative("button").objectReferenceValue = copy.GetComponent<UnityEngine.UI.Button>();
+                entry.FindPropertyRelative("label").objectReferenceValue = (path.Length == 0 ? copy.transform : copy.transform.Find(path)).GetComponent<TMP_Text>();
+                entry.FindPropertyRelative("title").stringValue = title;
+                entry.FindPropertyRelative("description").stringValue = description;
+                entry.FindPropertyRelative("example").stringValue = example;
+                log += "help " + kind + " added; ";
+            }
+            Help(BlockKind.ForEach, BlockKind.While, "for e in get_enemies() · 적마다 반복",
+                "지금 길 위에 있는 적을 하나씩 e에 담아 안쪽 명령을 반복합니다. 코어에 가장 가까운(앞선) 적부터 차례로 옵니다.\n\n" +
+                "원하는 적을 찾으면 break로 반복을 끝내세요. 이름 칸을 눌러 e를 다른 이름으로 바꿀 수 있습니다.\n입력: get_enemies() · 안쪽: 실행할 명령",
+                "target = get_nearest_enemy()\nfor e in get_enemies():\n    if e.type == Enemy.Healer:\n        target = e\n        break\nshoot(target)");
+            Help(BlockKind.GetEnemies, BlockKind.NearestEnemy, "get_enemies() · 적 목록",
+                "길 위의 모든 적 목록입니다. 코어에 가까운 적이 앞에 옵니다. for e in 블록의 빈칸에 넣어 씁니다.", "for e in get_enemies():\n    shoot(e)");
+            Help(BlockKind.Shield, BlockKind.IsDead, "enemy.shield · 보호막",
+                "적의 보호막 양입니다(없으면 0). 보호막은 체력보다 먼저 피해를 받습니다. 보호막병이 주변 적에게 씌웁니다.\n변수 뒤에 점을 찍고 shield를 고르세요.",
+                "if e.shield > 0:\n    break_shield(e)\nelse:\n    shoot(e)");
+            Help(BlockKind.BreakShield, BlockKind.Shot, "break_shield(enemy) · 보호막 깨기",
+                "원거리형 전용 두 번째 기술. 사거리 안 적의 보호막을 바로 없애고 체력에 약간의 피해를 줍니다. shoot()과 따로 재사용 대기(3초)를 가집니다.",
+                "e = get_nearest_enemy()\nif e.shield > 0:\n    break_shield(e)\nelse:\n    shoot(e)");
+            helpSo.ApplyModifiedPropertiesWithoutUndo();
+            // The inventory lists one row per item kind (DefenseInventoryUI checks the count): a row for each new kind, as a copy of
+            // the last row (the label and count's common parent).
+            var inventory = Object.FindObjectsByType<DefenseInventoryUI>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single();
+            var inventorySo = new SerializedObject(inventory);
+            var slots = inventorySo.FindProperty("blockSlots");
+            foreach (var kind in DefenseProgression.ItemKinds)
+            {
+                if (Enumerable.Range(0, slots.arraySize).Any(i => slots.GetArrayElementAtIndex(i).FindPropertyRelative("kind").intValue == (int)kind)) continue;
+                var last = slots.GetArrayElementAtIndex(slots.arraySize - 1);
+                var label = (TMP_Text)last.FindPropertyRelative("label").objectReferenceValue; var count = (TMP_Text)last.FindPropertyRelative("count").objectReferenceValue;
+                var row = label.transform.parent;
+                if (count.transform.parent != row) throw new InvalidOperationException("인벤토리 줄 구조가 예상과 다릅니다.");
+                var copy = Object.Instantiate(row.gameObject, row.parent); copy.name = kind.ToString();
+                copy.transform.SetSiblingIndex(row.GetSiblingIndex() + 1);
+                slots.arraySize++;
+                var slot = slots.GetArrayElementAtIndex(slots.arraySize - 1);
+                slot.FindPropertyRelative("kind").intValue = (int)kind;
+                slot.FindPropertyRelative("label").objectReferenceValue = copy.transform.GetChild(label.transform.GetSiblingIndex()).GetComponent<TMP_Text>();
+                slot.FindPropertyRelative("count").objectReferenceValue = copy.transform.GetChild(count.transform.GetSiblingIndex()).GetComponent<TMP_Text>();
+                log += "inventory " + kind + " added; ";
+            }
+            inventorySo.ApplyModifiedPropertiesWithoutUndo();
             EditorSceneManager.MarkSceneDirty(scene);
             Debug.Log("[PaletteBlocks] " + log + "scene saved " + EditorSceneManager.SaveScene(scene));
         }

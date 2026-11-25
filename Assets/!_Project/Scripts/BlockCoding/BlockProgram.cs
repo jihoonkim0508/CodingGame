@@ -10,7 +10,11 @@ namespace CodingGame.BlockCoding
         For, Break, Continue, Slash, Block, Boom, Shot, Slow, Buff, Hp, MyAttackRange, MyPos,
         IsDead, Arithmetic,
         EnemyTypeOf, // enemy.type: a member of an enemy variable (receiver in Arguments[0])
-        EnemyTypeName // Enemy.Normal / Enemy.Fast / Enemy.Tank: Value is the name
+        EnemyTypeName, // Enemy.Normal / Enemy.Fast / Enemy.Tank: Value is the name
+        ForEach, // for e in get_enemies(): Value is the loop variable's name, Arguments[0] the list
+        GetEnemies, // get_enemies(): the active enemies, front of the road first (only as a for-each's list)
+        Shield, // enemy.shield: a member like hp
+        BreakShield // break_shield(enemy): the shooter's second action
     }
 
     [Serializable]

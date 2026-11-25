@@ -185,7 +185,7 @@ namespace CodingGame.BlockCoding
         bool InLoop()
         {
             for (var ancestor = ParentBlock; ancestor; ancestor = ancestor.Owner?.ParentBlock)
-                if (ancestor.Kind == BlockKind.For || ancestor.Kind == BlockKind.While) return true;
+                if (PythonTreeCompiler.IsLoop(ancestor.Kind)) return true;
             return false;
         }
         // A plain variable goes in a condition slot too, to become `enemy.is_dead()` there (2-5 C02 then C03); until then the

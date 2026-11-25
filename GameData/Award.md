@@ -20,7 +20,7 @@
 | 1-5   | 원거리형 ×1, 전사형 ×1 | while ×2, shoot() ×1, 변수 = 값 ×1, variable ×1, get_nearest_enemy() ×1, slash() ×1                                                                                                          | -        |
 | 2-1   | -               | -                                                                                                                                                                                         | 복사·붙여넣기  |
 | 2-2   | -               | if ×1, 비교 ×1, get_my_pos() ×1, variable ×1, my_attack_range() ×1, 변수 = 값 ×1, get_nearest_enemy() ×1                                                                                       | -        |
-| 2-3   | -               | -                                                                                                                                                                                         | -        |
+| 2-3   | -               | break_shield() ×1, shield ×2, if ×1, else ×1, 비교 ×1, 숫자 ×1, variable ×2                                                                                                                   | -        |
 | 2-4   | -               | 변수 = 값 ×1, get_nearest_enemy() ×1, if ×1, is_dead() ×1, variable ×1                                                                                                                       | -        |
 | 2-5   | 원거리형 ×1         | while True ×3, if ×1, break ×2, 비교 ×2, get_my_pos() ×2, my_attack_range() ×2, variable ×2, shoot() ×1                                                                                     | -        |
 | 2-6   | -               | if ×2, is_dead() ×1, variable ×2, break ×2                                                                                                                                                | -        |
@@ -30,7 +30,7 @@
 | 2-10  | 탱커형 ×1          | while True ×1, 변수 = 값 ×1, get_nearest_enemy() ×1, variable ×1, block() ×1                                                                                                                 | -        |
 | 3-1   | -               | -                                                                                                                                                                                         | -        |
 | 3-2   | -               | -                                                                                                                                                                                         | -        |
-| 3-3   | -               | -                                                                                                                                                                                         | -        |
+| 3-3   | -               | for e in get_enemies() ×1, get_enemies() ×1, if ×1, 비교 ×1, Enemy.Tank ×1, 변수 = 값 ×1, variable ×2, break ×1                                                                                | -        |
 | 3-4   | -               | -                                                                                                                                                                                         | -        |
 
 ## 코인
@@ -47,7 +47,7 @@
 | 2-1  | 100   | 5   | 40           |
 | 2-2  | -     | 5   | 45           |
 | 2-3  | -     | 5   | 50           |
-| 2-4  | -     | 5   | 50           |
+| 2-4  | -     | 5   | 60           |
 | 2-5  | -     | 5   | 35           |
 | 2-6  | -     | 5   | 35           |
 | 2-7  | -     | 5   | 50           |
@@ -57,4 +57,4 @@
 | 3-1  | -     | 5   | 40           |
 | 3-2  | -     | 5   | 50           |
 | 3-3  | -     | 5   | 40           |
-| 3-4  | -     | 5   | 50           |
+| 3-4  | -     | 5   | 70           |

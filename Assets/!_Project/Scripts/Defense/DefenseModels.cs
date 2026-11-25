@@ -6,8 +6,8 @@ using System.Numerics;
 namespace CodingGame.Defense
 {
     public enum RobotRole { Buffer, Warrior, Tank, Bomber, Shooter, Utility }
-    public enum RobotAction { Buff, Slash, Block, Boom, Attack, Slow }
-    public enum EnemyType { Normal, Fast, Tank }
+    public enum RobotAction { Buff, Slash, Block, Boom, Attack, Slow, BreakShield }
+    public enum EnemyType { Normal, Fast, Tank, Healer, Shielder }
     public enum ActionCompatibility { Native, Reduced, Ineffective, Undecided }
     public enum BattlePhase { Ready, Running, Paused, Victory, Defeat, Reward }
     public enum ActionResult { Executed, CoolingDown, NoTarget, Ineffective, Undecided, Unavailable }
@@ -24,6 +24,8 @@ namespace CodingGame.Defense
         public float buffDamage = 1.25f, buffRange = 1.15f, buffInterval = .8f;
         // Slash: the sword passes the front (and the damage lands) this share of the interval after the swing starts.
         public double strikeShare = .4; // double: the strike time is computed in double
+        // break_shield(enemy) (the shooter's second action): its own cooldown, apart from the shot's, and a little damage.
+        public float shieldBreakInterval = 3, shieldBreakDamage = 2;
         public RobotSpec Copy() => (RobotSpec)MemberwiseClone();
         public RobotAction NativeAction => Rules.NativeAction(role);
         public void Validate()
@@ -33,6 +35,7 @@ namespace CodingGame.Defense
                 !Rules.Positive(duration) || !Rules.Positive(slowMultiplier) || slowMultiplier > 1 ||
                 !Rules.Positive(buffDamage) || buffDamage < 1 || !Rules.Positive(buffRange) || buffRange < 1 ||
                 !Rules.Positive(buffInterval) || buffInterval > 1 || !(strikeShare >= 0 && strikeShare <= 1) ||
+                !Rules.Positive(shieldBreakInterval) || !Rules.Nonnegative(shieldBreakDamage) ||
                 (role == RobotRole.Tank && (!Rules.Positive(health) || !Rules.Positive(blockRadius) || blockCapacity < 1)))
                 throw new ArgumentException("로봇 수치가 올바르지 않습니다: " + role);
         }
@@ -44,11 +47,15 @@ namespace CodingGame.Defense
         public EnemyType type;
         public float health = 40, speed = 1.7f, damage = 8, attackInterval = 1;
         public int leakDamage = 1;
+        // Healer: heals the other active enemies within abilityRadius by abilityAmount every abilityInterval seconds (up to
+        // their health). Shielder: gives them a shield of abilityAmount that takes damage before health. Others: unused.
+        public float abilityInterval = 2.5f, abilityRadius = 3, abilityAmount = 10;
         public EnemySpec Copy() => (EnemySpec)MemberwiseClone();
         public void Validate()
         {
             if (!Enum.IsDefined(typeof(EnemyType), type) || !Rules.Positive(health) || !Rules.Positive(speed) || !Rules.Nonnegative(damage) ||
-                !Rules.Positive(attackInterval) || leakDamage < 1) throw new ArgumentException("적 수치가 올바르지 않습니다.");
+                !Rules.Positive(attackInterval) || leakDamage < 1 ||
+                !Rules.Positive(abilityInterval) || !Rules.Positive(abilityRadius) || !Rules.Nonnegative(abilityAmount)) throw new ArgumentException("적 수치가 올바르지 않습니다.");
         }
     }
 
@@ -77,6 +84,8 @@ namespace CodingGame.Defense
         public static ActionCompatibility Compatibility(RobotRole role, RobotAction action, IReadOnlyList<ActionPermission> permissions = null)
         {
             if (NativeAction(role) == action) return ActionCompatibility.Native;
+            // break_shield() is the shooter's own second action; no other role has it.
+            if (action == RobotAction.BreakShield) return role == RobotRole.Shooter ? ActionCompatibility.Native : ActionCompatibility.Ineffective;
             if ((role == RobotRole.Bomber || role == RobotRole.Shooter) && action == RobotAction.Block ||
                 role == RobotRole.Tank && action == RobotAction.Buff) return ActionCompatibility.Ineffective;
             if (!NeedsPermission(action)) return ActionCompatibility.Reduced;
@@ -239,7 +248,7 @@ namespace CodingGame.Defense
         public RobotSpec Spec;
         public RobotAction Action;
         public float? Health;
-        public double NextAction;
+        public double NextAction, NextShieldBreak; // break_shield() cools down on its own
         public bool AutoExecute;
         public bool BlockingEnabled;
         public ActionResult LastResult;
@@ -262,8 +271,8 @@ namespace CodingGame.Defense
         public bool Boss;
         public Vector2 Position;
         public EnemySpec Spec;
-        public float Health;
-        public double NextAttack;
+        public float Health, Shield;
+        public double NextAttack, NextAbility, LastAbility = double.NegativeInfinity; // Healer/Shielder pulses
         public bool Active = true;
         public readonly List<MovementEffect> Effects = new List<MovementEffect>();
         public bool Stunned(double time) { for (int i = 0; i < Effects.Count; i++) if (Effects[i].StunUntil > time) return true; return false; }

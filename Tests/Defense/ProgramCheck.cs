@@ -119,7 +119,9 @@ static class ProgramCheck
         Assert(!emptyTank.BlockingEnabled&&empty.Enemies.Any(e=>e.Position.X<0),"empty tank still cannot block");
         foreach(RobotRole role in Enum.GetValues(typeof(RobotRole)))
             foreach(RobotAction action in Enum.GetValues(typeof(RobotAction)))
-                if(action!=RobotAction.Block&&action!=RobotAction.Buff)
+                if(action==RobotAction.BreakShield) // the shooter's second action only
+                    Assert(Rules.Compatibility(role,action)==(role==RobotRole.Shooter?ActionCompatibility.Native:ActionCompatibility.Ineffective),$"compatibility {role}/{action}");
+                else if(action!=RobotAction.Block&&action!=RobotAction.Buff)
                     Assert(Rules.Compatibility(role,action)==(Rules.NativeAction(role)==action?ActionCompatibility.Native:ActionCompatibility.Reduced),$"compatibility {role}/{action}");
         var sim=Make();var robot=Bot(sim,RobotRole.Buffer);robot.AutoExecute=false;sim.Start();Tick(sim,6);
         var target=sim.Enemies.Single();sim.RequestAction(robot.Id,RobotAction.Slash);Tick(sim,30); // the sword gets there after the wind-up

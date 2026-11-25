@@ -27,8 +27,8 @@ namespace CodingGame.BlockCoding
         public CommandCodingPanel Panel { get; private set; }
         public CommandDropZone Owner { get; private set; }
         public bool IsPalette { get; private set; }
-        static readonly string[] Methods = { "distance(", "hp", "is_dead()", "type" };
-        static readonly BlockKind[] MemberKinds = { BlockKind.Distance, BlockKind.Hp, BlockKind.IsDead, BlockKind.EnemyTypeOf };
+        static readonly string[] Methods = { "distance(", "hp", "is_dead()", "type", "shield" };
+        static readonly BlockKind[] MemberKinds = { BlockKind.Distance, BlockKind.Hp, BlockKind.IsDead, BlockKind.EnemyTypeOf, BlockKind.Shield };
         bool HasDot => kind == BlockKind.Variable && input && input.text.EndsWith(".", StringComparison.Ordinal);
         // Dropdown after `name.`: distance(position), the read-only hp and type properties, is_dead() (a condition: the block
         // turns into a logic block; there is no is_dead() block of its own in the palette). Read by the shown name, since the
@@ -45,7 +45,11 @@ namespace CodingGame.BlockCoding
         public string DraftValue => kind == BlockKind.Comparison ? PythonTreeCompiler.Comparisons[dropdown.value] :
             kind == BlockKind.Arithmetic ? PythonTreeCompiler.Operators[dropdown.value] :
             kind == BlockKind.EnemyTypeName ? PythonTreeCompiler.EnemyTypes[dropdown.value] : input ? input.text : null;
-        public string VariableName => kind == BlockKind.DeclareVariable ? input.text :
+        // A for-each names its variable in its own field, like `name =` does (for [e] in get_enemies():).
+        // ponytail: renaming a for-each's variable does not carry its `e.` uses along (RenameVariable is for `name =` only);
+        // they are retyped by hand. Give it RenameVariable if players rename loop variables often.
+        bool Names => kind == BlockKind.DeclareVariable || kind == BlockKind.ForEach;
+        public string VariableName => Names ? input.text :
             kind == BlockKind.Variable ? (HasDot ? input.text.Substring(0, input.text.Length - 1) : input.text) : variableName;
         public string RetainedName { get; private set; }
         public bool TextInputFocused => input && input.isFocused;
@@ -80,7 +84,7 @@ namespace CodingGame.BlockCoding
         public void Bind(CommandCodingPanel panel, CommandDropZone owner, bool palette = false)
         {
             if (!rect || !header || !canvasGroup || !shape ||
-                ((kind == BlockKind.Number || kind == BlockKind.DeclareVariable || kind == BlockKind.Variable) && !input) ||
+                ((kind == BlockKind.Number || Names || kind == BlockKind.Variable) && !input) ||
                 ((kind == BlockKind.Variable || kind == BlockKind.Comparison || kind == BlockKind.Arithmetic || kind == BlockKind.EnemyTypeName) && !dropdown) ||
                 (PythonTreeCompiler.HasBody(kind) && !body) || (stockLabel && !stockColumn))
                 throw new InvalidOperationException(name + ": Inspector 참조가 누락되었습니다.");
@@ -99,7 +103,7 @@ namespace CodingGame.BlockCoding
                 PrepareHeader();
                 if (input) input.onValueChanged.AddListener(InputChanged);
                 // Only a Python name can be typed (a name like "123" left the code unapplied without a word).
-                if (input && kind == BlockKind.DeclareVariable) input.onValidateInput = (text, index, c) => c == '_' || char.IsLetter(c) || (char.IsDigit(c) && index > 0) ? c : '\0';
+                if (input && Names) input.onValidateInput = (text, index, c) => c == '_' || char.IsLetter(c) || (char.IsDigit(c) && index > 0) ? c : '\0';
                 // After `enemy.` the picker chooses the member: typing on (".distance") made a name no variable has and skipped
                 // the lesson's step (the user, 2026-11-19). The name before the dot can still be edited, and backspace takes the dot.
                 if (input && kind == BlockKind.Variable) input.onValidateInput = (text, index, c) => text.IndexOf('.') is int dot && dot >= 0 && (c == '.' || index > dot) ? '\0' : c;
@@ -173,8 +177,9 @@ namespace CodingGame.BlockCoding
             var options = new List<string> { "메서드 선택" };
             // is_dead() once it is handed out (an item, like the other blocks), type once Enemy.Tank is (nothing to compare it
             // with before), or when this block already is one.
-            bool Offered(int i) => Methods[i] == chosen || MemberKinds[i] != BlockKind.IsDead && MemberKinds[i] != BlockKind.EnemyTypeOf ||
-                (Panel?.IsAvailable?.Invoke(MemberKinds[i] == BlockKind.IsDead ? BlockKind.IsDead : BlockKind.EnemyTypeName) ?? true);
+            // shield once it is handed out (2-4, with break_shield).
+            bool Offered(int i) => Methods[i] == chosen || MemberKinds[i] != BlockKind.IsDead && MemberKinds[i] != BlockKind.EnemyTypeOf && MemberKinds[i] != BlockKind.Shield ||
+                (Panel?.IsAvailable?.Invoke(MemberKinds[i] == BlockKind.EnemyTypeOf ? BlockKind.EnemyTypeName : MemberKinds[i]) ?? true);
             if (chosen != null || (Panel && Panel.IsEnemyVariable(VariableName)))
                 options.AddRange(Methods.Where((_, i) => Offered(i)));
             else options[0] = "사용 가능한 메서드 없음";
@@ -221,7 +226,7 @@ namespace CodingGame.BlockCoding
         void PrepareHeader()
         {
             // Blocks with a body widen with what is inside: their header stays at the left, by the body's spine.
-            header.GetComponent<HorizontalLayoutGroup>().childAlignment = kind is BlockKind.For or BlockKind.While or BlockKind.If or BlockKind.Elif or BlockKind.Else
+            header.GetComponent<HorizontalLayoutGroup>().childAlignment = kind is BlockKind.For or BlockKind.ForEach or BlockKind.While or BlockKind.If or BlockKind.Elif or BlockKind.Else
                 ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter;
             foreach (var label in header.GetComponentsInChildren<TMP_Text>(true))
             {
@@ -295,7 +300,7 @@ namespace CodingGame.BlockCoding
         public void SelectOption(int value) { dropdown.value = value; }
         internal void LoadData(CodeBlock data)
         {
-            if (kind == BlockKind.Number || kind == BlockKind.DeclareVariable) { input.SetTextWithoutNotify(data.Value); FitInput(input, MinField); }
+            if (kind == BlockKind.Number || Names) { input.SetTextWithoutNotify(data.Value); FitInput(input, MinField); }
             if (kind == BlockKind.DeclareVariable) RetainedName = data.Value;
             if (kind == BlockKind.Comparison) { dropdown.SetValueWithoutNotify(Array.IndexOf(PythonTreeCompiler.Comparisons, data.Value)); FitDropdown(dropdown); }
             if (kind == BlockKind.Arithmetic) { dropdown.SetValueWithoutNotify(Array.IndexOf(PythonTreeCompiler.Operators, data.Value)); FitDropdown(dropdown); }
@@ -320,7 +325,7 @@ namespace CodingGame.BlockCoding
         public CodeBlock Read()
         {
             var block = new CodeBlock(Kind);
-            if (kind == BlockKind.Number || kind == BlockKind.DeclareVariable) block.Value = input.text;
+            if (kind == BlockKind.Number || Names) block.Value = input.text;
             if (kind == BlockKind.Comparison) block.Value = PythonTreeCompiler.Comparisons[dropdown.value];
             if (kind == BlockKind.Arithmetic) block.Value = PythonTreeCompiler.Operators[dropdown.value];
             if (kind == BlockKind.EnemyTypeName) block.Value = PythonTreeCompiler.EnemyTypes[dropdown.value];
@@ -328,7 +333,7 @@ namespace CodingGame.BlockCoding
             {
                 if (Kind == BlockKind.Variable) { block.Value = input.text; return block; }
                 block.Arguments.Add(new CodeBlock(BlockKind.Variable, VariableName));
-                if (Kind == BlockKind.Hp || Kind == BlockKind.IsDead || Kind == BlockKind.EnemyTypeOf) return block;
+                if (Kind == BlockKind.Hp || Kind == BlockKind.IsDead || Kind == BlockKind.EnemyTypeOf || Kind == BlockKind.Shield) return block;
             }
             foreach (var argument in arguments) block.Arguments.Add(argument.ReadArgument());
             if (body) block.Body.AddRange(body.Read());

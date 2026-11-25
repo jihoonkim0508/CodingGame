@@ -519,7 +519,8 @@ namespace CodingGame.Defense
             if (compatibility == ActionCompatibility.Undecided) return bot.LastResult = ActionResult.Undecided;
             // block()에 도달하면 즉시 몸으로 저지합니다. 스턴과 피해만 공통 재사용 시간을 따릅니다.
             if (action == RobotAction.Block && bot.Spec.role == RobotRole.Tank) bot.BlockingEnabled = true;
-            if (Time + .000001 < bot.NextAction) return bot.LastResult = ActionResult.CoolingDown;
+            bool breaking = action == RobotAction.BreakShield; // its own cooldown, so it can go right before a shot
+            if (Time + .000001 < (breaking ? bot.NextShieldBreak : bot.NextAction)) return bot.LastResult = ActionResult.CoolingDown;
             float strength = Strength(bot, action);
             var profile = Profile(bot, action);
             if (action == RobotAction.Buff)
@@ -536,10 +537,12 @@ namespace CodingGame.Defense
                     case RobotAction.Block: Stun(bot, profile, strength, targets, target); break;
                     case RobotAction.Boom: Launch(bot, profile, strength, target); break;
                     case RobotAction.Slash: Slash(bot, target, targets); break;
+                    case RobotAction.BreakShield: BreakShield(bot, target); break;
                     default: Shoot(bot, action, profile, strength, target); break;
                 }
             }
-            bot.NextAction = Time + ActionInterval(bot, action); bot.Executions++;
+            if (breaking) bot.NextShieldBreak = Time + bot.Spec.shieldBreakInterval; else bot.NextAction = Time + ActionInterval(bot, action);
+            bot.Executions++;
             bool whiff = action == RobotAction.Slash && !Enemies.Any(e => e.Active && Vector2.DistanceSquared(e.Position, bot.Position) <= bot.Range * bot.Range);
             if (!whiff) { bot.ActionsThisWave++; if (action != RobotAction.Buff) bot.AttacksThisWave++; }
             return bot.LastResult = ActionResult.Executed;
@@ -557,6 +560,36 @@ namespace CodingGame.Defense
             }
             Emit("buff", bot.Id, 0, bot.Position, 0, bot.Range);
             return true;
+        }
+        // break_shield(): the shield is gone at once, then a little damage to health (a laser like the shot's, no flight).
+        void BreakShield(RobotState bot, EnemyState target)
+        {
+            target.Shield = 0;
+            Emit("shield-break", bot.Id, target.Id, target.Position);
+            Hit(target, bot.Spec.shieldBreakDamage * bot.DamageMultiplier, bot.Id);
+        }
+        // Healer and Shielder pulse on their own clock on every other active enemy within their radius; a shield does not
+        // stack, a new one tops it up to the amount.
+        void Pulse(EnemyState e)
+        {
+            bool heal = e.Spec.type == EnemyType.Healer;
+            if (!heal && e.Spec.type != EnemyType.Shielder || Time + .000001 < e.NextAbility) return;
+            e.NextAbility = Time + e.Spec.abilityInterval; e.LastAbility = Time;
+            float r2 = e.Spec.abilityRadius * e.Spec.abilityRadius;
+            foreach (var other in Enemies)
+            {
+                if (other == e || !other.Active || Vector2.DistanceSquared(other.Position, e.Position) > r2) continue;
+                if (heal) other.Health = Math.Min(other.Spec.health, other.Health + e.Spec.abilityAmount);
+                else other.Shield = Math.Max(other.Shield, e.Spec.abilityAmount);
+            }
+            Emit(heal ? "heal" : "shield", e.Id, 0, e.Position, e.Spec.abilityAmount, e.Spec.abilityRadius);
+        }
+        // How far an enemy still has to walk to the core: get_enemies() lists the nearest to the core (the front) first.
+        public float RemainingPath(EnemyState e)
+        {
+            var path = Setup.Routes[e.RouteIndex].Points; var at = e.Position; float distance = 0;
+            for (int i = e.NextPoint; i < path.Length; i++) { distance += Vector2.Distance(at, path[i]); at = path[i]; }
+            return distance;
         }
         void Stun(RobotState bot, RobotSpec profile, float strength, List<EnemyState> targets, EnemyState target)
         {
@@ -632,8 +665,9 @@ namespace CodingGame.Defense
         void Hit(EnemyState e, float damage, int source, bool projectile = false, RobotState meleeSource = null)
         {
             if (!e.Active) return;
-            float applied=Options.attackDamage?Math.Min(e.Health,damage):0;
             if (!Options.attackDamage) { Emit("damage-suppressed", source, e.Id, e.Position, damage); damage = 0; }
+            float absorbed = Math.Min(e.Shield, damage); e.Shield -= absorbed; damage -= absorbed; // a shield takes damage first
+            float applied = Math.Min(e.Health, damage);
             e.Health = Math.Max(0, e.Health - damage);
             var attacker = FindRobot(source);
             if (attacker != null) { attacker.DamageThisWave += applied; if (e.Health <= 0) attacker.KillsThisWave++; }
@@ -705,6 +739,7 @@ namespace CodingGame.Defense
                 for (int i = e.Effects.Count - 1; i >= 0; i--) if (e.Effects[i].SlowUntil <= Time && e.Effects[i].StunUntil <= Time) e.Effects.RemoveAt(i);
                 if (e.BlockedBy != 0 && FindRobot(e.BlockedBy) == null) e.BlockedBy = 0;
                 if (e.Active && e.BlockedBy == 0) TryBlock(e, e.Position, e.Position, out _);
+                if (e.Active && !e.Stunned(Time)) Pulse(e);
             }
             foreach (var bot in Robots)
                 if (!bot.SawEnemyThisWave) bot.SawEnemyThisWave = AnyEnemyWithin(bot.Position, bot.Range);
@@ -757,7 +792,8 @@ namespace CodingGame.Defense
                 {
                     var spec = g.Enemy.Copy();
                     Enemies.Add(new EnemyState { Id = nextId++, DefinitionIndex = g.DefinitionIndex, Spec = spec, Health = spec.health, Boss = g.Boss,
-                        Position = Setup.Routes[g.RouteIndex].Points[0], RouteIndex = g.RouteIndex, NextAttack = Time + spec.attackInterval });
+                        Position = Setup.Routes[g.RouteIndex].Points[0], RouteIndex = g.RouteIndex, NextAttack = Time + spec.attackInterval,
+                        NextAbility = Time + spec.abilityInterval * .5 });
                     groupCounts[i]++; Spawned++;
                 }
             }

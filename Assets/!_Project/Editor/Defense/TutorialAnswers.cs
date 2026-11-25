@@ -9,7 +9,7 @@ namespace CodingGame.Defense.Editor
     // Reads the lessons' answers (TutorialStep.expectedCode) into blocks: "name = get_nearest_enemy()",
     // "x = enemy.distance(get_my_pos())", "name = my_attack_range()", "slash()", "shoot(enemy)", "block(enemy)", "if a <= b:" (any comparison),
     // "if x.is_dead():", "a * b" (one of + - * /), "x.type", "Enemy.Tank", "break", "continue", "for i in range(n):" and
-    // "while True:" with a body indented deeper (any width).
+    // "while True:", "for e in get_enemies():", "else:" with a body indented deeper (any width), "x.shield", "break_shield(x)".
     // ponytail: only what the lesson answers use; a new answer shape needs a case here.
     public static class TutorialAnswers
     {
@@ -39,6 +39,18 @@ namespace CodingGame.Defense.Editor
                     block.Body.AddRange(Suite(lines, ref index, depth + 1));
                     result.Add(block);
                 }
+                else if (line.StartsWith("for ") && line.EndsWith(" in get_enemies():"))
+                {
+                    var block = new CodeBlock(BlockKind.ForEach, line.Substring(4, line.Length - 22).Trim(), new CodeBlock(BlockKind.GetEnemies));
+                    block.Body.AddRange(Suite(lines, ref index, depth + 1));
+                    result.Add(block);
+                }
+                else if (line == "else:")
+                {
+                    var block = new CodeBlock(BlockKind.Else);
+                    block.Body.AddRange(Suite(lines, ref index, depth + 1));
+                    result.Add(block);
+                }
                 else if (line == "while True:")
                 {
                     var block = new CodeBlock(BlockKind.While);
@@ -49,6 +61,7 @@ namespace CodingGame.Defense.Editor
                 else if (line == "break") result.Add(new CodeBlock(BlockKind.Break));
                 else if (line == "continue") result.Add(new CodeBlock(BlockKind.Continue));
                 else if (line.StartsWith("shoot(") && line.EndsWith(")")) result.Add(new CodeBlock(BlockKind.Shot, "0", Value(line.Substring(6, line.Length - 7))));
+                else if (line.StartsWith("break_shield(") && line.EndsWith(")")) result.Add(new CodeBlock(BlockKind.BreakShield, "0", Value(line.Substring(13, line.Length - 14))));
                 else if (line.StartsWith("block(") && line.EndsWith(")")) result.Add(new CodeBlock(BlockKind.Block, "0", Value(line.Substring(6, line.Length - 7))));
                 else
                 {
@@ -80,6 +93,7 @@ namespace CodingGame.Defense.Editor
             if (text == "my_attack_range()") return new CodeBlock(BlockKind.MyAttackRange);
             if (text == "get_my_pos()") return new CodeBlock(BlockKind.MyPos);
             if (text.StartsWith("Enemy.", StringComparison.Ordinal)) return new CodeBlock(BlockKind.EnemyTypeName, text.Substring(6));
+            if (text.EndsWith(".shield", StringComparison.Ordinal)) return new CodeBlock(BlockKind.Shield, "0", new CodeBlock(BlockKind.Variable, text.Substring(0, text.Length - 7)));
             if (text.EndsWith(".type", StringComparison.Ordinal)) return new CodeBlock(BlockKind.EnemyTypeOf, "0", new CodeBlock(BlockKind.Variable, text.Substring(0, text.Length - 5)));
             if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out _))
                 return new CodeBlock(BlockKind.Number, text);

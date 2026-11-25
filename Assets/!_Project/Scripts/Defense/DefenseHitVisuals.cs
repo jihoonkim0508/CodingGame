@@ -81,7 +81,8 @@ namespace CodingGame.Defense
             if (Options.ranges && area && evt.Radius > 0 && evt.Kind != "slash")
             {
                 areaRing = area;
-                areaRing.Show(position, evt.Radius, evt.Kind == "buff" ? new Color(.4f, 1, .5f) : new Color(1, .65f, .25f));
+                // Green for a buff or a Healer's heal, blue for a Shielder's shield, orange for the rest.
+                areaRing.Show(position, evt.Radius, evt.Kind == "buff" || evt.Kind == "heal" ? new Color(.4f, 1, .5f) : evt.Kind == "shield" ? new Color(.4f, .7f, 1) : new Color(1, .65f, .25f));
                 areaSeconds = .25f;
             }
             // Started so it is fullest as the strike lands.

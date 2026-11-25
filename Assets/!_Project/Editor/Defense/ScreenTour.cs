@@ -68,6 +68,83 @@ namespace CodingGame.Defense.Editor
             Debug.Log($"[ScreenTour] battle loading screen up {EditorApplication.timeSinceStartup - shownAt:0.00} s");
         }
 
+        // 3-4 and 2-4 with the support enemies: the shooter's for-each healer loop in the code editor, a healer pulsing among the
+        // tanks, a shielded enemy's bubble: TestResults/Editor/support/NN_*.png. Batchmode without -nographics, like RunDemo.
+        public static void RunSupportEnemies() => Start("TestResults/Editor/support", SupportEnemies());
+        static IEnumerator SupportEnemies()
+        {
+            const string pick = "while True:\n    target = get_nearest_enemy()\n    for e in get_enemies():\n        if e.type == Enemy.Healer:\n" +
+                "            target = e\n            break\n    shoot(target)";
+            DevTest.PlayDefense(3, 4, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy();
+            var battle = DevTest.Battle; var sim = battle.Simulation;
+            var shooter = sim.Robots.FirstOrDefault(r => r.Spec.role == RobotRole.Shooter) ?? sim.Robots[0];
+            battle.SelectRobot(shooter.Id); battle.DevelopSelected();
+            yield return Seconds(.6);
+            Program(TutorialAnswers.Parse(pick));
+            yield return Seconds(1);
+            Debug.Log("[ScreenTour] editor code: " + battle.CodeEditor.Panel.FunctionName + " applied " + battle.CodeEditor.Panel.IsApplied);
+            yield return Shot("foreach_editor");
+            battle.CodeEditor.Close();
+            Relaxed(() => { foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Shooter)) sim.ApplyProgram(bot.Id, "pick_healer", TutorialAnswers.Parse(pick)); });
+            yield return Seconds(.3);
+            battle.StartBattle(); DevTest.Speed(2);
+            yield return Until(() => sim.Enemies.Any(e => e.Active && e.Spec.type == EnemyType.Healer && sim.Time - e.LastAbility < .05), 60);
+            DevTest.Speed(1);
+            yield return Seconds(.1);
+            Debug.Log("[ScreenTour] 3-4 road: " + string.Join(", ", sim.Enemies.Where(e => e.Active).Select(e => $"{e.Spec.type} hp {e.Health:0}/{e.Spec.health:0}")));
+            yield return Shot("healer"); DevTest.Speed(3);
+            yield return Outcome(sim);
+            Debug.Log($"[ScreenTour] 3-4 with the healer loop: {sim.Phase}, core {sim.BaseHealth}, leaks {sim.WaveLeaks}");
+
+            DevTest.PlayDefense(2, 4, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy();
+            sim = DevTest.Sim;
+            DevTest.Battle.StartBattle(); DevTest.Speed(2);
+            yield return Until(() => sim.Enemies.Count(e => e.Active && e.Shield > 0) >= 1 && sim.Time - sim.Enemies.Where(e => e.Spec.type == EnemyType.Shielder).Select(e => e.LastAbility).DefaultIfEmpty(-9).Max() > .4, 90);
+            DevTest.Speed(1);
+            Debug.Log("[ScreenTour] 2-4 road: " + string.Join(", ", sim.Enemies.Where(e => e.Active).Select(e => $"{e.Spec.type} hp {e.Health:0} shield {e.Shield:0}")));
+            yield return Shot("shield"); DevTest.Speed(3);
+            yield return Outcome(sim);
+            Debug.Log($"[ScreenTour] 2-4 with shoot(nearest): {sim.Phase}, core {sim.BaseHealth}, leaks {sim.WaveLeaks}");
+
+            // 3-4 again with every shooter on the nearest enemy (the healer ignored), for comparison.
+            DevTest.PlayDefense(3, 4, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy();
+            sim = DevTest.Sim;
+            DevTest.Battle.StartBattle(); DevTest.Speed(3);
+            yield return Outcome(sim);
+            Debug.Log($"[ScreenTour] 3-4 with shoot(nearest): {sim.Phase}, core {sim.BaseHealth}, leaks {sim.WaveLeaks}");
+
+            // And 3-4 as it was before the healers and their tanks, the same robots: the baseline.
+            DevTest.PlayDefense(3, 4, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            sim = DevTest.Sim;
+            sim.SetWaveGroups(3, 3, sim.Setup.Waves[3].Where(g => g.Boss || g.Enemy.type != EnemyType.Healer && g.Enemy.type != EnemyType.Tank).ToArray());
+            Deploy();
+            DevTest.Battle.StartBattle(); DevTest.Speed(3);
+            yield return Outcome(sim);
+            Debug.Log($"[ScreenTour] 3-4 without healers and tanks (before): {sim.Phase}, core {sim.BaseHealth}, leaks {sim.WaveLeaks}");
+        }
+
+        // The wave to its end, logging which kinds leaked.
+        static IEnumerator Outcome(DefenseSimulation sim)
+        {
+            var kinds = new System.Collections.Generic.Dictionary<int, EnemyType>(); var logged = new System.Collections.Generic.HashSet<int>();
+            for (double end = EditorApplication.timeSinceStartup + 120; sim.Phase == BattlePhase.Running && EditorApplication.timeSinceStartup < end;)
+            {
+                foreach (var e in sim.Enemies) kinds[e.Id] = e.Spec.type;
+                foreach (var evt in sim.Events) if (evt.Kind == "leaked" && logged.Add(evt.Source)) Debug.Log($"[ScreenTour] leaked {(kinds.TryGetValue(evt.Source, out var k) ? k.ToString() : "?")} at {sim.Time:0.0} s");
+                yield return null;
+            }
+        }
         static void Start(string into, IEnumerator steps)
         {
             folder = into;

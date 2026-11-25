@@ -82,7 +82,7 @@ namespace CodingGame.Defense
         public const float TankerWalkSpeed = 1.6f;
         // Melee_Attack (1 s): the sampled sword sweeps clockwise from the left (-64° at .40, -10° at .45, +22° at .50).
         const float StrikeAt = .46f;
-        Color baseColor;
+        Color baseColor, materialColor;
         float beamTime;
         public const float HealthLift = .3f;
         public Vector3 HealthAnchor => healthRoot.position;
@@ -94,7 +94,7 @@ namespace CodingGame.Defense
         {
             if (!head || !body || !healthRoot || !beam || !beam.sharedMaterial)
                 throw new InvalidOperationException(name + ": ActorView Inspector 참조 누락");
-            colors = new MaterialPropertyBlock(); baseColor = body.sharedMaterial.GetColor("_BaseColor");
+            colors = new MaterialPropertyBlock(); materialColor = baseColor = body.sharedMaterial.GetColor("_BaseColor");
             healthRoot.position += Vector3.up * HealthLift; // clear of the head (9차 100: the bar sat on it)
             beam.enabled = false;
             animator = GetComponentInChildren<Animator>();
@@ -115,7 +115,47 @@ namespace CodingGame.Defense
             // still while it is stunned or blocked.
             if (enemy.Spec.type == EnemyType.Tank)
                 walkRate = enemy.BlockedBy != 0 || enemy.Stunned(time) ? 0 : enemy.Speed(time) / (TankerWalkSpeed * transform.lossyScale.z / 1.3f);
+            // ponytail: placeholder art for Healer/Shielder until the stage-2 monster models land: an existing enemy model tinted
+            // green / blue, flashing white on each pulse (the pulse ring itself is DefenseHitVisuals' area ring), and a see-through
+            // bubble round any shielded enemy. Swap for the new models' own looks then.
+            var own = enemy.Spec.type == EnemyType.Healer ? new Color(.15f, 1, .25f) : enemy.Spec.type == EnemyType.Shielder ? new Color(.2f, .45f, 1) : materialColor;
+            if (time - enemy.LastAbility < .3) own = Color.Lerp(own, Color.white, .6f);
+            baseColor = own;
+            ShowBubble(enemy.Shield > 0);
             Sync(position, enemy.Stunned(time), enemy.Speed(time) < enemy.Spec.speed, false);
+        }
+        static Mesh bubbleMesh; static Material bubbleMaterial;
+        Renderer bubble;
+        void ShowBubble(bool shown)
+        {
+            if (!shown) { if (bubble) bubble.enabled = false; return; }
+            if (!bubble)
+            {
+                if (!bubbleMesh)
+                {
+                    // A sphere with white vertex colours (the particle shader multiplies them), on the beam's shader made see-through.
+                    var probe = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    bubbleMesh = Instantiate(probe.GetComponent<MeshFilter>().sharedMesh); Destroy(probe);
+                    bubbleMesh.colors = Enumerable.Repeat(Color.white, bubbleMesh.vertexCount).ToArray();
+                    bubbleMaterial = new Material(beam.sharedMaterial) { name = "Shield bubble", renderQueue = 3000 };
+                    bubbleMaterial.SetOverrideTag("RenderType", "Transparent");
+                    bubbleMaterial.SetFloat("_Surface", 1); bubbleMaterial.SetFloat("_ZWrite", 0);
+                    bubbleMaterial.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha); bubbleMaterial.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                    bubbleMaterial.SetFloat("_SrcBlendAlpha", (float)UnityEngine.Rendering.BlendMode.One); bubbleMaterial.SetFloat("_DstBlendAlpha", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                    bubbleMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                    bubbleMaterial.SetColor(BaseColorId, new Color(.45f, .8f, 1, .38f));
+                }
+                var shell = new GameObject("Shield bubble", typeof(MeshFilter), typeof(MeshRenderer));
+                shell.layer = gameObject.layer; shell.transform.SetParent(transform, false);
+                // Round the model as it stands (its renderer's bounds), a little larger than it.
+                var bounds = body.bounds;
+                shell.transform.position = bounds.center;
+                shell.transform.localScale = Vector3.one * (2.3f * Mathf.Max(bounds.extents.x, bounds.extents.y, bounds.extents.z) / Mathf.Max(.01f, transform.lossyScale.x));
+                shell.GetComponent<MeshFilter>().sharedMesh = bubbleMesh;
+                bubble = shell.GetComponent<MeshRenderer>(); bubble.sharedMaterial = bubbleMaterial;
+                bubble.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; bubble.receiveShadows = false;
+            }
+            bubble.enabled = true;
         }
         // Animation speed follows the battle clock: 0 while paused, 2-3 at 2x/3x.
         public float Pace => pace;
