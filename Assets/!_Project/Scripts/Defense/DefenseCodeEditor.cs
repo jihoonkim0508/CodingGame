@@ -41,10 +41,8 @@ namespace CodingGame.Defense
             panel.CanCopy = () => battle.Stage >= 2; // the right-click menu offers 복사 and 붙여넣기 from Stage 2 (삭제 only in Stage 1)
             panel.Copied += () => battle.ReportTutorialAction(TutorialKeys.DropZone, TutorialSignals.CodeCopied);
             panel.CategoryChosen += category => battle.ReportTutorialAction(TutorialKeys.PaletteTab(category), TutorialSignals.TargetClicked);
-            // A kind the player owns stays on the palette when other robots use all of it (it vanished, as if not unlocked,
-            // while one this robot used up stayed as ×0): the count beside it says none is left.
-            panel.IsAvailable = kind => editingSession == null || editingSession.Options.unlockAll || editingSession.Owned(kind) > 0 || editingSession.Available(kind, editingId) > 0;
-            panel.Remaining = kind => editingSession == null ? 0 : Math.Max(0, editingSession.Available(kind, editingId) - panel.Program.AllBlocks().Count(b => DefenseProgression.Canonical(b.Kind) == DefenseProgression.Canonical(kind)));
+            // Unlocked blocks are unlimited, so the palette shows a kind once it is unlocked and no count beside it.
+            panel.IsAvailable = kind => editingSession == null || editingSession.Available(kind) > 0;
             // A click on the block a tutorial step's demo drags puts it where the demo drops it (1-3 C08: slash() inside the while).
             panel.PaletteClicking = source =>
             {
@@ -134,11 +132,6 @@ namespace CodingGame.Defense
             // while the editor said the robot does nothing.
             if (blocks.Count == 0) try { PythonTreeCompiler.NormalizeIdentifier(name); } catch (FormatException) { name = "robot_" + editingId; }
             editingSession.ApplyProgram(editingId, name, blocks);
-            // The blocks in the editor stay this robot's even when the code is unfinished and nothing was applied, except a
-            // kind the stock cannot cover (an undo after another robot took the blocks): that kind holds none, or the shared
-            // stock went below zero and the other robot's applied code no longer fit.
-            editingSession.SetDraft(editingId, panel.Program.AllBlocks().Select(b => DefenseProgression.Canonical(b.Kind)).GroupBy(k => k)
-                .Where(g => g.Count() <= editingSession.Available(g.Key, editingId)).SelectMany(g => g));
             panel.RefreshPalette();
             battle.NotifyCodeApplied(editingId, blocks.Count == 0);
             return blocks.Count == 0 ? "코드 없음 · 행동하지 않음" : "자동 적용됨";
@@ -249,13 +242,13 @@ namespace CodingGame.Defense
             var size = sprite.rect.size;
             popup.sizeDelta = size * Mathf.Min(1, HintMax.x / size.x, HintMax.y / size.y) + new Vector2(2 * HintPad, 2 * HintPad + HintTitle);
         }
-        // Empties a robot's code (blocks go back to the inventory); through the editor when it is open on that robot.
+        // Empties a robot's code; through the editor when it is open on that robot.
         public void ClearRobotProgram(int id)
         {
             drafts.Remove(id);
             if (IsOpen && editingId == id) { panel.ClearProgram(); panel.RefreshPalette(); return; }
             var sim = battle.Simulation; var robot = sim?.FindRobot(id);
-            if (robot != null && sim.CanEdit) { sim.ApplyProgram(id, robot.Program?.Name ?? "robot_" + id, Array.Empty<CodeBlock>()); sim.SetDraft(id, Array.Empty<BlockKind>()); }
+            if (robot != null && sim.CanEdit) sim.ApplyProgram(id, robot.Program?.Name ?? "robot_" + id, Array.Empty<CodeBlock>());
         }
 
         public void PrepareDistanceExample()
@@ -286,15 +279,14 @@ namespace CodingGame.Defense
                 new[] { Loop(Find(), id == "2-8" ? Loop(Leave(dead), Leave(away), Shoot()) : Loop(Shoot())) };
             LoadLesson(code, id + " 준비 코드");
         }
-        // The lesson's prepared code takes its blocks from the stock and grants none (GameData/Award.md gives the blocks, on
-        // wave clears only): with a block missing it stays unapplied in the editor and the lesson warns (no crash).
+        // The lesson's prepared code unlocks no block (GameData/Award.md gives the blocks, on wave clears only): with a block
+        // still locked it stays unapplied in the editor and the lesson warns (no crash).
         void LoadLesson(CodeBlock[] code, string what)
         {
             panel.LoadProgram(panel.FunctionName, code);
             if (panel.IsApplied) return;
-            var missing = DefenseProgression.Used(code).GroupBy(DefenseProgression.Canonical).Where(g => g.Count() > editingSession.Available(g.Key, editingId))
-                .Select(g => DefenseProgression.Label(g.Key) + " " + (g.Count() - Math.Max(0, editingSession.Available(g.Key, editingId))) + "개");
-            Debug.LogWarning(what + ": 블록이 모자라 적용되지 않음 (" + string.Join(", ", missing) + ")");
+            var locked = DefenseProgression.Used(code).Distinct().Where(k => editingSession.Available(k) < 1).Select(DefenseProgression.Label);
+            Debug.LogWarning(what + ": 해금되지 않은 블록이 있어 적용되지 않음 (" + string.Join(", ", locked) + ")");
         }
         static CodeBlock Loop(params CodeBlock[] body)
         {
@@ -598,7 +590,7 @@ namespace CodingGame.Defense
         {
             if (!panel) return;
             panel.BlockDropped -= OnBlockDropped;
-            panel.ApplyToTarget = null; panel.IsAvailable = null; panel.Remaining = null; panel.PaletteClicking = null;
+            panel.ApplyToTarget = null; panel.IsAvailable = null;panel.PaletteClicking = null;
         }
     }
 }

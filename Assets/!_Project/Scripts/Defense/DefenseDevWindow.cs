@@ -8,7 +8,7 @@ namespace CodingGame.Defense
 {
     // Developer tools (developer rights only, GameFlow.Developer) in every scene, on GameFlow's persistent root. F1: boxes that
     // jump to a dialogue id ("1-3.C05") or to a stage-wave's start ("2-4"); in the battle they sit in the battle's own F1
-    // panel's empty bottom strip, elsewhere F1 shows them alone and Go starts the Defense scene for the id's stage, as the
+    // panel's bottom strip (the panel grants nothing: blocks are unlimited), elsewhere F1 shows them alone and Go starts the Defense scene for the id's stage, as the
     // stage map does, and makes the jump once the battle has started. F2: the balance window, where each enemy group's count,
     // timing, health, speed and core damage (as the campaign asset has them, before the stage's scaling) are changed for a
     // stage-wave until the game quits: in the battle the one on screen, elsewhere the one picked in the window.
@@ -80,7 +80,7 @@ namespace CodingGame.Defense
             float scale = Screen.height / 1080f;
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1));
             GUI.skin.label.fontSize = GUI.skin.textField.fontSize = GUI.skin.button.fontSize = GUI.skin.box.fontSize = 20;
-            // The battle's F1 panel's bottom strip is empty between "수량 1~999" and "전체 추가" (1080p: x 300 to 1350, y 905 to 965).
+            // The battle's F1 panel's bottom strip is empty (1080p: x 300 to 1350, y 905 to 965).
             if (JumpShown)
             {
                 if (!InBattle) GUI.Box(new Rect(jumpArea.x - 8, jumpArea.y, jumpArea.width + 16, jumpArea.height), "");

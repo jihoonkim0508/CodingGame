@@ -309,7 +309,7 @@ namespace CodingGame.Defense.Editor
                     if (EditorApplication.isPlaying) Act(() => DevTest.SetOptions(options));
                 });
             }
-            Buttons(("정상값 복원", () => { options = new DefenseTestOptions(); tutorial = true; if (EditorApplication.isPlaying) DevTest.SetOptions(options); Build(); }));
+            Buttons(("정상값 복원", () => { options = new DefenseTestOptions(); tutorial = false; if (EditorApplication.isPlaying) DevTest.SetOptions(options); Build(); }));
         }
 
         void UpdateEditor()

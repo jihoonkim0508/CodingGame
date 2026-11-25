@@ -44,7 +44,6 @@ namespace CodingGame.Defense.Editor {
    }
    var detail=card.Find("Detail");
    var name=detail.Find("Name").GetComponent<TMP_Text>();Stretch(name.rectTransform,new Vector2(0,1),Vector2.one,new Vector2(28,-40),new Vector2(-28,-6));name.fontSize=26;name.alignment=TextAlignmentOptions.MidlineLeft;name.color=new Color(.91f,.98f,1f);
-   var stock=detail.Find("Stock").GetComponent<TMP_Text>();Stretch(stock.rectTransform,new Vector2(0,1),Vector2.one,new Vector2(28,-107),new Vector2(-28,-75));stock.fontSize=18;stock.color=new Color(.6f,.86f,.81f);stock.alignment=TextAlignmentOptions.MidlineLeft;
    var description=detail.Find("Description").GetComponent<TMP_Text>();Stretch(description.rectTransform,new Vector2(0,.4f),new Vector2(1,1),new Vector2(28,14),new Vector2(-28,-132));description.fontSize=21;description.enableAutoSizing=true;description.fontSizeMin=18;description.fontSizeMax=21;description.alignment=TextAlignmentOptions.TopLeft;
    var exampleTitle=detail.Find("ExampleTitle").GetComponent<TMP_Text>();Stretch(exampleTitle.rectTransform,new Vector2(0,.33f),new Vector2(1,.33f),new Vector2(28,8),new Vector2(-28,40));exampleTitle.fontSize=20;exampleTitle.color=new Color(.74f,.8f,1f);
    Stretch((RectTransform)detail.Find("ExampleBox"),Vector2.zero,new Vector2(1,.33f),new Vector2(20,20),new Vector2(-20,-4));

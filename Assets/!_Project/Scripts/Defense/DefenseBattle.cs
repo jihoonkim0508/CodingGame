@@ -155,7 +155,6 @@ namespace CodingGame.Defense
             hitRangeButton.onClick.AddListener(ToggleHitRanges);
             hitRangeLabel.text = "근접 피격범위: OFF";
             removeButton.onClick.AddListener(RemoveSelected);
-            for (int i = 0; i < robotButtons.Length; i++) { int index = i; robotButtons[i].onClick.AddListener(() => inventoryUI.SelectRobotItem(index)); }
             if (FromStageMap) stage = StageMap.StageProgress.SelectedStage;
             devWindow = DefenseDevWindow.Instance; // on GameFlow's root, in every scene
             if (devWindow) devWindow.Battle = this;
@@ -541,7 +540,7 @@ namespace CodingGame.Defense
             var problems = TutorialBlocksInput || Simulation.StartError() != null ? null : LeftoverProblems();
             if (problems == null) StartBattle(); else playerHUD.ConfirmStart(problems, StartBattle);
         }
-        // Robots the player could place now and blocks no robot uses, in the palette's names; null when nothing is left.
+        // Robots the player could place now, in the palette's names; null when nothing is left (blocks are unlimited).
         public List<string> LeftoverProblems()
         {
             var sim = Simulation;
@@ -556,12 +555,7 @@ namespace CodingGame.Defense
                 if (n <= 0) continue;
                 room -= n; robotsLeft.Add($"{RoleName(stock.Key)} {n}대");
             }
-            var blocksLeft = sim.Inventory.Keys.OrderBy(k => k).Select(k => (k, n: sim.Available(k))).Where(x => x.n > 0)
-                .Select(x => $"{DefenseProgression.Label(x.k)} {x.n}개").ToList();
-            var problems = new List<string>();
-            if (robotsLeft.Count > 0) problems.Add("배치하지 않은 로봇: " + string.Join(", ", robotsLeft));
-            if (blocksLeft.Count > 0) problems.Add("쓰지 않은 블록: " + string.Join(", ", blocksLeft));
-            return problems.Count > 0 ? problems : null;
+            return robotsLeft.Count > 0 ? new List<string> { "배치하지 않은 로봇: " + string.Join(", ", robotsLeft) } : null;
         }
         public void StartBattle()
         {
@@ -628,9 +622,6 @@ namespace CodingGame.Defense
         public void NotifyCodeApplied(int id, bool empty)
         {
             Tell(RobotName(id) + (empty ? " · 코드 없음" : " · 적용 완료"));
-            // Autosave applies on every edit; log the inventory only when the reservation actually changed.
-            string inventory = InventoryLine();
-            if (inventory != lastInventory) Trace(lastInventory = inventory);
             ReportTutorialAction("Editor.ApplyProgram", "TargetClicked", "ProgramApplied");
         }
         public bool TutorialAllows(string key) => !tutorial || tutorial.CanPerformAction(key);
@@ -1225,11 +1216,8 @@ namespace CodingGame.Defense
         [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
         void Trace(string text) => Debug.Log($"[Defense] S{stage} W{Simulation.WaveIndex + 1} {Simulation.Phase} robots={Simulation.Robots.Count}/{Simulation.Setup.RobotLimit} core={Simulation.BaseHealth} | {text}", this);
         void Tell(string text) { StatusMessage = text; message.text = text; Trace(text); }
-        // One shared block inventory: "Slash 2 (free 1 · robot3 1)" = owned, left for a new robot, held by each robot.
-        string lastInventory;
-        string InventoryLine() => "inventory " + string.Join(", ", Simulation.Inventory.OrderBy(p => p.Key).Select(p =>
-            $"{p.Key} {p.Value} (free {Simulation.Available(p.Key)}" + string.Concat(Simulation.Robots.Select(r => (r, n: Simulation.Reserved(r, p.Key)))
-                .Where(x => x.n > 0).Select(x => $" · robot{x.r.Id} {x.n}")) + ")"));
+        // The unlocked blocks (each one unlimited).
+        string InventoryLine() => "blocks " + string.Join(", ", Simulation.Inventory.Keys.OrderBy(k => k));
         static string ActionName(RobotAction action) => DefenseProgression.Label(DefenseProgression.ActionBlock(action));
     }
 }

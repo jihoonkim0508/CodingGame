@@ -62,7 +62,7 @@ try
     panel.Redo(); Check(panel.Program.Blocks[0].Rect.anchoredPosition == position, "redo move");
     panel.Undo(); // back on the start anchor so the restored program compiles
     panel.ClearProgram(); panel.Undo();
-    Check(panel.IsApplied && battle.Simulation.Available(shotKind) == 2, "undo applies and reserves exactly once");
+    Check(panel.IsApplied, "undo applies");
     panel.Undo(); panel.FunctionName = "changed_name";
     Check(!panel.CanRedo, "new edit discards redo branch");
     panel.LoadProgram("reserved", Enumerable.Range(0, 3).Select(_ => Aimed()).ToArray());
@@ -72,8 +72,7 @@ try
     battle.SelectRobot(secondId); battle.DevelopSelected();
     panel.LoadProgram("second", new[] { Aimed() });
     editor.Close(); battle.SelectRobot(firstId); battle.DevelopSelected(); panel.Undo();
-    Check(!panel.IsApplied && panel.Program.Blocks.Count == 3, "over-stock undo remains a draft");
-    Check(battle.Simulation.Available(shotKind) == 2 && battle.Simulation.Robots.Find(r => r.Id == firstId).Program.CopyBlocks().Count == 0, "failed undo preserves inventory and applied code");
+    Check(panel.IsApplied && panel.Program.Blocks.Count == 3, "undo of three shots applies (blocks are unlimited)");
     editor.Close(); battle.SelectRobot(secondId); battle.DevelopSelected();
     Check(panel.Program.Blocks.Count == 1 && panel.FunctionName == "second", "histories isolated per robot");
     battle.Restart();
