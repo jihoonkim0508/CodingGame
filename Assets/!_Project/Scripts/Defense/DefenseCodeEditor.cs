@@ -257,6 +257,14 @@ namespace CodingGame.Defense
             var dead = new CodeBlock(BlockKind.IsDead, "0", new CodeBlock(BlockKind.Variable, "enemy"));
             var away = new CodeBlock(BlockKind.Comparison, ">", new CodeBlock(BlockKind.Distance, "0", new CodeBlock(BlockKind.Variable, "enemy"),
                 new CodeBlock(BlockKind.MyPos)), new CodeBlock(BlockKind.MyAttackRange));
+            if (id == "repair-shot")
+            {
+                LoadLesson(new[] { Loop(Find(), Shoot()) }, id);
+                var shot = Line("1/2");
+                if (shot) panel.Program.PlaceFree(shot, new Vector2(72, -220));
+                battle.BeginPreviewPairChallenge();
+                return;
+            }
             var code = id == "2-5" ? new[] { Find(), Loop(Shoot()) } :
                 new[] { Loop(Find(), id == "2-8" ? Loop(Leave(dead), Leave(away), Shoot()) : Loop(Shoot())) };
             LoadLesson(code, id + " 준비 코드");

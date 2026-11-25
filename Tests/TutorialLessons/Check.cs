@@ -126,8 +126,39 @@ static class Check
         string wanted = tankFirst ? "Leak,LeakTank,Leak" : "Leak,Leak,LeakTank";
         Require(string.Join(",", seen) == wanted, $"Leak signals ({(tankFirst ? "tank" : "basic")} first): {string.Join(",", seen)}, wanted {wanted}");
     }
+    static int ShooterPreviewKills(Func<CodeBlock, CodeBlock, CodeBlock[]> program)
+    {
+        var shooter = new RobotSpec { role = RobotRole.Shooter, range = 7, damage = 16, interval = 2.4f, projectileSpeed = 15 };
+        var enemy = new DefenseBalanceRules().Scale(new EnemySpec { health = 15.2f, speed = 1.95f }, 2, 0);
+        Require(enemy.health > shooter.damage, "The source wave must reproduce an enemy that survives a shot");
+        var wave = new[] { new SpawnGroup { Enemy = enemy, Count = 6, Interval = 2.5f } };
+        var demo = DefenseSimulation.PreviewWave(wave, 2, shooter.damage);
+        Require(wave[0].Enemy.health > shooter.damage, "Capping preview health must leave the source wave intact");
+        var profiles = Profiles();
+        profiles[(int)RobotRole.Shooter] = shooter;
+        var sim = new DefenseSimulation(new BattleSetup {
+            Min = new Vector2(-50, -50), Max = new Vector2(50, 50), ActionProfiles = profiles,
+            Routes = new[] { new Route(new[] { new Vector2(2, 0), new Vector2(-20, 0) }, .75f) },
+            Waves = new[] { demo }
+        });
+        var bot = sim.Place(shooter, (int)RobotRole.Shooter, new Vector2(0, 1.8f), out var error);
+        Require(bot != null, error);
+        var find = new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy));
+        var shoot = new CodeBlock(BlockKind.Shot, "0", new CodeBlock(BlockKind.Variable, "enemy"));
+        sim.ApplyProgram(bot.Id, "shooter", program(find, shoot));
+        sim.Start();
+        for (int i = 0; i < 4 * 60; i++) sim.Advance(1.0 / 60);
+        Require(sim.Events.Count(e => e.Kind == "projectile-hit" && e.Amount > 0) == sim.Kills,
+            "Each hit in the 2-1 challenge must defeat its target");
+        return sim.Kills;
+    }
     static void Main()
     {
+        int stalled = ShooterPreviewKills((find, shoot) => new[] { Loop(find) }); // The loose shot is outside the executable chain.
+        int single = ShooterPreviewKills((find, shoot) => new[] { find, shoot });
+        int repaired = ShooterPreviewKills((find, shoot) => new[] { Loop(find, shoot) });
+        Require(stalled == 0 && single == 1 && repaired == 2, $"2-1 kills: {stalled} before edit, {single} without loop, {repaired} after repair");
+        Console.WriteLine("2-1: 0/2 before the edit, 1/2 with one shot, 2/2 within four seconds after moving shoot into the loop.");
         LeakKinds(false); LeakKinds(true);
         const string answer = "enemy = get_nearest_enemy()\nif enemy.distance(get_my_pos()) <= my_attack_range():\n    slash()";
         Require(Attacks("<=") > 0, "True distance condition must execute the slash inside if");

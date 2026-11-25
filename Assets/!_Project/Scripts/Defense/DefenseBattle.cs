@@ -127,8 +127,8 @@ namespace CodingGame.Defense
         public void BeginCodeView(RobotState robot)
         {
             inventoryUI.Close(); playerHUD.SetVisible(false); developerRoot.SetActive(false);
-            if (!TutorialBlocksPreview) attackPreview.Open(robot);
-            else attackPreview.Close();
+            // The editor can open during a lesson transition. The preview gates its clock on the current step each frame.
+            attackPreview.Open(robot);
         }
         public void EndCodeView()
         {
@@ -136,6 +136,7 @@ namespace CodingGame.Defense
             attackPreview.Close();
         }
         public void RestartCodePreview(float hold = 0) => attackPreview.Restart(hold);
+        public void BeginPreviewPairChallenge() => attackPreview.BeginPairChallenge();
         public string RobotName(int id)
         { var bot = Simulation.FindRobot(id); return bot == null ? "로봇 없음" : robots[bot.DefinitionIndex].displayName; }
 

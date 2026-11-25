@@ -230,41 +230,13 @@ namespace CodingGame.Defense.Editor
                 }
             }, Focus(focus)));
 
-        // 2-1 (play feedback 4: variables open in Stage 2): a shooter stood by the road; while True, then enemy = get_nearest_enemy()
-        // inside it, then shoot(enemy) under that.
+        // The first wave opens on a live two-enemy challenge. Moving a single shot into the loop can win it.
         static List<S> TwoOne() => new List<S> {
-            L("2-1.A01", s => s.Cards = true),
-            L("2-1.A03", s => s.PlaceShooter = true),
-            L("2-1.A04", Click(Unit0, s => s.Pointer = Unit0)),
-            L("2-1.A05", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; })),
-            L("2-1.B01", EditSignal(TutorialSignals.CodeLinePlaced, "1:While", "Editor.Palette.While", "Editor.Palette.While", "Editor.Code.Start")),
-            L("2-1.B02", With(EditSignal(TutorialSignals.CodeLinePlaced, "1/1:DeclareVariable", "Editor.Palette.DeclareVariable", "Editor.Palette.DeclareVariable", "Editor.Code.Body.1"),
-                s => s.AutoSlot = "Editor.Code.Body.1")),
-            L("2-1.B03", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/1.0", "Editor.Palette.NearestEnemy", "Editor.Palette.NearestEnemy", "Editor.Code.Arg.1/1.0"),
-                s => s.AutoSlot = "Editor.Code.Arg.1/1.0")),
-            L("2-1.B04", With(Ed, Focus("Editor.Code.Line.1/1"))),
-            L("2-1.B05", With(EditSignal(TutorialSignals.CodeLinePlaced, "1/2:Shot", "Editor.Palette.Shot", "Editor.Palette.Shot", "Editor.Code.After.1/1"),
-                s => { s.AutoSlot = "Editor.Code.Body.1"; s.Demo = "Editor.Palette.Shot>Editor.Code.After.1/1"; })),
-            L("2-1.B06", With(EditSignal(TutorialSignals.SlotFilled, "Editor.Code.Arg.1/2.0", "Editor.Palette.Variable", "Editor.Palette.Variable", "Editor.Code.Arg.1/2.0"),
-                s => s.AutoSlot = "Editor.Code.Arg.1/2.0")),
-            L("2-1.B07", EditSignal(TutorialSignals.ProgramMatches, Code21, "Editor.Code.Name.1/2.0", "Editor.Code.Name.1/2.0")),
-            L("2-1.C02", Signal(TutorialSignals.PreviewHit, new[] { Preview }, With(s => { s.Preview = true; s.RestartPreview = true; s.Hold = 2; }, Focus(Preview)))),
-            L("2-1.C02a", CloseClick),
-            // 1-5's clear brought a warrior (GameData/Award.md): the lesson stands it by the road after the shooter (2-1's balance
-            // assumes that spot, and installation order keeps the shooter Unit 0 and the warrior the newest for 2-3), then the
-            // player gives it 1-3's loop (the stand-in code PlaceLessonRobot gives is cleared as the arrow points at it).
-            L("2-1.C03", s => s.PlaceWarrior = true),
-            L("2-1.C04", Click(Newest, s => { s.Pointer = Newest; s.Robot = -1; s.ClearProgram = true; })),
-            L("2-1.C05", Signal(TutorialSignals.EditorOpened, new[] { Develop }, s => { s.Pointer = Develop; s.Preview = true; s.Robot = -1; })),
-            L("2-1.C06", With(EditSignal(TutorialSignals.CodeLinePlaced, "1:While", "Editor.Palette.While", "Editor.Palette.While", "Editor.Code.Start"), s => s.Robot = -1)),
-            L("2-1.C07", Code(Code13, With(
-                s => { s.Pointer = "Editor.Palette.Slash"; s.AutoSlot = "Editor.Code.Body.1"; s.Demo = "Editor.Palette.Slash>Editor.Code.Body.1"; s.Robot = -1; },
-                Focus("Editor.Palette.Slash", "Editor.Code.Body.1")))),
-            L("2-1.C08", CloseClick),
-            L("2-1.D01"),
-            L("2-1.D02"),
-            L("2-1.E01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code21; s.Battle = true; }),
-            L("2-1.E02", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
+            L("2-1.Repair", Signal(TutorialSignals.PreviewPairDefeated, new[] { Drop, Palette, Preview }, s => {
+                s.PlaceShooter = s.OpenEditor = s.Preview = s.Undimmed = true;
+                s.Example = "repair-shot"; s.Pointer = "Editor.Code.Loose"; s.PointerDelay = 3;
+            })),
+            L("2-1.Defended", With(CloseClick, s => { s.PlaceWarrior = true; s.Undimmed = true; })),
         };
 
         // 2-3 (게임 논리 검토, 3e52879): the warrior 2-1 stood by the road (the newest robot, Robot.Unit.-1; no warrior is left in

@@ -182,12 +182,6 @@ namespace CodingGame.Defense
             if (step.completionSignal == TutorialSignals.DraftValueMatches && Editor && Editor.DraftValueMatches(step.expectedCode)) Signal(TutorialSignals.DraftValueMatches);
             if (step.completionSignal == TutorialSignals.ConditionBuilt && Editor && Editor.ConditionMatches(step.expectedCode)) Signal(TutorialSignals.ConditionBuilt);
             if (Current != step) return;
-            // A preview strike can occur while the dialogue is opening. Keep that result for this step
-            // so the player does not have to wait for the looping demonstration to strike again.
-            if (step.kind == TutorialStepKind.ActionGuide && step.completionMode == TutorialCompletionMode.ExternalSignal &&
-                (step.completionSignal == TutorialSignals.PreviewSingleHit || step.completionSignal == TutorialSignals.PreviewMultiHit) &&
-                signals.Contains(step.completionSignal) && viewedStep == progressStep && !view.IsTyping)
-            { CompleteAction(step); return; }
             if (!string.IsNullOrWhiteSpace(step.skipIf) && signals.Contains(step.skipIf) && Triggered(step) && viewedStep == progressStep) { Enter(progressStep + 1); return; }
             if (!Triggered(step))
             {
@@ -201,6 +195,10 @@ namespace CodingGame.Defense
             if (autoNextAt == float.MaxValue && !view.IsTyping) autoNextAt = GameClock.Now + step.autoAdvance;
             if (heldUntil == float.MaxValue && !view.IsTyping) heldUntil = GameClock.Now + step.holdSeconds;
             if (held == step && GameClock.Now >= heldUntil) { held = null; CompleteAction(step); return; }
+            // A hit may arrive while the dialogue is typing. The hold starts once the text is visible.
+            if (held == null && step.kind == TutorialStepKind.ActionGuide && step.completionMode == TutorialCompletionMode.ExternalSignal &&
+                IsPreviewHit(step.completionSignal) && signals.Contains(step.completionSignal) && viewedStep == progressStep && !view.IsTyping)
+            { CompleteAction(step); return; }
             if (autoNextAt > 0 && autoNextAt != float.MaxValue && GameClock.Now >= autoNextAt) { autoNextAt = -1; Enter(progressStep + 1); return; }
             // The banner faded: same as pressing next (ShowText resets bannerUp for the following line).
             if (bannerUp && alert && !alert.IsShowing) { NextText(); return; }
@@ -223,6 +221,10 @@ namespace CodingGame.Defense
         bool Triggered(TutorialStep step) => string.IsNullOrWhiteSpace(step.trigger) ||
             signals.Contains(step.trigger) && GameClock.Now - signalAt[step.trigger] >= step.triggerDelay;
         void Remember(string signal) { if (signals.Add(signal)) signalAt[signal] = GameClock.Now; }
+
+        static bool IsPreviewHit(string signal) => signal == TutorialSignals.PreviewHit ||
+            signal == TutorialSignals.PreviewSingleHit || signal == TutorialSignals.PreviewMultiHit ||
+            signal == TutorialSignals.PreviewPairDefeated;
 
         // A signal from the game or the watcher: remember it for trigger steps and complete an action step waiting on it.
         void Signal(string signal)
@@ -402,7 +404,7 @@ namespace CodingGame.Defense
             targetsSeen = false; targetsLostAt = -1;
             if (pointer) pointer.Hide();
             var step = active.steps[index];
-            if (step.completionSignal == TutorialSignals.PreviewSingleHit || step.completionSignal == TutorialSignals.PreviewMultiHit)
+            if (IsPreviewHit(step.completionSignal))
                 signals.Remove(step.completionSignal);
             // Only a run ending from now on counts (an earlier 실행 or the battle start's run has ended already).
             if (step.trigger == TutorialSignals.PlayEnded) { signals.Remove(step.trigger); watcher.ForgetRuns(); }
@@ -416,8 +418,10 @@ namespace CodingGame.Defense
         void ApplyEntry(TutorialStep step)
         {
             if (!Editor) return;
-            var robot = TutorialWatcher.Robot(session, step.robotIndex);
             if (step.placeShooter) battle.PlaceLessonShooter();
+            var robot = step.placeShooter && step.openEditor
+                ? session.Robots.FirstOrDefault(r => r.Spec.role == RobotRole.Shooter)
+                : TutorialWatcher.Robot(session, step.robotIndex);
             if (step.placeWarrior) battle.PlaceLessonRobot(RobotRole.Warrior, step.robotIndex < 0);
             if (step.closeEditor) Editor.Close(false);
             if (step.clearProgram && robot != null) Editor.ClearRobotProgram(robot.Id);

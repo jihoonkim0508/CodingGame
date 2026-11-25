@@ -364,9 +364,9 @@ namespace CodingGame.Defense.Editor
             if (!director.IsActive) { Time.timeScale = 3; return; }
             var view = Field<TutorialDialogueView>(director, "view");
             if (!view.IsVisible) return; // System banner.
-            if (key == "1/C05" || key == "1/C08")
+            if (key == "1/C05" || key == "1/C08" || key == "2:1/Repair" || key == "2:1/Defended")
                 Require(!battle.TutorialBlocksPreview && Field<DefenseAttackPreview>(battle, "attackPreview").IsShowing,
-                    "1-1 preview stopped while placing blocks at " + key);
+                    "Code preview is closed or paused at " + key);
             // Until its slot holds a block (a filled one needs no demo: 2-3 C06 waits on the name typed after the drop).
             if (!string.IsNullOrWhiteSpace(step.dragDemo) && step.dragDemo.Split('|').Select(pair => pair.Split('>')).Any(ends => ends.Length == 2 && !battle.CodeEditor.DemoDone(ends[1].Trim())))
                 Require(Field<TutorialPointer>(director, "pointer").IsDragVisible,
@@ -397,6 +397,18 @@ namespace CodingGame.Defense.Editor
                 Require(director.EditorBridge.TryGetArea(target, out _), "Missing focus " + target + " at " + key);
             if (step.kind != TutorialStepKind.ActionGuide) { director.EditorNext(); return; }
             var editor = battle.CodeEditor; var panel = editor.Panel;
+            if (key == "2:1/Repair")
+            {
+                var shot = panel.Program.LooseRoots().FirstOrDefault(b => b.BaseKind == BlockKind.Shot);
+                if (shot) Require(shot.BaseKind == BlockKind.Shot && editor.Line("1").Body.Insert(shot, 1), "Could not move shoot into the loop");
+                return; // Wait for the running preview to defeat both enemies.
+            }
+            if (key == "2:1/Defended")
+            {
+                Require(Field<DefenseAttackPreview>(battle, "attackPreview").PreviewSimulation.Kills == 2, "Result appeared before both kills");
+                editor.Close();
+                return;
+            }
             if (step.targetKeys.Contains("Battle.ClaimRewards"))
             {
                 Log("CLEAR wave=" + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills +

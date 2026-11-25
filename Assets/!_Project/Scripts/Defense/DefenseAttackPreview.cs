@@ -37,6 +37,8 @@ namespace CodingGame.Defense
         float emptyElapsed;
         int sourceLevel;
         bool firstHitReported;
+        bool pairChallenge, pairReported;
+        const int PairGoal = 2;
         int firstHitCount;
         // The shooter's aim (the user, 2026-11-19): a yellow crosshair over the enemy its last shot went at, pinching on each shot.
         RawImage crosshair;
@@ -62,6 +64,7 @@ namespace CodingGame.Defense
         }
         public DefenseSimulation PreviewSimulation => simulation;
         public bool IsShowing => selected != null && previewPanel.activeSelf;
+        bool IsShooterLoopLesson => battle.Simulation.Setup.Stage == 2 && battle.Simulation.WaveIndex == 0 && selected.Spec.role == RobotRole.Shooter;
         // hold: seconds the restarted demo stands at its start (a lesson waits for the spotlight to reach the preview, or the
         // first shot fired before the player looked: 2-1 C02).
         public void Restart(float hold = 0) { if (IsShowing) { ResetPreview(); holdUntil = GameClock.Now + hold; } }
@@ -102,6 +105,8 @@ namespace CodingGame.Defense
         public void Open(RobotState robot)
         {
             HidePreview();
+            pairChallenge = false;
+            holdUntil = 0;
             selected = robot;
             RefreshStats();
             cameraControl.ResetView();
@@ -129,6 +134,7 @@ namespace CodingGame.Defense
         }
         void ResetPreview()
         {
+            pairReported = false;
             ClearActors(); source = selected.Program; emptyElapsed = 0; firstHitReported = false; firstHitCount = 0;
             sourceLevel = selected.Level;
             var live = battle.Simulation;
@@ -146,7 +152,12 @@ namespace CodingGame.Defense
             var kind = stageTwo && wave == 6 ? EnemyType.Fast : EnemyType.Normal;
             IReadOnlyList<SpawnGroup> groups = live.CurrentWave;
             if (single && groups.Any(g => g.Enemy.type == kind)) groups = groups.Where(g => g.Enemy.type == kind).ToArray();
-            var demo = DefenseSimulation.PreviewWave(groups, approach || single ? 1 : 3);
+            int count = IsShooterLoopLesson ? PairGoal : (approach || single ? 1 : 3);
+            // In the opening challenge, each hit should show the loop acquiring the next target.
+            float healthCap = pairChallenge && IsShooterLoopLesson
+                ? selected.Spec.damage * selected.LevelMultiplier
+                : float.PositiveInfinity;
+            var demo = DefenseSimulation.PreviewWave(groups, count, healthCap);
             // The break lessons send a second one as the first is about to leave the range (8 along the road from the start, the
             // robot 1.8 off it): code that keeps aiming at the first lets the second walk past, break lets the first go and
             // shoots the second (the user, 2026-11-19: the preview did not show what break does).
@@ -242,7 +253,9 @@ namespace CodingGame.Defense
             // A new level or new code starts the demo over with a clean robot. The function is called again whenever it ends (the
             // user's choice, 2026-11-19), so the preview keeps showing what the code does instead of standing still.
             if (sourceLevel != selected.Level || source != selected.Program) ResetPreview();
-            if (simulation.Robots.FirstOrDefault() is RobotState demo) simulation.Invoke(demo.Id);
+            if (pairChallenge && simulation.Kills >= PairGoal) return;
+            // In 2-1 a second shot must come from the player's while loop. Start() already invoked the function once.
+            if (!IsShooterLoopLesson && simulation.Robots.FirstOrDefault() is RobotState demo) simulation.Invoke(demo.Id);
             bool wasOver = DemoOver;
             simulation.Advance(dt);
             if (!DemoOver) { emptyElapsed = 0; return; }
@@ -376,6 +389,17 @@ namespace CodingGame.Defense
         }
         void RefreshStatus()
         {
+            if (pairChallenge)
+            {
+                status.text = simulation.Kills >= PairGoal ? "방어 성공   2 / 2" :
+                    DemoOver ? $"방어 {simulation.Kills} / 2   ·   다시 도전" : $"방어 {simulation.Kills} / 2";
+                if (!pairReported && simulation.Kills >= PairGoal)
+                {
+                    pairReported = true;
+                    battle.ReportTutorialAction(TutorialKeys.Preview, TutorialSignals.PreviewPairDefeated);
+                }
+                return;
+            }
             if (DemoOver) { status.text = $"시연 완료 · {Math.Max(0,1-emptyElapsed):0.0}초 뒤 다시 시작"; return; }
             var bot = simulation.Robots.FirstOrDefault();
             if (bot == null) { status.text = "시연 종료"; return; }
@@ -424,6 +448,11 @@ namespace CodingGame.Defense
         static string Stat(string name) => $"<color={UITheme.MutedHex}>{name}</color>  ";
         string UpgradeValue(float current, float upgraded) => selected.IsMaxLevel || Mathf.Approximately(current, upgraded)
             ? $"<size=115%>{current:0.##}</size>" : $"<size=115%>{current:0.##}</size> <color={UITheme.GoodHex}>→ {upgraded:0.##}</color>";
+        public void BeginPairChallenge()
+        {
+            pairChallenge = true;
+            Restart();
+        }
         public void Close()
         {
             selected = null; HidePreview();

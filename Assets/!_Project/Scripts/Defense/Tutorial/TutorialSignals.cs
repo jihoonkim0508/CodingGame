@@ -9,6 +9,7 @@ namespace CodingGame.Defense
             EditorClosed = "EditorClosed", BattleStarted = "BattleStarted", PreviewHit = "PreviewHit",
             PreviewSingleHit = "PreviewSingleHit", PreviewMultiHit = "PreviewMultiHit";
         // Produced by TutorialWatcher from the live simulation.
+        public const string PreviewPairDefeated = "PreviewPairDefeated";
         public const string FirstKill = "FirstKill", FirstAttack = "FirstAttack", Leak = "Leak", WaveCleared = "WaveCleared", ProgramMatches = "ProgramMatches";
         // A tank-bodied enemy reached the core (besides Leak; 1-1 E05 waits for it, E05a is skipped by it).
         public const string LeakTank = "LeakTank";
