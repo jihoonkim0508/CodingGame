@@ -8,7 +8,7 @@ namespace CodingGame.Defense
     // 지급량은 추가 수량입니다. 준비 보급은 학습 전에, 보상은 웨이브 종료 후 한 번 지급합니다.
     public static class DefenseCurriculum
     {
-        public const int StageCount = 3;
+        public const int StageCount = 4;
         static BlockStock B(BlockKind kind, int count = 1) => new BlockStock { kind = kind, count = count };
         static RobotStock R(RobotRole role, int count = 1) => new RobotStock { role = role, count = count };
         public static WaveLesson[] Create() => new[] {

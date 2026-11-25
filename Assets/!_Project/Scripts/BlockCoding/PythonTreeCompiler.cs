@@ -12,9 +12,19 @@ namespace CodingGame.BlockCoding
     /// <summary>Entry-style nested blocks. This does not execute Python or modify Unity objects.</summary>
     public static class PythonTreeCompiler
     {
+        // Any: a list's item (a list made with [] holds whatever was appended), known only when it runs; the interpreter checks
+        // it then, and every check here lets it through.
         [Flags]
-        enum ValueType { Integer = 1, Float = 2, Enemy = 4, Boolean = 8, Vector2 = 16, EnemyType = 32, EnemyList = 64 }
+        internal enum ValueType { Integer = 1, Float = 2, Enemy = 4, Boolean = 8, Vector2 = 16, EnemyType = 32, EnemyList = 64,
+            List = 128, Dict = 256, Robot = 512, RobotList = 1024, RobotRole = 2048, Any = 4096 }
         const ValueType Numeric = ValueType.Integer | ValueType.Float;
+        const ValueType Lists = ValueType.List | ValueType.EnemyList | ValueType.RobotList;
+        // The team board's names and their types (CompileBoard): a robot's code compiled with them reads and writes those names.
+        public sealed class Shared
+        {
+            internal readonly Dictionary<string, ValueType> Types = new Dictionary<string, ValueType>();
+            public IReadOnlyCollection<string> Names => Types.Keys;
+        }
         static readonly HashSet<string> Keywords = new HashSet<string>(
             ("False None True and as assert async await break class continue def del elif else except finally for from " +
              "global if import in is lambda nonlocal not or pass raise return try while with yield").Split(' '));
@@ -24,13 +34,15 @@ namespace CodingGame.BlockCoding
             switch (kind)
             {
                 case BlockKind.Comparison: case BlockKind.True: case BlockKind.False: case BlockKind.IsDead:
-                case BlockKind.And: case BlockKind.Reflecting: case BlockKind.Or:
+                case BlockKind.And: case BlockKind.Reflecting: case BlockKind.Or: case BlockKind.In: case BlockKind.Not:
                     return BlockSlotKind.Condition;
                 case BlockKind.Number: case BlockKind.Variable: case BlockKind.NearestEnemy:
                 case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.Distance: case BlockKind.Hp:
                 case BlockKind.MyAttackRange: case BlockKind.MyPos: case BlockKind.Arithmetic:
                 case BlockKind.EnemyTypeOf: case BlockKind.EnemyTypeName: case BlockKind.GetEnemies: case BlockKind.Shield:
                 case BlockKind.Front: case BlockKind.Top: case BlockKind.Size: case BlockKind.MyHp: case BlockKind.Left: case BlockKind.Right:
+                case BlockKind.EmptyList: case BlockKind.DictLiteral: case BlockKind.Pop: case BlockKind.Len: case BlockKind.Index:
+                case BlockKind.GetRobots: case BlockKind.Role: case BlockKind.RobotRoleName: case BlockKind.WeakPoint:
                     return BlockSlotKind.Value;
                 case BlockKind.Attack: case BlockKind.Wait: case BlockKind.DeclareVariable:
                 case BlockKind.For: case BlockKind.While: case BlockKind.If: case BlockKind.Elif:
@@ -38,6 +50,7 @@ namespace CodingGame.BlockCoding
                 case BlockKind.Slash: case BlockKind.Block: case BlockKind.Boom:
                 case BlockKind.Shot: case BlockKind.Slow: case BlockKind.Buff:
                 case BlockKind.ForEach: case BlockKind.BreakShield: case BlockKind.WhileCondition:
+                case BlockKind.Append: case BlockKind.BuffRobot:
                     return BlockSlotKind.Statement;
                 default: throw new FormatException("지원하지 않는 블록입니다.");
             }
@@ -61,7 +74,11 @@ namespace CodingGame.BlockCoding
                 case BlockKind.EnemyTypeOf: case BlockKind.Shield: case BlockKind.ForEach:
                 case BlockKind.Front: case BlockKind.Top: case BlockKind.Size: case BlockKind.Reflecting: case BlockKind.Left: case BlockKind.Right: return 1; // the members (Hp ... Right): receiver
                 case BlockKind.WhileCondition: return 1;
+                case BlockKind.Pop: case BlockKind.Role: case BlockKind.WeakPoint: return 1; // members: their receiver
+                case BlockKind.Len: case BlockKind.Not: case BlockKind.BuffRobot: return 1;
                 case BlockKind.Comparison: case BlockKind.Arithmetic: case BlockKind.And: case BlockKind.Or: return 2;
+                case BlockKind.Append: case BlockKind.In: case BlockKind.Index: return 2; // the list or dict, and the item or key
+                case BlockKind.DictLiteral: return 2 * DictPairs;
                 case BlockKind.Distance: return 2; // receiver, position (Vector2)
                 default: return 0;
             }
@@ -70,16 +87,45 @@ namespace CodingGame.BlockCoding
         public static BlockSlotKind ArgumentSlot(BlockKind kind, int index)
         {
             if (index < 0 || index >= ArgumentCount(kind)) throw new ArgumentOutOfRangeException(nameof(index));
-            return kind == BlockKind.If || kind == BlockKind.Elif || kind == BlockKind.And || kind == BlockKind.WhileCondition || kind == BlockKind.Or
-                ? BlockSlotKind.Condition : BlockSlotKind.Value;
+            return kind == BlockKind.If || kind == BlockKind.Elif || kind == BlockKind.And || kind == BlockKind.WhileCondition || kind == BlockKind.Or ||
+                kind == BlockKind.Not ? BlockSlotKind.Condition : BlockSlotKind.Value;
         }
+        // The dict block's key/value holes: {[ ]: [ ], [ ]: [ ], [ ]: [ ]}; a pair left empty is left out.
+        // ponytail: three pairs fixed in the block; a bigger table needs a block with more holes.
+        public const int DictPairs = 3;
 
         // e.left / e.right are Enemy values that may be None, so they also stand as a condition: `while n.left or n.right:`.
         public static bool Accepts(BlockSlotKind slot, BlockKind kind) => slot == OutputSlot(kind) ||
             slot == BlockSlotKind.Condition && (kind == BlockKind.Left || kind == BlockKind.Right);
         // A value that is an Enemy, so a variable given it offers the enemy members after `name.`.
         public static bool GivesEnemy(BlockKind kind) => kind == BlockKind.NearestEnemy || kind == BlockKind.Front || kind == BlockKind.Top ||
-            kind == BlockKind.Left || kind == BlockKind.Right;
+            kind == BlockKind.Left || kind == BlockKind.Right || kind == BlockKind.WeakPoint;
+        // What the editor offers after `name.`: an enemy's members, a robot's (hp, role), a list's (pop(0)); a list's item any.
+        public enum Sort { None, Enemy, Robot, List, Any }
+        // Each name's sort as the code assigns it, in order (a name given two sorts keeps the last); the board's names first.
+        public static Dictionary<string, Sort> Sorts(IEnumerable<CodeBlock> blocks, Shared shared = null)
+        {
+            var types = shared == null ? new Dictionary<string, ValueType>() : new Dictionary<string, ValueType>(shared.Types);
+            foreach (var b in All(blocks))
+            {
+                string name; ValueType type;
+                try
+                {
+                    if (b.Kind == BlockKind.ForEach) { name = NormalizeIdentifier(b.Value); type = b.Arguments.Count > 0 && b.Arguments[0] != null ? ItemOf(TypeOf(b.Arguments[0], types)) : ValueType.Enemy; }
+                    else if (b.Kind == BlockKind.DeclareVariable && b.Arguments.Count > 0 && b.Arguments[0] != null) { name = NormalizeIdentifier(b.Value); type = TypeOf(b.Arguments[0], types); }
+                    else continue;
+                }
+                catch (FormatException) { continue; }
+                catch (ArgumentOutOfRangeException) { continue; } // a block with a hole still empty
+                catch (NullReferenceException) { continue; }
+                types[name] = type;
+            }
+            return types.ToDictionary(p => p.Key, p => (p.Value & ValueType.Any) != 0 ? Sort.Any : (p.Value & ValueType.Enemy) != 0 ? Sort.Enemy :
+                (p.Value & ValueType.Robot) != 0 ? Sort.Robot : (p.Value & Lists) != 0 ? Sort.List : Sort.None);
+        }
+        // A list's item: get_enemies()' an Enemy, get_robots()' a Robot, one in a list built with [] and append() any.
+        static ValueType ItemOf(ValueType list) => (list & ValueType.Any) != 0 ? ValueType.Any :
+            ((list & ValueType.EnemyList) != 0 ? ValueType.Enemy : 0) | ((list & ValueType.RobotList) != 0 ? ValueType.Robot : 0) | ((list & ValueType.List) != 0 ? ValueType.Any : 0);
 
         /// <summary>Check the entire sibling chain before committing a drop, including displaced branches.</summary>
         public static bool CanInsert(IReadOnlyList<CodeBlock> siblings, int index, CodeBlock block)
@@ -99,13 +145,34 @@ namespace CodingGame.BlockCoding
 
         internal static bool IsBranch(BlockKind kind) => kind == BlockKind.Elif || kind == BlockKind.Else;
 
-        public static string Compile(string functionName, IReadOnlyList<CodeBlock> blocks)
+        public static string Compile(string functionName, IReadOnlyList<CodeBlock> blocks, Shared shared = null)
         {
             if (blocks == null) throw new ArgumentNullException(nameof(blocks));
             ValidateTree(blocks, new HashSet<CodeBlock>());
             var source = new StringBuilder("def ").Append(NormalizeIdentifier(functionName)).Append("():\n");
-            // No implicit names: every variable, including the enemy target, has to be declared first.
-            EmitSuite(blocks, source, 1, 0, new Dictionary<string, ValueType>());
+            // No implicit names: every variable, including the enemy target, has to be declared first (here or on the team board).
+            EmitSuite(blocks, source, 1, 0, shared == null ? new Dictionary<string, ValueType>() : new Dictionary<string, ValueType>(shared.Types));
+            return source.ToString();
+        }
+        // The team board: only `name = value` lines whose values need no robot ([], a dict, numbers, kinds), run once at each
+        // wave's start. Its Python is module level, so every robot's function reads and writes the same objects.
+        static readonly HashSet<BlockKind> BoardValues = new HashSet<BlockKind> { BlockKind.EmptyList, BlockKind.DictLiteral, BlockKind.Number,
+            BlockKind.EnemyTypeName, BlockKind.RobotRoleName, BlockKind.True, BlockKind.False, BlockKind.Arithmetic, BlockKind.Variable };
+        public static string CompileBoard(IReadOnlyList<CodeBlock> blocks, out Shared shared)
+        {
+            if (blocks == null) throw new ArgumentNullException(nameof(blocks));
+            ValidateTree(blocks, new HashSet<CodeBlock>());
+            shared = new Shared();
+            var source = new StringBuilder();
+            foreach (var block in blocks)
+            {
+                if (block.Kind != BlockKind.DeclareVariable || All(block.Arguments).Any(b => !BoardValues.Contains(b.Kind)))
+                    throw new FormatException("팀 보드에는 `이름 = 값` 줄만 놓을 수 있어요. 값은 [], {Enemy.종류: 숫자}, 숫자처럼 로봇 없이 정해지는 것이에요.");
+                string name = NormalizeIdentifier(block.Value);
+                string value = Expression(block.Arguments[0], shared.Types);
+                shared.Types[name] = TypeOf(block.Arguments[0], shared.Types);
+                Append(source, 0, name + " = " + value);
+            }
             return source.ToString();
         }
         static IEnumerable<CodeBlock> All(IEnumerable<CodeBlock> blocks) =>
@@ -154,7 +221,8 @@ namespace CodingGame.BlockCoding
                 if (block.Arguments == null || block.Arguments.Count != ArgumentCount(block.Kind))
                     throw new FormatException($"{Label(block.Kind)}: 빈칸을 모두 채워 주세요.");
                 for (int i = 0; i < block.Arguments.Count; i++)
-                    if (block.Arguments[i] == null || !Accepts(ArgumentSlot(block.Kind, i), block.Arguments[i].Kind))
+                    if (block.Kind == BlockKind.DictLiteral && block.Arguments[i] == null && block.Arguments[i ^ 1] == null) continue; // an empty pair
+                    else if (block.Arguments[i] == null || !Accepts(ArgumentSlot(block.Kind, i), block.Arguments[i].Kind))
                         throw new FormatException($"{Label(block.Kind)}: {i + 1}번째 빈칸에 {(ArgumentSlot(block.Kind, i) == BlockSlotKind.Condition ? "논리" : "값")} 탭의 블록을 넣어 주세요.");
                 if (block.Body == null || (!HasBody(block.Kind) && block.Body.Count != 0))
                     throw new FormatException($"{Label(block.Kind)}: 안쪽에 명령을 넣을 수 없는 블록입니다.");
@@ -224,8 +292,8 @@ namespace CodingGame.BlockCoding
                     case BlockKind.ForEach:
                         // for e in get_enemies(): e is an Enemy in the body, like a declared variable.
                         string each = NormalizeIdentifier(block.Value);
-                        Require(block.Arguments[0], variables, ValueType.EnemyList, "for ... in 뒤에는 get_enemies()를 넣어 주세요.");
-                        var turn = new Dictionary<string, ValueType>(variables) { [each] = ValueType.Enemy };
+                        Require(block.Arguments[0], variables, Lists, "for ... in 뒤에는 get_enemies(), get_robots() 같은 리스트를 넣어 주세요.");
+                        var turn = new Dictionary<string, ValueType>(variables) { [each] = ItemOf(TypeOf(block.Arguments[0], variables)) };
                         Append(source, depth, "for " + each + " in " + Expression(block.Arguments[0], variables) + ":");
                         EmitSuite(block.Body, source, depth + 1, loopDepth + 1, turn);
                         MergeOutcomes(variables, new[] { new Dictionary<string, ValueType>(variables), turn });
@@ -269,9 +337,16 @@ namespace CodingGame.BlockCoding
                     return NormalizeNumber(block.Value).Contains(".") ? ValueType.Float : ValueType.Integer;
                 case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.Distance: case BlockKind.Hp:
                 case BlockKind.MyAttackRange: case BlockKind.Shield: case BlockKind.MyHp: return ValueType.Float;
-                case BlockKind.Size: return ValueType.Integer;
-                case BlockKind.Front: case BlockKind.Top: case BlockKind.Left: case BlockKind.Right: return ValueType.Enemy;
+                case BlockKind.Size: case BlockKind.Len: return ValueType.Integer;
+                case BlockKind.Front: case BlockKind.Top: case BlockKind.Left: case BlockKind.Right: case BlockKind.WeakPoint: return ValueType.Enemy;
                 case BlockKind.GetEnemies: return ValueType.EnemyList;
+                case BlockKind.GetRobots: return ValueType.RobotList;
+                case BlockKind.EmptyList: return ValueType.List;
+                case BlockKind.DictLiteral: return ValueType.Dict;
+                case BlockKind.Pop: return ItemOf(TypeOf(block.Arguments[0], variables));
+                case BlockKind.Index: return (TypeOf(block.Arguments[0], variables) & ValueType.Dict) != 0 ? Numeric : ItemOf(TypeOf(block.Arguments[0], variables));
+                case BlockKind.Role: case BlockKind.RobotRoleName: return ValueType.RobotRole;
+                case BlockKind.In: case BlockKind.Not: return ValueType.Boolean;
                 case BlockKind.MyPos: return ValueType.Vector2;
                 case BlockKind.NearestEnemy: return ValueType.Enemy;
                 case BlockKind.EnemyTypeOf: case BlockKind.EnemyTypeName: return ValueType.EnemyType;
@@ -291,7 +366,8 @@ namespace CodingGame.BlockCoding
 
         static void Require(CodeBlock block, IReadOnlyDictionary<string, ValueType> variables, ValueType allowed, string message)
         {
-            if ((TypeOf(block, variables) & ~allowed) != 0) throw new FormatException(message);
+            var type = TypeOf(block, variables);
+            if ((type & ValueType.Any) == 0 && (type & ~allowed) != 0) throw new FormatException(message);
         }
 
         // A block as the player sees it on screen, for the status line (it showed the enum name: "Comparison", "If").
@@ -302,6 +378,9 @@ namespace CodingGame.BlockCoding
             BlockKind.Shield => "shield", BlockKind.ForEach => "for ... in", BlockKind.BreakShield => "break_shield()",
             BlockKind.Front => "front()", BlockKind.Top => "top()", BlockKind.Size => "size", BlockKind.And => "and 블록", BlockKind.Reflecting => "reflecting",
             BlockKind.Left => "left", BlockKind.Right => "right", BlockKind.Or => "or", BlockKind.WhileCondition => "while 조건",
+            BlockKind.DictLiteral => "{ } 사전", BlockKind.Append => "append()", BlockKind.Pop => "pop(0)", BlockKind.Len => "len()",
+            BlockKind.In => "in 블록", BlockKind.Not => "not 블록", BlockKind.Index => "[ ] 꺼내기", BlockKind.Role => "role",
+            BlockKind.RobotRoleName => "Robot.종류", BlockKind.BuffRobot => "buff(r)", BlockKind.WeakPoint => "weak_point()",
             BlockKind.Shot or BlockKind.Attack => "shoot()", BlockKind.Wait => "wait()", BlockKind.Block => "block()", BlockKind.Boom => "boom()", BlockKind.Slow => "slow()",
             _ => Call(kind) ?? kind.ToString().ToLowerInvariant(),
         };
@@ -317,6 +396,8 @@ namespace CodingGame.BlockCoding
                 case BlockKind.MyPos: return "get_my_pos()";
                 case BlockKind.NearestEnemy: return "get_nearest_enemy()";
                 case BlockKind.GetEnemies: return "get_enemies()";
+                case BlockKind.GetRobots: return "get_robots()";
+                case BlockKind.EmptyList: return "[]";
                 case BlockKind.True: return "True";
                 case BlockKind.False: return "False";
                 case BlockKind.Buff: return "buff()";
@@ -336,8 +417,18 @@ namespace CodingGame.BlockCoding
                 case BlockKind.Distance: return Arg(0) + ".distance(" + Arg(1) + ")";
                 case BlockKind.Hp: return Arg(0) + ".hp";
                 case BlockKind.Shield: return Arg(0) + ".shield";
-                case BlockKind.Front: case BlockKind.Top: case BlockKind.Size: case BlockKind.Left: case BlockKind.Right: return Arg(0) + Member(block.Kind);
+                case BlockKind.Front: case BlockKind.Top: case BlockKind.Size: case BlockKind.Left: case BlockKind.Right:
+                case BlockKind.Pop: case BlockKind.Role: case BlockKind.WeakPoint: return Arg(0) + Member(block.Kind);
                 case BlockKind.Or: return Arg(0) + " or " + Arg(1);
+                case BlockKind.Not: return "not " + Arg(0);
+                case BlockKind.In: return Arg(0) + " " + block.Value + " " + Arg(1);
+                case BlockKind.Len: return "len(" + Arg(0) + ")";
+                case BlockKind.Index: return Arg(0) + "[" + Arg(1) + "]";
+                case BlockKind.Append: return Arg(0) + ".append(" + Arg(1) + ")";
+                case BlockKind.BuffRobot: return "buff(" + Arg(0) + ")";
+                case BlockKind.RobotRoleName: return "Robot." + block.Value;
+                case BlockKind.DictLiteral: return "{" + string.Join(", ", Enumerable.Range(0, block.Arguments.Count / 2)
+                    .Where(i => block.Arguments[2 * i] != null || block.Arguments[2 * i + 1] != null).Select(i => Arg(2 * i) + ": " + Arg(2 * i + 1))) + "}";
                 case BlockKind.IsDead: return Arg(0) + ".is_dead()";
                 case BlockKind.Reflecting: return Arg(0) + ".reflecting";
                 case BlockKind.And: return (block.Arguments.Count > 0 && block.Arguments[0].Kind == BlockKind.Or ? "(" + Arg(0) + ")" : Arg(0)) + " and " +
@@ -366,7 +457,56 @@ namespace CodingGame.BlockCoding
                     return NormalizeIdentifier(block.Value);
                 case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.MyAttackRange: case BlockKind.MyPos: case BlockKind.NearestEnemy:
                 case BlockKind.MyHp: case BlockKind.GetEnemies: case BlockKind.True: case BlockKind.False: case BlockKind.Buff: case BlockKind.Slash:
+                case BlockKind.GetRobots: case BlockKind.EmptyList:
                     return Call(block.Kind);
+                case BlockKind.DictLiteral:
+                {
+                    var pairs = new List<string>();
+                    for (int i = 0; i + 1 < block.Arguments.Count; i += 2)
+                    {
+                        if (block.Arguments[i] == null && block.Arguments[i + 1] == null) continue;
+                        if (block.Arguments[i] == null || block.Arguments[i + 1] == null) throw new FormatException("{ } 사전: 키와 값을 짝으로 채워 주세요. 예: {Enemy.Healer: 0}");
+                        Require(block.Arguments[i], variables, ValueType.EnemyType | ValueType.RobotRole | ValueType.Integer, "{ } 사전의 키는 Enemy.Healer 같은 종류나 정수예요.");
+                        Require(block.Arguments[i + 1], variables, Numeric, "{ } 사전의 값은 숫자예요. 예: {Enemy.Healer: 0}");
+                        pairs.Add(Arg(i) + ": " + Arg(i + 1));
+                    }
+                    return "{" + string.Join(", ", pairs) + "}";
+                }
+                case BlockKind.Append:
+                    Require(block.Arguments[0], variables, Lists, "append()는 리스트에 씁니다. 예: jobs.append(e)");
+                    Require(block.Arguments[1], variables, ValueType.Enemy | ValueType.Robot | Numeric | ValueType.EnemyType | ValueType.RobotRole | ValueType.Boolean,
+                        "리스트에는 적, 로봇, 숫자를 넣을 수 있어요 (리스트 안에 리스트는 안 돼요).");
+                    return Arg(0) + ".append(" + Arg(1) + ")";
+                case BlockKind.Pop:
+                    Require(block.Arguments[0], variables, Lists, "pop(0)은 리스트에서만 쓸 수 있어요. 예: target = jobs.pop(0)");
+                    return Arg(0) + ".pop(0)";
+                case BlockKind.Len:
+                    Require(block.Arguments[0], variables, Lists | ValueType.Dict, "len()에는 리스트나 사전을 넣어 주세요. 예: len(jobs)");
+                    return "len(" + Arg(0) + ")";
+                case BlockKind.In:
+                    if (block.Value != "in" && block.Value != "not in") throw new FormatException("in 블록은 in 또는 not in이에요.");
+                    Require(block.Arguments[1], variables, Lists | ValueType.Dict, block.Value + "의 오른쪽에는 리스트나 사전을 넣어 주세요. 예: e not in jobs");
+                    return Arg(0) + " " + block.Value + " " + Arg(1);
+                case BlockKind.Not:
+                    return "not " + (block.Arguments[0].Kind == BlockKind.And || block.Arguments[0].Kind == BlockKind.Or ? "(" + Arg(0) + ")" : Arg(0));
+                case BlockKind.Index:
+                    Require(block.Arguments[0], variables, ValueType.Dict | Lists, "[ ]로는 사전의 값(priority[e.type])이나 리스트의 칸(jobs[0])을 꺼내요.");
+                    if ((TypeOf(block.Arguments[0], variables) & ValueType.Dict) != 0)
+                        Require(block.Arguments[1], variables, ValueType.EnemyType | ValueType.RobotRole | ValueType.Integer, "사전의 키는 Enemy.Healer 같은 종류나 정수예요. 예: priority[e.type]");
+                    else Require(block.Arguments[1], variables, ValueType.Integer, "리스트의 칸 번호는 정수예요. 예: jobs[0]");
+                    return Arg(0) + "[" + Arg(1) + "]";
+                case BlockKind.Role:
+                    Require(block.Arguments[0], variables, ValueType.Robot, "role은 로봇에서만 읽을 수 있어요. 예: for r in get_robots(): r.role");
+                    return Arg(0) + ".role";
+                case BlockKind.RobotRoleName:
+                    if (!RobotRoles.Contains(block.Value)) throw new FormatException("로봇 종류는 " + string.Join(", ", RobotRoles.Select(t => "Robot." + t)) + " 중 하나입니다.");
+                    return "Robot." + block.Value;
+                case BlockKind.WeakPoint:
+                    Require(block.Arguments[0], variables, ValueType.Enemy, "weak_point()는 Enemy 객체에서만 쓸 수 있어요. 예: e.weak_point()");
+                    return Arg(0) + ".weak_point()";
+                case BlockKind.BuffRobot:
+                    Require(block.Arguments[0], variables, ValueType.Robot, "buff(r)에는 로봇을 넣어 주세요. 예: for r in get_robots(): buff(r)");
+                    return "buff(" + Arg(0) + ")";
                 case BlockKind.Wait:
                     Require(block.Arguments[0], variables, Numeric, "wait에는 초 단위의 숫자가 필요합니다.");
                     return "wait(" + Arg(0) + ")";
@@ -375,7 +515,7 @@ namespace CodingGame.BlockCoding
                     Require(block.Arguments[1], variables, ValueType.Vector2, "distance에는 위치(Vector2)가 필요합니다. 예: enemy.distance(get_my_pos())");
                     return Arg(0) + ".distance(" + Arg(1) + ")";
                 case BlockKind.Hp:
-                    Require(block.Arguments[0], variables, ValueType.Enemy, "hp는 Enemy 객체에서만 읽을 수 있습니다.");
+                    Require(block.Arguments[0], variables, ValueType.Enemy | ValueType.Robot, "hp는 적이나 로봇에서만 읽을 수 있습니다.");
                     return Arg(0) + ".hp";
                 case BlockKind.Shield:
                     Require(block.Arguments[0], variables, ValueType.Enemy, "shield는 Enemy 객체에서만 읽을 수 있습니다. 예: enemy.shield");
@@ -417,6 +557,8 @@ namespace CodingGame.BlockCoding
                     // An enemy's kind is compared only with a kind: `enemy.type != 3` says nothing in the game.
                     bool kind(int i) => (TypeOf(block.Arguments[i], variables) & ValueType.EnemyType) != 0;
                     if (kind(0) != kind(1)) throw new FormatException("적 종류는 Enemy.Tank 같은 종류와 비교해야 합니다. 예: enemy.type != Enemy.Tank");
+                    bool role(int i) => (TypeOf(block.Arguments[i], variables) & ValueType.RobotRole) != 0;
+                    if (role(0) != role(1)) throw new FormatException("로봇 종류는 Robot.Melee 같은 종류와 비교해야 합니다. 예: r.role == Robot.Support");
                     if (block.Value != "==" && block.Value != "!=") // equality works on any values; order needs numbers
                     {
                         Require(block.Arguments[0], variables, Numeric, "대소 비교에는 숫자가 필요합니다.");
@@ -431,7 +573,11 @@ namespace CodingGame.BlockCoding
         public static readonly string[] Operators = { "+", "-", "*", "/" };
         // The game's enemy kinds (Defense.EnemyType) as the Python names after `Enemy.`.
         public static readonly string[] EnemyTypes = { "Normal", "Fast", "Tank", "Healer", "Shielder", "Queue", "Stack", "Reflector", "Tree" };
-        static string Member(BlockKind kind) => kind == BlockKind.Front ? ".front()" : kind == BlockKind.Top ? ".top()" : kind == BlockKind.Left ? ".left" : kind == BlockKind.Right ? ".right" : ".size";
+        // The robots (Defense.RobotRole, in its order) as the Python names after `Robot.`, and the in block's two choices.
+        public static readonly string[] RobotRoles = { "Support", "Melee", "Ranged" };
+        public static readonly string[] Membership = { "in", "not in" };
+        static string Member(BlockKind kind) => kind == BlockKind.Front ? ".front()" : kind == BlockKind.Top ? ".top()" : kind == BlockKind.Left ? ".left" : kind == BlockKind.Right ? ".right" :
+            kind == BlockKind.Pop ? ".pop(0)" : kind == BlockKind.Role ? ".role" : kind == BlockKind.WeakPoint ? ".weak_point()" : ".size";
         // The Python name of an action that takes an enemy: shoot(enemy), break_shield(enemy), block(enemy) ...
         static string Method(BlockKind kind) => kind == BlockKind.Shot || kind == BlockKind.Attack ? "shoot" : kind == BlockKind.BreakShield ? "break_shield" : kind.ToString().ToLowerInvariant();
         static readonly Regex Number = new Regex(@"\A[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)\z");

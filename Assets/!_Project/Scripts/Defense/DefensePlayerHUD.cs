@@ -1313,7 +1313,7 @@ namespace CodingGame.Defense
             SplitDefeatButtons(retry);
             claimLabel.text = reward ? (sim.WaveIndex + 1 == sim.Setup.Waves.Length ? "보상 수령 · 스테이지 완료" : "보상 수령 · 다음 준비") :
                 // Two lines in one button: smaller and closer together, or the second line touched the button's edge.
-                retry ? $"<size=88%>WAVE {sim.Checkpoint.Wave + 1} 다시 도전</size>\n<size=60%>배치·코드 그대로</size>" : sim.Phase != BattlePhase.Victory ? "이 스테이지 재도전" : battle.FromStageMap || battle.PrototypeEnded ? "스테이지 맵으로" : sim.CanAdvanceStage ? $"스테이지 {battle.Stage + 1}로 진행" : "3스테이지 완료";
+                retry ? $"<size=88%>WAVE {sim.Checkpoint.Wave + 1} 다시 도전</size>\n<size=60%>배치·코드 그대로</size>" : sim.Phase != BattlePhase.Victory ? "이 스테이지 재도전" : battle.ReturnsToMap ? "스테이지 맵으로" : sim.CanAdvanceStage ? $"스테이지 {battle.Stage + 1}로 진행" : "4스테이지 완료";
             if (shownRewardPhase != sim.Phase || shownRewardWave != sim.WaveIndex || shownRewardStage != battle.Stage)
             {
                 // Korean first; the banner keeps the English call as a small line above it.
@@ -1326,7 +1326,7 @@ namespace CodingGame.Defense
                 if (shownRewardPhase != sim.Phase) ShowEndBanner($"<size=40%>{english}</size>\n{rewardTitle.text}", sim.Phase == BattlePhase.Defeat);
                 // The victory sentence on two lines: in Pretendard Bold it no longer fits the card on one and left "다." alone.
                 rewardItems.text = reward ? (sim.PendingDrops.Count == 0 && sim.PendingRobots.Count == 0 ? "지급할 보상이 없습니다." : "") :
-                    (sim.Phase == BattlePhase.Victory ? battle.FromStageMap ? $"{sim.Setup.Waves.Length}개 웨이브 방어 성공\n스테이지 맵에서 다음 스테이지를 선택하세요." : sim.CanAdvanceStage ? $"{sim.Setup.Waves.Length}개 웨이브 방어 성공\n보유 블록과 로봇을 다음 스테이지로 가져갑니다." : $"1~3스테이지, 총 {sim.Setup.CampaignWaves?.Sum(waves => waves.Length) ?? sim.Setup.Waves.Length}개 웨이브를 완료했습니다." : "방어 실패 · 배치와 코드를 바꿔 도전하세요") + $"\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
+                    (sim.Phase == BattlePhase.Victory ? battle.ReturnsToMap && !battle.PrototypeEnded ? $"{sim.Setup.Waves.Length}개 웨이브 방어 성공\n스테이지 맵에서 다음 스테이지를 선택하세요." : sim.CanAdvanceStage ? $"{sim.Setup.Waves.Length}개 웨이브 방어 성공\n보유 블록과 로봇을 다음 스테이지로 가져갑니다." : $"1~4스테이지, 총 {sim.Setup.CampaignWaves?.Sum(waves => waves.Length) ?? sim.Setup.Waves.Length}개 웨이브를 완료했습니다." : "방어 실패 · 배치와 코드를 바꿔 도전하세요") + $"\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
                 if (sim.Phase == BattlePhase.Victory) rewardItems.text = StarLine(sim) + "\n\n" + rewardItems.text;
                 if (battle.PrototypeEnded)
                     rewardItems.text = StarLine(sim) + $"\n\n스테이지 {battle.Stage} · {battle.Stage}-{sim.Setup.Waves.Length}까지가 지금 개발된 프로토타입이에요.\n다음 스테이지는 개발 중입니다.\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";

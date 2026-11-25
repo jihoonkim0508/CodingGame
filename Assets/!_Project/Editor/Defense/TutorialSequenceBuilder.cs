@@ -584,6 +584,10 @@ namespace CodingGame.Defense.Editor
             Topic(3, 2, "자유 플레이", "적이 두 번에 나눠 와요 · 끝까지 막기");
             Topic(3, 3, "반사병: continue로 건너뛰기", "반사병 등장 · e.reflecting이면 continue로 건너뛰고 다른 적을 쏘기");
             Topic(3, 4, "보스", "마지막 보스 · 작은 적을 모두 막고 보스를 쓰러뜨리기");
+            // Stage 4 (팀 플레이): the team board's shared names, each robot keeping its own code.
+            Topic(4, 1, "팀 보드: 함께 쓰는 jobs 큐", "팀 보드에 jobs = [] · 지원 로봇이 힐러를 jobs.append(e), 원거리 로봇이 jobs.pop(0)으로 꺼내 처치");
+            Topic(4, 2, "사전: 우선순위 표", "팀 보드에 priority = {Enemy.Healer: 0, ...} · priority[e.type]이 가장 작은 적부터 쏘기");
+            Topic(4, 3, "팀 종합: weak_point()와 get_robots()", "e.weak_point()로 지네·트리의 약점을, get_robots()와 buff(r)로 다친 로봇을 돌보기");
             void Stock(SerializedProperty list, string field, IList<(int value, int count)> items)
             {
                 list.arraySize = items.Count;
@@ -637,6 +641,8 @@ namespace CodingGame.Defense.Editor
             }
             foreach (var stageGroups in data.Groups.GroupBy(g => g.Stage))
             {
+                // A stage the tables add (4) starts as a copy of the last one (its roads), its waves rewritten below.
+                if (stageGroups.Key == stages.arraySize + 1) stages.arraySize++;
                 if (stageGroups.Key > stages.arraySize) throw new InvalidOperationException($"캠페인에 {stageGroups.Key}스테이지가 없습니다.");
                 var waveList = stages.GetArrayElementAtIndex(stageGroups.Key - 1).FindPropertyRelative("waves");
                 waveList.arraySize = stageGroups.Max(g => g.Wave);

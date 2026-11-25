@@ -41,7 +41,10 @@ namespace CodingGame.Defense.Editor
             ["for e in get_enemies()"] = BlockKind.ForEach, ["for in"] = BlockKind.ForEach, ["get_enemies()"] = BlockKind.GetEnemies,
             ["shield"] = BlockKind.Shield, ["break_shield()"] = BlockKind.BreakShield, ["front()"] = BlockKind.Front, ["top()"] = BlockKind.Top,
             ["and"] = BlockKind.And, ["reflecting"] = BlockKind.Reflecting, ["my_hp()"] = BlockKind.MyHp,
-            ["left"] = BlockKind.Left, ["right"] = BlockKind.Right, ["or"] = BlockKind.Or, ["while 조건"] = BlockKind.WhileCondition };
+            ["left"] = BlockKind.Left, ["right"] = BlockKind.Right, ["or"] = BlockKind.Or, ["while 조건"] = BlockKind.WhileCondition,
+            ["[]"] = BlockKind.EmptyList, ["{ } 사전"] = BlockKind.DictLiteral, ["append()"] = BlockKind.Append, ["pop(0)"] = BlockKind.Pop,
+            ["len()"] = BlockKind.Len, ["in"] = BlockKind.In, ["not"] = BlockKind.Not, ["d[k]"] = BlockKind.Index, ["get_robots()"] = BlockKind.GetRobots,
+            ["role"] = BlockKind.Role, ["Robot.Melee"] = BlockKind.RobotRoleName, ["buff(r)"] = BlockKind.BuffRobot, ["weak_point()"] = BlockKind.WeakPoint };
         static BlockKind? Block(string name)
         {
             if (BlockNames.TryGetValue(name, out var kind)) return kind;

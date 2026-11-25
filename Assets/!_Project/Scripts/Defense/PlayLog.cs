@@ -193,6 +193,9 @@ namespace CodingGame.Defense
                     try { sim.ApplyProgram(input.id, input.name, Unflatten(input.code)); return true; }
                     catch (FormatException) { return false; }
                     finally { sim.Setup.TestOptions = options; }
+                case "board":
+                    try { sim.ApplyBoard(Unflatten(input.code)); return true; }
+                    catch (FormatException) { return false; }
                 case "draft": sim.SetDraft(input.id, input.kinds ?? Array.Empty<BlockKind>()); return true;
                 case "invoke": return sim.Invoke(input.id);
                 case "start": sim.Start(); return sim.Phase == BattlePhase.Running;

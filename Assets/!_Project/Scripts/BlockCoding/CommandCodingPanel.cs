@@ -25,7 +25,11 @@ namespace CodingGame.BlockCoding
         [SerializeField] CommandBlockView variablePrefab;
         [SerializeField] GameObject variableEmptyHint;
         [SerializeField, Tooltip("Optional hint shown while the program has no blocks.")] GameObject programEmptyHint;
-        readonly HashSet<string> enemyVariables = new HashSet<string>();
+        Dictionary<string, PythonTreeCompiler.Sort> sorts = new Dictionary<string, PythonTreeCompiler.Sort>();
+        // The team board's names, so a robot's code may use them (DefenseCodeEditor gives the battle's); null outside a battle.
+        public Func<PythonTreeCompiler.Shared> Shared { get; set; }
+        // The team board's own lines are edited here too: then the code compiles as the board (`name = value` only).
+        public bool BoardMode { get; set; }
         List<CommandBlockView> dragging = new List<CommandBlockView>();
         readonly List<CommandBlockView> ghosts = new List<CommandBlockView>();
         // See-through copies of the dragged lines where they will land (snap preview draft 1), and the zone opened for them.
@@ -286,6 +290,8 @@ namespace CodingGame.BlockCoding
             foreach (var root in program.LooseRoots()) yield return program.Group(root).Select(b => b.Rect).ToList();
         }
         public void ShowMessage(string text) => status.text = text;
+        // The team board's def row reads team_board and cannot be renamed.
+        public void SetNameEditable(bool editable) { Initialize(); functionName.interactable = editable; }
         internal void FillNewLoop(CommandBlockView block)
         {
             // range(10), or a for-each's get_enemies(): the loop comes with the one value it is made for.
@@ -295,7 +301,7 @@ namespace CodingGame.BlockCoding
             if (value && (IsAvailable?.Invoke(fill) ?? true) && CanTake(value))
                 block.Arguments[0].Load(new[] { new CodeBlock(fill, fill == BlockKind.Number ? "10" : "0") });
         }
-        internal bool IsEnemyVariable(string name) => enemyVariables.Contains(name);
+        internal PythonTreeCompiler.Sort SortOf(string name) => sorts.TryGetValue(name ?? "", out var sort) ? sort : PythonTreeCompiler.Sort.None;
         // False when another declaration already has the new name: the uses wait under the old one. Renamed into it they
         // became that variable's too (enemy_distance backspaced past enemy) and no longer followed their own declaration.
         // ponytail: a name finished on another variable's leaves its uses one edit short; they are retyped by hand.
@@ -310,24 +316,20 @@ namespace CodingGame.BlockCoding
         }
         void SyncVariables()
         {
-            enemyVariables.Clear();
+            // What each name holds as the code assigns it (an enemy, a robot, a list, a list's item), the board's names first:
+            // the members offered after `name.` follow it. A for-each's name is an enemy until its list says otherwise.
+            var assigned = new List<CodeBlock>();
             foreach (var block in program.AllBlocks())
             {
-                // for e in get_enemies(): e holds an enemy (its members are offered after `e.`).
-                if (block.BaseKind == BlockKind.ForEach)
-                {
-                    try { enemyVariables.Add(PythonTreeCompiler.NormalizeIdentifier(block.VariableName)); } catch (FormatException) { }
-                    continue;
-                }
-                if (block.BaseKind != BlockKind.DeclareVariable) continue;
+                if (block.BaseKind != BlockKind.DeclareVariable && block.BaseKind != BlockKind.ForEach) continue;
                 string name;
                 try { name = PythonTreeCompiler.NormalizeIdentifier(block.VariableName); }
                 catch (FormatException) { name = block.RetainedName; }
                 if (string.IsNullOrEmpty(name)) continue;
-                var value = block.Arguments[0].ReadArgument();
-                if (value != null && (PythonTreeCompiler.GivesEnemy(value.Kind) || value.Kind == BlockKind.Variable && enemyVariables.Contains(value.Value))) enemyVariables.Add(name);
-                else enemyVariables.Remove(name);
+                var line = new CodeBlock(block.BaseKind, name, block.Arguments.Count > 0 ? block.Arguments[0].ReadArgument() : null);
+                assigned.Add(line);
             }
+            sorts = PythonTreeCompiler.Sorts(assigned, BoardMode ? null : Shared?.Invoke());
             foreach (var block in program.AllBlocks()) if (block.BaseKind == BlockKind.Variable) block.RefreshVariableOptions();
             variableEmptyHint.SetActive(false);
         }
@@ -420,7 +422,7 @@ namespace CodingGame.BlockCoding
         List<CodeBlock> CompilePreview(out string source)
         {
             var blocks = program.Read();
-            source = PythonTreeCompiler.Compile(functionName.text, blocks);
+            source = BoardMode ? PythonTreeCompiler.CompileBoard(blocks, out _) : PythonTreeCompiler.Compile(functionName.text, blocks, Shared?.Invoke());
             pythonPreview.text = source;
             return blocks;
         }
@@ -448,7 +450,8 @@ namespace CodingGame.BlockCoding
         {
             if (data.Kind == BlockKind.Attack) data = new CodeBlock(BlockKind.Shot, data.Value, data.Arguments.ToArray());
             // is_dead() and type are a variable's members only (typed after `enemy.`), like distance( and hp.
-            bool member = data.Kind is BlockKind.IsDead or BlockKind.EnemyTypeOf or BlockKind.Shield or BlockKind.Front or BlockKind.Top or BlockKind.Size or BlockKind.Reflecting or BlockKind.Left or BlockKind.Right;
+            bool member = data.Kind is BlockKind.IsDead or BlockKind.EnemyTypeOf or BlockKind.Shield or BlockKind.Front or BlockKind.Top or BlockKind.Size or BlockKind.Reflecting or BlockKind.Left or BlockKind.Right or
+                BlockKind.WeakPoint or BlockKind.Role or BlockKind.Pop;
             if (member && data.Arguments.FirstOrDefault()?.Kind != BlockKind.Variable)
                 throw new FormatException(PythonTreeCompiler.Label(data.Kind) + "는 변수 뒤에 점을 찍어 씁니다. 예: enemy." + PythonTreeCompiler.Label(data.Kind));
             bool variable = member || data.Kind == BlockKind.Variable || data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp;

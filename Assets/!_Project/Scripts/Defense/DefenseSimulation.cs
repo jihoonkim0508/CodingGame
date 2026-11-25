@@ -22,6 +22,9 @@ namespace CodingGame.Defense
         readonly List<(double at, RobotState bot, float damage, List<EnemyState> inRing)> strikes = new List<(double, RobotState, float, List<EnemyState>)>();
         readonly List<(double at, RobotState bot, float damage, List<EnemyState> inRing)> dueStrikes = new List<(double, RobotState, float, List<EnemyState>)>();
         public readonly List<CombatEvent> Events = new List<CombatEvent>();
+        // 팀 보드: the shared names every robot's code reads and writes (stage 4). Its blocks are held like a robot's (BoardId).
+        public readonly DefenseTeamBoard Board = new DefenseTeamBoard();
+        public const int BoardId = -1;
         public BattlePhase Phase { get; private set; } = BattlePhase.Ready;
         public double Time { get; private set; }
         public int WaveIndex { get; private set; }
@@ -108,7 +111,7 @@ namespace CodingGame.Defense
         public int KillCoins => Lesson != null && Lesson.coinsPerKill >= 0 ? Lesson.coinsPerKill : Setup.Progression.coinsPerKill;
         public bool CanPrepare => Phase == BattlePhase.Ready;
         public WaveLesson Lesson => Setup.Progression.lessons.FirstOrDefault(l => l.stage == Setup.Stage && l.wave == WaveIndex + 1);
-        public bool CanAdvanceStage => Phase == BattlePhase.Victory && Setup.Stage > 0 && Setup.Stage < (Setup.CampaignWaves?.Length ?? DefenseCurriculum.StageCount);
+        public bool CanAdvanceStage => Phase == BattlePhase.Victory && Setup.Stage > 0 && Setup.Stage < (Setup.CampaignWaves?.Length ?? Setup.Progression.lessons.Select(l => l.stage).DefaultIfEmpty(0).Max());
         public bool CanEdit => !Setup.PlayerFlow ? Phase != BattlePhase.Victory && Phase != BattlePhase.Defeat : CanPrepare;
         public int Available(BlockKind kind, int editingRobot = 0)
         {
@@ -117,7 +120,7 @@ namespace CodingGame.Defense
             if (!Setup.PlayerFlow || !Options.inventoryLimit || !DefenseProgression.Consumes(kind)) return int.MaxValue;
             int owned = Owned(kind);
             // 편집 중인 로봇의 기존 예약은 제외하고, 다른 로봇이 사용하는 수량만 차감합니다.
-            int used = Robots.Where(r => r.Id != editingRobot).Sum(r => Reserved(r, kind));
+            int used = Robots.Where(r => r.Id != editingRobot).Sum(r => Reserved(r, kind)) + (editingRobot == BoardId ? 0 : BoardReserved(kind));
             return owned - used;
         }
         // A robot holds the blocks of its applied code, or of its unfinished code in the editor when that has more
@@ -131,6 +134,8 @@ namespace CodingGame.Defense
         }
         public int Reserved(RobotState robot, BlockKind kind) => Math.Max(robot.Program?.BlockCount(kind) ?? 0,
             drafts.TryGetValue(robot.Id, out var draft) && draft.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0);
+        int BoardReserved(BlockKind kind) => Math.Max(DefenseProgression.Used(Board.Blocks).Count(k => k == DefenseProgression.Canonical(kind)),
+            drafts.TryGetValue(BoardId, out var draft) && draft.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0);
         int nextId = 1;
         int[] groupCounts;
         Centipede[] groupChains; // a Queue/Stack group is one centipede, made with its first segment
@@ -241,8 +246,25 @@ namespace CodingGame.Defense
             {
                 // Ready from battle start, so a slow shooter can fire as soon as an enemy comes in range.
                 bot.Buffs.Clear(); bot.BlockingEnabled = false; bot.NextAction = Time;
-                if (bot.Program != null) bot.Program = new DefenseProgram(bot.Program.Name, bot.Program.CopyBlocks());
+                if (bot.Program != null) bot.Program = Compiled(bot.Program.Name, bot.Program.CopyBlocks()) ?? bot.Program;
             }
+        }
+        // A robot's code against the board as it is now; null when it no longer compiles (a board name it used is gone).
+        DefenseProgram Compiled(string name, IReadOnlyList<CodingGame.BlockCoding.CodeBlock> blocks)
+        {
+            try { return new DefenseProgram(name, blocks, Board.Shared); } catch (FormatException) { return null; }
+        }
+        // The team board's lines (`jobs = []`): checked like a robot's code (syntax, then stock), then every robot's code is
+        // compiled again against the new names (one that no longer compiles keeps running and faults on the missing name).
+        public void ApplyBoard(IReadOnlyList<CodingGame.BlockCoding.CodeBlock> blocks)
+        {
+            if (!CanEdit) throw new FormatException("팀 보드는 웨이브 준비 중에만 고칠 수 있어요.");
+            PythonTreeCompiler.CompileBoard(blocks, out _);
+            if (Setup.PlayerFlow) foreach (var group in DefenseProgression.Used(blocks).GroupBy(k => k))
+                if (group.Count() > Available(group.Key, BoardId)) throw new FormatException(DefenseProgression.Label(group.Key) + " 블록 수량이 부족합니다. 로봇들이 쓰는 수량도 확인하세요.");
+            Board.Apply(blocks);
+            var input = Log("board", BoardId); input.name = "team_board"; input.code = PlayLog.Flatten(blocks);
+            foreach (var bot in Robots) if (bot.Program != null) bot.Program = Compiled(bot.Program.Name, bot.Program.CopyBlocks()) ?? bot.Program;
         }
         SpawnGroup[] ScaledWave(int waveIndex)
         {
@@ -267,14 +289,15 @@ namespace CodingGame.Defense
             if (StartError() != null) return;
             Log("start");
             Checkpoint = Capture(); accumulated = 0; Phase = BattlePhase.Running;
-            foreach (var bot in Robots) bot.Program?.Invoke();
+            Board.Run(this); // the board's lines first: the robots' code finds jobs = [] already there
+            foreach (var bot in Robots) { bot.Job = 0; bot.Program?.Invoke(); }
         }
         // The last wave start; a defeat can go back to it with Restore on a fresh simulation of the same stage and wave.
         public WaveCheckpoint Checkpoint { get; private set; }
         WaveCheckpoint Capture() => new WaveCheckpoint {
             Stage = Setup.Stage, Wave = WaveIndex, Coins = Coins, BaseHealth = BaseHealth, Kills = Kills, Leaks = Leaks,
             RobotStock = new Dictionary<RobotRole, int>(RobotInventory),
-            Groups = currentWave.Select(CopyGroup).ToArray(),
+            Groups = currentWave.Select(CopyGroup).ToArray(), Board = Board.Blocks.Select(DefenseProgram.Clone).ToArray(),
             Robots = Robots.Select(r => new RobotSnapshot { Spec = r.Spec.Copy(), DefinitionIndex = r.DefinitionIndex, Position = r.Position,
                 Level = r.Level, UpgradeCostPaid = r.UpgradeCostPaid, Health = r.Health, Name = r.Program?.Name, Code = r.Program?.CopyBlocks() }).ToArray() };
         static SpawnGroup CopyGroup(SpawnGroup g) => new SpawnGroup { Enemy = g.Enemy.Copy(), DefinitionIndex = g.DefinitionIndex, RouteIndex = g.RouteIndex,
@@ -313,6 +336,7 @@ namespace CodingGame.Defense
             if (Phase != BattlePhase.Ready || Robots.Count > 0 || checkpoint.Stage != Setup.Stage || checkpoint.Wave != WaveIndex)
                 throw new ArgumentException("웨이브 재도전은 같은 웨이브의 빈 정비 단계에서만 할 수 있습니다.");
             int logged = Inputs.Count; // the play log keeps the restore as the session's start, not as its placings (PlayRun.restore)
+            if (checkpoint.Board != null) Board.Apply(checkpoint.Board);
             foreach (var saved in checkpoint.Robots)
             {
                 var bot = Place(saved.Spec, saved.DefinitionIndex, saved.Position, out var error);
@@ -479,7 +503,7 @@ namespace CodingGame.Defense
             var bot = FindRobot(id);
             if (bot == null || !CanEdit)
                 throw new FormatException("코드를 적용할 로봇이 없거나 전투가 종료되었습니다.");
-            var program = new DefenseProgram(name, blocks);
+            var program = new DefenseProgram(name, blocks, Board.Shared);
             // 문법과 재고 검증이 모두 끝난 뒤 교체해야 실패 시 이전 코드와 예약 수량이 유지됩니다.
             if (Setup.PlayerFlow) foreach (var group in DefenseProgression.Used(blocks).GroupBy(k => k))
                 if (group.Count() > Available(group.Key, id)) throw new FormatException(DefenseProgression.Label(group.Key) + " 블록 수량이 부족합니다. 다른 로봇의 예약 수량도 확인하세요.");
@@ -517,7 +541,7 @@ namespace CodingGame.Defense
             var profile = bot.Spec;
             if (action == RobotAction.Buff)
             {
-                if (!Buff(bot, profile, strength)) return bot.LastResult = ActionResult.NoTarget;
+                if (!Buff(bot, profile, strength, targetId)) return bot.LastResult = ActionResult.NoTarget;
             }
             else
             {
@@ -539,9 +563,13 @@ namespace CodingGame.Defense
             if (!whiff) { bot.ActionsThisWave++; if (action != RobotAction.Buff) bot.AttacksThisWave++; }
             return bot.LastResult = ActionResult.Executed;
         }
-        bool Buff(RobotState bot, RobotSpec profile, float strength)
+        // buff(): every other robot in range. buff(r): that one robot wherever it stands (itself too), and BuffRepair of its
+        // health back, so `if r.hp < 30: buff(r)` keeps a robot a reflector hurts on the field.
+        public const float BuffRepair = 20;
+        bool Buff(RobotState bot, RobotSpec profile, float strength, int robot = 0)
         {
-            var targets = Robots.Where(r => r.Id != bot.Id && Vector2.DistanceSquared(r.Position, bot.Position) <= bot.Range * bot.Range).ToList();
+            var targets = robot != 0 ? Robots.Where(r => r.Id == robot).ToList() :
+                Robots.Where(r => r.Id != bot.Id && Vector2.DistanceSquared(r.Position, bot.Position) <= bot.Range * bot.Range).ToList();
             if (targets.Count == 0) return false;
             float buffStrength = strength * bot.LevelMultiplier;
             foreach (var r in targets)
@@ -549,8 +577,10 @@ namespace CodingGame.Defense
                 r.Buffs.RemoveAll(b => b.Source == bot.Id);
                 r.Buffs.Add(new BuffState { Source = bot.Id, Until = Time + profile.duration, Damage = 1 + (profile.buffDamage - 1) * buffStrength,
                     Range = 1 + (profile.buffRange - 1) * buffStrength, Interval = Math.Max(.01f, 1 - (1 - profile.buffInterval) * buffStrength) });
+                if (robot != 0 && r.Health.HasValue) r.Health = Math.Min(r.MaxHealth, r.Health.Value + BuffRepair * buffStrength);
             }
-            Emit("buff", bot.Id, 0, bot.Position, 0, bot.Range);
+            if (robot != 0) Events.Add(new CombatEvent { Kind = "buff", Source = bot.Id, Target = robot, Origin = bot.Position, Position = targets[0].Position, Radius = 1.2f }); // a small ring on the robot it reached
+            else Emit("buff", bot.Id, 0, bot.Position, 0, bot.Range);
             return true;
         }
         // break_shield(): the shield is gone at once, then a little damage to health (a laser like the shot's, no flight).
@@ -836,6 +866,19 @@ namespace CodingGame.Defense
             }
         }
         public static bool Rides(EnemyState e) => e.Node?.Parent != null; // a tree node below the root
+        // e.weak_point(): what a hit on this enemy can hurt now. A centipede's open end (queue: front, stack: top), a tree's
+        // leftmost living leaf (going left where it can, else right), any other enemy itself.
+        public static EnemyState WeakPoint(EnemyState e)
+        {
+            if (e.Chain != null) return e.Chain.Hittable ?? e;
+            while (e.Node != null)
+            {
+                var next = e.Node.Left != null && e.Node.Left.Active ? e.Node.Left : e.Node.Right != null && e.Node.Right.Active ? e.Node.Right : null;
+                if (next == null) break;
+                e = next;
+            }
+            return e;
+        }
         static bool IsCentipede(EnemyType type) => type == EnemyType.Queue || type == EnemyType.Stack;
         // How far apart a centipede's segments walk: one waits while it is closer than this to the one ahead (a new segment
         // starts on the tail and falls in behind it; a slowed one holds up those behind instead of being passed).

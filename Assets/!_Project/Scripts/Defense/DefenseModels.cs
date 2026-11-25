@@ -252,6 +252,7 @@ namespace CodingGame.Defense
         public bool AutoExecute;
         public bool BlockingEnabled; // ponytail: body blocking was the tank's; no robot stands on the road now, so nothing sets it
         public double LastReflected = double.NegativeInfinity; // when a reflector last sent a hit back (the view flashes)
+        public int Job; // the enemy this robot last took out of a list with pop(0) (the team board's line to it), 0 for none
         public ActionResult LastResult;
         public int Executions, AttacksThisWave;
         // This wave's record for the result debrief (reset when a wave is prepared).
@@ -336,6 +337,7 @@ namespace CodingGame.Defense
         public SpawnGroup[] Groups; // the wave as fought, with enemies carried over from the wave before
         public RobotSnapshot[] Robots;
         public Dictionary<RobotRole, int> RobotStock; // stock at wave start, so a robot lost in an earlier wave is not handed back on retry (null: recompute)
+        public IReadOnlyList<CodingGame.BlockCoding.CodeBlock> Board; // the team board's lines then
     }
     public sealed class RobotSnapshot
     {

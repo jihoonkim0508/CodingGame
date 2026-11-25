@@ -280,6 +280,69 @@ namespace CodingGame.Defense.Editor
         }
 
         // The wave to its end, logging which kinds leaked.
+        // 4-1 팀 플레이 (2026-11-26): the team board with jobs and priority in its editor, the ranged robot's code with
+        // jobs.pop(0) as blocks, then the wave with the support scouting healers into jobs (cards slide in), the ranged robots
+        // popping them (cards fly to them, a line to the job) and the numbered reticles; team_board.mp4 of the fight.
+        // TestResults/Editor/team/NN_*.png. Windowed Editor, like Run.
+        public static void RunTeam() => Start("TestResults/Editor/team", Team());
+        static IEnumerator Team()
+        {
+            DevTest.PlayDefense(4, 1, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(1);
+            var battle = DevTest.Battle; var sim = battle.Simulation;
+            Deploy();
+            Relaxed(() =>
+            {
+                sim.ApplyBoard(TutorialAnswers.Parse("jobs = []\npriority = {Enemy.Healer: 0, Enemy.Shielder: 1, Enemy.Normal: 2}\n"));
+                foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Support)) sim.ApplyProgram(bot.Id, "scout", TutorialAnswers.Parse(TeamSupport));
+                foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Ranged)) sim.ApplyProgram(bot.Id, "sniper_" + bot.Id, TutorialAnswers.Parse(TeamRanged));
+            });
+            Debug.Log("[ScreenTour] team: " + string.Join(", ", sim.Robots.Select(r => $"{r.Spec.role} {r.Program?.Name}")) + " · board " + sim.Board.Source.Replace("\n", " / "));
+            // Opened with the stock lifted, like the code above: the editor applies what it loads, and 4-1 holds no dict yet
+            // (4-1's clear reward), so the board would come back empty. The palette's counts are the real ones again after.
+            Relaxed(() => battle.CodeEditor.OpenBoard()); battle.CodeEditor.Panel.RefreshPalette();
+            yield return Seconds(.6);
+            FitCode(.72f);
+            yield return Seconds(1);
+            yield return Shot("team_board_declared");
+            battle.CodeEditor.Close();
+            var sniper = sim.Robots.First(r => r.Spec.role == RobotRole.Ranged);
+            battle.SelectRobot(sniper.Id); Relaxed(() => battle.DevelopSelected()); battle.CodeEditor.Panel.RefreshPalette();
+            yield return Seconds(.6);
+            FitCode(.85f);
+            yield return Seconds(1);
+            yield return Shot("ranged_code_pop");
+            battle.CodeEditor.Close();
+            yield return Seconds(.3);
+            battle.StartBattle(); DevTest.Speed(2);
+            yield return Until(() => sim.Board.Variables.TryGetValue("jobs", out var jobs) && jobs.Items.Count >= 2 && sim.Robots.Any(r => r.Job != 0), 60);
+            DevTest.Speed(1);
+            yield return Seconds(1.5);
+            Debug.Log("[ScreenTour] jobs " + (sim.Board.Variables.TryGetValue("jobs", out var listed) ? listed.Items.Count : -1) + ", reticles on " + sim.Enemies.Count(e => e.Active && sim.Board.IndexOf(e.Id, out _) >= 0));
+            yield return Shot("battle_jobs_reticles");
+            int pops = sim.Board.Notes.Count(n => n.Kind == "pop");
+            yield return Until(() => sim.Board.Notes.Count(n => n.Kind == "pop") > pops, 40);
+            yield return Seconds(.18);
+            yield return Shot("battle_card_flies");
+            yield return Record("team_board", 26);
+            DevTest.Speed(3);
+            for (double end = EditorApplication.timeSinceStartup + 150; sim.Phase == BattlePhase.Running && EditorApplication.timeSinceStartup < end;) yield return null;
+            Debug.Log($"[ScreenTour] 4-1 with the team: {sim.Phase}, core {sim.BaseHealth}, leaks {sim.WaveLeaks}, kills {sim.Kills}, " +
+                $"appends {sim.Board.Notes.Count(n => n.Kind == "append")}, pops {sim.Board.Notes.Count(n => n.Kind == "pop")}, {sim.Time:0.0} s");
+        }
+        // The code area zoomed out round its def block, so a whole program (or the board's wide dict) is in the picture.
+        static void FitCode(float zoom)
+        {
+            var panel = DevTest.Battle.CodeEditor.Panel;
+            if (!panel.Workspace || !panel.DefBlock) return;
+            panel.Workspace.ZoomAt(RectTransformUtility.WorldToScreenPoint(null, panel.DefBlock.position), null, zoom);
+            panel.ShowDefAtTopLeft();
+        }
+        const string TeamSupport = "while True:\n    for e in get_enemies():\n        if e.type == Enemy.Healer and e not in jobs:\n            jobs.append(e)\n" +
+            "    for r in get_robots():\n        if r.hp < 30:\n            buff(r)\n";
+        const string TeamRanged = "while True:\n    if len(jobs) > 0:\n        target = jobs.pop(0)\n        while not target.is_dead():\n            shoot(target.weak_point())\n" +
+            "    else:\n        e = get_nearest_enemy()\n        shoot(e.weak_point())\n";
         static IEnumerator Outcome(DefenseSimulation sim)
         {
             var kinds = new System.Collections.Generic.Dictionary<int, EnemyType>(); var logged = new System.Collections.Generic.HashSet<int>();

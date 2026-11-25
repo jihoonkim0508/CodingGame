@@ -23,6 +23,7 @@ namespace CodingGame.Defense.Editor
             if (EditorApplication.timeSinceStartup < limit) return;
             EditorApplication.update -= Tick;
             Debug.LogError($"[BatchWatchdog] {limit / 60:0.#} min passed: exiting.");
+            FileUtil.DeleteFileOrDirectory("Temp/__Backupscenes"); // or a crash on the way out stops the next launch on recovering them
             EditorApplication.Exit(124);
         }
     }

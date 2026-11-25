@@ -24,7 +24,22 @@ namespace CodingGame.BlockCoding
         MyHp, // my_hp(): the robot's own health
         Left, Right, // enemy.left / enemy.right: a tree node's child as an Enemy, None when it has none (or it died)
         Or, // a or b: two conditions
-        WhileCondition // while <condition>: a loop that tests its condition before every turn
+        WhileCondition, // while <condition>: a loop that tests its condition before every turn
+        // The team (stage 4): lists, dicts and robots as objects. A list or dict made on the team board is one object every
+        // robot's code shares (DefenseTeamBoard).
+        EmptyList, // []: a new empty list
+        DictLiteral, // {k: v, k: v, k: v}: three key/value holes; a pair left empty is left out
+        Append, // x.append(v): statement, receiver in Arguments[0]
+        Pop, // x.pop(0): a list's member, takes its first item out
+        Len, // len(x)
+        In, // v in x / v not in x: Value is "in" or "not in"
+        Not, // not c
+        Index, // d[k]: a dict's value (or a list's item)
+        GetRobots, // get_robots(): the placed robots
+        Role, // r.role: a robot's member
+        RobotRoleName, // Robot.Melee / Robot.Ranged / Robot.Support: Value is the name
+        BuffRobot, // buff(r): the support action on one robot
+        WeakPoint // e.weak_point(): the part of the enemy that can be hit now
     }
 
     [Serializable]

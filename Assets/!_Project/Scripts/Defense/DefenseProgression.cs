@@ -118,6 +118,11 @@ namespace CodingGame.Defense
                 case BlockKind.Front: return "front()"; case BlockKind.Top: return "top()";
                 case BlockKind.Left: return "left"; case BlockKind.Right: return "right";
                 case BlockKind.Or: return "or"; case BlockKind.WhileCondition: return "while 조건";
+                case BlockKind.EmptyList: return "[]"; case BlockKind.DictLiteral: return "{ } 사전";
+                case BlockKind.Append: return "append()"; case BlockKind.Pop: return "pop(0)"; case BlockKind.Len: return "len()";
+                case BlockKind.In: return "in"; case BlockKind.Not: return "not"; case BlockKind.Index: return "d[k]";
+                case BlockKind.GetRobots: return "get_robots()"; case BlockKind.Role: return "role"; case BlockKind.RobotRoleName: return "Robot.Melee";
+                case BlockKind.BuffRobot: return "buff(r)"; case BlockKind.WeakPoint: return "weak_point()";
                 default: return kind.ToString().ToLowerInvariant();
             }
         }

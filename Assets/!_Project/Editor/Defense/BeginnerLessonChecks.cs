@@ -215,7 +215,7 @@ namespace CodingGame.Defense.Editor
             {
                 if (sim.Phase == BattlePhase.Victory)
                 {
-                    Require(battle.PrototypeEnded, "3-4 won without the prototype end");
+                    Require(sim.CanAdvanceStage && !battle.PrototypeEnded, "3-4 won but Stage 4 (팀 플레이) does not come next");
                     End("PASS 3-1 to 3-4 completed: the tank introduced and stood on the road, every wave held, the boss won; kills=" + sim.Kills + " core=" + sim.BaseHealth); return;
                 }
                 if (sim.Phase == BattlePhase.Defeat) { End("FAIL stage 3 wave " + (sim.WaveIndex + 1) + " lost; kills=" + sim.Kills + " leaks=" + sim.Leaks); return; }

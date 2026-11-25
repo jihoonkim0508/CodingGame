@@ -26,6 +26,8 @@ namespace CodingGame.Defense
         DefenseSimulation draftSession;
         readonly Dictionary<int, CommandCodingPanel.EditHistory> drafts = new Dictionary<int, CommandCodingPanel.EditHistory>();
         public bool IsOpen => editorRoot && editorRoot.activeSelf;
+        // The team board's lines are open instead of a robot's code (DefenseTeamBoardView's 편집).
+        public bool EditingBoard => IsOpen && editingId == DefenseSimulation.BoardId;
         public bool HintOpen => IsOpen && hintPopup && hintPopup.activeSelf;
         public int EditingId => editingId;
         public CommandCodingPanel Panel => panel;
@@ -35,6 +37,7 @@ namespace CodingGame.Defense
             if (!battle || !panel || !editorRoot || !title || !inventory || !closeButton || !automaticButton)
                 throw new InvalidOperationException("DefenseCodeEditor Inspector 참조를 연결하세요.");
             panel.ApplyToTarget = Apply;
+            panel.Shared = () => battle.Simulation?.Board.Shared;
             panel.BlockDropped += OnBlockDropped;
             panel.BlockDropped += (kind, source, destination) => UISound.Play("block-drop");
             panel.Feedback += kind => UISound.Play(kind);
@@ -111,9 +114,9 @@ namespace CodingGame.Defense
             var robot = sim?.FindRobot(id);
             if (robot == null || !sim.CanEdit) return;
             if (IsOpen && editingId == id && editingSession == sim) return;
-            Close(false); editingSession = sim; editingId = id;
+            Close(false); editingSession = sim; editingId = id; panel.BoardMode = false; panel.SetNameEditable(true);
             if (draftSession != sim) { drafts.Clear(); draftSession = sim; }
-            foreach (int removed in drafts.Keys.Where(key => !sim.Robots.Exists(r => r.Id == key)).ToArray()) drafts.Remove(removed);
+            foreach (int removed in drafts.Keys.Where(key => key != DefenseSimulation.BoardId && !sim.Robots.Exists(r => r.Id == key)).ToArray()) drafts.Remove(removed);
             title.text = "미리보기 · " + battle.RobotName(id);
             battle.BeginCodeView(robot);
             editorRoot.SetActive(true); UISound.Play("open");
@@ -123,9 +126,33 @@ namespace CodingGame.Defense
             ShowHint(); // this robot's own hint
             if (panel.IsApplied) panel.ShowMessage("자동 적용됨 · Ctrl+Z 실행 취소 · Ctrl+Y 다시 실행");
         }
+        // The team board in the same editor: its def row reads team_board (fixed), and its code compiles as the board's lines.
+        public void OpenBoard()
+        {
+            var sim = battle.Simulation;
+            if (sim == null || !sim.CanEdit || EditingBoard) return;
+            Close(false); editingSession = sim; editingId = DefenseSimulation.BoardId;
+            if (draftSession != sim) { drafts.Clear(); draftSession = sim; }
+            title.text = "팀 보드 · 모든 로봇이 함께 쓰는 변수";
+            editorRoot.SetActive(true); UISound.Play("open");
+            panel.BoardMode = true;
+            if (drafts.TryGetValue(DefenseSimulation.BoardId, out var history)) panel.LoadHistory(history);
+            else panel.LoadProgram("team_board", sim.Board.Blocks);
+            panel.SetNameEditable(false);
+            panel.ShowCategory(0); panel.RefreshPalette();
+            SetHint(null);
+            panel.ShowMessage("팀 보드 · 웨이브가 시작할 때 한 번 실행 · 여기 만든 변수(jobs = [])는 모든 로봇의 코드에서 같은 것이에요");
+        }
         string Apply(string name, IReadOnlyList<CodeBlock> blocks)
         {
             if (!IsOpen || !HasCurrentSession) throw new FormatException("로봇을 다시 선택하세요.");
+            if (editingId == DefenseSimulation.BoardId)
+            {
+                editingSession.ApplyBoard(blocks);
+                editingSession.SetDraft(DefenseSimulation.BoardId, panel.Program.AllBlocks().Select(b => DefenseProgression.Canonical(b.Kind)));
+                panel.RefreshPalette();
+                return blocks.Count == 0 ? "팀 보드 비어 있음" : "팀 보드 적용됨 · 다음 웨이브 시작에 실행";
+            }
             // Emptying the robot does not depend on the name field: under a name Python rejects the last code kept running
             // while the editor said the robot does nothing.
             if (blocks.Count == 0) try { PythonTreeCompiler.NormalizeIdentifier(name); } catch (FormatException) { name = "robot_" + editingId; }
@@ -145,9 +172,10 @@ namespace CodingGame.Defense
         {
             if (resume && !battle.TutorialAllows("Editor.Close")) return;
             bool wasOpen = IsOpen;
-            if (IsOpen && HasCurrentSession && editingSession.Robots.Exists(r => r.Id == editingId))
+            if (IsOpen && HasCurrentSession && (editingSession.Robots.Exists(r => r.Id == editingId) || editingId == DefenseSimulation.BoardId))
                 drafts[editingId] = panel.History;
-            if (IsOpen) { battle.EndCodeView(); UISound.Play("close"); }
+            if (IsOpen) { if (editingId != DefenseSimulation.BoardId) battle.EndCodeView(); UISound.Play("close"); }
+            panel.BoardMode = false;
             if (editorRoot) editorRoot.SetActive(false);
             editingId = 0; editingSession = null;
             if (resume && wasOpen) battle.ReportTutorialAction("Editor.Close", "TargetClicked", "EditorClosed");
@@ -553,7 +581,7 @@ namespace CodingGame.Defense
             var sim = battle.Simulation;
             if (!IsOpen) return;
             // 재시작이나 도메인 리로드로 세션이 사라지면 이전 로봇 편집을 즉시 종료합니다.
-            if (!HasCurrentSession || !sim.CanEdit || !sim.Robots.Exists(r => r.Id == editingId)) { Close(false); return; }
+            if (!HasCurrentSession || !sim.CanEdit || editingId != DefenseSimulation.BoardId && !sim.Robots.Exists(r => r.Id == editingId)) { Close(false); return; }
             var keyboard = Keyboard.current;
             if (keyboard == null) return;
             // In a lesson Esc opens the menu over the editor; closing the editor there would leave the step behind.

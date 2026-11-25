@@ -187,5 +187,6 @@ static class Check
         GameDataCheck.Run();
         ClassCheck.Run();
         ReflectorCheck.Run();
+        TeamCheck.Run();
     }
 }

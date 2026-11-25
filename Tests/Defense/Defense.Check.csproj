@@ -25,6 +25,8 @@
     <Compile Include="ClassCheck.cs" />
     <Compile Include="ReflectorCheck.cs" />
     <Compile Include="TreeCheck.cs" />
+    <Compile Include="TeamCheck.cs" />
+    <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseTeamBoard.cs" />
     <Compile Include="../../Assets/!_Project/Editor/Defense/TutorialAnswers.cs" />
     <Compile Include="AllocCheck.cs" />
     <Compile Include="PlacementCheck.cs" />

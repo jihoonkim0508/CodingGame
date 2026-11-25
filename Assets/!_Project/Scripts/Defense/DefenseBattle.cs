@@ -63,10 +63,14 @@ namespace CodingGame.Defense
         [SerializeField] DefenseAttackPreview attackPreview;
         [SerializeField, Min(1)] int stage = 1;
         public int Stage => stage;
-        // The prototype is built up to Stage 3 (3-4): winning it ends the play-through with a notice (Stage 2 goes on to Stage 3).
-        public const int PrototypeLastStage = 3;
+        // The prototype is built up to Stage 4 (4-3, 팀 플레이): winning it ends the play-through with a notice.
+        public const int PrototypeLastStage = 4;
         public bool PrototypeEnded => Simulation != null && Simulation.Phase == BattlePhase.Victory && stage >= PrototypeLastStage;
         public bool FromStageMap => StageMap.StageProgress.SelectedStage > 0;
+        // The stage map has three islands: Stage 4 has none yet, so a Stage 3 won from the map goes on to it here.
+        // ponytail: when the map gets a fourth island, set MapStages to 4 and Stage 4 starts from the map like the others.
+        public const int MapStages = 3;
+        public bool ReturnsToMap => PrototypeEnded || FromStageMap && !(Simulation != null && Simulation.CanAdvanceStage && stage >= MapStages);
         public RobotDefinition RobotDefinition(int index) => robots[index];
         public IReadOnlyList<RobotDefinition> RobotDefinitions => robots;
         [Header("Authored HUD")]
@@ -146,6 +150,7 @@ namespace CodingGame.Defense
             ValidateReferences();
             // Body texts are saved in Pretendard Bold (Tools/Optimize/126); no font pass at load.
             sounds = gameObject.AddComponent<DefenseSounds>();
+            DefenseTeamBoardView.Attach(this);
             developerRoot.SetActive(false);
             developerHint.SetActive(false); // PR #19's header puts the coin stat in this corner; F1 still works in developer mode
             startButton.onClick.AddListener(RequestStartBattle);
@@ -605,7 +610,7 @@ namespace CodingGame.Defense
             if (Simulation.Phase == BattlePhase.Reward) { ClaimRewards(); return; }
             if (Simulation.Phase == BattlePhase.Defeat) { if (CanRetryWave) RetryWave(); else Restart(); return; }
             if (!TutorialAllows("Battle.ContinueCampaign")) return;
-            if (FromStageMap || PrototypeEnded) { GameFlow.LoadScene(GameFlow.StageScene); return; }
+            if (ReturnsToMap) { GameFlow.LoadScene(GameFlow.StageScene); return; }
             if (Simulation.CanAdvanceStage && stageOneMap && stage == 1)
             {
                 // Stage 2 is on another map, so it starts as a new session with Stage 1's rewards (as from the stage map).

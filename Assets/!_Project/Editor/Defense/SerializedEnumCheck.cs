@@ -31,13 +31,19 @@ namespace CodingGame.Defense.Editor
             [BlockKind.Block] = "block(", [BlockKind.Boom] = "boom(", [BlockKind.Slow] = "slow(", [BlockKind.Buff] = "buff(",
             [BlockKind.MyAttackRange] = "my_attack_range()", [BlockKind.MyPos] = "get_my_pos()", [BlockKind.EnemyTypeName] = "Enemy.",
             [BlockKind.ForEach] = "in", [BlockKind.GetEnemies] = "get_enemies()", [BlockKind.BreakShield] = "break_shield(",
-            [BlockKind.And] = "and", [BlockKind.MyHp] = "my_hp()", [BlockKind.WhileCondition] = "while", [BlockKind.Or] = "or" };
-        static readonly BlockKind[] Pickers = { BlockKind.Comparison, BlockKind.Arithmetic, BlockKind.EnemyTypeName };
+            [BlockKind.And] = "and", [BlockKind.MyHp] = "my_hp()", [BlockKind.WhileCondition] = "while", [BlockKind.Or] = "or",
+            [BlockKind.EmptyList] = "[]", [BlockKind.DictLiteral] = "{", [BlockKind.Append] = ".append(", [BlockKind.Len] = "len(",
+            [BlockKind.Not] = "not", [BlockKind.Index] = "[", [BlockKind.GetRobots] = "get_robots()", [BlockKind.RobotRoleName] = "Robot.",
+            [BlockKind.BuffRobot] = "buff(" };
+        static readonly BlockKind[] Pickers = { BlockKind.Comparison, BlockKind.Arithmetic, BlockKind.EnemyTypeName, BlockKind.In, BlockKind.RobotRoleName };
         // A 도감 title holds this (its kind's Python as the guide writes it).
         static readonly Dictionary<BlockKind, string> Titled = new Dictionary<BlockKind, string> {
             [BlockKind.ForEach] = "for e in", [BlockKind.GetEnemies] = "get_enemies()", [BlockKind.Shield] = "shield", [BlockKind.BreakShield] = "break_shield",
             [BlockKind.Front] = "front()", [BlockKind.Top] = "top()", [BlockKind.Reflecting] = "reflecting", [BlockKind.And] = "and",
             [BlockKind.MyHp] = "my_hp()", [BlockKind.Left] = "left", [BlockKind.Right] = "right", [BlockKind.Or] = "or", [BlockKind.WhileCondition] = "while",
+            [BlockKind.EmptyList] = "[]", [BlockKind.DictLiteral] = "{", [BlockKind.Append] = "append", [BlockKind.Pop] = "pop(0)", [BlockKind.Len] = "len(",
+            [BlockKind.In] = " in ", [BlockKind.Not] = "not", [BlockKind.Index] = "[", [BlockKind.GetRobots] = "get_robots()", [BlockKind.Role] = "role",
+            [BlockKind.RobotRoleName] = "Robot.", [BlockKind.BuffRobot] = "buff(r)", [BlockKind.WeakPoint] = "weak_point()",
             [BlockKind.Shot] = "shoot", [BlockKind.Slash] = "slash", [BlockKind.Buff] = "buff", [BlockKind.Slow] = "slow", [BlockKind.Block] = "block",
             [BlockKind.Boom] = "boom", [BlockKind.While] = "while", [BlockKind.If] = "if", [BlockKind.IsDead] = "is_dead" };
         // EnemyDefinition file name → its kind.
@@ -120,6 +126,18 @@ namespace CodingGame.Defense.Editor
                 string Of(IEnumerable<(BlockKind kind, int count)> items) => string.Join(", ", items.OrderBy(i => i.kind).Select(i => i.kind + "×" + i.count));
                 string asset = Of(lesson.rewards.Select(b => (b.kind, b.count))), table = Of(award?.Blocks ?? new List<(BlockKind, int)>());
                 if (asset != table) failures.Add($"campaign {lesson.stage}-{lesson.wave}: rewards {asset} but Award.md says {table}");
+            }
+            // The tutorial's bindings as TutorialInputBridge.Initialize takes them: a bad one turns the whole tutorial off.
+            foreach (var bridge in Object.FindObjectsByType<TutorialInputBridge>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                var targets = new SerializedObject(bridge).FindProperty("targets"); var keys = new HashSet<string>();
+                for (int i = 0; i < targets.arraySize; i++)
+                {
+                    var t = targets.GetArrayElementAtIndex(i); string key = t.FindPropertyRelative("key").stringValue;
+                    bool ui = t.FindPropertyRelative("uiTarget").objectReferenceValue, world = t.FindPropertyRelative("worldTarget").objectReferenceValue;
+                    if (string.IsNullOrWhiteSpace(key) || !t.FindPropertyRelative("allowRuntimeTarget").boolValue && !ui && !world || ui && world || !keys.Add(key))
+                        failures.Add($"tutorial binding '{key}' has no target, two, or a key used twice");
+                }
             }
             log.AppendLine($"campaign lessons {campaign.progression.lessons.Length}, stages {campaign.stages.Length}");
         }

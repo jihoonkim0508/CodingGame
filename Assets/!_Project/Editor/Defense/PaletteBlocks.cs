@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using CodingGame.BlockCoding;
 using TMPro;
@@ -136,7 +137,99 @@ namespace CodingGame.Defense.Editor
                 fields.FindProperty("dropdown").objectReferenceValue = null;
                 fields.ApplyModifiedPropertiesWithoutUndo();
             });
+            Team();
             so.ApplyModifiedPropertiesWithoutUndo();
+            // The team's blocks (stage 4), shaped from the blocks above: a label where a picker was, holes copied or taken away.
+            void Team()
+            {
+                TMP_Text Label(Transform header, string text, int at)
+                {
+                    var label = Object.Instantiate(Find(BlockKind.NearestEnemy).transform.Find("Header").GetComponentInChildren<TMP_Text>(true).gameObject, header);
+                    label.name = "Label"; label.transform.SetSiblingIndex(Mathf.Clamp(at, 0, header.childCount - 1));
+                    var t = label.GetComponent<TMP_Text>(); t.text = text; return t;
+                }
+                void Holes(CommandBlockView view, params Transform[] holes)
+                {
+                    var fields = new SerializedObject(view); var list = fields.FindProperty("arguments"); list.arraySize = holes.Length;
+                    for (int i = 0; i < holes.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = holes[i].GetComponent<CommandDropZone>();
+                    fields.ApplyModifiedPropertiesWithoutUndo();
+                }
+                void NoPicker(CommandBlockView view, Transform picker)
+                {
+                    if (picker) Object.DestroyImmediate(picker.gameObject);
+                    var fields = new SerializedObject(view); fields.FindProperty("dropdown").objectReferenceValue = null; fields.ApplyModifiedPropertiesWithoutUndo();
+                }
+                void Hint(Transform hole, string text) { if (hole && hole.Find("Hint")?.GetComponent<TMP_Text>() is TMP_Text t) t.text = text; }
+                int values = Category(BlockKind.NearestEnemy), commands = Category(BlockKind.Shot), logic = Category(BlockKind.Comparison);
+                Append(BlockKind.EmptyList, BlockKind.NearestEnemy, values, view => Relabel(view, "get_nearest_enemy()", "[]"));
+                Append(BlockKind.GetRobots, BlockKind.GetEnemies, values, view => Relabel(view, "get_enemies()", "get_robots()"));
+                Append(BlockKind.RobotRoleName, BlockKind.EnemyTypeName, values, view =>
+                {
+                    Relabel(view, "Enemy.", "Robot.");
+                    if (view.transform.Find("Header/Kind/Caption")?.GetComponent<TMP_Text>() is TMP_Text caption) caption.text = "Melee";
+                });
+                // len([ ]): the comparison without its picker and second hole.
+                Append(BlockKind.Len, BlockKind.Comparison, values, view =>
+                {
+                    var header = view.transform.Find("Header"); var picker = header.Find("Operator");
+                    Object.DestroyImmediate(header.Find("Slot1").gameObject);
+                    Label(header, ")", picker.GetSiblingIndex()); NoPicker(view, picker);
+                    Label(header, "len(", 0);
+                    Holes(view, header.Find("Slot0")); Hint(header.Find("Slot0"), "리스트");
+                });
+                // [ ][ [ ] ]: a dict (or list) and its key.
+                Append(BlockKind.Index, BlockKind.Comparison, values, view =>
+                {
+                    var header = view.transform.Find("Header"); var picker = header.Find("Operator");
+                    Label(header, "[", picker.GetSiblingIndex()); NoPicker(view, picker);
+                    Label(header, "]", header.childCount);
+                    Hint(header.Find("Slot0"), "사전"); Hint(header.Find("Slot1"), "키");
+                });
+                // [ ] in [ ]: the comparison's picker lists in / not in at run time (CommandBlockView.Choices).
+                Append(BlockKind.In, BlockKind.Comparison, logic, view =>
+                {
+                    var header = view.transform.Find("Header");
+                    Hint(header.Find("Slot0"), "값"); Hint(header.Find("Slot1"), "리스트");
+                    if (header.Find("Operator/Label")?.GetComponent<TMP_Text>() is TMP_Text caption) caption.text = "in";
+                });
+                // not [ ]: the and block without its first hole, its label in front.
+                Append(BlockKind.Not, BlockKind.And, Category(BlockKind.And), view =>
+                {
+                    var header = view.transform.Find("Header");
+                    Object.DestroyImmediate(header.Find("Slot0").gameObject);
+                    var label = header.Find("AndLabel"); label.GetComponent<TMP_Text>().text = "not"; label.SetSiblingIndex(0);
+                    Holes(view, header.Find("Slot1"));
+                });
+                // {[ ]: [ ], [ ]: [ ], [ ]: [ ]}: three key/value pairs (PythonTreeCompiler.DictPairs).
+                Append(BlockKind.DictLiteral, BlockKind.Comparison, values, view =>
+                {
+                    var header = view.transform.Find("Header"); var picker = header.Find("Operator");
+                    Label(header, ":", picker.GetSiblingIndex()); NoPicker(view, picker);
+                    Transform key = header.Find("Slot0"), value = header.Find("Slot1");
+                    var holes = new List<Transform> { key, value };
+                    for (int pair = 1; pair < PythonTreeCompiler.DictPairs; pair++)
+                    {
+                        Label(header, ",", header.childCount);
+                        var k = Object.Instantiate(key.gameObject, header).transform; k.name = "Slot" + (2 * pair); k.SetAsLastSibling();
+                        Label(header, ":", header.childCount);
+                        var v = Object.Instantiate(value.gameObject, header).transform; v.name = "Slot" + (2 * pair + 1); v.SetAsLastSibling();
+                        holes.Add(k); holes.Add(v);
+                    }
+                    Label(header, "{", 0); Label(header, "}", header.childCount);
+                    for (int i = 0; i < holes.Count; i++) Hint(holes[i], i % 2 == 0 ? "키" : "값");
+                    Holes(view, holes.ToArray());
+                });
+                // [ ].append([ ]): shoot( )'s line with a hole for the list in front.
+                Append(BlockKind.Append, BlockKind.Shot, commands, view =>
+                {
+                    var header = view.transform.Find("Header"); var item = view.Arguments[0].transform;
+                    var list = Object.Instantiate(item.gameObject, header).transform; list.name = "Receiver"; list.SetSiblingIndex(0);
+                    Relabel(view, "shoot(", ".append(");
+                    Hint(list, "리스트"); Hint(item, "값");
+                    Holes(view, list, item);
+                });
+                Append(BlockKind.BuffRobot, BlockKind.Shot, commands, view => { Relabel(view, "shoot(", "buff("); Hint(view.Arguments[0].transform, "로봇"); });
+            }
             // Block help (도감) entries for the new blocks, as copies of an existing entry's button.
             var help = Object.FindObjectsByType<DefenseBlockHelp>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single();
             var helpSo = new SerializedObject(help);
@@ -229,6 +322,46 @@ namespace CodingGame.Defense.Editor
                     if (!text.stringValue.Contains(note.Substring(0, 12))) text.stringValue += "\n" + note;
                     log += "help " + kind + " class note; ";
                 }
+            // The team (stage 4): lists, the dict, robots as objects and weak_point(), its 도감 saying it is the tree walk of
+            // stage 3 put into one call, given after the player did that walk by hand.
+            Help(BlockKind.EmptyList, BlockKind.GetEnemies, "[] · 빈 리스트",
+                "값을 차례로 담는 리스트를 새로 만듭니다. 팀 보드에 jobs = []처럼 두면 모든 로봇이 같은 리스트 하나를 함께 씁니다: 한 로봇이 넣은 것을 다른 로봇이 꺼내요.\n" +
+                "팀 보드는 웨이브가 시작할 때마다 한 번 실행되어, 매 웨이브 새 빈 리스트로 시작합니다.", "# 팀 보드\njobs = []");
+            Help(BlockKind.Append, BlockKind.EmptyList, "list.append(v) · 리스트에 넣기",
+                "리스트의 맨 뒤에 값을 넣습니다. 적, 로봇, 숫자를 넣을 수 있어요. 쓰러진 적도 누군가 꺼낼 때까지 리스트에 남아 있으니(팀 보드 카드에 ✕) 꺼낸 뒤 is_dead()로 확인하세요.",
+                "for e in get_enemies():\n    if e.type == Enemy.Healer and e not in jobs:\n        jobs.append(e)");
+            Help(BlockKind.Pop, BlockKind.Append, "list.pop(0) · 맨 앞 꺼내기",
+                "리스트의 맨 앞(가장 먼저 넣은) 값을 꺼내 돌려줍니다. 꺼낸 값은 리스트에서 빠지니 다른 로봇이 같은 일을 다시 꺼내지 않아요(큐, 먼저 넣은 것이 먼저).\n" +
+                "빈 리스트에서 꺼내면 오류가 나니 if len(jobs) > 0:으로 먼저 확인하세요. 변수 뒤에 점을 찍고 pop(0)을 고르세요.",
+                "if len(jobs) > 0:\n    target = jobs.pop(0)\n    while not target.is_dead():\n        shoot(target.weak_point())");
+            Help(BlockKind.Len, BlockKind.Pop, "len(x) · 개수", "리스트(또는 사전)에 든 값의 개수입니다. 빈 리스트는 0이에요.", "if len(jobs) > 0:\n    target = jobs.pop(0)");
+            Help(BlockKind.In, BlockKind.Or, "v in list · 들어 있나",
+                "값이 리스트에 들어 있으면 True입니다. 가운데 칸에서 not in을 고르면 반대: 들어 있지 않으면 True. 같은 적을 두 번 넣지 않을 때 씁니다.",
+                "if e not in jobs:\n    jobs.append(e)");
+            Help(BlockKind.Not, BlockKind.In, "not 조건 · 반대로", "조건의 참과 거짓을 뒤집습니다. not target.is_dead()는 '아직 살아 있으면'이에요.",
+                "while not target.is_dead():\n    shoot(target)");
+            Help(BlockKind.DictLiteral, BlockKind.Len, "{키: 값} · 사전",
+                "키마다 값을 하나씩 짝지어 둡니다. 키는 Enemy.Healer 같은 종류, 값은 숫자예요(빈 칸 짝은 빠지고, 한 블록에 3쌍까지). 팀 보드에 두면 모든 로봇이 같은 표를 봅니다.",
+                "# 팀 보드\npriority = {Enemy.Healer: 0, Enemy.Shielder: 1, Enemy.Normal: 2}");
+            Help(BlockKind.Index, BlockKind.DictLiteral, "d[k] · 사전에서 꺼내기",
+                "사전에서 키에 짝지어진 값을 꺼냅니다. 사전에 없는 키를 꺼내면 오류(KeyError)가 나요. 리스트에 쓰면 그 번째 값입니다(jobs[0]이 맨 앞).",
+                "best = get_nearest_enemy()\nfor e in get_enemies():\n    if priority[e.type] < priority[best.type]:\n        best = e\nshoot(best.weak_point())");
+            Help(BlockKind.GetRobots, BlockKind.GetEnemies, "get_robots() · 로봇 목록",
+                "배치된 모든 로봇의 리스트입니다. for r in get_robots():로 하나씩 보며 r.hp(체력)와 r.role(종류)을 읽을 수 있어요.",
+                "for r in get_robots():\n    if r.hp < 30:\n        buff(r)");
+            Help(BlockKind.Role, BlockKind.Top, "robot.role · 로봇 종류",
+                "로봇의 종류입니다. Robot.Melee(근접), Robot.Ranged(원거리), Robot.Support(지원)와 비교하세요. 로봇 변수 뒤에 점을 찍고 role을 고르세요(hp도 있어요).",
+                "for r in get_robots():\n    if r.role == Robot.Ranged:\n        buff(r)");
+            Help(BlockKind.RobotRoleName, BlockKind.EnemyTypeName, "Robot.Melee · 로봇 종류 이름",
+                "로봇 종류의 이름입니다. 고르는 칸에서 Melee(근접), Ranged(원거리), Support(지원)를 고르고 r.role과 비교할 때 씁니다.",
+                "if r.role == Robot.Support:\n    continue");
+            Help(BlockKind.BuffRobot, BlockKind.Buff, "buff(r) · 한 로봇 강화",
+                $"지원 로봇이 고른 로봇 하나를 강화하고 체력을 {DefenseSimulation.BuffRepair:0} 채워 줍니다. 거리와 상관없이 닿아요. 빈칸 없는 buff()는 지금처럼 범위 안 로봇 모두를 강화합니다.",
+                "for r in get_robots():\n    if r.hp < 30:\n        buff(r)");
+            Help(BlockKind.WeakPoint, BlockKind.Right, "enemy.weak_point() · 약점",
+                "지금 맞힐 수 있는 부분을 돌려줍니다: 큐 지네는 맨 앞(front()), 스택 지네는 맨 위(top()), 군단 트리는 왼쪽부터 내려가 닿는 살아 있는 잎, 그 밖의 적은 자기 자신.\n" +
+                "3스테이지에서 e.left·e.right와 while로 트리를 손수 내려가 본 그 순회를 한 번에 해 주는 추상화예요. 손으로 먼저 해 보고, 4스테이지부터 줄여 씁니다.",
+                "e = get_nearest_enemy()\nshoot(e.weak_point())");
             helpSo.ApplyModifiedPropertiesWithoutUndo();
             // The inventory lists one row per item kind (DefenseInventoryUI checks the count): a row for each new kind, as a copy of
             // the last row (the label and count's common parent).

@@ -171,7 +171,10 @@ namespace CodingGame.Defense
             if (bot == null) throw new InvalidOperationException(error);
             bot.Level = selected.Level;
             bot.Health = selected.Health; // a robot hurt in an earlier wave starts hurt here too
-            if (source != null) simulation.ApplyProgram(bot.Id, source.Name, source.CopyBlocks());
+            // The team board's names too (jobs = []): a robot's code that uses them compiles and runs against the same lines.
+            // A robot whose code no longer compiles (a board name it used is gone) stands still in the preview.
+            try { simulation.ApplyBoard(live.Board.Blocks); if (source != null) simulation.ApplyProgram(bot.Id, source.Name, source.CopyBlocks()); }
+            catch (FormatException) { }
             AddView(bot.Id, battle.RobotDefinition(bot.DefinitionIndex).prefab);
             views[bot.Id].Face(previewCamera.transform.position);
             rangeRing.Show(World(bot.Position), bot.Range, battle.RobotDefinition(bot.DefinitionIndex).color);
