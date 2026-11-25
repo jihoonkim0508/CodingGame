@@ -20,7 +20,7 @@ namespace CodingGame.BlockCoding
         [SerializeField] List<CommandBlockView> blocks = new List<CommandBlockView>();
         // Only the workspace has free roots; nested bodies and argument slots keep their layout.
         readonly Dictionary<CommandBlockView, CommandBlockView> next = new Dictionary<CommandBlockView, CommandBlockView>();
-        static readonly Vector2 FirstPosition = new Vector2(24, -24);
+        internal static readonly Vector2 FirstPosition = new Vector2(24, -24);
         const float SnapDistance = 30;
         static readonly Color EmptyHint = new Color(1f, .45f, .4f, .9f);
         // A loop's or if's body keeps its lines this far in from the C's arm, header and foot (play feedback 3: with 4 px their
@@ -64,9 +64,6 @@ namespace CodingGame.BlockCoding
         static bool IsBranch(CommandBlockView block) => PythonTreeCompiler.IsBranch(block.Kind);
         static float BranchOverlap(CommandBlockView before,CommandBlockView after)=>IsBranch(after)?before.FooterOverlap:0;
         float Overlap(int index) => slot == BlockSlotKind.Statement ? BranchOverlap(blocks[index-1],blocks[index]) : 0;
-        // A block's top-left stays right of and below the workspace's top-left, and a block's start in from its right edge; below,
-        // the workspace (a ScrollRect's content) grows with its lowest block.
-        Vector2 ClampToWorkspace(Vector2 p) => new Vector2(Mathf.Clamp(p.x, 4, Mathf.Max(4, rect.rect.width - 80)), Mathf.Min(-4, p.y));
         // A palette source moves alone; a placed block brings its chain (and if/elif/else group).
         internal static List<CommandBlockView> Moving(CommandBlockView source) => source.IsPalette ? new List<CommandBlockView> { source } : source.Owner.Group(source);
         // Widest member of the if/elif/else group that contains list[i], so the group renders as one column.
@@ -97,12 +94,9 @@ namespace CodingGame.BlockCoding
         public List<CodeBlock> Read()
         {
             if (!freePlacement) return blocks.Select(b => b.Read()).ToList();
-            var roots = Roots().ToList();
-            if (roots.Count == 0) return new List<CodeBlock>();
-            if (roots.Count != 1) throw new FormatException("모든 명령 블록을 하나의 흐름으로 연결해 주세요.");
-            // The program starts at the top-left anchor; a chain parked anywhere else does not run.
-            if (!AtStart(roots[0])) throw new FormatException("첫 블록을 왼쪽 위 시작 위치에 붙여 주세요.");
-            return Group(roots[0]).Select(b => b.Read()).ToList();
+            // The program is the chain in the def block (on the start anchor); chains parked anywhere else wait there without
+            // running and without stopping it (2026-11-25: loose blocks allowed).
+            return StartChain().Select(b => b.Read()).ToList();
         }
         internal void Load(IReadOnlyList<CodeBlock> source)
         {
@@ -127,6 +121,14 @@ namespace CodingGame.BlockCoding
         }
         // Chains placed away from the start anchor; they do not run.
         public IEnumerable<CommandBlockView> LooseRoots() => freePlacement ? Roots().Where(root => !AtStart(root)) : Enumerable.Empty<CommandBlockView>();
+        // Width and height of the chain that runs, from the start anchor, with any room opened under its last line (zero when empty).
+        internal Vector2 StartChainSize()
+        {
+            var chain = StartChain();
+            if (chain.Count == 0) return Vector2.zero;
+            float bottom = chain.Min(b => b.Rect.anchoredPosition.y - b.Rect.rect.height - (b == gapAfter ? gapHeight : 0));
+            return new Vector2(chain.Max(b => b.Rect.anchoredPosition.x + b.Rect.rect.width) - FirstPosition.x, FirstPosition.y - bottom);
+        }
         // Local rect (in Rect space) where the first block snaps, sized like one statement row.
         public Rect StartArea => new Rect(rect.rect.xMin + FirstPosition.x, rect.rect.yMax + FirstPosition.y - 40, 180, 40);
         internal void BringToFront(CommandBlockView block)
@@ -273,7 +275,6 @@ namespace CodingGame.BlockCoding
             for (int i = 1; i < placed.Count; i++) next[placed[i - 1]] = placed[i];
             var first = placed[0];
             var last = placed[placed.Count - 1];
-            position = ClampToWorkspace(position);
             bool start = SnapsToFirstPosition(placed, position);
             if (start) position = FirstPosition;
             CommandBlockView.Place(first.Rect, position.x, -position.y, first.preferredWidth, first.preferredHeight);
@@ -301,7 +302,10 @@ namespace CodingGame.BlockCoding
         // them used to switch the snap off, and a line could then not be put on the start at all (AtStart is exact).
         bool SnapsToFirstPosition(List<CommandBlockView> moved, Vector2 position) =>
             moved.All(block => PythonTreeCompiler.OutputSlot(block.Kind) == BlockSlotKind.Statement) &&
-            !Roots().Any(root => AtStart(root) && !moved.Contains(root)) && Gap(position, FirstPosition, moved[0].preferredWidth) < SnapDistance;
+            !Roots().Any(root => AtStart(root) && !moved.Contains(root)) && (Gap(position, FirstPosition, moved[0].preferredWidth) < SnapDistance || OnDefHead(position));
+        // Over the def block's header (drawn 52 high above the start anchor by CommandCodingPanel) or just under it: a first line
+        // let go there goes into the def's mouth (the clamp that used to pull such drops onto the anchor went with free panning).
+        static bool OnDefHead(Vector2 p) => p.x > FirstPosition.x - 40 && p.x < FirstPosition.x + 200 && p.y > FirstPosition.y - 10 && p.y < FirstPosition.y + 60;
         // Distance from a dropped block's top-left to a snap edge; anywhere along the edge's row (left edge to
         // the right end of the row) counts as on it, so a block let go to the right of the slot still snaps.
         static float Gap(Vector2 position, Vector2 edge, float width)
@@ -357,7 +361,7 @@ namespace CodingGame.BlockCoding
             int index = -1; CommandBlockView after = null; Vector2 at;
             if (freePlacement)
             {
-                var position = ClampToWorkspace(Panel.DropPosition(e));
+                var position = Panel.DropPosition(e);
                 if (SnapsToFirstPosition(moved, position)) at = FirstPosition;
                 else
                 {
@@ -396,7 +400,7 @@ namespace CodingGame.BlockCoding
             if (moved.Any(b => transform.IsChildOf(b.transform))) return false;
             if (freePlacement)
             {
-                var position = ClampToWorkspace(Panel.DropPosition(e));
+                var position = Panel.DropPosition(e);
                 // Share the drop rule: the first-line anchor is a snap target only nearby.
                 // The empty start shows the block's own outline where it lands; a join between lines is a bar.
                 if (SnapsToFirstPosition(moved, position))

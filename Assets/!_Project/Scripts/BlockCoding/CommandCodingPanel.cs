@@ -46,6 +46,17 @@ namespace CodingGame.BlockCoding
         bool restoringHistory;
         string sizedFunctionName;
         float sizedTitleWidth = -1;
+        // The def robot_N(): block round the start anchor (2026-11-25 request): a C like while's, its mouth holding the chain that
+        // runs; drawn only (no CommandBlockView), so it cannot be dragged off or deleted, and the Python text is as before. Its
+        // header is the name row that sat over the code area.
+        CommandBlockShape defBlock;
+        RectTransform titleBar;
+        float defMouth;
+        const float DefHeader = 52, DefEmptyMouth = 52;
+        // The def block's top-left in the program's units: its spine and header round the start anchor.
+        static Vector2 DefOrigin => CommandDropZone.FirstPosition + new Vector2(-CommandBlockShape.ControlSpineWidth, DefHeader);
+        public CommandWorkspace Workspace { get; private set; }
+        public RectTransform DefBlock => defBlock ? defBlock.rectTransform : null;
         internal sealed class Draft
         {
             public string name;
@@ -113,6 +124,15 @@ namespace CodingGame.BlockCoding
             functionName.onValueChanged.AddListener(_ => { CommandBlockView.FitInput(functionName, 80); Changed(); });
             CommandBlockView.FitInput(functionName, 80);
             program.Bind(this, null);
+            BuildDef();
+            var scroll = program.GetComponentInParent<ScrollRect>(true);
+            if (scroll)
+            {
+                var view = scroll.viewport ? scroll.viewport : (RectTransform)program.transform.parent;
+                Workspace = view.gameObject.AddComponent<CommandWorkspace>();
+                Workspace.Bind(this, scroll);
+                ShowDefAtTopLeft();
+            }
             foreach (var item in palette) item.view.Bind(this, null, true);
             variablePrefab.Bind(this, null, true);
             for (int i = 0; i < categoryButtons.Length; i++)
@@ -211,14 +231,59 @@ namespace CodingGame.BlockCoding
             if (!target.Insert(source, at)) ShowMessage("먼저 맞는 모양의 빈 슬롯을 선택하거나, 블록을 원하는 위치로 드래그하세요.");
             else if (target == program && at == program.Blocks.Count - 1) RevealProgramEnd();
         }
-        // A click-add at the program's end lands below a long program: scroll the workspace down to it.
+        // A click-add at the program's end lands below a long program: pan the workspace up to it.
         // ponytail: only top-level appends; a block added inside a nested block at the bottom does not scroll.
         void RevealProgramEnd()
         {
-            var scroll = program.GetComponentInParent<ScrollRect>();
-            if (!scroll) return;
-            Canvas.ForceUpdateCanvases();
-            scroll.verticalNormalizedPosition = 0;
+            var last = program.StartChain().LastOrDefault();
+            if (!Workspace || !last) return;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(program.Rect);
+            Workspace.KeepInView(last.Rect);
+        }
+        void BuildDef()
+        {
+            defBlock = new GameObject("DefBlock", typeof(RectTransform), typeof(CanvasRenderer), typeof(CommandBlockShape)).GetComponent<CommandBlockShape>();
+            var rect = defBlock.rectTransform;
+            rect.SetParent(program.Rect, false); rect.SetAsFirstSibling();
+            defBlock.Configure(BlockSlotKind.Statement, true, true);
+            defBlock.HeaderHeight = DefHeader;
+            defBlock.color = UITheme.BlockCategories[0]; // while's and if's
+            titleBar = (RectTransform)functionName.transform.parent;
+            // The name row's place over the code area goes to the code: the divider comes up to where the row began.
+            var divider = titleBar.parent ? titleBar.parent.Find("HeaderDivider") as RectTransform : null;
+            var area = program.GetComponentInParent<ScrollRect>(true);
+            if (divider && area && divider.parent == titleBar.parent && area.transform.parent == titleBar.parent)
+            {
+                float freed = titleBar.anchoredPosition.y + titleBar.rect.height * (1 - titleBar.pivot.y) - divider.anchoredPosition.y - 4;
+                divider.anchoredPosition += new Vector2(0, freed);
+                ((RectTransform)area.transform).offsetMax += new Vector2(0, freed);
+            }
+            titleBar.SetParent(rect, false);
+            // Wide enough for any name (RefreshFunctionNameSize fits the field to it); the block is as wide as what is shown.
+            CommandBlockView.Place(titleBar, 14, 6, 600, DefHeader - 12);
+            defMouth = DefEmptyMouth;
+            LayoutDef();
+        }
+        // The def block's mouth follows the chain that runs (one line high when empty), easing like a C block's body.
+        void LayoutDef()
+        {
+            var chain = program.StartChainSize();
+            float mouth = Mathf.Max(DefEmptyMouth, chain.y);
+            defMouth = Mathf.Abs(defMouth - mouth) < .5f ? mouth : Mathf.Lerp(defMouth, mouth, 1 - Mathf.Exp(-Time.unscaledDeltaTime * 25));
+            float width = Mathf.Max(LayoutUtility.GetPreferredWidth(titleBar) + 28, CommandBlockShape.ControlSpineWidth + Mathf.Max(160, chain.x));
+            var size = new Vector2(width, DefHeader + defMouth + CommandBlockShape.ControlFooterHeight);
+            if (defBlock.rectTransform.sizeDelta == size) return;
+            CommandBlockView.Place(defBlock.rectTransform, DefOrigin.x, -DefOrigin.y, size.x, size.y);
+            defBlock.SetVerticesDirty();
+        }
+        // Pans the code so the def block sits at the code area's top-left; zoom and blocks stay as they are. Done when the editor
+        // shows another robot's code (the editor has no block/text modes: its Python view and preview toggles are switched off).
+        public void ShowDefAtTopLeft() { if (Workspace) Workspace.ShowAtTopLeft(DefOrigin); }
+        // What the off-screen note looks for: the def block (with the program in it) and each loose chain.
+        internal IEnumerable<IReadOnlyList<RectTransform>> Chains()
+        {
+            if (defBlock) yield return new[] { defBlock.rectTransform };
+            foreach (var root in program.LooseRoots()) yield return program.Group(root).Select(b => b.Rect).ToList();
         }
         public void ShowMessage(string text) => status.text = text;
         internal void FillNewLoop(CommandBlockView block)
@@ -313,7 +378,7 @@ namespace CodingGame.BlockCoding
         public void LoadHistory(EditHistory history)
         {
             if (history == null || history.index < 0) throw new ArgumentException("편집 기록이 비어 있습니다.");
-            Initialize(); History = history; RestoreHistory();
+            Initialize(); History = history; RestoreHistory(); ShowDefAtTopLeft();
         }
         void RestoreHistory()
         {
@@ -377,6 +442,7 @@ namespace CodingGame.BlockCoding
             }
             finally { updating = false; loading = false; }
             Changed();
+            ShowDefAtTopLeft();
         }
         internal CommandBlockView CreateBlock(CodeBlock data, Transform parent)
         {
@@ -409,6 +475,8 @@ namespace CodingGame.BlockCoding
                 ghostOffsets.Add(TopLeft(dragLayer, block.Rect) - sourceDragTopLeft);
                 var copy = block.Copy(dragLayer);
                 copy.SetGhostAppearance();
+                // As large as the block it lifts (the code area may be zoomed); a palette block's copy stays the palette's size.
+                copy.Rect.localScale *= block.Rect.lossyScale.x / dragLayer.lossyScale.x;
                 copy.Rect.anchorMin = copy.Rect.anchorMax = copy.Rect.pivot = new Vector2(0, 1);
                 copy.Rect.sizeDelta = new Vector2(copy.preferredWidth, copy.preferredHeight);
                 LayoutRebuilder.ForceRebuildLayoutImmediate(copy.Rect);
@@ -467,6 +535,7 @@ namespace CodingGame.BlockCoding
             if (functionName && (sizedFunctionName != functionName.text ||
                 ((RectTransform)functionName.transform.parent).rect.width != sizedTitleWidth)) RefreshFunctionNameSize();
             if (Dragged && dragEvent != null) UpdateSnapPreview(dragEvent);
+            if (defBlock) LayoutDef();
         }
         void UpdateBodyPreview(PointerEventData e)
         {
@@ -535,10 +604,11 @@ namespace CodingGame.BlockCoding
         float LandingHeight()
         {
             float height = 0;
-            for (int i = 0; i < dragging.Count; i++)
+            // The landing copies, placed blocks: a palette C block is one line, its copy an open C.
+            for (int i = 0; i < landing.Count; i++)
             {
-                height += dragging[i].preferredHeight;
-                if (i > 0 && PythonTreeCompiler.IsBranch(dragging[i].Kind)) height -= dragging[i - 1].FooterOverlap;
+                height += landing[i].preferredHeight;
+                if (i > 0 && PythonTreeCompiler.IsBranch(landing[i].Kind)) height -= landing[i - 1].FooterOverlap;
             }
             return height;
         }

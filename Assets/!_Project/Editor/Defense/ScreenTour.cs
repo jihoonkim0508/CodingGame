@@ -204,6 +204,59 @@ namespace CodingGame.Defense.Editor
                 yield return null;
             }
         }
+        // The code area's def block, pan and zoom (2026-11-25): an empty while in def robot_N():, zoomed out with a loose block, the
+        // 동떨어진 블록이 있어요 note, the def back at the top-left after a robot switch, and a clip of panning and zooming:
+        // TestResults/Editor/workspace/NN_*.png and workspace_pan_zoom.mp4. Windowed Editor, like Run.
+        public static void RunWorkspace() => Start("TestResults/Editor/workspace", Workspace());
+        static IEnumerator Workspace()
+        {
+            DevTest.PlayDefense(2, 1, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy(); DevTest.GrantAll();
+            var battle = DevTest.Battle; var sim = battle.Simulation;
+            var robots = sim.Robots.OrderBy(r => r.Id).ToList();
+            battle.SelectRobot(robots[0].Id); battle.DevelopSelected();
+            yield return Seconds(.6);
+            var panel = battle.CodeEditor.Panel; var space = panel.Workspace; var content = panel.Program.Rect;
+            Program(new CodeBlock(BlockKind.While));
+            yield return Seconds(.8);
+            yield return Shot("def_empty_while");
+            var wait = panel.Palette.First(p => p.view.BaseKind == BlockKind.Wait).view;
+            Relaxed(() => panel.Program.PlaceFree(wait, new Vector2(520, -330)));
+            var view = (RectTransform)space.transform;
+            Vector2 Middle() => RectTransformUtility.WorldToScreenPoint(null, view.TransformPoint(view.rect.center));
+            space.ZoomAt(Middle(), null, .6f);
+            yield return Seconds(.6);
+            yield return Shot("zoomed_out_loose_block");
+            space.ZoomAt(Middle(), null, 1);
+            Relaxed(() => panel.Program.PlaceFree(wait, new Vector2(1900, -120)));
+            yield return Seconds(.6);
+            yield return Shot("offscreen_note");
+            content.anchoredPosition += new Vector2(-420, 260);
+            yield return Seconds(.4);
+            yield return Shot("panned_away");
+            battle.CodeEditor.Close(false); battle.SelectRobot(robots[1].Id); battle.DevelopSelected();
+            yield return Seconds(.4);
+            battle.CodeEditor.Close(false); battle.SelectRobot(robots[0].Id); battle.DevelopSelected();
+            yield return Seconds(.6);
+            yield return Shot("def_top_left_after_switch");
+            // The clip: a pan right and down and back, a zoom out and in round the code, the note's click.
+            Begin("workspace_pan_zoom");
+            yield return Seconds(.5);
+            var home = content.anchoredPosition;
+            for (double t = 0; t < 1; t += .02) { content.anchoredPosition = home + new Vector2(-260, 160) * Mathf.Sin((float)t * Mathf.PI); yield return Seconds(.03); }
+            content.anchoredPosition = home;
+            for (int i = 0; i < 6; i++) { space.ZoomAt(Middle(), null, space.Zoom / 1.1f); yield return Seconds(.25); }
+            yield return Seconds(.6);
+            for (int i = 0; i < 6; i++) { space.ZoomAt(Middle(), null, space.Zoom * 1.1f); yield return Seconds(.25); }
+            yield return Seconds(.8);
+            space.RevealTarget();
+            yield return Seconds(1.2);
+            panel.ShowDefAtTopLeft();
+            yield return Seconds(1);
+            End();
+        }
         static void Start(string into, IEnumerator steps)
         {
             folder = into;
