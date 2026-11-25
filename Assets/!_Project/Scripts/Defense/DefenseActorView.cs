@@ -137,6 +137,7 @@ namespace CodingGame.Defense
                 popScale = Mathf.Min(1, .3f + .7f * Mathf.Sin(Mathf.PI * .5f * fall) + .15f * Mathf.Sin(Mathf.PI * fall));
             }
             position += Vector3.up * lift;
+            if (enemy.Spec.type == EnemyType.Healer) ShowBeacon((float)time, viewRotation);
             ShowBubble(enemy.Shield > 0);
             bool open = enemy.Chain != null && enemy.Chain.Hittable == enemy;
             ShowsHealth = enemy.Chain == null || !enemy.Chain.Stack || open; // a pile shows one bar, its top book's
@@ -210,6 +211,7 @@ namespace CodingGame.Defense
             {
                 marker = Instantiate(Effect("OpenEndMarker"), transform);
                 marker.transform.Find("Arrow").localScale = Vector3.one * 1.5f;
+                RestyleArrow(marker.transform.Find("Arrow"));
                 marker.transform.localScale = Vector3.one / Mathf.Max(.01f, transform.lossyScale.x);
                 segmentCount = new GameObject("Segment count", typeof(TMPro.TextMeshPro)).GetComponent<TMPro.TextMeshPro>();
                 segmentCount.gameObject.layer = gameObject.layer; segmentCount.transform.SetParent(transform, false);
@@ -221,10 +223,84 @@ namespace CodingGame.Defense
             marker.SetActive(true); segmentCount.enabled = true;
             var arrow = marker.transform.Find("Arrow");
             arrow.position = healthRoot.position + Vector3.up * (.35f + .12f * Mathf.Abs(Mathf.Sin(time * 4)));
-            arrow.rotation = Quaternion.Euler(0, time * 90, 0);
+            arrow.rotation = viewRotation * Quaternion.Euler(0, 22 * Mathf.Sin(time * 2.4f), 0); // faces the camera, swinging
             marker.transform.Find("Ring").localScale = Vector3.one * (2.2f + .25f * Mathf.Sin(time * 8));
             segmentCount.text = count.ToString();
             segmentCount.transform.SetPositionAndRotation(arrow.position + Vector3.up * .85f, viewRotation);
+        }
+        // The healer stands out among the grey spider-bots (2026-11-25): it is a little bigger, a mint plus with an ink rim
+        // bobs over its health bar facing the camera, and a mint ring breathes at its feet.
+        Transform beacon, beaconRing;
+        static Material beaconRim, beaconFace, beaconFloor;
+        void ShowBeacon(float time, Quaternion viewRotation)
+        {
+            if (!beacon)
+            {
+                var plus = DefenseBattleFx.Find("FxPlus"); var shell = DefenseBattleFx.Find("FxMarkerRing");
+                if (!plus || !shell) return;
+                transform.localScale *= 1.18f;
+                float unit = 1 / Mathf.Max(.01f, transform.lossyScale.x);
+                beacon = new GameObject("Healer beacon").transform; beacon.SetParent(transform, false); beacon.localScale = Vector3.one * unit;
+                if (!beaconRim) { beaconRim = Tint(shell, plus.mainTexture, new Color(.15f, .17f, .26f, .95f)); beaconFace = Tint(shell, plus.mainTexture, new Color(.35f, 1, .72f, 1)); beaconFloor = Tint(shell, shell.mainTexture, new Color(.3f, 1, .65f, .8f)); }
+                BeaconQuad(beacon, beaconRim, 1.35f, 0);
+                BeaconQuad(beacon, beaconFace, 1.05f, -.02f);
+                beaconRing = BeaconQuad(transform, beaconFloor, 2.4f * unit, 0);
+            }
+            beacon.SetPositionAndRotation(healthRoot.position + Vector3.up * (.55f + .07f * Mathf.Sin(time * 3.2f)), viewRotation);
+            beaconRing.SetPositionAndRotation(transform.position + Vector3.up * .05f, Quaternion.Euler(90, time * 40, 0));
+            beaconRing.localScale = Vector3.one * (2.4f / Mathf.Max(.01f, transform.lossyScale.x)) * (1 + .08f * Mathf.Sin(time * 4));
+        }
+        static Material Tint(Material shell, Texture texture, Color color)
+        {
+            var m = new Material(shell); if (texture) m.mainTexture = texture; m.SetColor("_BaseColor", color);
+            return m;
+        }
+        static Transform BeaconQuad(Transform parent, Material material, float size, float z)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Quad); Destroy(go.GetComponent<Collider>());
+            go.transform.SetParent(parent, false); go.transform.localScale = Vector3.one * size; go.transform.localPosition = new Vector3(0, 0, z);
+            var r = go.GetComponent<MeshRenderer>(); r.sharedMaterial = material; r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            return go.transform;
+        }
+        // The hittable segment's arrow (2026-11-25): a flat gold arrow with an ink rim, like a sticker, turned to the camera
+        // and swinging a little, in place of the pyramid (whose box it fills). Read at a glance from the battle's height.
+        static Mesh arrowFace, arrowRim; static Material arrowInk;
+        void RestyleArrow(Transform arrow)
+        {
+            var filter = arrow ? arrow.GetComponent<MeshFilter>() : null; var shown = arrow ? arrow.GetComponent<MeshRenderer>() : null;
+            if (!filter || !filter.sharedMesh || !shown || !shown.sharedMaterial) return;
+            var fit = filter.sharedMesh.bounds;
+            if (!arrowFace)
+            {
+                // Pointing down, in a unit box: x -.5..5, y 0 (the tip) to 1.
+                arrowFace = FlatShape(fit, 0, new Vector2(0, 0), new Vector2(.5f, .48f), new Vector2(.19f, .48f), new Vector2(.19f, 1), new Vector2(-.19f, 1), new Vector2(-.19f, .48f), new Vector2(-.5f, .48f));
+                arrowRim = FlatShape(fit, .04f, new Vector2(0, -.16f), new Vector2(.69f, .56f), new Vector2(.29f, .56f), new Vector2(.29f, 1.09f), new Vector2(-.29f, 1.09f), new Vector2(-.29f, .56f), new Vector2(-.69f, .56f));
+            }
+            if (!arrowInk) { arrowInk = new Material(shown.sharedMaterial) { name = "Arrow rim" }; arrowInk.SetColor("_BaseColor", UITheme.Ink); }
+            filter.sharedMesh = arrowFace;
+            var rim = new GameObject("Rim", typeof(MeshFilter), typeof(MeshRenderer));
+            rim.transform.SetParent(arrow, false);
+            rim.GetComponent<MeshFilter>().sharedMesh = arrowRim;
+            var rr = rim.GetComponent<MeshRenderer>(); rr.sharedMaterial = arrowInk; rr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+        // A flat arrow outline (a triangle head under a shaft: tip, head right, shaft right bottom/top, shaft left top/bottom,
+        // head left) at depth z, in the box fit, both sides drawn.
+        internal static Mesh FlatShape(Bounds fit, float z, params Vector2[] p)
+        {
+            var size = fit.size;
+            var vertices = new Vector3[p.Length];
+            for (int i = 0; i < p.Length; i++) vertices[i] = fit.center + new Vector3(p[i].x * size.x, (p[i].y - .5f) * size.y, z * size.y);
+            // Head (0,1,6) and shaft (2,3,4,5), each wound both ways.
+            int[] one = { 0, 6, 1, 2, 5, 3, 3, 5, 4 };
+            var triangles = new int[one.Length * 2];
+            for (int i = 0; i < one.Length; i += 3)
+            {
+                triangles[i] = one[i]; triangles[i + 1] = one[i + 1]; triangles[i + 2] = one[i + 2];
+                triangles[one.Length + i] = one[i]; triangles[one.Length + i + 1] = one[i + 2]; triangles[one.Length + i + 2] = one[i + 1];
+            }
+            var mesh = new Mesh { name = "Flat arrow" };
+            mesh.vertices = vertices; mesh.triangles = triangles; mesh.RecalculateNormals(); mesh.RecalculateBounds();
+            return mesh;
         }
         void LateUpdate()
         {

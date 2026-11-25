@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 namespace CodingGame.Defense
 {
-    public sealed class DefensePlayerHUD : MonoBehaviour
+    public sealed partial class DefensePlayerHUD : MonoBehaviour
     {
         [SerializeField] DefenseBattle battle;
         [SerializeField] GameObject canvasRoot, rewardPanel;
@@ -284,6 +284,7 @@ namespace CodingGame.Defense
             RefreshRobotActions(sim);
             RefreshRobotStatus(sim);
             RefreshPlayButtons(sim);
+            RefreshCodeHolograms(sim); AnimateCoins(); // DefensePlayerHUD.Fx.cs
             rewardPanel.SetActive(reward || ended);
             if (reward || ended) RefreshRewardPanel(sim, reward);
             ShowPrototypeEnd(ended && battle.PrototypeEnded, sim);
@@ -439,13 +440,17 @@ namespace CodingGame.Defense
                 waveCall.text = (last ? "마지막 웨이브" : $"WAVE {sim.WaveIndex + 1}") + $"\n<size=36%>오류 코드 {sim.RemainingEnemies}마리 접근!</size>";
                 waveCall.color = last ? UITheme.Coral : UITheme.Sunny;
                 waveCall.transform.SetAsLastSibling();
+                WaveBand().SetSiblingIndex(waveCall.transform.GetSiblingIndex());
                 waveCallAt = Time.unscaledTime; battle.PlaySound("wave-start");
             }
             lastPhase = sim.Phase;
             if (!waveCall) return;
             float t = Time.unscaledTime - waveCallAt;
             waveCall.gameObject.SetActive(t < WaveCallSeconds && !MenuOpen); // it would show through the Esc menu's shade
+            AnimateWaveBand(t, t < WaveCallSeconds && !MenuOpen, waveCall.color);
             if (t >= WaveCallSeconds) return;
+            float slide = t < .25f ? -240 * Mathf.Pow(1 - t / .25f, 3) : t > WaveCallSeconds - .3f ? 300 * Mathf.Pow((t - (WaveCallSeconds - .3f)) / .3f, 2) : 0;
+            waveCall.rectTransform.anchoredPosition = new Vector2(slide, 110);
             waveCall.rectTransform.localScale = Vector3.one * (t < .2f ? Mathf.Lerp(1.6f, 1, Mathf.SmoothStep(0, 1, t / .2f)) : 1 + .02f * (t - .2f));
             waveCall.alpha = t < .2f ? t / .2f : t > WaveCallSeconds - .45f ? (WaveCallSeconds - t) / .45f : 1;
         }
@@ -462,9 +467,10 @@ namespace CodingGame.Defense
             waveCall.gameObject.SetActive(false);
         }
 
-        // The damage a hit did, over the enemy, and "+n 코인" over a kill: rising and fading, so every attack the code makes
+        // The damage a hit did, over the enemy (a kill's coin flies to the counter, DefensePlayerHUD.Fx): rising and fading, so every attack the code makes
         // shows its result. A small pool is reused oldest first, so a burst of hits never piles up labels.
-        sealed class Floater { public TextMeshProUGUI label; public Vector3 world; public float born, life, rise, drift; }
+        sealed class Floater { public TextMeshProUGUI label; public Vector3 world; public float born, life, rise, drift, pop = .35f; }
+        float usualHit;
         readonly System.Collections.Generic.List<Floater> floaters = new System.Collections.Generic.List<Floater>();
         [SerializeField, HideInInspector] RectTransform floaterLayer;
         [SerializeField, HideInInspector] System.Collections.Generic.List<TextMeshProUGUI> floaterLabels = new System.Collections.Generic.List<TextMeshProUGUI>();
@@ -474,14 +480,20 @@ namespace CodingGame.Defense
         {
             var sim = battle.Simulation;
             if (sim == null || !sim.Options.hitEffects) return;
+            NoteAction(evt);
             if ((evt.Kind == "hit" || evt.Kind == "projectile-hit") && evt.AppliedAmount > 0)
-                Float(evt.Position, evt.AppliedAmount.ToString("0.##"), Color.white, 30, .6f, 46);
+            {
+                // A hit well above the usual (the running average) pops bigger and golden.
+                float amount = evt.AppliedAmount; usualHit = usualHit <= 0 ? amount : Mathf.Lerp(usualHit, amount, .08f);
+                bool big = amount >= 6 && amount >= usualHit * 1.6f;
+                Float(evt.Position, amount.ToString("0.##"), big ? new Color(1, .8f, .3f) : Color.white, big ? 40 : 30, big ? .8f : .6f, big ? 64 : 46, big ? .8f : .35f);
+            }
             else if (evt.Kind == "blocked") // a centipede segment that is not its open end
                 Float(evt.Position, "막힘", new Color(.62f, .7f, .82f), 28, .6f, 46);
             else if (evt.Kind == "killed" && sim.Setup.PlayerFlow && sim.KillCoins > 0)
-                Float(evt.Position, $"+{sim.KillCoins} 코인", new Color(1, .83f, .42f), 32, 1f, 74);
+                FlyCoin(evt.Position, sim.KillCoins); // a coin with "+n" flies into the header's coin count
         }
-        void Float(System.Numerics.Vector2 position, string text, Color color, float size, float life, float rise)
+        void Float(System.Numerics.Vector2 position, string text, Color color, float size, float life, float rise, float pop = .35f)
         {
             if (!floaterLayer) BuildFloaterLayer();
             // A resting label, else a new one up to the pool's size, else the oldest (a loop, not a query per hit).
@@ -501,7 +513,7 @@ namespace CodingGame.Defense
             Floater beside = null;
             foreach (var f in floaters)
                 if (f != floater && f.label.gameObject.activeSelf && Time.unscaledTime - f.born < .3f && (f.world - floater.world).sqrMagnitude < 1) beside = f;
-            floater.label.text = text; floater.label.fontSize = size; floater.label.color = color;
+            floater.label.text = text; floater.label.fontSize = size; floater.label.color = color; floater.pop = pop;
             floater.drift = UnityEngine.Random.Range(-30f, 30f);
             if (beside != null)
             {
@@ -543,7 +555,7 @@ namespace CodingGame.Defense
                 // Pops up fast, then drifts; fades over the last half.
                 f.label.rectTransform.anchoredPosition = at + new Vector2(f.drift, f.rise * (1 - (1 - k) * (1 - k)));
                 f.label.alpha = k < .5f ? 1 : 1 - (k - .5f) * 2;
-                f.label.transform.localScale = Vector3.one * (k < .12f ? 1 + .35f * (1 - k / .12f) : 1);
+                f.label.transform.localScale = Vector3.one * (k < .12f ? 1 + f.pop * (1 - k / .12f) : 1);
             }
         }
 
@@ -612,7 +624,7 @@ namespace CodingGame.Defense
                 button.interactable = !running && sim.Phase == BattlePhase.Running;
                 // Running: a small, flat "···" pill (the chip's top and bottom cut off, its corners still round), so it says busy
                 // without competing with the robots (play feedback 2026-11-12).
-                label.text = running ? "<voffset=-0.14em>···</voffset>" : "실행";
+                label.text = running ? RunningDots() : "실행";
                 label.fontSize = running ? 36 : 22; // big dots on the flat pill
                 // The dots sit at the font's middle, above the line's centre: in the whole pill (the chip's padding is 6 over 8
                 // under), centred by their shape and lowered 0.14 em (measured on screen: they showed 3.5 px high).
