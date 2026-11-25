@@ -158,7 +158,7 @@ public static class BattleAuditCheck
             var options = Sandbox; options.enemySpawn = false; options.baseDamage = false;
             battle.EditorStartSession(stage, battle.EditorCampaign.stages[stage - 1].waves.Length, true, options);
             var sim = battle.Simulation;
-            Place(battle, RobotRole.Warrior); battle.StartBattle();
+            Place(battle, RobotRole.Melee); battle.StartBattle();
             for (int i = 0; i < 600 && sim.Phase == BattlePhase.Running; i++) sim.Advance(1);
             Require(sim.Phase == BattlePhase.Reward, "setup: the last wave did not end in its reward (" + sim.Phase + ")");
             await Frames(2); // the reward screen is up, as when the player clicks
@@ -224,7 +224,7 @@ public static class BattleAuditCheck
     // swinging instead of standing still; when the enemies are past, the demo starts over. A hit still tells the tutorial.
     static async Task PreviewCallsCodeOnce(DefenseBattle battle)
     {
-        var preview = OpenPreview(battle, RobotRole.Warrior, new CodeBlock(BlockKind.Slash));
+        var preview = OpenPreview(battle, RobotRole.Melee, new CodeBlock(BlockKind.Slash));
         var signals = Field<HashSet<string>>(battle.Tutorial, "signals"); signals.Remove(TutorialSignals.PreviewHit);
         var demo = preview.PreviewSimulation; var bot = demo.Robots[0];
         Play(preview, demo, 4);
@@ -240,7 +240,7 @@ public static class BattleAuditCheck
     // block(enemy) stops when its code is emptied. (The program was swapped in place and the old code's state stayed.)
     static Task NewCodeStartsDemoClean(DefenseBattle battle)
     {
-        var preview = OpenPreview(battle, RobotRole.Tank, new CodeBlock(BlockKind.Block, "0", new CodeBlock(BlockKind.NearestEnemy)));
+        var preview = OpenPreview(battle, RobotRole.Melee, new CodeBlock(BlockKind.Block, "0", new CodeBlock(BlockKind.NearestEnemy)));
         var demo = preview.PreviewSimulation; var tank = demo.Robots[0];
         Play(preview, demo, 6, () => tank.BlockingEnabled && demo.Enemies.Any(e => e.BlockedBy == tank.Id));
         Require(preview.PreviewSimulation == demo && tank.BlockingEnabled && demo.Enemies.Any(e => e.BlockedBy == tank.Id), "setup: the demo tank never held an enemy");
@@ -269,7 +269,7 @@ public static class BattleAuditCheck
         {
             director.EditorStop();
             battle.PlaceLessonShooter(); // as the lesson's step A03 does (nothing if it already has)
-            battle.SelectRobot(battle.Simulation.Robots.First(r => r.Spec.role == RobotRole.Shooter).Id); battle.DevelopSelected();
+            battle.SelectRobot(battle.Simulation.Robots.First(r => r.Spec.role == RobotRole.Ranged).Id); battle.DevelopSelected();
             var preview = Object.FindFirstObjectByType<DefenseAttackPreview>();
             Require(battle.CodeEditor.IsOpen && preview.IsShowing, "setup: the code editor's preview did not open");
             preview.Restart(); Play(preview, preview.PreviewSimulation, 1.5); // an enemy on the road
@@ -306,7 +306,7 @@ public static class BattleAuditCheck
         battle.EditorStartSession(1, 5, true, Sandbox);
         var sim = battle.Simulation; var camera = battle.BattleCamera.transform; var hud = Object.FindFirstObjectByType<DefensePlayerHUD>();
         Vector3 home = camera.position;
-        Place(battle, RobotRole.Warrior); battle.StartBattle(); BringBoss(sim);
+        Place(battle, RobotRole.Melee); battle.StartBattle(); BringBoss(sim);
         await Until(() => battle.EditorBossEntered, 3, "setup: the boss of 1-5 came without an entrance");
         await Frames(2);
         double held = sim.Time;
@@ -336,7 +336,7 @@ public static class BattleAuditCheck
             int wave = Array.FindIndex(battle.EditorCampaign.ReadWaves(stage), groups => groups.Any(g => g.Boss)) + 1;
             if (wave == 0) continue;
             battle.EditorStartSession(stage, wave, true, Sandbox);
-            Place(battle, RobotRole.Warrior); battle.StartBattle(); BringBoss(battle.Simulation);
+            Place(battle, RobotRole.Melee); battle.StartBattle(); BringBoss(battle.Simulation);
             await Seconds(.5f);
             if (!battle.EditorBossEntered) missed.Add(stage + "-" + wave);
         }
@@ -352,7 +352,7 @@ public static class BattleAuditCheck
         {
             battle.EditorStartSession(stage, 1, true, Sandbox);
             var sim = battle.Simulation;
-            var spec = battle.RobotDefinitions.First(robot => robot.stats.role == RobotRole.Warrior).stats;
+            var spec = battle.RobotDefinitions.First(robot => robot.stats.role == RobotRole.Melee).stats;
             Require(sim.Setup.Floor.Length > 0, $"setup: stage {stage} has no painted floor");
             // What the simulation answers for a spot outside its bounds, whatever the wording.
             string outside = sim.PlacementError(spec, sim.Setup.Max + new Point(100, 100));
@@ -490,7 +490,7 @@ public static class BattleAuditCheck
                 health = 77, speed = first.Enemy.speed, leak = first.Enemy.leakDamage });
             Require(now, "an edit made in 2-3's preparation is not taken by the wave now");
             float expected = sim.Setup.RulesConfig.Scale(sim.Setup.Waves[2][0].Enemy, 2, 2).health;
-            Place(battle, RobotRole.Warrior); battle.StartBattle();
+            Place(battle, RobotRole.Melee); battle.StartBattle();
             await Until(() => sim.Enemies.Any(e => e.DefinitionIndex == first.DefinitionIndex), 15, "setup: 2-3's first group did not come out");
             var enemy = sim.Enemies.First(e => e.DefinitionIndex == first.DefinitionIndex);
             Require(Mathf.Abs(enemy.Spec.health - expected) < .001f && Mathf.Abs(enemy.Health - expected) < .001f,

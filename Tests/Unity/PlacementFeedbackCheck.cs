@@ -12,7 +12,7 @@ public static class PlacementFeedbackCheck
     static void Require(bool value, string message) { if (!value) throw new Exception(message); }
     static void Place(DefenseBattle battle, RobotRole role)
     {
-        int index = Enumerable.Range(0, 6).Single(i => battle.DefinitionRole(i) == role);
+        int index = Enumerable.Range(0, Rules.RoleCount).Single(i => battle.DefinitionRole(i) == role);
         var sim = battle.Simulation;
         for (float x = sim.Setup.Min.X + 1; x < sim.Setup.Max.X - 1; x++)
             for (float y = sim.Setup.Min.Y + 1; y < sim.Setup.Max.Y - 1; y++)
@@ -27,14 +27,14 @@ public static class PlacementFeedbackCheck
         // Stage 2 with the Stage 1 rewards carried over (Restart alone only carries them when entered from the stage map).
         battle.EditorStartSession(2, 1, true, new DefenseTestOptions());
         SerializedObject data;
-        Place(battle, RobotRole.Shooter); Place(battle, RobotRole.Shooter); Place(battle, RobotRole.Warrior);
-        Place(battle, RobotRole.Utility);
+        Place(battle, RobotRole.Ranged); Place(battle, RobotRole.Ranged); Place(battle, RobotRole.Melee);
+        Place(battle, RobotRole.Support);
         Require(battle.Simulation.Robots.Count == 4, "Stage 2 wave 1 utility must fit");
-        battle.Simulation.GrantRobot(RobotRole.Shooter, 2);
-        Place(battle, RobotRole.Shooter); Place(battle, RobotRole.Shooter);
-        int utility = Enumerable.Range(0, 6).Single(i => battle.DefinitionRole(i) == RobotRole.Utility);
-        battle.Simulation.GrantRobot(RobotRole.Utility, 1);
-        Require(battle.Simulation.DeploymentError(RobotRole.Utility).Contains("설치개수 초과"), "Shared limit reason");
+        battle.Simulation.GrantRobot(RobotRole.Ranged, 2);
+        Place(battle, RobotRole.Ranged); Place(battle, RobotRole.Ranged);
+        int utility = Enumerable.Range(0, Rules.RoleCount).Single(i => battle.DefinitionRole(i) == RobotRole.Support);
+        battle.Simulation.GrantRobot(RobotRole.Support, 1);
+        Require(battle.Simulation.DeploymentError(RobotRole.Support).Contains("설치개수 초과"), "Shared limit reason");
         Require(battle.Simulation.PlacementError(battle.RobotDefinition(utility).stats, new Point(999, 999)).Contains("설치개수 초과"), "Limit takes precedence over geometry");
         battle.ChooseRobot(utility);
         var hud = UnityEngine.Object.FindFirstObjectByType<DefensePlayerHUD>();

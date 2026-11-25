@@ -321,7 +321,7 @@ namespace CodingGame.Defense.Editor
 
             EditorSceneManager.OpenScene(Scene);
             var robots = Canvas("PlayerCanvas").Find("Deck/Robots").GetComponentsInChildren<Button>(true);
-            Check(robots.Length == 6 && robots.All(b => b.GetComponent<LearningRobotBadge>() && b.image.sprite &&
+            Check(robots.Length == Rules.RoleCount && robots.All(b => b.GetComponent<LearningRobotBadge>() && b.image.sprite &&
                 b.image.sprite.name == "RobotCardBlue"), "99 robot cards use the updated art frames and role badges");
             Check(Canvas("TutorialOverlay").GetComponentsInChildren<Transform>(true).All(t => t.name != "PortraitBadge"), "107 no PortraitBadge in the scene's overlay");
             // Shapes load PR #19's surfaces in OnEnable; the editor's blocks are inactive in the saved scene, so check the type and

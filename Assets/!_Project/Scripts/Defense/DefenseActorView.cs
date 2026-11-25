@@ -126,14 +126,49 @@ namespace CodingGame.Defense
             if (enemy.Chain != null) own = enemy.Spec.type == EnemyType.Queue ? new Color(1, .55f, .12f) : new Color(.65f, .3f, 1);
             bool open = enemy.Chain != null && enemy.Chain.Hittable == enemy;
             if (open) own = Color.Lerp(own, Color.white, .3f + .2f * Mathf.Sin((float)time * 8));
+            // ponytail: placeholder art for the Reflector until its model lands: the normal enemy model tinted steel blue, and
+            // while reflecting a shimmering silver body with a mirror ring round it; the seconds to its next flip over its bar.
+            bool reflector = enemy.Spec.type == EnemyType.Reflector;
+            if (reflector) own = enemy.Reflecting ? Color.Lerp(new Color(.75f, .95f, 1), Color.white, .5f + .5f * Mathf.Sin((float)time * 18)) : new Color(.35f, .5f, .75f);
             baseColor = own;
             ShowBubble(enemy.Shield > 0);
             ShowOpenEnd(open, open ? enemy.Chain.Segments.Count : 0, viewRotation);
+            ShowMirror(reflector, enemy.Reflecting, Math.Max(0, enemy.PhaseEnds - time), (float)time, viewRotation);
             Sync(position, enemy.Stunned(time), enemy.Speed(time) < enemy.Spec.speed, false);
         }
-        static Mesh bubbleMesh, ringMesh; static Material bubbleMaterial, ringMaterial;
-        Renderer bubble, ring;
-        TMPro.TextMeshPro segmentCount;
+        static Mesh bubbleMesh, ringMesh, mirrorMesh; static Material bubbleMaterial, ringMaterial, mirrorMaterial;
+        Renderer bubble, ring, mirror;
+        TMPro.TextMeshPro segmentCount, phaseTimer;
+        void ShowMirror(bool reflector, bool reflecting, double left, float time, Quaternion viewRotation)
+        {
+            if (!reflector) return;
+            if (!mirror)
+            {
+                mirror = Shell("Mirror ring", PrimitiveType.Cylinder, ref mirrorMesh, ref mirrorMaterial, new Color(.85f, .97f, 1, .45f));
+                phaseTimer = OverheadLabel("Reflect timer");
+            }
+            mirror.enabled = reflecting;
+            if (reflecting)
+            {
+                var bounds = body.bounds; float across = 2.2f * Mathf.Max(bounds.extents.x, bounds.extents.z) / Mathf.Max(.01f, transform.lossyScale.x);
+                float shimmer = 1 + .08f * Mathf.Sin(time * 14);
+                mirror.transform.localPosition = Vector3.up * (bounds.extents.y / Mathf.Max(.01f, transform.lossyScale.y));
+                mirror.transform.localScale = new Vector3(across * shimmer, bounds.extents.y * 1.1f / Mathf.Max(.01f, transform.lossyScale.y), across * shimmer);
+            }
+            phaseTimer.text = (reflecting ? "반사 " : "") + left.ToString("0.0") + "s";
+            phaseTimer.color = reflecting ? new Color(.8f, .97f, 1) : new Color(.7f, .75f, .85f);
+            phaseTimer.transform.SetPositionAndRotation(healthRoot.position + Vector3.up * .45f, viewRotation);
+        }
+        TMPro.TextMeshPro OverheadLabel(string name)
+        {
+            var label = new GameObject(name, typeof(TMPro.TextMeshPro)).GetComponent<TMPro.TextMeshPro>();
+            label.gameObject.layer = gameObject.layer; label.transform.SetParent(transform, false);
+            label.transform.localScale = Vector3.one / Mathf.Max(.01f, transform.lossyScale.x);
+            if (UITheme.Display && UITheme.Label) { label.font = UITheme.Display; label.fontSharedMaterial = UITheme.Label; }
+            label.fontSize = 5; label.alignment = TMPro.TextAlignmentOptions.Center; label.color = new Color(1, .93f, .45f);
+            label.rectTransform.sizeDelta = new Vector2(4, 1.5f);
+            return label;
+        }
         void ShowBubble(bool shown)
         {
             if (!shown) { if (bubble) bubble.enabled = false; return; }
@@ -156,12 +191,7 @@ namespace CodingGame.Defense
                 ring = Shell("Open end ring", PrimitiveType.Cylinder, ref ringMesh, ref ringMaterial, new Color(1, .9f, .2f, .6f));
                 var bounds = body.bounds; float across = 2.6f * Mathf.Max(bounds.extents.x, bounds.extents.z) / Mathf.Max(.01f, transform.lossyScale.x);
                 ring.transform.localPosition = Vector3.up * .03f; ring.transform.localScale = new Vector3(across, .01f, across);
-                segmentCount = new GameObject("Segment count", typeof(TMPro.TextMeshPro)).GetComponent<TMPro.TextMeshPro>();
-                segmentCount.gameObject.layer = gameObject.layer; segmentCount.transform.SetParent(transform, false);
-                segmentCount.transform.localScale = Vector3.one / Mathf.Max(.01f, transform.lossyScale.x);
-                if (UITheme.Display && UITheme.Label) { segmentCount.font = UITheme.Display; segmentCount.fontSharedMaterial = UITheme.Label; }
-                segmentCount.fontSize = 5; segmentCount.alignment = TMPro.TextAlignmentOptions.Center; segmentCount.color = new Color(1, .93f, .45f);
-                segmentCount.rectTransform.sizeDelta = new Vector2(4, 1.5f);
+                segmentCount = OverheadLabel("Segment count");
             }
             ring.enabled = segmentCount.enabled = true;
             segmentCount.text = count.ToString();
@@ -201,10 +231,21 @@ namespace CodingGame.Defense
             this.pace = pace;
             foreach (var flame in thrusters) { var main = flame.main; main.simulationSpeed = pace; }
         }
+        // ponytail: placeholder hit-back flash on a robot a reflector sent its hit back to (red-white for a moment).
+        float flash;
+        public void Flash() => flash = .35f;
+        // ponytail: placeholder hit-back line from a reflector to the robot its mirror sent the hit to (the actor's own beam).
+        public void HitBack(Vector3 target)
+        {
+            beam.useWorldSpace = true; beam.positionCount = 2;
+            beam.SetPosition(0, head.position); beam.SetPosition(1, target + Vector3.up * .45f);
+            beam.enabled = true; beamTime = .2f;
+        }
         void Sync(Vector3 position, bool stunned, bool slowed, bool buffed)
         {
             transform.position = position;
-            Color tint = stunned ? new Color(.8f,.4f,1) : slowed ? new Color(.2f,.8f,1) : buffed ? Color.Lerp(baseColor, Color.white, .35f) : baseColor;
+            Color tint = flash > 0 ? Color.Lerp(new Color(1, .25f, .2f), Color.white, flash * 2) :
+                stunned ? new Color(.8f,.4f,1) : slowed ? new Color(.2f,.8f,1) : buffed ? Color.Lerp(baseColor, Color.white, .35f) : baseColor;
             // Set only when it changes (13차 134): this ran for every actor every frame.
             if (tint == shownTint) return;
             shownTint = tint; colors.SetColor(BaseColorId, tint); body.SetPropertyBlock(colors);
@@ -260,7 +301,7 @@ namespace CodingGame.Defense
                 hoverTime += delta;
                 var at = hover.localPosition; at.y = hoverY + HoverHeight * Mathf.Sin(hoverTime * HoverHz * 2 * Mathf.PI); hover.localPosition = at;
             }
-            beamTime -= delta;
+            beamTime -= delta; flash -= delta;
             if (beamTime <= 0) beam.enabled = false;
         }
         // A wave ending mid-spin would leave the model turned: the clock stops with the wave, so put it back at its facing.

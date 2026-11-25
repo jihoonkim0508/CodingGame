@@ -434,7 +434,7 @@ namespace CodingGame.Defense.Editor
             yield return .5f;
             var view = Object.FindFirstObjectByType<TutorialDialogueView>(FindObjectsInactive.Include);
             Check(!view.IsVisible && !Battle.TutorialBlocksInput, "B01: 대사 숨김, 조작 가능");
-            Check(Battle.Simulation.RobotAvailable(RobotRole.Warrior) == 1, "새 전사 1대 지급 (" + Battle.Simulation.RobotAvailable(RobotRole.Warrior) + ")");
+            Check(Battle.Simulation.RobotAvailable(RobotRole.Melee) == 1, "새 전사 1대 지급 (" + Battle.Simulation.RobotAvailable(RobotRole.Melee) + ")");
             Check(Field<UnityEngine.UI.Button>(Battle.CodeEditor, "hintButton").gameObject.activeSelf, "힌트 버튼 보임");
             Shot(); yield return .1f;
         }
@@ -444,7 +444,7 @@ namespace CodingGame.Defense.Editor
             DevTest.PlayDefense(1, 1, false);
             yield return Wait(() => DevTest.Ready && !Battle.Tutorial.IsActive && Battle.Simulation.Robots.Count == 0 && Battle.Simulation.Time == 0, "새 1-1", 10);
             var sim = Battle.Simulation;
-            var spec = Battle.RobotDefinition(Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => Battle.DefinitionRole(i) == RobotRole.Warrior)).stats;
+            var spec = Battle.RobotDefinition(Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => Battle.DefinitionRole(i) == RobotRole.Melee)).stats;
             var map = Object.FindFirstObjectByType<CodingGame.Art.MapPainter.ModularMapRoot>();
             var props = map.transform.Cast<Transform>().Where(g => g.name.Contains("Art")).SelectMany(g => g.Cast<Transform>()).ToList();
             int blocked = 0, inside = 0;
@@ -463,7 +463,7 @@ namespace CodingGame.Defense.Editor
             var points = barCorners.Select(c => RectTransformUtility.WorldToScreenPoint(null, c)).ToArray();
             bool onScreen = points.All(p => cam.pixelRect.Contains(p));
             Check(onScreen, $"기지 체력바가 화면 안 (x {points.Min(p => p.x):0}~{points.Max(p => p.x):0} / 화면 폭 {cam.pixelWidth})");
-            DevTest.PlaceTeachingRobot(Battle, RobotRole.Warrior);
+            DevTest.PlaceTeachingRobot(Battle, RobotRole.Melee);
             Battle.SelectRobot(sim.Robots[0].Id);
             yield return .4f;
             var ring = Field<DefenseRangeRing>(Battle, "rangeRing");
@@ -539,10 +539,10 @@ namespace CodingGame.Defense.Editor
             yield return Wait(() => DevTest.Ready && !Battle.Tutorial.IsActive && Battle.Simulation.Robots.Count == 0 && Battle.Simulation.Time == 0, "새 1-1", 10);
             var sim = Battle.Simulation;
             sim.GrantAll();
-            DevTest.PlaceTeachingRobot(Battle, RobotRole.Warrior);
-            DevTest.PlaceTeachingRobot(Battle, RobotRole.Shooter);
+            DevTest.PlaceTeachingRobot(Battle, RobotRole.Melee);
+            DevTest.PlaceTeachingRobot(Battle, RobotRole.Ranged);
             foreach (var bot in sim.Robots)
-                sim.ApplyProgram(bot.Id, "robot_" + bot.Id, bot.Spec.role == RobotRole.Warrior
+                sim.ApplyProgram(bot.Id, "robot_" + bot.Id, bot.Spec.role == RobotRole.Melee
                     ? TutorialAnswers.Parse("while True:\n    slash()")
                     : new[] { new CodeBlock(BlockKind.Shot, "0", new CodeBlock(BlockKind.NearestEnemy)) });
             yield return .5f;
@@ -587,8 +587,8 @@ namespace CodingGame.Defense.Editor
                 if (attacked.Count == 1 && !shotTaken) { shotTaken = true; Shot(); }
                 return attacked.Count == 2;
             }, "두 로봇의 공격 동작", 60);
-            Check(attacked.Contains(RobotRole.Warrior), "전사형(AttackRobot): 공격할 때 Attack 재생");
-            Check(attacked.Contains(RobotRole.Shooter), "사격형(ShotRobot): 공격할 때 Attack 재생");
+            Check(attacked.Contains(RobotRole.Melee), "전사형(AttackRobot): 공격할 때 Attack 재생");
+            Check(attacked.Contains(RobotRole.Ranged), "사격형(ShotRobot): 공격할 때 Attack 재생");
             foreach (var line in attackSpeeds) checks.Add("ℹ " + line);
             Battle.TogglePause();
             yield return .3f;
@@ -609,7 +609,7 @@ namespace CodingGame.Defense.Editor
         {
             DevTest.PlayDefense(1, 1, false);
             yield return Wait(() => DevTest.Ready && !Battle.Tutorial.IsActive && Battle.Simulation.Robots.Count == 0, "튜토리얼 없는 1-1", 10);
-            DevTest.PlaceTeachingRobot(Battle, RobotRole.Warrior);
+            DevTest.PlaceTeachingRobot(Battle, RobotRole.Melee);
             var bot = Battle.Simulation.Robots[0];
             DevTest.GrantAll(); // 1-1 hands out no while
             Battle.Simulation.ApplyProgram(bot.Id, "robot_" + bot.Id, TutorialAnswers.Parse("while True:\n    slash()"));
@@ -656,7 +656,7 @@ namespace CodingGame.Defense.Editor
             checks.Add("ℹ 글리치 대상: " + (model ? model.name + " (맵 기지 모델)" : "코어 기본 도형"));
             // Stage 1 waves 2 and 4 only start with the warrior goals; a Stage 2 session lets enemies reach the core freely.
             Battle.EditorStartSession(2, 1, true, DevTest.Options);
-            DevTest.PlaceTeachingRobot(Battle, RobotRole.Warrior);
+            DevTest.PlaceTeachingRobot(Battle, RobotRole.Melee);
             foreach (var bot in Battle.Simulation.Robots) Battle.Simulation.ApplyProgram(bot.Id, "robot_" + bot.Id, new List<CodeBlock>());
             int health = Battle.Simulation.BaseHealth;
             DevTest.StartWave(); Time.timeScale = 3;

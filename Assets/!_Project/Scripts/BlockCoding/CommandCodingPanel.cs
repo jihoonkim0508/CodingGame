@@ -382,7 +382,7 @@ namespace CodingGame.BlockCoding
         {
             if (data.Kind == BlockKind.Attack) data = new CodeBlock(BlockKind.Shot, data.Value, data.Arguments.ToArray());
             // is_dead() and type are a variable's members only (typed after `enemy.`), like distance( and hp.
-            bool member = data.Kind is BlockKind.IsDead or BlockKind.EnemyTypeOf or BlockKind.Shield or BlockKind.Front or BlockKind.Top or BlockKind.Size;
+            bool member = data.Kind is BlockKind.IsDead or BlockKind.EnemyTypeOf or BlockKind.Shield or BlockKind.Front or BlockKind.Top or BlockKind.Size or BlockKind.Reflecting;
             if (member && data.Arguments.FirstOrDefault()?.Kind != BlockKind.Variable)
                 throw new FormatException(PythonTreeCompiler.Label(data.Kind) + "는 변수 뒤에 점을 찍어 씁니다. 예: enemy." + PythonTreeCompiler.Label(data.Kind));
             bool variable = member || data.Kind == BlockKind.Variable || data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp;

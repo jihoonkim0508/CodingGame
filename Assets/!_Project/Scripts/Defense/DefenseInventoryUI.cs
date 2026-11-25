@@ -27,7 +27,7 @@ namespace CodingGame.Defense
         public bool IsOpen => inventoryRoot.activeSelf;
         void Start()
         {
-            if (!battle || !inventoryRoot || !closeButton || robotButtons.Length != 6 || robotLabels.Length != 6 ||
+            if (!battle || !inventoryRoot || !closeButton || robotButtons.Length != Rules.RoleCount || robotLabels.Length != Rules.RoleCount ||
                 robotButtons.Any(b => !b) || robotLabels.Any(t => !t) || blockSlots.Length != kinds.Length || blockSlots.Any(s => !s.label || !s.count) ||
                 !categoryButton || !previousButton || !nextButton || !grantButton || !grantAllButton || !categoryLabel || !itemLabel || !feedback || !quantity)
                 throw new InvalidOperationException("인벤토리 Inspector 참조를 연결하세요.");
@@ -40,7 +40,7 @@ namespace CodingGame.Defense
         }
         public void Close() { if (inventoryRoot) inventoryRoot.SetActive(false); }
         public void Toggle() => inventoryRoot.SetActive(!inventoryRoot.activeSelf);
-        void Change(int delta) { int count = blocks ? kinds.Length : 6; item = (item + delta + count) % count; RefreshGrant(); }
+        void Change(int delta) { int count = blocks ? kinds.Length : Rules.RoleCount; item = (item + delta + count) % count; RefreshGrant(); }
         public void SelectRobotItem(int index) { blocks = false; item = index; RefreshGrant(); }
         public void SelectBlockItem(BlockKind kind) { blocks = true; item = Array.IndexOf(kinds, kind); RefreshGrant(); }
         void RefreshGrant() { categoryLabel.text = blocks ? "블록" : "로봇"; itemLabel.text = blocks ? DefenseProgression.Label(kinds[item]) : battle.DefinitionName(item); }

@@ -25,8 +25,8 @@ internal class CommandScript : IRunCommand
         var slashPrefab = previewSettings.FindProperty("hitEffects.slashPrefab").objectReferenceValue;
         if (AssetDatabase.GetAssetPath(slashPrefab) != "Assets/!_Project/Defense/Effects/SwordSlashFlat.prefab")
             throw new Exception("Slash effect is not SwordSlash_3 (planner)");
-        int index = Enumerable.Range(0, 6).First(i => battle.DefinitionRole(i) == RobotRole.Warrior);
-        battle.Simulation.GrantRobot(RobotRole.Warrior, 1);
+        int index = Enumerable.Range(0, 6).First(i => battle.DefinitionRole(i) == RobotRole.Melee);
+        battle.Simulation.GrantRobot(RobotRole.Melee, 1);
         if (!battle.PlaceRobot(index, new Vector3(-8, 0, 6))) throw new Exception("Cannot place test warrior");
         var robot = battle.Simulation.Robots.Last();
         robot.Program = new DefenseProgram("effects_check", new[] { new CodeBlock(BlockKind.Slash) });

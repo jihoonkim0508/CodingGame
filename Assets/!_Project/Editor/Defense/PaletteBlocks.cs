@@ -85,6 +85,29 @@ namespace CodingGame.Defense.Editor
                 fields.FindProperty("input").objectReferenceValue = input;
                 fields.ApplyModifiedPropertiesWithoutUndo();
             });
+            // my_hp() from my_attack_range(); `[ ] and [ ]` from the comparison: its picker gives way to an `and` label and both
+            // holes take conditions (the reflector lesson's `e.type == Enemy.Reflector and e.reflecting`).
+            Append(BlockKind.MyHp, BlockKind.MyAttackRange, 2, view => Relabel(view, "my_attack_range()", "my_hp()"));
+            int logic = Enumerable.Range(0, palette.arraySize).First(i => View(i) && View(i).BaseKind == BlockKind.Comparison);
+            Append(BlockKind.And, BlockKind.Comparison, palette.GetArrayElementAtIndex(logic).FindPropertyRelative("category").intValue, view =>
+            {
+                var header = view.transform.Find("Header");
+                var picker = header.Find("Operator");
+                var label = Object.Instantiate(Find(BlockKind.NearestEnemy).transform.Find("Header").GetComponentInChildren<TMP_Text>(true).gameObject, header);
+                label.name = "AndLabel"; label.transform.SetSiblingIndex(picker.GetSiblingIndex());
+                label.GetComponent<TMP_Text>().text = "and";
+                Object.DestroyImmediate(picker.gameObject);
+                var fields = new SerializedObject(view);
+                fields.FindProperty("dropdown").objectReferenceValue = null;
+                fields.ApplyModifiedPropertiesWithoutUndo();
+                foreach (var zone in view.GetComponentsInChildren<CommandDropZone>(true))
+                {
+                    var slot = new SerializedObject(zone);
+                    slot.FindProperty("slot").intValue = (int)BlockSlotKind.Condition;
+                    slot.ApplyModifiedPropertiesWithoutUndo();
+                }
+                foreach (var hint in new[] { "Slot0/Hint", "Slot1/Hint" }) if (header.Find(hint)?.GetComponent<TMP_Text>() is TMP_Text text) text.text = "조건";
+            });
             so.ApplyModifiedPropertiesWithoutUndo();
             // Block help (도감) entries for the new blocks, as copies of an existing entry's button.
             var help = Object.FindObjectsByType<DefenseBlockHelp>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single();
@@ -98,7 +121,7 @@ namespace CodingGame.Defense.Editor
                     return -1;
                 }
                 if (Index(kind) >= 0) { log += "help " + kind + " kept; "; return; }
-                int at = Index(after);
+                int at = Index(after); if (at < 0) at = entries.arraySize - 1;
                 var source = entries.GetArrayElementAtIndex(at);
                 var button = (UnityEngine.UI.Button)source.FindPropertyRelative("button").objectReferenceValue;
                 var label = (TMP_Text)source.FindPropertyRelative("label").objectReferenceValue;
@@ -135,6 +158,35 @@ namespace CodingGame.Defense.Editor
                 "스택(Stack)은 나중에 들어온 것이 먼저 나갑니다(LIFO). 스택 지네는 몇 초마다 꼬리에 마디를 쌓고, 맨 위(가장 나중에 쌓인 꼬리) 마디만 피해를 받습니다.\n" +
                 "e.top()은 e가 속한 지네의 맨 위 마디를 돌려줍니다(지네가 아니면 e 자신). 늦게 잡을수록 마디가 늘어납니다(최대 8). e.size로 마디 수를 읽을 수 있습니다.",
                 "for e in get_enemies():\n    if e.type == Enemy.Stack:\n        shoot(e.top())\n    elif e.type == Enemy.Queue:\n        shoot(e.front())");
+            Help(BlockKind.Reflecting, BlockKind.Top, "enemy.reflecting · 반사 중",
+                "반사병이 반사 상태면 True입니다. 반사병은 몇 초마다(보통 3초 → 반사 2초) 거울처럼 빛나며, 그동안 맞은 공격을 쏜 로봇에게 그대로 돌려보냅니다(반사병은 피해 없음).\n" +
+                "변수 뒤에 점을 찍고 reflecting을 고르세요. 다른 적은 늘 False입니다.",
+                "for e in get_enemies():\n    if e.type == Enemy.Reflector and e.reflecting:\n        continue\n    shoot(e)\n    break");
+            Help(BlockKind.And, BlockKind.Reflecting, "a and b · 그리고",
+                "두 조건이 모두 True일 때만 True입니다. 왼쪽이 False면 오른쪽은 보지 않습니다. 양쪽 빈칸에 논리 블록(비교, is_dead(), reflecting ...)을 넣으세요.",
+                "if e.type == Enemy.Reflector and e.reflecting:\n    continue");
+            Help(BlockKind.MyHp, BlockKind.MyAttackRange, "my_hp() · 내 체력",
+                "이 로봇의 지금 체력입니다. 반사병에게 공격이 튕겨 오면 줄고, 0이 되면 로봇이 이번 웨이브에서 쓰러집니다(재도전하면 돌아옴).",
+                "if my_hp() < 30:\n    wait(1)");
+            // Who does what best (2026-11-25): attack actions belong to 공격류 (근접·원거리), buff and slow to 지원류; the other
+            // class's work weakly. Appended to the entries once.
+            var rules = AssetDatabase.LoadAssetAtPath<DefenseCampaignDefinition>("Assets/!_Project/Defense/Tutorial/Stage1/StageOneCampaign.asset").rules;
+            string penalty = $" (효과 {rules.reducedStrength:0%}, 재사용 대기 {rules.reducedIntervalMultiplier:0.#}배)";
+            foreach (var (kind, note) in new[] {
+                (BlockKind.Buff, "공격류 로봇이 지원 기술을 쓰면 효과가 약해요" + penalty), (BlockKind.Slow, "공격류 로봇이 지원 기술을 쓰면 효과가 약해요" + penalty),
+                (BlockKind.Shot, "지원 로봇이 공격 기술을 쓰면 효과가 약해요" + penalty), (BlockKind.Slash, "지원 로봇이 공격 기술을 쓰면 효과가 약해요" + penalty),
+                (BlockKind.Block, "지원 로봇이 공격 기술을 쓰면 효과가 약해요" + penalty), (BlockKind.Boom, "지원 로봇이 공격 기술을 쓰면 효과가 약해요" + penalty),
+                (BlockKind.BreakShield, "지원 로봇이 공격 기술을 쓰면 효과가 약해요" + penalty) })
+                for (int i = 0; i < entries.arraySize; i++)
+                {
+                    var entry = entries.GetArrayElementAtIndex(i);
+                    if (entry.FindPropertyRelative("kind").intValue != (int)kind) continue;
+                    var text = entry.FindPropertyRelative("description");
+                    text.stringValue = text.stringValue.Replace("원거리형 전용 두 번째 기술", "공격류(근접·원거리) 기술").Replace("원거리형", "원거리 로봇").Replace("전사형", "근접 로봇")
+                        .Replace("탱커형", "근접 로봇").Replace("버프형", "지원 로봇").Replace("유틸형", "지원 로봇").Replace("폭탄형", "공격류 로봇");
+                    if (!text.stringValue.Contains(note.Substring(0, 12))) text.stringValue += "\n" + note;
+                    log += "help " + kind + " class note; ";
+                }
             helpSo.ApplyModifiedPropertiesWithoutUndo();
             // The inventory lists one row per item kind (DefenseInventoryUI checks the count): a row for each new kind, as a copy of
             // the last row (the label and count's common parent).

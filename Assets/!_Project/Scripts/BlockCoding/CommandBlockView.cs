@@ -27,8 +27,8 @@ namespace CodingGame.BlockCoding
         public CommandCodingPanel Panel { get; private set; }
         public CommandDropZone Owner { get; private set; }
         public bool IsPalette { get; private set; }
-        static readonly string[] Methods = { "distance(", "hp", "is_dead()", "type", "shield", "front()", "top()", "size" };
-        static readonly BlockKind[] MemberKinds = { BlockKind.Distance, BlockKind.Hp, BlockKind.IsDead, BlockKind.EnemyTypeOf, BlockKind.Shield, BlockKind.Front, BlockKind.Top, BlockKind.Size };
+        static readonly string[] Methods = { "distance(", "hp", "is_dead()", "type", "shield", "front()", "top()", "size", "reflecting" };
+        static readonly BlockKind[] MemberKinds = { BlockKind.Distance, BlockKind.Hp, BlockKind.IsDead, BlockKind.EnemyTypeOf, BlockKind.Shield, BlockKind.Front, BlockKind.Top, BlockKind.Size, BlockKind.Reflecting };
         bool HasDot => kind == BlockKind.Variable && input && input.text.EndsWith(".", StringComparison.Ordinal);
         // Dropdown after `name.`: distance(position), the read-only hp and type properties, is_dead() (a condition: the block
         // turns into a logic block; there is no is_dead() block of its own in the palette). Read by the shown name, since the

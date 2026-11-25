@@ -194,7 +194,7 @@ namespace CodingGame.Defense
             foreach(var bot in Robots)
             {
                 bot.Spec=robots[bot.DefinitionIndex].Copy();bot.LevelCap=Setup.RulesConfig.maxLevel;bot.UpgradeFactor=Setup.RulesConfig.upgradeMultiplier;
-                bot.Level=Math.Min(bot.Level,bot.LevelCap);bot.Health=bot.Spec.role==RobotRole.Tank?(float?)bot.MaxHealth:null;
+                bot.Level=Math.Min(bot.Level,bot.LevelCap);bot.Health=bot.MaxHealth;
                 bot.Buffs.Clear();bot.NextAction=Time;
             }
             foreach(var enemy in Enemies){enemy.Spec=Setup.RulesConfig.Scale(enemies[enemy.DefinitionIndex],Setup.Stage,WaveIndex);enemy.Health=enemy.Spec.health;enemy.NextAttack=Time;}
@@ -369,7 +369,7 @@ namespace CodingGame.Defense
             if (Setup.PlayerFlow && !CanPrepare) return "로봇 배치는 웨이브 준비 중에만 가능합니다.";
             if (Options.deploymentLimit && Robots.Count >= Setup.RobotLimit) return "설치개수 초과 · 기존 로봇을 회수하세요";
             if (RobotAvailable(role) < 1) return "보유 로봇 없음";
-            if (Options.deploymentLimit && Robots.Count(bot => bot.Spec.role == role) >= Setup.RulesConfig.roleLimits[(int)role]) return role + " 설치개수 초과 · 최대 " + Setup.RulesConfig.roleLimits[(int)role] + "대";
+            if (Options.deploymentLimit && Robots.Count(bot => bot.Spec.role == role) >= Setup.RulesConfig.roleLimits[(int)role]) return Rules.RoleName(role) + " 설치개수 초과 · 최대 " + Setup.RulesConfig.roleLimits[(int)role] + "대";
             return null;
         }
         // The road is drawn past its walking half-width (border, round corners): others keep this much further off it.
@@ -390,11 +390,8 @@ namespace CodingGame.Defense
                 .Any(offset => !Setup.Floor.Any(tile => tile.Contains(point + offset)))) return "맵 밖에는 설치할 수 없습니다.";
             if (Robots.Any(bot => bot != moving && Vector2.Distance(bot.Position, point) < (bot.Spec.radius + spec.radius) * .9f)) return "다른 로봇과 겹칩니다.";
             if (Setup.Obstacles.Any(area => area.Overlaps(point, r))) return "장애물 또는 목표 시설과 겹칩니다.";
-            bool pathFits = Setup.Routes.Any(route => route.Distance(point) + r <= route.HalfWidth);
-            // Others keep their whole body off the drawn road (radius is the model's half-width, Defense/Data).
-            bool touchesPath = Setup.Routes.Any(route => route.Distance(point) < route.HalfWidth + r + PathClearance);
-            if (spec.role == RobotRole.Tank && !pathFits) return "탱커는 몸체가 경로 안에 들어가도록 설치하세요.";
-            if (spec.role != RobotRole.Tank && touchesPath) return "적 경로에는 탱커만 설치할 수 있습니다.";
+            // Robots keep their whole body off the drawn road (radius is the model's half-width, Defense/Data).
+            if (Setup.Routes.Any(route => route.Distance(point) < route.HalfWidth + r + PathClearance)) return "적 경로에는 로봇을 설치할 수 없습니다.";
             return null;
         }
         public RobotState Place(RobotSpec spec, int definitionIndex, Vector2 point, out string error)
@@ -403,7 +400,7 @@ namespace CodingGame.Defense
             if (error != null) {Events.Add(new CombatEvent{Kind="placement-failed",Reason=error,Target=definitionIndex,Position=point});return null;}
             var bot = new RobotState { Id = nextId++, DefinitionIndex = definitionIndex, Position = point, Spec = spec.Copy(),
                 LevelCap = Setup.RulesConfig.maxLevel, UpgradeFactor = Setup.RulesConfig.upgradeMultiplier,
-                Action = spec.NativeAction, Health = spec.role == RobotRole.Tank ? (float?)spec.health : null,
+                Action = spec.NativeAction, Health = spec.health,
                 NextAction = Time };
             if (Setup.PlayerFlow && Options.inventoryLimit) RobotInventory[spec.role]--;
             Robots.Add(bot);
@@ -474,7 +471,7 @@ namespace CodingGame.Defense
             Events.Add(new CombatEvent {Kind="robot-damage",Source=source,Target=id,Position=bot.Position,Amount=damage,AppliedAmount=Options.robotDamage?Math.Min(damage,bot.Health.Value):0});
             if (!Options.robotDamage) return true;
             bot.Health = Math.Max(0, bot.Health.Value - damage);
-            if (bot.Health <= 0) { Emit("tank-destroyed", 0, id, bot.Position); Detach(bot); }
+            if (bot.Health <= 0) { Emit("robot-destroyed", 0, id, bot.Position); Detach(bot); } // gone for the wave; a retry brings it back
             return true;
         }
         public void ApplyProgram(int id, string name, IReadOnlyList<CodingGame.BlockCoding.CodeBlock> blocks)
@@ -498,19 +495,15 @@ namespace CodingGame.Defense
             if (bot == null) return;
             bot.Program = null; bot.AutoExecute = true; bot.Action = bot.Spec.NativeAction;
         }
-        public ActionCompatibility Compatibility(RobotState bot, RobotAction action) => Rules.Compatibility(bot.Spec.role, action, Setup.Permissions);
-        RobotSpec Profile(RobotState bot, RobotAction action) => Compatibility(bot, action) == ActionCompatibility.Reduced ? Setup.ActionProfiles.Single(p => p.NativeAction == action) : bot.Spec;
-        float Strength(RobotState bot, RobotAction action)
-        {
-            var compatibility = Compatibility(bot, action);
-            if (compatibility == ActionCompatibility.Native) return 1;
-            if (compatibility != ActionCompatibility.Reduced) return 0;
-            return !Rules.NeedsPermission(action) ? Setup.RulesConfig.reducedStrength : Setup.Permissions.First(p => p.role == bot.Spec.role && p.action == action).strength;
-        }
-        public float ActionDamage(RobotState bot, RobotAction action) => Profile(bot, action).damage * bot.DamageMultiplier * Strength(bot, action);
+        public ActionCompatibility Compatibility(RobotState bot, RobotAction action) => Rules.Compatibility(bot.Spec.role, action);
+        // Every action runs on the robot's own numbers (melee and ranged share them but for range); one of the other class
+        // runs at reducedStrength and reducedIntervalMultiplier times the cooldown.
+        float Strength(RobotState bot, RobotAction action) => Compatibility(bot, action) == ActionCompatibility.Native ? 1 : Setup.RulesConfig.reducedStrength;
+        public float ActionDamage(RobotState bot, RobotAction action) => bot.Damage * Strength(bot, action);
         // Distance does not change damage: the shooter's inverse-distance bonus was dropped (design decision 2026-11-18).
         public float ActionDamage(RobotState bot, RobotAction action, float distance) => ActionDamage(bot, action);
-        public float ActionInterval(RobotState bot, RobotAction action) => Profile(bot, action).interval * (bot.Interval / bot.Spec.interval);
+        public float ActionInterval(RobotState bot, RobotAction action) => bot.Interval *
+            (Compatibility(bot, action) == ActionCompatibility.Native ? 1 : Setup.RulesConfig.reducedIntervalMultiplier);
         public ActionResult RequestAction(int robotId, RobotAction action, int targetId = 0)
         {
             var bot = FindRobot(robotId);
@@ -518,12 +511,10 @@ namespace CodingGame.Defense
             var compatibility = Compatibility(bot, action);
             if (compatibility == ActionCompatibility.Ineffective) return bot.LastResult = ActionResult.Ineffective;
             if (compatibility == ActionCompatibility.Undecided) return bot.LastResult = ActionResult.Undecided;
-            // block()에 도달하면 즉시 몸으로 저지합니다. 스턴과 피해만 공통 재사용 시간을 따릅니다.
-            if (action == RobotAction.Block && bot.Spec.role == RobotRole.Tank) bot.BlockingEnabled = true;
             bool breaking = action == RobotAction.BreakShield; // its own cooldown, so it can go right before a shot
             if (Time + .000001 < (breaking ? bot.NextShieldBreak : bot.NextAction)) return bot.LastResult = ActionResult.CoolingDown;
             float strength = Strength(bot, action);
-            var profile = Profile(bot, action);
+            var profile = bot.Spec;
             if (action == RobotAction.Buff)
             {
                 if (!Buff(bot, profile, strength)) return bot.LastResult = ActionResult.NoTarget;
@@ -565,9 +556,9 @@ namespace CodingGame.Defense
         // break_shield(): the shield is gone at once, then a little damage to health (a laser like the shot's, no flight).
         void BreakShield(RobotState bot, EnemyState target)
         {
-            target.Shield = 0;
+            if (!target.Reflecting) target.Shield = 0;
             Emit("shield-break", bot.Id, target.Id, target.Position);
-            Hit(target, bot.Spec.shieldBreakDamage * bot.DamageMultiplier, bot.Id);
+            Hit(target, bot.Spec.shieldBreakDamage * bot.DamageMultiplier * Strength(bot, RobotAction.BreakShield), bot.Id);
         }
         // Healer and Shielder pulse on their own clock on every other active enemy within their radius; a shield does not
         // stack, a new one tops it up to the amount.
@@ -644,7 +635,7 @@ namespace CodingGame.Defense
                 // 사격형 탄은 날아가서 도착할 때 피해를 줍니다(기획). 도착 시점에 같은 적을 맞힙니다.
                 double flight = Math.Max(TickDuration, distance / profile.projectileSpeed);
                 Projectiles.Add(new ProjectileState { Id = nextId++, Source = bot.Id, Target = target.Id, Origin = bot.Position, Destination = target.Position,
-                    LaunchedAt = Time, ImpactAt = Time + flight, Damage = damage });
+                    LaunchedAt = Time, ImpactAt = Time + flight, Damage = damage, Reflect = target.Reflecting });
                 Events.Add(new CombatEvent { Kind = "shot", Source = bot.Id, Target = target.Id, Position = target.Position, Seconds = (float)flight });
                 return;
             }
@@ -663,11 +654,23 @@ namespace CodingGame.Defense
         }
         void Emit(string kind, int source, int target, Vector2 point, float amount = 0, float radius = 0)
             => Events.Add(new CombatEvent { Kind = kind, Source = source, Target = target, Position = point, Amount = amount, Radius = radius });
-        void Hit(EnemyState e, float damage, int source, bool projectile = false, RobotState meleeSource = null)
+        // reflect: a shot's, decided when it was fired; else whether the enemy reflects as the hit lands (slash, boom, the rest).
+        void Hit(EnemyState e, float damage, int source, bool projectile = false, RobotState meleeSource = null, bool? reflect = null)
         {
             if (!e.Active) return;
             // A centipede segment other than its open end (queue: front, stack: top) takes nothing: boom and slash included.
             if (e.Chain != null && e.Chain.Hittable != e) { Emit("blocked", source, e.Id, e.Position, damage); return; }
+            // A reflecting reflector takes nothing and the robot that hit it takes the hit instead.
+            if (reflect ?? e.Reflecting)
+            {
+                if (FindRobot(source) is RobotState hitter)
+                {
+                    Events.Add(new CombatEvent { Kind = "reflect", Source = e.Id, Target = hitter.Id, Origin = e.Position, Position = hitter.Position, Amount = damage });
+                    hitter.LastReflected = Time;
+                    DamageRobot(hitter.Id, damage, e.Id);
+                }
+                return;
+            }
             if (!Options.attackDamage) { Emit("damage-suppressed", source, e.Id, e.Position, damage); damage = 0; }
             float absorbed = Math.Min(e.Shield, damage); e.Shield -= absorbed; damage -= absorbed; // a shield takes damage first
             float applied = Math.Min(e.Health, damage);
@@ -722,7 +725,7 @@ namespace CodingGame.Defense
                 if (shot.Target != 0)
                 {
                     var enemy = Enemies.Find(e => e.Id == shot.Target);
-                    if (enemy != null) Hit(enemy, shot.Damage, shot.Source, true);
+                    if (enemy != null) Hit(enemy, shot.Damage, shot.Source, true, reflect: shot.Reflect);
                     continue;
                 }
                 foreach (var enemy in Enemies.Where(e => e.Active && Vector2.DistanceSquared(e.Position, shot.Destination) <= shot.Radius * shot.Radius).ToArray())
@@ -743,6 +746,11 @@ namespace CodingGame.Defense
                 if (e.BlockedBy != 0 && FindRobot(e.BlockedBy) == null) e.BlockedBy = 0;
                 if (e.Active && e.BlockedBy == 0) TryBlock(e, e.Position, e.Position, out _);
                 if (e.Active && !e.Stunned(Time)) Pulse(e);
+                if (e.Spec.type == EnemyType.Reflector && Time + 1e-9 >= e.PhaseEnds)
+                {
+                    e.Reflecting = !e.Reflecting; e.PhaseEnds += e.Reflecting ? e.Spec.reflectOn : e.Spec.reflectOff;
+                    Emit(e.Reflecting ? "reflect-on" : "reflect-off", e.Id, 0, e.Position);
+                }
             }
             for (int i = 0, count = Enemies.Count; i < count; i++) Push(Enemies[i]); // appends: not in the foreach
             foreach (var bot in Robots)
@@ -797,6 +805,7 @@ namespace CodingGame.Defense
                     var spec = g.Enemy.Copy();
                     var e = new EnemyState { Id = nextId++, DefinitionIndex = g.DefinitionIndex, Spec = spec, Health = spec.health, Boss = g.Boss,
                         Position = Setup.Routes[g.RouteIndex].Points[0], RouteIndex = g.RouteIndex, NextAttack = Time + spec.attackInterval,
+                        SpawnedAt = Time, PhaseEnds = Time + spec.reflectOff,
                         NextAbility = Time + spec.abilityInterval * (IsCentipede(spec.type) ? 1 : .5) };
                     if (IsCentipede(spec.type)) (e.Chain = groupChains[i] ??= new Centipede { Stack = spec.type == EnemyType.Stack }).Segments.Add(e);
                     Enemies.Add(e);
@@ -832,7 +841,7 @@ namespace CodingGame.Defense
             point = end; RobotState chosen = null; float nearest = float.MaxValue;
             foreach (var bot in Robots)
             {
-                if (bot.Spec.role != RobotRole.Tank || !bot.BlockingEnabled) continue;
+                if (!bot.BlockingEnabled) continue;
                 // 이번 이동으로 닿는 탱커에 대해서만 저지 인원수를 계산합니다.
                 if (!Rules.CircleEntry(start, end, bot.Position, bot.Spec.blockRadius, out float t) || t >= nearest) continue;
                 if (Enemies.Count(other => other.Active && other.BlockedBy == bot.Id) >= bot.Spec.blockCapacity) continue;

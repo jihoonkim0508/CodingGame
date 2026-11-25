@@ -23,42 +23,32 @@ static class Check
     static void Main()
     {
         var sim = new DefenseSimulation(Setup());
-        Assert(sim.Place(Spec(RobotRole.Warrior), 1, new Vector2(-8, 0), out _) == null, "ordinary robot cannot occupy path");
-        var warrior = Place(sim, RobotRole.Warrior, -8.123f, 2.123f);
+        Assert(sim.Place(Spec(RobotRole.Melee), 1, new Vector2(-8, 0), out _) == null, "ordinary robot cannot occupy path");
+        var warrior = Place(sim, RobotRole.Melee, -8.123f, 2.123f);
         Assert(warrior.Position.X == -8.123f && warrior.Position.Y == 2.123f, "free position is not snapped");
-        Assert(warrior.Health == null, "ordinary robot has no health");
-        Assert(sim.Place(Spec(RobotRole.Warrior), 1, warrior.Position, out _) == null, "overlap rejected");
-        Assert(sim.Place(Spec(RobotRole.Tank), 2, new Vector2(0, 2), out _) == null, "tank sample policy is path-only");
+        Assert(warrior.Health == warrior.Spec.health, "every robot has health");
+        Assert(sim.Place(Spec(RobotRole.Melee), 1, warrior.Position, out _) == null, "overlap rejected");
         // The road is drawn past its walking half-width and a warrior's model is wider than its radius: just outside the
         // old line (half-width + radius) the body still stood on the drawn road (play test).
-        Assert(sim.PlacementError(Spec(RobotRole.Warrior), new Vector2(-5, 1.5f)) == "적 경로에는 탱커만 설치할 수 있습니다.", "robot body on the drawn road edge rejected");
-        Assert(sim.PlacementError(Spec(RobotRole.Warrior), new Vector2(-5, 2.05f)) == null, "robot clear of the drawn road allowed");
-        Place(sim, RobotRole.Buffer, 0, 3);
-        Assert(sim.Place(Spec(RobotRole.Buffer), 0, new Vector2(5, 3), out _) == null, "one buffer limit");
-        var tank = Place(sim, RobotRole.Tank, -7, 0); tank.AutoExecute = false;
+        Assert(sim.PlacementError(Spec(RobotRole.Melee), new Vector2(-5, 1.5f)) == "적 경로에는 로봇을 설치할 수 없습니다.", "robot body on the drawn road edge rejected");
+        Assert(sim.PlacementError(Spec(RobotRole.Melee), new Vector2(-5, 2.05f)) == null, "robot clear of the drawn road allowed");
+        Place(sim, RobotRole.Support, 0, 3);
+        Assert(sim.Place(Spec(RobotRole.Support), 0, new Vector2(5, 3), out _) == null, "one buffer limit");
         // A map that is not a rectangle: robots stand only on its tiles, with the whole body on them.
         var floored = Setup(); floored.Floor = new[] { new PlacementObstacle { Min = new Vector2(-10, 1), Max = new Vector2(0, 5) } };
         var floorSim = new DefenseSimulation(floored);
-        Assert(floorSim.PlacementError(Spec(RobotRole.Warrior), new Vector2(-5, 3)) == null, "robot on a floor tile");
-        Assert(floorSim.PlacementError(Spec(RobotRole.Warrior), new Vector2(5, 3)) == "맵 밖에는 설치할 수 없습니다.", "robot off the map tiles rejected");
-        Assert(floorSim.PlacementError(Spec(RobotRole.Warrior), new Vector2(-.05f, 3)) != null, "robot hanging over the map edge rejected");
+        Assert(floorSim.PlacementError(Spec(RobotRole.Melee), new Vector2(-5, 3)) == null, "robot on a floor tile");
+        Assert(floorSim.PlacementError(Spec(RobotRole.Melee), new Vector2(5, 3)) == "맵 밖에는 설치할 수 없습니다.", "robot off the map tiles rejected");
+        Assert(floorSim.PlacementError(Spec(RobotRole.Melee), new Vector2(-.05f, 3)) != null, "robot hanging over the map edge rejected");
         sim.Start();
-        Assert(!sim.DamageRobot(warrior.Id, 999), "no damage to ordinary robot");
-        Assert(sim.RequestAction(tank.Id, RobotAction.Buff) == ActionResult.Ineffective, "tank buff ineffective");
-        Assert(sim.RequestAction(warrior.Id, RobotAction.Buff) == ActionResult.Undecided, "undefined buff action not implicitly permitted");
-        Assert(Rules.Compatibility(RobotRole.Bomber, RobotAction.Block) == ActionCompatibility.Ineffective, "bomber block ineffective");
-        Assert(Rules.Compatibility(RobotRole.Shooter, RobotAction.Block) == ActionCompatibility.Ineffective, "shooter block ineffective");
-        var before = tank.NextAction;
-        sim.RequestAction(tank.Id, RobotAction.Buff);
-        Assert(tank.NextAction == before, "ineffective action consumes no cooldown");
+        Assert(sim.DamageRobot(warrior.Id, 10) && warrior.Health == warrior.Spec.health - 10, "robots take damage");
         sim.TogglePause(); double time = sim.Time; sim.Advance(50);
         Assert(sim.Time == time && sim.Spawned == 0, "pause freezes time/spawns");
         sim.TogglePause();
 
         var blockSim = new DefenseSimulation(Setup(speed: 300));
-        var blocker = Place(blockSim, RobotRole.Tank, -5, 0); blocker.AutoExecute = false;
+        var blocker = Place(blockSim, RobotRole.Melee, -5, 3); blocker.AutoExecute = false;
         blockSim.Start(); blockSim.Advance(1.0 / 60);
-        Assert(blockSim.Enemies[0].BlockedBy == blocker.Id, "swept path cannot skip tank at high speed");
         // The HUD's per-type cards count down the fought wave: spawned and unspawned enemies of each type add up to the total.
         Assert(blockSim.CurrentWave.Select(g => g.DefinitionIndex).Distinct().Sum(blockSim.RemainingOf) == blockSim.RemainingEnemies && blockSim.Spawned > 0, "per-type remaining enemies add up");
         blockSim.Enemies[0].Active = false;
@@ -67,22 +57,11 @@ static class Check
         var enemy = blockSim.Enemies[0]; var stopped = enemy.Position;
         enemy.Effects.Add(new MovementEffect { Source = blocker.Id, StunUntil = blockSim.Time + 1, SlowUntil = blockSim.Time + 3, Multiplier = .5f });
         blockSim.RemoveRobot(blocker.Id); blockSim.Advance(1.0 / 60);
-        Assert(enemy.BlockedBy == 0 && enemy.Position == stopped, "tank removal preserves independent stun");
+        Assert(enemy.BlockedBy == 0 && enemy.Position == stopped, "robot removal preserves independent stun");
         Assert(enemy.Speed(blockSim.Time) == enemy.Spec.speed * .5f, "slow remains after blocker removal");
 
-        var bodySim = new DefenseSimulation(Setup(speed: 4));
-        var body = Place(bodySim, RobotRole.Tank, -8, 0); body.AutoExecute = false;
-        bodySim.Start(); Advance(bodySim, .5);
-        var held = bodySim.Enemies.Single();
-        Assert(held.BlockedBy == body.Id, "enabled blocking holds enemies");
-        held.Effects.Add(new MovementEffect { StunUntil = bodySim.Time + .1 });
-        Advance(bodySim, .2);
-        Assert(held.BlockedBy == body.Id && !held.Stunned(bodySim.Time), "stun expiry does not release body block");
-        bodySim.DamageRobot(body.Id, 10000);
-        Assert(bodySim.Robots.Count == 0 && held.BlockedBy == 0, "tank death clears references");
-
         var blastSim = new DefenseSimulation(Setup(health: 20, count: 3));
-        var bomb = Place(blastSim, RobotRole.Bomber, -8, 3); bomb.AutoExecute = false;
+        var bomb = Place(blastSim, RobotRole.Ranged, -8, 3); bomb.AutoExecute = false;
         blastSim.Start(); Advance(blastSim, .3);
         Assert(blastSim.RequestAction(bomb.Id, RobotAction.Boom) == ActionResult.Executed, "bomb action succeeds");
         Assert(blastSim.Projectiles.Count == 1 && blastSim.Enemies.All(e => e.Health == 20), "bomb launch has travel time and no immediate damage");
@@ -95,11 +74,11 @@ static class Check
         Assert(blastSim.Events.Single(e=>e.Kind=="blast").Position==aim,"impact uses launch position rather than tracking target");
         foreach(var speed in new[]{1.5f,2.8f,1.15f})
         {
-            var dodge=new DefenseSimulation(Setup(speed:speed));var thrower=Place(dodge,RobotRole.Bomber,-8,3);thrower.AutoExecute=false;
+            var dodge=new DefenseSimulation(Setup(speed:speed));var thrower=Place(dodge,RobotRole.Ranged,-8,3);thrower.AutoExecute=false;
             dodge.Start();Advance(dodge,.2);dodge.RequestAction(thrower.Id,RobotAction.Boom);Advance(dodge,1);
             Assert(dodge.Enemies[0].Health==(speed==2.8f?100:95),"speed determines whether enemy leaves blast radius: "+speed);
         }
-        foreach(var role in new[]{RobotRole.Shooter,RobotRole.Warrior})
+        foreach(var role in new[]{RobotRole.Ranged,RobotRole.Melee})
         {
             var direct=new DefenseSimulation(Setup(speed:8));var attacker=Place(direct,role,-8,3);attacker.AutoExecute=false;
             direct.Start();Advance(direct,.2);direct.RequestAction(attacker.Id,attacker.Spec.NativeAction);
@@ -108,13 +87,13 @@ static class Check
             Advance(direct,1);
             Assert(direct.Projectiles.Count==0&&Math.Abs(direct.Enemies[0].Health-expected)<.001f,"direct action still hits a fast target that moved on: "+role);
         }
-        var crossBomb=new DefenseSimulation(Setup());var crossThrower=Place(crossBomb,RobotRole.Warrior,-8,3);crossThrower.AutoExecute=false;
+        var crossBomb=new DefenseSimulation(Setup());var crossThrower=Place(crossBomb,RobotRole.Support,-8,3);crossThrower.AutoExecute=false;
         crossBomb.Start();Advance(crossBomb,.2);crossBomb.RequestAction(crossThrower.Id,RobotAction.Boom);crossBomb.RemoveRobot(crossThrower.Id);Advance(crossBomb,1);
-        Assert(crossBomb.Enemies[0].Health==99.5f,"cross-role projectile retains ten percent damage after source removal");
+        Assert(crossBomb.Enemies[0].Health==98.75f,"cross-class projectile keeps 25 percent damage after source removal");
 
         var buffSim = new DefenseSimulation(Setup());
-        var buffer = Place(buffSim, RobotRole.Buffer, -5, 3); buffer.AutoExecute = false;
-        var recipient = Place(buffSim, RobotRole.Warrior, -7, 3); recipient.AutoExecute = false;
+        var buffer = Place(buffSim, RobotRole.Support, -5, 3); buffer.AutoExecute = false;
+        var recipient = Place(buffSim, RobotRole.Melee, -7, 3); recipient.AutoExecute = false;
         buffSim.Start(); Advance(buffSim, .2); buffSim.RequestAction(buffer.Id, RobotAction.Buff);
         Assert(recipient.Range > recipient.Spec.range && recipient.Damage > recipient.Spec.damage && recipient.Interval < recipient.Spec.interval, "buff strengthens all 3 fields");
         Advance(buffSim, .2); buffSim.RequestAction(buffer.Id, RobotAction.Buff);
@@ -123,7 +102,7 @@ static class Check
         Assert(recipient.Range == recipient.Spec.range && recipient.Damage == recipient.Spec.damage, "buff cleanup restores original values");
 
         var win = new DefenseSimulation(Setup(health: 1));
-        var winner = Place(win, RobotRole.Shooter, -8, 2); win.Start(); Advance(win, 1);
+        var winner = Place(win, RobotRole.Ranged, -8, 2); win.Start(); Advance(win, 1);
         Assert(win.Phase == BattlePhase.Victory && win.Kills == 1 && win.Leaks == 0, "kill-only final wave victory");
         int events = win.Events.Count; Advance(win, 2);
         Assert(events == win.Events.Count, "result generates no extra events");
@@ -139,13 +118,13 @@ static class Check
         Assert(clean.Time == 0 && clean.Robots.Count == 0 && clean.Enemies.Count == 0 && clean.Kills == 0 && clean.Phase == BattlePhase.Ready, "new session clears runtime state");
 
         var setup = Setup();
-        var reduced = new DefenseSimulation(setup); var trainee = Place(reduced, RobotRole.Warrior, -8, 2); trainee.AutoExecute = false;
+        var reduced = new DefenseSimulation(setup); var trainee = Place(reduced, RobotRole.Support, -8, 2); trainee.AutoExecute = false;
         reduced.Start(); Advance(reduced, .2); reduced.RequestAction(trainee.Id, RobotAction.Attack); Advance(reduced, 1); // the shot lands on arrival
-        Assert(reduced.Enemies[0].Health == 99.5f, "cross-role action uses 10 percent of specialist damage");
+        Assert(reduced.Enemies[0].Health == 98.75f, "cross-class action uses 25 percent of the damage");
         bool rejected = false;
-        setup.Permissions = new[] { new ActionPermission { role = RobotRole.Tank, action = RobotAction.Buff, strength = .5f } };
+        setup.Permissions = new[] { new ActionPermission { role = RobotRole.Melee, action = RobotAction.Buff, strength = .5f } };
         try { new DefenseSimulation(setup); } catch (ArgumentException) { rejected = true; }
-        Assert(rejected, "confirmed forbidden combinations cannot be overridden");
+        Assert(rejected, "permission rows are no longer taken");
         Assert(Rules.SegmentDistance(new Vector2(0,2), new Vector2(-1,0), new Vector2(1,0)) == 2, "continuous segment distance");
 
         var invalidBounds = Setup(); invalidBounds.Min.X = float.NaN;
@@ -154,41 +133,38 @@ static class Check
         Assert(rejected, "non-finite placement bounds rejected");
         var obstructed = Setup(); obstructed.Obstacles = new[] { new PlacementObstacle { Min = new Vector2(-4,2), Max = new Vector2(-2,4) } };
         var obstacleSim = new DefenseSimulation(obstructed);
-        Assert(obstacleSim.Place(Spec(RobotRole.Warrior), 1, new Vector2(-4.2f,3), out _) == null, "robot footprint cannot overlap obstacle");
-        Assert(obstacleSim.Place(Spec(RobotRole.Warrior), 1, new Vector2(-5,3), out _) != null, "free space next to obstacle is allowed");
+        Assert(obstacleSim.Place(Spec(RobotRole.Melee), 1, new Vector2(-4.2f,3), out _) == null, "robot footprint cannot overlap obstacle");
+        Assert(obstacleSim.Place(Spec(RobotRole.Melee), 1, new Vector2(-5,3), out _) != null, "free space next to obstacle is allowed");
 
         var boundarySim = new DefenseSimulation(Setup(health: 1000));
-        var boundaryBot = Place(boundarySim, RobotRole.Shooter, -8, 5); boundaryBot.AutoExecute = false;
+        var boundaryBot = Place(boundarySim, RobotRole.Ranged, -8, 5); boundaryBot.AutoExecute = false;
         boundarySim.Start(); Advance(boundarySim, .2);
         var boundaryEnemy = boundarySim.Enemies.Single(); boundaryEnemy.Position = new Vector2(-8,0);
         Assert(boundarySim.RequestAction(boundaryBot.Id, RobotAction.Attack, boundaryEnemy.Id) == ActionResult.Executed, "exact range boundary included");
         boundaryBot.NextAction = 0; boundaryEnemy.Position = new Vector2(-8,-.001f);
         Assert(boundarySim.RequestAction(boundaryBot.Id, RobotAction.Attack, boundaryEnemy.Id) == ActionResult.NoTarget, "just outside range excluded");
 
-        var stunSim = new DefenseSimulation(Setup()); var stunBot = Place(stunSim, RobotRole.Tank, -8, 0); stunBot.AutoExecute = false;
+        var stunSim = new DefenseSimulation(Setup()); var stunBot = Place(stunSim, RobotRole.Melee, -8, 2); stunBot.AutoExecute = false;
         stunSim.Start(); Advance(stunSim, .2);
         var stunEnemy = stunSim.Enemies.Single(); stunSim.RequestAction(stunBot.Id, RobotAction.Block);
         Assert(stunEnemy.Stunned(stunSim.Time) && stunEnemy.Health == 95, "sample block combines area stun with single-target low damage");
 
         var multi = Setup(health: 1); multi.Waves = new[] { multi.Waves[0], multi.Waves[0], multi.Waves[0] };
-        var multiSim = new DefenseSimulation(multi); Place(multiSim, RobotRole.Shooter,-8,2); multiSim.Start(); Advance(multiSim, 3); // shots in flight add time
+        var multiSim = new DefenseSimulation(multi); Place(multiSim, RobotRole.Ranged,-8,2); multiSim.Start(); Advance(multiSim, 3); // shots in flight add time
         Assert(multiSim.Phase == BattlePhase.Victory && multiSim.Spawned == 3 && multiSim.Kills == 3 && multiSim.WaveIndex == 2, "three waves finish without duplicate spawns");
 
-        var slowSim = new DefenseSimulation(Setup(health: 1000)); var utility = Place(slowSim,RobotRole.Utility,-8,2); utility.AutoExecute = false;
+        var slowSim = new DefenseSimulation(Setup(health: 1000)); var utility = Place(slowSim,RobotRole.Support,-8,2); utility.AutoExecute = false;
         slowSim.Start(); Advance(slowSim,.2); slowSim.RequestAction(utility.Id,RobotAction.Slow);
         var slowed = slowSim.Enemies.Single();
         Assert(slowed.Health == 995 && slowed.Speed(slowSim.Time) == .5f, "slow command deals sample damage and reduces speed");
         Advance(slowSim,2.1);
         Assert(slowed.Speed(slowSim.Time) == 1 && slowed.Effects.Count == 0, "slow expires and restores original speed");
 
-        var expirySim = new DefenseSimulation(Setup(health: 1000)); var expiryBuffer = Place(expirySim,RobotRole.Buffer,-5,3); expiryBuffer.AutoExecute = false;
-        var expiryRecipient = Place(expirySim,RobotRole.Warrior,-7,3); expiryRecipient.AutoExecute = false;
+        var expirySim = new DefenseSimulation(Setup(health: 1000)); var expiryBuffer = Place(expirySim,RobotRole.Support,-5,3); expiryBuffer.AutoExecute = false;
+        var expiryRecipient = Place(expirySim,RobotRole.Melee,-7,3); expiryRecipient.AutoExecute = false;
         expirySim.Start(); Advance(expirySim,.2); expirySim.RequestAction(expiryBuffer.Id,RobotAction.Buff); Advance(expirySim,2.1);
         Assert(expiryRecipient.Buffs.Count == 0 && expiryRecipient.Range == expiryRecipient.Spec.range && expiryRecipient.Interval == expiryRecipient.Spec.interval, "buff expiration restores baseline without removing source");
 
-        var capacitySim = new DefenseSimulation(Setup(health: 1000,speed:10,count:5)); var capacityTank = Place(capacitySim,RobotRole.Tank,-8,0); capacityTank.AutoExecute = false;
-        capacitySim.Start(); Advance(capacitySim,1);
-        Assert(capacitySim.Enemies.Count(e=>e.BlockedBy==capacityTank.Id)==3 && capacitySim.Enemies.Count(e=>e.Position.X>-8)==2, "capacity overflow passes while three enemies remain blocked");
         Console.WriteLine($"Defense checks passed: {checks}");
         ProgramCheck.Run();
         CampaignCheck.Run();
@@ -208,5 +184,7 @@ static class Check
         AuditCheck.Run();
         PlayLogCheck.Run();
         GameDataCheck.Run();
+        ClassCheck.Run();
+        ReflectorCheck.Run();
     }
 }

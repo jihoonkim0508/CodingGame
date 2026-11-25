@@ -25,8 +25,8 @@ public static class SharedInventoryCheck
         var battle = UnityEngine.Object.FindFirstObjectByType<DefenseBattle>();
         battle.EditorStartSession(2, 1, true, new DefenseTestOptions());
         var sim = battle.Simulation;
-        int warrior = Enumerable.Range(0, 6).Single(i => battle.DefinitionRole(i) == RobotRole.Warrior);
-        sim.GrantRobot(RobotRole.Warrior, 2);
+        int warrior = Enumerable.Range(0, Rules.RoleCount).Single(i => battle.DefinitionRole(i) == RobotRole.Melee);
+        sim.GrantRobot(RobotRole.Melee, 2);
         foreach (var kind in new[] { BlockKind.DeclareVariable, BlockKind.NearestEnemy, BlockKind.Slash }) sim.GrantBlock(kind, 1);
         int a = Place(battle, warrior), b = Place(battle, warrior);
         int slashFree = sim.Available(BlockKind.Slash), declareFree = sim.Available(BlockKind.DeclareVariable);

@@ -92,7 +92,7 @@ namespace CodingGame.Defense
                 if (Consumes(block.Kind)) yield return Canonical(block.Kind);
                 // 메서드 수신자는 편집기에서 같은 변수 블록이므로 아이템을 중복 차감하지 않습니다.
                 foreach (var kind in Used(block.Kind == BlockKind.Distance || block.Kind == BlockKind.Hp || block.Kind == BlockKind.IsDead || block.Kind == BlockKind.EnemyTypeOf || block.Kind == BlockKind.Shield ||
-                    block.Kind == BlockKind.Front || block.Kind == BlockKind.Top || block.Kind == BlockKind.Size ? block.Arguments.Skip(1) : block.Arguments)) yield return kind;
+                    block.Kind == BlockKind.Front || block.Kind == BlockKind.Top || block.Kind == BlockKind.Size || block.Kind == BlockKind.Reflecting ? block.Arguments.Skip(1) : block.Arguments)) yield return kind;
                 foreach (var kind in Used(block.Body)) yield return kind;
             }
         }
@@ -113,6 +113,7 @@ namespace CodingGame.Defense
                 case BlockKind.EnemyTypeName: return "Enemy.Tank";
                 case BlockKind.ForEach: return "for e in"; case BlockKind.GetEnemies: return "get_enemies()";
                 case BlockKind.Shield: return "shield"; case BlockKind.BreakShield: return "break_shield(Enemy)";
+                case BlockKind.And: return "and"; case BlockKind.Reflecting: return "reflecting"; case BlockKind.MyHp: return "my_hp()";
                 case BlockKind.Front: return "front()"; case BlockKind.Top: return "top()";
                 default: return kind.ToString().ToLowerInvariant();
             }

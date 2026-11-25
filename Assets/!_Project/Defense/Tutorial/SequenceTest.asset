@@ -45,7 +45,7 @@ MonoBehaviour:
       text: "\uC544\uB798 \uC288\uD130\uB97C \uC120\uD0DD\uD55C \uB4A4, \uBC30\uCE58
         \uC601\uC5ED\uC744 \uB20C\uB7EC \uB85C\uBD07\uC744 \uBC30\uCE58\uD574."
     targetKeys:
-    - Battle.Robot.4
+    - Battle.Robot.2
     - Battle.DeploymentArea
     completionMode: 3
     completionSignal: RobotPlaced

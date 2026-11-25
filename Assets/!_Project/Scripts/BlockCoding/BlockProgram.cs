@@ -16,7 +16,10 @@ namespace CodingGame.BlockCoding
         Shield, // enemy.shield: a member like hp
         BreakShield, // break_shield(enemy): the shooter's second action
         Front, Top, // enemy.front() / enemy.top(): a centipede's hittable end as an Enemy (queue: first in, stack: last in)
-        Size // enemy.size: how many segments its centipede has (1 for any other enemy)
+        Size, // enemy.size: how many segments its centipede has (1 for any other enemy)
+        And, // a and b: two conditions
+        Reflecting, // enemy.reflecting: a member condition like is_dead() (a Reflector bouncing hits back)
+        MyHp // my_hp(): the robot's own health
     }
 
     [Serializable]

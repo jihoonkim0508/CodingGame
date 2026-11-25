@@ -10,7 +10,7 @@ namespace CodingGame.Defense.Editor
     // "x = enemy.distance(get_my_pos())", "name = my_attack_range()", "slash()", "shoot(enemy)", "block(enemy)", "if a <= b:" (any comparison),
     // "if x.is_dead():", "a * b" (one of + - * /), "x.type", "Enemy.Tank", "break", "continue", "for i in range(n):" and
     // "while True:", "for e in get_enemies():", "elif ...:", "else:" with a body indented deeper (any width), "x.shield", "break_shield(x)",
-    // "x.front()", "x.top()", "x.size".
+    // "x.front()", "x.top()", "x.size", "a and b", "x.reflecting", "my_hp()".
     // ponytail: only what the lesson answers use; a new answer shape needs a case here.
     public static class TutorialAnswers
     {
@@ -76,6 +76,9 @@ namespace CodingGame.Defense.Editor
         }
         static CodeBlock Condition(string text)
         {
+            int and = text.IndexOf(" and ", StringComparison.Ordinal);
+            if (and > 0) return new CodeBlock(BlockKind.And, "0", Condition(text.Substring(0, and)), Condition(text.Substring(and + 5)));
+            if (text.EndsWith(".reflecting")) return new CodeBlock(BlockKind.Reflecting, "0", new CodeBlock(BlockKind.Variable, text.Substring(0, text.Length - 11)));
             if (text.EndsWith(".is_dead()")) return new CodeBlock(BlockKind.IsDead, "0", new CodeBlock(BlockKind.Variable, text.Substring(0, text.Length - 10)));
             foreach (var sign in new[] { "<=", ">=", "==", "!=", "<", ">" })
             {
@@ -93,6 +96,7 @@ namespace CodingGame.Defense.Editor
             }
             if (text == "get_nearest_enemy()") return new CodeBlock(BlockKind.NearestEnemy);
             if (text == "my_attack_range()") return new CodeBlock(BlockKind.MyAttackRange);
+            if (text == "my_hp()") return new CodeBlock(BlockKind.MyHp);
             if (text == "get_my_pos()") return new CodeBlock(BlockKind.MyPos);
             if (text.StartsWith("Enemy.", StringComparison.Ordinal)) return new CodeBlock(BlockKind.EnemyTypeName, text.Substring(6));
             if (text.EndsWith(".shield", StringComparison.Ordinal)) return new CodeBlock(BlockKind.Shield, "0", new CodeBlock(BlockKind.Variable, text.Substring(0, text.Length - 7)));

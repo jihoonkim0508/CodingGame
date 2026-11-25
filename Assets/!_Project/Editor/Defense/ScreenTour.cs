@@ -80,7 +80,7 @@ namespace CodingGame.Defense.Editor
             yield return Seconds(.5);
             Deploy();
             var battle = DevTest.Battle; var sim = battle.Simulation;
-            var shooter = sim.Robots.FirstOrDefault(r => r.Spec.role == RobotRole.Shooter) ?? sim.Robots[0];
+            var shooter = sim.Robots.FirstOrDefault(r => r.Spec.role == RobotRole.Ranged) ?? sim.Robots[0];
             battle.SelectRobot(shooter.Id); battle.DevelopSelected();
             yield return Seconds(.6);
             Program(TutorialAnswers.Parse(pick));
@@ -88,7 +88,7 @@ namespace CodingGame.Defense.Editor
             Debug.Log("[ScreenTour] editor code: " + battle.CodeEditor.Panel.FunctionName + " applied " + battle.CodeEditor.Panel.IsApplied);
             yield return Shot("foreach_editor");
             battle.CodeEditor.Close();
-            Relaxed(() => { foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Shooter)) sim.ApplyProgram(bot.Id, "pick_healer", TutorialAnswers.Parse(pick)); });
+            Relaxed(() => { foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Ranged)) sim.ApplyProgram(bot.Id, "pick_healer", TutorialAnswers.Parse(pick)); });
             yield return Seconds(.3);
             battle.StartBattle(); DevTest.Speed(2);
             yield return Until(() => sim.Enemies.Any(e => e.Active && e.Spec.type == EnemyType.Healer && sim.Time - e.LastAbility < .05), 60);
@@ -153,7 +153,7 @@ namespace CodingGame.Defense.Editor
                 var battle = DevTest.Battle; var sim = battle.Simulation;
                 if (code == withElse)
                 {
-                    var shooter = sim.Robots.FirstOrDefault(r => r.Spec.role == RobotRole.Shooter) ?? sim.Robots[0];
+                    var shooter = sim.Robots.FirstOrDefault(r => r.Spec.role == RobotRole.Ranged) ?? sim.Robots[0];
                     battle.SelectRobot(shooter.Id); battle.DevelopSelected();
                     yield return Seconds(.6);
                     Program(TutorialAnswers.Parse(StackQueue));
@@ -162,7 +162,7 @@ namespace CodingGame.Defense.Editor
                     yield return Shot("centipede_editor");
                     battle.CodeEditor.Close();
                 }
-                if (code != null) Relaxed(() => { foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Shooter)) sim.ApplyProgram(bot.Id, "stack_queue", TutorialAnswers.Parse(code)); });
+                if (code != null) Relaxed(() => { foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Ranged)) sim.ApplyProgram(bot.Id, "stack_queue", TutorialAnswers.Parse(code)); });
                 yield return Seconds(.3);
                 battle.StartBattle(); DevTest.Speed(3);
                 if (code == null)
@@ -192,6 +192,41 @@ namespace CodingGame.Defense.Editor
                 Debug.Log($"[ScreenTour] 3-4 with {name}: {sim.Phase}, core {sim.BaseHealth}, leaks {sim.WaveLeaks}, kills {sim.Kills}, blocked hits {blocked}, stack pushes {pushed} (stack segments seen {kinds.Count(k => k.Value == EnemyType.Stack)}), {sim.Time:0.0} s");
             }
         }
+
+        // 3-3 with the Reflectors (2026-11-25): the three-robot dock before anything is placed, then a reflector in its reflect
+        // state hitting a shooter's shot back (plain shoot(nearest)), and the wave played out with plain code and with the
+        // e.reflecting snippet: TestResults/Editor/reflector/NN_*.png. Batchmode without -nographics, like RunSupportEnemies.
+        public static void RunReflectors() => Start("TestResults/Editor/reflector", Reflectors());
+        static IEnumerator Reflectors()
+        {
+            const string plain = "while True:\n    e = get_nearest_enemy()\n    shoot(e)";
+            foreach (var (code, name) in new[] { (plain, "shoot(get_nearest_enemy())"), (ReflectorSnippet, "e.reflecting snippet") })
+            {
+                DevTest.PlayDefense(3, 3, true, Sandbox);
+                yield return Until(() => DevTest.Ready);
+                yield return Seconds(1);
+                var battle = DevTest.Battle; var sim = battle.Simulation;
+                Debug.Log("[ScreenTour] 3-3 stock: " + string.Join(", ", System.Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(r => $"{r} {sim.RobotAvailable(r)}")));
+                Deploy();
+                yield return Seconds(3);
+                if (code == plain) yield return Shot("robot_dock");
+                Relaxed(() => { foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Ranged)) sim.ApplyProgram(bot.Id, "aim", TutorialAnswers.Parse(code)); });
+                yield return Seconds(.3);
+                battle.StartBattle(); DevTest.Speed(2);
+                if (code == plain)
+                {
+                    yield return Until(() => sim.Robots.Any(r => r.Spec.role == RobotRole.Ranged && sim.Time - r.LastReflected < .03), 90);
+                    DevTest.Speed(1);
+                    Debug.Log("[ScreenTour] 3-3 reflect: " + string.Join(", ", sim.Enemies.Where(e => e.Active && e.Spec.type == EnemyType.Reflector).Select(e => $"#{e.Id} {(e.Reflecting ? "reflecting" : "normal")} hp {e.Health:0}")) +
+                        " · robots " + string.Join(", ", sim.Robots.Select(r => $"{r.Spec.role} {r.Health:0}/{r.MaxHealth:0}")));
+                    yield return Shot("reflect_hit_back"); DevTest.Speed(3);
+                }
+                for (double end = EditorApplication.timeSinceStartup + 150; sim.Phase == BattlePhase.Running && EditorApplication.timeSinceStartup < end;) yield return null;
+                Debug.Log($"[ScreenTour] 3-3 with {name}: {sim.Phase}, core {sim.BaseHealth}, leaks {sim.WaveLeaks}, kills {sim.Kills}, robots " +
+                    string.Join(", ", sim.Robots.Select(r => $"{r.Spec.role} {r.Health:0}/{r.MaxHealth:0}")) + $", {sim.Time:0.0} s");
+            }
+        }
+        const string ReflectorSnippet = "while True:\n    for e in get_enemies():\n        if e.type == Enemy.Reflector and e.reflecting:\n            continue\n        shoot(e)\n        break";
 
         // The wave to its end, logging which kinds leaked.
         static IEnumerator Outcome(DefenseSimulation sim)

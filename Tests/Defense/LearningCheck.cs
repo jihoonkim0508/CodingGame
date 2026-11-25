@@ -18,8 +18,8 @@ static class LearningCheck
             Routes=new[]{new Route(new[]{new Vector2(-10,0),new Vector2(10,0)},1)},
             Waves=Enumerable.Range(0,5).Select(_=>new[]{new SpawnGroup { Enemy=new EnemySpec(), Count=1, Interval=1 }}).ToArray() };
         var sim = new DefenseSimulation(setup);
-        Require(sim.RobotAvailable(RobotRole.Shooter)==2 && sim.Inventory[BlockKind.Shot]==2 && !sim.Inventory.ContainsKey(BlockKind.For), "Only lesson 1-1 supplies");
-        var bot=sim.Place(profiles[(int)RobotRole.Shooter],4,new Vector2(0,3),out _);
+        Require(sim.RobotAvailable(RobotRole.Ranged)==2 && sim.Inventory[BlockKind.Shot]==2 && !sim.Inventory.ContainsKey(BlockKind.For), "Only lesson 1-1 supplies");
+        var bot=sim.Place(profiles[(int)RobotRole.Ranged],2,new Vector2(0,3),out _);
         Require(bot!=null,"Starting supplies playable");
         Require(sim.ActionDamage(bot,RobotAction.Attack,1)==sim.ActionDamage(bot,RobotAction.Attack,7),"Ranged damage does not depend on distance");
         sim.ApplyProgram(bot.Id,"fire",new[]{new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy))});
@@ -27,7 +27,7 @@ static class LearningCheck
         sim.Options.unlockAll=true; sim.Options.inventoryLimit=false;
         foreach(var x in new[]{-6f,6f})
         {
-            var warrior=sim.Place(profiles[(int)RobotRole.Warrior],1,new Vector2(x,3),out _);
+            var warrior=sim.Place(profiles[(int)RobotRole.Melee],1,new Vector2(x,3),out _);
             Require(warrior!=null,"Warrior placed for the 1-2 and 1-4 start goals");
             // Inside a loop, as 1-1 teaches: 1-2 needs a slash in a for, 1-4 the distance if (anywhere in the program).
             sim.ApplyProgram(warrior.Id,"guard",new[]{ new CodeBlock(BlockKind.For,"0",new CodeBlock(BlockKind.Number,"10")) { Body={
@@ -40,7 +40,7 @@ static class LearningCheck
         for(int stage=1;stage<=3;stage++)
         {
             Require(sim.Setup.Stage==stage,"Stage advances sequentially");
-            if(stage==3) { tank=sim.Place(profiles[(int)RobotRole.Tank],2,new Vector2(0,0),out _); tank.Health=37; }
+            if(stage==3) { tank=sim.Place(profiles[(int)RobotRole.Melee],1,new Vector2(0,-3),out _); tank.Health=37; }
             for(int wave=1;wave<=5;wave++)
             {
                 Require(sim.WaveIndex==wave-1 && sim.Lesson.stage==stage && sim.Lesson.wave==wave,"Correct lesson");
@@ -57,7 +57,7 @@ static class LearningCheck
         }
         setup.Stage=0; setup.PlayerFlow=false;
         var combat=new DefenseSimulation(setup);
-        var ranged=combat.Place(profiles[(int)RobotRole.Shooter],4,new Vector2(0,2),out _);
+        var ranged=combat.Place(profiles[(int)RobotRole.Ranged],2,new Vector2(0,2),out _);
         combat.Start();ranged.NextAction=0;
         var target=new EnemyState { Id=999, Spec=new EnemySpec { health=1000 }, Health=1000, Position=new Vector2(0,0) };
         combat.Enemies.Add(target);

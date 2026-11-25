@@ -732,7 +732,7 @@ namespace CodingGame.Defense
         }
         // 2-1 and 2-3: the tutorial stands the lesson's robot by the road, far enough past the entrance (8) that the enemies walk
         // into its range and close enough to the road (2 to 2.8) that a warrior's range reaches them.
-        public void PlaceLessonShooter() => PlaceLessonRobot(RobotRole.Shooter);
+        public void PlaceLessonShooter() => PlaceLessonRobot(RobotRole.Ranged);
         // A robot of the role by the road unless one stands already (another one for a lesson that teaches the newest, 2-3);
         // a warrior comes with while True: slash() (2-3's code to compare, 2-8's for the small ones).
         public void PlaceLessonRobot(RobotRole role, bool another = false)
@@ -751,7 +751,7 @@ namespace CodingGame.Defense
                         if (sim.PlacementError(robots[index].stats, spot) != null) continue;
                         var bot = sim.Place(robots[index].stats, index, spot, out _);
                         SpawnRobotView(bot);
-                        if (role == RobotRole.Warrior)
+                        if (role == RobotRole.Melee)
                         {
                             var loop = new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.While); loop.Body.Add(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Slash));
                             // Without the blocks in stock (GameData/Award.md gives none) the warrior stands without code.
@@ -979,6 +979,8 @@ namespace CodingGame.Defense
                 hitEffects.Show(evt, actorsRoot, Vector3.zero, battleCamera.transform.rotation, source, effectRing);
                 sounds.Play(evt.Kind);
                 playerHUD.ShowCombatText(evt);
+                if (evt.Kind == "reflect" && robotViews.TryGetValue(evt.Target, out var hitBack))
+                { hitBack.Flash(); if (enemyViews.TryGetValue(evt.Source, out var mirror)) mirror.HitBack(hitBack.transform.position); }
                 if (evt.Kind == "drop") dropViews.Add(Instantiate(blockDropPrefab, DefenseViews.World(evt.Position, .35f), Quaternion.Euler(0, 45, 0), actorsRoot));
             }
             Simulation.Events.Clear();
@@ -1170,7 +1172,7 @@ namespace CodingGame.Defense
             switch (Simulation.Compatibility(bot, bot.Action))
             {
                 case ActionCompatibility.Native: return "전문 행동 · 정상 실행";
-                case ActionCompatibility.Reduced: return !Rules.NeedsPermission(bot.Action) ? "비전문 행동 · 효율 " + Simulation.Setup.RulesConfig.reducedStrength.ToString("0%") : "승인된 비전문 행동 · 낮은 효율";
+                case ActionCompatibility.Reduced: return "다른 계열 기술 · " + DefenseRobotStatsCard.ClassNote(bot.Spec.role, Simulation.Setup.RulesConfig);
                 case ActionCompatibility.Ineffective: return "실행 무효 · 이 로봇에서는 " + ActionName(bot.Action) + "이 동작하지 않습니다.";
                 default: return "호환 미정 · 효과를 실행하지 않습니다. 기획 확정 후 데이터에 등록하세요.";
             }
@@ -1199,13 +1201,13 @@ namespace CodingGame.Defense
             removeButton.interactable = bot != null && Simulation.CanPrepare;
             if (bot != null)
             {
-                string health = bot.Health.HasValue ? $"HP {bot.Health:0}/{bot.MaxHealth:0} · 저지 {Simulation.Enemies.Count(e => e.BlockedBy == bot.Id)}/{bot.Spec.blockCapacity}" : "체력 없음 · 적 피해 대상 제외";
+                string health = $"HP {bot.Health:0}/{bot.MaxHealth:0}";
                 string control = bot.Program == null || bot.Program.IsEmpty ? "빈 로봇 · 코드 필요" : bot.Program.Fault == null ? "코드: " + bot.Program.Name : "코드 중지: " + bot.Program.Fault;
                 if (bot.Program != null && !bot.Program.IsEmpty) control += bot.Program.Running ? " · 실행 중" : $" · 실행 {bot.Program.CompletedRuns}번 끝";
                 string attacks = $"공격 {bot.AttacksThisWave}회";
                 selectionText.text = $"{robots[bot.DefinitionIndex].displayName}  #{bot.Id}\n\n{health}\n사거리 {bot.Range:0.00}    피해 {Simulation.ActionDamage(bot, bot.Action):0.##}\n공격 간격 {Simulation.ActionInterval(bot, bot.Action):0.00}s\n\n{ActionName(bot.Action)}\n{CompatibilityText(bot)}\n{control}\n실행 {bot.Executions}회 · {attacks} · 버프 {bot.Buffs.Count}개";
             }
-            else if (palette >= 0) selectionText.text = robots[palette].displayName + "\n\n자유 배치 중\n초록: 설치 가능\n빨강: 설치 불가\n\n탱커: 경로 안\n일반 로봇: 경로 밖\n\n클릭 설치 / 우클릭 취소";
+            else if (palette >= 0) selectionText.text = robots[palette].displayName + "\n\n자유 배치 중\n초록: 설치 가능\n빨강: 설치 불가\n\n로봇: 경로 밖\n\n클릭 설치 / 우클릭 취소";
             else selectionText.text = "로봇 클릭: 코드 편집\nTAB 인벤토리\nSPACE 시작 / 정지";
             resultPanel.SetActive(ended);
             if (ended)

@@ -5,9 +5,12 @@ using System.Numerics;
 
 namespace CodingGame.Defense
 {
-    public enum RobotRole { Buffer, Warrior, Tank, Bomber, Shooter, Utility }
+    // Three robots in two classes: Melee and Ranged (공격류, the same but for range) and Support (지원류). Support and Melee keep
+    // the old Buffer (0) and Warrior (1) ints; the shooter's assets were rewritten from 4 to 2 and Tank/Bomber/Utility removed,
+    // so an unmigrated 3..5 fails Enum.IsDefined (RobotSpec.Validate) instead of loading as another robot.
+    public enum RobotRole { Support, Melee, Ranged }
     public enum RobotAction { Buff, Slash, Block, Boom, Attack, Slow, BreakShield }
-    public enum EnemyType { Normal, Fast, Tank, Healer, Shielder, Queue, Stack }
+    public enum EnemyType { Normal, Fast, Tank, Healer, Shielder, Queue, Stack, Reflector }
     public enum ActionCompatibility { Native, Reduced, Ineffective, Undecided }
     public enum BattlePhase { Ready, Running, Paused, Victory, Defeat, Reward }
     public enum ActionResult { Executed, CoolingDown, NoTarget, Ineffective, Undecided, Unavailable }
@@ -35,8 +38,7 @@ namespace CodingGame.Defense
                 !Rules.Positive(duration) || !Rules.Positive(slowMultiplier) || slowMultiplier > 1 ||
                 !Rules.Positive(buffDamage) || buffDamage < 1 || !Rules.Positive(buffRange) || buffRange < 1 ||
                 !Rules.Positive(buffInterval) || buffInterval > 1 || !(strikeShare >= 0 && strikeShare <= 1) ||
-                !Rules.Positive(shieldBreakInterval) || !Rules.Nonnegative(shieldBreakDamage) ||
-                (role == RobotRole.Tank && (!Rules.Positive(health) || !Rules.Positive(blockRadius) || blockCapacity < 1)))
+                !Rules.Positive(shieldBreakInterval) || !Rules.Nonnegative(shieldBreakDamage) || !Rules.Positive(health))
                 throw new ArgumentException("로봇 수치가 올바르지 않습니다: " + role);
         }
     }
@@ -53,12 +55,15 @@ namespace CodingGame.Defense
         // Queue/Stack centipede: a spawn group is one centipede, each enemy of it a segment. A stack pushes a new segment onto
         // its end every abilityInterval seconds while it has fewer than segmentCap.
         public int segmentCap = 8;
+        // Reflector: normal for reflectOff seconds, then reflecting (hits come back to the robot) for reflectOn, from its spawn.
+        public float reflectOn = 2, reflectOff = 3;
         public EnemySpec Copy() => (EnemySpec)MemberwiseClone();
         public void Validate()
         {
             if (!Enum.IsDefined(typeof(EnemyType), type) || !Rules.Positive(health) || !Rules.Positive(speed) || !Rules.Nonnegative(damage) ||
                 !Rules.Positive(attackInterval) || leakDamage < 1 ||
-                !Rules.Positive(abilityInterval) || !Rules.Positive(abilityRadius) || !Rules.Nonnegative(abilityAmount) || segmentCap < 1) throw new ArgumentException("적 수치가 올바르지 않습니다.");
+                !Rules.Positive(abilityInterval) || !Rules.Positive(abilityRadius) || !Rules.Nonnegative(abilityAmount) || segmentCap < 1 ||
+                !Rules.Positive(reflectOn) || !Rules.Positive(reflectOff)) throw new ArgumentException("적 수치가 올바르지 않습니다.");
         }
     }
 
@@ -78,25 +83,19 @@ namespace CodingGame.Defense
         public static bool Positive(float v) => Nonnegative(v) && v > 0;
         public static bool Finite(Vector2 p) => Finite(p.X) && Finite(p.Y);
         public static bool ValidBox(Vector2 min, Vector2 max) => Finite(min) && Finite(max) && min.X < max.X && min.Y < max.Y;
-        // Block and Buff need an explicit permission row to work on another role; other actions run at reduced strength.
-        public static bool NeedsPermission(RobotAction action) => action == RobotAction.Block || action == RobotAction.Buff;
         public static EnemyState Nearest(IEnumerable<EnemyState> enemies, Vector2 from) =>
             enemies.OrderBy(e => Vector2.DistanceSquared(e.Position, from)).ThenBy(e => e.Id).FirstOrDefault();
-        public static RobotAction NativeAction(RobotRole role) => (RobotAction)(int)role;
-        // Up to 3x inside a third of the range (the most a shot does, play feedback 4), 1x at the edge.
-        public static ActionCompatibility Compatibility(RobotRole role, RobotAction action, IReadOnlyList<ActionPermission> permissions = null)
-        {
-            if (NativeAction(role) == action) return ActionCompatibility.Native;
-            // break_shield() is the shooter's own second action; no other role has it.
-            if (action == RobotAction.BreakShield) return role == RobotRole.Shooter ? ActionCompatibility.Native : ActionCompatibility.Ineffective;
-            if ((role == RobotRole.Bomber || role == RobotRole.Shooter) && action == RobotAction.Block ||
-                role == RobotRole.Tank && action == RobotAction.Buff) return ActionCompatibility.Ineffective;
-            if (!NeedsPermission(action)) return ActionCompatibility.Reduced;
-            if (permissions != null)
-                foreach (var entry in permissions)
-                    if (entry.role == role && entry.action == action) return ActionCompatibility.Reduced;
-            return ActionCompatibility.Undecided;
-        }
+        public static string RoleName(RobotRole role) => role == RobotRole.Melee ? "근접 로봇" : role == RobotRole.Ranged ? "원거리 로봇" : "지원 로봇";
+        public static readonly int RoleCount = Enum.GetValues(typeof(RobotRole)).Length;
+        // The action a robot does with no code (and the debrief calls its own): slash, shoot, buff.
+        public static RobotAction NativeAction(RobotRole role) => role == RobotRole.Melee ? RobotAction.Slash : role == RobotRole.Ranged ? RobotAction.Attack : RobotAction.Buff;
+        // 공격류 (melee, ranged) and 지원류 (support): buff and slow are support actions, the rest attack actions.
+        public static bool AttackClass(RobotRole role) => role != RobotRole.Support;
+        public static bool SupportAction(RobotAction action) => action == RobotAction.Buff || action == RobotAction.Slow;
+        // An action of the robot's own class is native; the other class's works, weakly (DefenseBalanceRules.reducedStrength,
+        // reducedIntervalMultiplier).
+        public static ActionCompatibility Compatibility(RobotRole role, RobotAction action) =>
+            AttackClass(role) != SupportAction(action) ? ActionCompatibility.Native : ActionCompatibility.Reduced;
         public static float SegmentDistance(Vector2 p, Vector2 a, Vector2 b)
         {
             var d = b - a;
@@ -183,7 +182,7 @@ namespace CodingGame.Defense
                 if (area == null || !Rules.ValidBox(area.Min, area.Max))
                     throw new ArgumentException("설치 금지 영역을 확인하세요.");
             if (ActionProfiles == null || ActionProfiles.Any(p => p == null) ||
-                ActionProfiles.Select(p => p.role).Distinct().Count() != 6 || ActionProfiles.Length != 6)
+                ActionProfiles.Select(p => p.role).Distinct().Count() != Rules.RoleCount || ActionProfiles.Length != Rules.RoleCount)
                 throw new ArgumentException("행동 기준 수치는 역할별로 하나씩 연결하세요.");
             foreach (var profile in ActionProfiles) profile.Validate();
             foreach (var wave in Waves)
@@ -205,12 +204,8 @@ namespace CodingGame.Defense
                     if (stageWaves == null || stageWaves.Length == 0 || stageWaves.Any(w => w == null || w.Length == 0 || w.Any(g => g == null || g.RouteIndex < 0 || g.RouteIndex >= Routes.Length)))
                         throw new ArgumentException("캠페인 경로·웨이브 설정 오류");
             }
-            var seen = new HashSet<string>();
-            foreach (var p in Permissions)
-                if (p == null || !Enum.IsDefined(typeof(RobotRole), p.role) || !Enum.IsDefined(typeof(RobotAction), p.action) ||
-                    !Rules.Positive(p.strength) || p.strength >= 1 || !seen.Add(p.role + ":" + p.action) ||
-                    Rules.Compatibility(p.role, p.action) != ActionCompatibility.Undecided)
-                    throw new ArgumentException("비전문 허용표는 미정 조합에 0~1 미만 효율로만 추가하세요.");
+            // Every other-class action works weakly by the rules: there is no combination left for a permission row to open.
+            if (Permissions.Length > 0) throw new ArgumentException("허용표는 쓰지 않습니다: 다른 계열의 기술은 모두 약하게 동작합니다 (reducedStrength).");
         }
     }
 
@@ -253,7 +248,8 @@ namespace CodingGame.Defense
         public float? Health;
         public double NextAction, NextShieldBreak; // break_shield() cools down on its own
         public bool AutoExecute;
-        public bool BlockingEnabled;
+        public bool BlockingEnabled; // ponytail: body blocking was the tank's; no robot stands on the road now, so nothing sets it
+        public double LastReflected = double.NegativeInfinity; // when a reflector last sent a hit back (the view flashes)
         public ActionResult LastResult;
         public int Executions, AttacksThisWave;
         // This wave's record for the result debrief (reset when a wave is prepared).
@@ -278,6 +274,10 @@ namespace CodingGame.Defense
         public double NextAttack, NextAbility, LastAbility = double.NegativeInfinity; // Healer/Shielder pulses
         public bool Active = true;
         public Centipede Chain; // a Queue/Stack segment's centipede, else null
+        public double SpawnedAt;
+        // Reflector: hits made while true go back to the robot (DefenseSimulation.Hit); PhaseEnds is when it next flips.
+        public bool Reflecting;
+        public double PhaseEnds;
         public readonly List<MovementEffect> Effects = new List<MovementEffect>();
         public bool Stunned(double time) { for (int i = 0; i < Effects.Count; i++) if (Effects[i].StunUntil > time) return true; return false; }
         public float Speed(double time)
@@ -321,6 +321,7 @@ namespace CodingGame.Defense
         public Vector2 Origin, Destination;
         public double LaunchedAt, ImpactAt;
         public float Damage, Radius;
+        public bool Reflect; // a shot at a reflector that was reflecting when it was fired comes back on impact
     }
     public sealed class CombatEvent
     {

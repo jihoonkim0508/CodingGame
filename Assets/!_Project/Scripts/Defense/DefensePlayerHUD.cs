@@ -74,7 +74,7 @@ namespace CodingGame.Defense
             if (!battleCamera || !robotActions || !upgradeRobotButton || !developRobotButton || !recallRobotButton || !upgradeRobotLabel || !placementToast || !placementToastText || !battle || !rewardScroll || !combatControls || enemyCards.Length != 3 || enemyCounts.Length != 3 || enemyCards.Any(x => !x) || enemyCounts.Any(x => !x) ||
                 !upcoming || !brand || !canvasRoot || !rewardPanel || !counters || !guide || !inventory || !notice || !pauseLabel || !speedLabel ||
                 !rewardTitle || !rewardItems || !claimLabel || !startButton || !pauseButton || !speedButton || !claimButton ||
-                robotLabels.Length != 6 || robotLabels.Any(t => !t) || robotButtons.Length != 6 || robotButtons.Any(b => !b)) throw new InvalidOperationException("DefensePlayerHUD Inspector 참조를 연결하세요.");
+                robotLabels.Length != Rules.RoleCount || robotLabels.Any(t => !t) || robotButtons.Length != Rules.RoleCount || robotButtons.Any(b => !b)) throw new InvalidOperationException("DefensePlayerHUD Inspector 참조를 연결하세요.");
             startButton.onClick.AddListener(battle.RequestStartBattle);
             pauseButton.onClick.AddListener(battle.TogglePause); speedButton.onClick.AddListener(battle.ToggleSpeed);
             // The speed button's "F" key hint reads 2 sizes under the "3x" label, bold, set here so the scene stays as it is.
@@ -269,7 +269,7 @@ namespace CodingGame.Defense
             notice.text = battle.StatusMessage;
             if (Changed(ref shownPlaced, (sim.Robots.Count, sim.Setup.RobotLimit, 0)))
             {
-                inventory.text = $"설치 {sim.Robots.Count} / {sim.Setup.RobotLimit}대  ·  버프형 최대 {sim.Setup.RulesConfig.roleLimits[(int)RobotRole.Buffer]}대  ·  Esc 메뉴";
+                inventory.text = $"설치 {sim.Robots.Count} / {sim.Setup.RobotLimit}대  ·  지원 로봇 최대 {sim.Setup.RulesConfig.roleLimits[(int)RobotRole.Support]}대  ·  Esc 메뉴";
                 inventory.color = sim.Robots.Count >= sim.Setup.RobotLimit ? new Color(.64f,.2f,.14f) : new Color(.1f,.28f,.36f);
             }
             startButton.interactable = ready;
@@ -476,6 +476,10 @@ namespace CodingGame.Defense
             if (sim == null || !sim.Options.hitEffects) return;
             if ((evt.Kind == "hit" || evt.Kind == "projectile-hit") && evt.AppliedAmount > 0)
                 Float(evt.Position, evt.AppliedAmount.ToString("0.##"), Color.white, 30, .6f, 46);
+            else if (evt.Kind == "reflect") // a reflector sent the hit back: over the robot that made it
+                Float(evt.Position, "반사 -" + evt.Amount.ToString("0.#"), new Color(1, .42f, .36f), 32, .8f, 60);
+            else if (evt.Kind == "reflect-on")
+                Float(evt.Position, "반사!", new Color(.8f, .97f, 1), 28, .7f, 50);
             else if (evt.Kind == "blocked") // a centipede segment that is not its open end
                 Float(evt.Position, "막힘", new Color(.62f, .7f, .82f), 28, .6f, 46);
             else if (evt.Kind == "killed" && sim.Setup.PlayerFlow && sim.KillCoins > 0)
@@ -1246,7 +1250,7 @@ namespace CodingGame.Defense
                     $"\n<color={UITheme.MutedHex}><size=88%>{line.Stats}</size></color>";
                 card.share.rectTransform.anchorMax = new Vector2(line.Bot.DamageThisWave / most, 1);
                 card.share.color = card.stripe.color;
-                card.share.transform.parent.gameObject.SetActive(line.Bot.Spec.role != RobotRole.Buffer);
+                card.share.transform.parent.gameObject.SetActive(line.Bot.Spec.role != RobotRole.Support);
                 card.advice.text = line.Advice ?? "";
                 card.advice.gameObject.SetActive(line.Advice != null);
             }

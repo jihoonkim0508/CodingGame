@@ -38,7 +38,8 @@ namespace CodingGame.Defense
         readonly Dictionary<CodeBlock, double> numbers = new Dictionary<CodeBlock, double>();
         readonly Dictionary<CodeBlock, string> names = new Dictionary<CodeBlock, string>();
         readonly Dictionary<int, LoopState> loops = new Dictionary<int, LoopState>();
-        int pc, nextLoop;
+        int pc, nextLoop, waitingAt = -1; // waitingAt: the attack statement cooling down, waitedReflecting: its target was reflecting then
+        bool waitedReflecting;
         double wakeTime;
         public string Name { get; }
         public string Source { get; }
@@ -50,7 +51,7 @@ namespace CodingGame.Defense
         public int BlockCount(BlockKind kind) => blockCounts.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0;
         public double WaitRemaining(double time) => Math.Max(0, wakeTime - time);
         public IReadOnlyList<CodeBlock> CopyBlocks() => blocks.Select(Clone).ToList();
-        void EndInvocation() { pc = 0; Running = false; variables.Clear(); loops.Clear(); }
+        void EndInvocation() { pc = 0; waitingAt = -1; Running = false; variables.Clear(); loops.Clear(); }
         // A call while the function runs (or after it faulted) is refused: Play stays locked until it ends.
         public bool Invoke()
         {
@@ -181,7 +182,12 @@ namespace CodingGame.Defense
                             }
                             // 재사용 대기 중에는 같은 명령에서 기다리고, 실행 결과가 나오면 다음으로 이동합니다. A target out of
                             // range is a miss (NoTarget): the next statement runs, nothing waits for it to come closer.
-                            if (sim.RequestAction(robot.Id, action, target) != ActionResult.CoolingDown) pc++;
+                            // A target that starts reflecting while the robot waits here is given up like a miss, so code that
+                            // checked e.reflecting before the attack is not caught by the cooldown (a shot at it would come back).
+                            bool reflecting = target != 0 && Active(sim, target).Reflecting;
+                            if (sim.RequestAction(robot.Id, action, target) != ActionResult.CoolingDown || waitingAt == pc && reflecting && !waitedReflecting)
+                            { pc++; waitingAt = -1; }
+                            else { waitingAt = pc; waitedReflecting = reflecting; }
                             return;
                     }
                 }
@@ -242,6 +248,9 @@ namespace CodingGame.Defense
                 case BlockKind.PositionX: return Val.Of(robot.Position.X);
                 case BlockKind.PositionY: return Val.Of(robot.Position.Y);
                 case BlockKind.MyAttackRange: return Val.Of(robot.Range); // includes buffs, same range the attack uses
+                case BlockKind.MyHp: return Val.Of(robot.Health ?? 0);
+                case BlockKind.And: return Val.Of(Truth(Arg(0)) && Truth(Arg(1))); // the right side only when the left is true
+                case BlockKind.Reflecting: return Val.Of(Active(sim, EnemyId(Arg(0)))?.Reflecting ?? false);
                 case BlockKind.MyPos: return Val.Of(robot.Position);
                 case BlockKind.Variable:
                     if (!variables.TryGetValue(Identifier(block), out var variable)) throw new FormatException("선언되지 않은 변수입니다.");

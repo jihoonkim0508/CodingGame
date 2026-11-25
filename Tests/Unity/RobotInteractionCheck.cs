@@ -21,7 +21,7 @@ public static class RobotInteractionCheck
         var editor = UnityEngine.Object.FindFirstObjectByType<DefenseCodeEditor>();
         // Stage 1 rules (only the warrior unlocked) without the tutorial gating input.
         battle.EditorStartSession(1, 1, false, new DefenseTestOptions { tutorial = false, tutorialInput = false });
-        int warriorIndex = Enumerable.Range(0, 6).Single(i => battle.DefinitionRole(i) == RobotRole.Warrior);
+        int warriorIndex = Enumerable.Range(0, Rules.RoleCount).Single(i => battle.DefinitionRole(i) == RobotRole.Melee);
         for (float x = battle.Simulation.Setup.Min.X + 1; x < battle.Simulation.Setup.Max.X - 1 && battle.Simulation.Robots.Count == 0; x++)
             for (float y = battle.Simulation.Setup.Min.Y + 1; y < battle.Simulation.Setup.Max.Y - 1 && battle.Simulation.Robots.Count == 0; y++)
                 if (battle.Simulation.PlacementError(battle.RobotDefinition(warriorIndex).stats, new Point(x, y)) == null) battle.PlaceRobot(warriorIndex, new Vector3(x, 0, y));
@@ -31,8 +31,8 @@ public static class RobotInteractionCheck
         hud.SendMessage("LateUpdate");
         var buttons = new SerializedObject(hud).FindProperty("robotButtons");
         for (int i = 0; i < 6; i++) Require(((Button)buttons.GetArrayElementAtIndex(i).objectReferenceValue).gameObject.activeSelf ==
-            (battle.DefinitionRole(i) == RobotRole.Warrior), "Only unlocked robot visible");
-        int index = Enumerable.Range(0, 6).Single(i => battle.DefinitionRole(i) == RobotRole.Warrior);
+            (battle.DefinitionRole(i) == RobotRole.Melee), "Only unlocked robot visible");
+        int index = Enumerable.Range(0, Rules.RoleCount).Single(i => battle.DefinitionRole(i) == RobotRole.Melee);
         bool placed = false;
         for (float x = sim.Setup.Min.X + 1; x < sim.Setup.Max.X - 1 && !placed; x++)
             for (float y = sim.Setup.Min.Y + 1; y < sim.Setup.Max.Y - 1 && !placed; y++)
@@ -72,8 +72,8 @@ public static class RobotInteractionCheck
         var editor = UnityEngine.Object.FindFirstObjectByType<DefenseCodeEditor>();
         editor.Close(); var sim = battle.Simulation;
         Ref<Button>(hud, "recallRobotButton").onClick.Invoke(); Require(sim.Robots.Count == 0, "Menu recall works");
-        int initial = sim.RobotAvailable(RobotRole.Shooter);
-        inv.GrantAll(); Require(sim.RobotAvailable(RobotRole.Shooter) == initial, "Grant locked outside developer mode");
+        int initial = sim.RobotAvailable(RobotRole.Ranged);
+        inv.GrantAll(); Require(sim.RobotAvailable(RobotRole.Ranged) == initial, "Grant locked outside developer mode");
         battle.ToggleDeveloper();
         var robots = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().ToDictionary(r => r, r => sim.RobotAvailable(r));
         var blocks = DefenseProgression.ItemKinds.ToDictionary(k => k, k => sim.Inventory.TryGetValue(k, out int n) ? n : 0);

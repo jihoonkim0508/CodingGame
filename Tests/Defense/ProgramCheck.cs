@@ -18,8 +18,8 @@ static class ProgramCheck
             Waves=new[]{new[]{new SpawnGroup{Enemy=new EnemySpec{health=10000,speed=.01f},Count=1,Interval=1}}}
         });
     }
-    static RobotState Bot(DefenseSimulation sim, RobotRole role=RobotRole.Warrior,float x=-9)
-        => sim.Place(new RobotSpec{role=role,range=6,damage=role==RobotRole.Buffer?0:20,interval=.1f},(int)role,new Vector2(x,role==RobotRole.Tank?0:2),out _);
+    static RobotState Bot(DefenseSimulation sim, RobotRole role=RobotRole.Melee,float x=-9)
+        => sim.Place(new RobotSpec{role=role,range=6,damage=20,interval=.1f},(int)role,new Vector2(x,2),out _);
     static void Tick(DefenseSimulation sim,int frames) { for(int i=0;i<frames;i++)sim.Advance(1.0/60); }
     // The attack preview fights the wave's own enemies: their type and numbers (damage too), every group shown, no boss wait.
     static void CheckPreviewWave()
@@ -36,108 +36,43 @@ static class ProgramCheck
         Assert(DefenseSimulation.PreviewWave(new[] { G(EnemyType.Fast, 1, 5, 0), G(EnemyType.Normal, 0, 4, 5) }, 1).Single().DefinitionIndex == 1, "preview: a one-enemy lesson takes the first");
         Assert(DefenseSimulation.PreviewWave(new[] { G(EnemyType.Normal, 0, 8, 0) }, 3).Length == 3, "preview: one group fills the sample");
     }
-    static void CheckTankLifecycle()
-    {
-        DefenseSimulation Scenario(int count) => new DefenseSimulation(new BattleSetup { Progression = FixtureProgression.Create(),
-            Min = new Vector2(-50,-50), Max = new Vector2(50,50),
-            ActionProfiles = Make().Setup.ActionProfiles,
-            Routes = new[]{new Route(new[]{new Vector2(2,0),new Vector2(-20,0)},1.2f)},
-            Waves = new[]{new[]{new SpawnGroup{Enemy=new EnemySpec{health=100,speed=120,damage=0},Count=count,Interval=.1f}}}
-        });
-        RobotState Tank(DefenseSimulation simulation, float x, int capacity)
-        {
-            // A near-zero stun: robots are ready at battle start, so a stun lands first; only the body block is under test.
-            var bot = simulation.Place(new RobotSpec{role=RobotRole.Tank,interval=3,duration=.01f,blockRadius=1.25f,blockCapacity=capacity},2,new Vector2(x,0),out _);
-            simulation.ApplyProgram(bot.Id,"guard",new[]{new CodeBlock(BlockKind.Block,"0",new CodeBlock(BlockKind.NearestEnemy))});
-            return bot;
-        }
-
-        var sim = Scenario(4); var tank = Tank(sim,0,3);
-        sim.Start(); Tick(sim,30);
-        Assert(sim.Enemies.Count(e=>e.BlockedBy==tank.Id)==3&&sim.Leaks==1,"capacity holds three and lets overflow pass even at high speed");
-        Assert(sim.Enemies.All(e=>Math.Abs(e.Position.X-1.25f)<.001f),"swept interception stops fast enemies at front edge");
-        sim.ApplyProgram(tank.Id,"empty",Array.Empty<CodeBlock>());
-        Assert(!tank.BlockingEnabled&&sim.Enemies.All(e=>e.BlockedBy==0),"clearing code immediately releases held enemies");
-        Tick(sim,1);
-        Assert(sim.Enemies.All(e=>e.Position.X<0),"released enemies resume moving");
-        sim.ApplyProgram(tank.Id,"guard",new[]{new CodeBlock(BlockKind.Block,"0",new CodeBlock(BlockKind.NearestEnemy))}); sim.Invoke(tank.Id); Tick(sim,1);
-        Assert(sim.Enemies.All(e=>e.BlockedBy==tank.Id),"reaching block again catches enemies still inside radius");
-        Assert(sim.DamageRobot(tank.Id,tank.Spec.health)&&sim.Robots.Count==0&&sim.Enemies.All(e=>e.BlockedBy==0),"destroying tank releases all occupied slots");
-        Tick(sim,15);
-        Assert(sim.Leaks==4&&sim.Phase==BattlePhase.Victory,"released enemies reach base without stale tank references");
-
-        sim = Scenario(3);
-        // Reverse placement order: physical entry distance, not robot list order, decides interception.
-        var back = Tank(sim,-4,1); var front = Tank(sim,0,1);
-        sim.Start(); Tick(sim,30);
-        Assert(sim.Enemies.Single(e=>e.BlockedBy==front.Id).Id<sim.Enemies.Single(e=>e.BlockedBy==back.Id).Id,
-            "first contact takes nearest tank and overflow reaches second tank");
-        Assert(sim.Leaks==1&&sim.Enemies.Count==2,"multiple tanks enforce separate capacities");
-
-        sim = Scenario(1); tank = Tank(sim,0,3);
-        var never = new CodeBlock(BlockKind.If,"0",new CodeBlock(BlockKind.False));
-        never.Body.Add(new CodeBlock(BlockKind.Block,"0",new CodeBlock(BlockKind.NearestEnemy)));
-        sim.ApplyProgram(tank.Id,"conditional",new[]{never}); sim.Start(); Tick(sim,15);
-        Assert(!tank.BlockingEnabled&&sim.Leaks==1,"block inside false branch never enables stance");
-    }
     public static void Run()
     {
-        CheckTankLifecycle();
         CheckPreviewWave();
-        // Same close spawn and cooldown as the authored tank preview.
-        var tankSetup = new BattleSetup { Progression = FixtureProgression.Create(),
+        // wait() before an action runs on simulation time and stands still while paused.
+        var waitSetup = new BattleSetup { Progression = FixtureProgression.Create(),
             Min = new Vector2(-50,-50), Max = new Vector2(50,50),
             ActionProfiles = Make().Setup.ActionProfiles,
             Routes = new[]{new Route(new[]{new Vector2(2,0),new Vector2(-20,0)},1.2f)},
             Waves = new[]{new[]{new SpawnGroup{Enemy=new EnemySpec{health=100,speed=1.5f,damage=0},Count=3,Interval=.7f}}}
         };
-        var blocking = new DefenseSimulation(tankSetup);
-        var tank = blocking.Place(new RobotSpec{role=RobotRole.Tank,range=2.3f,interval=3,damage=2,duration=1.1f,blockRadius=1.25f,blockCapacity=3},2,Vector2.Zero,out _);
-        blocking.ApplyProgram(tank.Id,"guard",new[]{new CodeBlock(BlockKind.Block,"0",new CodeBlock(BlockKind.NearestEnemy))});
-        Assert(!tank.BlockingEnabled,"adding code alone does not activate blocking");
-        blocking.Start(); Tick(blocking,1);
-        Assert(tank.BlockingEnabled&&tank.Executions==1&&blocking.Enemies.Single().Stunned(blocking.Time),"block stance and the stun start with the battle");
-        Tick(blocking,149);
-        Assert(blocking.Enemies.Count==3&&blocking.Enemies.All(e=>e.BlockedBy==tank.Id&&e.Position.X>0),"all preview enemies stop in front of tank");
-        Assert(tank.Executions==1&&blocking.Enemies.All(e=>!e.Stunned(blocking.Time)),"the one block() run stuns once and the stance keeps holding");
-        Tick(blocking,105);
-        Assert(blocking.Enemies.All(e=>e.BlockedBy==tank.Id&&!e.Stunned(blocking.Time)),"body blocking persists after stun expires");
-        var delayed = new DefenseSimulation(tankSetup);
-        var delayedTank = delayed.Place(tank.Spec.Copy(),2,Vector2.Zero,out _);
-        delayed.ApplyProgram(delayedTank.Id,"delayed",new[]{new CodeBlock(BlockKind.Wait,"0",N("1")),new CodeBlock(BlockKind.Block,"0",new CodeBlock(BlockKind.NearestEnemy))});
+        var delayed = new DefenseSimulation(waitSetup);
+        var delayedBot = delayed.Place(new RobotSpec{role=RobotRole.Melee,range=2.3f,interval=3,damage=2,duration=1.1f},1,new Vector2(0,2.5f),out _);
+        delayed.ApplyProgram(delayedBot.Id,"delayed",new[]{new CodeBlock(BlockKind.Wait,"0",N("1")),new CodeBlock(BlockKind.Block,"0",new CodeBlock(BlockKind.NearestEnemy))});
         delayed.Start();Tick(delayed,30);
-        Assert(!delayedTank.BlockingEnabled,"block after wait does not activate before execution reaches it");
-        Assert(delayedTank.Program.WaitRemaining(delayed.Time)>.5&&delayedTank.Program.WaitRemaining(delayed.Time)<.6,"preview wait duration uses simulation time");
-        delayed.TogglePause(); var waitRemaining = delayedTank.Program.WaitRemaining(delayed.Time); delayed.Advance(2);
-        Assert(delayedTank.Program.WaitRemaining(delayed.Time)==waitRemaining,"pause preserves displayed wait duration");
+        Assert(delayedBot.Executions==0,"block after wait does not run before execution reaches it");
+        Assert(delayedBot.Program.WaitRemaining(delayed.Time)>.5&&delayedBot.Program.WaitRemaining(delayed.Time)<.6,"preview wait duration uses simulation time");
+        delayed.TogglePause(); var waitRemaining = delayedBot.Program.WaitRemaining(delayed.Time); delayed.Advance(2);
+        Assert(delayedBot.Program.WaitRemaining(delayed.Time)==waitRemaining,"pause preserves displayed wait duration");
         delayed.TogglePause();Tick(delayed,32);
-        Assert(delayedTank.Program.WaitRemaining(delayed.Time)==0&&delayedTank.BlockingEnabled,"wait completion enables blocking and clears wait display");
-        Assert(!delayedTank.Program.IsEmpty&&new DefenseProgram("empty",Array.Empty<CodeBlock>()).IsEmpty,"empty program detection needs no block copies");
-        var empty = new DefenseSimulation(tankSetup);
-        var emptyTank = empty.Place(tank.Spec.Copy(),2,Vector2.Zero,out _);
-        empty.Start();Tick(empty,120);
-        Assert(!emptyTank.BlockingEnabled&&empty.Enemies.Any(e=>e.Position.X<0),"empty tank still cannot block");
-        foreach(RobotRole role in Enum.GetValues(typeof(RobotRole)))
-            foreach(RobotAction action in Enum.GetValues(typeof(RobotAction)))
-                if(action==RobotAction.BreakShield) // the shooter's second action only
-                    Assert(Rules.Compatibility(role,action)==(role==RobotRole.Shooter?ActionCompatibility.Native:ActionCompatibility.Ineffective),$"compatibility {role}/{action}");
-                else if(action!=RobotAction.Block&&action!=RobotAction.Buff)
-                    Assert(Rules.Compatibility(role,action)==(Rules.NativeAction(role)==action?ActionCompatibility.Native:ActionCompatibility.Reduced),$"compatibility {role}/{action}");
-        var sim=Make();var robot=Bot(sim,RobotRole.Buffer);robot.AutoExecute=false;sim.Start();Tick(sim,6);
+        Assert(delayedBot.Program.WaitRemaining(delayed.Time)==0,"wait completion clears wait display");
+        Assert(!delayedBot.Program.IsEmpty&&new DefenseProgram("empty",Array.Empty<CodeBlock>()).IsEmpty,"empty program detection needs no block copies");
+        var sim=Make();var robot=Bot(sim,RobotRole.Support);robot.AutoExecute=false;sim.Start();Tick(sim,6);
         var target=sim.Enemies.Single();sim.RequestAction(robot.Id,RobotAction.Slash);Tick(sim,30); // the sword gets there after the wind-up
-        Assert(target.Health==9998,"buffer with zero own damage uses 10 percent specialist slash damage");
+        Assert(target.Health==9995,"the support robot's slash is 25 percent of its damage");
         Tick(sim,6);sim.RequestAction(robot.Id,RobotAction.Slow);
-        Assert(Math.Abs(target.Speed(sim.Time)/target.Spec.speed-.95)<.00001,"cross-role slow is 10 percent reduction strength, not 10 percent remaining speed");
-        Assert(Rules.Compatibility(RobotRole.Warrior,RobotAction.Buff)==ActionCompatibility.Undecided,"buff exception preserved");
-        Assert(Rules.Compatibility(RobotRole.Shooter,RobotAction.Block)==ActionCompatibility.Ineffective,"block prohibition preserved");
+        Assert(Math.Abs(target.Speed(sim.Time)/target.Spec.speed-.5)<.00001,"the support robot's own slow is full strength");
+        var slowing=Make();var melee=Bot(slowing,RobotRole.Melee);melee.AutoExecute=false;slowing.Start();Tick(slowing,6);
+        var slowed=slowing.Enemies.Single();slowing.RequestAction(melee.Id,RobotAction.Slow);
+        Assert(Math.Abs(slowed.Speed(slowing.Time)/slowed.Spec.speed-.875)<.00001,"an attack robot's slow is 25 percent reduction strength, not 25 percent remaining speed");
 
-        sim=Make();robot=Bot(sim); var other=Bot(sim,RobotRole.Shooter,-7);other.AutoExecute=false;
+        sim=Make();robot=Bot(sim,RobotRole.Support); var other=Bot(sim,RobotRole.Ranged,-7);other.AutoExecute=false;
         var attack=new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy));
         sim.ApplyProgram(robot.Id,"cross",new[]{attack});attack.Kind=BlockKind.Buff;
         Assert(!robot.AutoExecute&&robot.Program.Source.Contains("shoot(get_nearest_enemy())"),"apply freezes source and disables automatic actions");
         sim.Start();Tick(sim,6);
-        // The shot is in flight: it carries the ten percent damage and lands on arrival.
-        Assert(robot.Executions==1&&sim.Projectiles.Single().Damage==2&&sim.Enemies.Single().Health==10000,"code uses same ten percent combat path without duplicate native attack");
+        // The shot is in flight: it carries the support robot's 25 percent damage and lands on arrival.
+        Assert(robot.Executions==1&&sim.Projectiles.Single().Damage==5&&sim.Enemies.Single().Health==10000,"code uses the same 25 percent combat path without duplicate native attack");
         Assert(other.Program==null&&other.Executions==0,"apply only changes selected robot");
         var copied=robot.Program.CopyBlocks();copied[0].Kind=BlockKind.Buff;
         Assert(robot.Program.CopyBlocks()[0].Kind==BlockKind.Shot,"editing copy does not mutate applied program");

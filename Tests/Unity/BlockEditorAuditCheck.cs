@@ -391,7 +391,7 @@ public static class BlockEditorAuditCheck
         battle.EditorGrantAll();
         sim = battle.Simulation; editor = battle.CodeEditor; panel = editor.Panel; program = panel.Program;
         raycaster = panel.GetComponentInParent<GraphicRaycaster>(true);
-        int warrior = Enumerable.Range(0, battle.RobotDefinitions.Count).First(i => battle.DefinitionRole(i) == RobotRole.Warrior);
+        int warrior = Enumerable.Range(0, battle.RobotDefinitions.Count).First(i => battle.DefinitionRole(i) == RobotRole.Melee);
         a = Place(warrior); b = Place(warrior);
     }
     static int Place(int definition)

@@ -12,17 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: edcc99cf8b3b0cd458ba8145cc320c0e, type: 3}
   m_Name: Shooter
   m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.RobotDefinition
-  displayName: "\uC6D0\uAC70\uB9AC"
-  description: "\uC0AC\uAC70\uB9AC\uAC00 \uAE38\uC9C0\uB9CC \uD55C \uBC88 \uC3D8\uBA74
-    \uB2E4\uC2DC \uC3D8\uAE30\uAE4C\uC9C0 \uC624\uB798 \uAC78\uB9BD\uB2C8\uB2E4.
-    \uC0AC\uAC70\uB9AC \uC548\uC774\uBA74 \uAC70\uB9AC\uC640 \uC0C1\uAD00\uC5C6\uC774
-    \uAC19\uC740 \uD53C\uD574\uB97C \uC90D\uB2C8\uB2E4."
+  displayName: "\uC6D0\uAC70\uB9AC \uB85C\uBD07"
+  description: "\uACF5\uACA9\uB958. \uBA40\uB9AC \uC788\uB294 \uC801\uC744 \uC3E9\uB2C8\uB2E4.
+    \uADFC\uC811 \uB85C\uBD07\uACFC \uAC19\uC740 \uD798, \uC0AC\uAC70\uB9AC\uB9CC
+    \uAE41\uB2C8\uB2E4. \uC9C0\uC6D0 \uAE30\uC220(buff\xB7slow)\uC740 \uC57D\uD558\uAC8C
+    \uC368\uC694."
   color: {r: 0.92, g: 0.44, b: 0.61, a: 1}
   stats:
-    role: 4
+    role: 2
     range: 7
-    damage: 16
-    interval: 2.4
+    damage: 7
+    interval: 1.6
     radius: 0.75
     health: 100
     blockRadius: 1.1

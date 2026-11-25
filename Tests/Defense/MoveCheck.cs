@@ -18,24 +18,24 @@ static class MoveCheck
     public static void Run()
     {
         var play = new DefenseSimulation(Setup(2));
-        var bot = play.Place(Spec(RobotRole.Shooter), (int)RobotRole.Shooter, new Vector2(0, 4), out var error);
-        var other = play.Place(Spec(RobotRole.Shooter), (int)RobotRole.Shooter, new Vector2(6, 4), out error);
-        var tank = play.Place(Spec(RobotRole.Tank), (int)RobotRole.Tank, new Vector2(-4, 0), out error);
+        var bot = play.Place(Spec(RobotRole.Ranged), (int)RobotRole.Ranged, new Vector2(0, 4), out var error);
+        var other = play.Place(Spec(RobotRole.Ranged), (int)RobotRole.Ranged, new Vector2(6, 4), out error);
+        var tank = play.Place(Spec(RobotRole.Melee), (int)RobotRole.Melee, new Vector2(-4, 4), out error);
         Assert(bot != null && other != null && tank != null, "setup: robots placed: " + error);
         play.ApplyProgram(bot.Id, "fire", new[] { new CodeBlock(BlockKind.Shot, "0", new CodeBlock(BlockKind.NearestEnemy)) });
         play.SetCoins(500); Assert(play.UpgradeRobot(bot.Id), "setup: level-up");
-        int stock = play.RobotAvailable(RobotRole.Shooter), coins = play.Coins, count = play.Robots.Count; var program = bot.Program; float? health = bot.Health;
+        int stock = play.RobotAvailable(RobotRole.Ranged), coins = play.Coins, count = play.Robots.Count; var program = bot.Program; float? health = bot.Health;
 
         Assert(play.MoveRobot(bot.Id, new Vector2(.5f, 4.2f), out error), "a robot may move to a spot overlapping only its own: " + error);
         Assert(play.MoveRobot(bot.Id, new Vector2(-8, 6), out error), "a robot moves to a free spot: " + error);
         var moved = play.FindRobot(bot.Id);
         Assert(moved == bot && moved.Position == new Vector2(-8, 6) && moved.Level == 2 && moved.Program == program && moved.Health == health,
             "the moved robot keeps its id, level, code and health");
-        Assert(play.RobotAvailable(RobotRole.Shooter) == stock && play.Coins == coins && play.Robots.Count == count, "a move costs nothing and changes no stock");
+        Assert(play.RobotAvailable(RobotRole.Ranged) == stock && play.Coins == coins && play.Robots.Count == count, "a move costs nothing and changes no stock");
         Assert(!play.MoveRobot(bot.Id, new Vector2(6.5f, 4), out error) && error == "다른 로봇과 겹칩니다." && bot.Position == new Vector2(-8, 6), "onto another robot: refused, it stays");
-        Assert(!play.MoveRobot(bot.Id, new Vector2(2, .2f), out error) && error == "적 경로에는 탱커만 설치할 수 있습니다.", "a shooter onto the road: refused");
-        Assert(!play.MoveRobot(tank.Id, new Vector2(2, 5), out error) && error == "탱커는 몸체가 경로 안에 들어가도록 설치하세요.", "a tank off the road: refused");
-        Assert(play.MoveRobot(tank.Id, new Vector2(3, 0), out error), "a tank along the road: " + error);
+        Assert(!play.MoveRobot(bot.Id, new Vector2(2, .2f), out error) && error == "적 경로에는 로봇을 설치할 수 없습니다.", "a shooter onto the road: refused");
+        Assert(!play.MoveRobot(tank.Id, new Vector2(3, 0), out error) && error == "적 경로에는 로봇을 설치할 수 없습니다.", "a melee robot onto the road: refused");
+        Assert(play.MoveRobot(tank.Id, new Vector2(3, -4), out error), "a melee robot beside the road: " + error);
         Assert(!play.MoveRobot(bot.Id, new Vector2(-30, 6), out error) && error == "설치 허용 영역 밖입니다.", "off the map: refused");
         Assert(!play.MoveRobot(999, new Vector2(-8, 6), out _), "no such robot");
 
@@ -46,11 +46,11 @@ static class MoveCheck
         var replay = new DefenseSimulation(Setup(2));
         Assert(PlayLog.Replay(replay, play.Inputs, play.Inputs.Count, play.Ticks) == null && PlayLog.Digest(replay) == PlayLog.Digest(play),
             "a log with moves replays to the same session:\n" + PlayLog.Digest(replay) + "\n" + PlayLog.Digest(play));
-        Assert(replay.FindRobot(bot.Id).Position == new Vector2(-8, 6) && replay.FindRobot(tank.Id).Position == new Vector2(3, 0), "the replay's robots stand where they were moved");
+        Assert(replay.FindRobot(bot.Id).Position == new Vector2(-8, 6) && replay.FindRobot(tank.Id).Position == new Vector2(3, -4), "the replay's robots stand where they were moved");
 
         // Recall's gate: Stage 1's first waves keep both locked.
         var first = new DefenseSimulation(Setup(1));
-        var lesson = first.Place(Spec(RobotRole.Shooter), (int)RobotRole.Shooter, new Vector2(0, 4), out _);
+        var lesson = first.Place(Spec(RobotRole.Ranged), (int)RobotRole.Ranged, new Vector2(0, 4), out _);
         Assert(!first.RecallUnlocked && !first.MoveRobot(lesson.Id, new Vector2(-8, 6), out error) && error == DefenseSimulation.MoveLocked, "locked while recall is");
         Console.WriteLine("MoveCheck: passed");
     }

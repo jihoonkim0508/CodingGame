@@ -35,7 +35,7 @@ static class SimultaneousHitCheck
     {
         // Two warriors swing in the same tick, so both strikes land in the same tick: 20 - 7 - 7 = 6, two hit events.
         var sim = Make(20);
-        var a = Robot(sim, RobotRole.Warrior, -10); var b = Robot(sim, RobotRole.Warrior, -9);
+        var a = Robot(sim, RobotRole.Melee, -10); var b = Robot(sim, RobotRole.Melee, -9);
         var enemy = Spawned(sim);
         Assert(sim.RequestAction(a.Id, RobotAction.Slash) == ActionResult.Executed && sim.RequestAction(b.Id, RobotAction.Slash) == ActionResult.Executed, "both swing");
         Until(sim, () => sim.Events.Count(e => e.Kind == "hit") >= 2);
@@ -46,7 +46,7 @@ static class SimultaneousHitCheck
 
         // Three warriors on 14 HP in the same tick: two hits kill it, the third (on a dead enemy) is the only one dropped.
         sim = Make(14);
-        var bots = new[] { Robot(sim, RobotRole.Warrior, -11), Robot(sim, RobotRole.Warrior, -10), Robot(sim, RobotRole.Warrior, -9) };
+        var bots = new[] { Robot(sim, RobotRole.Melee, -11), Robot(sim, RobotRole.Melee, -10), Robot(sim, RobotRole.Melee, -9) };
         enemy = Spawned(sim);
         foreach (var bot in bots) Assert(sim.RequestAction(bot.Id, RobotAction.Slash) == ActionResult.Executed, "swing");
         Until(sim, () => !enemy.Active);
@@ -62,7 +62,7 @@ static class SimultaneousHitCheck
         for (int k = 0; k < 60; k++)
         {
             sim = Make(1000);
-            var shooter = Robot(sim, RobotRole.Shooter, -11); var warrior = Robot(sim, RobotRole.Warrior, -9);
+            var shooter = Robot(sim, RobotRole.Ranged, -11); var warrior = Robot(sim, RobotRole.Melee, -9);
             enemy = Spawned(sim);
             Assert(sim.RequestAction(warrior.Id, RobotAction.Slash) == ActionResult.Executed, "warrior swings");
             for (int i = 0; i < k; i++) sim.Advance(DefenseSimulation.TickDuration);
@@ -82,7 +82,7 @@ static class SimultaneousHitCheck
 
         // Two shots landing together on 10 HP: the first takes 7, the second the 3 left (applied), then the kill.
         sim = Make(10);
-        var s1 = Robot(sim, RobotRole.Shooter, -11); var s2 = Robot(sim, RobotRole.Shooter, -9);
+        var s1 = Robot(sim, RobotRole.Ranged, -11); var s2 = Robot(sim, RobotRole.Ranged, -9);
         enemy = Spawned(sim);
         sim.RequestAction(s1.Id, RobotAction.Attack, enemy.Id); sim.RequestAction(s2.Id, RobotAction.Attack, enemy.Id);
         sim.Advance(1);

@@ -27,5 +27,7 @@ MonoBehaviour:
     abilityRadius: 2.5
     abilityAmount: 12
     segmentCap: 8
+    reflectOn: 2
+    reflectOff: 3
   prefab: {fileID: 8292641712839652615, guid: c7dc3dc2371595547a093b99754e9cb6, type: 3}
   icon: {fileID: 2800000, guid: a7771ef093897544d826bb4841c2ffdc, type: 3}

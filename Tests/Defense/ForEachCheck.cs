@@ -38,7 +38,7 @@ static class ForEachCheck
     static RobotState Shooter(DefenseSimulation sim, string code)
     {
         // Stands by the road's front: the first enemy is always the nearest one.
-        var bot = sim.Place(new RobotSpec { role = RobotRole.Shooter, range = 30, damage = 20, interval = 1, projectileSpeed = 1000 }, (int)RobotRole.Shooter, new Vector2(5, 2), out _);
+        var bot = sim.Place(new RobotSpec { role = RobotRole.Ranged, range = 30, damage = 20, interval = 1, projectileSpeed = 1000 }, (int)RobotRole.Ranged, new Vector2(5, 2), out _);
         Assert(bot != null, "shooter placed");
         sim.ApplyProgram(bot.Id, "robot", TutorialAnswers.Parse(code));
         if (sim.Phase == BattlePhase.Running) sim.Invoke(bot.Id); // placed mid-battle: start its function as Play does
@@ -104,8 +104,8 @@ static class ForEachCheck
         double firstBreak = sim.Time - .2, secondBreak = -1; sim.Events.Clear();
         for (int i = 0; i < 60 * 4 && secondBreak < 0; i++) { sim.Advance(1.0 / 60); if (sim.Events.Any(e => e.Kind == "shield-break")) secondBreak = sim.Time; }
         Assert(bot.Program.Fault == null && secondBreak - firstBreak >= 2.9, $"break_shield cools down on its own 3 s ({secondBreak - firstBreak:0.00} s)");
-        var stranger = sim.Place(new RobotSpec { role = RobotRole.Warrior, range = 30 }, (int)RobotRole.Warrior, new Vector2(-5, 2), out _);
-        Assert(sim.RequestAction(stranger.Id, RobotAction.BreakShield, normal.Id) == ActionResult.Ineffective, "only the shooter has break_shield()");
+        var stranger = sim.Place(new RobotSpec { role = RobotRole.Melee, range = 30 }, (int)RobotRole.Melee, new Vector2(-5, 2), out _);
+        Assert(sim.RequestAction(stranger.Id, RobotAction.BreakShield, normal.Id) == ActionResult.Executed, "melee robots break shields too (공격류)");
 
         Console.WriteLine("ForEach/healer/shield checks passed: " + checks);
     }

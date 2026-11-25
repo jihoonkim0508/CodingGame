@@ -21,6 +21,9 @@ namespace CodingGame.Defense.Editor
                 new EnemySpec { type = EnemyType.Queue, health = 10, speed = 1.2f, damage = 6, attackInterval = 1.2f });
             Make("StackCentipede", "스택 지네", "몇 초마다 꼬리에 새 마디를 쌓는 지네(최대 8마디). 맨 위 마디(가장 나중에 들어온 꼬리)만 피해를 받습니다. e.top()을 노리세요.",
                 new EnemySpec { type = EnemyType.Stack, health = 10, speed = 1.2f, damage = 6, attackInterval = 1.2f, abilityInterval = 4, segmentCap = 8 });
+            // Reflector (3-3): every 3 s normal, then 2 s reflecting (hits go back to the robot that made them).
+            Make("Reflector", "반사병", "몇 초마다 거울처럼 빛나는 반사 상태가 됩니다. 그동안 맞은 공격은 쏜 로봇에게 튕겨 갑니다. e.reflecting이면 건너뛰세요.",
+                new EnemySpec { type = EnemyType.Reflector, health = 24, speed = 1.2f, damage = 6, attackInterval = 1.2f, reflectOn = 2, reflectOff = 3 });
             AssetDatabase.SaveAssets();
         }
         static void Make(string file, string name, string description, EnemySpec stats)

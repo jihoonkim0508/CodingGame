@@ -12,9 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: edcc99cf8b3b0cd458ba8145cc320c0e, type: 3}
   m_Name: Warrior
   m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.RobotDefinition
-  displayName: "\uC804\uC0AC\uD615"
-  description: "\uAC00\uAE4C\uC6B4 \uC801\uC5D0\uAC8C \uD655\uC815 \uD53C\uD574\uB97C
-    \uC90D\uB2C8\uB2E4."
+  displayName: "\uADFC\uC811 \uB85C\uBD07"
+  description: "\uACF5\uACA9\uB958. \uAC00\uAE4C\uC6B4 \uC801\uC744 \uBCA0\uACE0
+    \uB9C9\uC2B5\uB2C8\uB2E4. \uC6D0\uAC70\uB9AC \uB85C\uBD07\uACFC \uAC19\uC740
+    \uD798, \uC0AC\uAC70\uB9AC\uB9CC \uC9E7\uC2B5\uB2C8\uB2E4. \uC9C0\uC6D0 \uAE30\uC220(buff\xB7slow)\uC740
+    \uC57D\uD558\uAC8C \uC368\uC694."
   color: {r: 0.95, g: 0.73, b: 0.41, a: 1}
   stats:
     role: 1
@@ -28,7 +30,7 @@ MonoBehaviour:
     effectRadius: 2
     duration: 2
     slowMultiplier: 0.5
-    projectileSpeed: 4
+    projectileSpeed: 15
     buffDamage: 1.25
     buffRange: 1.15
     buffInterval: 0.8

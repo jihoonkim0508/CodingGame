@@ -29,7 +29,7 @@ static class CentipedeCheck
         Progression = FixtureProgression.Create(), Min = new Vector2(-20, -10), Max = new Vector2(20, 10),
         ActionProfiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(r => new RobotSpec { role = r }).ToArray(),
         Routes = new[] { new Route(new[] { new Vector2(-15, 0), new Vector2(15, 0) }, 1) }, Waves = new[] { wave } });
-    static RobotState Robot(DefenseSimulation sim, string code, Vector2 at, RobotRole role = RobotRole.Shooter, float damage = 30, float range = 30) =>
+    static RobotState Robot(DefenseSimulation sim, string code, Vector2 at, RobotRole role = RobotRole.Ranged, float damage = 30, float range = 30) =>
         Robot(sim, TutorialAnswers.Parse(code), at, role, damage, range);
     static RobotState Robot(DefenseSimulation sim, CodeBlock[] code, Vector2 at, RobotRole role, float damage, float range = 30)
     {
@@ -76,7 +76,7 @@ static class CentipedeCheck
         sim.Start(); Seconds(sim, 4.5);
         segs = sim.Enemies.ToList();
         var boom = new CodeBlock(BlockKind.While); boom.Body.Add(new CodeBlock(BlockKind.Boom, "0", new CodeBlock(BlockKind.NearestEnemy)));
-        Robot(sim, new[] { boom }, new Vector2(0, 2), RobotRole.Bomber, 5);
+        Robot(sim, new[] { boom }, new Vector2(0, 2), RobotRole.Ranged, 5);
         Seconds(sim, .5);
         Assert(segs[0].Health < 100 && segs.Skip(1).All(Untouched), "boom's blast damages only the queue's front");
 
