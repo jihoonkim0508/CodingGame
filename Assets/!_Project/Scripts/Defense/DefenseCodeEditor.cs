@@ -119,7 +119,7 @@ namespace CodingGame.Defense
             foreach (int removed in drafts.Keys.Where(key => key != DefenseSimulation.BoardId && !sim.Robots.Exists(r => r.Id == key)).ToArray()) drafts.Remove(removed);
             title.text = "미리보기 · " + battle.RobotName(id);
             battle.BeginCodeView(robot);
-            editorRoot.SetActive(true); UISound.Play("open");
+            editorRoot.SetActive(true); UISound.Play("open"); ShowStatsCard(true);
             // A lesson's steps point at blocks: it opens on the 블록 tab (the player may still switch).
             if (battle.InTutorial) panel.UseMode(CodingMode.Block);
             if (drafts.TryGetValue(id, out var history)) panel.LoadHistory(history);
@@ -127,6 +127,12 @@ namespace CodingGame.Defense
             panel.ShowCategory(1); panel.RefreshPalette();
             ShowHint(); // this robot's own hint
             if (panel.IsApplied) panel.ShowMessage("자동 적용됨 · Ctrl+Z 실행 취소 · Ctrl+Y 다시 실행");
+        }
+        // The robot stats card beside the code (DefenseAttackPreview fills it): the team board has no robot, so it read all zeros.
+        void ShowStatsCard(bool shown)
+        {
+            var card = editorRoot.GetComponentInChildren<DefenseRobotStatsCard>(true);
+            if (card) card.gameObject.SetActive(shown);
         }
         // The team board in the same editor: its def row reads team_board (fixed), and its code compiles as the board's lines.
         public void OpenBoard()
@@ -136,7 +142,7 @@ namespace CodingGame.Defense
             Close(false); editingSession = sim; editingId = DefenseSimulation.BoardId;
             if (draftSession != sim) { drafts.Clear(); draftSession = sim; }
             title.text = "팀 보드 · 모든 로봇이 함께 쓰는 변수";
-            editorRoot.SetActive(true); UISound.Play("open");
+            editorRoot.SetActive(true); UISound.Play("open"); ShowStatsCard(false);
             panel.BoardMode = true;
             if (drafts.TryGetValue(DefenseSimulation.BoardId, out var history)) panel.LoadHistory(history);
             else panel.LoadProgram("team_board", sim.Board.Blocks);

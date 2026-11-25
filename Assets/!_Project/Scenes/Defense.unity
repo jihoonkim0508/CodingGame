@@ -2390,6 +2390,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &48154050
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7386,6 +7388,12 @@ MonoBehaviour:
   stockLabel: {fileID: 643713243}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!225 &125412579
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -12103,6 +12111,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &205027662
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12697,6 +12707,12 @@ MonoBehaviour:
   stockLabel: {fileID: 1822771971}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!225 &221541176
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -15165,6 +15181,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &262958704
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15473,6 +15491,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &269772099
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16406,6 +16426,12 @@ MonoBehaviour:
   stockLabel: {fileID: 1689913568}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!225 &283106123
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -17455,6 +17481,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &297001886
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18962,6 +18990,12 @@ MonoBehaviour:
   stockLabel: {fileID: 847805341}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!225 &335333039
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -25236,6 +25270,8 @@ MonoBehaviour:
   minimumHeight: 52
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &432518670
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -26856,6 +26892,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &460914112
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -31745,6 +31783,8 @@ MonoBehaviour:
   minimumHeight: 52
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &556469996
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -32933,6 +32973,12 @@ MonoBehaviour:
   stockLabel: {fileID: 644927377}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!225 &571415902
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -33632,6 +33678,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &579313698
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -37755,6 +37803,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &656924907
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -46657,6 +46707,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &770383936
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -47133,6 +47185,12 @@ MonoBehaviour:
   stockLabel: {fileID: 742065296}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!114 &776076624
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -47897,6 +47955,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &791800137
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -53406,6 +53466,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &867210589
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -56044,6 +56106,12 @@ MonoBehaviour:
   stockLabel: {fileID: 1228251630}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!225 &901561239
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -56792,6 +56860,12 @@ MonoBehaviour:
   stockLabel: {fileID: 21476926}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!114 &911567197
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -57179,6 +57253,12 @@ MonoBehaviour:
   stockLabel: {fileID: 1658229626}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!225 &914272218
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -63547,6 +63627,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &1033026074
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -66963,6 +67045,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &1084467267
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -69181,6 +69265,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &1106132261
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -73279,6 +73365,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &1164689416
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -75879,6 +75967,12 @@ MonoBehaviour:
   stockLabel: {fileID: 646315768}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!225 &1192678120
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -80040,6 +80134,12 @@ MonoBehaviour:
   stockLabel: {fileID: 1101174746}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!225 &1266200996
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -81070,6 +81170,12 @@ MonoBehaviour:
   stockLabel: {fileID: 1687586585}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!114 &1283038474
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -82860,6 +82966,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &1309531727
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -85332,6 +85440,12 @@ MonoBehaviour:
   stockLabel: {fileID: 567297243}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!225 &1341143214
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -87128,6 +87242,12 @@ MonoBehaviour:
   stockLabel: {fileID: 320367684}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!225 &1382117162
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -90519,6 +90639,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &1453430370
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -92681,6 +92803,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &1481990596
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -97277,6 +97401,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &1532853914
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -98933,6 +99059,12 @@ MonoBehaviour:
   stockLabel: {fileID: 1339872447}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!225 &1561745886
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -110938,6 +111070,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &1732455597
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -111524,6 +111658,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &1745253474
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -113777,6 +113913,12 @@ MonoBehaviour:
   stockLabel: {fileID: 1315825344}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!225 &1775839520
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -119499,6 +119641,12 @@ MonoBehaviour:
   stockLabel: {fileID: 51200130}
   stockColumn: {fileID: 929351470}
   variableName: variable
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!225 &1856973771
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -121375,6 +121523,12 @@ MonoBehaviour:
   stockLabel: {fileID: 1580706364}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!225 &1882946379
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -122072,6 +122226,12 @@ MonoBehaviour:
   stockLabel: {fileID: 1065315910}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!225 &1899153532
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -122845,6 +123005,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &1910323177
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -123347,6 +123509,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &1923632133
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -125628,6 +125792,12 @@ MonoBehaviour:
   stockLabel: {fileID: 665243135}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!114 &1958434728
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -126283,6 +126453,12 @@ MonoBehaviour:
   stockLabel: {fileID: 1830908014}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!225 &1969012889
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -130653,6 +130829,12 @@ MonoBehaviour:
   stockLabel: {fileID: 1200293223}
   stockColumn: {fileID: 929351470}
   variableName: enemy
+  naturalShown: 0
+  naturalBuilt: 0
+  pythonLabels: []
+  naturalLabels: []
+  problemFrame: {fileID: 0}
+  problemBadge: {fileID: 0}
 --- !u!225 &2033444872
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -134629,6 +134811,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &2093708262
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -137409,6 +137593,8 @@ MonoBehaviour:
   minimumHeight: 34
   freePlacement: 0
   blocks: []
+  naturalHint: 
+  pythonHint: 
 --- !u!114 &2144284490
 MonoBehaviour:
   m_ObjectHideFlags: 0

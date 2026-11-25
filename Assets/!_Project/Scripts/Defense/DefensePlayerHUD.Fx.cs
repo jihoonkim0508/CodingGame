@@ -13,10 +13,14 @@ namespace CodingGame.Defense
         // ---- The code hologram: over each robot whose function runs, the line it stands at, in Python, on a dark glass chip
         // with a cyan edge and a tail pointing at the robot. It pops and lights up when the robot acts (an attack, a buff), its
         // ▶ blinks each time a loop goes round. A line is held at least .3 s, so a loop that runs many lines in a frame reads.
+        // Shown only briefly (2026-11-26: grouped robots' chips stacked over the screen): an action, or a line it has not shown
+        // in RepeatSeconds, wakes it for VisibleSeconds, then it fades; a loop going round the same lines does not wake it.
+        // A chip that would cover one already up stays down, so a group shows one chip, the one up first.
         sealed class Hologram
         {
-            public RectTransform rect; public Image back, mark; public TextMeshProUGUI text; public Outline edge;
-            public CodeBlock block; public float shownAt = -9, actedAt = -9, turnedAt = -9; public int turns = -1;
+            public RectTransform rect; public Image back, mark; public TextMeshProUGUI text; public Outline edge; public CanvasGroup fade;
+            public CodeBlock block; public float shownAt = -9, actedAt = -9, turnedAt = -9, wakeAt = -9, since = -9; public int turns = -1;
+            public readonly Dictionary<CodeBlock, float> recent = new Dictionary<CodeBlock, float>();
         }
         readonly Dictionary<int, Hologram> holograms = new Dictionary<int, Hologram>();
         readonly List<Hologram> spareHolograms = new List<Hologram>();
@@ -24,7 +28,7 @@ namespace CodingGame.Defense
         readonly Dictionary<int, float> actedAt = new Dictionary<int, float>();
         static readonly Color HoloBack = new Color(.05f, .14f, .22f, .9f), HoloLit = new Color(.16f, .55f, .78f, .95f),
             HoloText = new Color(.78f, .97f, 1f), HoloEdge = new Color(.35f, .9f, 1f, .75f);
-        const float HoldSeconds = .3f, FlashSeconds = .3f;
+        const float HoldSeconds = .3f, FlashSeconds = .3f, VisibleSeconds = 1.2f, FadeSeconds = .35f, RepeatSeconds = 3;
 
         // A robot's action this frame (DefenseSimulation's events whose source is the robot).
         void NoteAction(CombatEvent evt)
@@ -51,17 +55,23 @@ namespace CodingGame.Defense
                     {
                         h = spareHolograms.Count > 0 ? spareHolograms[spareHolograms.Count - 1] : MakeHologram();
                         if (spareHolograms.Count > 0) spareHolograms.RemoveAt(spareHolograms.Count - 1);
-                        h.block = null; h.turns = -1; h.shownAt = -9; holograms[bot.Id] = h;
+                        h.block = null; h.turns = -1; h.shownAt = h.wakeAt = h.since = -9; h.recent.Clear(); holograms[bot.Id] = h;
                     }
                     var block = program.CurrentBlock;
                     if (block != null && block != h.block && (h.block == null || now - h.shownAt >= HoldSeconds))
                     {
                         h.block = block; h.shownAt = now;
                         h.text.text = Line(block);
+                        if (!h.recent.TryGetValue(block, out float seenAt) || now - seenAt > RepeatSeconds) h.wakeAt = now;
+                        h.recent[block] = now;
                     }
                     if (h.turns >= 0 && bot.LoopTurnsThisWave != h.turns) h.turnedAt = now;
                     h.turns = bot.LoopTurnsThisWave;
-                    if (actedAt.TryGetValue(bot.Id, out float acted)) h.actedAt = acted;
+                    if (actedAt.TryGetValue(bot.Id, out float acted)) h.actedAt = h.wakeAt = acted;
+                    float shown = Mathf.Clamp01(1 - (now - h.wakeAt - VisibleSeconds) / FadeSeconds);
+                    if (shown <= 0) { h.since = -9; if (h.rect.gameObject.activeSelf) h.rect.gameObject.SetActive(false); continue; }
+                    if (h.since < 0) h.since = now;
+                    h.fade.alpha = shown;
                     // Lit and popped right after an action, settling back over FlashSeconds.
                     float lit = Mathf.Clamp01(1 - (now - h.actedAt) / FlashSeconds);
                     h.back.color = Color.Lerp(HoloBack, HoloLit, lit);
@@ -75,20 +85,23 @@ namespace CodingGame.Defense
                     RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, battleCamera.WorldToScreenPoint(DefenseViews.World(bot.Position, height)), null, out var head);
                     placed.Add((h, head + Vector2.up * (14 + 2 * Mathf.Sin(now * 2.4f + bot.Id))));
                     h.rect.localScale = Vector3.one * (1 + .16f * lit * lit);
-                    if (!h.rect.gameObject.activeSelf) h.rect.gameObject.SetActive(true);
                 }
-            // Robots side by side: a chip that would cover a lower one moves up clear of it.
-            placed.Sort((a, b) => a.at.y.CompareTo(b.at.y));
+            // Robots side by side: a chip that would cover one up before it stays down until its next wake.
+            placed.Sort((a, b) => a.h.since.CompareTo(b.h.since));
+            int up = 0;
             for (int i = 0; i < placed.Count; i++)
             {
-                var (upper, at) = placed[i];
-                for (int j = 0; j < i; j++)
+                var (chip, at) = placed[i];
+                bool covers = false;
+                for (int j = 0; j < up && !covers; j++)
                 {
-                    var (lower, below) = placed[j];
-                    float wide = (upper.rect.rect.width + lower.rect.rect.width) / 2 + 4, top = below.y + lower.rect.rect.height + 3;
-                    if (Mathf.Abs(at.x - below.x) < wide && at.y < top) at.y = top;
+                    var (other, there) = placed[j];
+                    covers = Mathf.Abs(at.x - there.x) < (chip.rect.rect.width + other.rect.rect.width) / 2 + 4 &&
+                        Mathf.Abs(at.y - there.y) < (chip.rect.rect.height + other.rect.rect.height) / 2 + 3;
                 }
-                placed[i] = (upper, at); upper.rect.anchoredPosition = at;
+                if (covers) { chip.wakeAt = chip.since = -9; chip.rect.gameObject.SetActive(false); continue; }
+                placed[up++] = (chip, at); chip.rect.anchoredPosition = at;
+                if (!chip.rect.gameObject.activeSelf) chip.rect.gameObject.SetActive(true);
             }
             placed.Clear();
             foreach (var id in goneHolograms)
@@ -102,7 +115,7 @@ namespace CodingGame.Defense
         Hologram MakeHologram()
         {
             if (!statusLayer) BuildStatusLayer();
-            var plate = new GameObject("Code hologram", typeof(RectTransform), typeof(Image), typeof(HorizontalLayoutGroup), typeof(ContentSizeFitter), typeof(Outline));
+            var plate = new GameObject("Code hologram", typeof(RectTransform), typeof(Image), typeof(HorizontalLayoutGroup), typeof(ContentSizeFitter), typeof(Outline), typeof(CanvasGroup));
             var rect = (RectTransform)plate.transform; rect.SetParent(statusLayer, false);
             rect.anchorMin = rect.anchorMax = ((RectTransform)canvasRoot.transform).pivot; rect.pivot = new Vector2(.5f, 0);
             var back = UITheme.Style(plate.GetComponent<Image>(), UITheme.Chip, HoloBack); back.pixelsPerUnitMultiplier = 1.7f; back.raycastTarget = false;
@@ -125,7 +138,8 @@ namespace CodingGame.Defense
             tail.rectTransform.anchorMin = tail.rectTransform.anchorMax = new Vector2(.5f, 0); tail.rectTransform.pivot = new Vector2(.5f, 1);
             tail.rectTransform.sizeDelta = new Vector2(16, 16); tail.rectTransform.anchoredPosition = new Vector2(0, 5); tail.rectTransform.localRotation = Quaternion.Euler(0, 0, -90);
             plate.SetActive(false);
-            return new Hologram { rect = rect, back = back, mark = mark, text = text, edge = edge };
+            var fade = plate.GetComponent<CanvasGroup>(); fade.blocksRaycasts = fade.interactable = false;
+            return new Hologram { rect = rect, back = back, mark = mark, text = text, edge = edge, fade = fade };
         }
         Sprite PlayIcon
         {

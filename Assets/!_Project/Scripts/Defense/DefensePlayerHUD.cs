@@ -469,8 +469,13 @@ namespace CodingGame.Defense
 
         // The damage a hit did, over the enemy (a kill's coin flies to the counter, DefensePlayerHUD.Fx): rising and fading, so every attack the code makes
         // shows its result. A small pool is reused oldest first, so a burst of hits never piles up labels.
-        sealed class Floater { public TextMeshProUGUI label; public Vector3 world; public float born, life, rise, drift, pop = .35f; }
+        // lastAt: the last hit rolled into it (its fade and pop count from there, its rise from born); enemy/total: whose hits it sums.
+        sealed class Floater { public TextMeshProUGUI label; public Vector3 world; public float born, lastAt, life, rise, drift, pop = .35f, total; public int enemy; }
         float usualHit;
+        // One number per enemy: hits on it within RollSeconds of the last add up in the number shown, so a group under
+        // several robots reads "12.4" over each enemy, not "4.8 4 2 8.4" (2026-11-26).
+        const float RollSeconds = .4f;
+        readonly System.Collections.Generic.Dictionary<int, Floater> rolling = new System.Collections.Generic.Dictionary<int, Floater>();
         readonly System.Collections.Generic.List<Floater> floaters = new System.Collections.Generic.List<Floater>();
         [SerializeField, HideInInspector] RectTransform floaterLayer;
         [SerializeField, HideInInspector] System.Collections.Generic.List<TextMeshProUGUI> floaterLabels = new System.Collections.Generic.List<TextMeshProUGUI>();
@@ -486,7 +491,15 @@ namespace CodingGame.Defense
                 // A hit well above the usual (the running average) pops bigger and golden.
                 float amount = evt.AppliedAmount; usualHit = usualHit <= 0 ? amount : Mathf.Lerp(usualHit, amount, .08f);
                 bool big = amount >= 6 && amount >= usualHit * 1.6f;
-                Float(evt.Position, amount.ToString("0.##"), big ? new Color(1, .8f, .3f) : Color.white, big ? 40 : 30, big ? .8f : .6f, big ? 64 : 46, big ? .8f : .35f);
+                float now = Time.unscaledTime;
+                if (rolling.TryGetValue(evt.Target, out var shown) && shown.enemy == evt.Target && shown.label.gameObject.activeSelf && now - shown.lastAt < RollSeconds)
+                {
+                    shown.total += amount; shown.lastAt = now; shown.label.text = shown.total.ToString("0.#");
+                    if (big) { shown.label.color = new Color(1, .8f, .3f); shown.label.fontSize = Mathf.Max(shown.label.fontSize, 40); shown.pop = .8f; }
+                    return;
+                }
+                var floater = Float(evt.Position, amount.ToString("0.##"), big ? new Color(1, .8f, .3f) : Color.white, big ? 40 : 30, big ? .8f : .6f, big ? 64 : 46, big ? .8f : .35f);
+                floater.enemy = evt.Target; floater.total = amount; rolling[evt.Target] = floater;
             }
             else if (evt.Kind == "reflect") // a reflector sent the hit back: over the robot that made it
                 Float(evt.Position, "반사 -" + evt.Amount.ToString("0.#"), new Color(1, .42f, .36f), 32, .8f, 60);
@@ -497,7 +510,7 @@ namespace CodingGame.Defense
             else if (evt.Kind == "killed" && sim.Setup.PlayerFlow && sim.KillCoins > 0)
                 FlyCoin(evt.Position, sim.KillCoins); // a coin with "+n" flies into the header's coin count
         }
-        void Float(System.Numerics.Vector2 position, string text, Color color, float size, float life, float rise, float pop = .35f)
+        Floater Float(System.Numerics.Vector2 position, string text, Color color, float size, float life, float rise, float pop = .35f)
         {
             if (!floaterLayer) BuildFloaterLayer();
             // A resting label, else a new one up to the pool's size, else the oldest (a loop, not a query per hit).
@@ -511,7 +524,7 @@ namespace CodingGame.Defense
             floater ??= oldest;
             // Scattered round the head and rising at its own pace, so hits landing together read as separate numbers.
             floater.world = DefenseViews.World(position, EnemyHeadHeight) + DefenseHitVisuals.Scatter();
-            floater.born = Time.unscaledTime; floater.life = life; floater.rise = rise * UnityEngine.Random.Range(.85f, 1.15f);
+            floater.born = floater.lastAt = Time.unscaledTime; floater.life = life; floater.rise = rise * UnityEngine.Random.Range(.85f, 1.15f); floater.enemy = 0;
             // px to the side; a number landing on one just shown over the same enemy goes to its other side, so two hits
             // together never read as one number ("78.4"). ponytail: a third at once may overlap the first; fine at 0.6 s life.
             Floater beside = null;
@@ -528,6 +541,7 @@ namespace CodingGame.Defense
                 floater.drift = beside.drift - (beside.drift < 0 ? -1 : 1) * gap;
             }
             floater.label.gameObject.SetActive(true);
+            return floater;
         }
         void BuildFloaterLayer()
         {
@@ -550,18 +564,36 @@ namespace CodingGame.Defense
         void AnimateFloaters()
         {
             var canvas = (RectTransform)canvasRoot.transform;
+            float now = Time.unscaledTime;
             foreach (var f in floaters)
             {
                 if (!f.label.gameObject.activeSelf) continue;
-                float k = (Time.unscaledTime - f.born) / f.life;
-                if (k >= 1) { f.label.gameObject.SetActive(false); continue; }
+                // k: the fade and pop since the last hit rolled in; the rise runs once from the first.
+                float k = (now - f.lastAt) / f.life, up = Mathf.Min(1, (now - f.born) / f.life);
+                if (k >= 1) { f.label.gameObject.SetActive(false); if (rolling.TryGetValue(f.enemy, out var r) && r == f) rolling.Remove(f.enemy); continue; }
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, battleCamera.WorldToScreenPoint(f.world), null, out var at);
                 // Pops up fast, then drifts; fades over the last half.
-                f.label.rectTransform.anchoredPosition = at + new Vector2(f.drift, f.rise * (1 - (1 - k) * (1 - k)));
+                f.label.rectTransform.anchoredPosition = at + new Vector2(f.drift, f.rise * (1 - (1 - up) * (1 - up)));
                 f.label.alpha = k < .5f ? 1 : 1 - (k - .5f) * 2;
                 f.label.transform.localScale = Vector3.one * (k < .12f ? 1 + f.pop * (1 - k / .12f) : 1);
+                shownFloaters.Add(f.label);
             }
+            // Numbers over a crowd that would overlap: each one (lowest first) moves up clear of those below it.
+            shownFloaters.Sort((a, b) => a.rectTransform.anchoredPosition.y.CompareTo(b.rectTransform.anchoredPosition.y));
+            for (int i = 0; i < shownFloaters.Count; i++)
+            {
+                var upper = shownFloaters[i]; var p = upper.rectTransform.anchoredPosition;
+                for (int j = 0; j < i; j++)
+                {
+                    var lower = shownFloaters[j]; var q = lower.rectTransform.anchoredPosition;
+                    float clear = q.y + (upper.fontSize + lower.fontSize) * .5f + 2;
+                    if (Mathf.Abs(p.x - q.x) < (upper.preferredWidth + lower.preferredWidth) * .5f + 4 && p.y < clear) p.y = clear;
+                }
+                upper.rectTransform.anchoredPosition = p;
+            }
+            shownFloaters.Clear();
         }
+        readonly System.Collections.Generic.List<TextMeshProUGUI> shownFloaters = new System.Collections.Generic.List<TextMeshProUGUI>();
 
         // When an enemy reaches the core the screen's edges glow red for a moment (the core bar shakes with it), so a leak
         // is felt even while the player is looking at the other end of the road.
