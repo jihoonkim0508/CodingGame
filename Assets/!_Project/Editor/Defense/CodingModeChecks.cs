@@ -243,6 +243,29 @@ namespace CodingGame.Defense.Editor
             Require(panel.BubbleText != null && panel.BubbleText.StartsWith("4번째 줄: ") && panel.BubbleText.Contains("공격 대상"), "the gutter's ! shows the line's message: " + panel.BubbleText);
             panel.SetMode(CodingMode.Block);
 
+            // Bubble layout: padding round centred text, as wide as the text up to the workspace, then more lines.
+            panel.LoadProgram("robot_1", PythonTreeParser.Parse("enemy = get_nearest_enemy()\nwhile True:\n    wait(___)\n    shoot(enemy)\n").ToArray());
+            yield return Wait(.3);
+            panel.ReshowProblem(panel.Program.AllBlocks().First(b => b.Problem != null && b.ProblemIsError));
+            yield return Wait(.8);
+            BubbleFits("short 오류 in the 블록 tab", 1, true);
+            yield return Shot("2026-11-25_오류 말풍선 짧은 글");
+            panel.SetMode(CodingMode.Natural);
+            panel.LoadProgram("robot_1", PythonTreeParser.Parse("enemy = get_nearest_enemy()\nwhile True:\n    shoot(___)\n    wait(1)\n").ToArray());
+            yield return Wait(.4);
+            panel.ReshowProblem(panel.Program.AllBlocks().First(b => b.Problem != null && b.ProblemIsError));
+            yield return Wait(.8);
+            BubbleFits("long 오류 in the 자연어 tab", 2, true);
+            yield return Shot("2026-11-25_오류 말풍선 긴 글 여러 줄");
+            panel.SetMode(CodingMode.Python); yield return Wait(.3);
+            panel.TypePython("enemy = get_nearest_enemy()\nwhile True:\n    slash()\n    shoot(enemy)\n"); panel.ReadPython();
+            yield return Wait(.2);
+            panel.GutterMarks[0].onClick.Invoke();
+            yield return Wait(.8);
+            BubbleFits("에러 in the 파이썬 tab", 0, false);
+            yield return Shot("2026-11-25_에러 말풍선 파이썬 탭");
+            panel.SetMode(CodingMode.Block);
+
             // The tank: buff() does nothing there.
             Open(tank);
             yield return Wait(.3);
@@ -270,6 +293,32 @@ namespace CodingGame.Defense.Editor
             editor.Close(false); editor.Open(shooter); yield return Wait(.2);
             Require(panel.Mode == CodingMode.Python && panel.PythonText == shown, "the Python tab and its text are kept on reopening");
             panel.SetMode(CodingMode.Block);
+        }
+
+        // lines: 1 exactly one line, 2 at least two, 0 any. The text's drawn bounds sit inside the bubble with even margins.
+        static void BubbleFits(string what, int lines, bool error)
+        {
+            var tip = (RectTransform)GameObject.Find("ProblemTip").transform;
+            var label = tip.GetComponentInChildren<TextMeshProUGUI>(); label.ForceMeshUpdate();
+            var pad = tip.GetComponent<VerticalLayoutGroup>().padding;
+            // The glyphs' own bounds (what the eye sees), not TMP's line box.
+            Vector3 lo = new Vector3(float.MaxValue, float.MaxValue), hi = new Vector3(float.MinValue, float.MinValue);
+            for (int i = 0; i < label.textInfo.characterCount; i++)
+            {
+                var c = label.textInfo.characterInfo[i]; if (!c.isVisible) continue;
+                lo = Vector3.Min(lo, c.bottomLeft); hi = Vector3.Max(hi, c.topRight);
+            }
+            Vector3 min = tip.InverseTransformPoint(label.transform.TransformPoint(lo)), max = tip.InverseTransformPoint(label.transform.TransformPoint(hi));
+            Rect r = tip.rect;
+            float left = min.x - r.xMin, right = r.xMax - max.x, top = r.yMax - max.y, bottom = min.y - r.yMin - 7; // the card's shadow is no fill
+            var corners = new Vector3[4]; tip.GetWorldCorners(corners);
+            var area = new Vector3[4]; ((RectTransform)panel.Program.GetComponentInParent<ScrollRect>(true).transform).GetWorldCorners(area);
+            int count = label.textInfo.lineCount;
+            Require(tip.GetComponent<Image>().color == (error ? CommandBlockView.ErrorColor : CommandBlockView.WarningColor) &&
+                pad.left >= 12 && pad.right >= 12 && pad.top >= 6 && pad.bottom >= 13 && label.alignment == TextAlignmentOptions.CenterGeoAligned &&
+                left >= 10 && right >= 10 && top >= 4 && bottom >= 4 && Mathf.Abs(left - right) <= 4 && Mathf.Abs(top - bottom) <= 3 &&
+                (lines == 0 || (lines == 1 ? count == 1 : count >= lines)) && corners[2].x <= area[2].x + .5f,
+                $"{what}: {r.width:0}x{r.height:0}, {count} line(s), margins L{left:0} R{right:0} T{top:0} B{bottom:0}, inside the workspace ({label.text})");
         }
 
         // The Game view's own frame at 1920x1080 (ScreenCapture, as ScreenTour takes its shots), so the robot preview keeps the

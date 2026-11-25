@@ -1298,8 +1298,8 @@ namespace CodingGame.BlockCoding
             if (line) { StopBubble(); ShowTip(line.Problem, BesideLine(line), line.ProblemIsError); }
             else if (bubble == null) ShowTip(null, default);
         }
-        // Right of the line's header, so it does not cover the line.
-        static Vector3 BesideLine(CommandBlockView line) => line.Rect.TransformPoint(new Vector3(line.Rect.rect.xMin + LineWidth(line) + 12, line.Rect.rect.yMax));
+        // Right of the line's header, at its middle height, so a taller bubble spreads evenly instead of over the next line.
+        static Vector3 BesideLine(CommandBlockView line) => line.Rect.TransformPoint(new Vector3(line.Rect.rect.xMin + LineWidth(line) + 12, line.Rect.rect.yMax - line.HeaderHeight / 2));
         static float LineWidth(CommandBlockView line) => line.Body ? LayoutUtility.GetPreferredWidth((RectTransform)line.Rect.GetChild(0)) + 28 : line.Rect.rect.width;
         // Right of a Python line's last character.
         Vector3 BesideLine(int line)
@@ -1310,7 +1310,7 @@ namespace CodingGame.BlockCoding
             var row = info.lineInfo[line - 1];
             float x = row.lastVisibleCharacterIndex >= row.firstCharacterIndex && row.lastVisibleCharacterIndex < info.characterCount
                 ? info.characterInfo[row.lastVisibleCharacterIndex].xAdvance : field.rectTransform.rect.xMin + Gutter;
-            return field.rectTransform.TransformPoint(new Vector3(x + 18, row.ascender + 14));
+            return field.rectTransform.TransformPoint(new Vector3(x + 18, (row.ascender + row.descender) / 2));
         }
 
         // ---- Message bubbles: a new 오류 or 에러 (and a click on its !) shows its message blinking, for 1.5 s, then fading ----
@@ -1415,23 +1415,37 @@ namespace CodingGame.BlockCoding
                 var canvas = (RectTransform)definitionPanel.GetComponentInParent<Canvas>().rootCanvas.transform;
                 tip = new GameObject("ProblemTip", typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter)).GetComponent<RectTransform>();
                 tip.SetParent(canvas, false);
-                tip.pivot = new Vector2(0, 1);
+                tip.pivot = new Vector2(0, .5f);
                 var image = tip.GetComponent<Image>(); image.sprite = UITheme.Card; image.type = Image.Type.Sliced; image.raycastTarget = false;
-                var layout = tip.GetComponent<VerticalLayoutGroup>(); layout.padding = new RectOffset(14, 14, 8, 8);
-                layout.childControlWidth = layout.childControlHeight = true;
+                var layout = tip.GetComponent<VerticalLayoutGroup>(); layout.padding = new RectOffset(14, 14, 8, 15); // +7 at the bottom: ui_card ends in a 7 px shadow below its fill
+                layout.childControlWidth = layout.childControlHeight = true; layout.childAlignment = TextAnchor.MiddleCenter;
                 var fit = tip.GetComponent<ContentSizeFitter>(); fit.horizontalFit = fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
                 var label = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI), typeof(LayoutElement)).GetComponent<TextMeshProUGUI>();
                 label.rectTransform.SetParent(tip, false);
                 if (UITheme.Bold) label.font = UITheme.Bold;
                 label.fontSize = 18; label.raycastTarget = false;
+                // Centred on the glyphs themselves: the line box's ascender/descender put Korean text low in the bubble.
+                label.alignment = TextAlignmentOptions.CenterGeoAligned;
             }
             tip.GetComponent<Image>().color = error ? CommandBlockView.ErrorColor : CommandBlockView.WarningColor;
             var tipLabel = tip.GetComponentInChildren<TextMeshProUGUI>();
             tipLabel.text = text; tipLabel.color = error ? Color.white : UITheme.Ink;
-            tipLabel.GetComponent<LayoutElement>().preferredWidth = Mathf.Min(560, tipLabel.GetPreferredValues(text).x + 2);
+            // As wide as its text up to the room left in the workspace (560 at most, 260 at least), then it wraps and grows taller.
+            var canvasRect = (RectTransform)tip.parent;
+            var corners = new Vector3[4]; (workspace ? workspace : definitionPanel).GetWorldCorners(corners);
+            float right = canvasRect.InverseTransformPoint(corners[2]).x - 8;
+            var at = canvasRect.InverseTransformPoint(world);
             tipLabel.textWrappingMode = TextWrappingModes.Normal;
+            var element = tipLabel.GetComponent<LayoutElement>();
+            element.preferredWidth = Mathf.Min(Mathf.Clamp(right - at.x - 28, 260, 560), tipLabel.GetPreferredValues(text).x + 2); element.preferredHeight = -1;
             tip.gameObject.SetActive(true); tip.SetAsLastSibling();
-            tip.position = world;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(tip);
+            // Hug the drawn lines: wrapped lines are narrower than the cap, and TMP's line box pads one line but not several.
+            tipLabel.ForceMeshUpdate();
+            var drawn = tipLabel.GetRenderedValues(true);
+            element.preferredWidth = Mathf.Min(element.preferredWidth, drawn.x + 4); element.preferredHeight = drawn.y + 12;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(tip);
+            tip.localPosition = new Vector3(Mathf.Min(at.x, right - tip.rect.width), at.y, at.z);
         }
         public string TipText => tip && tip.gameObject.activeSelf ? tipText : null;
 
