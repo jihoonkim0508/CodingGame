@@ -79,6 +79,9 @@ namespace CodingGame.Defense
         public bool Running { get; private set; }
         public int BlockCount(BlockKind kind) => blockCounts.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0;
         public double WaitRemaining(double time) => Math.Max(0, wakeTime - time);
+        // The block the function stands at (a statement, a condition, a loop's header), or on a loop's step the statement just
+        // run before it, for the code hologram.
+        public CodeBlock CurrentBlock => Running && pc < code.Count ? code[pc].Block ?? (pc > 0 ? code[pc - 1].Block : null) : null;
         public IReadOnlyList<CodeBlock> CopyBlocks() => blocks.Select(Clone).ToList();
         void EndInvocation() { pc = 0; waitingAt = -1; Running = false; variables.Clear(); loops.Clear(); }
         // A call while the function runs (or after it faulted) is refused: Play stays locked until it ends.

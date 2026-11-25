@@ -87,6 +87,7 @@ namespace CodingGame.Defense
 
         readonly Dictionary<int, DefenseActorView> robotViews = new Dictionary<int, DefenseActorView>();
         DefenseSounds sounds;
+        DefenseBattleFx fx; // the battle's show: bursts, shakes, the road's flow, the core's dome, the look (2026-11-25)
         public void PlaySound(string kind) => sounds.Play(kind);
         readonly Dictionary<int, DefenseActorView> enemyViews = new Dictionary<int, DefenseActorView>();
         readonly List<Transform> dropViews = new List<Transform>();
@@ -123,7 +124,10 @@ namespace CodingGame.Defense
              tutorial && (tutorial.Focused("Battle.Upgrade") || tutorial.Focused("Battle.Recall")));
         bool Placing => palette >= 0 || moving != 0;
         // The battle's pace: the player's speed under the tutorial's hold, or the tutorial's own rush in its place.
-        float Pace => tutorial && tutorial.Rushing ? tutorial.BattlePace : BattleSpeed * (tutorial ? tutorial.BattlePace : 1f);
+        // The effects' hit-stop (a boss's fall) dips it for a moment.
+        float Pace => (tutorial && tutorial.Rushing ? tutorial.BattlePace : BattleSpeed * (tutorial ? tutorial.BattlePace : 1f)) * (fx ? fx.TimeScale : 1);
+        // The views' pace: still while paused, the battle's pace in a wave, normal outside one.
+        public float ViewPace => Simulation == null ? 1 : Simulation.Phase == BattlePhase.Paused ? 0 : Simulation.Phase == BattlePhase.Running ? Pace : 1;
         public string DefinitionName(int index) => robots[index].displayName;
         public RobotRole DefinitionRole(int index) => robots[index].stats.role;
         public string RoleName(RobotRole role) => robots.FirstOrDefault(r => r.stats.role == role)?.displayName ?? role.ToString();
@@ -151,6 +155,8 @@ namespace CodingGame.Defense
             // Body texts are saved in Pretendard Bold (Tools/Optimize/126); no font pass at load.
             sounds = gameObject.AddComponent<DefenseSounds>();
             DefenseTeamBoardView.Attach(this);
+            fx = gameObject.AddComponent<DefenseBattleFx>(); fx.Setup(this, battleCamera);
+            selectionCamera.Gate = CameraInput;
             developerRoot.SetActive(false);
             developerHint.SetActive(false); // PR #19's header puts the coin stat in this corner; F1 still works in developer mode
             startButton.onClick.AddListener(RequestStartBattle);
@@ -191,6 +197,7 @@ namespace CodingGame.Defense
             // The area was sized for the workshop map: grow it over the active map's floor (stage 1's right column lay outside).
             foreach(var t in tiles){bounds.Encapsulate(new Vector3(t.Min.X,0,t.Min.Y));bounds.Encapsulate(new Vector3(t.Max.X,0,t.Max.Y));}
             if(map&&map.hasBase&&core)core.position=map.CellPosition(map.baseCell);
+            selectionCamera.SetArea(bounds); // the player's pan keeps the view over this ground
             return new BattleSetup {
                 PlayerFlow=true, Stage=selectedStage, BaseHealth=content.baseHealth, RobotLimit=content.robotLimit,
                 RulesConfig=JsonUtility.FromJson<DefenseBalanceRules>(JsonUtility.ToJson(content.rules)),
@@ -974,7 +981,7 @@ namespace CodingGame.Defense
             SyncViews(elapsed);
             SyncTutorialTargets();
             hitEffects.Tick(Simulation.Phase == BattlePhase.Paused ? 0 :
-                Simulation.Phase == BattlePhase.Running ? elapsed : UnityEngine.Time.deltaTime * BattleSpeed);
+                Simulation.Phase == BattlePhase.Running ? elapsed : UnityEngine.Time.deltaTime * BattleSpeed * fx.EffectScale);
             foreach (var evt in Simulation.Events)
             {
                 robotViews.TryGetValue(evt.Source, out var source);
@@ -982,6 +989,7 @@ namespace CodingGame.Defense
                 EditorObserve("Battle",Simulation,evt);
 #endif
                 hitEffects.Show(evt, actorsRoot, Vector3.zero, battleCamera.transform.rotation, source, effectRing);
+                fx.OnEvent(evt);
                 sounds.Play(evt.Kind);
                 playerHUD.ShowCombatText(evt);
                 if (evt.Kind == "reflect" && robotViews.TryGetValue(evt.Target, out var hitBack))
@@ -1001,6 +1009,20 @@ namespace CodingGame.Defense
             else if (!Placing) rangeRing.Hide();
             if (current == null) selected = 0;
             RefreshHUD();
+        }
+        // The player's camera (DefenseSelectionCamera): the keys pan unless something takes the keyboard (the code panel, a
+        // text field, a menu, the start check, a lesson's lock); the wheel zooms unless the pointer is on UI; the screen's edges
+        // pan unless the pointer is on UI that takes it (buttons, the code area, scroll views).
+        (bool keys, bool wheel, bool edge) CameraInput()
+        {
+            if (Simulation == null || HelpOpen || DeveloperMode || inventoryUI.IsOpen || playerHUD.MenuOpen || playerHUD.ConfirmOpen ||
+                TutorialBlocksInput || tutorial && tutorial.DialogueInputCaptured) return default;
+            if (codeEditor.IsOpen) return default; // the code panel has its own wheel zoom and pan, and WASD types there
+            var focus = eventSystem.currentSelectedGameObject;
+            bool typing = focus && focus.TryGetComponent<TMP_InputField>(out var field) && field.isFocused;
+            var mouse = Mouse.current; var at = mouse != null ? mouse.position.ReadValue() : Vector2.zero;
+            bool onDev = devWindow && devWindow.HasPointer(at);
+            return (!typing, !onDev && !eventSystem.IsPointerOverGameObject(), !onDev && !DefenseSelectionCamera.PointerOnInteractiveUI(at));
         }
         void CancelPlacement()
         {
@@ -1043,7 +1065,7 @@ namespace CodingGame.Defense
         public const float RobotHeight = 2.7f;
         const float RobotWidth = 2f, RobotClickHeight = RobotHeight;
         // The route's points with the last one pulled back one cell: the walk ends on the core, the painted road a cell before.
-        static Point[] RoadPoints(Route path)
+        internal static Point[] RoadPoints(Route path)
         {
             var points = path.Points.ToArray();
             if (points.Length < 2) return points;
@@ -1118,8 +1140,7 @@ namespace CodingGame.Defense
         void SyncViews(float elapsed)
         {
             // Animations follow the battle: still while paused (or held by the tutorial), faster at 2x/3x, normal outside a wave.
-            float pace = Simulation.Phase == BattlePhase.Paused ? 0 : Simulation.Phase == BattlePhase.Running
-                ? Pace : 1;
+            float pace = ViewPace;
             if (coreGlitch) coreGlitch.Show(Simulation.BaseHealth, Simulation.Phase == BattlePhase.Defeat, pace);
             // Every self-playing particle under the actors keeps the pace too (hit effects are stepped by hitEffects.Tick and
             // stay paused between steps, so they are left alone).
