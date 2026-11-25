@@ -4,14 +4,15 @@ using UnityEngine;
 
 namespace CodingGame.Defense.Editor
 {
-    // Healer.asset and Shielder.asset in Defense/Data as copies of Enemy.asset (its model and icon: placeholder art until the
-    // stage-2 monsters land; DefenseActorView tints them). GameData apply puts them in the campaign when Balance.md uses them.
-    // Also QueueCentipede.asset and StackCentipede.asset the same way (3-4), and TreeLegion.asset (3-3) with its own models:
-    // TreeLegion.prefab (the root) and TreeLegionNode.prefab (the nodes below it) from the Blender models in
-    // Defense/Models/TreeLegion (Art~/TreeLegion/tree_legion.py), each a copy of Enemy.prefab with its model swapped.
+    // Healer.asset and Shielder.asset in Defense/Data as copies of Enemy.asset (their own models, prefabs and icons come from
+    // SupportMonsterArt.Apply). GameData apply puts them in the campaign when Balance.md uses them.
+    // Also QueueCentipede.asset and StackCentipede.asset the same way (3-4), the Reflector (3-3, its model from SupportMonsterArt),
+    // and TreeLegion.asset (3-3) with its own models: TreeLegion.prefab (the root) and TreeLegionNode.prefab (the nodes below it)
+    // from the Blender models in Defense/Models/TreeLegion (Art~/TreeLegion/tree_legion.py), each a copy of Enemy.prefab with its model swapped.
     public static class SupportEnemies
     {
         const string Folder = "Assets/!_Project/Defense/Data";
+        public const string StackDescription = "상자가 한 층씩 쌓여 걷는 스택. 몇 초마다 맨 위에 새 층이 떨어집니다(최대 8층). 맨 위 층(가장 나중에 쌓인 층)만 피해를 받고, 그냥 쏘면 맨 아래 층에 막힙니다. e.top()을 노리세요.";
 
         public static void Create()
         {
@@ -22,7 +23,7 @@ namespace CodingGame.Defense.Editor
             // Centipedes: a Balance.md row is one centipede, its count the segments it starts with, its interval their spacing.
             Make("QueueCentipede", "큐 지네", "마디가 한 줄로 걷는 지네. 맨 앞 마디(가장 먼저 들어온 마디)만 피해를 받습니다. e.front()를 노리세요.",
                 new EnemySpec { type = EnemyType.Queue, health = 10, speed = 1.2f, damage = 6, attackInterval = 1.2f });
-            Make("StackCentipede", "스택 지네", "몇 초마다 꼬리에 새 마디를 쌓는 지네(최대 8마디). 맨 위 마디(가장 나중에 들어온 꼬리)만 피해를 받습니다. e.top()을 노리세요.",
+            Make("StackCentipede", "스택 지네", StackDescription,
                 new EnemySpec { type = EnemyType.Stack, health = 10, speed = 1.2f, damage = 6, attackInterval = 1.2f, abilityInterval = 4, segmentCap = 8 });
             // Reflector (3-3): every 3 s normal, then 2 s reflecting (hits go back to the robot that made them).
             Make("Reflector", "반사병", "몇 초마다 거울처럼 빛나는 반사 상태가 됩니다. 그동안 맞은 공격은 쏜 로봇에게 튕겨 갑니다. e.reflecting이면 건너뛰세요.",

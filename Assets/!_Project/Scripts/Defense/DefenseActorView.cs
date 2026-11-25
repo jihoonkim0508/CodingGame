@@ -67,6 +67,13 @@ namespace CodingGame.Defense
         [SerializeField, Tooltip("레이저가 나가는 곳(사격형: 포신 끝). 비우면 머리 위치")] Transform muzzle;
         [SerializeField, Tooltip("떠서 나는 몸(이속형: 모델과 발 불꽃, Tools/Develop/Runner Thrusters). 비우면 뜨지 않음")] Transform hover;
         [SerializeField] ParticleSystem[] thrusters = Array.Empty<ParticleSystem>();
+        // The 2-4 / 3-4 monsters (SupportMonsterArt): the part that swells on each heal/shield cast (healer's cross, shielder's
+        // dome); a centipede's head/body/tail models or a pile's walking base and its layer colours, one shown per segment;
+        // how high a pile's layers above the base sit; the Resources/Effects/Monsters effect played where a segment ends.
+        [SerializeField] Transform pulsePart;
+        [SerializeField] GameObject[] parts = Array.Empty<GameObject>();
+        [SerializeField] float pileBase, pileStep;
+        [SerializeField] string deathEffect = "";
         // The hovering body bobs on the battle clock (still while paused), each enemy at its own phase.
         float hoverY, hoverTime;
         const float HoverHeight = .06f, HoverHz = 1.1f;
@@ -98,6 +105,7 @@ namespace CodingGame.Defense
             healthRoot.position += Vector3.up * HealthLift; // clear of the head (9차 100: the bar sat on it)
             beam.enabled = false;
             animator = GetComponentInChildren<Animator>();
+            partScales = parts.Select(p => p.transform.localScale).ToArray();
             if (hover) { hoverY = hover.localPosition.y; hoverTime = UnityEngine.Random.value * 10; }
             if (animator) attackClip = animator.runtimeAnimatorController.animationClips.Where(c => c.name.Contains("Attack")).Select(c => c.length).DefaultIfEmpty(0).First();
         }
@@ -117,47 +125,92 @@ namespace CodingGame.Defense
             // still while it is stunned or blocked.
             if (enemy.Spec.type == EnemyType.Tank)
                 walkRate = enemy.BlockedBy != 0 || enemy.Stunned(time) ? 0 : enemy.Speed(time) / (TankerWalkSpeed * transform.lossyScale.z / 1.3f);
-            // ponytail: placeholder art for Healer/Shielder until the stage-2 monster models land: an existing enemy model tinted
-            // green / blue, flashing white on each pulse (the pulse ring itself is DefenseHitVisuals' area ring), and a see-through
-            // bubble round any shielded enemy. Swap for the new models' own looks then.
-            var own = enemy.Spec.type == EnemyType.Healer ? new Color(.15f, 1, .25f) : enemy.Spec.type == EnemyType.Shielder ? new Color(.2f, .45f, 1) : materialColor;
-            if (time - enemy.LastAbility < .3) own = Color.Lerp(own, Color.white, .6f);
-            // ponytail: placeholder art for the Queue/Stack centipedes: each segment the normal enemy model tinted orange / purple,
-            // the one end that takes damage pulsing brighter on a glowing ring with the segment count over it. Swap for a
-            // centipede model when one lands.
-            if (enemy.Chain != null) own = enemy.Spec.type == EnemyType.Queue ? new Color(1, .55f, .12f) : new Color(.65f, .3f, 1);
-            bool open = enemy.Chain != null && enemy.Chain.Hittable == enemy;
-            if (open) own = Color.Lerp(own, Color.white, .3f + .2f * Mathf.Sin((float)time * 8));
-            // ponytail: placeholder art for the Reflector until its model lands: the normal enemy model tinted steel blue, and
-            // while reflecting a shimmering silver body with a mirror ring round it; the seconds to its next flip over its bar.
-            bool reflector = enemy.Spec.type == EnemyType.Reflector;
-            if (reflector) own = enemy.Reflecting ? Color.Lerp(new Color(.75f, .95f, 1), Color.white, .5f + .5f * Mathf.Sin((float)time * 18)) : new Color(.35f, .5f, .75f);
-            if (enemy.Node != null) own = DefenseTreeView.Tint(enemy, time);
-            baseColor = own;
+            baseColor = materialColor;
+            sinceCast = (float)(time - enemy.LastAbility);
+            if (bornAt < 0) bornAt = time;
+            float lift = 0;
+            if (enemy.Chain != null)
+            {
+                int at = ShowPart(enemy);
+                float fall = Mathf.Clamp01((float)(time - bornAt) / .3f);
+                if (enemy.Chain.Stack && at > 0)
+                {
+                    // A layer falls onto the pile from above, faster and faster, lands with a thump (squashed flat for a
+                    // moment, a dust ring) and sits pileStep over the one below; higher layers a little narrower.
+                    lift = pileBase + (at - 1) * pileStep + 1.8f * (1 - fall * fall);
+                    if (fall >= 1 && !landed) { landed = true; Burst("StackPush", transform.position); }
+                    float since = (float)(time - bornAt) - .3f, thump = since > 0 && since < .22f ? Mathf.Sin(Mathf.PI * since / .22f) : 0;
+                    shape = new Vector3(1 + .18f * thump, 1 - .32f * thump, 1 + .18f * thump);
+                    shape.x = shape.z *= 1 - .035f * (at - 1);
+                    popScale = 1;
+                }
+                // A centipede segment (and a pile's walking base) pops in.
+                else popScale = Mathf.Min(1, .3f + .7f * Mathf.Sin(Mathf.PI * .5f * fall) + .15f * Mathf.Sin(Mathf.PI * fall));
+            }
+            position += Vector3.up * lift;
+            if (enemy.Node != null) baseColor = DefenseTreeView.Tint(enemy, time);
             ShowBubble(enemy.Shield > 0);
-            ShowOpenEnd(open, open ? enemy.Chain.Segments.Count : 0, viewRotation);
-            ShowMirror(reflector, enemy.Reflecting, Math.Max(0, enemy.PhaseEnds - time), (float)time, viewRotation);
+            bool open = enemy.Chain != null && enemy.Chain.Hittable == enemy;
+            ShowsHealth = enemy.Chain == null || !enemy.Chain.Stack || open; // a pile shows one bar, its top layer's
+            ShowOpenEnd(open, open ? enemy.Chain.Segments.Count : 0, viewRotation, (float)time);
+            ShowMirror(enemy.Spec.type == EnemyType.Reflector, enemy.Reflecting, Math.Max(0, enemy.PhaseEnds - time), viewRotation);
             Sync(position, enemy.Stunned(time), enemy.Speed(time) < enemy.Spec.speed, false);
         }
-        static Mesh bubbleMesh, ringMesh, mirrorMesh; static Material bubbleMaterial, ringMaterial, mirrorMaterial;
-        Renderer bubble, ring, mirror;
-        TMPro.TextMeshPro segmentCount, phaseTimer;
-        void ShowMirror(bool reflector, bool reflecting, double left, float time, Quaternion viewRotation)
+        public bool ShowsHealth { get; private set; } = true;
+        double bornAt = -1; bool landed; float popScale = 1, sinceCast = float.PositiveInfinity;
+        Vector3 shape = Vector3.one; // a pile layer's squash on landing and its taper
+        int part = -1;
+        // Which model a segment shows: a queue's head (front), tail (last) or body; a pile's walking base or a layer colour. Each starts its walk at its own phase, so a centipede ripples and a pile sways.
+        int ShowPart(EnemyState enemy)
+        {
+            int at = enemy.Chain.Segments.IndexOf(enemy);
+            if (parts.Length < 2 || at < 0) return Math.Max(0, at);
+            int want = enemy.Chain.Stack ? (at == 0 ? 0 : 1 + (at - 1) % (parts.Length - 1)) // the colours alternate up the pile
+                : at == 0 ? 0 : at == enemy.Chain.Segments.Count - 1 ? 2 : 1;
+            if (want == part) return at;
+            part = want;
+            for (int i = 0; i < parts.Length; i++) parts[i].SetActive(i == want);
+            body = parts[want].GetComponentInChildren<Renderer>(); shownTint = new Color(-1, -1, -1, -1);
+            animator = parts[want].GetComponent<Animator>();
+            if (animator) animator.Play(0, 0, enemy.Id * .37f % 1);
+            // A pile's layers sit a little askew, alternately, so their edges show.
+            if (enemy.Chain.Stack && at > 0) parts[want].transform.localRotation = Quaternion.Euler(0, 180 + (at % 2 == 0 ? 4 : -4), 0);
+            return at;
+        }
+        static readonly System.Collections.Generic.Dictionary<string, GameObject> effects = new System.Collections.Generic.Dictionary<string, GameObject>();
+        internal static GameObject Effect(string name)
+        {
+            if (!effects.TryGetValue(name, out var effect)) effects[name] = effect = Resources.Load<GameObject>("Effects/Monsters/" + name);
+            return effect;
+        }
+        // A one-off effect where this actor is, left in the world (it outlives the actor) and gone after 2 s.
+        void Burst(string name, Vector3 at, Quaternion facing = default)
+        {
+            var prefab = Effect(name); if (!prefab) return;
+            var effect = Instantiate(prefab, at, facing == default ? Quaternion.identity : facing, transform.parent);
+            foreach (var p in effect.GetComponentsInChildren<ParticleSystem>()) { var main = p.main; main.simulationSpeed = Mathf.Max(pace, .01f); }
+            var system = effect.GetComponent<ParticleSystem>(); if (system) system.Play(true);
+            Destroy(effect, 2);
+        }
+        // The segment's end: a pop where it was (its view goes with it).
+        public void Die() { if (!string.IsNullOrEmpty(deathEffect)) Burst(deathEffect, body.bounds.center); }
+        GameObject bubble, marker;
+        TMPro.TextMeshPro segmentCount;
+        // The Reflector (3-3): while reflecting, the mirror shimmer round its model (SupportMonsterArt's ReflectShimmer); the
+        // seconds to its next flip over its bar.
+        GameObject mirror; TMPro.TextMeshPro phaseTimer;
+        void ShowMirror(bool reflector, bool reflecting, double left, Quaternion viewRotation)
         {
             if (!reflector) return;
-            if (!mirror)
+            if (!phaseTimer) phaseTimer = OverheadLabel("Reflect timer");
+            if (reflecting && !mirror && Effect("ReflectShimmer"))
             {
-                mirror = Shell("Mirror ring", PrimitiveType.Cylinder, ref mirrorMesh, ref mirrorMaterial, new Color(.85f, .97f, 1, .45f));
-                phaseTimer = OverheadLabel("Reflect timer");
+                mirror = Instantiate(Effect("ReflectShimmer"), transform);
+                var bounds = body.bounds;
+                mirror.transform.position = bounds.center;
+                mirror.transform.localScale = Vector3.one * (2.3f * Mathf.Max(bounds.extents.x, bounds.extents.y, bounds.extents.z) / Mathf.Max(.01f, transform.lossyScale.x));
             }
-            mirror.enabled = reflecting;
-            if (reflecting)
-            {
-                var bounds = body.bounds; float across = 2.2f * Mathf.Max(bounds.extents.x, bounds.extents.z) / Mathf.Max(.01f, transform.lossyScale.x);
-                float shimmer = 1 + .08f * Mathf.Sin(time * 14);
-                mirror.transform.localPosition = Vector3.up * (bounds.extents.y / Mathf.Max(.01f, transform.lossyScale.y));
-                mirror.transform.localScale = new Vector3(across * shimmer, bounds.extents.y * 1.1f / Mathf.Max(.01f, transform.lossyScale.y), across * shimmer);
-            }
+            if (mirror) mirror.SetActive(reflecting);
             phaseTimer.text = (reflecting ? "반사 " : "") + left.ToString("0.0") + "s";
             phaseTimer.color = reflecting ? new Color(.8f, .97f, 1) : new Color(.7f, .75f, .85f);
             phaseTimer.transform.SetPositionAndRotation(healthRoot.position + Vector3.up * .45f, viewRotation);
@@ -174,31 +227,41 @@ namespace CodingGame.Defense
         }
         void ShowBubble(bool shown)
         {
-            if (!shown) { if (bubble) bubble.enabled = false; return; }
+            if (!shown)
+            {
+                // Broken (break_shield, or used up by damage): it shatters.
+                if (bubble && bubble.activeSelf) { bubble.SetActive(false); Burst("ShieldShatter", bubble.transform.position); }
+                return;
+            }
             if (!bubble)
             {
-                bubble = Shell("Shield bubble", PrimitiveType.Sphere, ref bubbleMesh, ref bubbleMaterial, new Color(.45f, .8f, 1, .38f));
+                bubble = Instantiate(Effect("ShieldBubble"), transform);
                 // Round the model as it stands (its renderer's bounds), a little larger than it.
                 var bounds = body.bounds;
                 bubble.transform.position = bounds.center;
                 bubble.transform.localScale = Vector3.one * (2.3f * Mathf.Max(bounds.extents.x, bounds.extents.y, bounds.extents.z) / Mathf.Max(.01f, transform.lossyScale.x));
             }
-            bubble.enabled = true;
+            bubble.SetActive(true);
         }
-        // A centipede's open end: a flat glowing ring at its feet and the centipede's segment count over its health bar.
-        void ShowOpenEnd(bool shown, int count, Quaternion viewRotation)
+        // The one segment that takes damage: a yellow arrow bobbing over it, a glowing ring at its feet, the segment count over
+        // the arrow, and the segment a little bigger.
+        void ShowOpenEnd(bool shown, int count, Quaternion viewRotation, float time)
         {
-            if (!shown) { if (ring) { ring.enabled = false; segmentCount.enabled = false; } return; }
-            if (!ring)
+            if (!shown) { if (marker) { marker.SetActive(false); segmentCount.enabled = false; } return; }
+            if (!marker)
             {
-                ring = Shell("Open end ring", PrimitiveType.Cylinder, ref ringMesh, ref ringMaterial, new Color(1, .9f, .2f, .6f));
-                var bounds = body.bounds; float across = 2.6f * Mathf.Max(bounds.extents.x, bounds.extents.z) / Mathf.Max(.01f, transform.lossyScale.x);
-                ring.transform.localPosition = Vector3.up * .03f; ring.transform.localScale = new Vector3(across, .01f, across);
+                marker = Instantiate(Effect("OpenEndMarker"), transform);
+                marker.transform.Find("Arrow").localScale = Vector3.one * 1.5f;
+                marker.transform.localScale = Vector3.one / Mathf.Max(.01f, transform.lossyScale.x);
                 segmentCount = OverheadLabel("Segment count");
             }
-            ring.enabled = segmentCount.enabled = true;
+            marker.SetActive(true); segmentCount.enabled = true;
+            var arrow = marker.transform.Find("Arrow");
+            arrow.position = healthRoot.position + Vector3.up * (.35f + .12f * Mathf.Abs(Mathf.Sin(time * 4)));
+            arrow.rotation = Quaternion.Euler(0, time * 90, 0);
+            marker.transform.Find("Ring").localScale = Vector3.one * (2.2f + .25f * Mathf.Sin(time * 8));
             segmentCount.text = count.ToString();
-            segmentCount.transform.SetPositionAndRotation(healthRoot.position + Vector3.up * .45f, viewRotation);
+            segmentCount.transform.SetPositionAndRotation(arrow.position + Vector3.up * .85f, viewRotation);
         }
         // A see-through primitive on this actor: white vertex colours (the particle shader multiplies them) on the beam's shader.
         internal Renderer Shell(string name, PrimitiveType shape, ref Mesh mesh, ref Material material, Color color)
@@ -226,6 +289,13 @@ namespace CodingGame.Defense
             shown.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; shown.receiveShadows = false;
             return shown;
         }
+        void LateUpdate()
+        {
+            // After the walk clip has posed the bones: the cast pulse swells its part, a new segment pops in, the open end stands bigger.
+            if (pulsePart && sinceCast < .5f) pulsePart.localScale *= 1 + .7f * Mathf.Sin(Mathf.PI * sinceCast / .5f);
+            if (parts.Length > 0 && part >= 0) parts[part].transform.localScale = Vector3.Scale(partScales[part], shape) * popScale * (marker && marker.activeSelf ? 1.12f : 1);
+        }
+        Vector3[] partScales;
         // Animation speed follows the battle clock: 0 while paused, 2-3 at 2x/3x.
         public float Pace => pace;
         public void SetPace(float pace)
@@ -237,12 +307,15 @@ namespace CodingGame.Defense
         // ponytail: placeholder hit-back flash on a robot a reflector sent its hit back to (red-white for a moment).
         float flash;
         public void Flash() => flash = .35f;
-        // ponytail: placeholder hit-back line from a reflector to the robot its mirror sent the hit to (the actor's own beam).
+        // The hit-back line from a reflector to the robot its mirror sent the hit to (the actor's own beam) and its flash of
+        // rays, the streaks pointing at the robot (ReflectFlash shoots along +Z).
         public void HitBack(Vector3 target)
         {
             beam.useWorldSpace = true; beam.positionCount = 2;
             beam.SetPosition(0, head.position); beam.SetPosition(1, target + Vector3.up * .45f);
             beam.enabled = true; beamTime = .2f;
+            var toward = target - transform.position; toward.y = 0;
+            Burst("ReflectFlash", body.bounds.center, toward.sqrMagnitude > 1e-4f ? Quaternion.LookRotation(toward) : default);
         }
         void Sync(Vector3 position, bool stunned, bool slowed, bool buffed)
         {

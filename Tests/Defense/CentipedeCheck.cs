@@ -6,7 +6,7 @@ using CodingGame.Defense;
 using CodingGame.Defense.Editor;
 
 // Queue and Stack centipedes: one spawn group is one centipede, its enemies the segments. Only a queue's front (first in) or a
-// stack's top (last in) takes damage; a stack pushes a segment onto its tail every few seconds up to its cap; e.front(),
+// stack's top (last in) takes damage; a stack is a pile of books on one spot (its bottom walks) and pushes a book onto its top every few seconds up to its cap; e.front(),
 // e.top() and e.size; every segment that reaches the core is a leak.
 static class CentipedeCheck
 {
@@ -98,11 +98,13 @@ static class CentipedeCheck
         Seconds(sim, 4);
         Assert(chain.Segments.Count == 5 && sim.Enemies.Count == 5, "not past its cap");
         segs = chain.Segments.ToList();
-        Assert(segs.Zip(segs.Skip(1), (a, b) => sim.RemainingPath(b) - sim.RemainingPath(a)).All(d => d >= DefenseSimulation.SegmentGap - .01f), "a pushed segment falls in behind the tail");
-        // A nearest-enemy shooter by the road's end: its nearest is the head, which takes nothing.
+        Assert(segs.All(s => s.Position == segs[0].Position) && sim.RemainingPath(segs[0]) < 30 - 7.5, "a stack is one pile of books on one spot, walking");
+        // A nearest-enemy shooter by the road's end: its nearest is the bottom book (first in), which takes nothing.
         Robot(sim, Nearest, new Vector2(15, 2));
         sim.Events.Clear(); Seconds(sim, 2);
-        Assert(segs.All(Untouched) && sim.Events.Any(e => e.Kind == "blocked"), "shots at a stack's lower segments are blocked");
+        Assert(segs.All(Untouched) && sim.Events.Where(e => e.Kind == "blocked").Select(e => e.Target).Distinct().SequenceEqual(new[] { segs[0].Id }),
+            "get_nearest_enemy() on a stack is its bottom book, and its shots are blocked");
+        Assert(segs.All(s => s.Position == segs[0].Position), "the pile stays together as it walks");
 
         // The snippet hits the top; when it dies the one below is the top (pop); kills outpace pushes, so it is cleared.
         sim = Make(C(EnemyType.Stack, 3));
@@ -137,6 +139,10 @@ static class CentipedeCheck
         sim = Make(C(EnemyType.Queue, 5));
         sim.Start(); Seconds(sim, 40);
         Assert(sim.Leaks == 5 && sim.BaseHealth == 12 - 5, $"five segments through, five leaks ({sim.Leaks}, core {sim.BaseHealth})");
+        // and every book of a stack's pile, all at once as its bottom book gets there.
+        sim = Make(C(EnemyType.Stack, 3));
+        sim.Start(); Seconds(sim, 40);
+        Assert(sim.Leaks == 5 && sim.BaseHealth == 12 - 5, $"a pile of five books through, five leaks ({sim.Leaks}, core {sim.BaseHealth})");
 
         Console.WriteLine($"Centipede checks passed: {checks} (nearest-enemy shooter on both: {nearestLeaks} leaks)");
     }

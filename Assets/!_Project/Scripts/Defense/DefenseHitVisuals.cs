@@ -88,6 +88,11 @@ namespace CodingGame.Defense
             // Started so it is fullest as the strike lands.
             if (evt.Kind == "slash") { Later(evt.Seconds - SlashLead, () => Slash(evt, parent, offset)); return; }
             if (!Options.hitEffects) return;
+            // The 2-4 / 3-4 monsters' events (Resources/Effects/Monsters): a heal or shield cast round the caster, the spark of a
+            // hit on a centipede segment or book that is not the open end.
+            var named = evt.Kind == "heal" ? "HealPulse" : evt.Kind == "shield" ? "ShieldCast" : evt.Kind == "blocked" ? "BlockedSpark" : null;
+            var monsterEffect = named == null ? null : DefenseActorView.Effect(named);
+            if (monsterEffect) { Play(active, monsterEffect.GetComponent<ParticleSystem>(), offset + DefenseViews.World(evt.Position, named == "BlockedSpark" ? .35f : .05f), Quaternion.identity, parent); return; }
             if ((evt.Kind != "hit" && evt.Kind != "projectile-hit") || evt.Amount <= 0) return;
             // The laser's impact is drawn where the enemy is when the hit lands, not where it was at launch.
             if (laser) { Play(active, shotImpactPrefab, offset + DefenseViews.World(evt.Position, .45f) + Scatter(), rotation, parent); return; }

@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: StackCentipede
   m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.EnemyDefinition
   displayName: "\uC2A4\uD0DD \uC9C0\uB124"
-  description: "\uBA87 \uCD08\uB9C8\uB2E4 \uAF2C\uB9AC\uC5D0 \uC0C8 \uB9C8\uB514\uB97C
-    \uC313\uB294 \uC9C0\uB124(\uCD5C\uB300 8\uB9C8\uB514). \uB9E8 \uC704 \uB9C8\uB514(\uAC00\uC7A5
-    \uB098\uC911\uC5D0 \uB4E4\uC5B4\uC628 \uAF2C\uB9AC)\uB9CC \uD53C\uD574\uB97C
-    \uBC1B\uC2B5\uB2C8\uB2E4. e.top()\uC744 \uB178\uB9AC\uC138\uC694."
+  description: "\uC0C1\uC790\uAC00 \uD55C \uCE35\uC529 \uC313\uC5EC \uAC77\uB294
+    \uC2A4\uD0DD. \uBA87 \uCD08\uB9C8\uB2E4 \uB9E8 \uC704\uC5D0 \uC0C8 \uCE35\uC774
+    \uB5A8\uC5B4\uC9D1\uB2C8\uB2E4(\uCD5C\uB300 8\uCE35). \uB9E8 \uC704 \uCE35(\uAC00\uC7A5
+    \uB098\uC911\uC5D0 \uC313\uC778 \uCE35)\uB9CC \uD53C\uD574\uB97C \uBC1B\uACE0,
+    \uADF8\uB0E5 \uC3D8\uBA74 \uB9E8 \uC544\uB798 \uCE35\uC5D0 \uB9C9\uD799\uB2C8\uB2E4.
+    e.top()\uC744 \uB178\uB9AC\uC138\uC694."
   stats:
     type: 6
     health: 10
@@ -30,5 +32,5 @@ MonoBehaviour:
     segmentCap: 8
     reflectOn: 2
     reflectOff: 3
-  prefab: {fileID: 8292641712839652615, guid: c7dc3dc2371595547a093b99754e9cb6, type: 3}
-  icon: {fileID: 2800000, guid: a7771ef093897544d826bb4841c2ffdc, type: 3}
+  prefab: {fileID: 8292641712839652615, guid: 3e505d96164654441b9c2462218c51a6, type: 3}
+  icon: {fileID: 2800000, guid: a79da55da5065954e9484216effa5282, type: 3}
