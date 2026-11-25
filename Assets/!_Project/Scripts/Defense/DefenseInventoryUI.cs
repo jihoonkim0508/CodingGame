@@ -10,56 +10,26 @@ namespace CodingGame.Defense
 {
     public sealed class DefenseInventoryUI : MonoBehaviour
     {
-        [Serializable] public struct BlockSlot { public BlockKind kind; public TMP_Text label, count; }
+        [Serializable] public struct BlockSlot { public BlockKind kind; public TMP_Text label; }
         [SerializeField] DefenseBattle battle;
         [SerializeField] GameObject inventoryRoot;
         [SerializeField] Button closeButton;
         [SerializeField] Button[] robotButtons = Array.Empty<Button>();
         [SerializeField] TMP_Text[] robotLabels = Array.Empty<TMP_Text>();
         [SerializeField] BlockSlot[] blockSlots = Array.Empty<BlockSlot>();
-        [Header("Developer item grant")]
-        [SerializeField] Button categoryButton, previousButton, nextButton, grantButton, grantAllButton;
-        [SerializeField] TMP_Text categoryLabel, itemLabel, feedback;
-        [SerializeField] TMP_InputField quantity;
         readonly BlockKind[] kinds = DefenseProgression.ItemKinds;
-        bool blocks;
-        int item;
         public bool IsOpen => inventoryRoot.activeSelf;
         void Start()
         {
             if (!battle || !inventoryRoot || !closeButton || robotButtons.Length != Rules.RoleCount || robotLabels.Length != Rules.RoleCount ||
-                robotButtons.Any(b => !b) || robotLabels.Any(t => !t) || blockSlots.Length != kinds.Length || blockSlots.Any(s => !s.label || !s.count) ||
-                !categoryButton || !previousButton || !nextButton || !grantButton || !grantAllButton || !categoryLabel || !itemLabel || !feedback || !quantity)
+                robotButtons.Any(b => !b) || robotLabels.Any(t => !t) || blockSlots.Length != kinds.Length || blockSlots.Any(s => !s.label))
                 throw new InvalidOperationException("인벤토리 Inspector 참조를 연결하세요.");
             closeButton.onClick.AddListener(Close);
             for (int i = 0; i < robotButtons.Length; i++) { int index = i; robotButtons[i].onClick.AddListener(() => { battle.ChooseRobot(index); Close(); }); }
-            categoryButton.onClick.AddListener(() => { blocks = !blocks; item = 0; RefreshGrant(); });
-            previousButton.onClick.AddListener(() => Change(-1)); nextButton.onClick.AddListener(() => Change(1));
-            grantButton.onClick.AddListener(Grant); RefreshGrant(); Close();
-            grantAllButton.onClick.AddListener(GrantAll);
+            Close();
         }
         public void Close() { if (inventoryRoot) inventoryRoot.SetActive(false); }
         public void Toggle() => inventoryRoot.SetActive(!inventoryRoot.activeSelf);
-        void Change(int delta) { int count = blocks ? kinds.Length : Rules.RoleCount; item = (item + delta + count) % count; RefreshGrant(); }
-        public void SelectRobotItem(int index) { blocks = false; item = index; RefreshGrant(); }
-        public void SelectBlockItem(BlockKind kind) { blocks = true; item = Array.IndexOf(kinds, kind); RefreshGrant(); }
-        void RefreshGrant() { categoryLabel.text = blocks ? "블록" : "로봇"; itemLabel.text = blocks ? DefenseProgression.Label(kinds[item]) : battle.DefinitionName(item); }
-        public void Grant()
-        {
-            if (!battle.DeveloperMode) return;
-            if (!int.TryParse(quantity.text, out int count) || count < 1) { feedback.text = "1 이상의 수량을 입력하세요."; return; }
-            try { if (blocks) battle.Simulation.GrantBlock(kinds[item], count); else battle.Simulation.GrantRobot(battle.DefinitionRole(item), count); }
-            catch (OverflowException) { feedback.text = "저장 가능한 정수 범위를 넘었습니다."; return; }
-            feedback.text = itemLabel.text + " +" + count;
-        }
-        public void GrantAll()
-        {
-            if (!battle.DeveloperMode) return;
-            try { battle.Simulation.GrantAll(); }
-            catch (OverflowException) { feedback.text = "저장 가능한 정수 범위를 넘었습니다."; return; }
-            feedback.text = "전체 추가 완료 · 각 로봇 +10 · 모든 블록 +50";
-            Debug.Log("[Defense] Developer grant: each robot +10, each block +50", this);
-        }
         void LateUpdate()
         {
             var sim = battle.Simulation;
@@ -70,9 +40,7 @@ namespace CodingGame.Defense
             {
                 var kind = DefenseProgression.Canonical(slot.kind);
                 slot.label.text = DefenseProgression.Label(kind);
-                slot.count.text = sim.Available(kind).ToString();
-                slot.label.color = sim.Owned(kind) > 0 ? new Color(.81f,.87f,.91f) : new Color(.49f,.58f,.64f);
-                slot.count.color = slot.label.color;
+                slot.label.color = sim.Available(kind) > 0 ? new Color(.81f,.87f,.91f) : new Color(.49f,.58f,.64f);
             }
         }
     }

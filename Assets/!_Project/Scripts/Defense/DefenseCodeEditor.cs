@@ -44,10 +44,8 @@ namespace CodingGame.Defense
             panel.CanCopy = () => battle.Stage >= 2; // the right-click menu offers 복사 and 붙여넣기 from Stage 2 (삭제 only in Stage 1)
             panel.Copied += () => battle.ReportTutorialAction(TutorialKeys.DropZone, TutorialSignals.CodeCopied);
             panel.CategoryChosen += category => battle.ReportTutorialAction(TutorialKeys.PaletteTab(category), TutorialSignals.TargetClicked);
-            // A kind the player owns stays on the palette when other robots use all of it (it vanished, as if not unlocked,
-            // while one this robot used up stayed as ×0): the count beside it says none is left.
-            panel.IsAvailable = kind => editingSession == null || editingSession.Options.unlockAll || editingSession.Owned(kind) > 0 || editingSession.Available(kind, editingId) > 0;
-            panel.Remaining = kind => editingSession == null ? 0 : Math.Max(0, editingSession.Available(kind, editingId) - panel.Program.AllBlocks().Count(b => DefenseProgression.Canonical(b.Kind) == DefenseProgression.Canonical(kind)));
+            // Unlocked blocks are unlimited, so the palette shows a kind once it is unlocked and no count beside it.
+            panel.IsAvailable = kind => editingSession == null || editingSession.Available(kind) > 0;
             // A click on the block a tutorial step's demo drags puts it where the demo drops it (1-3 C08: slash() inside the while).
             panel.PaletteClicking = source =>
             {
@@ -59,6 +57,8 @@ namespace CodingGame.Defense
             if (hintButton) hintButton.onClick.AddListener(ToggleHint);
             SetHint(null);
             if (!baked) Bake();
+            panel.ActionWarning = ActionWarning;
+            panel.AddModeTabs(automaticButton);
             editorRoot.SetActive(false);
         }
         // The top row's buttons together at the right (play feedback 3: 비우기 sat 130 px from 닫기): 닫기, then 비우기, then the
@@ -120,6 +120,8 @@ namespace CodingGame.Defense
             title.text = "미리보기 · " + battle.RobotName(id);
             battle.BeginCodeView(robot);
             editorRoot.SetActive(true); UISound.Play("open");
+            // A lesson's steps point at blocks: it opens on the 블록 tab (the player may still switch).
+            if (battle.InTutorial) panel.UseMode(CodingMode.Block);
             if (drafts.TryGetValue(id, out var history)) panel.LoadHistory(history);
             else panel.LoadProgram(robot.Program?.Name ?? "robot_" + id, robot.Program?.CopyBlocks() ?? Array.Empty<CodeBlock>());
             panel.ShowCategory(1); panel.RefreshPalette();
@@ -149,7 +151,6 @@ namespace CodingGame.Defense
             if (editingId == DefenseSimulation.BoardId)
             {
                 editingSession.ApplyBoard(blocks);
-                editingSession.SetDraft(DefenseSimulation.BoardId, panel.Program.AllBlocks().Select(b => DefenseProgression.Canonical(b.Kind)));
                 panel.RefreshPalette();
                 return blocks.Count == 0 ? "팀 보드 비어 있음" : "팀 보드 적용됨 · 다음 웨이브 시작에 실행";
             }
@@ -157,14 +158,27 @@ namespace CodingGame.Defense
             // while the editor said the robot does nothing.
             if (blocks.Count == 0) try { PythonTreeCompiler.NormalizeIdentifier(name); } catch (FormatException) { name = "robot_" + editingId; }
             editingSession.ApplyProgram(editingId, name, blocks);
-            // The blocks in the editor stay this robot's even when the code is unfinished and nothing was applied, except a
-            // kind the stock cannot cover (an undo after another robot took the blocks): that kind holds none, or the shared
-            // stock went below zero and the other robot's applied code no longer fit.
-            editingSession.SetDraft(editingId, panel.Program.AllBlocks().Select(b => DefenseProgression.Canonical(b.Kind)).GroupBy(k => k)
-                .Where(g => g.Count() <= editingSession.Available(g.Key, editingId)).SelectMany(g => g));
             panel.RefreshPalette();
             battle.NotifyCodeApplied(editingId, blocks.Count == 0);
             return blocks.Count == 0 ? "코드 없음 · 행동하지 않음" : "자동 적용됨";
+        }
+        // 에러 (Docs/코딩_모드_3탭.md): an action block that runs on this robot but will not work as meant, by Rules.Compatibility.
+        string ActionWarning(BlockKind kind)
+        {
+            var robot = HasCurrentSession ? editingSession.FindRobot(editingId) : null;
+            if (robot == null) return null;
+            foreach (RobotAction action in Enum.GetValues(typeof(RobotAction)))
+            {
+                if (DefenseProgression.ActionBlock(action) != DefenseProgression.Canonical(kind)) continue;
+                string call = (action == RobotAction.Attack ? "shoot" : action.ToString().ToLowerInvariant()) + "()";
+                switch (editingSession.Compatibility(robot, action))
+                {
+                    case ActionCompatibility.Ineffective: return "이 로봇은 " + call + "을(를) 해도 효과가 없어요";
+                    case ActionCompatibility.Undecided: return call + "은(는) 이 로봇에게 허락되지 않아 동작하지 않아요";
+                    case ActionCompatibility.Reduced: return call + "은(는) 이 로봇의 기술이 아니라 약하게 들어가요";
+                }
+            }
+            return null;
         }
         void OnBlockDropped(BlockKind kind, RectTransform source, RectTransform destination)
             => battle.ReportTutorialDrop(source, destination, "BlockDropped:" + DefenseProgression.Canonical(kind));
@@ -173,7 +187,10 @@ namespace CodingGame.Defense
             if (resume && !battle.TutorialAllows("Editor.Close")) return;
             bool wasOpen = IsOpen;
             if (IsOpen && HasCurrentSession && (editingSession.Robots.Exists(r => r.Id == editingId) || editingId == DefenseSimulation.BoardId))
+            {
+                panel.FlushPython(); // typed less than the pause before closing
                 drafts[editingId] = panel.History;
+            }
             if (IsOpen) { if (editingId != DefenseSimulation.BoardId) battle.EndCodeView(); UISound.Play("close"); }
             panel.BoardMode = false;
             if (editorRoot) editorRoot.SetActive(false);
@@ -252,13 +269,13 @@ namespace CodingGame.Defense
             var size = sprite.rect.size;
             popup.sizeDelta = size * Mathf.Min(1, HintMax.x / size.x, HintMax.y / size.y) + new Vector2(2 * HintPad, 2 * HintPad + HintTitle);
         }
-        // Empties a robot's code (blocks go back to the inventory); through the editor when it is open on that robot.
+        // Empties a robot's code; through the editor when it is open on that robot.
         public void ClearRobotProgram(int id)
         {
             drafts.Remove(id);
             if (IsOpen && editingId == id) { panel.ClearProgram(); panel.RefreshPalette(); return; }
             var sim = battle.Simulation; var robot = sim?.FindRobot(id);
-            if (robot != null && sim.CanEdit) { sim.ApplyProgram(id, robot.Program?.Name ?? "robot_" + id, Array.Empty<CodeBlock>()); sim.SetDraft(id, Array.Empty<BlockKind>()); }
+            if (robot != null && sim.CanEdit) sim.ApplyProgram(id, robot.Program?.Name ?? "robot_" + id, Array.Empty<CodeBlock>());
         }
 
         public void PrepareDistanceExample()
@@ -289,15 +306,14 @@ namespace CodingGame.Defense
                 new[] { Loop(Find(), id == "2-8" ? Loop(Leave(dead), Leave(away), Shoot()) : Loop(Shoot())) };
             LoadLesson(code, id + " 준비 코드");
         }
-        // The lesson's prepared code takes its blocks from the stock and grants none (GameData/Award.md gives the blocks, on
-        // wave clears only): with a block missing it stays unapplied in the editor and the lesson warns (no crash).
+        // The lesson's prepared code unlocks no block (GameData/Award.md gives the blocks, on wave clears only): with a block
+        // still locked it stays unapplied in the editor and the lesson warns (no crash).
         void LoadLesson(CodeBlock[] code, string what)
         {
             panel.LoadProgram(panel.FunctionName, code);
             if (panel.IsApplied) return;
-            var missing = DefenseProgression.Used(code).GroupBy(DefenseProgression.Canonical).Where(g => g.Count() > editingSession.Available(g.Key, editingId))
-                .Select(g => DefenseProgression.Label(g.Key) + " " + (g.Count() - Math.Max(0, editingSession.Available(g.Key, editingId))) + "개");
-            Debug.LogWarning(what + ": 블록이 모자라 적용되지 않음 (" + string.Join(", ", missing) + ")");
+            var locked = DefenseProgression.Used(code).Distinct().Where(k => editingSession.Available(k) < 1).Select(DefenseProgression.Label);
+            Debug.LogWarning(what + ": 해금되지 않은 블록이 있어 적용되지 않음 (" + string.Join(", ", locked) + ")");
         }
         static CodeBlock Loop(params CodeBlock[] body)
         {
@@ -585,6 +601,8 @@ namespace CodingGame.Defense
             var keyboard = Keyboard.current;
             if (keyboard == null) return;
             // In a lesson Esc opens the menu over the editor; closing the editor there would leave the step behind.
+            // Esc on the Python tab's completion list closes only the list.
+            if (keyboard.escapeKey.wasPressedThisFrame && (panel.CompletionOpen || panel.CompletionWasOpen)) { panel.CloseCompletion(); return; }
             if (keyboard.escapeKey.wasPressedThisFrame) { if (battle.InTutorial) battle.ToggleMenu(); else Close(); return; }
             if (battle.TutorialBlocksInput) return;
             // 텍스트 입력 중에는 입력창 단축키를 유지하고, 그 밖에서만 블록 실행 취소를 처리합니다.
@@ -599,7 +617,7 @@ namespace CodingGame.Defense
         {
             if (!panel) return;
             panel.BlockDropped -= OnBlockDropped;
-            panel.ApplyToTarget = null; panel.IsAvailable = null; panel.Remaining = null; panel.PaletteClicking = null;
+            panel.ApplyToTarget = null; panel.IsAvailable = null;panel.PaletteClicking = null;
         }
     }
 }

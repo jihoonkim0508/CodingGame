@@ -9,6 +9,13 @@ namespace CodingGame.BlockCoding
 {
     public enum BlockSlotKind { Statement, Value, Condition }
 
+    /// <summary>A compile error and the line (statement block) it belongs to, for the red border and the Python tab's underline.</summary>
+    public sealed class CodeError : FormatException
+    {
+        public readonly CodeBlock Statement;
+        public CodeError(string message, CodeBlock statement) : base(message) { Statement = statement; }
+    }
+
     /// <summary>Entry-style nested blocks. This does not execute Python or modify Unity objects.</summary>
     public static class PythonTreeCompiler
     {
@@ -178,13 +185,15 @@ namespace CodingGame.BlockCoding
         static IEnumerable<CodeBlock> All(IEnumerable<CodeBlock> blocks) =>
             blocks.Where(b => b != null).SelectMany(b => new[] { b }.Concat(All(b.Arguments)).Concat(All(b.Body)));
         // A loop that acts on an enemy variable without re-assigning it keeps aiming at the first target after it is gone.
-        public static bool HasStaleEnemyLoop(IReadOnlyList<CodeBlock> blocks)
+        public static bool HasStaleEnemyLoop(IReadOnlyList<CodeBlock> blocks) => StaleEnemyLoop(blocks) != null;
+        // The first such loop (the line the warning goes on); null when there is none.
+        public static CodeBlock StaleEnemyLoop(IReadOnlyList<CodeBlock> blocks)
         {
             var enemies = new HashSet<string>(All(blocks).Where(b => b.Kind == BlockKind.DeclareVariable && b.Arguments.FirstOrDefault()?.Kind == BlockKind.NearestEnemy).Select(b => b.Value));
             return StaleLoop(blocks, enemies, new HashSet<string>());
         }
         // repicked: names an enclosing loop assigns again; a loop that can break out to it is not stale (2-6's answer).
-        static bool StaleLoop(IEnumerable<CodeBlock> blocks, HashSet<string> enemies, HashSet<string> repicked)
+        static CodeBlock StaleLoop(IEnumerable<CodeBlock> blocks, HashSet<string> enemies, HashSet<string> repicked)
         {
             foreach (var loop in blocks.Where(b => b != null))
             {
@@ -198,20 +207,28 @@ namespace CodingGame.BlockCoding
                         // `if enemy.is_dead(): break` (or re-assign) watches the target: that loop is not stale.
                         .Except(All(loop.Body).Where(b => b.Kind == BlockKind.IsDead && b.Arguments.FirstOrDefault()?.Kind == BlockKind.Variable).Select(b => b.Arguments[0].Value));
                     if (Breaks(loop.Body)) stale = stale.Except(repicked);
-                    if (stale.Any()) return true;
+                    if (stale.Any()) return loop;
                     inner = new HashSet<string>(repicked.Concat(declared));
                 }
-                if (StaleLoop(loop.Body, enemies, inner)) return true;
+                if (StaleLoop(loop.Body, enemies, inner) is CodeBlock found) return found;
             }
-            return false;
+            return null;
         }
         // A break of this loop: in its body or an if inside it, not in a nested loop.
         static bool Breaks(IEnumerable<CodeBlock> body) => body.Where(b => b != null).Any(b => b.Kind == BlockKind.Break ||
             !IsLoop(b.Kind) && Breaks(b.Body));
 
-        static void ValidateTree(IReadOnlyList<CodeBlock> blocks, HashSet<CodeBlock> path)
+        // statement: the line the blocks belong to (null for a list of lines).
+        static void ValidateTree(IReadOnlyList<CodeBlock> blocks, HashSet<CodeBlock> path, CodeBlock statement = null)
         {
             foreach (var block in blocks)
+            {
+                try { ValidateBlock(block, path, statement); }
+                catch (FormatException error) when (!(error is CodeError)) { throw new CodeError(error.Message, statement ?? block); }
+            }
+        }
+        static void ValidateBlock(CodeBlock block, HashSet<CodeBlock> path, CodeBlock statement)
+        {
             {
                 if (block == null) throw new FormatException("비어 있는 블록 슬롯이 있습니다.");
                 if (!path.Add(block)) throw new FormatException("블록을 자기 자신의 내부에 연결할 수 없습니다.");
@@ -226,7 +243,7 @@ namespace CodingGame.BlockCoding
                         throw new FormatException($"{Label(block.Kind)}: {i + 1}번째 빈칸에 {(ArgumentSlot(block.Kind, i) == BlockSlotKind.Condition ? "논리" : "값")} 탭의 블록을 넣어 주세요.");
                 if (block.Body == null || (!HasBody(block.Kind) && block.Body.Count != 0))
                     throw new FormatException($"{Label(block.Kind)}: 안쪽에 명령을 넣을 수 없는 블록입니다.");
-                ValidateTree(block.Arguments.Where(b => b != null).ToList(), path);
+                ValidateTree(block.Arguments.Where(b => b != null).ToList(), path, statement ?? block);
                 ValidateTree(block.Body, path);
                 path.Remove(block);
             }
@@ -238,6 +255,17 @@ namespace CodingGame.BlockCoding
             if (blocks.Count == 0) Append(source, depth, "pass");
             for (int index = 0; index < blocks.Count; index++)
             {
+                var current = blocks[index];
+                try { index = EmitStatement(blocks, index, source, depth, loopDepth, variables, ref current); }
+                catch (FormatException error) when (!(error is CodeError)) { throw new CodeError(error.Message, current); }
+            }
+        }
+
+        // Emits blocks[index] (an if with its elif/else) and returns the last index used; current: the branch being emitted.
+        static int EmitStatement(IReadOnlyList<CodeBlock> blocks, int index, StringBuilder source, int depth, int loopDepth,
+            Dictionary<string, ValueType> variables, ref CodeBlock current)
+        {
+            {
                 var block = blocks[index];
                 if (OutputSlot(block.Kind) != BlockSlotKind.Statement)
                     throw new FormatException("명령 영역에는 명령 블록만 연결할 수 있습니다.");
@@ -248,7 +276,7 @@ namespace CodingGame.BlockCoding
                         bool hasElse = false;
                         do
                         {
-                            var branch = blocks[index];
+                            var branch = current = blocks[index];
                             hasElse = branch.Kind == BlockKind.Else;
                             var state = new Dictionary<string, ValueType>(variables);
                             Append(source, depth, hasElse ? "else:" :
@@ -314,6 +342,7 @@ namespace CodingGame.BlockCoding
                         break;
                 }
             }
+            return index;
         }
 
         static void MergeOutcomes(Dictionary<string, ValueType> target, IEnumerable<Dictionary<string, ValueType>> outcomes)
@@ -568,6 +597,93 @@ namespace CodingGame.BlockCoding
                 default: throw new FormatException("이 블록은 식으로 사용할 수 없습니다.");
             }
         }
+
+        // The Python tab's text: the tree printed without checks, so a draft with errors still reads. An empty slot is ___,
+        // an empty if/while body pass (PythonTreeParser reads both back). lines: each line block's line number, from 1.
+        public const string Hole = "___";
+        public static string Print(IReadOnlyList<CodeBlock> blocks, IDictionary<CodeBlock, int> lines = null)
+        {
+            var source = new StringBuilder();
+            PrintSuite(blocks ?? Array.Empty<CodeBlock>(), source, 0, lines);
+            return source.ToString();
+        }
+        static void PrintSuite(IReadOnlyList<CodeBlock> blocks, StringBuilder source, int depth, IDictionary<CodeBlock, int> lines)
+        {
+            if (blocks.Count == 0 && depth > 0) Append(source, depth, "pass");
+            foreach (var block in blocks.Where(b => b != null))
+            {
+                if (lines != null) lines[block] = source.ToString().Count(c => c == '\n') + 1;
+                string Arg0() => PrintArgument(block, 0);
+                switch (block.Kind)
+                {
+                    case BlockKind.If: case BlockKind.Elif: Append(source, depth, block.Kind.ToString().ToLowerInvariant() + " " + Arg0() + ":"); break;
+                    case BlockKind.Else: Append(source, depth, "else:"); break;
+                    case BlockKind.While: Append(source, depth, "while True:"); break;
+                    case BlockKind.For: Append(source, depth, "for i in range(" + Arg0() + "):"); break;
+                    case BlockKind.Break: case BlockKind.Continue: Append(source, depth, block.Kind.ToString().ToLowerInvariant()); break;
+                    case BlockKind.DeclareVariable: Append(source, depth, PrintName(block.Value) + " = " + Arg0()); break;
+                    default: Append(source, depth, PrintExpression(block)); break;
+                }
+                if (HasBody(block.Kind)) PrintSuite(block.Body, source, depth + 1, lines);
+            }
+        }
+        static string PrintArgument(CodeBlock block, int index) => block.Arguments != null && index < block.Arguments.Count ? PrintExpression(block.Arguments[index]) : Hole;
+        static string PrintName(string name)
+        {
+            try { NormalizeIdentifier(name); return name; }
+            catch (FormatException) { return Hole; }
+        }
+        public static string PrintExpression(CodeBlock block)
+        {
+            if (block == null) return Hole;
+            string Receiver() => PrintName(block.Arguments.FirstOrDefault()?.Value);
+            // A calculation inside another is bracketed, as Compile writes it, so the text reads back as the same tree.
+            string Operand(int index) => index < block.Arguments.Count && block.Arguments[index] is CodeBlock inner &&
+                (inner.Kind == BlockKind.Arithmetic || inner.Kind == BlockKind.Comparison) ? "(" + PrintArgument(block, index) + ")" : PrintArgument(block, index);
+            if (HasEnemyArgument(block.Kind))
+                return (block.Kind == BlockKind.Shot || block.Kind == BlockKind.Attack ? "shoot" : block.Kind.ToString().ToLowerInvariant()) + "(" + PrintArgument(block, 0) + ")";
+            switch (block.Kind)
+            {
+                case BlockKind.Number: return Number.IsMatch(block.Value ?? "") ? block.Value : Hole;
+                case BlockKind.Variable: return PrintName(block.Value);
+                case BlockKind.Distance: return Receiver() + ".distance(" + PrintArgument(block, 1) + ")";
+                case BlockKind.Hp: return Receiver() + ".hp";
+                case BlockKind.IsDead: return Receiver() + ".is_dead()";
+                case BlockKind.EnemyTypeOf: return Receiver() + ".type";
+                case BlockKind.EnemyTypeName: return "Enemy." + block.Value;
+                case BlockKind.Wait: return "wait(" + PrintArgument(block, 0) + ")";
+                case BlockKind.Comparison: case BlockKind.Arithmetic: return Operand(0) + " " + block.Value + " " + Operand(1);
+                default: return Call(block.Kind) ?? block.Kind.ToString();
+            }
+        }
+
+        // The 자연어 tab's words for a block (Entry's way of saying it): {name} is a slot or field, in the block's own order.
+        // Null: the block reads the same in both tabs.
+        public static string Natural(BlockKind kind) => kind switch
+        {
+            BlockKind.If => "만약 {조건} 이라면", BlockKind.Elif => "아니고 만약 {조건} 이라면", BlockKind.Else => "아니면",
+            BlockKind.While => "계속 반복하기", BlockKind.For => "{n} 번 반복하기",
+            BlockKind.Break => "반복 멈추기", BlockKind.Continue => "다음 반복으로 넘어가기",
+            BlockKind.DeclareVariable => "{이름} 을(를) {값} (으)로 정하기",
+            BlockKind.Wait => "{초} 초 기다리기", BlockKind.Shot or BlockKind.Attack => "{적} 에게 쏘기",
+            BlockKind.Block => "{적} 막기", BlockKind.Boom => "{적} 에 폭탄 던지기", BlockKind.Slow => "{적} 느리게 하기",
+            BlockKind.Slash => "베기", BlockKind.Buff => "강화하기",
+            BlockKind.NearestEnemy => "가장 가까운 적", BlockKind.PositionX => "내 x 위치", BlockKind.PositionY => "내 y 위치",
+            BlockKind.MyPos => "내 위치", BlockKind.MyAttackRange => "내 공격 범위",
+            BlockKind.True => "참", BlockKind.False => "거짓", BlockKind.EnemyTypeName => "{종류}",
+            BlockKind.Distance => "{적} 와(과) {위치} 사이 거리", BlockKind.Hp => "{적} 의 체력",
+            BlockKind.IsDead => "{적} 이(가) 쓰러졌는가?", BlockKind.EnemyTypeOf => "{적} 의 종류",
+            // The members stages 2-4 add (CommandBlockView.MemberKinds): the 자연어 tab's member picker shows these words.
+            BlockKind.Shield => "{적} 의 보호막", BlockKind.Front => "{적} 의 맨 앞 마디", BlockKind.Top => "{적} 의 맨 위 층", BlockKind.Size => "{적} 의 마디 수",
+            BlockKind.Reflecting => "{적} 이(가) 반사 중인가?", BlockKind.Left => "{적} 의 왼쪽 가지", BlockKind.Right => "{적} 의 오른쪽 가지",
+            BlockKind.WeakPoint => "{적} 의 약점", BlockKind.Role => "{로봇} 의 종류", BlockKind.Pop => "{리스트} 의 맨 앞 꺼내기",
+            _ => null,
+        };
+        // The words with each slot as 〔slot〕, for the completion list and hints.
+        public static string NaturalText(BlockKind kind) => Natural(kind) is string text ? Regex.Replace(text, @"\{([^}]*)\}", "〔$1〕") : null;
+        public static readonly string[] NaturalComparisons = { "=", "≠", "<", ">", "≤", "≥" };
+        // EnemyTypes in words, one for one (the 자연어 picker and the completion list index both arrays alike).
+        public static readonly string[] NaturalEnemyTypes = { "일반 적", "빠른 적", "탱커", "힐러", "보호막병", "큐 지네", "스택 지네", "반사병", "군단 트리" };
 
         public static readonly string[] Comparisons = { "==", "!=", "<", ">", "<=", ">=" };
         public static readonly string[] Operators = { "+", "-", "*", "/" };

@@ -169,6 +169,15 @@ namespace CodingGame.BlockCoding
             Refresh();
             LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
         }
+        // 자연어 tab: an empty slot's hint in Korean (적, 초, 조건), set by its block (CommandBlockView.BuildNatural).
+        [SerializeField, HideInInspector] string naturalHint, pythonHint;
+        internal void SetNaturalHint(string text) { naturalHint = text; pythonHint = hint.text.StartsWith("+ ") ? hint.text.Substring(2) : hint.text; }
+        internal void ShowNatural(bool natural)
+        {
+            if (string.IsNullOrEmpty(naturalHint)) return;
+            string prefix = hint.text.StartsWith("+ ") ? "+ " : "";
+            hint.text = prefix + (natural ? naturalHint : pythonHint);
+        }
         public CodeBlock ReadArgument() => blocks.Count == 1 ? blocks[0].Read() : null;
         public IEnumerable<CommandBlockView> AllBlocks() => (freePlacement ? Roots().SelectMany(Group) : blocks).SelectMany(b => b.Descendants());
         public List<CommandBlockView> Group(CommandBlockView first)

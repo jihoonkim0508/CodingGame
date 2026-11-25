@@ -776,7 +776,7 @@ namespace CodingGame.Defense.Editor
             }
 
             // Stage 2's opening with the tutorial on: the system banner, then 디버's first line.
-            DevTest.PlayDefense(2, 1, true, new DefenseTestOptions());
+            DevTest.PlayDefense(2, 1, true, new DefenseTestOptions { tutorial = true });
             yield return Until(() => DevTest.Ready);
             yield return Seconds(2); yield return Shot("2-1_intro_banner");
             yield return Seconds(4);

@@ -114,7 +114,6 @@ namespace CodingGame.Defense.Editor
                 var slot = slots.GetArrayElementAtIndex(index);
                 slot.FindPropertyRelative("kind").intValue = (int)kind;
                 slot.FindPropertyRelative("label").objectReferenceValue = copy.Find("Label").GetComponent<TMP_Text>();
-                slot.FindPropertyRelative("count").objectReferenceValue = copy.Find("Count").GetComponent<TMP_Text>();
             }
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene()); EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
@@ -389,7 +388,7 @@ namespace CodingGame.Defense.Editor
             var inventory = new SerializedObject(Object.FindFirstObjectByType<DefenseInventoryUI>(FindObjectsInactive.Include)).FindProperty("blockSlots");
             var slotKinds = Enumerable.Range(0, inventory.arraySize).Select(i => inventory.GetArrayElementAtIndex(i)).ToArray();
             Check(slotKinds.Length == DefenseProgression.ItemKinds.Length && DefenseProgression.ItemKinds.All(k => slotKinds.Any(e => e.FindPropertyRelative("kind").intValue == (int)k)) &&
-                slotKinds.All(e => e.FindPropertyRelative("label").objectReferenceValue && e.FindPropertyRelative("count").objectReferenceValue),
+                slotKinds.All(e => e.FindPropertyRelative("label").objectReferenceValue),
                 $"142 an inventory slot for every block kind ({slotKinds.Length} of {DefenseProgression.ItemKinds.Length})");
 
             // 122: every hover card knows its tooltip, where to show it and what it describes (Awake throws otherwise).

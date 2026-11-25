@@ -87,7 +87,7 @@ namespace CodingGame.Defense.Editor
 
         static void OneShooter(DefenseSimulation sim, string code)
         {
-            var shooter = sim.Robots.FirstOrDefault(r => r.Spec.role == RobotRole.Shooter);
+            var shooter = sim.Robots.FirstOrDefault(r => r.Spec.role == RobotRole.Ranged);
             if (shooter != null) Relaxed(() => sim.ApplyProgram(shooter.Id, "lesson", TutorialAnswers.Parse(code)));
         }
     }

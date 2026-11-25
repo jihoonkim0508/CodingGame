@@ -23,7 +23,7 @@ namespace CodingGame.Defense
         [SerializeField] GameObject window;
         [SerializeField] Button[] infoButtons = Array.Empty<Button>();
         [SerializeField] Button closeButton;
-        [SerializeField] TMP_Text title, description, example, stock;
+        [SerializeField] TMP_Text title, description, example;
         [SerializeField] ScrollRect list;
         [SerializeField] Entry[] entries = Array.Empty<Entry>();
         Entry selected;
@@ -31,7 +31,7 @@ namespace CodingGame.Defense
 
         void Start()
         {
-            if (!battle || !window || infoButtons.Length == 0 || infoButtons.Any(b => !b) || !closeButton || !title || !description || !example || !stock || !list ||
+            if (!battle || !window || infoButtons.Length == 0 || infoButtons.Any(b => !b) || !closeButton || !title || !description || !example || !list ||
                 entries.Length == 0 || entries.Any(e => !e.button || !e.label))
                 throw new InvalidOperationException("DefenseBlockHelp Inspector 참조를 연결하세요.");
             foreach (var button in infoButtons) button.onClick.AddListener(Open);
@@ -40,19 +40,18 @@ namespace CodingGame.Defense
             example.richText = false;
             window.SetActive(false);
         }
-        int Owned(Entry entry) => battle.Simulation.Owned(entry.kind);
+        bool Owned(Entry entry) => battle.Simulation.Owned(entry.kind) > 0;
         public void Open()
         {
             if (battle.Simulation == null) return;
             foreach (var entry in entries)
             {
-                int count = Owned(entry);
-                entry.button.gameObject.SetActive(count > 0);
-                entry.label.text = entry.title + "   × " + count;
+                entry.button.gameObject.SetActive(Owned(entry));
+                entry.label.text = entry.title;
             }
             window.SetActive(true);
             battle.HelpOpen = true;
-            Select(selected != null && Owned(selected) > 0 ? selected : entries.FirstOrDefault(e => Owned(e) > 0));
+            Select(selected != null && Owned(selected) ? selected : entries.FirstOrDefault(Owned));
             Canvas.ForceUpdateCanvases();
             list.verticalNormalizedPosition = 1;
         }
@@ -62,7 +61,6 @@ namespace CodingGame.Defense
             title.text = entry?.title ?? "블록 도감";
             description.text = entry?.description ?? "보유한 블록이 없습니다. 웨이브 보상을 수령하면 사용법을 확인할 수 있습니다.";
             example.text = entry?.example ?? "";
-            stock.text = entry == null ? "" : "보유 " + Owned(entry) + "개 · 로봇에 배치한 블록 포함";
             foreach (var item in entries)
             {
                 var slot=PythonTreeCompiler.OutputSlot(item.kind);

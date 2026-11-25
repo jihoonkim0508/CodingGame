@@ -31,7 +31,7 @@ internal class CommandScript : IRunCommand
             panel.Redo();
             Require(panel.Program.Blocks.Single().Arguments[0].Blocks.Count == 1, "Redo restores number");
             panel.ClearProgram();
-            panel.Remaining = k => k == BlockKind.Number ? 0 : remaining(k);
+            panel.Remaining = k => k == BlockKind.Number ? 0 : int.MaxValue; // the panel's own stock hook (Defense sets none: blocks are unlimited)
             panel.AddFromPalette(source);
             Require(panel.Program.Blocks.Single().Arguments[0].Blocks.Count == 0, "No number without stock");
             panel.ClearProgram();

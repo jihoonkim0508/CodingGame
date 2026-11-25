@@ -194,18 +194,16 @@ static class CampaignCheck
         Assert(sim.StartError()==null,"empty robot does not block start");
         sim.ApplyProgram(bot.Id,"empty",Array.Empty<CodeBlock>());Assert(sim.StartError()==null,"empty applied code does not block start");
         sim.ApplyProgram(bot.Id,"fire",new[]{new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy))});
-        Assert(sim.Available(BlockKind.Shot)==2&&sim.Available(BlockKind.Shot,bot.Id)==3,"inventory reserves per robot");
+        Assert(sim.Available(BlockKind.Shot)==int.MaxValue,"unlocked blocks are unlimited");
         var saved=bot.Program;
-        Reject(()=>sim.ApplyProgram(bot.Id,"too_many",Enumerable.Range(0,4).Select(i=>new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy))).ToArray()),"overcommit rejected");
-        Assert(bot.Program==saved&&sim.Available(BlockKind.Shot)==2,"failed apply atomic");
-        var second=Place(sim,RobotRole.Melee,-5);sim.ApplyProgram(second.Id,"copy",new[]{new CodeBlock(BlockKind.Attack,"0",new CodeBlock(BlockKind.NearestEnemy))});
-        Assert(sim.Available(BlockKind.Shot)==1,"legacy attack shares inventory");
-        sim.RemoveRobot(second.Id);Assert(sim.Available(BlockKind.Shot)==2,"remove releases reservation");
-        // A syntax error empties the applied code, but the blocks left in that robot's editor are still its own.
-        sim.ApplyProgram(bot.Id,"broken",Array.Empty<CodeBlock>());sim.SetDraft(bot.Id,new[]{BlockKind.Shot,BlockKind.NearestEnemy});
-        Assert(sim.Available(BlockKind.Shot)==2&&sim.Available(BlockKind.Shot,bot.Id)==3,"unfinished editor blocks stay reserved");
-        Reject(()=>sim.ApplyProgram(Place(sim,RobotRole.Melee,-5).Id,"take",Enumerable.Range(0,3).Select(i=>new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy))).ToArray()),"another robot cannot take a draft's blocks");
-        sim.SetDraft(bot.Id,Array.Empty<BlockKind>());sim.RemoveRobot(sim.Robots.Last().Id);sim.ApplyProgram(bot.Id,"fire",saved.CopyBlocks());
+        var many=Enumerable.Range(0,10).Select(i=>new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy))).ToArray();
+        sim.ApplyProgram(bot.Id,"many",many);
+        var second=Place(sim,RobotRole.Melee,-5);sim.ApplyProgram(second.Id,"many",many);
+        Assert(bot.Program.BlockCount(BlockKind.Shot)==10&&second.Program.BlockCount(BlockKind.Shot)==10&&sim.Available(BlockKind.Shot)==int.MaxValue,"placing blocks never uses them up");
+        sim.RemoveRobot(second.Id);var applied=bot.Program;
+        Reject(()=>sim.ApplyProgram(bot.Id,"locked",new[]{new CodeBlock(BlockKind.While)}),"a locked block is rejected");
+        Assert(bot.Program==applied,"failed apply atomic");
+        sim.ApplyProgram(bot.Id,"fire",saved.CopyBlocks());
         // This fixture tests rewards and reservation, without randomly unlocking loop execution rules.
         sim.Setup.Progression.drops = sim.Setup.Progression.drops.Where(d => d.kind != BlockKind.For && d.kind != BlockKind.While).ToArray();
         for(int wave=0;wave<5;wave++)
@@ -239,10 +237,9 @@ static class CampaignCheck
         items.GrantRobot(RobotRole.Ranged,2);var armed=Place(items,RobotRole.Ranged);
         Assert(armed!=null&&items.RobotAvailable(RobotRole.Ranged)==1,"granted robot deploys");
         items.ApplyProgram(armed.Id,"wait",new[]{new CodeBlock(BlockKind.Wait,"0",new CodeBlock(BlockKind.Number,"1"))});
-        Assert(items.Available(BlockKind.Wait)==5&&items.Available(BlockKind.Number)==11,"parameters consume inventory too");
-        items.Inventory[BlockKind.Number]=0;var previous=armed.Program;
-        Reject(()=>items.ApplyProgram(armed.Id,"wait",new[]{new CodeBlock(BlockKind.Wait,"0",new CodeBlock(BlockKind.Number,"2"))}),"missing parameter item blocks apply");
-        Assert(armed.Program==previous,"parameter shortage preserves old code");
+        items.Inventory.Remove(BlockKind.Number);var previous=armed.Program;
+        Reject(()=>items.ApplyProgram(armed.Id,"wait",new[]{new CodeBlock(BlockKind.Wait,"0",new CodeBlock(BlockKind.Number,"2"))}),"a locked parameter block blocks apply");
+        Assert(armed.Program==previous,"a locked parameter preserves old code");
         items.Inventory[BlockKind.Number]=12;
         items.GrantBlock(BlockKind.Attack,2);Assert(items.Inventory[BlockKind.Shot]==5,"legacy grant canonicalizes attack");
         var method=new CodeBlock(BlockKind.Distance,"0",new CodeBlock(BlockKind.Variable,"enemy"),new CodeBlock(BlockKind.MyPos));
@@ -250,7 +247,7 @@ static class CampaignCheck
         Assert(DefenseProgression.Used(new[]{new CodeBlock(BlockKind.IsDead,"0",new CodeBlock(BlockKind.Variable,"enemy"))}).SequenceEqual(new[]{BlockKind.IsDead}),"is_dead() receiver not charged as a variable (the editor's one block)");
         itemTank=Place(items,RobotRole.Melee,-4);items.ApplyProgram(itemTank.Id,"tank",new[]{new CodeBlock(BlockKind.Block,"0",new CodeBlock(BlockKind.NearestEnemy))});items.Start();
         stock=items.RobotAvailable(RobotRole.Melee);items.DamageRobot(itemTank.Id,10000);
-        Assert(items.RobotAvailable(RobotRole.Melee)==stock&&items.Available(BlockKind.Block)==1,"destroyed robot consumed, blocks returned");
+        Assert(items.RobotAvailable(RobotRole.Melee)==stock&&items.Available(BlockKind.Block)==int.MaxValue,"destroyed robot consumed");
         Assert(DefenseProgression.ItemKinds.All(DefenseProgression.Consumes),"all block types are inventory items");
         items.GrantBlock(BlockKind.Shot,10000); Assert(items.Inventory[BlockKind.Shot]==10005,"block grants have no gameplay cap");
         // No wave time limit: a wave with enemies alive (or still to come) runs until each one is killed or reaches the core.

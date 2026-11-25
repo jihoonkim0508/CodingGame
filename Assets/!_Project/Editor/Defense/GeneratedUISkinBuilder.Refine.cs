@@ -112,7 +112,6 @@ namespace CodingGame.Defense.Editor {
    InsetScrollbar(list.GetComponent<ScrollRect>(),68,18);
    var detail=card.Find("Detail");
    var name=detail.Find("Name").GetComponent<TMP_Text>();Stretch(name.rectTransform,new Vector2(0,1),Vector2.one,new Vector2(28,-44),new Vector2(-28,-2));name.margin=Vector4.zero;name.fontSize=24;
-   var stock=detail.Find("Stock").GetComponent<TMP_Text>();Stretch(stock.rectTransform,new Vector2(0,1),Vector2.one,new Vector2(28,-98),new Vector2(-28,-68));stock.margin=Vector4.zero;
    var description=detail.Find("Description").GetComponent<TMP_Text>();description.rectTransform.offsetMax=new Vector2(-28,-124);description.margin=Vector4.zero;
   }
   static void InsetScrollbar(ScrollRect scroll,float top=12,float bottom=12){

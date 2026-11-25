@@ -47,9 +47,7 @@ public static class BlockEditorAuditCheck
             Run("B5 start snap with loose blocks elsewhere", StartSnapWithLooseBlocks);
             Run("B6 landing preview is where the drop lands", PreviewIsTheLanding);
             Run("B7 drag copy keeps the operator", DragCopyKeepsOperator);
-            Run("B8 rejected draft keeps the stock at zero or more", RejectedDraftWithinStock);
             Run("B9 a program taller than the code area scrolls into reach", TallProgramScrolls);
-            Run("B10 palette blocks at ×0 are dimmed", ZeroStockDims);
             Run("B11 the code area pans, zooms and points to blocks out of view", PanZoomAndOffscreenNote);
         }
         finally { battle.Restart(); }
@@ -113,26 +111,20 @@ public static class BlockEditorAuditCheck
     }
 
     // --- B3 ---
-    // A kind whose whole stock other robots use is taken off this robot's palette, as if it were not unlocked, while a kind
-    // this robot used up itself stays listed as ×0: CommandCodingPanel.ShowCategory hides on IsAvailable, which
-    // DefenseCodeEditor defines as "some left for this robot".
+    // An unlocked kind stays on every robot's palette however many robots use it (blocks are unlimited); a locked one is
+    // off it: CommandCodingPanel.ShowCategory hides on IsAvailable.
     static void PaletteListsOwnedKinds()
     {
         sim.Inventory[BlockKind.Slash] = 1; sim.Inventory.Remove(BlockKind.Boom);
-        Open(a); Load(new CodeBlock(BlockKind.Slash));
-        Require(panel.IsApplied && sim.Available(BlockKind.Slash) == 0, "setup: robot a uses the only slash(): " + Status());
-        Require(Listed(BlockKind.Slash) == "×0", "guard: slash(), used up by this robot, is listed as ×0: " + (Listed(BlockKind.Slash) ?? "not listed"));
-        Require(Listed(BlockKind.Boom) == null, "guard: boom(), not owned, stays off the palette");
+        Open(a); Load(new CodeBlock(BlockKind.Slash), new CodeBlock(BlockKind.Slash));
+        Require(panel.IsApplied && Listed(BlockKind.Slash), "robot a uses two slash() with one granted, and slash() stays listed: " + Status());
+        Require(!Listed(BlockKind.Boom), "guard: boom(), not owned, stays off the palette");
         Open(b);
-        Require(Listed(BlockKind.Boom) == null, "guard: boom(), not owned, stays off the palette");
-        Require(Listed(BlockKind.Slash) == "×0", "slash(), used up by another robot, is " + (Listed(BlockKind.Slash) ?? "not listed") + " (expected listed as ×0)");
+        Require(!Listed(BlockKind.Boom), "guard: boom(), not owned, stays off the palette");
+        Require(Listed(BlockKind.Slash), "slash(), used by another robot, is not listed");
     }
-    // The count beside a palette block with its tab shown; null when the block is not listed.
-    static string Listed(BlockKind kind)
-    {
-        var view = Palette(kind);
-        return view.gameObject.activeSelf ? Get<TMP_Text>(view, "stockLabel").text : null;
-    }
+    // Whether a palette block is listed with its tab shown.
+    static bool Listed(BlockKind kind) => Palette(kind).gameObject.activeSelf;
 
     // --- B4 ---
     // A click on a palette block adds it under the block placed last, wherever that lies: CommandDropZone.Insert takes
@@ -263,30 +255,6 @@ public static class BlockEditorAuditCheck
     static string Sign(CommandBlockView block) => block.OptionRect.GetComponent<TMP_Dropdown>().captionText.text;
     static CodeBlock Number(string value) => new CodeBlock(BlockKind.Number, value);
 
-    // --- B8 ---
-    // A draft the stock cannot cover (an undo after another robot took the blocks) is rejected, yet all its blocks are
-    // reserved: DefenseCodeEditor.Apply hands every block in the editor to SetDraft. The stock goes below zero, and the other
-    // robot's applied code no longer fits it: opening that robot's editor empties its code.
-    static void RejectedDraftWithinStock()
-    {
-        sim.Inventory[BlockKind.Slash] = 2;
-        Open(a);
-        var unfinished = new CodeBlock(BlockKind.If); unfinished.Body.Add(new CodeBlock(BlockKind.Slash)); // no condition: a syntax error
-        Load(unfinished);
-        Require(!panel.IsApplied && sim.Available(BlockKind.Slash) == 1, "guard (SharedInventoryCheck): a draft with a syntax error keeps its slash() reserved: " +
-            sim.Available(BlockKind.Slash) + " of 2 free");
-        Load(new CodeBlock(BlockKind.Slash), new CodeBlock(BlockKind.Slash)); panel.ClearProgram();
-        Require(sim.Available(BlockKind.Slash) == 2, "setup: robot a wrote two slash() and cleared them: " + sim.Available(BlockKind.Slash) + " free");
-        Open(b); Load(new CodeBlock(BlockKind.Slash));
-        Require(panel.IsApplied && sim.Available(BlockKind.Slash) == 1, "setup: robot b uses one slash(): " + Status());
-        Open(a); panel.Undo();
-        Require(program.Blocks.Count == 2 && !panel.IsApplied, "setup: robot a's undo brings back two slash() and is rejected, one being left: " + Status());
-        int free = sim.Available(BlockKind.Slash);
-        Open(b);
-        Require(free >= 0 && Slashes(b) == 1, "after robot a's rejected undo " + free + " slash() are free of 2 owned (expected 0 or more); robot b, reopened, holds " +
-            Slashes(b) + " slash() (expected 1)");
-    }
-
     // --- B9 ---
     // 2-8's finished code (ten lines) is taller than the code area. A drag on its empty space pans it up (the wheel zooms since
     // 2026-11-25, B11): its last line,
@@ -386,48 +354,6 @@ public static class BlockEditorAuditCheck
         Require(Mathf.Approximately(space.Zoom, CommandWorkspace.MinZoom), "reopening changed the zoom to " + space.Zoom);
     }
     static void LateUpdate(CommandWorkspace space) => typeof(CommandWorkspace).GetMethod("LateUpdate", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(space, null);
-
-    // --- B10 ---
-    // A palette block with none left reads dimmed, whatever its kind and however it got to ×0: another robot holding all of
-    // a kind (commands, values, the variable chip, comparisons), or this robot's drag of the last one. The drag's end undid
-    // the dimming: EndDrag un-faded the palette block it had faded, after the drop had already set it to ×0.
-    static void ZeroStockDims()
-    {
-        CodeBlock Enemy() => new CodeBlock(BlockKind.Variable, "enemy");
-        var loop = new CodeBlock(BlockKind.While);
-        loop.Body.Add(new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)));
-        var far = new CodeBlock(BlockKind.If, "0", new CodeBlock(BlockKind.Comparison, ">", new CodeBlock(BlockKind.Distance, "0", Enemy(), new CodeBlock(BlockKind.MyPos)), new CodeBlock(BlockKind.MyAttackRange)));
-        far.Body.Add(new CodeBlock(BlockKind.Wait, "0", new CodeBlock(BlockKind.Number, "1")));
-        var dead = new CodeBlock(BlockKind.If, "0", new CodeBlock(BlockKind.IsDead, "0", Enemy()));
-        dead.Body.Add(new CodeBlock(BlockKind.Continue));
-        loop.Body.Add(far); loop.Body.Add(dead); loop.Body.Add(new CodeBlock(BlockKind.Slash));
-        Open(a); Load(loop);
-        Require(panel.IsApplied, "setup: robot a's program is applied: " + Status());
-        foreach (var used in DefenseProgression.Used(new[] { loop }).GroupBy(k => k)) sim.Inventory[used.Key] = used.Count();
-        Open(b);
-        var zero = new List<string>(); var bright = new List<string>();
-        foreach (int category in panel.Palette.Select(item => item.category).Distinct().ToList())
-        {
-            panel.ShowCategory(category);
-            foreach (var view in panel.Palette.Where(item => item.category == category).Select(item => item.view).Append(category == 2 ? panel.VariableTemplate : null))
-            {
-                if (!view || !view.gameObject.activeSelf || Get<TMP_Text>(view, "stockLabel").text != "×0") continue;
-                zero.Add(view.Kind.ToString()); if (!Faded(view)) bright.Add(view.Kind.ToString());
-            }
-        }
-        Require(zero.Count >= 10, "setup: robot a holds every block of ten kinds or more, listed ×0 for robot b: " + string.Join(", ", zero));
-        Require(bright.Count == 0, "listed ×0 but not dimmed: " + string.Join(", ", bright));
-        // This robot drags the last slash() into its program.
-        Open(a); Load(); sim.Inventory[BlockKind.Slash] = 1; panel.RefreshPalette();
-        Require(Listed(BlockKind.Slash) == "×1" && !Faded(Palette(BlockKind.Slash)), "setup: one slash() left, not dimmed: " + Listed(BlockKind.Slash));
-        var slash = Palette(BlockKind.Slash);
-        Carry(BlockKind.Slash, Start);
-        // Read as the drop left it: Listed and Palette show the tab again, which redraws the counts.
-        Require(Get<TMP_Text>(slash, "stockLabel").text == "×0", "setup: the drag took the last slash(): " + Get<TMP_Text>(slash, "stockLabel").text + ", " + Program());
-        Require(Faded(slash), "the last slash(), dragged into the program, leaves its palette block at ×0 but not dimmed");
-    }
-    static bool Faded(CommandBlockView view) =>
-        view.GetComponentsInChildren<CommandBlockShape>(true).Where(s => s.GetComponentInParent<CommandBlockView>(true) == view).All(s => s.Fade > 0);
 
     static float Bottom(RectTransform r) { var c = new Vector3[4]; r.GetWorldCorners(c); return c[0].y; }
     static float Top(RectTransform r) { var c = new Vector3[4]; r.GetWorldCorners(c); return c[1].y; }

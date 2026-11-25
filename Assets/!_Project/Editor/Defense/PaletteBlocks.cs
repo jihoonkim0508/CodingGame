@@ -364,7 +364,7 @@ namespace CodingGame.Defense.Editor
                 "e = get_nearest_enemy()\nshoot(e.weak_point())");
             helpSo.ApplyModifiedPropertiesWithoutUndo();
             // The inventory lists one row per item kind (DefenseInventoryUI checks the count): a row for each new kind, as a copy of
-            // the last row (the label and count's common parent).
+            // the last row (the label's parent).
             var inventory = Object.FindObjectsByType<DefenseInventoryUI>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single();
             var inventorySo = new SerializedObject(inventory);
             var slots = inventorySo.FindProperty("blockSlots");
@@ -372,16 +372,14 @@ namespace CodingGame.Defense.Editor
             {
                 if (Enumerable.Range(0, slots.arraySize).Any(i => slots.GetArrayElementAtIndex(i).FindPropertyRelative("kind").intValue == (int)kind)) continue;
                 var last = slots.GetArrayElementAtIndex(slots.arraySize - 1);
-                var label = (TMP_Text)last.FindPropertyRelative("label").objectReferenceValue; var count = (TMP_Text)last.FindPropertyRelative("count").objectReferenceValue;
+                var label = (TMP_Text)last.FindPropertyRelative("label").objectReferenceValue;
                 var row = label.transform.parent;
-                if (count.transform.parent != row) throw new InvalidOperationException("인벤토리 줄 구조가 예상과 다릅니다.");
                 var copy = Object.Instantiate(row.gameObject, row.parent); copy.name = kind.ToString();
                 copy.transform.SetSiblingIndex(row.GetSiblingIndex() + 1);
                 slots.arraySize++;
                 var slot = slots.GetArrayElementAtIndex(slots.arraySize - 1);
                 slot.FindPropertyRelative("kind").intValue = (int)kind;
                 slot.FindPropertyRelative("label").objectReferenceValue = copy.transform.GetChild(label.transform.GetSiblingIndex()).GetComponent<TMP_Text>();
-                slot.FindPropertyRelative("count").objectReferenceValue = copy.transform.GetChild(count.transform.GetSiblingIndex()).GetComponent<TMP_Text>();
                 log += "inventory " + kind + " added; ";
             }
             inventorySo.ApplyModifiedPropertiesWithoutUndo();

@@ -25,7 +25,7 @@ public static class PlacementFeedbackCheck
         Require(Application.isPlaying, "Enter Play Mode first");
         var battle = UnityEngine.Object.FindFirstObjectByType<DefenseBattle>();
         // Stage 2 with the Stage 1 rewards carried over (Restart alone only carries them when entered from the stage map).
-        battle.EditorStartSession(2, 1, true, new DefenseTestOptions());
+        battle.EditorStartSession(2, 1, true, new DefenseTestOptions { tutorial = true });
         SerializedObject data;
         Place(battle, RobotRole.Ranged); Place(battle, RobotRole.Ranged); Place(battle, RobotRole.Melee);
         Place(battle, RobotRole.Support);

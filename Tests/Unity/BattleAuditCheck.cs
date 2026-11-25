@@ -27,6 +27,7 @@ public static class BattleAuditCheck
     const BindingFlags Any = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
     // No lesson, every robot and block to hand.
     static DefenseTestOptions Sandbox => new DefenseTestOptions { tutorial = false, tutorialInput = false, inventoryLimit = false, unlockAll = true };
+    static DefenseTestOptions Lesson => new DefenseTestOptions { tutorial = true };
 
     public static string Begin()
     {
@@ -258,7 +259,7 @@ public static class BattleAuditCheck
     // the middle of the road, and stayed there. The check moves the views there itself, as a reused view starts where it was.)
     static async Task HeldPreviewKeepsPlaces(DefenseBattle battle)
     {
-        battle.EditorStartSession(2, 1, true, new DefenseTestOptions()); // 2-1 with its lesson
+        battle.EditorStartSession(2, 1, true, Lesson); // 2-1 with its lesson
         var director = battle.Tutorial;
         // The director takes the new session on its next Update and begins the lesson; stopped before that, it begins it over ours.
         await Until(() => director.EditorSynced && director.EditorStep != null, 10, "setup: lesson 2-1 did not begin");
@@ -369,7 +370,7 @@ public static class BattleAuditCheck
     static string CacheFolder => CodingGame.Defense.Editor.BeginnerLessonChecks.CheckCache;
     static async Task<string> Jump(DefenseBattle battle, string id, string folder = null)
     {
-        battle.EditorStartSession(1, 1, true, new DefenseTestOptions()); // a normal play's options, not the sandbox's
+        battle.EditorStartSession(1, 1, true, Lesson); // the lessons on, not the sandbox's options
         string message = battle.DeveloperJump(id, folder ?? CacheFolder);
         var director = battle.Tutorial;
         await Until(() => director.EditorSynced && director.EditorStep != null, 10, $"setup: the lesson of {id} did not begin ({message})");
@@ -511,14 +512,14 @@ public static class BattleAuditCheck
     {
         string none = CacheFolder + "/none";
         Directory.CreateDirectory(none);
-        battle.EditorStartSession(1, 1, true, new DefenseTestOptions());
+        battle.EditorStartSession(1, 1, true, Lesson);
         string message = battle.DeveloperJumpWave("2-4", none);
         await Frames(5);
         var sim = battle.Simulation;
         Require(battle.Stage == 2 && sim.WaveIndex == 3 && sim.Phase == BattlePhase.Ready && message != null && message.StartsWith("캐시 없음"),
             $"without a recording, the jump to 2-4 is at stage {battle.Stage} wave index {sim.WaveIndex} in {sim.Phase} ({message})");
         var mark = Mark(Cache(2), "2-4");
-        battle.EditorStartSession(1, 1, true, new DefenseTestOptions());
+        battle.EditorStartSession(1, 1, true, Lesson);
         message = battle.DeveloperJumpWave("2-4", CacheFolder);
         await Frames(5);
         sim = battle.Simulation;

@@ -6,7 +6,7 @@ namespace CodingGame.Defense
     [Serializable]
     public sealed class DefenseTestOptions
     {
-        public bool tutorial = true, tutorialInput = true, robotCode = true;
+        public bool tutorial, tutorialInput = true, robotCode = true; // the guided lessons stay off unless a dev tool turns them on
         public bool enemyMovement = true, enemyAttack = true, enemySpawn = true;
         public bool baseDamage = true, robotDamage = true, attackDamage = true;
         public bool deploymentLimit = true, inventoryLimit = true;
