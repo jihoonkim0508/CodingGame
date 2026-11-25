@@ -68,21 +68,16 @@ public static class RobotInteractionCheck
     {
         var battle = UnityEngine.Object.FindFirstObjectByType<DefenseBattle>();
         var hud = UnityEngine.Object.FindFirstObjectByType<DefensePlayerHUD>();
-        var inv = UnityEngine.Object.FindFirstObjectByType<DefenseInventoryUI>();
         var editor = UnityEngine.Object.FindFirstObjectByType<DefenseCodeEditor>();
         editor.Close(); var sim = battle.Simulation;
         Ref<Button>(hud, "recallRobotButton").onClick.Invoke(); Require(sim.Robots.Count == 0, "Menu recall works");
-        int initial = sim.RobotAvailable(RobotRole.Shooter);
-        inv.GrantAll(); Require(sim.RobotAvailable(RobotRole.Shooter) == initial, "Grant locked outside developer mode");
-        battle.ToggleDeveloper();
+        // The F1 panel grants nothing any more (blocks are unlimited); the editor tool's grant still unlocks every robot.
         var robots = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().ToDictionary(r => r, r => sim.RobotAvailable(r));
-        var blocks = DefenseProgression.ItemKinds.ToDictionary(k => k, k => sim.Inventory.TryGetValue(k, out int n) ? n : 0);
-        Ref<Button>(inv, "grantAllButton").onClick.Invoke(); Ref<Button>(inv, "grantAllButton").onClick.Invoke();
-        Require(robots.All(p => sim.RobotAvailable(p.Key) == p.Value + 20), "Each click adds 10 per robot");
-        Require(blocks.All(p => sim.Inventory[p.Key] == p.Value + 100), "Each click adds 50 per block");
-        battle.ToggleDeveloper(); hud.SendMessage("LateUpdate");
+        battle.EditorGrantAll(); battle.EditorGrantAll();
+        Require(robots.All(p => sim.RobotAvailable(p.Key) == p.Value + 20), "Each grant adds 10 per robot");
+        hud.SendMessage("LateUpdate");
         var buttons = new SerializedObject(hud).FindProperty("robotButtons");
         for (int i = 0; i < 6; i++) Require(((Button)buttons.GetArrayElementAtIndex(i).objectReferenceValue).gameObject.activeSelf, "Granted robots visible");
-        return "PASS: recall, developer-only grant, additive robot +10/block +50, granted robots unlock";
+        return "PASS: recall, additive robot +10, granted robots unlock";
     }
 }

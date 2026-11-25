@@ -188,12 +188,9 @@ namespace CodingGame.Defense
                 case "move": return sim.MoveRobot(input.id, new Vector2(input.x, input.y), out _);
                 case "upgrade": return sim.UpgradeRobot(input.id);
                 case "program":
-                    // It was applied once, so it fits: a test runner's code may have gone in with the stock lifted (BeginnerLessonChecks.Loops).
-                    var options = sim.Setup.TestOptions; sim.Setup.TestOptions = options.Copy(); sim.Setup.TestOptions.inventoryLimit = false;
                     try { sim.ApplyProgram(input.id, input.name, Unflatten(input.code)); return true; }
                     catch (FormatException) { return false; }
-                    finally { sim.Setup.TestOptions = options; }
-                case "draft": sim.SetDraft(input.id, input.kinds ?? Array.Empty<BlockKind>()); return true;
+                case "draft": return true; // block reservations are gone (blocks are unlimited); older logs still hold them
                 case "invoke": return sim.Invoke(input.id);
                 case "start": sim.Start(); return sim.Phase == BattlePhase.Running;
                 case "claim": sim.Events.Clear(); return sim.ClaimRewards(); // the waves before it have nothing left to show

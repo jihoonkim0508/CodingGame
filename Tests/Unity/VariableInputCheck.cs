@@ -15,8 +15,7 @@ public static class VariableInputCheck
     public static string Main()
     {
         var battle = UnityEngine.Object.FindFirstObjectByType<DefenseBattle>(); battle.EditorStartSession(2, 1, false, new CodingGame.Defense.DefenseTestOptions { tutorial = false, tutorialInput = false, inventoryLimit = false, unlockAll = true }); // sandbox: Stage 1 locks robots and placement for teaching
-        if (!battle.DeveloperMode) battle.ToggleDeveloper();
-        UnityEngine.Object.FindFirstObjectByType<DefenseInventoryUI>().GrantAll(); battle.ToggleDeveloper();
+        battle.EditorGrantAll();
         Require(battle.PlaceRobot(4, new Vector3(0, 0, 4)), "Robot placed");
         battle.SelectRobot(battle.SelectedId); battle.SendMessage("Update");
         var ring = Ref<DefenseRangeRing>(battle, "rangeRing");
