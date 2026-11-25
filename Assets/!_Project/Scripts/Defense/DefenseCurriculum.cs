@@ -4,6 +4,7 @@ namespace CodingGame.Defense
 {
     // 공격 블록은 대상이 필요하므로 공격 로봇을 줄 때마다 get_nearest_enemy()와 변수 블록도 함께 지급합니다.
     // 2-4는 보호막병과 break_shield()·shield, 3-4는 힐러와 for e in get_enemies()를 줍니다(GameData가 적용되면 그 표가 우선).
+    // 3-3 보상의 front()·top()은 3-4의 큐 지네·스택 지네용입니다.
     // 지급량은 추가 수량입니다. 준비 보급은 학습 전에, 보상은 웨이브 종료 후 한 번 지급합니다.
     public static class DefenseCurriculum
     {
@@ -23,7 +24,7 @@ namespace CodingGame.Defense
             new WaveLesson { stage=2, wave=5, topic="거리 조건과 분기 종합", rewards=new[]{B(BlockKind.If)} },
             new WaveLesson { stage=3, wave=1, topic="while True로 계속 반복", robots=new[]{R(RobotRole.Bomber),R(RobotRole.Tank)}, blocks=new[]{B(BlockKind.While,2),B(BlockKind.Number,3),B(BlockKind.Boom),B(BlockKind.Block),B(BlockKind.NearestEnemy,2),B(BlockKind.Variable,2)}, rewards=new[]{B(BlockKind.While)} },
             new WaveLesson { stage=3, wave=2, topic="반복 안 명령 바꾸기", rewards=new[]{B(BlockKind.Number)} },
-            new WaveLesson { stage=3, wave=3, topic="반복과 공격 효율", rewards=new[]{B(BlockKind.While)} },
+            new WaveLesson { stage=3, wave=3, topic="반복과 공격 효율", rewards=new[]{B(BlockKind.While),B(BlockKind.Front),B(BlockKind.Top),B(BlockKind.Elif)} },
             new WaveLesson { stage=3, wave=4, topic="반복 멈추기: break와 continue", blocks=new[]{B(BlockKind.Break),B(BlockKind.Continue),B(BlockKind.ForEach),B(BlockKind.GetEnemies),B(BlockKind.If),B(BlockKind.Comparison),B(BlockKind.EnemyTypeName),B(BlockKind.DeclareVariable),B(BlockKind.Variable,2)}, rewards=new[]{B(BlockKind.Wait)} },
             new WaveLesson { stage=3, wave=5, topic="반복문 선택과 응용", rewards=new[]{B(BlockKind.While)} }
         };

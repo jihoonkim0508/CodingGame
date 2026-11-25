@@ -7,7 +7,7 @@ namespace CodingGame.Defense
 {
     public enum RobotRole { Buffer, Warrior, Tank, Bomber, Shooter, Utility }
     public enum RobotAction { Buff, Slash, Block, Boom, Attack, Slow, BreakShield }
-    public enum EnemyType { Normal, Fast, Tank, Healer, Shielder }
+    public enum EnemyType { Normal, Fast, Tank, Healer, Shielder, Queue, Stack }
     public enum ActionCompatibility { Native, Reduced, Ineffective, Undecided }
     public enum BattlePhase { Ready, Running, Paused, Victory, Defeat, Reward }
     public enum ActionResult { Executed, CoolingDown, NoTarget, Ineffective, Undecided, Unavailable }
@@ -50,12 +50,15 @@ namespace CodingGame.Defense
         // Healer: heals the other active enemies within abilityRadius by abilityAmount every abilityInterval seconds (up to
         // their health). Shielder: gives them a shield of abilityAmount that takes damage before health. Others: unused.
         public float abilityInterval = 2.5f, abilityRadius = 3, abilityAmount = 10;
+        // Queue/Stack centipede: a spawn group is one centipede, each enemy of it a segment. A stack pushes a new segment onto
+        // its end every abilityInterval seconds while it has fewer than segmentCap.
+        public int segmentCap = 8;
         public EnemySpec Copy() => (EnemySpec)MemberwiseClone();
         public void Validate()
         {
             if (!Enum.IsDefined(typeof(EnemyType), type) || !Rules.Positive(health) || !Rules.Positive(speed) || !Rules.Nonnegative(damage) ||
                 !Rules.Positive(attackInterval) || leakDamage < 1 ||
-                !Rules.Positive(abilityInterval) || !Rules.Positive(abilityRadius) || !Rules.Nonnegative(abilityAmount)) throw new ArgumentException("적 수치가 올바르지 않습니다.");
+                !Rules.Positive(abilityInterval) || !Rules.Positive(abilityRadius) || !Rules.Nonnegative(abilityAmount) || segmentCap < 1) throw new ArgumentException("적 수치가 올바르지 않습니다.");
         }
     }
 
@@ -274,6 +277,7 @@ namespace CodingGame.Defense
         public float Health, Shield;
         public double NextAttack, NextAbility, LastAbility = double.NegativeInfinity; // Healer/Shielder pulses
         public bool Active = true;
+        public Centipede Chain; // a Queue/Stack segment's centipede, else null
         public readonly List<MovementEffect> Effects = new List<MovementEffect>();
         public bool Stunned(double time) { for (int i = 0; i < Effects.Count; i++) if (Effects[i].StunUntil > time) return true; return false; }
         public float Speed(double time)
@@ -282,6 +286,16 @@ namespace CodingGame.Defense
             for (int i = 0; i < Effects.Count; i++) if (Effects[i].SlowUntil > time) v = Math.Min(v, Effects[i].Multiplier);
             return Spec.speed * v;
         }
+    }
+    // A Queue or Stack centipede: its living segments in the order they joined, Segments[0] the head walking in front. Only one
+    // end takes damage: a queue's front (first in, first out), a stack's top (last in, first out).
+    public sealed class Centipede
+    {
+        public bool Stack;
+        public readonly List<EnemyState> Segments = new List<EnemyState>();
+        public EnemyState Front => Segments.Count > 0 ? Segments[0] : null;
+        public EnemyState Top => Segments.Count > 0 ? Segments[Segments.Count - 1] : null;
+        public EnemyState Hittable => Stack ? Top : Front;
     }
     // How a wave stood when it started, so a lost wave can be tried again with the same robots, code and coins.
     public sealed class WaveCheckpoint

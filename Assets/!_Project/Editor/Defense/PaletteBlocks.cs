@@ -127,6 +127,14 @@ namespace CodingGame.Defense.Editor
             Help(BlockKind.BreakShield, BlockKind.Shot, "break_shield(enemy) · 보호막 깨기",
                 "원거리형 전용 두 번째 기술. 사거리 안 적의 보호막을 바로 없애고 체력에 약간의 피해를 줍니다. shoot()과 따로 재사용 대기(3초)를 가집니다.",
                 "e = get_nearest_enemy()\nif e.shield > 0:\n    break_shield(e)\nelse:\n    shoot(e)");
+            Help(BlockKind.Front, BlockKind.Shield, "enemy.front() · 큐의 맨 앞",
+                "큐(Queue)는 먼저 들어온 것이 먼저 나갑니다(FIFO). 큐 지네는 맨 앞 마디만 피해를 받고, 그 마디가 쓰러지면 다음 마디가 맨 앞이 됩니다.\n" +
+                "e.front()는 e가 속한 지네의 맨 앞 마디를 돌려줍니다(지네가 아니면 e 자신). 변수 뒤에 점을 찍고 front()를 고르세요.",
+                "for e in get_enemies():\n    if e.type == Enemy.Queue:\n        shoot(e.front())");
+            Help(BlockKind.Top, BlockKind.Front, "enemy.top() · 스택의 맨 위",
+                "스택(Stack)은 나중에 들어온 것이 먼저 나갑니다(LIFO). 스택 지네는 몇 초마다 꼬리에 마디를 쌓고, 맨 위(가장 나중에 쌓인 꼬리) 마디만 피해를 받습니다.\n" +
+                "e.top()은 e가 속한 지네의 맨 위 마디를 돌려줍니다(지네가 아니면 e 자신). 늦게 잡을수록 마디가 늘어납니다(최대 8). e.size로 마디 수를 읽을 수 있습니다.",
+                "for e in get_enemies():\n    if e.type == Enemy.Stack:\n        shoot(e.top())\n    elif e.type == Enemy.Queue:\n        shoot(e.front())");
             helpSo.ApplyModifiedPropertiesWithoutUndo();
             // The inventory lists one row per item kind (DefenseInventoryUI checks the count): a row for each new kind, as a copy of
             // the last row (the label and count's common parent).

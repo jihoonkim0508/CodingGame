@@ -29,6 +29,7 @@ namespace CodingGame.BlockCoding
                 case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.Distance: case BlockKind.Hp:
                 case BlockKind.MyAttackRange: case BlockKind.MyPos: case BlockKind.Arithmetic:
                 case BlockKind.EnemyTypeOf: case BlockKind.EnemyTypeName: case BlockKind.GetEnemies: case BlockKind.Shield:
+                case BlockKind.Front: case BlockKind.Top: case BlockKind.Size:
                     return BlockSlotKind.Value;
                 case BlockKind.Attack: case BlockKind.Wait: case BlockKind.DeclareVariable:
                 case BlockKind.For: case BlockKind.While: case BlockKind.If: case BlockKind.Elif:
@@ -56,7 +57,8 @@ namespace CodingGame.BlockCoding
             {
                 case BlockKind.For: case BlockKind.If: case BlockKind.Elif:
                 case BlockKind.Wait: case BlockKind.DeclareVariable: case BlockKind.Hp: case BlockKind.IsDead:
-                case BlockKind.EnemyTypeOf: case BlockKind.Shield: case BlockKind.ForEach: return 1; // Hp, IsDead, EnemyTypeOf, Shield: receiver
+                case BlockKind.EnemyTypeOf: case BlockKind.Shield: case BlockKind.ForEach:
+                case BlockKind.Front: case BlockKind.Top: case BlockKind.Size: return 1; // the members (Hp ... Size): receiver
                 case BlockKind.Comparison: case BlockKind.Arithmetic: return 2;
                 case BlockKind.Distance: return 2; // receiver, position (Vector2)
                 default: return 0;
@@ -254,6 +256,8 @@ namespace CodingGame.BlockCoding
                     return NormalizeNumber(block.Value).Contains(".") ? ValueType.Float : ValueType.Integer;
                 case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.Distance: case BlockKind.Hp:
                 case BlockKind.MyAttackRange: case BlockKind.Shield: return ValueType.Float;
+                case BlockKind.Size: return ValueType.Integer;
+                case BlockKind.Front: case BlockKind.Top: return ValueType.Enemy;
                 case BlockKind.GetEnemies: return ValueType.EnemyList;
                 case BlockKind.MyPos: return ValueType.Vector2;
                 case BlockKind.NearestEnemy: return ValueType.Enemy;
@@ -277,11 +281,12 @@ namespace CodingGame.BlockCoding
         }
 
         // A block as the player sees it on screen, for the status line (it showed the enum name: "Comparison", "If").
-        static string Label(BlockKind kind) => kind switch
+        internal static string Label(BlockKind kind) => kind switch
         {
             BlockKind.Comparison => "비교 블록", BlockKind.Arithmetic => "계산 블록", BlockKind.DeclareVariable => "변수 = 값",
             BlockKind.Distance => "distance()", BlockKind.IsDead => "is_dead()", BlockKind.EnemyTypeOf => "type", BlockKind.Hp => "hp",
             BlockKind.Shield => "shield", BlockKind.ForEach => "for ... in", BlockKind.BreakShield => "break_shield()",
+            BlockKind.Front => "front()", BlockKind.Top => "top()", BlockKind.Size => "size",
             BlockKind.Shot or BlockKind.Attack => "shoot()", BlockKind.Wait => "wait()", BlockKind.Block => "block()", BlockKind.Boom => "boom()", BlockKind.Slow => "slow()",
             _ => Call(kind) ?? kind.ToString().ToLowerInvariant(),
         };
@@ -315,6 +320,7 @@ namespace CodingGame.BlockCoding
                 case BlockKind.Distance: return Arg(0) + ".distance(" + Arg(1) + ")";
                 case BlockKind.Hp: return Arg(0) + ".hp";
                 case BlockKind.Shield: return Arg(0) + ".shield";
+                case BlockKind.Front: case BlockKind.Top: case BlockKind.Size: return Arg(0) + Member(block.Kind);
                 case BlockKind.IsDead: return Arg(0) + ".is_dead()";
                 case BlockKind.EnemyTypeOf: return Arg(0) + ".type";
                 case BlockKind.EnemyTypeName: return "Enemy." + block.Value;
@@ -354,6 +360,9 @@ namespace CodingGame.BlockCoding
                 case BlockKind.Shield:
                     Require(block.Arguments[0], variables, ValueType.Enemy, "shield는 Enemy 객체에서만 읽을 수 있습니다. 예: enemy.shield");
                     return Arg(0) + ".shield";
+                case BlockKind.Front: case BlockKind.Top: case BlockKind.Size:
+                    Require(block.Arguments[0], variables, ValueType.Enemy, Label(block.Kind) + "는 Enemy 객체에서만 쓸 수 있습니다. 예: e" + Member(block.Kind));
+                    return Arg(0) + Member(block.Kind);
                 case BlockKind.EnemyTypeOf:
                     Require(block.Arguments[0], variables, ValueType.Enemy, "type은 Enemy 객체에서만 읽을 수 있습니다. 예: enemy.type");
                     return Arg(0) + ".type";
@@ -393,7 +402,8 @@ namespace CodingGame.BlockCoding
         public static readonly string[] Comparisons = { "==", "!=", "<", ">", "<=", ">=" };
         public static readonly string[] Operators = { "+", "-", "*", "/" };
         // The game's enemy kinds (Defense.EnemyType) as the Python names after `Enemy.`.
-        public static readonly string[] EnemyTypes = { "Normal", "Fast", "Tank", "Healer", "Shielder" };
+        public static readonly string[] EnemyTypes = { "Normal", "Fast", "Tank", "Healer", "Shielder", "Queue", "Stack" };
+        static string Member(BlockKind kind) => kind == BlockKind.Front ? ".front()" : kind == BlockKind.Top ? ".top()" : ".size";
         // The Python name of an action that takes an enemy: shoot(enemy), break_shield(enemy), block(enemy) ...
         static string Method(BlockKind kind) => kind == BlockKind.Shot || kind == BlockKind.Attack ? "shoot" : kind == BlockKind.BreakShield ? "break_shield" : kind.ToString().ToLowerInvariant();
         static readonly Regex Number = new Regex(@"\A[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)\z");

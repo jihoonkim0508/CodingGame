@@ -27,8 +27,8 @@ namespace CodingGame.BlockCoding
         public CommandCodingPanel Panel { get; private set; }
         public CommandDropZone Owner { get; private set; }
         public bool IsPalette { get; private set; }
-        static readonly string[] Methods = { "distance(", "hp", "is_dead()", "type", "shield" };
-        static readonly BlockKind[] MemberKinds = { BlockKind.Distance, BlockKind.Hp, BlockKind.IsDead, BlockKind.EnemyTypeOf, BlockKind.Shield };
+        static readonly string[] Methods = { "distance(", "hp", "is_dead()", "type", "shield", "front()", "top()", "size" };
+        static readonly BlockKind[] MemberKinds = { BlockKind.Distance, BlockKind.Hp, BlockKind.IsDead, BlockKind.EnemyTypeOf, BlockKind.Shield, BlockKind.Front, BlockKind.Top, BlockKind.Size };
         bool HasDot => kind == BlockKind.Variable && input && input.text.EndsWith(".", StringComparison.Ordinal);
         // Dropdown after `name.`: distance(position), the read-only hp and type properties, is_dead() (a condition: the block
         // turns into a logic block; there is no is_dead() block of its own in the palette). Read by the shown name, since the
@@ -177,9 +177,9 @@ namespace CodingGame.BlockCoding
             var options = new List<string> { "메서드 선택" };
             // is_dead() once it is handed out (an item, like the other blocks), type once Enemy.Tank is (nothing to compare it
             // with before), or when this block already is one.
-            // shield once it is handed out (2-4, with break_shield).
-            bool Offered(int i) => Methods[i] == chosen || MemberKinds[i] != BlockKind.IsDead && MemberKinds[i] != BlockKind.EnemyTypeOf && MemberKinds[i] != BlockKind.Shield ||
-                (Panel?.IsAvailable?.Invoke(MemberKinds[i] == BlockKind.EnemyTypeOf ? BlockKind.EnemyTypeName : MemberKinds[i]) ?? true);
+            // shield once it is handed out (2-4, with break_shield); front() and top() once they are (3-3's reward), size with front().
+            bool Offered(int i) => Methods[i] == chosen || MemberKinds[i] == BlockKind.Distance || MemberKinds[i] == BlockKind.Hp ||
+                (Panel?.IsAvailable?.Invoke(MemberKinds[i] == BlockKind.EnemyTypeOf ? BlockKind.EnemyTypeName : MemberKinds[i] == BlockKind.Size ? BlockKind.Front : MemberKinds[i]) ?? true);
             if (chosen != null || (Panel && Panel.IsEnemyVariable(VariableName)))
                 options.AddRange(Methods.Where((_, i) => Offered(i)));
             else options[0] = "사용 가능한 메서드 없음";
@@ -333,7 +333,7 @@ namespace CodingGame.BlockCoding
             {
                 if (Kind == BlockKind.Variable) { block.Value = input.text; return block; }
                 block.Arguments.Add(new CodeBlock(BlockKind.Variable, VariableName));
-                if (Kind == BlockKind.Hp || Kind == BlockKind.IsDead || Kind == BlockKind.EnemyTypeOf || Kind == BlockKind.Shield) return block;
+                if (Kind != BlockKind.Distance) return block; // the other members take only their receiver
             }
             foreach (var argument in arguments) block.Arguments.Add(argument.ReadArgument());
             if (body) block.Body.AddRange(body.Read());

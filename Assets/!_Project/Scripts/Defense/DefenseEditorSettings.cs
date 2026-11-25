@@ -28,6 +28,8 @@ namespace CodingGame.Defense
         public float fastHealth = .75f, tankHealth = 1.5f, fastSpeed = 1.3f, tankSpeed = .75f;
         // Healer and Shielder: frail supports that keep pace with a tank (their pulse amount grows with the health curve).
         public float healerHealth = .8f, shielderHealth = 1f, healerSpeed = .8f, shielderSpeed = .8f;
+        // Queue/Stack centipedes: per segment, as a normal enemy's.
+        public float queueHealth = 1f, stackHealth = 1f, queueSpeed = .8f, stackSpeed = .8f;
         public float[] waveMultipliers = { .9f, 1f, 1.05f, 1.15f, 1f };
         // Difficulty steps a stage adds to the health/speed curves (progress = (stage - 1) * stageProgress + wave).
         public int stageProgress = 5;
@@ -41,7 +43,7 @@ namespace CodingGame.Defense
                 roleLimits == null || roleLimits.Length != 6 || roleLimits.Any(v => v < 1) ||
                 waveMultipliers == null || waveMultipliers.Length == 0 || waveMultipliers.Any(v => !Rules.Positive(v)) ||
                 new[] { healthLinear, healthQuadratic, speedLinear, speedQuadratic }.Any(v => !Rules.Nonnegative(v)) ||
-                new[] { speedCap, fastHealth, tankHealth, fastSpeed, tankSpeed, healerHealth, shielderHealth, healerSpeed, shielderSpeed }.Any(v => !Rules.Positive(v)) ||
+                new[] { speedCap, fastHealth, tankHealth, fastSpeed, tankSpeed, healerHealth, shielderHealth, healerSpeed, shielderSpeed, queueHealth, stackHealth, queueSpeed, stackSpeed }.Any(v => !Rules.Positive(v)) ||
                 stageProgress < 0 || !Rules.Positive(reducedStrength) || reducedStrength > 1 ||
                 twoStarCorePercent < 0 || threeStarCorePercent < twoStarCorePercent || threeStarCorePercent > 100)
                 throw new ArgumentException("밸런스 규칙 범위를 확인하세요.");
@@ -54,10 +56,12 @@ namespace CodingGame.Defense
             float multiplier = wave < waveMultipliers.Length ? waveMultipliers[wave] : 1;
             float curve = 1 + healthLinear * progress + healthQuadratic * progress * progress;
             enemy.health *= curve * (enemy.type switch
-                { EnemyType.Fast => fastHealth, EnemyType.Tank => tankHealth, EnemyType.Healer => healerHealth, EnemyType.Shielder => shielderHealth, _ => 1 }) * multiplier;
+                { EnemyType.Fast => fastHealth, EnemyType.Tank => tankHealth, EnemyType.Healer => healerHealth, EnemyType.Shielder => shielderHealth,
+                  EnemyType.Queue => queueHealth, EnemyType.Stack => stackHealth, _ => 1 }) * multiplier;
             enemy.abilityAmount *= curve * multiplier; // a heal or shield keeps up with the health it works on
             enemy.speed = Math.Min(enemy.speed * (1 + speedLinear * progress + speedQuadratic * progress * progress) *
-                (enemy.type switch { EnemyType.Fast => fastSpeed, EnemyType.Tank => tankSpeed, EnemyType.Healer => healerSpeed, EnemyType.Shielder => shielderSpeed, _ => 1 }) * multiplier, original.speed * speedCap);
+                (enemy.type switch { EnemyType.Fast => fastSpeed, EnemyType.Tank => tankSpeed, EnemyType.Healer => healerSpeed, EnemyType.Shielder => shielderSpeed,
+                    EnemyType.Queue => queueSpeed, EnemyType.Stack => stackSpeed, _ => 1 }) * multiplier, original.speed * speedCap);
             return enemy;
         }
     }

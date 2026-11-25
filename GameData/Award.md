@@ -30,7 +30,7 @@
 | 2-10  | 탱커형 ×1          | while True ×1, 변수 = 값 ×1, get_nearest_enemy() ×1, variable ×1, block() ×1                                                                                                                 | -        |
 | 3-1   | -               | -                                                                                                                                                                                         | -        |
 | 3-2   | -               | -                                                                                                                                                                                         | -        |
-| 3-3   | -               | for e in get_enemies() ×1, get_enemies() ×1, if ×1, 비교 ×1, Enemy.Tank ×1, 변수 = 값 ×1, variable ×2, break ×1                                                                                | -        |
+| 3-3   | -               | for e in get_enemies() ×1, get_enemies() ×1, if ×1, elif ×1, 비교 ×3, Enemy.Tank ×3, 변수 = 값 ×1, variable ×4, break ×1, shoot() ×1, front() ×2, top() ×2| -        |
 | 3-4   | -               | -                                                                                                                                                                                         | -        |
 
 ## 코인
@@ -57,4 +57,4 @@
 | 3-1  | -     | 5   | 40           |
 | 3-2  | -     | 5   | 50           |
 | 3-3  | -     | 5   | 40           |
-| 3-4  | -     | 5   | 70           |
+| 3-4  | -     | 5   | 115          |

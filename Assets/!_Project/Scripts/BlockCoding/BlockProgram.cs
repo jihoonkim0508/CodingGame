@@ -14,7 +14,9 @@ namespace CodingGame.BlockCoding
         ForEach, // for e in get_enemies(): Value is the loop variable's name, Arguments[0] the list
         GetEnemies, // get_enemies(): the active enemies, front of the road first (only as a for-each's list)
         Shield, // enemy.shield: a member like hp
-        BreakShield // break_shield(enemy): the shooter's second action
+        BreakShield, // break_shield(enemy): the shooter's second action
+        Front, Top, // enemy.front() / enemy.top(): a centipede's hittable end as an Enemy (queue: first in, stack: last in)
+        Size // enemy.size: how many segments its centipede has (1 for any other enemy)
     }
 
     [Serializable]

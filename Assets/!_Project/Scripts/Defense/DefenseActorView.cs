@@ -120,42 +120,78 @@ namespace CodingGame.Defense
             // bubble round any shielded enemy. Swap for the new models' own looks then.
             var own = enemy.Spec.type == EnemyType.Healer ? new Color(.15f, 1, .25f) : enemy.Spec.type == EnemyType.Shielder ? new Color(.2f, .45f, 1) : materialColor;
             if (time - enemy.LastAbility < .3) own = Color.Lerp(own, Color.white, .6f);
+            // ponytail: placeholder art for the Queue/Stack centipedes: each segment the normal enemy model tinted orange / purple,
+            // the one end that takes damage pulsing brighter on a glowing ring with the segment count over it. Swap for a
+            // centipede model when one lands.
+            if (enemy.Chain != null) own = enemy.Spec.type == EnemyType.Queue ? new Color(1, .55f, .12f) : new Color(.65f, .3f, 1);
+            bool open = enemy.Chain != null && enemy.Chain.Hittable == enemy;
+            if (open) own = Color.Lerp(own, Color.white, .3f + .2f * Mathf.Sin((float)time * 8));
             baseColor = own;
             ShowBubble(enemy.Shield > 0);
+            ShowOpenEnd(open, open ? enemy.Chain.Segments.Count : 0, viewRotation);
             Sync(position, enemy.Stunned(time), enemy.Speed(time) < enemy.Spec.speed, false);
         }
-        static Mesh bubbleMesh; static Material bubbleMaterial;
-        Renderer bubble;
+        static Mesh bubbleMesh, ringMesh; static Material bubbleMaterial, ringMaterial;
+        Renderer bubble, ring;
+        TMPro.TextMeshPro segmentCount;
         void ShowBubble(bool shown)
         {
             if (!shown) { if (bubble) bubble.enabled = false; return; }
             if (!bubble)
             {
-                if (!bubbleMesh)
-                {
-                    // A sphere with white vertex colours (the particle shader multiplies them), on the beam's shader made see-through.
-                    var probe = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    bubbleMesh = Instantiate(probe.GetComponent<MeshFilter>().sharedMesh); Destroy(probe);
-                    bubbleMesh.colors = Enumerable.Repeat(Color.white, bubbleMesh.vertexCount).ToArray();
-                    bubbleMaterial = new Material(beam.sharedMaterial) { name = "Shield bubble", renderQueue = 3000 };
-                    bubbleMaterial.SetOverrideTag("RenderType", "Transparent");
-                    bubbleMaterial.SetFloat("_Surface", 1); bubbleMaterial.SetFloat("_ZWrite", 0);
-                    bubbleMaterial.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha); bubbleMaterial.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                    bubbleMaterial.SetFloat("_SrcBlendAlpha", (float)UnityEngine.Rendering.BlendMode.One); bubbleMaterial.SetFloat("_DstBlendAlpha", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                    bubbleMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-                    bubbleMaterial.SetColor(BaseColorId, new Color(.45f, .8f, 1, .38f));
-                }
-                var shell = new GameObject("Shield bubble", typeof(MeshFilter), typeof(MeshRenderer));
-                shell.layer = gameObject.layer; shell.transform.SetParent(transform, false);
+                bubble = Shell("Shield bubble", PrimitiveType.Sphere, ref bubbleMesh, ref bubbleMaterial, new Color(.45f, .8f, 1, .38f));
                 // Round the model as it stands (its renderer's bounds), a little larger than it.
                 var bounds = body.bounds;
-                shell.transform.position = bounds.center;
-                shell.transform.localScale = Vector3.one * (2.3f * Mathf.Max(bounds.extents.x, bounds.extents.y, bounds.extents.z) / Mathf.Max(.01f, transform.lossyScale.x));
-                shell.GetComponent<MeshFilter>().sharedMesh = bubbleMesh;
-                bubble = shell.GetComponent<MeshRenderer>(); bubble.sharedMaterial = bubbleMaterial;
-                bubble.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; bubble.receiveShadows = false;
+                bubble.transform.position = bounds.center;
+                bubble.transform.localScale = Vector3.one * (2.3f * Mathf.Max(bounds.extents.x, bounds.extents.y, bounds.extents.z) / Mathf.Max(.01f, transform.lossyScale.x));
             }
             bubble.enabled = true;
+        }
+        // A centipede's open end: a flat glowing ring at its feet and the centipede's segment count over its health bar.
+        void ShowOpenEnd(bool shown, int count, Quaternion viewRotation)
+        {
+            if (!shown) { if (ring) { ring.enabled = false; segmentCount.enabled = false; } return; }
+            if (!ring)
+            {
+                ring = Shell("Open end ring", PrimitiveType.Cylinder, ref ringMesh, ref ringMaterial, new Color(1, .9f, .2f, .6f));
+                var bounds = body.bounds; float across = 2.6f * Mathf.Max(bounds.extents.x, bounds.extents.z) / Mathf.Max(.01f, transform.lossyScale.x);
+                ring.transform.localPosition = Vector3.up * .03f; ring.transform.localScale = new Vector3(across, .01f, across);
+                segmentCount = new GameObject("Segment count", typeof(TMPro.TextMeshPro)).GetComponent<TMPro.TextMeshPro>();
+                segmentCount.gameObject.layer = gameObject.layer; segmentCount.transform.SetParent(transform, false);
+                segmentCount.transform.localScale = Vector3.one / Mathf.Max(.01f, transform.lossyScale.x);
+                if (UITheme.Display && UITheme.Label) { segmentCount.font = UITheme.Display; segmentCount.fontSharedMaterial = UITheme.Label; }
+                segmentCount.fontSize = 5; segmentCount.alignment = TMPro.TextAlignmentOptions.Center; segmentCount.color = new Color(1, .93f, .45f);
+                segmentCount.rectTransform.sizeDelta = new Vector2(4, 1.5f);
+            }
+            ring.enabled = segmentCount.enabled = true;
+            segmentCount.text = count.ToString();
+            segmentCount.transform.SetPositionAndRotation(healthRoot.position + Vector3.up * .45f, viewRotation);
+        }
+        // A see-through primitive on this actor: white vertex colours (the particle shader multiplies them) on the beam's shader.
+        Renderer Shell(string name, PrimitiveType shape, ref Mesh mesh, ref Material material, Color color)
+        {
+            if (!mesh)
+            {
+                var probe = GameObject.CreatePrimitive(shape);
+                mesh = Instantiate(probe.GetComponent<MeshFilter>().sharedMesh); Destroy(probe);
+                mesh.colors = Enumerable.Repeat(Color.white, mesh.vertexCount).ToArray();
+            }
+            if (!material)
+            {
+                material = new Material(beam.sharedMaterial) { name = name, renderQueue = 3000 };
+                material.SetOverrideTag("RenderType", "Transparent");
+                material.SetFloat("_Surface", 1); material.SetFloat("_ZWrite", 0);
+                material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha); material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                material.SetFloat("_SrcBlendAlpha", (float)UnityEngine.Rendering.BlendMode.One); material.SetFloat("_DstBlendAlpha", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                material.SetColor(BaseColorId, color);
+            }
+            var shell = new GameObject(name, typeof(MeshFilter), typeof(MeshRenderer));
+            shell.layer = gameObject.layer; shell.transform.SetParent(transform, false);
+            shell.GetComponent<MeshFilter>().sharedMesh = mesh;
+            var shown = shell.GetComponent<MeshRenderer>(); shown.sharedMaterial = material;
+            shown.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; shown.receiveShadows = false;
+            return shown;
         }
         // Animation speed follows the battle clock: 0 while paused, 2-3 at 2x/3x.
         public float Pace => pace;

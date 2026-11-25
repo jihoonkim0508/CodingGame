@@ -476,6 +476,8 @@ namespace CodingGame.Defense
             if (sim == null || !sim.Options.hitEffects) return;
             if ((evt.Kind == "hit" || evt.Kind == "projectile-hit") && evt.AppliedAmount > 0)
                 Float(evt.Position, evt.AppliedAmount.ToString("0.##"), Color.white, 30, .6f, 46);
+            else if (evt.Kind == "blocked") // a centipede segment that is not its open end
+                Float(evt.Position, "막힘", new Color(.62f, .7f, .82f), 28, .6f, 46);
             else if (evt.Kind == "killed" && sim.Setup.PlayerFlow && sim.KillCoins > 0)
                 Float(evt.Position, $"+{sim.KillCoins} 코인", new Color(1, .83f, .42f), 32, 1f, 74);
         }

@@ -25,6 +25,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}
   - {fileID: 11400000, guid: dcc3b0825f8bd894383ffa01c5dd4ce8, type: 2}
   - {fileID: 11400000, guid: f508e3c70d282f940b5b5cc944d9fb96, type: 2}
+  - {fileID: 11400000, guid: e0ac7d559f929fb4db093e2e05ed0a26, type: 2}
+  - {fileID: 11400000, guid: ecaaa56427f178e4a933a21961d99214, type: 2}
   baseHealth: 12
   robotLimit: 6
   rules:
@@ -44,6 +46,10 @@ MonoBehaviour:
     shielderHealth: 1
     healerSpeed: 0.8
     shielderSpeed: 0.8
+    queueHealth: 1
+    stackHealth: 1
+    queueSpeed: 0.8
+    stackSpeed: 0.8
     waveMultipliers:
     - 0.9
     - 1
@@ -300,16 +306,24 @@ MonoBehaviour:
         count: 1
       - kind: 3
         count: 1
+      - kind: 4
+        count: 1
       - kind: 11
-        count: 1
+        count: 3
       - kind: 31
-        count: 1
+        count: 3
       - kind: 14
         count: 1
       - kind: 15
-        count: 2
+        count: 4
       - kind: 17
         count: 1
+      - kind: 22
+        count: 1
+      - kind: 36
+        count: 2
+      - kind: 37
+        count: 2
       rewardRobots: []
       startCoins: -1
       coinsPerKill: 5
@@ -894,6 +908,24 @@ MonoBehaviour:
         interval: 4
         healthOverride: 9
         speedOverride: 1.3
+        leakDamageOverride: 0
+        boss: 0
+      - enemy: {fileID: 11400000, guid: e0ac7d559f929fb4db093e2e05ed0a26, type: 2}
+        route: 0
+        count: 5
+        delay: 11
+        interval: 0.6
+        healthOverride: 10
+        speedOverride: 1.1
+        leakDamageOverride: 0
+        boss: 0
+      - enemy: {fileID: 11400000, guid: ecaaa56427f178e4a933a21961d99214, type: 2}
+        route: 0
+        count: 4
+        delay: 16
+        interval: 0.6
+        healthOverride: 10
+        speedOverride: 1.1
         leakDamageOverride: 0
         boss: 0
       - enemy: {fileID: 11400000, guid: 0afa5a1ef1f944a40a896da3256d7713, type: 2}

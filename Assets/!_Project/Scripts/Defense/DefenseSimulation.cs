@@ -133,6 +133,7 @@ namespace CodingGame.Defense
             drafts.TryGetValue(robot.Id, out var draft) && draft.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0);
         int nextId = 1;
         int[] groupCounts;
+        Centipede[] groupChains; // a Queue/Stack group is one centipede, made with its first segment
         double accumulated, spawnElapsed;
         int waveLeaksAtStart;
 
@@ -162,7 +163,7 @@ namespace CodingGame.Defense
         {
             currentWave = nextWave ?? ScaledWave(WaveIndex);
             nextWave = WaveIndex + 1 < Setup.Waves.Length ? ScaledWave(WaveIndex + 1) : Array.Empty<SpawnGroup>();
-            groupCounts = new int[currentWave.Length]; spawnElapsed = 0;
+            groupCounts = new int[currentWave.Length]; groupChains = new Centipede[currentWave.Length]; spawnElapsed = 0;
             waveLeaksAtStart = Leaks; ObjectiveFailed = false;
             foreach (var bot in Robots) { bot.AttacksThisWave = bot.ActionsThisWave = bot.KillsThisWave = bot.LoopTurnsThisWave = 0; bot.DamageThisWave = 0; bot.SawEnemyThisWave = false; }
             if (Setup.PlayerFlow && Lesson != null && Lesson.startCoins >= 0) Coins = Lesson.startCoins;
@@ -212,7 +213,7 @@ namespace CodingGame.Defense
             if (stage != Setup.Stage) return false;
             Setup.Waves[waveIndex] = groups;
             if (waveIndex == WaveIndex && Phase == BattlePhase.Ready)
-            { currentWave = ScaledWave(waveIndex); groupCounts = new int[currentWave.Length]; return true; }
+            { currentWave = ScaledWave(waveIndex); groupCounts = new int[currentWave.Length]; groupChains = new Centipede[currentWave.Length]; return true; }
             if (waveIndex == WaveIndex && (Phase == BattlePhase.Running || Phase == BattlePhase.Paused))
             {
                 var scaled = ScaledWave(waveIndex); bool now = false;
@@ -320,7 +321,7 @@ namespace CodingGame.Defense
                 if (saved.Code != null) ApplyProgram(bot.Id, saved.Name, saved.Code);
             }
             if (checkpoint.RobotStock != null) { RobotInventory.Clear(); foreach (var stock in checkpoint.RobotStock) RobotInventory[stock.Key] = stock.Value; }
-            currentWave = checkpoint.Groups.Select(CopyGroup).ToArray(); groupCounts = new int[currentWave.Length];
+            currentWave = checkpoint.Groups.Select(CopyGroup).ToArray(); groupCounts = new int[currentWave.Length]; groupChains = new Centipede[currentWave.Length];
             Coins = checkpoint.Coins; BaseHealth = checkpoint.BaseHealth; Kills = checkpoint.Kills;
             Leaks = waveLeaksAtStart = checkpoint.Leaks;
             Inputs.RemoveRange(logged, Inputs.Count - logged);
@@ -665,6 +666,8 @@ namespace CodingGame.Defense
         void Hit(EnemyState e, float damage, int source, bool projectile = false, RobotState meleeSource = null)
         {
             if (!e.Active) return;
+            // A centipede segment other than its open end (queue: front, stack: top) takes nothing: boom and slash included.
+            if (e.Chain != null && e.Chain.Hittable != e) { Emit("blocked", source, e.Id, e.Position, damage); return; }
             if (!Options.attackDamage) { Emit("damage-suppressed", source, e.Id, e.Position, damage); damage = 0; }
             float absorbed = Math.Min(e.Shield, damage); e.Shield -= absorbed; damage -= absorbed; // a shield takes damage first
             float applied = Math.Min(e.Health, damage);
@@ -676,7 +679,7 @@ namespace CodingGame.Defense
                 Origin = meleeSource == null ? default : meleeSource.Position });
             if (e.Health <= 0)
             {
-                e.Active = false; e.BlockedBy = 0; Kills++; Emit("killed", source, e.Id, e.Position);
+                e.Active = false; e.BlockedBy = 0; e.Chain?.Segments.Remove(e); Kills++; Emit("killed", source, e.Id, e.Position);
                 if (Setup.PlayerFlow)
                 {
                     Coins = (int)Math.Min(int.MaxValue, (long)Coins + KillCoins);
@@ -741,6 +744,7 @@ namespace CodingGame.Defense
                 if (e.Active && e.BlockedBy == 0) TryBlock(e, e.Position, e.Position, out _);
                 if (e.Active && !e.Stunned(Time)) Pulse(e);
             }
+            for (int i = 0, count = Enemies.Count; i < count; i++) Push(Enemies[i]); // appends: not in the foreach
             foreach (var bot in Robots)
                 if (!bot.SawEnemyThisWave) bot.SawEnemyThisWave = AnyEnemyWithin(bot.Position, bot.Range);
             // A copy, as before: a robot's code may recall robots. Reused, so no array per tick.
@@ -756,7 +760,7 @@ namespace CodingGame.Defense
                     if (Options.enemyAttack && Time + .000001 >= e.NextAttack)
                     { DamageRobot(e.BlockedBy, e.Spec.damage,e.Id); e.NextAttack = Time + e.Spec.attackInterval; }
                 }
-                if (Options.enemyMovement && e.BlockedBy == 0) Move(e, e.Speed(Time) * dt);
+                if (Options.enemyMovement && e.BlockedBy == 0 && !Crowded(e)) Move(e, e.Speed(Time) * dt);
             }
             if (BaseHealth <= 0 || ObjectiveFailed) { Enemies.RemoveAll(e => !e.Active); Projectiles.Clear(); strikes.Clear(); Phase = BattlePhase.Defeat; return; }
             ResolveProjectiles(); ResolveStrikes();
@@ -791,12 +795,37 @@ namespace CodingGame.Defense
                 while (groupCounts[i] < g.Count && spawnElapsed + .000001 >= g.Delay + groupCounts[i] * g.Interval)
                 {
                     var spec = g.Enemy.Copy();
-                    Enemies.Add(new EnemyState { Id = nextId++, DefinitionIndex = g.DefinitionIndex, Spec = spec, Health = spec.health, Boss = g.Boss,
+                    var e = new EnemyState { Id = nextId++, DefinitionIndex = g.DefinitionIndex, Spec = spec, Health = spec.health, Boss = g.Boss,
                         Position = Setup.Routes[g.RouteIndex].Points[0], RouteIndex = g.RouteIndex, NextAttack = Time + spec.attackInterval,
-                        NextAbility = Time + spec.abilityInterval * .5 });
+                        NextAbility = Time + spec.abilityInterval * (IsCentipede(spec.type) ? 1 : .5) };
+                    if (IsCentipede(spec.type)) (e.Chain = groupChains[i] ??= new Centipede { Stack = spec.type == EnemyType.Stack }).Segments.Add(e);
+                    Enemies.Add(e);
                     groupCounts[i]++; Spawned++;
                 }
             }
+        }
+        static bool IsCentipede(EnemyType type) => type == EnemyType.Queue || type == EnemyType.Stack;
+        // How far apart a centipede's segments walk: one waits while it is closer than this to the one ahead (a new segment
+        // starts on the tail and falls in behind it; a slowed one holds up those behind instead of being passed).
+        public const float SegmentGap = .8f;
+        bool Crowded(EnemyState e)
+        {
+            if (e.Chain == null) return false;
+            int at = e.Chain.Segments.IndexOf(e);
+            return at > 0 && RemainingPath(e) - RemainingPath(e.Chain.Segments[at - 1]) < SegmentGap;
+        }
+        // A stack centipede's head pushes a segment onto the tail end every abilityInterval seconds up to segmentCap: the new
+        // top, so killing it slowly makes it grow.
+        void Push(EnemyState head)
+        {
+            if (!head.Active || head.Spec.type != EnemyType.Stack || head.Chain.Front != head || Time + .000001 < head.NextAbility) return;
+            head.NextAbility = Time + head.Spec.abilityInterval;
+            if (head.Chain.Segments.Count >= head.Spec.segmentCap) return;
+            var tail = head.Chain.Top; var spec = tail.Spec.Copy();
+            var e = new EnemyState { Id = nextId++, DefinitionIndex = tail.DefinitionIndex, Spec = spec, Health = spec.health, Position = tail.Position,
+                RouteIndex = tail.RouteIndex, NextPoint = tail.NextPoint, NextAttack = Time + spec.attackInterval, Chain = head.Chain };
+            head.Chain.Segments.Add(e); Enemies.Add(e); Spawned++;
+            Emit("push", head.Id, e.Id, e.Position, head.Chain.Segments.Count);
         }
         bool TryBlock(EnemyState e, Vector2 start, Vector2 end, out Vector2 point)
         {
@@ -825,9 +854,10 @@ namespace CodingGame.Defense
                 e.Position = end; distance -= travel;
                 if (remaining <= travel + .00001f) e.NextPoint++; else break;
             }
+            // Every centipede segment that gets through is a leak of its own.
             if (e.NextPoint == path.Length)
             {
-                e.Active = false; e.BlockedBy = 0; Leaks++; if (Options.baseDamage) BaseHealth = Math.Max(0, BaseHealth - e.Spec.leakDamage);
+                e.Active = false; e.BlockedBy = 0; e.Chain?.Segments.Remove(e); Leaks++; if (Options.baseDamage) BaseHealth = Math.Max(0, BaseHealth - e.Spec.leakDamage);
                 if (Setup.PlayerFlow && !e.Boss && currentWave.Any(g => g.Boss)) ObjectiveFailed = true; // a boss wave with a leaked minion: the boss never comes
                 Emit("leaked", e.Id, 0, e.Position, e.Spec.leakDamage);
             }

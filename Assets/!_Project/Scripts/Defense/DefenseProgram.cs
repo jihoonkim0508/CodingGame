@@ -281,6 +281,13 @@ namespace CodingGame.Defense
                     return Val.Of(Active(sim, EnemyId(Arg(0)))?.Health ?? 0); // a defeated enemy reads as 0 hp
                 case BlockKind.Shield:
                     return Val.Of(Active(sim, EnemyId(Arg(0)))?.Shield ?? 0);
+                // A centipede's ends and length; any other enemy is a centipede of one (itself). A defeated one is no enemy.
+                case BlockKind.Front: case BlockKind.Top:
+                    var segment = Active(sim, EnemyId(Arg(0)));
+                    return Val.EnemyOf(segment == null ? 0 : segment.Chain == null ? segment.Id : (block.Kind == BlockKind.Front ? segment.Chain.Front : segment.Chain.Top).Id);
+                case BlockKind.Size:
+                    var counted = Active(sim, EnemyId(Arg(0)));
+                    return Val.Of(counted == null ? 0 : counted.Chain?.Segments.Count ?? 1);
                 case BlockKind.EnemyTypeOf:
                     return Val.KindOf((int?)Active(sim, EnemyId(Arg(0)))?.Spec.type ?? -1);
                 case BlockKind.EnemyTypeName:

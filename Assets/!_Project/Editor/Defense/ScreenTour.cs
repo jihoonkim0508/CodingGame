@@ -134,6 +134,65 @@ namespace CodingGame.Defense.Editor
             Debug.Log($"[ScreenTour] 3-4 without healers and tanks (before): {sim.Phase}, core {sim.BaseHealth}, leaks {sim.WaveLeaks}");
         }
 
+        // 3-4 with the Queue and Stack centipedes: the shooter's front()/top() loop in the code editor, then each centipede on the
+        // road with its open end ringed (under the nearest-enemy code, so the chains stay long), and the wave played out three
+        // ways for comparison: TestResults/Editor/centipede/NN_*.png. Batchmode without -nographics, like RunSupportEnemies.
+        public static void RunCentipedes() => Start("TestResults/Editor/centipede", Centipedes());
+        const string StackQueue = "while True:\n    for e in get_enemies():\n        if e.type == Enemy.Stack:\n            shoot(e.top())\n" +
+            "        elif e.type == Enemy.Queue:\n            shoot(e.front())";
+        static IEnumerator Centipedes()
+        {
+            // Every shooter on the snippet plus `else: shoot(e)`, so the other enemies are shot too.
+            string withElse = StackQueue + "\n        else:\n            shoot(e)";
+            foreach (var (code, name) in new[] { (withElse, "snippet + else: shoot(e)"), (StackQueue, "snippet only"), (null, "shoot(get_nearest_enemy())") })
+            {
+                DevTest.PlayDefense(3, 4, true, Sandbox);
+                yield return Until(() => DevTest.Ready);
+                yield return Seconds(.5);
+                Deploy();
+                var battle = DevTest.Battle; var sim = battle.Simulation;
+                if (code == withElse)
+                {
+                    var shooter = sim.Robots.FirstOrDefault(r => r.Spec.role == RobotRole.Shooter) ?? sim.Robots[0];
+                    battle.SelectRobot(shooter.Id); battle.DevelopSelected();
+                    yield return Seconds(.6);
+                    Program(TutorialAnswers.Parse(StackQueue));
+                    yield return Seconds(1);
+                    Debug.Log("[ScreenTour] editor code: " + battle.CodeEditor.Panel.FunctionName + " applied " + battle.CodeEditor.Panel.IsApplied);
+                    yield return Shot("centipede_editor");
+                    battle.CodeEditor.Close();
+                }
+                if (code != null) Relaxed(() => { foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Shooter)) sim.ApplyProgram(bot.Id, "stack_queue", TutorialAnswers.Parse(code)); });
+                yield return Seconds(.3);
+                battle.StartBattle(); DevTest.Speed(3);
+                if (code == null)
+                {
+                    foreach (var type in new[] { EnemyType.Queue, EnemyType.Stack })
+                    {
+                        yield return Until(() => sim.Enemies.Count(e => e.Active && e.Spec.type == type) >= 4, 90);
+                        DevTest.Speed(1);
+                        yield return Seconds(.6);
+                        Debug.Log($"[ScreenTour] 3-4 {type}: " + string.Join(", ", sim.Enemies.Where(e => e.Active && e.Chain != null).Select(e => $"{e.Spec.type}#{e.Id}{(e.Chain.Hittable == e ? "*" : "")} hp {e.Health:0}/{e.Spec.health:0}")));
+                        yield return Shot(type == EnemyType.Queue ? "queue" : "stack"); DevTest.Speed(3);
+                    }
+                }
+                int blocked = 0, pushed = 0;
+                var kinds = new System.Collections.Generic.Dictionary<int, EnemyType>();
+                for (double end = EditorApplication.timeSinceStartup + 150; sim.Phase == BattlePhase.Running && EditorApplication.timeSinceStartup < end;)
+                {
+                    foreach (var e in sim.Enemies) kinds[e.Id] = e.Spec.type;
+                    foreach (var evt in sim.Events)
+                    {
+                        if (evt.Kind == "blocked") blocked++;
+                        if (evt.Kind == "push") pushed++;
+                        if (evt.Kind == "leaked") Debug.Log($"[ScreenTour] leaked {(kinds.TryGetValue(evt.Source, out var k) ? k.ToString() : "?")} at {sim.Time:0.0} s");
+                    }
+                    yield return null;
+                }
+                Debug.Log($"[ScreenTour] 3-4 with {name}: {sim.Phase}, core {sim.BaseHealth}, leaks {sim.WaveLeaks}, kills {sim.Kills}, blocked hits {blocked}, stack pushes {pushed} (stack segments seen {kinds.Count(k => k.Value == EnemyType.Stack)}), {sim.Time:0.0} s");
+            }
+        }
+
         // The wave to its end, logging which kinds leaked.
         static IEnumerator Outcome(DefenseSimulation sim)
         {

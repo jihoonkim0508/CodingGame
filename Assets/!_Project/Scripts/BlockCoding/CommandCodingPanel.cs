@@ -382,9 +382,10 @@ namespace CodingGame.BlockCoding
         {
             if (data.Kind == BlockKind.Attack) data = new CodeBlock(BlockKind.Shot, data.Value, data.Arguments.ToArray());
             // is_dead() and type are a variable's members only (typed after `enemy.`), like distance( and hp.
-            if ((data.Kind == BlockKind.IsDead || data.Kind == BlockKind.EnemyTypeOf || data.Kind == BlockKind.Shield) && data.Arguments.FirstOrDefault()?.Kind != BlockKind.Variable)
-                throw new FormatException(data.Kind == BlockKind.IsDead ? "is_dead()는 변수 뒤에 점을 찍어 씁니다. 예: enemy.is_dead()" : data.Kind == BlockKind.Shield ? "shield는 변수 뒤에 점을 찍어 씁니다. 예: enemy.shield" : "type은 변수 뒤에 점을 찍어 씁니다. 예: enemy.type");
-            bool variable = data.Kind == BlockKind.Variable || data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp || data.Kind == BlockKind.IsDead || data.Kind == BlockKind.EnemyTypeOf || data.Kind == BlockKind.Shield;
+            bool member = data.Kind is BlockKind.IsDead or BlockKind.EnemyTypeOf or BlockKind.Shield or BlockKind.Front or BlockKind.Top or BlockKind.Size;
+            if (member && data.Arguments.FirstOrDefault()?.Kind != BlockKind.Variable)
+                throw new FormatException(PythonTreeCompiler.Label(data.Kind) + "는 변수 뒤에 점을 찍어 씁니다. 예: enemy." + PythonTreeCompiler.Label(data.Kind));
+            bool variable = member || data.Kind == BlockKind.Variable || data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp;
             var template = variable ? variablePrefab : palette.FirstOrDefault(item => item.view.BaseKind == data.Kind).view;
             if (!template) throw new FormatException("블록 프리팹이 연결되지 않았습니다: " + data.Kind);
             var view = Instantiate(template, parent);

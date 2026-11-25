@@ -9,7 +9,8 @@ namespace CodingGame.Defense.Editor
     // Reads the lessons' answers (TutorialStep.expectedCode) into blocks: "name = get_nearest_enemy()",
     // "x = enemy.distance(get_my_pos())", "name = my_attack_range()", "slash()", "shoot(enemy)", "block(enemy)", "if a <= b:" (any comparison),
     // "if x.is_dead():", "a * b" (one of + - * /), "x.type", "Enemy.Tank", "break", "continue", "for i in range(n):" and
-    // "while True:", "for e in get_enemies():", "else:" with a body indented deeper (any width), "x.shield", "break_shield(x)".
+    // "while True:", "for e in get_enemies():", "elif ...:", "else:" with a body indented deeper (any width), "x.shield", "break_shield(x)",
+    // "x.front()", "x.top()", "x.size".
     // ponytail: only what the lesson answers use; a new answer shape needs a case here.
     public static class TutorialAnswers
     {
@@ -27,9 +28,10 @@ namespace CodingGame.Defense.Editor
                 string raw = lines[index]; int depth = raw.Length - raw.TrimStart().Length;
                 if (depth < indent) break;
                 string line = raw.Trim(); index++;
-                if (line.StartsWith("if ") && line.EndsWith(":"))
+                if ((line.StartsWith("if ") || line.StartsWith("elif ")) && line.EndsWith(":"))
                 {
-                    var block = new CodeBlock(BlockKind.If, "0", Condition(line.Substring(3, line.Length - 4)));
+                    bool elif = line.StartsWith("elif ");
+                    var block = new CodeBlock(elif ? BlockKind.Elif : BlockKind.If, "0", Condition(line.Substring(elif ? 5 : 3, line.Length - (elif ? 6 : 4))));
                     block.Body.AddRange(Suite(lines, ref index, depth + 1));
                     result.Add(block);
                 }
@@ -94,6 +96,8 @@ namespace CodingGame.Defense.Editor
             if (text == "get_my_pos()") return new CodeBlock(BlockKind.MyPos);
             if (text.StartsWith("Enemy.", StringComparison.Ordinal)) return new CodeBlock(BlockKind.EnemyTypeName, text.Substring(6));
             if (text.EndsWith(".shield", StringComparison.Ordinal)) return new CodeBlock(BlockKind.Shield, "0", new CodeBlock(BlockKind.Variable, text.Substring(0, text.Length - 7)));
+            foreach (var (member, kind) in new[] { (".front()", BlockKind.Front), (".top()", BlockKind.Top), (".size", BlockKind.Size) })
+                if (text.EndsWith(member, StringComparison.Ordinal)) return new CodeBlock(kind, "0", new CodeBlock(BlockKind.Variable, text.Substring(0, text.Length - member.Length)));
             if (text.EndsWith(".type", StringComparison.Ordinal)) return new CodeBlock(BlockKind.EnemyTypeOf, "0", new CodeBlock(BlockKind.Variable, text.Substring(0, text.Length - 5)));
             if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out _))
                 return new CodeBlock(BlockKind.Number, text);
