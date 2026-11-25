@@ -1130,7 +1130,7 @@ namespace CodingGame.Defense
             foreach (var id in goneIds) { DefenseViews.Discard(robotViews[id]); robotViews.Remove(id); }
             liveIds.Clear(); foreach (var e in Simulation.Enemies) liveIds.Add(e.Id);
             goneIds.Clear(); foreach (var id in enemyViews.Keys) if (!liveIds.Contains(id)) goneIds.Add(id);
-            foreach (var id in goneIds) { DefenseViews.Discard(enemyViews[id]); enemyViews.Remove(id); }
+            foreach (var id in goneIds) { enemyViews[id].Die(); DefenseViews.Discard(enemyViews[id]); enemyViews.Remove(id); }
             foreach (var bot in Simulation.Robots)
             {
                 // A robot placed straight into the simulation (dev tools, tests) has no view; skip it instead of throwing every frame.
@@ -1161,7 +1161,7 @@ namespace CodingGame.Defense
                 }
                 view.SyncEnemy(enemy, Simulation.Time, DefenseViews.World(enemy.Position), battleCamera.transform.rotation);
                 view.TickVisual(elapsed); view.SetPace(pace);
-                if (healthBars) healthBars.Show(enemy.Id, battleCamera, view.HealthAnchor, view.HealthWidth, enemy.Health, enemy.Spec.health);
+                if (healthBars && view.ShowsHealth) healthBars.Show(enemy.Id, battleCamera, view.HealthAnchor, view.HealthWidth, enemy.Health, enemy.Spec.health);
             }
             if (healthBars) healthBars.Flush();
         }

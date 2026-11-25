@@ -3,12 +3,13 @@ using UnityEngine;
 
 namespace CodingGame.Defense.Editor
 {
-    // Healer.asset and Shielder.asset in Defense/Data as copies of Enemy.asset (its model and icon: placeholder art until the
-    // stage-2 monsters land; DefenseActorView tints them). GameData apply puts them in the campaign when Balance.md uses them.
+    // Healer.asset and Shielder.asset in Defense/Data as copies of Enemy.asset (their own models, prefabs and icons come from
+    // SupportMonsterArt.Apply). GameData apply puts them in the campaign when Balance.md uses them.
     // Also QueueCentipede.asset and StackCentipede.asset the same way (3-4).
     public static class SupportEnemies
     {
         const string Folder = "Assets/!_Project/Defense/Data";
+        public const string StackDescription = "책이 한 권씩 쌓여 걷는 책 더미. 몇 초마다 맨 위에 새 책이 떨어집니다(최대 8권). 맨 위 책(가장 나중에 쌓인 책)만 피해를 받고, 그냥 쏘면 맨 아래 책에 막힙니다. e.top()을 노리세요.";
 
         public static void Create()
         {
@@ -19,7 +20,7 @@ namespace CodingGame.Defense.Editor
             // Centipedes: a Balance.md row is one centipede, its count the segments it starts with, its interval their spacing.
             Make("QueueCentipede", "큐 지네", "마디가 한 줄로 걷는 지네. 맨 앞 마디(가장 먼저 들어온 마디)만 피해를 받습니다. e.front()를 노리세요.",
                 new EnemySpec { type = EnemyType.Queue, health = 10, speed = 1.2f, damage = 6, attackInterval = 1.2f });
-            Make("StackCentipede", "스택 지네", "몇 초마다 꼬리에 새 마디를 쌓는 지네(최대 8마디). 맨 위 마디(가장 나중에 들어온 꼬리)만 피해를 받습니다. e.top()을 노리세요.",
+            Make("StackCentipede", "스택 지네", StackDescription,
                 new EnemySpec { type = EnemyType.Stack, health = 10, speed = 1.2f, damage = 6, attackInterval = 1.2f, abilityInterval = 4, segmentCap = 8 });
             AssetDatabase.SaveAssets();
         }

@@ -12,7 +12,7 @@ namespace CodingGame.Defense.Editor
     // so it runs in the windowed Editor, not batchmode; started from the command line it quits by itself when done:
     //   Unity.exe -projectPath . -executeMethod CodingGame.Defense.Editor.ScreenTour.Run -logFile tour.log
     // Writes TestResults/Editor/tour/NN_name.png at 1920x1080.
-    public static class ScreenTour
+    public static partial class ScreenTour
     {
         const string Folder = "TestResults/Editor/tour";
         static readonly DefenseTestOptions Sandbox = new DefenseTestOptions { tutorial = false, tutorialInput = false };

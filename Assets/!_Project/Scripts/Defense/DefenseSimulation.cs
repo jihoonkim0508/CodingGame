@@ -741,7 +741,7 @@ namespace CodingGame.Defense
             {
                 for (int i = e.Effects.Count - 1; i >= 0; i--) if (e.Effects[i].SlowUntil <= Time && e.Effects[i].StunUntil <= Time) e.Effects.RemoveAt(i);
                 if (e.BlockedBy != 0 && FindRobot(e.BlockedBy) == null) e.BlockedBy = 0;
-                if (e.Active && e.BlockedBy == 0) TryBlock(e, e.Position, e.Position, out _);
+                if (e.Active && e.BlockedBy == 0 && !InPile(e)) TryBlock(e, e.Position, e.Position, out _);
                 if (e.Active && !e.Stunned(Time)) Pulse(e);
             }
             for (int i = 0, count = Enemies.Count; i < count; i++) Push(Enemies[i]); // appends: not in the foreach
@@ -754,6 +754,8 @@ namespace CodingGame.Defense
                 else if (bot.AutoExecute) RequestAction(bot.Id, bot.Action);
             foreach (var e in Enemies)
             {
+                // A stack's books ride on its bottom book (it moved earlier in this loop: it is older).
+                if (e.Active && InPile(e)) { var bottom = e.Chain.Front; e.Position = bottom.Position; e.RouteIndex = bottom.RouteIndex; e.NextPoint = bottom.NextPoint; continue; }
                 if (!e.Active || e.Stunned(Time)) continue;
                 if (e.BlockedBy != 0)
                 {
@@ -805,12 +807,14 @@ namespace CodingGame.Defense
             }
         }
         static bool IsCentipede(EnemyType type) => type == EnemyType.Queue || type == EnemyType.Stack;
+        // A stack is a pile of books on one spot of the road: the bottom book (first in) walks, the others sit on it.
+        static bool InPile(EnemyState e) => e.Chain != null && e.Chain.Stack && e.Chain.Front != e;
         // How far apart a centipede's segments walk: one waits while it is closer than this to the one ahead (a new segment
         // starts on the tail and falls in behind it; a slowed one holds up those behind instead of being passed).
         public const float SegmentGap = .8f;
         bool Crowded(EnemyState e)
         {
-            if (e.Chain == null) return false;
+            if (e.Chain == null || e.Chain.Stack) return false;
             int at = e.Chain.Segments.IndexOf(e);
             return at > 0 && RemainingPath(e) - RemainingPath(e.Chain.Segments[at - 1]) < SegmentGap;
         }
@@ -854,13 +858,15 @@ namespace CodingGame.Defense
                 e.Position = end; distance -= travel;
                 if (remaining <= travel + .00001f) e.NextPoint++; else break;
             }
-            // Every centipede segment that gets through is a leak of its own.
+            // Every centipede segment that gets through is a leak of its own; a stack's whole pile gets through with its bottom.
             if (e.NextPoint == path.Length)
-            {
-                e.Active = false; e.BlockedBy = 0; e.Chain?.Segments.Remove(e); Leaks++; if (Options.baseDamage) BaseHealth = Math.Max(0, BaseHealth - e.Spec.leakDamage);
-                if (Setup.PlayerFlow && !e.Boss && currentWave.Any(g => g.Boss)) ObjectiveFailed = true; // a boss wave with a leaked minion: the boss never comes
-                Emit("leaked", e.Id, 0, e.Position, e.Spec.leakDamage);
-            }
+                foreach (var through in e.Chain != null && e.Chain.Stack ? e.Chain.Segments.ToArray() : new[] { e }) Leak(through);
+        }
+        void Leak(EnemyState e)
+        {
+            e.Active = false; e.BlockedBy = 0; e.Chain?.Segments.Remove(e); Leaks++; if (Options.baseDamage) BaseHealth = Math.Max(0, BaseHealth - e.Spec.leakDamage);
+            if (Setup.PlayerFlow && !e.Boss && currentWave.Any(g => g.Boss)) ObjectiveFailed = true; // a boss wave with a leaked minion: the boss never comes
+            Emit("leaked", e.Id, 0, e.Position, e.Spec.leakDamage);
         }
     }
 }

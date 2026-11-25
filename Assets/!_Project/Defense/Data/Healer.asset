@@ -27,5 +27,5 @@ MonoBehaviour:
     abilityRadius: 3
     abilityAmount: 10
     segmentCap: 8
-  prefab: {fileID: 8292641712839652615, guid: c7dc3dc2371595547a093b99754e9cb6, type: 3}
-  icon: {fileID: 2800000, guid: a7771ef093897544d826bb4841c2ffdc, type: 3}
+  prefab: {fileID: 8292641712839652615, guid: 9cdb5584ecce81741bdf0ecf3c88f845, type: 3}
+  icon: {fileID: 2800000, guid: e8b76693eeb1d9e43852fd9bd8054fd0, type: 3}
