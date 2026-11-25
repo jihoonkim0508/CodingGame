@@ -6,7 +6,7 @@ namespace CodingGame.Defense.Editor
 {
     // The 2-4 / 3-4 monsters' models and effects in real play (SupportMonsterArt): TestResults/Editor/newmonsters/ clips
     // (a_shielder.mp4: 2-4, shields and break_shield; b_healer, c_queue, d_stack: 3-4) and one still of each, 1920x1080.
-    // One shooter runs the lesson's code, the rest shoot the nearest enemy (their hits on protected segments and books spark 막힘).
+    // One shooter runs the lesson's code, the rest shoot the nearest enemy (their hits on protected segments and pile layers spark 막힘).
     // Batchmode without -nographics:
     //   Unity.exe -batchmode -projectPath . -executeMethod CodingGame.Defense.Editor.ScreenTour.RunNewMonsters -logFile new.log
     public static partial class ScreenTour
@@ -37,7 +37,7 @@ namespace CodingGame.Defense.Editor
             yield return Seconds(10);
             End();
 
-            // 3-4: healers, then the queue centipede, then the stack's pile of books.
+            // 3-4: healers, then the queue centipede, then the stack (a pile of crates), and a still of a 5+ layer pile with every shooter on the nearest enemy.
             DevTest.PlayDefense(3, 4, true, Sandbox);
             yield return Until(() => DevTest.Ready);
             yield return Seconds(.5);
@@ -68,7 +68,21 @@ namespace CodingGame.Defense.Editor
             yield return Shot("스택 책더미");
             yield return Seconds(9);
             End();
-            Debug.Log($"[ScreenTour] new monsters done: 3-4 {sim.Phase}, kills {sim.Kills}, leaks {sim.WaveLeaks}");
+            Debug.Log($"[ScreenTour] new monsters: 3-4 {sim.Phase}, kills {sim.Kills}, leaks {sim.WaveLeaks}");
+
+            // The pile grows while nobody shoots its top: every shooter on the nearest enemy (its hits spark on the base).
+            DevTest.PlayDefense(3, 4, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy();
+            sim = DevTest.Sim;
+            DevTest.Battle.StartBattle(); DevTest.Speed(3);
+            yield return Until(() => sim.Enemies.Count(e => e.Active && e.Spec.type == EnemyType.Stack) >= 5, 120);
+            DevTest.Speed(1);
+            yield return Seconds(.8);
+            Debug.Log("[ScreenTour] stack pile: " + sim.Enemies.Count(e => e.Active && e.Spec.type == EnemyType.Stack) + " layers");
+            yield return Shot("스택 층 구분");
+            Debug.Log("[ScreenTour] new monsters done");
         }
 
         static void OneShooter(DefenseSimulation sim, string code)

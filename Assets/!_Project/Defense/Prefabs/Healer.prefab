@@ -33,7 +33,7 @@ Transform:
   - {fileID: 3699468256150400847}
   - {fileID: 62339088092220130}
   - {fileID: 6317975568753763042}
-  - {fileID: 611048970631230496}
+  - {fileID: 5303000275323172387}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &8292641712839652615
@@ -49,13 +49,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.DefenseActorView
   head: {fileID: 3699468256150400847}
-  body: {fileID: 7513785898647089855}
+  body: {fileID: 3000733384277946556}
   healthRoot: {fileID: 62339088092220130}
   beam: {fileID: 3800248903327099787}
   muzzle: {fileID: 0}
   hover: {fileID: 0}
   thrusters: []
-  pulsePart: {fileID: 4028490039922944027}
+  pulsePart: {fileID: 8505884842447497752}
   parts: []
   pileBase: 0
   pileStep: 0
@@ -264,7 +264,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 8954142312228321627}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &1148515419467469771
+--- !u!1001 &5625756633839882696
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -349,18 +349,18 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 525edfcb35dc4a14c9575d366ec4ac1c, type: 3}
---- !u!4 &611048970631230496 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 525edfcb35dc4a14c9575d366ec4ac1c, type: 3}
-  m_PrefabInstance: {fileID: 1148515419467469771}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &4028490039922944027 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -5181309008066855984, guid: 525edfcb35dc4a14c9575d366ec4ac1c, type: 3}
-  m_PrefabInstance: {fileID: 1148515419467469771}
-  m_PrefabAsset: {fileID: 0}
---- !u!137 &7513785898647089855 stripped
+--- !u!137 &3000733384277946556 stripped
 SkinnedMeshRenderer:
   m_CorrespondingSourceObject: {fileID: -1750197354950549132, guid: 525edfcb35dc4a14c9575d366ec4ac1c, type: 3}
-  m_PrefabInstance: {fileID: 1148515419467469771}
+  m_PrefabInstance: {fileID: 5625756633839882696}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5303000275323172387 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 525edfcb35dc4a14c9575d366ec4ac1c, type: 3}
+  m_PrefabInstance: {fileID: 5625756633839882696}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8505884842447497752 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -5181309008066855984, guid: 525edfcb35dc4a14c9575d366ec4ac1c, type: 3}
+  m_PrefabInstance: {fileID: 5625756633839882696}
   m_PrefabAsset: {fileID: 0}

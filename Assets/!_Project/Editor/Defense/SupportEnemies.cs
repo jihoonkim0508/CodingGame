@@ -9,7 +9,7 @@ namespace CodingGame.Defense.Editor
     public static class SupportEnemies
     {
         const string Folder = "Assets/!_Project/Defense/Data";
-        public const string StackDescription = "책이 한 권씩 쌓여 걷는 책 더미. 몇 초마다 맨 위에 새 책이 떨어집니다(최대 8권). 맨 위 책(가장 나중에 쌓인 책)만 피해를 받고, 그냥 쏘면 맨 아래 책에 막힙니다. e.top()을 노리세요.";
+        public const string StackDescription = "상자가 한 층씩 쌓여 걷는 스택. 몇 초마다 맨 위에 새 층이 떨어집니다(최대 8층). 맨 위 층(가장 나중에 쌓인 층)만 피해를 받고, 그냥 쏘면 맨 아래 층에 막힙니다. e.top()을 노리세요.";
 
         public static void Create()
         {

@@ -68,8 +68,8 @@ namespace CodingGame.Defense
         [SerializeField, Tooltip("떠서 나는 몸(이속형: 모델과 발 불꽃, Tools/Develop/Runner Thrusters). 비우면 뜨지 않음")] Transform hover;
         [SerializeField] ParticleSystem[] thrusters = Array.Empty<ParticleSystem>();
         // The 2-4 / 3-4 monsters (SupportMonsterArt): the part that swells on each heal/shield cast (healer's cross, shielder's
-        // dome); a centipede's head/body/tail models or a book pile's walking bottom book and its covers, one shown per segment;
-        // how high a pile's books above the bottom one sit; the Resources/Effects/Monsters effect played where a segment ends.
+        // dome); a centipede's head/body/tail models or a pile's walking base and its layer colours, one shown per segment;
+        // how high a pile's layers above the base sit; the Resources/Effects/Monsters effect played where a segment ends.
         [SerializeField] Transform pulsePart;
         [SerializeField] GameObject[] parts = Array.Empty<GameObject>();
         [SerializeField] float pileBase, pileStep;
@@ -130,29 +130,38 @@ namespace CodingGame.Defense
             if (enemy.Chain != null)
             {
                 int at = ShowPart(enemy);
-                if (enemy.Chain.Stack && at > 0) lift = pileBase + (at - 1) * pileStep;
-                // A book drops onto the pile from above and lands with a puff; a centipede segment pops in.
                 float fall = Mathf.Clamp01((float)(time - bornAt) / .3f);
-                if (enemy.Chain.Stack && at > 0) { lift += 1.4f * (1 - fall * fall); if (fall >= 1 && !landed) { landed = true; Burst("StackPush", transform.position); } }
-                popScale = Mathf.Min(1, .3f + .7f * Mathf.Sin(Mathf.PI * .5f * fall) + .15f * Mathf.Sin(Mathf.PI * fall));
+                if (enemy.Chain.Stack && at > 0)
+                {
+                    // A layer falls onto the pile from above, faster and faster, lands with a thump (squashed flat for a
+                    // moment, a dust ring) and sits pileStep over the one below; higher layers a little narrower.
+                    lift = pileBase + (at - 1) * pileStep + 1.8f * (1 - fall * fall);
+                    if (fall >= 1 && !landed) { landed = true; Burst("StackPush", transform.position); }
+                    float since = (float)(time - bornAt) - .3f, thump = since > 0 && since < .22f ? Mathf.Sin(Mathf.PI * since / .22f) : 0;
+                    shape = new Vector3(1 + .18f * thump, 1 - .32f * thump, 1 + .18f * thump);
+                    shape.x = shape.z *= 1 - .035f * (at - 1);
+                    popScale = 1;
+                }
+                // A centipede segment (and a pile's walking base) pops in.
+                else popScale = Mathf.Min(1, .3f + .7f * Mathf.Sin(Mathf.PI * .5f * fall) + .15f * Mathf.Sin(Mathf.PI * fall));
             }
             position += Vector3.up * lift;
             ShowBubble(enemy.Shield > 0);
             bool open = enemy.Chain != null && enemy.Chain.Hittable == enemy;
-            ShowsHealth = enemy.Chain == null || !enemy.Chain.Stack || open; // a pile shows one bar, its top book's
+            ShowsHealth = enemy.Chain == null || !enemy.Chain.Stack || open; // a pile shows one bar, its top layer's
             ShowOpenEnd(open, open ? enemy.Chain.Segments.Count : 0, viewRotation, (float)time);
             Sync(position, enemy.Stunned(time), enemy.Speed(time) < enemy.Spec.speed, false);
         }
         public bool ShowsHealth { get; private set; } = true;
         double bornAt = -1; bool landed; float popScale = 1, sinceCast = float.PositiveInfinity;
+        Vector3 shape = Vector3.one; // a pile layer's squash on landing and its taper
         int part = -1;
-        // Which model a segment shows: a queue's head (front), tail (last) or body; a pile's walking bottom book or one of its
-        // covers. Each starts its walk at its own phase, so a centipede ripples and a pile sways.
+        // Which model a segment shows: a queue's head (front), tail (last) or body; a pile's walking base or a layer colour. Each starts its walk at its own phase, so a centipede ripples and a pile sways.
         int ShowPart(EnemyState enemy)
         {
             int at = enemy.Chain.Segments.IndexOf(enemy);
             if (parts.Length < 2 || at < 0) return Math.Max(0, at);
-            int want = enemy.Chain.Stack ? (at == 0 ? 0 : 1 + enemy.Id % (parts.Length - 1))
+            int want = enemy.Chain.Stack ? (at == 0 ? 0 : 1 + (at - 1) % (parts.Length - 1)) // the colours alternate up the pile
                 : at == 0 ? 0 : at == enemy.Chain.Segments.Count - 1 ? 2 : 1;
             if (want == part) return at;
             part = want;
@@ -160,8 +169,8 @@ namespace CodingGame.Defense
             body = parts[want].GetComponentInChildren<Renderer>(); shownTint = new Color(-1, -1, -1, -1);
             animator = parts[want].GetComponent<Animator>();
             if (animator) animator.Play(0, 0, enemy.Id * .37f % 1);
-            // A pile's books lie a little askew.
-            if (enemy.Chain.Stack && at > 0) parts[want].transform.localRotation = Quaternion.Euler(0, 180 + (enemy.Id * 47 % 17 - 8), 0);
+            // A pile's layers sit a little askew, alternately, so their edges show.
+            if (enemy.Chain.Stack && at > 0) parts[want].transform.localRotation = Quaternion.Euler(0, 180 + (at % 2 == 0 ? 4 : -4), 0);
             return at;
         }
         static readonly System.Collections.Generic.Dictionary<string, GameObject> effects = new System.Collections.Generic.Dictionary<string, GameObject>();
@@ -230,7 +239,7 @@ namespace CodingGame.Defense
         {
             // After the walk clip has posed the bones: the cast pulse swells its part, a new segment pops in, the open end stands bigger.
             if (pulsePart && sinceCast < .5f) pulsePart.localScale *= 1 + .7f * Mathf.Sin(Mathf.PI * sinceCast / .5f);
-            if (parts.Length > 0 && part >= 0) parts[part].transform.localScale = partScales[part] * popScale * (marker && marker.activeSelf ? 1.12f : 1);
+            if (parts.Length > 0 && part >= 0) parts[part].transform.localScale = Vector3.Scale(partScales[part], shape) * popScale * (marker && marker.activeSelf ? 1.12f : 1);
         }
         Vector3[] partScales;
         // Animation speed follows the battle clock: 0 while paused, 2-3 at 2x/3x.

@@ -33,7 +33,7 @@ Transform:
   - {fileID: 3699468256150400847}
   - {fileID: 62339088092220130}
   - {fileID: 6317975568753763042}
-  - {fileID: 3428373270949110662}
+  - {fileID: 1323595915301964301}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &8292641712839652615
@@ -49,13 +49,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.DefenseActorView
   head: {fileID: 3699468256150400847}
-  body: {fileID: 5740034440788763929}
+  body: {fileID: 8242412788394101906}
   healthRoot: {fileID: 62339088092220130}
   beam: {fileID: 3800248903327099787}
   muzzle: {fileID: 0}
   hover: {fileID: 0}
   thrusters: []
-  pulsePart: {fileID: 2519819595995626642}
+  pulsePart: {fileID: 2247980908424844569}
   parts: []
   pileBase: 0
   pileStep: 0
@@ -264,7 +264,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 8954142312228321627}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &2890957116181365869
+--- !u!1001 &1573130683562733030
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -353,18 +353,18 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 10e423c4060e9cb48b22033115a236aa, type: 3}
---- !u!4 &2519819595995626642 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -8437902111416256257, guid: 10e423c4060e9cb48b22033115a236aa, type: 3}
-  m_PrefabInstance: {fileID: 2890957116181365869}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &3428373270949110662 stripped
+--- !u!4 &1323595915301964301 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 10e423c4060e9cb48b22033115a236aa, type: 3}
-  m_PrefabInstance: {fileID: 2890957116181365869}
+  m_PrefabInstance: {fileID: 1573130683562733030}
   m_PrefabAsset: {fileID: 0}
---- !u!137 &5740034440788763929 stripped
+--- !u!4 &2247980908424844569 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8437902111416256257, guid: 10e423c4060e9cb48b22033115a236aa, type: 3}
+  m_PrefabInstance: {fileID: 1573130683562733030}
+  m_PrefabAsset: {fileID: 0}
+--- !u!137 &8242412788394101906 stripped
 SkinnedMeshRenderer:
   m_CorrespondingSourceObject: {fileID: -1750197354950549132, guid: 10e423c4060e9cb48b22033115a236aa, type: 3}
-  m_PrefabInstance: {fileID: 2890957116181365869}
+  m_PrefabInstance: {fileID: 1573130683562733030}
   m_PrefabAsset: {fileID: 0}

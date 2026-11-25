@@ -1,4 +1,4 @@
-"""The 2-4 / 3-4 support monsters (healer, shielder, queue and stack centipedes) and the reflector, as game models.
+"""The 2-4 / 3-4 support monsters (healer, shielder, queue centipede, stack pile of crates) and the reflector, as game models.
 
     blender -b --factory-startup -P build_new_monsters.py -- --game "<Unity Models/Monsters folder>" [--only healer,...] [--preview]
 
@@ -7,7 +7,7 @@ primitives in the 시안1 bug-bot style, joined into one skinned mesh (one bone 
 looping "Walk" take. Parts the game moves on its own: Cross (healer), Dome (shielder), Crystal (reflector) pulse on a cast.
 Also writes MonsterMarker.fbx (the static down-arrow over a centipede's hittable segment).
 """
-import bpy, math, os, sys, importlib.util
+import bpy, bmesh, math, os, sys, importlib.util
 from mathutils import Vector, Matrix
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -153,56 +153,74 @@ def centipede(kind, part):
     return groups, pivots
 
 
-BOOK_COVERS = (('#ff9fb8', '#ffe27a'), ('#8fd3ff', '#ffffff'), ('#b9a3ff', '#ffd2f2'), ('#9be8b0', '#fff3a8'))
+# The stack monster's layers: alternating pastel crates ("frames" of a stack), a code glyph on every side, dark outline.
+LAYERS = (('#ff9fb8', '{}'), ('#8fd3ff', '[]'), ('#ffe27a', '()'), ('#9be8b0', '</>'))
+CRATE_W, CRATE_D, CRATE_H, SEAM = 0.66, 0.58, 0.27, 0.05  # one layer: crate + a dark inset seam under it
 
 
-def book(variant, walker):
-    """One book of the stack monster's pile (a stack is a pile of books, the bottom one walking): a pastel hardcover with
-    cream pages, a spine band and a glowing title strip; the bottom book (walker) has stubby legs and angry eyes on its
-    spine (the front, -Y). Width x 0.8, depth y 0.56, 0.17 thick."""
-    cover, accent = BOOK_COVERS[variant]
-    S = mats(cover, '#4b3a6a', '#fff6e0', accent)
-    S['pages'] = P('Pages', '#fff4dc', 0.7)
-    S['title'] = P('Title', accent, 0.3, emit=0.8)
+def outlined_box(name, size, loc, m, outline, grow=0.024, bev=0.03):
+    """A bevelled box and its outline: a slightly bigger copy turned inside out (inverted hull: only its far side shows,
+    as a dark rim round the box from every angle)."""
+    inner = box(name, size, loc, m=m, bev=bev)
+    hull = box(name + 'Hull', tuple(x + 2 * grow for x in size), loc, m=outline, bev=bev + grow)
+    bm = bmesh.new()
+    bm.from_mesh(hull.data)
+    bmesh.ops.reverse_faces(bm, faces=bm.faces[:])
+    bm.to_mesh(hull.data)
+    bm.free()
+    return [inner, hull]
+
+
+def crate(variant, walker):
+    """One layer of the stack monster: a chunky pastel crate with a bold dark outline, a dark seam block under it (the
+    gap between layers) and its code glyph on all four sides. The base layer (walker) is lavender with angry eyes on its
+    front (-Y) and two stubby legs. Every layer is CRATE_H + SEAM tall, so the game stacks them pileStep apart."""
+    colour, mark = ('#b9a3ff', None) if walker else LAYERS[variant]
+    S = mats(colour, '#2b2440', '#fff6e0', '#ffffff')
+    S['outline'] = P('Outline', '#2b2440', 0.9)
+    S['top'] = P('Top', colour, 0.35)
+    S['ink'] = P('Ink', '#2b2440', 0.6)
     groups, pivots = {}, {}
-    w, d, t, lid = 0.8, 0.56, 0.17, 0.03
-    z0 = 0.16 if walker else 0.0
-    body = [box('lower', (w, d, lid), (0, 0, z0 + lid / 2), m=S['shell'], bev=0.012),
-            box('upper', (w, d, lid), (0, 0, z0 + t - lid / 2), m=S['shell'], bev=0.012),
-            box('spine', (w, lid * 1.3, t), (0, -d / 2 + lid * 0.4, z0 + t / 2), m=S['shell'], bev=0.015),
-            box('pages', (w - 0.05, d - 0.06, t - 2 * lid + 0.004), (0, 0.02, z0 + t / 2), m=S['pages'], bev=0.006),
-            box('band1', (0.05, lid * 1.45, t * 1.02), (-w * 0.34, -d / 2 + lid * 0.35, z0 + t / 2), m=S['shell2'], bev=0.006),
-            box('band2', (0.05, lid * 1.45, t * 1.02), (w * 0.34, -d / 2 + lid * 0.35, z0 + t / 2), m=S['shell2'], bev=0.006),
-            box('title', (w * 0.5, 0.1, 0.012), (0, 0.04, z0 + t + 0.004), m=S['title'], bev=0.0)]
-    groups['Body'] = body
+    z0 = 0.2 if walker else 0.0
+    w, d, h = CRATE_W, CRATE_D, CRATE_H
+    body = [box('seam', (w * 0.8, d * 0.8, SEAM + 0.01), (0, 0, z0 + SEAM / 2), m=S['outline'], bev=0.01)]
+    body += outlined_box('crate', (w, d, h), (0, 0, z0 + SEAM + h / 2), S['shell'], S['outline'])
+    # a lighter lid band so each layer's top edge catches the eye
+    body.append(box('lid', (w * 0.92, d * 0.92, 0.02), (0, 0, z0 + SEAM + h + 0.002), m=P('Lid', '#ffffff', 0.4), bev=0.008))
+    zc = z0 + SEAM + h / 2
+    if mark:
+        for yaw, off in ((0, d / 2), (180, d / 2), (90, w / 2), (-90, w / 2)):
+            place = K.Rxyz(0, 0, yaw) @ Matrix.Translation((0, -off - 0.012, zc)) @ K.Rxyz(90, 0, 0)
+            body.append(glyph('mark', mark, 0.2, S['ink'], place, depth=0.012))
     if walker:
-        for s in (1, -1):
-            p = Vector((s * 0.15, -d / 2 - 0.005, z0 + t * 0.55))
-            body.append(ell('eye', (0.07, 0.03, 0.06), p, S['eye'], 12, 8))
-            body.append(ell('shine', [0.02] * 3, p + Vector((-0.02, -0.03, 0.02)), S['shine'], 8, 6))
-            body.append(box('brow', (0.13, 0.03, 0.03), p + Vector((s * 0.01, -0.01, 0.065)), (0, -s * 20, 0), S['shell2'], bev=0.008))
-        for s, side in ((1, 'L'), (-1, 'R')):
-            hip = Vector((s * 0.22, 0.0, z0 + 0.02))
+        for sgn in (1, -1):
+            p = Vector((sgn * 0.14, -d / 2 - 0.012, zc + 0.02))
+            body.append(ell('eye', (0.075, 0.03, 0.065), p, S['eye'], 12, 8))
+            body.append(ell('shine', [0.022] * 3, p + Vector((-0.02, -0.03, 0.022)), S['shine'], 8, 6))
+            body.append(box('brow', (0.14, 0.035, 0.035), p + Vector((sgn * 0.01, -0.012, 0.075)), (0, -sgn * 20, 0), S['ink'], bev=0.008))
+        for sgn, side in ((1, 'L'), (-1, 'R')):
+            hip = Vector((sgn * 0.2, 0.0, z0 + 0.03))
             nm = f'Leg_{side}1'
-            groups[nm] = [cone_between(nm, hip, hip - Vector((0, 0, z0 - 0.05)), 0.055, 0.05, S['leg'], seg=8),
-                          ell(nm + 'f', (0.08, 0.11, 0.05), (s * 0.22, -0.03, 0.045), S['claw'], 10, 6)]
+            groups[nm] = [cone_between(nm, hip, hip - Vector((0, 0, z0 - 0.05)), 0.06, 0.055, S['leg'], seg=8),
+                          ell(nm + 'f', (0.085, 0.12, 0.055), (sgn * 0.2, -0.03, 0.05), S['claw'], 10, 6)]
             pivots[nm] = hip
+    groups['Body'] = body
     return groups, pivots
 
 
-def walk_book(t, Pp):
-    """A book in the pile wobbles (each book in the game starts at its own phase, so the pile sways); the bottom book
-    also stomps along on its two stubby legs, dipping at each step."""
+def walk_crate(t, Pp):
+    """A layer of the pile wobbles a little (each layer in the game starts at its own phase, so the pile sways); the
+    base layer also stomps along on its two stubby legs, dipping at each step."""
     w = 2 * math.pi * t / Pp['cycle']
     out = {}
     for side, off in (('L', 0.0), ('R', 0.5)):
         n = 'Leg_' + side + '1'
         if n in Pp:
             u = (t / Pp['cycle'] + off) % 1
-            dy, dz = K.step(u, 0.5, 0.08, 0.07)
+            dy, dz = K.step(u, 0.5, 0.08, 0.08)
             out[n] = Matrix.Translation((0, dy, dz))
-    bob = -0.015 * math.cos(2 * w) if 'Leg_L1' in Pp else 0.0
-    out['Body'] = Matrix.Translation((0, 0, bob)) @ K.about(Pp['Body'], K.Rxyz(2.5 * math.sin(w), 3.5 * math.sin(w + 0.8), 3 * math.sin(w)))
+    bob = -0.02 * math.cos(2 * w) if 'Leg_L1' in Pp else 0.0
+    out['Body'] = Matrix.Translation((0, 0, bob)) @ K.about(Pp['Body'], K.Rxyz(1.5 * math.sin(w), 2 * math.sin(w + 0.8), 2.5 * math.sin(w)))
     return out
 
 
@@ -288,9 +306,9 @@ NEW = {
 for part in ('head', 'body', 'tail'):
     NEW[f'queue_{part}'] = (f'MonsterQueue{part.title()}', (lambda p=part: centipede('queue', p)),
                             0.72 if part != 'head' else 0.82, walk_bugs(0.07, wiggle=9), 0.5)
-for v in range(len(BOOK_COVERS)):
-    NEW[f'book_{v}'] = (f'MonsterBook{v}', (lambda v=v: book(v, False)), 0.17, walk_book, 1.2)
-NEW['book_walker'] = ('MonsterBookWalker', lambda: book(0, True), 0.33, walk_book, 0.5)
+for v in range(len(LAYERS)):
+    NEW[f'stack_{v}'] = (f'MonsterStackLayer{v}', (lambda v=v: crate(v, False)), 0.349, walk_crate, 1.2)
+NEW['stack_base'] = ('MonsterStackBase', lambda: crate(0, True), 0.549, walk_crate, 0.5)
 for mid, (name, builder, height, walk, cycle) in NEW.items():
     K.MODELS[mid] = (name, builder, height, 'Monster_' + name)
     K.GAME[mid] = name

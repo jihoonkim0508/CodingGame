@@ -18,7 +18,10 @@ namespace CodingGame.Defense.Editor
         const string Models = "Assets/!_Project/Resources/Models/Monsters/Support/", Prefabs = "Assets/!_Project/Defense/Prefabs/",
             Data = "Assets/!_Project/Defense/Data/", Fx = "Assets/!_Project/Resources/Effects/Monsters/", FxArt = "Assets/!_Project/Defense/Effects/Monsters/";
         // How much bigger than the Blender units each monster stands on the road (Enemy.prefab is scale 1; the glitch normal is 1.35 tall).
-        const float Scale = 1.7f, QueueScale = 1.3f, BookScale = 1.7f;
+        const float Scale = 1.7f, QueueScale = 1.3f, StackScale = 1.5f;
+        // The stack's crates (build_new_monsters.py): a layer is CRATE_H + SEAM = .32 tall, the walking base's crate top .525
+        // over its feet (in Blender units; the models' own origin is their lowest point).
+        const float LayerStep = .32f, BaseTop = .525f;
 
         [Serializable] sealed class Info { public float height = 1, speed, cycle, emission = 1; }
 
@@ -31,14 +34,13 @@ namespace CodingGame.Defense.Editor
             Single("Shielder", "MonsterShielder", "Dome");
             Single("Reflector", "MonsterReflector", "Crystal");
             Parts("QueueCentipede", QueueScale, new[] { "MonsterQueueHead", "MonsterQueueBody", "MonsterQueueTail" }, 0, 0);
-            var walker = Info_("MonsterBookWalker"); var book = Info_("MonsterBook0");
-            Parts("StackCentipede", BookScale, new[] { "MonsterBookWalker", "MonsterBook0", "MonsterBook1", "MonsterBook2", "MonsterBook3" },
-                walker.height * BookScale, book.height * BookScale);
+            Parts("StackCentipede", StackScale, new[] { "MonsterStackBase", "MonsterStackLayer0", "MonsterStackLayer1", "MonsterStackLayer2", "MonsterStackLayer3" },
+                BaseTop * StackScale, LayerStep * StackScale);
             foreach (var name in new[] { "Healer", "Shielder", "QueueCentipede", "StackCentipede" })
             {
                 var definition = AssetDatabase.LoadAssetAtPath<EnemyDefinition>(Data + name + ".asset");
                 definition.prefab = AssetDatabase.LoadAssetAtPath<GameObject>(Prefabs + name + ".prefab").GetComponent<DefenseActorView>();
-                if (name == "StackCentipede") definition.description = SupportEnemies.StackDescription; // a pile of books now, not a centipede
+                if (name == "StackCentipede") definition.description = SupportEnemies.StackDescription; // a pile of crates now, not a centipede
                 EditorUtility.SetDirty(definition);
             }
             AssetDatabase.SaveAssets();
@@ -149,8 +151,8 @@ namespace CodingGame.Defense.Editor
             finally { PrefabUtility.UnloadPrefabContents(root); }
         }
 
-        // A centipede's head/body/tail models, or a pile's walking bottom book and its four covers, side by side under the
-        // view (DefenseActorView shows the one the segment is); pileBase/pileStep: how high the books above the bottom one sit.
+        // A centipede's head/body/tail models, or a pile's walking base crate and its four layer colours, side by side under the
+        // view (DefenseActorView shows the one the segment is); pileBase/pileStep: how high the layers above the base sit.
         static void Parts(string enemy, float scale, string[] models, float pileBase, float pileStep)
         {
             var root = Open(enemy);
@@ -309,7 +311,7 @@ namespace CodingGame.Defense.Editor
                 shape: ParticleSystemShapeType.Hemisphere, radius: .4f);
             Save(cast, "ShieldCast");
 
-            // 막힘: grey-white sparks glancing off and a quick dull flash (a hit on a protected segment or book).
+            // 막힘: grey-white sparks glancing off and a quick dull flash (a hit on a protected segment or pile layer).
             var blocked = System("BlockedSpark", null, spark, 10, new Vector2(.18f, .3f), new Vector2(3f, 5f), new Vector2(.12f, .2f), Fade(white, new Color(.6f, .65f, .7f), .3f),
                 ParticleSystemRenderMode.Stretch, gravity: 1.5f, shape: ParticleSystemShapeType.Hemisphere, radius: .05f);
             blocked.transform.localRotation = Quaternion.Euler(-90, 0, 0);
@@ -317,16 +319,16 @@ namespace CodingGame.Defense.Editor
             System("Ring", blocked.transform, ring, 1, new Vector2(.25f, .25f), Vector2.zero, new Vector2(1.2f, 1.2f), Fade(new Color(.8f, .85f, .95f), white, .2f), grow: Out(.3f), radius: 0);
             Save(blocked, "BlockedSpark");
 
-            // A book landing on the pile: a flat dust ring and a few paper-coloured puffs.
-            var land = System("StackPush", null, smoke, 8, new Vector2(.35f, .5f), new Vector2(1f, 1.8f), new Vector2(.3f, .5f), Fade(cream, cream, .3f),
-                shape: ParticleSystemShapeType.Circle, radius: .3f);
-            System("Ring", land.transform, ring, 1, new Vector2(.35f, .35f), Vector2.zero, new Vector2(1.8f, 1.8f), Fade(white, cream, .2f),
+            // A layer landing on the pile with a thump: a wide flat dust ring, puffs and stars.
+            var land = System("StackPush", null, smoke, 12, new Vector2(.35f, .55f), new Vector2(1.5f, 2.6f), new Vector2(.35f, .6f), Fade(cream, cream, .3f),
+                shape: ParticleSystemShapeType.Circle, radius: .45f);
+            System("Ring", land.transform, ring, 1, new Vector2(.35f, .35f), Vector2.zero, new Vector2(2.8f, 2.8f), Fade(white, cream, .2f),
                 ParticleSystemRenderMode.HorizontalBillboard, grow: Out(.3f), radius: 0);
             System("Stars", land.transform, star, 5, new Vector2(.3f, .45f), new Vector2(1.5f, 2.5f), new Vector2(.12f, .2f), Fade(white, new Color(1, .9f, .5f), .3f),
                 shape: ParticleSystemShapeType.Circle, radius: .3f);
             Save(land, "StackPush");
 
-            // A segment or book done for: a white pop, stars and a smoke puff.
+            // A segment or pile layer done for: a white pop, stars and a smoke puff.
             var death = System("SegmentDeath", null, glow, 1, new Vector2(.2f, .2f), Vector2.zero, new Vector2(1.8f, 1.8f), Fade(white, white, .2f), radius: 0);
             System("Stars", death.transform, star, 12, new Vector2(.35f, .6f), new Vector2(2.5f, 4f), new Vector2(.15f, .3f), Fade(white, new Color(1, .85f, .5f), .4f),
                 gravity: 1, radius: .2f);
