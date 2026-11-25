@@ -24,6 +24,7 @@ static class Check
         }
         string output = args.Length > 0 ? args[0] : Path.Combine(Path.GetTempPath(), "CodingGame-BlockCoding-check.json");
         TreeCheck.Run(programs);
+        ModeCheck.Run();
         File.WriteAllText(output, System.Text.Json.JsonSerializer.Serialize(programs));
         Console.WriteLine("PASS: block compiler checks; all BlockCoding scripts compiled. Python fixtures: " + output);
     }

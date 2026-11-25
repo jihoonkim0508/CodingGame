@@ -9,7 +9,7 @@ using UnityEngine.UI;
 namespace CodingGame.BlockCoding
 {
     public sealed class CommandBlockView : MonoBehaviour, ILayoutElement, ILayoutGroup,
-        IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler, IPointerDownHandler
+        IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerClickHandler, IPointerDownHandler, IPointerEnterHandler, IPointerExitHandler
     {
         [SerializeField] BlockKind kind;
         [SerializeField] RectTransform rect;
@@ -32,8 +32,14 @@ namespace CodingGame.BlockCoding
         bool HasDot => kind == BlockKind.Variable && input && input.text.EndsWith(".", StringComparison.Ordinal);
         // Dropdown after `name.`: distance(position), the read-only hp and type properties, is_dead() (a condition: the block
         // turns into a logic block; there is no is_dead() block of its own in the palette). Read by the shown name, since the
-        // members not handed out yet are left out of the list.
-        string Member => HasDot && dropdown.value > 0 && dropdown.value < dropdown.options.Count ? dropdown.options[dropdown.value].text : null;
+        // members not handed out yet are left out of the list; in the 자연어 tab the name is its words (ShownMethod).
+        string Member => HasDot && dropdown.value > 0 && dropdown.value < dropdown.options.Count ? MethodOf(dropdown.options[dropdown.value].text) : null;
+        static string MethodOf(string shown) { int i = Array.FindIndex(MemberKinds, k => NaturalMember(k) == shown); return i >= 0 ? Methods[i] : shown; }
+        string ShownMethod(string method) => naturalShown ? NaturalMember(MemberKinds[Array.IndexOf(Methods, method)]) : method;
+        // The member's words between the variable and its argument: "의 체력", "와(과)".
+        static string NaturalMember(BlockKind member) => NaturalParts(PythonTreeCompiler.Natural(member))[1];
+        static string[] NaturalParts(string template) => template == null ? new string[0] :
+            System.Text.RegularExpressions.Regex.Split(template, @"\{[^}]*\}").Select(part => part.Trim()).ToArray();
         public BlockKind Kind { get { int member = Array.IndexOf(Methods, Member); return member < 0 ? kind : MemberKinds[member]; } }
         public BlockKind BaseKind => kind;
         public CommandDropZone Body => body;
@@ -133,7 +139,120 @@ namespace CodingGame.BlockCoding
             }
             if (kind == BlockKind.Variable) RefreshVariableOptions(); else RefreshShape();
             SetDragAppearance(false);
+            ShowNatural(panel.Mode == CodingMode.Natural);
         }
+
+        // 자연어 tab (Docs/코딩_모드_3탭.md): the same block in Korean words. The Python labels and bracket glyphs of the header
+        // hide and word labels show between the slots and fields (PythonTreeCompiler.Natural); pickers show their words. Kept
+        // in serialized fields so a copy (Instantiate) keeps them.
+        [SerializeField, HideInInspector] bool naturalShown, naturalBuilt;
+        [SerializeField, HideInInspector] List<GameObject> pythonLabels = new List<GameObject>(), naturalLabels = new List<GameObject>();
+        public void ShowNatural(bool natural)
+        {
+            if (natural && !naturalBuilt) BuildNatural();
+            bool changed = natural != naturalShown;
+            naturalShown = natural;
+            foreach (var label in pythonLabels) if (label) label.SetActive(!natural);
+            foreach (var label in naturalLabels) if (label) label.SetActive(natural);
+            if (dropdown && kind != BlockKind.Variable && (kind == BlockKind.Comparison || kind == BlockKind.EnemyTypeName))
+            {
+                int value = dropdown.value;
+                dropdown.ClearOptions();
+                dropdown.AddOptions(new List<string>(kind == BlockKind.Comparison ? natural ? PythonTreeCompiler.NaturalComparisons : PythonTreeCompiler.Comparisons
+                    : natural ? PythonTreeCompiler.NaturalEnemyTypes : PythonTreeCompiler.EnemyTypes));
+                dropdown.SetValueWithoutNotify(value); dropdown.RefreshShownValue(); FitDropdown(dropdown);
+            }
+            if (kind == BlockKind.Variable && changed) RefreshVariableOptions();
+            foreach (var zone in arguments) if (zone) zone.ShowNatural(natural);
+            if (changed) LayoutRebuilder.MarkLayoutForRebuild(rect);
+        }
+        void BuildNatural()
+        {
+            naturalBuilt = true;
+            var template = PythonTreeCompiler.Natural(kind == BlockKind.Attack ? BlockKind.Shot : kind);
+            if (template != null) Words(header, NaturalParts(template), SlotNames(template));
+            // enemy.distance(pos): "와(과)" is the picker's; the words after the position go in the argument row.
+            var distance = PythonTreeCompiler.Natural(BlockKind.Distance);
+            if (methodArguments) Words((RectTransform)methodArguments.transform, new[] { "", NaturalParts(distance)[2] }, new[] { SlotNames(distance)[1] });
+        }
+        static string[] SlotNames(string template) => System.Text.RegularExpressions.Regex.Matches(template, @"\{([^}]*)\}")
+            .Cast<System.Text.RegularExpressions.Match>().Select(m => m.Groups[1].Value).ToArray();
+        // parts[i] goes before the i-th slot or field of row, the last part after the last one; an empty slot shows names[i].
+        void Words(RectTransform row, string[] parts, string[] names)
+        {
+            var style = row.GetComponentsInChildren<TMP_Text>(true).FirstOrDefault(t => t.transform.parent == row);
+            var fields = new List<Transform>();
+            foreach (Transform child in row)
+            {
+                if (child.GetComponent<CommandDropZone>() || child.GetComponent<TMP_InputField>() || child.GetComponent<TMP_Dropdown>() || child.gameObject == methodArguments) fields.Add(child);
+                else if (child.gameObject.activeSelf && (child.GetComponent<TMP_Text>() || child.GetComponent<CommandParenthesis>())) pythonLabels.Add(child.gameObject);
+            }
+            for (int i = 0; i < Math.Min(fields.Count, names.Length); i++)
+                if (fields[i].TryGetComponent<CommandDropZone>(out var slot)) slot.SetNaturalHint(names[i]);
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (parts[i].Length == 0) continue;
+                var label = style ? Instantiate(style, row) : new GameObject("Word", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TMP_Text>();
+                label.name = "Natural"; label.transform.SetParent(row, false);
+                // A copied bracket label keeps its fixed width: the words would run over the next piece.
+                if (label.TryGetComponent<LayoutElement>(out var fixedWidth)) fixedWidth.enabled = false;
+                label.text = parts[i]; label.alignment = TextAlignmentOptions.Center; label.raycastTarget = false;
+                if (!style && UITheme.Bold) { label.font = UITheme.Bold; label.fontSize = 17; label.color = UITheme.Ink; }
+                label.transform.SetSiblingIndex(i < fields.Count ? fields[i].GetSiblingIndex() : row.childCount - 1);
+                naturalLabels.Add(label.gameObject);
+            }
+        }
+
+        // 오류 (red) or 에러 (yellow) on this line: a thick frame round its header and a ! badge at its left edge. Neither takes
+        // pointer hits, so dragging and slots work as before; the panel shows the message on hover.
+        [SerializeField, HideInInspector] CommandProblemFrame problemFrame;
+        [SerializeField, HideInInspector] Image problemBadge;
+        public string Problem { get; private set; }
+        public bool ProblemIsError { get; private set; }
+        public void SetProblem(string message, bool error)
+        {
+            Problem = message; ProblemIsError = error;
+            if (message == null) { if (problemFrame) { problemFrame.gameObject.SetActive(false); problemBadge.gameObject.SetActive(false); } return; }
+            if (!problemFrame)
+            {
+                problemFrame = new GameObject("Problem", typeof(RectTransform), typeof(CommandProblemFrame), typeof(LayoutElement)).GetComponent<CommandProblemFrame>();
+                problemFrame.GetComponent<LayoutElement>().ignoreLayout = true;
+                problemFrame.rectTransform.SetParent(rect, false);
+                problemFrame.raycastTarget = false;
+                problemBadge = new GameObject("Badge", typeof(RectTransform), typeof(Image), typeof(LayoutElement)).GetComponent<Image>();
+                problemBadge.GetComponent<LayoutElement>().ignoreLayout = true;
+                problemBadge.rectTransform.SetParent(rect, false);
+                problemBadge.sprite = UITheme.Circle; problemBadge.raycastTarget = true; // clicked, it shows the message again
+                var mark = new GameObject("Mark", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+                mark.rectTransform.SetParent(problemBadge.rectTransform, false);
+                mark.rectTransform.anchorMin = Vector2.zero; mark.rectTransform.anchorMax = Vector2.one; mark.rectTransform.offsetMin = mark.rectTransform.offsetMax = Vector2.zero;
+                if (UITheme.Bold) mark.font = UITheme.Bold;
+                mark.text = "!"; mark.fontSize = 17; mark.alignment = TextAlignmentOptions.Center; mark.raycastTarget = false;
+            }
+            var color = error ? ErrorColor : WarningColor;
+            problemFrame.color = color; problemBadge.color = color;
+            problemBadge.GetComponentInChildren<TMP_Text>().color = error ? Color.white : UITheme.Ink;
+            problemFrame.gameObject.SetActive(true); problemBadge.gameObject.SetActive(true);
+            // A copy (Instantiate) keeps the badge but not its listener.
+            if (!problemBadge.TryGetComponent<Button>(out var again)) again = problemBadge.gameObject.AddComponent<Button>();
+            again.onClick.RemoveAllListeners(); again.onClick.AddListener(() => { if (Panel) Panel.ReshowProblem(this); });
+            problemFrame.transform.SetAsLastSibling(); problemBadge.transform.SetAsLastSibling();
+            PlaceProblem();
+        }
+        public static readonly Color ErrorColor = new Color(.93f, .2f, .22f), WarningColor = new Color(1f, .78f, .1f);
+        void PlaceProblem()
+        {
+            if (!problemFrame || !problemFrame.gameObject.activeSelf) return;
+            const float Out = 4;
+            var frame = problemFrame.rectTransform;
+            frame.anchorMin = new Vector2(0, 1); frame.anchorMax = Vector2.one; frame.pivot = new Vector2(.5f, 1);
+            frame.offsetMin = new Vector2(-Out, -headHeight - Out); frame.offsetMax = new Vector2(Out, Out);
+            var badge = problemBadge.rectTransform;
+            badge.anchorMin = badge.anchorMax = new Vector2(0, 1); badge.pivot = new Vector2(.5f, .5f);
+            badge.sizeDelta = new Vector2(22, 22); badge.anchoredPosition = new Vector2(-Out, -headHeight * .5f);
+        }
+        public void OnPointerEnter(PointerEventData e) { if (Panel && !IsPalette && !readOnlyPreview) Panel.HoverProblem(this, true); }
+        public void OnPointerExit(PointerEventData e) { if (Panel && !IsPalette && !readOnlyPreview) Panel.HoverProblem(this, false); }
 
         void InputChanged(string value)
         {
@@ -176,13 +295,15 @@ namespace CodingGame.BlockCoding
             bool Offered(int i) => Methods[i] == chosen || MemberKinds[i] != BlockKind.IsDead && MemberKinds[i] != BlockKind.EnemyTypeOf ||
                 (Panel?.IsAvailable?.Invoke(MemberKinds[i] == BlockKind.IsDead ? BlockKind.IsDead : BlockKind.EnemyTypeName) ?? true);
             if (chosen != null || (Panel && Panel.IsEnemyVariable(VariableName)))
-                options.AddRange(Methods.Where((_, i) => Offered(i)));
+                options.AddRange(Methods.Where((_, i) => Offered(i)).Select(ShownMethod));
             else options[0] = "사용 가능한 메서드 없음";
             dropdown.ClearOptions();
             dropdown.AddOptions(options);
-            dropdown.SetValueWithoutNotify(HasDot && chosen != null ? Mathf.Max(0, options.IndexOf(chosen)) : 0);
+            dropdown.SetValueWithoutNotify(HasDot && chosen != null ? Mathf.Max(0, options.IndexOf(ShownMethod(chosen))) : 0);
             dropdown.RefreshShownValue();
             dropdown.gameObject.SetActive(HasDot);
+            // 자연어: "enemy 의 체력", the dot of `enemy.` not drawn.
+            input.textComponent.maxVisibleCharacters = naturalShown && HasDot ? input.text.Length - 1 : 99999;
             RefreshShape();
             LayoutRebuilder.MarkLayoutForRebuild(rect);
         }
@@ -398,6 +519,7 @@ namespace CodingGame.BlockCoding
             SetLayoutHorizontal();
             shape.HeaderHeight = headHeight;
             shape.SetVerticesDirty();
+            PlaceProblem();
         }
         public static void Place(RectTransform child, float x, float y, float width, float height)
         {
