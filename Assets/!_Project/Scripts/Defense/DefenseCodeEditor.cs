@@ -56,6 +56,8 @@ namespace CodingGame.Defense
             if (hintButton) hintButton.onClick.AddListener(ToggleHint);
             SetHint(null);
             if (!baked) Bake();
+            panel.ActionWarning = ActionWarning;
+            panel.AddModeTabs(automaticButton);
             editorRoot.SetActive(false);
         }
         // The top row's buttons together at the right (play feedback 3: 비우기 sat 130 px from 닫기): 닫기, then 비우기, then the
@@ -117,6 +119,8 @@ namespace CodingGame.Defense
             title.text = "미리보기 · " + battle.RobotName(id);
             battle.BeginCodeView(robot);
             editorRoot.SetActive(true); UISound.Play("open");
+            // A lesson's steps point at blocks: it opens on the 블록 tab (the player may still switch).
+            if (battle.InTutorial) panel.UseMode(CodingMode.Block);
             if (drafts.TryGetValue(id, out var history)) panel.LoadHistory(history);
             else panel.LoadProgram(robot.Program?.Name ?? "robot_" + id, robot.Program?.CopyBlocks() ?? Array.Empty<CodeBlock>());
             panel.ShowCategory(1); panel.RefreshPalette();
@@ -139,6 +143,24 @@ namespace CodingGame.Defense
             battle.NotifyCodeApplied(editingId, blocks.Count == 0);
             return blocks.Count == 0 ? "코드 없음 · 행동하지 않음" : "자동 적용됨";
         }
+        // 에러 (Docs/코딩_모드_3탭.md): an action block that runs on this robot but will not work as meant, by Rules.Compatibility.
+        string ActionWarning(BlockKind kind)
+        {
+            var robot = HasCurrentSession ? editingSession.FindRobot(editingId) : null;
+            if (robot == null) return null;
+            foreach (RobotAction action in Enum.GetValues(typeof(RobotAction)))
+            {
+                if (DefenseProgression.ActionBlock(action) != DefenseProgression.Canonical(kind)) continue;
+                string call = (action == RobotAction.Attack ? "shoot" : action.ToString().ToLowerInvariant()) + "()";
+                switch (editingSession.Compatibility(robot, action))
+                {
+                    case ActionCompatibility.Ineffective: return "이 로봇은 " + call + "을(를) 해도 효과가 없어요";
+                    case ActionCompatibility.Undecided: return call + "은(는) 이 로봇에게 허락되지 않아 동작하지 않아요";
+                    case ActionCompatibility.Reduced: return call + "은(는) 이 로봇의 기술이 아니라 약하게 들어가요";
+                }
+            }
+            return null;
+        }
         void OnBlockDropped(BlockKind kind, RectTransform source, RectTransform destination)
             => battle.ReportTutorialDrop(source, destination, "BlockDropped:" + DefenseProgression.Canonical(kind));
         public void Close(bool resume = true)
@@ -146,7 +168,10 @@ namespace CodingGame.Defense
             if (resume && !battle.TutorialAllows("Editor.Close")) return;
             bool wasOpen = IsOpen;
             if (IsOpen && HasCurrentSession && editingSession.Robots.Exists(r => r.Id == editingId))
+            {
+                panel.FlushPython(); // typed less than the pause before closing
                 drafts[editingId] = panel.History;
+            }
             if (IsOpen) { battle.EndCodeView(); UISound.Play("close"); }
             if (editorRoot) editorRoot.SetActive(false);
             editingId = 0; editingSession = null;
@@ -557,6 +582,8 @@ namespace CodingGame.Defense
             var keyboard = Keyboard.current;
             if (keyboard == null) return;
             // In a lesson Esc opens the menu over the editor; closing the editor there would leave the step behind.
+            // Esc on the Python tab's completion list closes only the list.
+            if (keyboard.escapeKey.wasPressedThisFrame && (panel.CompletionOpen || panel.CompletionWasOpen)) { panel.CloseCompletion(); return; }
             if (keyboard.escapeKey.wasPressedThisFrame) { if (battle.InTutorial) battle.ToggleMenu(); else Close(); return; }
             if (battle.TutorialBlocksInput) return;
             // 텍스트 입력 중에는 입력창 단축키를 유지하고, 그 밖에서만 블록 실행 취소를 처리합니다.
