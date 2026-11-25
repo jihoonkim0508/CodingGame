@@ -80,7 +80,7 @@ namespace CodingGame
         // Loading screen: true while the screen is covered for a scene change. Intros that run on their own clock (the map's
         // build, the title, 디버's typing, the system alert) wait for it, so they start when the scene shows.
         public static bool Loading { get; private set; }
-        const float LoadingMinSeconds = 1; // once shown, the loading screen stays this long (real time) even for a quick load
+        const float LoadingMinSeconds = 1.5f; // once shown, the loading screen stays this long (real time) even for a quick load
         // Assets/ThisIsCodingLoading (the team's loading screen), a nested canvas drawn above the fade.
         GameObject loadingScreen;
         float loadingShownAt;
