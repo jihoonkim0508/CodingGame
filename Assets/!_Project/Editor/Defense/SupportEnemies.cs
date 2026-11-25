@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -5,7 +6,9 @@ namespace CodingGame.Defense.Editor
 {
     // Healer.asset and Shielder.asset in Defense/Data as copies of Enemy.asset (its model and icon: placeholder art until the
     // stage-2 monsters land; DefenseActorView tints them). GameData apply puts them in the campaign when Balance.md uses them.
-    // Also QueueCentipede.asset and StackCentipede.asset the same way (3-4).
+    // Also QueueCentipede.asset and StackCentipede.asset the same way (3-4), and TreeLegion.asset (3-3) with its own models:
+    // TreeLegion.prefab (the root) and TreeLegionNode.prefab (the nodes below it) from the Blender models in
+    // Defense/Models/TreeLegion (Art~/TreeLegion/tree_legion.py), each a copy of Enemy.prefab with its model swapped.
     public static class SupportEnemies
     {
         const string Folder = "Assets/!_Project/Defense/Data";
@@ -21,7 +24,52 @@ namespace CodingGame.Defense.Editor
                 new EnemySpec { type = EnemyType.Queue, health = 10, speed = 1.2f, damage = 6, attackInterval = 1.2f });
             Make("StackCentipede", "스택 지네", "몇 초마다 꼬리에 새 마디를 쌓는 지네(최대 8마디). 맨 위 마디(가장 나중에 들어온 꼬리)만 피해를 받습니다. e.top()을 노리세요.",
                 new EnemySpec { type = EnemyType.Stack, health = 10, speed = 1.2f, damage = 6, attackInterval = 1.2f, abilityInterval = 4, segmentCap = 8 });
+            // A tree legion: a Balance.md row's count is how many trees, each a whole tree of random shape (TreeNode.Roll).
+            // ponytail: its wave-panel icon is still Enemy.asset's; render a tree icon when the art is final.
+            Make("TreeLegion", "군단 트리", "대장(뿌리) 아래로 가지가 갈라진 이진 트리. 자식이 살아 있는 마디는 피해를 받지 않으니 잎부터 쓰러뜨리세요. " +
+                "get_enemies()에는 대장만 나옵니다. e.left·e.right로 내려가세요.",
+                new EnemySpec { type = EnemyType.Tree, health = 14, speed = .9f, damage = 6, attackInterval = 1.2f });
+            var tree = AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"{Folder}/TreeLegion.asset");
+            tree.prefab = TreeModel("TreeLegion", 1.5f); tree.nodePrefab = TreeModel("TreeLegionNode", .45f);
+            EditorUtility.SetDirty(tree);
             AssetDatabase.SaveAssets();
+        }
+        // Enemy.prefab with its Model swapped for the tree model (one palette material), the health bar at barHeight.
+        static DefenseActorView TreeModel(string name, float barHeight)
+        {
+            const string models = "Assets/!_Project/Defense/Models/TreeLegion";
+            // The palette is 4x4 cells the UVs sit in: no filtering, mipmaps or compression to blend them.
+            var palette = (TextureImporter)AssetImporter.GetAtPath($"{models}/TreePalette.png");
+            if (palette.filterMode != FilterMode.Point)
+            {
+                palette.filterMode = FilterMode.Point; palette.mipmapEnabled = false; palette.textureCompression = TextureImporterCompression.Uncompressed;
+                palette.SaveAndReimport();
+            }
+            var material = AssetDatabase.LoadAssetAtPath<Material>($"{models}/TreeLegion.mat");
+            if (!material)
+            {
+                material = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = "TreeLegion" };
+                material.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>($"{models}/TreePalette.png"));
+                material.SetColor("_BaseColor", Color.white); material.SetFloat("_Smoothness", .35f);
+                AssetDatabase.CreateAsset(material, $"{models}/TreeLegion.mat");
+            }
+            var root = PrefabUtility.LoadPrefabContents("Assets/!_Project/Defense/Prefabs/Enemy.prefab");
+            try
+            {
+                Object.DestroyImmediate(root.transform.Find("Model").gameObject);
+                var model = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>($"{models}/{name}.fbx"), root.transform);
+                model.name = "Model";
+                foreach (var r in model.GetComponentsInChildren<Renderer>()) r.sharedMaterial = material;
+                var view = root.GetComponent<DefenseActorView>();
+                var fields = new SerializedObject(view);
+                fields.FindProperty("body").objectReferenceValue = model.GetComponentsInChildren<Renderer>().OrderByDescending(r => r.bounds.size.sqrMagnitude).First();
+                fields.ApplyModifiedPropertiesWithoutUndo();
+                var bar = (Transform)fields.FindProperty("healthRoot").objectReferenceValue;
+                bar.localPosition = new Vector3(0, barHeight, 0);
+                ((Transform)fields.FindProperty("head").objectReferenceValue).localPosition = new Vector3(0, barHeight * .8f, 0);
+                return PrefabUtility.SaveAsPrefabAsset(root, $"Assets/!_Project/Defense/Prefabs/{name}.prefab").GetComponent<DefenseActorView>();
+            }
+            finally { PrefabUtility.UnloadPrefabContents(root); }
         }
         static void Make(string file, string name, string description, EnemySpec stats)
         {

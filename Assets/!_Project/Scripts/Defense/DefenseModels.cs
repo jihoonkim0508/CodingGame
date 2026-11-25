@@ -7,7 +7,7 @@ namespace CodingGame.Defense
 {
     public enum RobotRole { Buffer, Warrior, Tank, Bomber, Shooter, Utility }
     public enum RobotAction { Buff, Slash, Block, Boom, Attack, Slow, BreakShield }
-    public enum EnemyType { Normal, Fast, Tank, Healer, Shielder, Queue, Stack }
+    public enum EnemyType { Normal, Fast, Tank, Healer, Shielder, Queue, Stack, Tree }
     public enum ActionCompatibility { Native, Reduced, Ineffective, Undecided }
     public enum BattlePhase { Ready, Running, Paused, Victory, Defeat, Reward }
     public enum ActionResult { Executed, CoolingDown, NoTarget, Ineffective, Undecided, Unavailable }
@@ -162,6 +162,7 @@ namespace CodingGame.Defense
         public SpawnGroup[][] Waves;
         // 0은 스테이지가 없는 독립 전투/미리보기입니다.
         public int Stage;
+        public int TreeSeed; // added to every tree legion's seed (TreeNode.Roll): a check picks a tree's shape with it
         public int BaseHealth = 12, RobotLimit = 18;
         public bool PlayerFlow;
         public DefenseProgression Progression = new DefenseProgression();
@@ -278,6 +279,7 @@ namespace CodingGame.Defense
         public double NextAttack, NextAbility, LastAbility = double.NegativeInfinity; // Healer/Shielder pulses
         public bool Active = true;
         public Centipede Chain; // a Queue/Stack segment's centipede, else null
+        public TreeNode Node; // a Tree legion's node (its root included), else null
         public readonly List<MovementEffect> Effects = new List<MovementEffect>();
         public bool Stunned(double time) { for (int i = 0; i < Effects.Count; i++) if (Effects[i].StunUntil > time) return true; return false; }
         public float Speed(double time)
@@ -296,6 +298,35 @@ namespace CodingGame.Defense
         public EnemyState Front => Segments.Count > 0 ? Segments[0] : null;
         public EnemyState Top => Segments.Count > 0 ? Segments[Segments.Count - 1] : null;
         public EnemyState Hittable => Stack ? Top : Front;
+    }
+    // A tree legion (Enemy.Tree): one spawn is a whole binary tree, each node its own EnemyState with its own HP. Only the root
+    // (대장) walks and is listed by get_enemies()/get_nearest_enemy(); the other nodes ride on it and are reached through
+    // e.left / e.right. Only a node without living children takes damage (leaves first).
+    public sealed class TreeNode
+    {
+        public EnemyState Root, Parent, Left, Right;
+        public int Depth = 1, Slot; // the root is depth 1, slot 0; the children of (d, s) are (d + 1, 2s) and (d + 1, 2s + 1)
+        public bool Open => !(Left != null && Left.Active) && !(Right != null && Right.Active);
+        public const int MaxDepth = 4;
+        // One tree's shape, (depth, slot) per node, root first and every parent before its children. The depth is 1..maxDepth,
+        // each equally likely; one random path from the root reaches it, every other child of a node above it grows with
+        // probability 1/2. The same seed gives the same tree (xorshift32, so Unity and the .NET checks agree).
+        public static List<(int depth, int slot)> Roll(uint seed, out int depth, int maxDepth = MaxDepth)
+        {
+            uint state = (seed ^ 0x9E3779B9u) * 2654435761u; if (state == 0) state = 1;
+            int Next(int n) { state ^= state << 13; state ^= state >> 17; state ^= state << 5; return (int)(state % (uint)n); }
+            Next(2); Next(2); // a few turns, so nearby seeds part
+            depth = 1 + Next(maxDepth); int end = Next(1 << (depth - 1)); // end: the slot the sure path reaches at that depth
+            var nodes = new List<(int depth, int slot)> { (1, 0) };
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                var (d, s) = nodes[i];
+                if (d == depth) continue;
+                for (int side = 0; side < 2; side++)
+                    if (end >> (depth - d - 1) == 2 * s + side || Next(2) == 0) nodes.Add((d + 1, 2 * s + side));
+            }
+            return nodes;
+        }
     }
     // How a wave stood when it started, so a lost wave can be tried again with the same robots, code and coins.
     public sealed class WaveCheckpoint

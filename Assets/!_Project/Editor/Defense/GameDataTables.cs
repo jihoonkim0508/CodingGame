@@ -28,7 +28,7 @@ namespace CodingGame.Defense.Editor
             ["전사형"] = RobotRole.Warrior, ["원거리형"] = RobotRole.Shooter, ["원거리"] = RobotRole.Shooter, ["탱커형"] = RobotRole.Tank,
             ["버퍼형"] = RobotRole.Buffer, ["폭탄형"] = RobotRole.Bomber, ["유틸형"] = RobotRole.Utility };
         static readonly Dictionary<string, string> EnemyNames = new() { ["일반"] = "Enemy", ["빠른 적"] = "Runner", ["탱커병"] = "Heavy", ["힐러"] = "Healer", ["보호막병"] = "Shielder",
-            ["큐 지네"] = "QueueCentipede", ["스택 지네"] = "StackCentipede" };
+            ["큐 지네"] = "QueueCentipede", ["스택 지네"] = "StackCentipede", ["군단 트리"] = "TreeLegion" };
         // The names the tables use; besides them a block's enum name (Slash) or its inventory label (shoot(Enemy)) also works.
         static readonly Dictionary<string, BlockKind> BlockNames = new(StringComparer.OrdinalIgnoreCase) {
             ["slash()"] = BlockKind.Slash, ["while"] = BlockKind.While, ["while True"] = BlockKind.While, ["shoot()"] = BlockKind.Shot,
@@ -40,7 +40,8 @@ namespace CodingGame.Defense.Editor
             ["wait()"] = BlockKind.Wait, ["숫자"] = BlockKind.Number, ["산술"] = BlockKind.Arithmetic, ["True"] = BlockKind.True,
             ["False"] = BlockKind.False, ["get_pos_x()"] = BlockKind.PositionX, ["get_pos_y()"] = BlockKind.PositionY,
             ["for e in get_enemies()"] = BlockKind.ForEach, ["for in"] = BlockKind.ForEach, ["get_enemies()"] = BlockKind.GetEnemies,
-            ["shield"] = BlockKind.Shield, ["break_shield()"] = BlockKind.BreakShield, ["front()"] = BlockKind.Front, ["top()"] = BlockKind.Top };
+            ["shield"] = BlockKind.Shield, ["break_shield()"] = BlockKind.BreakShield, ["front()"] = BlockKind.Front, ["top()"] = BlockKind.Top,
+            ["left"] = BlockKind.Left, ["right"] = BlockKind.Right, ["or"] = BlockKind.Or, ["while 조건"] = BlockKind.WhileCondition };
         static BlockKind? Block(string name)
         {
             if (BlockNames.TryGetValue(name, out var kind)) return kind;
@@ -172,7 +173,7 @@ namespace CodingGame.Defense.Editor
                 if (!StageWave(Cell(cells, sw), line, out int stage, out int wave)) continue;
                 string name = Cell(cells, kind); bool boss = name.EndsWith("(보스)");
                 if (boss) name = name.Substring(0, name.Length - "(보스)".Length).Trim();
-                if (!EnemyNames.TryGetValue(name, out var enemy)) { Errors.Add($"{line}줄: 모르는 적 '{name}' (일반·빠른 적·탱커병·힐러·보호막병·큐 지네·스택 지네)"); continue; }
+                if (!EnemyNames.TryGetValue(name, out var enemy)) { Errors.Add($"{line}줄: 모르는 적 '{name}' (일반·빠른 적·탱커병·힐러·보호막병·큐 지네·스택 지네·군단 트리)"); continue; }
                 var g = new Group { Stage = stage, Wave = wave, Line = line, Enemy = enemy, Boss = boss, Interval = 1 };
                 string delay = Cell(cells, Column(t, "출현(초)")), interval = Cell(cells, Column(t, "스폰 간격(초)")), last = Cell(cells, Column(t, "마지막 출현(초)"));
                 bool ok = Number(Cell(cells, Column(t, "총 출현 수")), line, "총 출현 수", out float count) &

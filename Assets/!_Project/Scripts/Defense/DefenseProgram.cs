@@ -93,13 +93,14 @@ namespace CodingGame.Defense
                         } while (true);
                         foreach (var exit in exits) code[exit].Jump = code.Count;
                         break;
-                    case BlockKind.For: case BlockKind.While: case BlockKind.ForEach:
+                    case BlockKind.For: case BlockKind.While: case BlockKind.ForEach: case BlockKind.WhileCondition:
                         int loop = nextLoop++;
-                        bool counted = b.Kind != BlockKind.While;
+                        bool counted = b.Kind == BlockKind.For || b.Kind == BlockKind.ForEach;
                         // ForInit/ForTest carry the loop block: a for-each reads its list and its variable's name from it.
                         if (counted) Emit(Op.ForInit, b, loop: loop);
                         int start = code.Count;
-                        int test = counted ? Emit(Op.ForTest, b, loop: loop) : -1;
+                        // while <condition>: the condition is tested before every turn, false leaves the loop.
+                        int test = counted ? Emit(Op.ForTest, b, loop: loop) : b.Kind == BlockKind.WhileCondition ? Emit(Op.Condition, b.Arguments[0]) : -1;
                         var innerBreaks = new List<int>(); var innerContinues = new List<int>();
                         EmitSuite(b.Body, innerBreaks, innerContinues);
                         int step = code.Count;
@@ -219,7 +220,7 @@ namespace CodingGame.Defense
         static void ListEnemies(DefenseSimulation sim, List<int> into)
         {
             order.Clear(); into.Clear();
-            foreach (var e in sim.Enemies) if (e.Active) order.Add((sim.RemainingPath(e), e.Id));
+            foreach (var e in sim.Enemies) if (e.Active && !DefenseSimulation.Rides(e)) order.Add((sim.RemainingPath(e), e.Id));
             order.Sort();
             foreach (var (_, id) in order) into.Add(id);
         }
@@ -252,7 +253,7 @@ namespace CodingGame.Defense
                     EnemyState nearest = null; float best = float.MaxValue;
                     foreach (var e in sim.Enemies)
                     {
-                        if (!e.Active) continue;
+                        if (!e.Active || DefenseSimulation.Rides(e)) continue; // a tree's root stands for the whole tree
                         float d = Vector2.DistanceSquared(e.Position, robot.Position);
                         if (d < best) { best = d; nearest = e; }
                     }
@@ -288,6 +289,12 @@ namespace CodingGame.Defense
                 case BlockKind.Size:
                     var counted = Active(sim, EnemyId(Arg(0)));
                     return Val.Of(counted == null ? 0 : counted.Chain?.Segments.Count ?? 1);
+                // A tree node's child, or None (no enemy) when it has none there or that child died.
+                case BlockKind.Left: case BlockKind.Right:
+                    var node = Active(sim, EnemyId(Arg(0)))?.Node;
+                    var child = node == null ? null : block.Kind == BlockKind.Left ? node.Left : node.Right;
+                    return Val.EnemyOf(child != null && child.Active ? child.Id : 0);
+                case BlockKind.Or: return Val.Of(Truth(Arg(0)) || Truth(Arg(1)));
                 case BlockKind.EnemyTypeOf:
                     return Val.KindOf((int?)Active(sim, EnemyId(Arg(0)))?.Spec.type ?? -1);
                 case BlockKind.EnemyTypeName:

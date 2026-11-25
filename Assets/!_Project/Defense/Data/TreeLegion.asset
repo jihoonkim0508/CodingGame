@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54b331f6175a49043999eb0bbda985bf, type: 3}
+  m_Name: TreeLegion
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.EnemyDefinition
+  displayName: "\uAD70\uB2E8 \uD2B8\uB9AC"
+  description: "\uB300\uC7A5(\uBFCC\uB9AC) \uC544\uB798\uB85C \uAC00\uC9C0\uAC00
+    \uAC08\uB77C\uC9C4 \uC774\uC9C4 \uD2B8\uB9AC. \uC790\uC2DD\uC774 \uC0B4\uC544
+    \uC788\uB294 \uB9C8\uB514\uB294 \uD53C\uD574\uB97C \uBC1B\uC9C0 \uC54A\uC73C\uB2C8
+    \uC78E\uBD80\uD130 \uC4F0\uB7EC\uB728\uB9AC\uC138\uC694. get_enemies()\uC5D0\uB294
+    \uB300\uC7A5\uB9CC \uB098\uC635\uB2C8\uB2E4. e.left\xB7e.right\uB85C \uB0B4\uB824\uAC00\uC138\uC694."
+  stats:
+    type: 7
+    health: 14
+    speed: 0.9
+    damage: 6
+    attackInterval: 1.2
+    leakDamage: 1
+    abilityInterval: 2.5
+    abilityRadius: 3
+    abilityAmount: 10
+    segmentCap: 8
+  prefab: {fileID: 6560501988297179601, guid: 9cf6ffece973edc4ca6007cf1718e09a, type: 3}
+  nodePrefab: {fileID: 5802167679295640133, guid: ca2de592cf513b148994963d4543205a, type: 3}
+  icon: {fileID: 2800000, guid: a7771ef093897544d826bb4841c2ffdc, type: 3}

@@ -16,7 +16,10 @@ namespace CodingGame.BlockCoding
         Shield, // enemy.shield: a member like hp
         BreakShield, // break_shield(enemy): the shooter's second action
         Front, Top, // enemy.front() / enemy.top(): a centipede's hittable end as an Enemy (queue: first in, stack: last in)
-        Size // enemy.size: how many segments its centipede has (1 for any other enemy)
+        Size, // enemy.size: how many segments its centipede has (1 for any other enemy)
+        Left, Right, // enemy.left / enemy.right: a tree node's child as an Enemy, None when it has none (or it died)
+        Or, // a or b: two conditions
+        WhileCondition // while <condition>: a loop that tests its condition before every turn
     }
 
     [Serializable]

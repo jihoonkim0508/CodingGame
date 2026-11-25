@@ -668,6 +668,8 @@ namespace CodingGame.Defense
             if (!e.Active) return;
             // A centipede segment other than its open end (queue: front, stack: top) takes nothing: boom and slash included.
             if (e.Chain != null && e.Chain.Hittable != e) { Emit("blocked", source, e.Id, e.Position, damage); return; }
+            // So does a tree node with a living child: leaves first.
+            if (e.Node != null && !e.Node.Open) { Emit("blocked", source, e.Id, e.Position, damage); return; }
             if (!Options.attackDamage) { Emit("damage-suppressed", source, e.Id, e.Position, damage); damage = 0; }
             float absorbed = Math.Min(e.Shield, damage); e.Shield -= absorbed; damage -= absorbed; // a shield takes damage first
             float applied = Math.Min(e.Health, damage);
@@ -741,7 +743,7 @@ namespace CodingGame.Defense
             {
                 for (int i = e.Effects.Count - 1; i >= 0; i--) if (e.Effects[i].SlowUntil <= Time && e.Effects[i].StunUntil <= Time) e.Effects.RemoveAt(i);
                 if (e.BlockedBy != 0 && FindRobot(e.BlockedBy) == null) e.BlockedBy = 0;
-                if (e.Active && e.BlockedBy == 0) TryBlock(e, e.Position, e.Position, out _);
+                if (e.Active && e.BlockedBy == 0 && !Rides(e)) TryBlock(e, e.Position, e.Position, out _);
                 if (e.Active && !e.Stunned(Time)) Pulse(e);
             }
             for (int i = 0, count = Enemies.Count; i < count; i++) Push(Enemies[i]); // appends: not in the foreach
@@ -754,7 +756,9 @@ namespace CodingGame.Defense
                 else if (bot.AutoExecute) RequestAction(bot.Id, bot.Action);
             foreach (var e in Enemies)
             {
-                if (!e.Active || e.Stunned(Time)) continue;
+                if (!e.Active) continue;
+                if (Rides(e)) { e.Position = e.Node.Root.Position; e.NextPoint = e.Node.Root.NextPoint; continue; }
+                if (e.Stunned(Time)) continue;
                 if (e.BlockedBy != 0)
                 {
                     if (Options.enemyAttack && Time + .000001 >= e.NextAttack)
@@ -800,10 +804,29 @@ namespace CodingGame.Defense
                         NextAbility = Time + spec.abilityInterval * (IsCentipede(spec.type) ? 1 : .5) };
                     if (IsCentipede(spec.type)) (e.Chain = groupChains[i] ??= new Centipede { Stack = spec.type == EnemyType.Stack }).Segments.Add(e);
                     Enemies.Add(e);
+                    // Seeded by where it spawns, so a retried wave grows the same trees.
+                    if (spec.type == EnemyType.Tree) Grow(e, TreeNode.Roll((uint)(Setup.TreeSeed + Setup.Stage * 1000003 + WaveIndex * 7919 + i * 131 + groupCounts[i]), out _));
                     groupCounts[i]++; Spawned++;
                 }
             }
         }
+        // A tree's nodes below the root: each a copy of the root's stats, standing where the root stands (DefenseActorView
+        // lifts them onto its branches), in the shape TreeNode.Roll gave.
+        void Grow(EnemyState root, List<(int depth, int slot)> shape)
+        {
+            root.Node = new TreeNode { Root = root };
+            var placed = new Dictionary<(int, int), EnemyState> { [(1, 0)] = root };
+            foreach (var (depth, slot) in shape.Skip(1))
+            {
+                var parent = placed[(depth - 1, slot >> 1)]; var spec = root.Spec.Copy();
+                var e = new EnemyState { Id = nextId++, DefinitionIndex = root.DefinitionIndex, Spec = spec, Health = spec.health, Boss = root.Boss,
+                    Position = root.Position, RouteIndex = root.RouteIndex, NextAttack = Time + spec.attackInterval };
+                e.Node = new TreeNode { Root = root, Parent = parent, Depth = depth, Slot = slot };
+                if ((slot & 1) == 0) parent.Node.Left = e; else parent.Node.Right = e;
+                placed[(depth, slot)] = e; Enemies.Add(e); Spawned++;
+            }
+        }
+        public static bool Rides(EnemyState e) => e.Node?.Parent != null; // a tree node below the root
         static bool IsCentipede(EnemyType type) => type == EnemyType.Queue || type == EnemyType.Stack;
         // How far apart a centipede's segments walk: one waits while it is closer than this to the one ahead (a new segment
         // starts on the tail and falls in behind it; a slowed one holds up those behind instead of being passed).
@@ -854,13 +877,18 @@ namespace CodingGame.Defense
                 e.Position = end; distance -= travel;
                 if (remaining <= travel + .00001f) e.NextPoint++; else break;
             }
-            // Every centipede segment that gets through is a leak of its own.
+            // Every centipede segment that gets through is a leak of its own, and so is every living node of a tree.
             if (e.NextPoint == path.Length)
             {
-                e.Active = false; e.BlockedBy = 0; e.Chain?.Segments.Remove(e); Leaks++; if (Options.baseDamage) BaseHealth = Math.Max(0, BaseHealth - e.Spec.leakDamage);
-                if (Setup.PlayerFlow && !e.Boss && currentWave.Any(g => g.Boss)) ObjectiveFailed = true; // a boss wave with a leaked minion: the boss never comes
-                Emit("leaked", e.Id, 0, e.Position, e.Spec.leakDamage);
+                Leak(e);
+                if (e.Node != null) foreach (var other in Enemies) if (other.Active && Rides(other) && other.Node.Root == e) Leak(other);
             }
+        }
+        void Leak(EnemyState e)
+        {
+            e.Active = false; e.BlockedBy = 0; e.Chain?.Segments.Remove(e); Leaks++; if (Options.baseDamage) BaseHealth = Math.Max(0, BaseHealth - e.Spec.leakDamage);
+            if (Setup.PlayerFlow && !e.Boss && currentWave.Any(g => g.Boss)) ObjectiveFailed = true; // a boss wave with a leaked minion: the boss never comes
+            Emit("leaked", e.Id, 0, e.Position, e.Spec.leakDamage);
         }
     }
 }

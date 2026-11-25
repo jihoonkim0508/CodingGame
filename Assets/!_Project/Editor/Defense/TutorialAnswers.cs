@@ -10,7 +10,7 @@ namespace CodingGame.Defense.Editor
     // "x = enemy.distance(get_my_pos())", "name = my_attack_range()", "slash()", "shoot(enemy)", "block(enemy)", "if a <= b:" (any comparison),
     // "if x.is_dead():", "a * b" (one of + - * /), "x.type", "Enemy.Tank", "break", "continue", "for i in range(n):" and
     // "while True:", "for e in get_enemies():", "elif ...:", "else:" with a body indented deeper (any width), "x.shield", "break_shield(x)",
-    // "x.front()", "x.top()", "x.size".
+    // "x.front()", "x.top()", "x.size", "while a or b:" (any condition), "if x.left:", "x.left", "x.right".
     // ponytail: only what the lesson answers use; a new answer shape needs a case here.
     public static class TutorialAnswers
     {
@@ -59,6 +59,12 @@ namespace CodingGame.Defense.Editor
                     block.Body.AddRange(Suite(lines, ref index, depth + 1));
                     result.Add(block);
                 }
+                else if (line.StartsWith("while ") && line.EndsWith(":"))
+                {
+                    var block = new CodeBlock(BlockKind.WhileCondition, "0", Condition(line.Substring(6, line.Length - 7)));
+                    block.Body.AddRange(Suite(lines, ref index, depth + 1));
+                    result.Add(block);
+                }
                 else if (line == "slash()") result.Add(new CodeBlock(BlockKind.Slash));
                 else if (line == "break") result.Add(new CodeBlock(BlockKind.Break));
                 else if (line == "continue") result.Add(new CodeBlock(BlockKind.Continue));
@@ -76,6 +82,9 @@ namespace CodingGame.Defense.Editor
         }
         static CodeBlock Condition(string text)
         {
+            var either = text.Split(new[] { " or " }, 2, StringSplitOptions.None);
+            if (either.Length == 2) return new CodeBlock(BlockKind.Or, "0", Condition(either[0]), Condition(either[1]));
+            if (text.EndsWith(".left") || text.EndsWith(".right")) return Value(text); // an Enemy or None
             if (text.EndsWith(".is_dead()")) return new CodeBlock(BlockKind.IsDead, "0", new CodeBlock(BlockKind.Variable, text.Substring(0, text.Length - 10)));
             foreach (var sign in new[] { "<=", ">=", "==", "!=", "<", ">" })
             {
@@ -96,7 +105,7 @@ namespace CodingGame.Defense.Editor
             if (text == "get_my_pos()") return new CodeBlock(BlockKind.MyPos);
             if (text.StartsWith("Enemy.", StringComparison.Ordinal)) return new CodeBlock(BlockKind.EnemyTypeName, text.Substring(6));
             if (text.EndsWith(".shield", StringComparison.Ordinal)) return new CodeBlock(BlockKind.Shield, "0", new CodeBlock(BlockKind.Variable, text.Substring(0, text.Length - 7)));
-            foreach (var (member, kind) in new[] { (".front()", BlockKind.Front), (".top()", BlockKind.Top), (".size", BlockKind.Size) })
+            foreach (var (member, kind) in new[] { (".front()", BlockKind.Front), (".top()", BlockKind.Top), (".size", BlockKind.Size), (".left", BlockKind.Left), (".right", BlockKind.Right) })
                 if (text.EndsWith(member, StringComparison.Ordinal)) return new CodeBlock(kind, "0", new CodeBlock(BlockKind.Variable, text.Substring(0, text.Length - member.Length)));
             if (text.EndsWith(".type", StringComparison.Ordinal)) return new CodeBlock(BlockKind.EnemyTypeOf, "0", new CodeBlock(BlockKind.Variable, text.Substring(0, text.Length - 5)));
             if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out _))

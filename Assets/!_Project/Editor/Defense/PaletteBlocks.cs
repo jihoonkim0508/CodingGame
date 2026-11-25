@@ -13,7 +13,8 @@ namespace CodingGame.Defense.Editor
     // instance holds the palette): the calculation `( ) + ( )` in 값 from the comparison (its picker gets + - * / at run time),
     // and the enemy kind `Enemy. [Tank]` in 값 from the comparison's picker alone (Normal / Fast / Tank at run time).
     // Blocks already in the palette are left alone. is_dead() has no block of its own: it is typed after `enemy.`.
-    // Also the for-each `for [e] in [get_enemies()]:`, get_enemies() and break_shield( ) with their block-help entries.
+    // Also the for-each `for [e] in [get_enemies()]:`, get_enemies() and break_shield( ) with their block-help entries, and for
+    // the tree legion `while [ ]:` (a copy of the if) and `[ ] or [ ]` (the comparison with an `or` label for its picker).
     public static class PaletteBlocks
     {
         const string Scene = "Assets/!_Project/Scenes/Defense.unity";
@@ -26,6 +27,8 @@ namespace CodingGame.Defense.Editor
             var so = new SerializedObject(panel);
             var palette = so.FindProperty("palette");
             CommandBlockView View(int i) => (CommandBlockView)palette.GetArrayElementAtIndex(i).FindPropertyRelative("view").objectReferenceValue;
+            int Category(BlockKind kind) => Enumerable.Range(0, palette.arraySize).Where(i => View(i) && View(i).BaseKind == kind)
+                .Select(i => palette.GetArrayElementAtIndex(i).FindPropertyRelative("category").intValue).First();
             CommandBlockView Find(BlockKind kind) => Enumerable.Range(0, palette.arraySize).Select(View).FirstOrDefault(v => v && v.BaseKind == kind);
             string log = "";
             void Append(BlockKind kind, BlockKind from, int category, Action<CommandBlockView> shape)
@@ -85,6 +88,31 @@ namespace CodingGame.Defense.Editor
                 fields.FindProperty("input").objectReferenceValue = input;
                 fields.ApplyModifiedPropertiesWithoutUndo();
             });
+            // `while [condition]:` in 제어 next to the if, the header's `if` reading `while`.
+            Append(BlockKind.WhileCondition, BlockKind.If, Category(BlockKind.If), view =>
+            {
+                foreach (var label in view.transform.Find("Header").GetComponentsInChildren<TMP_Text>(true))
+                    if (label.text.StartsWith("if", StringComparison.Ordinal)) label.text = "while" + label.text.Substring(2);
+            });
+            // `[ ] or [ ]` in 논리 next to the comparison: its two holes take conditions, an `or` label where its picker was.
+            Append(BlockKind.Or, BlockKind.Comparison, Category(BlockKind.Comparison), view =>
+            {
+                var header = view.transform.Find("Header");
+                var picker = header.Find("Operator");
+                var label = Object.Instantiate(Find(BlockKind.NearestEnemy).transform.Find("Header").GetComponentInChildren<TMP_Text>(true).gameObject, header);
+                label.name = "Label"; label.transform.SetSiblingIndex(picker.GetSiblingIndex());
+                label.GetComponent<TMP_Text>().text = "or";
+                Object.DestroyImmediate(picker.gameObject);
+                foreach (var hole in new[] { "Slot0", "Slot1" })
+                {
+                    var zone = new SerializedObject(header.Find(hole).GetComponent<CommandDropZone>());
+                    zone.FindProperty("slot").intValue = (int)BlockSlotKind.Condition;
+                    zone.ApplyModifiedPropertiesWithoutUndo();
+                }
+                var fields = new SerializedObject(view);
+                fields.FindProperty("dropdown").objectReferenceValue = null;
+                fields.ApplyModifiedPropertiesWithoutUndo();
+            });
             so.ApplyModifiedPropertiesWithoutUndo();
             // Block help (도감) entries for the new blocks, as copies of an existing entry's button.
             var help = Object.FindObjectsByType<DefenseBlockHelp>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single();
@@ -135,6 +163,20 @@ namespace CodingGame.Defense.Editor
                 "스택(Stack)은 나중에 들어온 것이 먼저 나갑니다(LIFO). 스택 지네는 몇 초마다 꼬리에 마디를 쌓고, 맨 위(가장 나중에 쌓인 꼬리) 마디만 피해를 받습니다.\n" +
                 "e.top()은 e가 속한 지네의 맨 위 마디를 돌려줍니다(지네가 아니면 e 자신). 늦게 잡을수록 마디가 늘어납니다(최대 8). e.size로 마디 수를 읽을 수 있습니다.",
                 "for e in get_enemies():\n    if e.type == Enemy.Stack:\n        shoot(e.top())\n    elif e.type == Enemy.Queue:\n        shoot(e.front())");
+            Help(BlockKind.Left, BlockKind.Top, "enemy.left · 왼쪽 자식",
+                "군단 트리는 대장(뿌리) 아래로 가지가 갈라지는 이진 트리입니다. 자식이 살아 있는 마디는 피해를 받지 않고, 잎(자식이 없는 마디)부터 쓰러뜨려야 합니다.\n" +
+                "e.left는 e의 왼쪽 자식 마디입니다. 없거나 쓰러졌으면 None이라 조건에서 거짓이 됩니다. get_enemies()에는 대장만 나오니 left·right로 내려가세요.",
+                "n = get_nearest_enemy()\nwhile n.left or n.right:\n    if n.left:\n        n = n.left\n    else:\n        n = n.right\nshoot(n)");
+            Help(BlockKind.Right, BlockKind.Left, "enemy.right · 오른쪽 자식",
+                "e.right는 e의 오른쪽 자식 마디입니다(없거나 쓰러졌으면 None). 왼쪽이 없을 때 오른쪽으로 내려가면 언젠가 잎에 닿습니다.",
+                "n = get_nearest_enemy()\nif n.right:\n    shoot(n.right)");
+            Help(BlockKind.Or, BlockKind.Comparison, "a or b · 또는",
+                "두 조건 중 하나라도 참이면 참입니다. Enemy 값(e.left처럼)은 있으면 참, None이면 거짓입니다.",
+                "e = get_nearest_enemy()\nif e.left or e.right:\n    shoot(e.left)\nelse:\n    shoot(e)");
+            Help(BlockKind.WhileCondition, BlockKind.While, "while 조건: · 조건 반복",
+                "조건이 참인 동안 안쪽 명령을 반복합니다. 매번 반복하기 전에 조건을 다시 확인하고, 거짓이 되면 반복을 끝내고 아래로 넘어갑니다.\n" +
+                "while True:와 달리 스스로 멈춥니다. 트리의 잎까지 내려갈 때 씁니다.",
+                "n = get_nearest_enemy()\nwhile n.left or n.right:\n    if n.left:\n        n = n.left\n    else:\n        n = n.right\nshoot(n)");
             helpSo.ApplyModifiedPropertiesWithoutUndo();
             // The inventory lists one row per item kind (DefenseInventoryUI checks the count): a row for each new kind, as a copy of
             // the last row (the label and count's common parent).

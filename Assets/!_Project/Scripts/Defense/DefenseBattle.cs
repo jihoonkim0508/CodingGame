@@ -1143,7 +1143,8 @@ namespace CodingGame.Defense
             {
                 if (!enemyViews.TryGetValue(enemy.Id, out var view))
                 {
-                    view = Instantiate(enemies[enemy.DefinitionIndex].prefab, DefenseViews.World(enemy.Position), Quaternion.identity, actorsRoot);
+                    var definition = enemies[enemy.DefinitionIndex];
+                    view = Instantiate(DefenseSimulation.Rides(enemy) && definition.nodePrefab ? definition.nodePrefab : definition.prefab, DefenseViews.World(enemy.Position), Quaternion.identity, actorsRoot);
                     if (enemy.Boss)
                     {
                         view.gameObject.AddComponent<DefenseBossAura>();
