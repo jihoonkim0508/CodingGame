@@ -40246,19 +40246,7 @@ MonoBehaviour:
     worldTarget: {fileID: 0}
     allowRuntimeTarget: 0
   - key: Battle.Robot.2
-    uiTarget: {fileID: 0}
-    worldTarget: {fileID: 0}
-    allowRuntimeTarget: 0
-  - key: Battle.Robot.3
-    uiTarget: {fileID: 0}
-    worldTarget: {fileID: 0}
-    allowRuntimeTarget: 0
-  - key: Battle.Robot.4
     uiTarget: {fileID: 1572529776}
-    worldTarget: {fileID: 0}
-    allowRuntimeTarget: 0
-  - key: Battle.Robot.5
-    uiTarget: {fileID: 0}
     worldTarget: {fileID: 0}
     allowRuntimeTarget: 0
   - key: Battle.DeploymentArea
