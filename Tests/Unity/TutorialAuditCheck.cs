@@ -94,7 +94,7 @@ public static class TutorialAuditCheck
         while (GameFlow.Loading) { Require(Time.realtimeSinceStartup < limit, "the scene is still loading"); yield return null; }
 
         // 1-1 as the player has it at C05: the first warrior on its spot, its editor open and empty, the tutorial limiting input.
-        battle.EditorStartSession(1, 1, false, new DefenseTestOptions());
+        battle.EditorStartSession(1, 1, false, new DefenseTestOptions { tutorial = true });
         int warrior = Enumerable.Range(0, battle.RobotDefinitions.Count).First(i => battle.DefinitionRole(i) == RobotRole.Warrior);
         Require(battle.PlaceRobot(warrior, DefenseBattle.FirstWarriorPosition), "the warrior could not stand on 1-1's spot: " + battle.StatusMessage);
         battle.SelectRobot(battle.Simulation.Robots[0].Id); battle.DevelopSelected();

@@ -23,7 +23,7 @@ public static class SharedInventoryCheck
     {
         Require(Application.isPlaying, "Enter Play Mode first");
         var battle = UnityEngine.Object.FindFirstObjectByType<DefenseBattle>();
-        battle.EditorStartSession(2, 1, true, new DefenseTestOptions());
+        battle.EditorStartSession(2, 1, true, new DefenseTestOptions { tutorial = true });
         var sim = battle.Simulation;
         int warrior = Enumerable.Range(0, 6).Single(i => battle.DefinitionRole(i) == RobotRole.Warrior);
         sim.GrantRobot(RobotRole.Warrior, 2);
