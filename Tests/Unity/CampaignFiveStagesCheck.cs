@@ -47,7 +47,7 @@ public static class CampaignFiveStagesCheck
         CodeBlock command=PythonTreeCompiler.HasEnemyArgument(kind)?new CodeBlock(kind,"0",new CodeBlock(BlockKind.NearestEnemy)):new CodeBlock(kind);
         bool condition = sim.Setup.Stage>=2 && bot.Spec.role!=RobotRole.Buffer &&
             new[]{BlockKind.If,BlockKind.Comparison,BlockKind.DeclareVariable,BlockKind.Variable,BlockKind.NearestEnemy,BlockKind.MyPos}
-                .All(k=>sim.Available(k,bot.Id)>0) && sim.Available(BlockKind.Number,bot.Id)>1;
+                .All(k=>sim.Available(k)>0) && sim.Available(BlockKind.Number)>1;
         if(condition)
         {
             // Declared inside the loop so each pass re-targets; a stale `enemy` stops attacking after the first kill.
@@ -59,7 +59,7 @@ public static class CampaignFiveStagesCheck
         }
         body.Add(command);
         // Once loops unlock a function runs once per wave, so the whole body must repeat.
-        if(sim.LoopsUnlocked && sim.Available(BlockKind.For,bot.Id)>0 && sim.Available(BlockKind.Number,bot.Id)>0)
+        if(sim.LoopsUnlocked && sim.Available(BlockKind.For)>0 && sim.Available(BlockKind.Number)>0)
         { var loop=new CodeBlock(BlockKind.For,"0",new CodeBlock(BlockKind.Number,"50"));loop.Body.AddRange(body);body=new System.Collections.Generic.List<CodeBlock>{loop}; }
         sim.ApplyProgram(bot.Id,"robot_"+bot.Id,body.ToArray());
     }

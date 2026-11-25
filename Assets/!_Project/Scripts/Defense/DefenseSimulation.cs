@@ -110,27 +110,9 @@ namespace CodingGame.Defense
         public WaveLesson Lesson => Setup.Progression.lessons.FirstOrDefault(l => l.stage == Setup.Stage && l.wave == WaveIndex + 1);
         public bool CanAdvanceStage => Phase == BattlePhase.Victory && Setup.Stage > 0 && Setup.Stage < (Setup.CampaignWaves?.Length ?? DefenseCurriculum.StageCount);
         public bool CanEdit => !Setup.PlayerFlow ? Phase != BattlePhase.Victory && Phase != BattlePhase.Defeat : CanPrepare;
-        public int Available(BlockKind kind, int editingRobot = 0)
-        {
-            kind = DefenseProgression.Canonical(kind);
-            if (Setup.PlayerFlow && DefenseProgression.Consumes(kind) && !Options.unlockAll && !Inventory.ContainsKey(kind)) return 0;
-            if (!Setup.PlayerFlow || !Options.inventoryLimit || !DefenseProgression.Consumes(kind)) return int.MaxValue;
-            int owned = Owned(kind);
-            // 편집 중인 로봇의 기존 예약은 제외하고, 다른 로봇이 사용하는 수량만 차감합니다.
-            int used = Robots.Where(r => r.Id != editingRobot).Sum(r => Reserved(r, kind));
-            return owned - used;
-        }
-        // A robot holds the blocks of its applied code, or of its unfinished code in the editor when that has more
-        // (a syntax error empties the applied code, but the blocks stay in that robot's editor).
-        readonly Dictionary<int, Dictionary<BlockKind, int>> drafts = new Dictionary<int, Dictionary<BlockKind, int>>();
-        public void SetDraft(int id, IEnumerable<BlockKind> blocks)
-        {
-            var kinds = blocks.ToArray();
-            drafts[id] = kinds.Select(DefenseProgression.Canonical).GroupBy(k => k).ToDictionary(g => g.Key, g => g.Count());
-            Log("draft", id).kinds = kinds;
-        }
-        public int Reserved(RobotState robot, BlockKind kind) => Math.Max(robot.Program?.BlockCount(kind) ?? 0,
-            drafts.TryGetValue(robot.Id, out var draft) && draft.TryGetValue(DefenseProgression.Canonical(kind), out int count) ? count : 0);
+        // A block, once unlocked (granted at least once), is unlimited: placing it never uses up a count.
+        public int Available(BlockKind kind) =>
+            Setup.PlayerFlow && DefenseProgression.Consumes(kind) && !Options.unlockAll && !Inventory.ContainsKey(DefenseProgression.Canonical(kind)) ? 0 : int.MaxValue;
         int nextId = 1;
         int[] groupCounts;
         double accumulated, spawnElapsed;
@@ -482,9 +464,9 @@ namespace CodingGame.Defense
             if (bot == null || !CanEdit)
                 throw new FormatException("코드를 적용할 로봇이 없거나 전투가 종료되었습니다.");
             var program = new DefenseProgram(name, blocks);
-            // 문법과 재고 검증이 모두 끝난 뒤 교체해야 실패 시 이전 코드와 예약 수량이 유지됩니다.
-            if (Setup.PlayerFlow) foreach (var group in DefenseProgression.Used(blocks).GroupBy(k => k))
-                if (group.Count() > Available(group.Key, id)) throw new FormatException(DefenseProgression.Label(group.Key) + " 블록 수량이 부족합니다. 다른 로봇의 예약 수량도 확인하세요.");
+            // 문법과 해금 검증이 모두 끝난 뒤 교체해야 실패 시 이전 코드가 유지됩니다.
+            if (Setup.PlayerFlow) foreach (var kind in DefenseProgression.Used(blocks).Distinct())
+                if (Available(kind) < 1) throw new FormatException(DefenseProgression.Label(kind) + " 블록은 아직 해금되지 않았습니다.");
             bot.Program = program; bot.AutoExecute = false;
             var input = Log("program", id); input.name = name; input.code = PlayLog.Flatten(blocks);
             bot.BlockingEnabled = false;
