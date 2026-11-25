@@ -301,15 +301,22 @@ namespace CodingGame.Defense.Editor
             var tip = (RectTransform)GameObject.Find("ProblemTip").transform;
             var label = tip.GetComponentInChildren<TextMeshProUGUI>(); label.ForceMeshUpdate();
             var pad = tip.GetComponent<VerticalLayoutGroup>().padding;
-            Vector3 min = tip.InverseTransformPoint(label.transform.TransformPoint(label.textBounds.min)), max = tip.InverseTransformPoint(label.transform.TransformPoint(label.textBounds.max));
+            // The glyphs' own bounds (what the eye sees), not TMP's line box.
+            Vector3 lo = new Vector3(float.MaxValue, float.MaxValue), hi = new Vector3(float.MinValue, float.MinValue);
+            for (int i = 0; i < label.textInfo.characterCount; i++)
+            {
+                var c = label.textInfo.characterInfo[i]; if (!c.isVisible) continue;
+                lo = Vector3.Min(lo, c.bottomLeft); hi = Vector3.Max(hi, c.topRight);
+            }
+            Vector3 min = tip.InverseTransformPoint(label.transform.TransformPoint(lo)), max = tip.InverseTransformPoint(label.transform.TransformPoint(hi));
             Rect r = tip.rect;
-            float left = min.x - r.xMin, right = r.xMax - max.x, top = r.yMax - max.y, bottom = min.y - r.yMin;
+            float left = min.x - r.xMin, right = r.xMax - max.x, top = r.yMax - max.y, bottom = min.y - r.yMin - 7; // the card's shadow is no fill
             var corners = new Vector3[4]; tip.GetWorldCorners(corners);
             var area = new Vector3[4]; ((RectTransform)panel.Program.GetComponentInParent<ScrollRect>(true).transform).GetWorldCorners(area);
             int count = label.textInfo.lineCount;
             Require(tip.GetComponent<Image>().color == (error ? CommandBlockView.ErrorColor : CommandBlockView.WarningColor) &&
-                pad.left >= 12 && pad.right >= 12 && pad.top >= 6 && pad.bottom >= 6 && label.alignment == TextAlignmentOptions.Center &&
-                left >= 10 && right >= 10 && top >= 4 && bottom >= 4 && Mathf.Abs(left - right) <= 4 && Mathf.Abs(top - bottom) <= 6 &&
+                pad.left >= 12 && pad.right >= 12 && pad.top >= 6 && pad.bottom >= 13 && label.alignment == TextAlignmentOptions.CenterGeoAligned &&
+                left >= 10 && right >= 10 && top >= 4 && bottom >= 4 && Mathf.Abs(left - right) <= 4 && Mathf.Abs(top - bottom) <= 3 &&
                 (lines == 0 || (lines == 1 ? count == 1 : count >= lines)) && corners[2].x <= area[2].x + .5f,
                 $"{what}: {r.width:0}x{r.height:0}, {count} line(s), margins L{left:0} R{right:0} T{top:0} B{bottom:0}, inside the workspace ({label.text})");
         }

@@ -1417,13 +1417,15 @@ namespace CodingGame.BlockCoding
                 tip.SetParent(canvas, false);
                 tip.pivot = new Vector2(0, .5f);
                 var image = tip.GetComponent<Image>(); image.sprite = UITheme.Card; image.type = Image.Type.Sliced; image.raycastTarget = false;
-                var layout = tip.GetComponent<VerticalLayoutGroup>(); layout.padding = new RectOffset(14, 14, 8, 8);
+                var layout = tip.GetComponent<VerticalLayoutGroup>(); layout.padding = new RectOffset(14, 14, 8, 15); // +7 at the bottom: ui_card ends in a 7 px shadow below its fill
                 layout.childControlWidth = layout.childControlHeight = true; layout.childAlignment = TextAnchor.MiddleCenter;
                 var fit = tip.GetComponent<ContentSizeFitter>(); fit.horizontalFit = fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
                 var label = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI), typeof(LayoutElement)).GetComponent<TextMeshProUGUI>();
                 label.rectTransform.SetParent(tip, false);
                 if (UITheme.Bold) label.font = UITheme.Bold;
-                label.fontSize = 18; label.raycastTarget = false; label.alignment = TextAlignmentOptions.Center;
+                label.fontSize = 18; label.raycastTarget = false;
+                // Centred on the glyphs themselves: the line box's ascender/descender put Korean text low in the bubble.
+                label.alignment = TextAlignmentOptions.CenterGeoAligned;
             }
             tip.GetComponent<Image>().color = error ? CommandBlockView.ErrorColor : CommandBlockView.WarningColor;
             var tipLabel = tip.GetComponentInChildren<TextMeshProUGUI>();
@@ -1440,7 +1442,7 @@ namespace CodingGame.BlockCoding
             LayoutRebuilder.ForceRebuildLayoutImmediate(tip);
             // Hug the drawn lines: wrapped lines are narrower than the cap, and TMP's line box pads one line but not several.
             tipLabel.ForceMeshUpdate();
-            var drawn = tipLabel.GetRenderedValues(false);
+            var drawn = tipLabel.GetRenderedValues(true);
             element.preferredWidth = Mathf.Min(element.preferredWidth, drawn.x + 4); element.preferredHeight = drawn.y + 12;
             LayoutRebuilder.ForceRebuildLayoutImmediate(tip);
             tip.localPosition = new Vector3(Mathf.Min(at.x, right - tip.rect.width), at.y, at.z);
