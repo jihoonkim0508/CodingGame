@@ -260,7 +260,7 @@ namespace CodingGame.BlockCoding
                 catch (FormatException) { name = block.RetainedName; }
                 if (string.IsNullOrEmpty(name)) continue;
                 var value = block.Arguments[0].ReadArgument();
-                if (value != null && (value.Kind == BlockKind.NearestEnemy || value.Kind == BlockKind.Variable && enemyVariables.Contains(value.Value))) enemyVariables.Add(name);
+                if (value != null && (PythonTreeCompiler.GivesEnemy(value.Kind) || value.Kind == BlockKind.Variable && enemyVariables.Contains(value.Value))) enemyVariables.Add(name);
                 else enemyVariables.Remove(name);
             }
             foreach (var block in program.AllBlocks()) if (block.BaseKind == BlockKind.Variable) block.RefreshVariableOptions();
@@ -382,7 +382,7 @@ namespace CodingGame.BlockCoding
         {
             if (data.Kind == BlockKind.Attack) data = new CodeBlock(BlockKind.Shot, data.Value, data.Arguments.ToArray());
             // is_dead() and type are a variable's members only (typed after `enemy.`), like distance( and hp.
-            bool member = data.Kind is BlockKind.IsDead or BlockKind.EnemyTypeOf or BlockKind.Shield or BlockKind.Front or BlockKind.Top or BlockKind.Size or BlockKind.Reflecting;
+            bool member = data.Kind is BlockKind.IsDead or BlockKind.EnemyTypeOf or BlockKind.Shield or BlockKind.Front or BlockKind.Top or BlockKind.Size or BlockKind.Reflecting or BlockKind.Left or BlockKind.Right;
             if (member && data.Arguments.FirstOrDefault()?.Kind != BlockKind.Variable)
                 throw new FormatException(PythonTreeCompiler.Label(data.Kind) + "는 변수 뒤에 점을 찍어 씁니다. 예: enemy." + PythonTreeCompiler.Label(data.Kind));
             bool variable = member || data.Kind == BlockKind.Variable || data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp;

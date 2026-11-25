@@ -110,6 +110,8 @@ namespace CodingGame.Defense
         {
             // Faces the way it walks (the monster model has a walk cycle).
             var step = position - transform.position; step.y = 0;
+            // A tree legion's node sits up on its branch (DefenseTreeView), facing the way its root walks.
+            if (enemy.Node != null) { var tree = DefenseTreeView.Of(this); position = tree.Place(enemy, time, viewRotation); if (enemy.Node.Parent != null) step = Vector3.zero; }
             if (step.sqrMagnitude > 1e-6f) transform.rotation = Quaternion.LookRotation(step);
             // The tanker's planted feet stay put at any speed (slowed, 1.0-1.95 by stage, the boss 1.65 times as big) and stand
             // still while it is stunned or blocked.
@@ -130,6 +132,7 @@ namespace CodingGame.Defense
             // while reflecting a shimmering silver body with a mirror ring round it; the seconds to its next flip over its bar.
             bool reflector = enemy.Spec.type == EnemyType.Reflector;
             if (reflector) own = enemy.Reflecting ? Color.Lerp(new Color(.75f, .95f, 1), Color.white, .5f + .5f * Mathf.Sin((float)time * 18)) : new Color(.35f, .5f, .75f);
+            if (enemy.Node != null) own = DefenseTreeView.Tint(enemy, time);
             baseColor = own;
             ShowBubble(enemy.Shield > 0);
             ShowOpenEnd(open, open ? enemy.Chain.Segments.Count : 0, viewRotation);
@@ -198,7 +201,7 @@ namespace CodingGame.Defense
             segmentCount.transform.SetPositionAndRotation(healthRoot.position + Vector3.up * .45f, viewRotation);
         }
         // A see-through primitive on this actor: white vertex colours (the particle shader multiplies them) on the beam's shader.
-        Renderer Shell(string name, PrimitiveType shape, ref Mesh mesh, ref Material material, Color color)
+        internal Renderer Shell(string name, PrimitiveType shape, ref Mesh mesh, ref Material material, Color color)
         {
             if (!mesh)
             {

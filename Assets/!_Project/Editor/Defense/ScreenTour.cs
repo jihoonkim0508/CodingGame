@@ -227,6 +227,57 @@ namespace CodingGame.Defense.Editor
             }
         }
         const string ReflectorSnippet = "while True:\n    for e in get_enemies():\n        if e.type == Enemy.Reflector and e.reflecting:\n            continue\n        shoot(e)\n        break";
+        // 3-3 with the tree legion: the leaf-finding snippet in the shooter's code editor, a depth-4 tree on the road with its
+        // leaves glowing (close up, before it walks into the shooter's range), then the same tree after the snippet cut some
+        // leaves: TestResults/Editor/tree/NN_*.png. Batchmode without -nographics, like RunCentipedes.
+        public static void RunTrees() => Start("TestResults/Editor/tree", Trees());
+        const string Leaf = "while True:\n    n = get_nearest_enemy()\n    while n.left or n.right:\n        if n.left:\n            n = n.left\n" +
+            "        else:\n            n = n.right\n    shoot(n)";
+        static IEnumerator Trees()
+        {
+            DevTest.PlayDefense(3, 3, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy();
+            var battle = DevTest.Battle; var sim = battle.Simulation;
+            var shooter = sim.Robots.FirstOrDefault(r => r.Spec.role == RobotRole.Ranged) ?? sim.Robots[0];
+            battle.SelectRobot(shooter.Id); battle.DevelopSelected();
+            yield return Seconds(.6);
+            Program(TutorialAnswers.Parse(Leaf));
+            yield return Seconds(1);
+            Debug.Log("[ScreenTour] editor code: " + battle.CodeEditor.Panel.FunctionName + " applied " + battle.CodeEditor.Panel.IsApplied);
+            yield return Shot("tree_code");
+            battle.CodeEditor.Close();
+            yield return Seconds(.3);
+            battle.StartBattle(); DevTest.Speed(3);
+            EnemyState Deep() => sim.Enemies.FirstOrDefault(e => e.Active && e.Node != null && e.Node.Parent == null &&
+                sim.Enemies.Any(c => c.Active && c.Node?.Root == e && c.Node.Depth == 4));
+            yield return Until(() => Deep() != null, 120);
+            var tree = Deep();
+            yield return Seconds(1.5); // a few steps onto the road
+            if (tree == null) { Debug.LogWarning("[ScreenTour] no depth-4 tree"); yield break; }
+            string Nodes() => string.Join(", ", sim.Enemies.Where(e => e.Node?.Root == tree).Select(e => $"{e.Node.Depth}/{e.Node.Slot}{(e.Active ? e.Node.Open ? "*" : "" : " dead")}"));
+            var camera = Object.FindAnyObjectByType<DefenseSelectionCamera>();
+            DevTest.Speed(1);
+            camera.FocusBoss(new Vector3(tree.Position.X, 1.4f, tree.Position.Y));
+            yield return Seconds(.8);
+            camera.FocusBoss(new Vector3(tree.Position.X, 1.4f, tree.Position.Y)); // again: the battle's start may have turned it back
+            yield return Seconds(1);
+            Debug.Log("[ScreenTour] depth-4 tree: " + Nodes());
+            yield return Shot("tree_depth4");
+            // The shooter runs the snippet from the editor: leaves go first once the tree walks into its range.
+            int nodes = sim.Enemies.Count(e => e.Node?.Root == tree);
+            DevTest.Speed(3);
+            yield return Until(() => !tree.Active || sim.Enemies.Count(e => e.Node?.Root == tree && e.Active) <= nodes - 3, 90);
+            DevTest.Speed(1);
+            camera.FocusBoss(new Vector3(tree.Position.X, 1.4f, tree.Position.Y));
+            yield return Seconds(.9);
+            Debug.Log("[ScreenTour] after the snippet: " + Nodes());
+            yield return Shot("tree_cut");
+            camera.Restore(); DevTest.Speed(3);
+            for (double end = EditorApplication.timeSinceStartup + 150; sim.Phase == BattlePhase.Running && EditorApplication.timeSinceStartup < end;) yield return null;
+            Debug.Log($"[ScreenTour] 3-3 with the snippet: {sim.Phase}, core {sim.BaseHealth}, leaks {sim.WaveLeaks}, kills {sim.Kills}, {sim.Time:0.0} s");
+        }
 
         // The wave to its end, logging which kinds leaked.
         static IEnumerator Outcome(DefenseSimulation sim)

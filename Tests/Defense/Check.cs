@@ -178,6 +178,7 @@ static class Check
         RangedFocusCheck.RunAll();
         ForEachCheck.RunAll();
         CentipedeCheck.RunAll();
+        TreeCheck.RunAll();
         AllocCheck.Run();
         PlacementCheck.Run();
         MoveCheck.Run();

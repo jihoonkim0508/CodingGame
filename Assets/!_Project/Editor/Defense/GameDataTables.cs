@@ -27,7 +27,7 @@ namespace CodingGame.Defense.Editor
         static readonly Dictionary<string, RobotRole> RoleNames = new() {
             ["근접 로봇"] = RobotRole.Melee, ["원거리 로봇"] = RobotRole.Ranged, ["지원 로봇"] = RobotRole.Support };
         static readonly Dictionary<string, string> EnemyNames = new() { ["일반"] = "Enemy", ["빠른 적"] = "Runner", ["탱커병"] = "Heavy", ["힐러"] = "Healer", ["보호막병"] = "Shielder",
-            ["큐 지네"] = "QueueCentipede", ["스택 지네"] = "StackCentipede", ["반사병"] = "Reflector" };
+            ["큐 지네"] = "QueueCentipede", ["스택 지네"] = "StackCentipede", ["반사병"] = "Reflector", ["군단 트리"] = "TreeLegion" };
         // The names the tables use; besides them a block's enum name (Slash) or its inventory label (shoot(Enemy)) also works.
         static readonly Dictionary<string, BlockKind> BlockNames = new(StringComparer.OrdinalIgnoreCase) {
             ["slash()"] = BlockKind.Slash, ["while"] = BlockKind.While, ["while True"] = BlockKind.While, ["shoot()"] = BlockKind.Shot,
@@ -40,7 +40,8 @@ namespace CodingGame.Defense.Editor
             ["False"] = BlockKind.False, ["get_pos_x()"] = BlockKind.PositionX, ["get_pos_y()"] = BlockKind.PositionY,
             ["for e in get_enemies()"] = BlockKind.ForEach, ["for in"] = BlockKind.ForEach, ["get_enemies()"] = BlockKind.GetEnemies,
             ["shield"] = BlockKind.Shield, ["break_shield()"] = BlockKind.BreakShield, ["front()"] = BlockKind.Front, ["top()"] = BlockKind.Top,
-            ["and"] = BlockKind.And, ["reflecting"] = BlockKind.Reflecting, ["my_hp()"] = BlockKind.MyHp };
+            ["and"] = BlockKind.And, ["reflecting"] = BlockKind.Reflecting, ["my_hp()"] = BlockKind.MyHp,
+            ["left"] = BlockKind.Left, ["right"] = BlockKind.Right, ["or"] = BlockKind.Or, ["while 조건"] = BlockKind.WhileCondition };
         static BlockKind? Block(string name)
         {
             if (BlockNames.TryGetValue(name, out var kind)) return kind;
@@ -172,7 +173,7 @@ namespace CodingGame.Defense.Editor
                 if (!StageWave(Cell(cells, sw), line, out int stage, out int wave)) continue;
                 string name = Cell(cells, kind); bool boss = name.EndsWith("(보스)");
                 if (boss) name = name.Substring(0, name.Length - "(보스)".Length).Trim();
-                if (!EnemyNames.TryGetValue(name, out var enemy)) { Errors.Add($"{line}줄: 모르는 적 '{name}' (일반·빠른 적·탱커병·힐러·보호막병·큐 지네·스택 지네·반사병)"); continue; }
+                if (!EnemyNames.TryGetValue(name, out var enemy)) { Errors.Add($"{line}줄: 모르는 적 '{name}' (일반·빠른 적·탱커병·힐러·보호막병·큐 지네·스택 지네·반사병·군단 트리)"); continue; }
                 var g = new Group { Stage = stage, Wave = wave, Line = line, Enemy = enemy, Boss = boss, Interval = 1 };
                 string delay = Cell(cells, Column(t, "출현(초)")), interval = Cell(cells, Column(t, "스폰 간격(초)")), last = Cell(cells, Column(t, "마지막 출현(초)"));
                 bool ok = Number(Cell(cells, Column(t, "총 출현 수")), line, "총 출현 수", out float count) &

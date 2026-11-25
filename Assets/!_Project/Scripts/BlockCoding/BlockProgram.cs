@@ -17,9 +17,14 @@ namespace CodingGame.BlockCoding
         BreakShield, // break_shield(enemy): the shooter's second action
         Front, Top, // enemy.front() / enemy.top(): a centipede's hittable end as an Enemy (queue: first in, stack: last in)
         Size, // enemy.size: how many segments its centipede has (1 for any other enemy)
+        // Scenes and assets store these as ints: append only. 39..41 came with the reflector, 42..45 with the tree legion
+        // (they were 39..42 on that branch; the merge rewrote its scene/asset ints, see BlockKindOrderCheck).
         And, // a and b: two conditions
         Reflecting, // enemy.reflecting: a member condition like is_dead() (a Reflector bouncing hits back)
-        MyHp // my_hp(): the robot's own health
+        MyHp, // my_hp(): the robot's own health
+        Left, Right, // enemy.left / enemy.right: a tree node's child as an Enemy, None when it has none (or it died)
+        Or, // a or b: two conditions
+        WhileCondition // while <condition>: a loop that tests its condition before every turn
     }
 
     [Serializable]

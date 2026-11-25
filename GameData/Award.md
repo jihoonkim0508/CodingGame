@@ -12,6 +12,8 @@
 
 3-3의 반사병: 3-2 보상의 for e in get_enemies()·and·reflecting·continue로 `if e.type == Enemy.Reflector and e.reflecting: continue`
 
+3-3의 군단 트리: 3-2 보상의 while 조건·or·left·right로 잎까지 내려가 `while n.left or n.right:` 뒤 `shoot(n)`
+
 | S-W   | 로봇              | 블록                                                                                                                                                                                        | 해금       |
 |:-----:|:---------------:|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:--------:|
 | start | 근접 로봇 ×1        | slash() × 1                                                                                                                                                                               |          |
@@ -31,7 +33,7 @@
 | 2-9   | -               | -                                                                                                                                                                                         | -        |
 | 2-10  | 근접 로봇 ×1, 지원 로봇 ×1 | while True ×1, 변수 = 값 ×1, get_nearest_enemy() ×1, variable ×1, block() ×1, buff() ×1                                                                                                                 | -        |
 | 3-1   | -               | -                                                                                                                                                                                         | -        |
-| 3-2   | -               | for e in get_enemies() ×1, get_enemies() ×1, if ×1, 비교 ×1, Enemy.Tank ×1, and ×1, reflecting ×1, continue ×1, break ×1, variable ×2, shoot() ×1, my_hp() ×1                                                                                                                                                                               | -        |
+| 3-2   | -               | for e in get_enemies() ×1, get_enemies() ×1, if ×2, else ×1, 비교 ×1, Enemy.Tank ×1, and ×1, reflecting ×1, continue ×1, break ×1, while 조건 ×1, or ×1, left ×2, right ×2, 변수 = 값 ×3, variable ×3, get_nearest_enemy() ×1, shoot() ×2, my_hp() ×1 | -        |
 | 3-3   | -               | for e in get_enemies() ×1, get_enemies() ×1, if ×1, elif ×1, 비교 ×3, Enemy.Tank ×3, 변수 = 값 ×1, variable ×4, break ×1, shoot() ×1, front() ×2, top() ×2| -        |
 | 3-4   | -               | -                                                                                                                                                                                         | -        |
 
@@ -58,5 +60,5 @@
 | 2-10 | -     | 5   | 35           |
 | 3-1  | -     | 5   | 40           |
 | 3-2  | -     | 5   | 50           |
-| 3-3  | -     | 5   | 50           |
+| 3-3  | -     | 5   | 65           |
 | 3-4  | -     | 5   | 115          |

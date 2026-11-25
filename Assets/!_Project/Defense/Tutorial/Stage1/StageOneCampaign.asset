@@ -25,6 +25,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: e0ac7d559f929fb4db093e2e05ed0a26, type: 2}
   - {fileID: 11400000, guid: ecaaa56427f178e4a933a21961d99214, type: 2}
   - {fileID: 11400000, guid: 2a361fd7eee298e40970fabcc826582e, type: 2}
+  - {fileID: 11400000, guid: ee5d8bdab10627f4a8c60a45c76e081f, type: 2}
   baseHealth: 12
   robotLimit: 6
   rules:
@@ -294,6 +295,8 @@ MonoBehaviour:
       - kind: 33
         count: 1
       - kind: 3
+        count: 2
+      - kind: 5
         count: 1
       - kind: 11
         count: 1
@@ -307,10 +310,22 @@ MonoBehaviour:
         count: 1
       - kind: 17
         count: 1
-      - kind: 15
-        count: 2
-      - kind: 22
+      - kind: 45
         count: 1
+      - kind: 44
+        count: 1
+      - kind: 42
+        count: 2
+      - kind: 43
+        count: 2
+      - kind: 14
+        count: 3
+      - kind: 15
+        count: 3
+      - kind: 6
+        count: 1
+      - kind: 22
+        count: 2
       - kind: 41
         count: 1
       rewardRobots: []
@@ -908,6 +923,13 @@ MonoBehaviour:
         interval: 3
         healthOverride: 24
         speedOverride: 1.2
+      - enemy: {fileID: 11400000, guid: ee5d8bdab10627f4a8c60a45c76e081f, type: 2}
+        route: 0
+        count: 3
+        delay: 6
+        interval: 9
+        healthOverride: 14
+        speedOverride: 0.9
         leakDamageOverride: 0
         boss: 0
     - groups:

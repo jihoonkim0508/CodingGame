@@ -27,8 +27,8 @@ namespace CodingGame.BlockCoding
         public CommandCodingPanel Panel { get; private set; }
         public CommandDropZone Owner { get; private set; }
         public bool IsPalette { get; private set; }
-        static readonly string[] Methods = { "distance(", "hp", "is_dead()", "type", "shield", "front()", "top()", "size", "reflecting" };
-        static readonly BlockKind[] MemberKinds = { BlockKind.Distance, BlockKind.Hp, BlockKind.IsDead, BlockKind.EnemyTypeOf, BlockKind.Shield, BlockKind.Front, BlockKind.Top, BlockKind.Size, BlockKind.Reflecting };
+        static readonly string[] Methods = { "distance(", "hp", "is_dead()", "type", "shield", "front()", "top()", "size", "reflecting", "left", "right" };
+        static readonly BlockKind[] MemberKinds = { BlockKind.Distance, BlockKind.Hp, BlockKind.IsDead, BlockKind.EnemyTypeOf, BlockKind.Shield, BlockKind.Front, BlockKind.Top, BlockKind.Size, BlockKind.Reflecting, BlockKind.Left, BlockKind.Right };
         bool HasDot => kind == BlockKind.Variable && input && input.text.EndsWith(".", StringComparison.Ordinal);
         // Dropdown after `name.`: distance(position), the read-only hp and type properties, is_dead() (a condition: the block
         // turns into a logic block; there is no is_dead() block of its own in the palette). Read by the shown name, since the
@@ -226,7 +226,7 @@ namespace CodingGame.BlockCoding
         void PrepareHeader()
         {
             // Blocks with a body widen with what is inside: their header stays at the left, by the body's spine.
-            header.GetComponent<HorizontalLayoutGroup>().childAlignment = kind is BlockKind.For or BlockKind.ForEach or BlockKind.While or BlockKind.If or BlockKind.Elif or BlockKind.Else
+            header.GetComponent<HorizontalLayoutGroup>().childAlignment = kind is BlockKind.For or BlockKind.ForEach or BlockKind.While or BlockKind.WhileCondition or BlockKind.If or BlockKind.Elif or BlockKind.Else
                 ? TextAnchor.MiddleLeft : TextAnchor.MiddleCenter;
             foreach (var label in header.GetComponentsInChildren<TMP_Text>(true))
             {
