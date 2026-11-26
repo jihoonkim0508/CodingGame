@@ -111,6 +111,10 @@ namespace CodingGame.Defense
             goalScale = goalRect.localScale;
             goalBackground = goalRect.GetComponent<Image>();
             if (goalBackground) goalColor = goalBackground.color;
+            // The target icon in the middle of its cell (2026-11-26): the bar sprite's (WebtoonGoalPanel) left cell runs from the
+            // frame's inner edge to the divider, sprite x 43 to 289, in the sliced left border; vertically it is the bar's middle.
+            if (goalRect.Find("GoalIcon") is RectTransform goalIcon && goalBackground)
+                goalIcon.anchoredPosition = new Vector2((43 + 289) / 2f / (goalBackground.pixelsPerUnit * goalBackground.pixelsPerUnitMultiplier), 0);
             // The next-wave tab and cards sit under the goal bar's place: they move down below it while a goal shows.
             nextWaveParts = new[] { upcoming.rectTransform, goalRect.parent.Find("UpcomingTab") as RectTransform, enemyCards.Length > 0 ? enemyCards[0].transform.parent as RectTransform : null }
                 .Where(r => r).ToArray();
@@ -255,8 +259,9 @@ namespace CodingGame.Defense
             if (freePlayGoal != upcomingLowered) LowerUpcoming(freePlayGoal);
             if (freePlayGoal)
             {
-                if (!ReferenceEquals(lessonGoal, shownGoal)) guide.text = "목표 · " + lessonGoal;
+                if (!ReferenceEquals(lessonGoal, shownGoal)) { guide.text = "목표 · " + lessonGoal; fittedFor = -1; }
                 shownGoal = lessonGoal;
+                FitGoal();
                 AnimateGoal();
                 battle.Tutorial?.RegisterUITarget(TutorialKeys.Goal, goalRect);
             }
@@ -301,6 +306,24 @@ namespace CodingGame.Defense
         {
             if (!layer.GetComponent<Canvas>()) layer.AddComponent<Canvas>();
             if (clickable && !layer.GetComponent<GraphicRaycaster>()) layer.AddComponent<GraphicRaycaster>();
+        }
+        // The goal bar as wide as its line (2026-11-26; it stretched across the screen, 24 a side, whatever the line): the
+        // line's width plus the text's insets (the target cell on the left), centred where it was, at least GoalMinWidth and at
+        // most the old full width, past which the line shrinks as before (auto size). Refitted when the line or screen changes.
+        const float GoalMinWidth = 360;
+        float fittedFor = -1;
+        void FitGoal()
+        {
+            float full = ((RectTransform)goalRect.parent).rect.width - 48;
+            if (full == fittedFor) return;
+            fittedFor = full;
+            // Laid out at full width first and measured as drawn (GetPreferredValues came out a few % short of the drawn line).
+            goalRect.anchorMin = goalRect.anchorMax = new Vector2(.5f, 1);
+            goalRect.sizeDelta = new Vector2(full, goalRect.sizeDelta.y);
+            guide.ForceMeshUpdate();
+            var text = guide.rectTransform;
+            float width = guide.renderedWidth + text.offsetMin.x - text.offsetMax.x + 32;
+            goalRect.sizeDelta = new Vector2(Mathf.Clamp(width, GoalMinWidth, full), goalRect.sizeDelta.y);
         }
         void AnimateGoal()
         {
@@ -366,7 +389,7 @@ namespace CodingGame.Defense
                 enemyCards[i].SetActive(i < typeCount);
                 if (i >= typeCount) continue;
                 var definition = battle.EnemyAt(cardDefinitions[i]);
-                if (definition.icon && enemyImages[i] && enemyImages[i].texture != definition.icon) ShowEnemy(enemyImages[i], definition.icon);
+                if (definition.icon && enemyImages[i] && enemyImages[i].texture != Rimmed(definition.icon)) ShowEnemy(enemyImages[i], definition.icon);
                 if (enemyHovers[i]) enemyHovers[i].SetEnemy(definition, cardSpecs[i]);
                 int count = fighting ? RemainingOnCard(sim, i) : cardCounts[i];
                 int shown = count * 2 + (cardBosses[i] ? 1 : 0);
@@ -387,7 +410,7 @@ namespace CodingGame.Defense
         }
         static void ShowEnemy(RawImage image, Texture icon)
         {
-            image.texture = icon;
+            image.texture = Rimmed(icon);
             // Existing portraits contain camera padding. Crop only their UVs,
             // then preserve the cropped image's aspect ratio inside the card.
             image.uvRect = icon.name == "EnemyTemp" ? new Rect(.32f, .25f, .36f, .52f) :
@@ -395,6 +418,43 @@ namespace CodingGame.Defense
             float aspect = icon.width * image.uvRect.width / (icon.height * image.uvRect.height);
             float height = Mathf.Min(78, 72 / aspect);
             image.rectTransform.sizeDelta = new Vector2(height * aspect, height);
+        }
+        // A light rim round each monster's silhouette (2026-11-26: the dark monsters blurred into the dark slot), made once per
+        // icon at run time: the icon read back through a RenderTexture (the imported icons are not readable), a chamfer distance
+        // from its opaque pixels (3 a step, 4 a diagonal), and a paper-white rim RimWidth texels wide under the picture. In the
+        // editor (Bake, saved with the scene) and without a GPU the plain icon stays.
+        const float RimWidth = 9; // texels of the 256 px photo: about 2.5 px on the 72 px card
+        static readonly System.Collections.Generic.Dictionary<Texture, Texture2D> rimmed = new System.Collections.Generic.Dictionary<Texture, Texture2D>();
+        static Texture Rimmed(Texture icon)
+        {
+            if (!Application.isPlaying || SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Null) return icon;
+            if (rimmed.TryGetValue(icon, out var done) && done) return done;
+            int w = icon.width, h = icon.height;
+            var target = RenderTexture.GetTemporary(w, h, 0, RenderTextureFormat.ARGB32);
+            var previous = RenderTexture.active;
+            Graphics.Blit(icon, target); RenderTexture.active = target;
+            var copy = new Texture2D(w, h, TextureFormat.RGBA32, true) { name = icon.name + " rimmed", wrapMode = TextureWrapMode.Clamp };
+            copy.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+            RenderTexture.active = previous; RenderTexture.ReleaseTemporary(target);
+            var px = copy.GetPixels32();
+            const int Far = 1 << 20;
+            var d = new int[px.Length];
+            for (int i = 0; i < d.Length; i++) d[i] = px[i].a > 127 ? 0 : Far;
+            int At(int x, int y) => x < 0 || y < 0 || x >= w || y >= h ? Far : d[y * w + x];
+            for (int y = 0; y < h; y++) for (int x = 0; x < w; x++)
+                d[y * w + x] = Math.Min(d[y * w + x], Math.Min(Math.Min(At(x - 1, y), At(x, y - 1)) + 3, Math.Min(At(x - 1, y - 1), At(x + 1, y - 1)) + 4));
+            for (int y = h - 1; y >= 0; y--) for (int x = w - 1; x >= 0; x--)
+                d[y * w + x] = Math.Min(d[y * w + x], Math.Min(Math.Min(At(x + 1, y), At(x, y + 1)) + 3, Math.Min(At(x + 1, y + 1), At(x - 1, y + 1)) + 4));
+            Color32 rim = UITheme.Paper;
+            for (int i = 0; i < px.Length; i++)
+            {
+                float sa = px[i].a / 255f, ra = Mathf.Clamp01(RimWidth + .5f - d[i] / 3f) * (1 - sa), a = sa + ra;
+                if (a <= 0) continue;
+                var c = px[i];
+                px[i] = new Color32((byte)((c.r * sa + rim.r * ra) / a), (byte)((c.g * sa + rim.g * ra) / a), (byte)((c.b * sa + rim.b * ra) / a), (byte)(a * 255));
+            }
+            copy.SetPixels32(px); copy.Apply(true, true);
+            return rimmed[icon] = copy;
         }
         const float ButtonGap = 6;
         void RefreshRobotActions(DefenseSimulation sim)

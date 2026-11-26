@@ -8,7 +8,7 @@ namespace CodingGame.Defense.Editor
 {
     // The 2026-11-26 integration as a player meets it (the support-monster models, the battle presentation, the three robots
     // and team play together): TestResults/Editor/integration/ stills and clips a_team (4-1: the board's editor, the fight with
-    // job cards, holograms, the rift and the dome), b_stack (3-4: the crate pile), c_crowd (2-5, melee robots at one bend: one
+    // job cards, holograms and the rift), b_stack (3-4: the crate pile), c_crowd (2-5, melee robots at one bend: one
     // rolled-up damage number per enemy, the slash under the bloom). Windowed Editor, like RunTeam:
     //   Unity.exe -projectPath . -executeMethod CodingGame.Defense.Editor.ScreenTour.RunIntegration -logFile integration.log
     public static partial class ScreenTour
