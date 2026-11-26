@@ -419,11 +419,11 @@ namespace CodingGame.Defense
             float height = Mathf.Min(78, 72 / aspect);
             image.rectTransform.sizeDelta = new Vector2(height * aspect, height);
         }
-        // A light rim round each monster's silhouette (2026-11-26: the dark monsters blurred into the dark slot), made once per
+        // A thin black rim round each monster's silhouette (2026-11-26: the dark monsters blurred into the dark slot), made once per
         // icon at run time: the icon read back through a RenderTexture (the imported icons are not readable), a chamfer distance
-        // from its opaque pixels (3 a step, 4 a diagonal), and a paper-white rim RimWidth texels wide under the picture. In the
-        // editor (Bake, saved with the scene) and without a GPU the plain icon stays.
-        const float RimWidth = 9; // texels of the 256 px photo: about 2.5 px on the 72 px card
+        // from its opaque pixels (3 a step, 4 a diagonal), and a black rim RimWidth texels wide under the picture, its outer edge
+        // faded over one texel. In the editor (Bake, saved with the scene) and without a GPU the plain icon stays.
+        const float RimWidth = 4.5f; // texels of the 256 px photo: about 1.3 px on the 72 px card
         static readonly System.Collections.Generic.Dictionary<Texture, Texture2D> rimmed = new System.Collections.Generic.Dictionary<Texture, Texture2D>();
         static Texture Rimmed(Texture icon)
         {
@@ -445,7 +445,7 @@ namespace CodingGame.Defense
                 d[y * w + x] = Math.Min(d[y * w + x], Math.Min(Math.Min(At(x - 1, y), At(x, y - 1)) + 3, Math.Min(At(x - 1, y - 1), At(x + 1, y - 1)) + 4));
             for (int y = h - 1; y >= 0; y--) for (int x = w - 1; x >= 0; x--)
                 d[y * w + x] = Math.Min(d[y * w + x], Math.Min(Math.Min(At(x + 1, y), At(x, y + 1)) + 3, Math.Min(At(x + 1, y + 1), At(x - 1, y + 1)) + 4));
-            Color32 rim = UITheme.Paper;
+            var rim = new Color32(0, 0, 0, 255);
             for (int i = 0; i < px.Length; i++)
             {
                 float sa = px[i].a / 255f, ra = Mathf.Clamp01(RimWidth + .5f - d[i] / 3f) * (1 - sa), a = sa + ra;
