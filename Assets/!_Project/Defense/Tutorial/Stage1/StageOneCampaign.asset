@@ -764,7 +764,7 @@ MonoBehaviour:
         count: 6
         delay: 0
         interval: 2.5
-        healthOverride: 15.2
+        healthOverride: 12
         speedOverride: 1.95
         leakDamageOverride: 0
         boss: 0
@@ -773,7 +773,7 @@ MonoBehaviour:
         count: 2
         delay: 6
         interval: 4
-        healthOverride: 26.1
+        healthOverride: 16
         speedOverride: 1.95
         leakDamageOverride: 0
         boss: 0
@@ -792,7 +792,7 @@ MonoBehaviour:
         count: 2
         delay: 5
         interval: 5
-        healthOverride: 19.7
+        healthOverride: 14
         speedOverride: 1.83
         leakDamageOverride: 0
         boss: 0
@@ -801,7 +801,7 @@ MonoBehaviour:
         count: 2
         delay: 12
         interval: 2.5
-        healthOverride: 11.5
+        healthOverride: 7
         speedOverride: 1.84
         leakDamageOverride: 0
         boss: 0
@@ -839,7 +839,7 @@ MonoBehaviour:
         count: 5
         delay: 9
         interval: 3
-        healthOverride: 13
+        healthOverride: 8
         speedOverride: 1.7
         leakDamageOverride: 0
         boss: 0
@@ -848,7 +848,7 @@ MonoBehaviour:
         count: 2
         delay: 9.5
         interval: 6
-        healthOverride: 16
+        healthOverride: 8
         speedOverride: 2.1
         leakDamageOverride: 0
         boss: 0
@@ -933,7 +933,7 @@ MonoBehaviour:
         count: 2
         delay: 3
         interval: 8
-        healthOverride: 68.4
+        healthOverride: 45
         speedOverride: 1.08
         leakDamageOverride: 0
         boss: 0
@@ -952,7 +952,7 @@ MonoBehaviour:
         count: 8
         delay: 1
         interval: 1.5
-        healthOverride: 20.5
+        healthOverride: 15
         speedOverride: 1.36
         leakDamageOverride: 0
         boss: 0
@@ -970,7 +970,7 @@ MonoBehaviour:
         count: 3
         delay: 6.5
         interval: 8.5
-        healthOverride: 80.5
+        healthOverride: 50
         speedOverride: 1.2
         leakDamageOverride: 0
         boss: 0
@@ -998,7 +998,7 @@ MonoBehaviour:
         count: 1
         delay: 0
         interval: 1
-        healthOverride: 144
+        healthOverride: 92
         speedOverride: 1.3
         leakDamageOverride: 12
         boss: 1

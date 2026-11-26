@@ -173,9 +173,9 @@ namespace CodingGame.Defense.Editor
             Require(panel.HintText != null && panel.HintText.StartsWith("wait(초)"), "wait( shows its hint: " + panel.HintText);
             panel.CloseCompletion();
 
-            // 에러 and 오류: slash() on the shooter, slow() on the melee robot, an empty slot.
-            panel.TypePython("enemy = get_nearest_enemy()\nwhile True:\n    slash()\n    shoot(enemy)\n"); panel.ReadPython();
-            Require(panel.Problems.Any(p => !p.error && p.message.Contains("slash()")) && panel.IsApplied, "slash() on the shooter: 에러, still runs");
+            // 에러 and 오류: slow() on the shooter (the utility skill; slash() and block() are its own class), an empty slot.
+            panel.TypePython("enemy = get_nearest_enemy()\nwhile True:\n    slow(enemy)\n    shoot(enemy)\n"); panel.ReadPython();
+            Require(panel.Problems.Any(p => !p.error && p.message.Contains("slow()")) && panel.IsApplied, "slow() on the shooter: 에러, still runs");
             Require(panel.Squiggles.Any(s => s.line == 3 && s.color == CommandCodingPanel.WarningLine), "yellow underline on line 3");
             Require(panel.StatusLine.GetComponent<TMP_Text>().text.Contains("오류 0 · 에러 2"), "status counts: " + panel.StatusLine.GetComponent<TMP_Text>().text);
             yield return Wait(.3);
@@ -189,29 +189,29 @@ namespace CodingGame.Defense.Editor
             var red = panel.Program.AllBlocks().FirstOrDefault(b => b.Problem != null);
             Require(red && red.ProblemIsError && red.Kind == BlockKind.Shot, "red border on the shoot line");
 
-            // Border screen: a red line (empty slot) and a yellow one (slash() on the shooter).
-            panel.LoadProgram("robot_1", new[] { new CodeBlock(BlockKind.DeclareVariable, "enemy", B(BlockKind.NearestEnemy)), Body(B(BlockKind.While), B(BlockKind.Slash), new CodeBlock(BlockKind.Shot, "0", new CodeBlock[] { null })) });
+            // Border screen: a red line (empty slot) and a yellow one (slow() on the shooter).
+            panel.LoadProgram("robot_1", new[] { new CodeBlock(BlockKind.DeclareVariable, "enemy", B(BlockKind.NearestEnemy)), Body(B(BlockKind.While), B(BlockKind.Slow, new CodeBlock(BlockKind.Variable, "enemy")), new CodeBlock(BlockKind.Shot, "0", new CodeBlock[] { null })) });
             yield return Wait(.4);
             var lines = panel.Program.AllBlocks().Where(b => b.Problem != null).ToList();
-            Require(lines.Any(b => b.ProblemIsError && b.Kind == BlockKind.Shot) && lines.Any(b => !b.ProblemIsError && b.Kind == BlockKind.Slash), "red on shoot(___) and yellow on slash() together");
-            Require(panel.StatusLine.GetComponent<TMP_Text>().text.Contains("오류 1 · 에러 1"), "status counts both: " + panel.StatusLine.GetComponent<TMP_Text>().text);
-            var slash = panel.Program.AllBlocks().First(b => b.Kind == BlockKind.Slash);
-            slash.OnPointerEnter(null);
-            Require(panel.TipText != null && panel.TipText.Contains("slash()"), "hovering the yellow line shows its message: " + panel.TipText);
+            Require(lines.Any(b => b.ProblemIsError && b.Kind == BlockKind.Shot) && lines.Any(b => !b.ProblemIsError && b.Kind == BlockKind.Slow), "red on shoot(___) and yellow on slow() together");
+            Require(panel.StatusLine.GetComponent<TMP_Text>().text.Contains("오류 1 · 에러 2"), "status counts both (slow() and enemy found once before the loop): " + panel.StatusLine.GetComponent<TMP_Text>().text);
+            var slow = panel.Program.AllBlocks().First(b => b.Kind == BlockKind.Slow);
+            slow.OnPointerEnter(null);
+            Require(panel.TipText != null && panel.TipText.Contains("slow()"), "hovering the yellow line shows its message: " + panel.TipText);
             yield return Wait(.3);
             yield return Shot("2026-11-25_블록 탭 오류·에러 테두리");
             yield return Wait(.2);
-            slash.OnPointerExit(null);
+            slow.OnPointerExit(null);
             Require(panel.TipText == null, "the message goes when the pointer leaves");
             panel.Program.AllBlocks().First(b => b.Kind == BlockKind.Shot).Arguments[0].Insert(panel.VariableTemplate, 0);
-            panel.Program.AllBlocks().First(b => b.Kind == BlockKind.Variable).SetText("enemy");
+            panel.Program.AllBlocks().Last(b => b.Kind == BlockKind.Variable).SetText("enemy"); // the first is slow(enemy)'s
             yield return Wait(.3);
-            Require(slash.Problem != null && !slash.ProblemIsError && panel.IsApplied && !panel.Program.AllBlocks().Any(b => b.ProblemIsError && b.Problem != null),
-                "the slot filled: red gone, yellow stays on slash(), the robot runs");
+            Require(slow.Problem != null && !slow.ProblemIsError && panel.IsApplied && !panel.Program.AllBlocks().Any(b => b.ProblemIsError && b.Problem != null),
+                "the slot filled: red gone, yellow stays on slow(), the robot runs");
             // Both on one line: red wins.
-            panel.LoadProgram("robot_1", PythonTreeParser.Parse("while True:\n    block(___)\n").ToArray());
-            var both = panel.Program.AllBlocks().First(b => b.Kind == BlockKind.Block);
-            Require(both.Problem != null && both.ProblemIsError && panel.Problems.Count(p => p.statement != null) == 2, "block(___) on the shooter: 오류 and 에러, the border is red");
+            panel.LoadProgram("robot_1", PythonTreeParser.Parse("while True:\n    slow(___)\n").ToArray());
+            var both = panel.Program.AllBlocks().First(b => b.Kind == BlockKind.Slow);
+            Require(both.Problem != null && both.ProblemIsError && panel.Problems.Count(p => p.statement != null) == 2, "slow(___) on the shooter: 오류 and 에러, the border is red");
 
             // Message bubbles: a new 오류 blinks in, stays 1.5 s and fades; nothing pops again on an unchanged line; ! shows it again.
             Require(panel.BubbleText == null, "an opened program's problems do not pop up");
@@ -258,7 +258,7 @@ namespace CodingGame.Defense.Editor
             BubbleFits("long 오류 in the 자연어 tab", 2, true);
             yield return Shot("2026-11-25_오류 말풍선 긴 글 여러 줄");
             panel.SetMode(CodingMode.Python); yield return Wait(.3);
-            panel.TypePython("enemy = get_nearest_enemy()\nwhile True:\n    slash()\n    shoot(enemy)\n"); panel.ReadPython();
+            panel.TypePython("enemy = get_nearest_enemy()\nwhile True:\n    slow(enemy)\n    shoot(enemy)\n"); panel.ReadPython();
             yield return Wait(.2);
             panel.GutterMarks[0].onClick.Invoke();
             yield return Wait(.8);
