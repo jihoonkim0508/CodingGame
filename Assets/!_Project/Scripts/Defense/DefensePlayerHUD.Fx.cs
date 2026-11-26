@@ -11,7 +11,7 @@ namespace CodingGame.Defense
     public sealed partial class DefensePlayerHUD
     {
         // ---- The code hologram: over each robot whose function runs, the line it stands at, in Python, on a dark glass chip
-        // with a cyan edge and a tail pointing at the robot. It pops and lights up when the robot acts (an attack, a buff), its
+        // with a cyan edge and a tail pointing at the robot. It pops and lights up when the robot acts (an attack, a slow), its
         // ▶ blinks each time a loop goes round. A line is held at least .3 s, so a loop that runs many lines in a frame reads.
         // Shown only briefly (2026-11-26: grouped robots' chips stacked over the screen): an action, or a line it has not shown
         // in RepeatSeconds, wakes it for VisibleSeconds, then it fades; a loop going round the same lines does not wake it.
@@ -35,7 +35,7 @@ namespace CodingGame.Defense
         {
             switch (evt.Kind)
             {
-                case "slash": case "shot": case "launch": case "buff": case "stun": case "shield-break": case "slow": case "block":
+                case "slash": case "shot": case "launch": case "stun": case "shield-break": case "slow": case "block":
                     actedAt[evt.Source] = Time.unscaledTime; break;
             }
         }

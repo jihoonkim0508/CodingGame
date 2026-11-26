@@ -76,14 +76,17 @@ namespace CodingGame.Defense
                 if (evt.Kind == "launch") source.AimAt(position);
                 else if (evt.Kind == "slash") source.Spin(position, evt.Seconds);
                 else if (evt.Kind == "shot") Fire(source, position + Vector3.up * .45f, evt.Seconds, rotation, parent);
-                else if (!evt.Melee && evt.Kind == "hit") source.FireAt(position); // buff/stun carry the robot's own position: no beam to itself
+                else if (evt.Kind == "stun") source.AimAt(position); // block(): the shield raise (its hit is close, no beam)
+                else if (!evt.Melee && evt.Kind == "hit") source.FireAt(position);
             }
             if (Options.ranges && area && evt.Radius > 0 && evt.Kind != "slash")
             {
                 areaRing = area;
-                // Green for a buff or a Healer's heal, blue for a Shielder's shield, orange for the rest.
-                areaRing.Show(position, evt.Radius, evt.Kind == "buff" || evt.Kind == "heal" ? new Color(.4f, 1, .5f) : evt.Kind == "shield" ? new Color(.4f, .7f, 1) : new Color(1, .65f, .25f));
-                areaSeconds = .25f;
+                // Green for a Healer's heal, blue for a Shielder's shield, red for a tank's guard breaking, orange for the rest.
+                areaRing.Show(position, evt.Radius, evt.Kind == "heal" ? new Color(.4f, 1, .5f) : evt.Kind == "shield" ? new Color(.4f, .7f, 1) :
+                    evt.Kind == "guard-break" ? DefenseHealthBars.KnockedColor : new Color(1, .65f, .25f));
+                areaSeconds = evt.Kind == "guard-break" ? .6f : .25f;
+                if (evt.Kind == "guard-break" && source) source.Flash();
             }
             // Started so it is fullest as the strike lands.
             if (evt.Kind == "slash") { Later(evt.Seconds - SlashLead, () => Slash(evt, parent, offset)); return; }

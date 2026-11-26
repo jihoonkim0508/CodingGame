@@ -113,7 +113,41 @@ namespace CodingGame.Defense
         public void SyncRobot(RobotState bot, Vector3 position, Quaternion viewRotation)
         {
             attackInterval = bot.Interval;
-            Sync(position, false, false, bot.Buffs.Count > 0);
+            Sync(position, false, false, knocked);
+        }
+        // The tank (2026-11-26): its guard bar on the near edge of its hold zone; the zone round its feet (lilac, bright while it
+        // holds someone); knocked back, the model pushed back and greyed, the guard bar red as it fills again, a countdown under it.
+        Transform holdRing; Renderer holdShown; TMPro.TextMeshPro knockLabel; bool knocked;
+        static Material holdDim, holdLit;
+        Vector3 headRest;
+        public void ShowTank(DefenseSimulation sim, RobotState bot, Camera camera, DefenseHealthBars bars)
+        {
+            double time = sim.Time; knocked = !bot.Holding(time);
+            int held = 0; foreach (var e in sim.Enemies) if (e.Active && e.BlockedBy == bot.Id) held++;
+            // On the hold zone's near edge, under the robot: the code hologram stands over its head.
+            var near = camera.transform.forward; near.y = 0; near = near.sqrMagnitude > 1e-4f ? near.normalized : Vector3.forward;
+            var gauge = transform.position - near * (bot.Spec.blockRadius * .8f) + Vector3.up * .1f;
+            if (bars) bars.Show(DefenseHealthBars.GuardKey(bot.Id), camera, gauge, 1.6f, bot.Guard, bot.MaxGuard,
+                knocked ? DefenseHealthBars.KnockedColor : DefenseHealthBars.GuardColor, 2.2f);
+            if (!holdRing)
+            {
+                var shell = DefenseBattleFx.Find("FxMarkerRing"); if (!shell) return;
+                if (!holdDim) { holdDim = Tint(shell, shell.mainTexture, new Color(.8f, .66f, 1, .4f)); holdLit = Tint(shell, shell.mainTexture, new Color(.86f, .74f, 1, 1)); }
+                holdRing = BeaconQuad(transform, holdDim, 1, 0); holdRing.name = "Hold zone"; holdShown = holdRing.GetComponent<Renderer>();
+                knockLabel = OverheadLabel("Knock timer"); knockLabel.fontSize = 6; headRest = head.localPosition;
+            }
+            holdRing.gameObject.SetActive(!knocked);
+            holdShown.sharedMaterial = held > 0 ? holdLit : holdDim;
+            holdRing.SetPositionAndRotation(transform.position + Vector3.up * .04f, Quaternion.Euler(90, 0, 0));
+            holdRing.localScale = Vector3.one * (2 * bot.Spec.blockRadius / Mathf.Max(.01f, transform.lossyScale.x)) * (held > 0 ? 1 + .025f * Mathf.Sin((float)time * 9) : 1);
+            knockLabel.enabled = knocked;
+            float push = knocked ? Mathf.Clamp01((float)(bot.KnockedUntil - time) / Mathf.Max(.01f, bot.Spec.knockback)) : 0;
+            if (knocked)
+            {
+                knockLabel.text = "밀려남 " + (bot.KnockedUntil - time).ToString("0.0") + "s"; knockLabel.color = DefenseHealthBars.KnockedColor;
+                knockLabel.transform.SetPositionAndRotation(gauge - near * .55f, camera.transform.rotation);
+            }
+            head.localPosition = headRest - head.localRotation * Vector3.forward * (.55f * Mathf.Sqrt(push));
         }
         public void SyncEnemy(EnemyState enemy, double time, Vector3 position, Quaternion viewRotation)
         {
@@ -394,11 +428,11 @@ namespace CodingGame.Defense
             var toward = target - transform.position; toward.y = 0;
             Burst("ReflectFlash", body.bounds.center, toward.sqrMagnitude > 1e-4f ? Quaternion.LookRotation(toward) : default);
         }
-        void Sync(Vector3 position, bool stunned, bool slowed, bool buffed)
+        void Sync(Vector3 position, bool stunned, bool slowed, bool dimmed)
         {
             transform.position = position;
             Color tint = flash > 0 ? Color.Lerp(new Color(1, .25f, .2f), Color.white, flash * 2) :
-                stunned ? new Color(.8f,.4f,1) : slowed ? new Color(.2f,.8f,1) : buffed ? Color.Lerp(baseColor, Color.white, .35f) : baseColor;
+                stunned ? new Color(.8f,.4f,1) : slowed ? new Color(.2f,.8f,1) : dimmed ? Color.Lerp(baseColor, new Color(.45f, .45f, .5f), .6f) : baseColor;
             // Set only when it changes (13차 134): this ran for every actor every frame.
             if (tint == shownTint) return;
             shownTint = tint; colors.SetColor(BaseColorId, tint); body.SetPropertyBlock(colors);
@@ -469,6 +503,7 @@ namespace CodingGame.Defense
         {
             ClearVisuals(); spinSeconds = 0; strikeSpeed = 0;
             head.localRotation = Quaternion.identity;
+            if (holdRing) { holdRing.gameObject.SetActive(false); knockLabel.enabled = false; head.localPosition = headRest; knocked = false; }
             if (animator) { animator.Rebind(); animator.Update(0); }
         }
     }

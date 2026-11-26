@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: "\uC6D0\uAC70\uB9AC \uB85C\uBD07"
   description: "\uACF5\uACA9\uB958. \uBA40\uB9AC \uC788\uB294 \uC801\uC744 \uC3E9\uB2C8\uB2E4.
     \uADFC\uC811 \uB85C\uBD07\uACFC \uAC19\uC740 \uD798, \uC0AC\uAC70\uB9AC\uB9CC
-    \uAE41\uB2C8\uB2E4. \uC9C0\uC6D0 \uAE30\uC220(buff\xB7slow)\uC740 \uC57D\uD558\uAC8C
+    \uAE41\uB2C8\uB2E4. \uC720\uD2F8 \uAE30\uC220(slow)\uC740 \uC57D\uD558\uAC8C
     \uC368\uC694."
   color: {r: 0.92, g: 0.44, b: 0.61, a: 1}
   stats:
@@ -26,14 +26,12 @@ MonoBehaviour:
     radius: 0.75
     health: 100
     blockRadius: 1.1
-    blockCapacity: 3
     effectRadius: 2
     duration: 2
     slowMultiplier: 0.5
     projectileSpeed: 15
-    buffDamage: 1.25
-    buffRange: 1.15
-    buffInterval: 0.8
+    guard: 10
+    knockback: 3
     strikeShare: 0.4
     shieldBreakInterval: 3
     shieldBreakDamage: 2

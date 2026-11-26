@@ -228,7 +228,6 @@ namespace CodingGame.Defense.Editor
                     Hint(list, "리스트"); Hint(item, "값");
                     Holes(view, list, item);
                 });
-                Append(BlockKind.BuffRobot, BlockKind.Shot, commands, view => { Relabel(view, "shoot(", "buff("); Hint(view.Arguments[0].transform, "로봇"); });
             }
             // Block help (도감) entries for the new blocks, as copies of an existing entry's button.
             var help = Object.FindObjectsByType<DefenseBlockHelp>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single();
@@ -303,22 +302,22 @@ namespace CodingGame.Defense.Editor
             Help(BlockKind.MyHp, BlockKind.MyAttackRange, "my_hp() · 내 체력",
                 "이 로봇의 지금 체력입니다. 반사병에게 공격이 튕겨 오면 줄고, 0이 되면 로봇이 이번 웨이브에서 쓰러집니다(재도전하면 돌아옴).",
                 "if my_hp() < 30:\n    wait(1)");
-            // Who does what best (2026-11-25): attack actions belong to 공격류 (근접·원거리), buff and slow to 지원류; the other
+            // Who does what best (2026-11-26): attack actions belong to 공격류 (근접·원거리·탱커), slow to 유틸류; the other
             // class's work weakly. Appended to the entries once.
             var rules = AssetDatabase.LoadAssetAtPath<DefenseCampaignDefinition>("Assets/!_Project/Defense/Tutorial/Stage1/StageOneCampaign.asset").rules;
             string penalty = $" (효과 {rules.reducedStrength:0%}, 재사용 대기 {rules.reducedIntervalMultiplier:0.#}배)";
             foreach (var (kind, note) in new[] {
-                (BlockKind.Buff, "공격류 로봇이 지원 기술을 쓰면 효과가 약해요" + penalty), (BlockKind.Slow, "공격류 로봇이 지원 기술을 쓰면 효과가 약해요" + penalty),
-                (BlockKind.Shot, "지원 로봇이 공격 기술을 쓰면 효과가 약해요" + penalty), (BlockKind.Slash, "지원 로봇이 공격 기술을 쓰면 효과가 약해요" + penalty),
-                (BlockKind.Block, "지원 로봇이 공격 기술을 쓰면 효과가 약해요" + penalty), (BlockKind.Boom, "지원 로봇이 공격 기술을 쓰면 효과가 약해요" + penalty),
-                (BlockKind.BreakShield, "지원 로봇이 공격 기술을 쓰면 효과가 약해요" + penalty) })
+                (BlockKind.Slow, "공격류 로봇이 유틸 기술을 쓰면 효과가 약해요" + penalty),
+                (BlockKind.Shot, "유틸 로봇이 공격 기술을 쓰면 효과가 약해요" + penalty), (BlockKind.Slash, "유틸 로봇이 공격 기술을 쓰면 효과가 약해요" + penalty),
+                (BlockKind.Block, "유틸 로봇이 공격 기술을 쓰면 효과가 약해요" + penalty), (BlockKind.Boom, "유틸 로봇이 공격 기술을 쓰면 효과가 약해요" + penalty),
+                (BlockKind.BreakShield, "유틸 로봇이 공격 기술을 쓰면 효과가 약해요" + penalty) })
                 for (int i = 0; i < entries.arraySize; i++)
                 {
                     var entry = entries.GetArrayElementAtIndex(i);
                     if (entry.FindPropertyRelative("kind").intValue != (int)kind) continue;
                     var text = entry.FindPropertyRelative("description");
                     text.stringValue = text.stringValue.Replace("원거리형 전용 두 번째 기술", "공격류(근접·원거리) 기술").Replace("원거리형", "원거리 로봇").Replace("전사형", "근접 로봇")
-                        .Replace("탱커형", "근접 로봇").Replace("버프형", "지원 로봇").Replace("유틸형", "지원 로봇").Replace("폭탄형", "공격류 로봇");
+                        .Replace("탱커형", "탱커 로봇").Replace("유틸형", "유틸 로봇").Replace("폭탄형", "공격류 로봇");
                     if (!text.stringValue.Contains(note.Substring(0, 12))) text.stringValue += "\n" + note;
                     log += "help " + kind + " class note; ";
                 }
@@ -348,16 +347,13 @@ namespace CodingGame.Defense.Editor
                 "best = get_nearest_enemy()\nfor e in get_enemies():\n    if priority[e.type] < priority[best.type]:\n        best = e\nshoot(best.weak_point())");
             Help(BlockKind.GetRobots, BlockKind.GetEnemies, "get_robots() · 로봇 목록",
                 "배치된 모든 로봇의 리스트입니다. for r in get_robots():로 하나씩 보며 r.hp(체력)와 r.role(종류)을 읽을 수 있어요.",
-                "for r in get_robots():\n    if r.hp < 30:\n        buff(r)");
+                "for r in get_robots():\n    if r.hp < 30:\n        e = get_nearest_enemy()\n        slow(e)");
             Help(BlockKind.Role, BlockKind.Top, "robot.role · 로봇 종류",
-                "로봇의 종류입니다. Robot.Melee(근접), Robot.Ranged(원거리), Robot.Support(지원)와 비교하세요. 로봇 변수 뒤에 점을 찍고 role을 고르세요(hp도 있어요).",
-                "for r in get_robots():\n    if r.role == Robot.Ranged:\n        buff(r)");
+                "로봇의 종류입니다. Robot.Melee(근접), Robot.Ranged(원거리), Robot.Tank(탱커), Robot.Utility(유틸)와 비교하세요. 로봇 변수 뒤에 점을 찍고 role을 고르세요(hp도 있어요).",
+                "for r in get_robots():\n    if r.role == Robot.Tank and r.hp < 50:\n        e = get_nearest_enemy()\n        slow(e)");
             Help(BlockKind.RobotRoleName, BlockKind.EnemyTypeName, "Robot.Melee · 로봇 종류 이름",
-                "로봇 종류의 이름입니다. 고르는 칸에서 Melee(근접), Ranged(원거리), Support(지원)를 고르고 r.role과 비교할 때 씁니다.",
-                "if r.role == Robot.Support:\n    continue");
-            Help(BlockKind.BuffRobot, BlockKind.Buff, "buff(r) · 한 로봇 강화",
-                $"지원 로봇이 고른 로봇 하나를 강화하고 체력을 {DefenseSimulation.BuffRepair:0} 채워 줍니다. 거리와 상관없이 닿아요. 빈칸 없는 buff()는 지금처럼 범위 안 로봇 모두를 강화합니다.",
-                "for r in get_robots():\n    if r.hp < 30:\n        buff(r)");
+                "로봇 종류의 이름입니다. 고르는 칸에서 Melee(근접), Ranged(원거리), Tank(탱커), Utility(유틸)를 고르고 r.role과 비교할 때 씁니다.",
+                "if r.role == Robot.Utility:\n    continue");
             Help(BlockKind.WeakPoint, BlockKind.Right, "enemy.weak_point() · 약점",
                 "지금 맞힐 수 있는 부분을 돌려줍니다: 큐 지네는 맨 앞(front()), 스택 지네는 맨 위(top()), 군단 트리는 왼쪽부터 내려가 닿는 살아 있는 잎, 그 밖의 적은 자기 자신.\n" +
                 "3스테이지에서 e.left·e.right와 while로 트리를 손수 내려가 본 그 순회를 한 번에 해 주는 추상화예요. 손으로 먼저 해 보고, 4스테이지부터 줄여 씁니다.",

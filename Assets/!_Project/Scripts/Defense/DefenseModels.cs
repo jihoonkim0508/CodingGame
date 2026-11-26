@@ -5,10 +5,10 @@ using System.Numerics;
 
 namespace CodingGame.Defense
 {
-    // Three robots in two classes: Melee and Ranged (공격류, the same but for range) and Support (지원류). Support and Melee keep
-    // the old Buffer (0) and Warrior (1) ints; the shooter's assets were rewritten from 4 to 2 and Tank/Bomber/Utility removed,
-    // so an unmigrated 3..5 fails Enum.IsDefined (RobotSpec.Validate) instead of loading as another robot.
-    public enum RobotRole { Support, Melee, Ranged }
+    // Four robots (2026-11-26): Melee and Ranged (공격류, the same but for range), Tank (공격류: holds the road, bashes with
+    // block()) and Utility (지원류: slows). Assets store the ints, append only: Utility keeps the old Support/Buffer 0, Tank is 3.
+    public enum RobotRole { Utility, Melee, Ranged, Tank }
+    // Buff stays only for its int (the buff left the game 2026-11-26: nothing parses, compiles or runs it).
     public enum RobotAction { Buff, Slash, Block, Boom, Attack, Slow, BreakShield }
     // EnemyDefinition assets store the int: append only (Reflector 7, Tree 8: the tree branch had Tree at 7, its asset was rewritten).
     public enum EnemyType { Normal, Fast, Tank, Healer, Shielder, Queue, Stack, Reflector, Tree }
@@ -22,10 +22,11 @@ namespace CodingGame.Defense
         public RobotRole role;
         public float range = 4, damage = 12, interval = 1, radius = .45f;
         public float health = 100, blockRadius = 1.1f;
-        public int blockCapacity = 3;
         public float effectRadius = 2, duration = 2, slowMultiplier = .5f;
         public float projectileSpeed = 4;
-        public float buffDamage = 1.25f, buffRange = 1.15f, buffInterval = .8f;
+        // The tank: the guard it starts a wave with (held enemies wear it down, DefenseSimulation.Guard) and the seconds it stands
+        // knocked back once the guard is gone. blockRadius is how far from it the road is held.
+        public float guard = 10, knockback = 3;
         // Slash: the sword passes the front (and the damage lands) this share of the interval after the swing starts.
         public double strikeShare = .4; // double: the strike time is computed in double
         // break_shield(enemy) (the shooter's second action): its own cooldown, apart from the shot's, and a little damage.
@@ -36,10 +37,9 @@ namespace CodingGame.Defense
         {
             if (!Enum.IsDefined(typeof(RobotRole), role) || !Rules.Positive(range) || !Rules.Nonnegative(damage) ||
                 !Rules.Positive(interval) || !Rules.Positive(radius) || !Rules.Positive(effectRadius) || !Rules.Positive(projectileSpeed) ||
-                !Rules.Positive(duration) || !Rules.Positive(slowMultiplier) || slowMultiplier > 1 ||
-                !Rules.Positive(buffDamage) || buffDamage < 1 || !Rules.Positive(buffRange) || buffRange < 1 ||
-                !Rules.Positive(buffInterval) || buffInterval > 1 || !(strikeShare >= 0 && strikeShare <= 1) ||
-                !Rules.Positive(shieldBreakInterval) || !Rules.Nonnegative(shieldBreakDamage) || !Rules.Positive(health))
+                !Rules.Positive(duration) || !Rules.Positive(slowMultiplier) || slowMultiplier > 1 || !(strikeShare >= 0 && strikeShare <= 1) ||
+                !Rules.Positive(shieldBreakInterval) || !Rules.Nonnegative(shieldBreakDamage) || !Rules.Positive(health) ||
+                !Rules.Positive(blockRadius) || !Rules.Positive(guard) || !Rules.Positive(knockback))
                 throw new ArgumentException("로봇 수치가 올바르지 않습니다: " + role);
         }
     }
@@ -86,13 +86,14 @@ namespace CodingGame.Defense
         public static bool ValidBox(Vector2 min, Vector2 max) => Finite(min) && Finite(max) && min.X < max.X && min.Y < max.Y;
         public static EnemyState Nearest(IEnumerable<EnemyState> enemies, Vector2 from) =>
             enemies.OrderBy(e => Vector2.DistanceSquared(e.Position, from)).ThenBy(e => e.Id).FirstOrDefault();
-        public static string RoleName(RobotRole role) => role == RobotRole.Melee ? "근접 로봇" : role == RobotRole.Ranged ? "원거리 로봇" : "지원 로봇";
+        public static string RoleName(RobotRole role) => role == RobotRole.Melee ? "근접 로봇" : role == RobotRole.Ranged ? "원거리 로봇" : role == RobotRole.Tank ? "탱커 로봇" : "유틸 로봇";
         public static readonly int RoleCount = Enum.GetValues(typeof(RobotRole)).Length;
-        // The action a robot does with no code (and the debrief calls its own): slash, shoot, buff.
-        public static RobotAction NativeAction(RobotRole role) => role == RobotRole.Melee ? RobotAction.Slash : role == RobotRole.Ranged ? RobotAction.Attack : RobotAction.Buff;
-        // 공격류 (melee, ranged) and 지원류 (support): buff and slow are support actions, the rest attack actions.
-        public static bool AttackClass(RobotRole role) => role != RobotRole.Support;
-        public static bool SupportAction(RobotAction action) => action == RobotAction.Buff || action == RobotAction.Slow;
+        // The action a robot does with no code (and the debrief calls its own): slash, shoot, the shield bash, slow.
+        public static RobotAction NativeAction(RobotRole role) => role == RobotRole.Melee ? RobotAction.Slash : role == RobotRole.Ranged ? RobotAction.Attack :
+            role == RobotRole.Tank ? RobotAction.Block : RobotAction.Slow;
+        // 공격류 (melee, ranged, tank) and 지원류 (utility): slow is the support action, the rest attack actions.
+        public static bool AttackClass(RobotRole role) => role != RobotRole.Utility;
+        public static bool SupportAction(RobotAction action) => action == RobotAction.Slow;
         // An action of the robot's own class is native; the other class's works, weakly (DefenseBalanceRules.reducedStrength,
         // reducedIntervalMultiplier).
         public static ActionCompatibility Compatibility(RobotRole role, RobotAction action) =>
@@ -222,12 +223,6 @@ namespace CodingGame.Defense
         public bool Contains(Vector2 position) => position.X >= Min.X && position.X <= Max.X && position.Y >= Min.Y && position.Y <= Max.Y;
     }
 
-    public sealed class BuffState
-    {
-        public int Source;
-        public double Until;
-        public float Damage, Range, Interval;
-    }
     public sealed class MovementEffect
     {
         public int Source;
@@ -250,26 +245,29 @@ namespace CodingGame.Defense
         public float? Health;
         public double NextAction, NextShieldBreak; // break_shield() cools down on its own
         public bool AutoExecute;
-        public bool BlockingEnabled; // ponytail: body blocking was the tank's; no robot stands on the road now, so nothing sets it
+        // The tank's guard (Spec.guard when full) and when its knock-back ends; it holds the road while not knocked back.
+        public float Guard;
+        public double KnockedUntil;
+        public float MaxGuard => Spec.guard * LevelMultiplier;
+        public bool Holding(double time) => Spec.role == RobotRole.Tank && time >= KnockedUntil;
         public double LastReflected = double.NegativeInfinity; // when a reflector last sent a hit back (the view flashes)
         public int Job; // the enemy this robot last took out of a list with pop(0) (the team board's line to it), 0 for none
         public ActionResult LastResult;
         public int Executions, AttacksThisWave;
         // This wave's record for the result debrief (reset when a wave is prepared).
-        public int ActionsThisWave, KillsThisWave, LoopTurnsThisWave;
+        public int ActionsThisWave, KillsThisWave, LoopTurnsThisWave, HeldThisWave, KnockedThisWave; // held, knocked back: the tank's
         public float DamageThisWave;
         public bool SawEnemyThisWave;
-        public readonly List<BuffState> Buffs = new List<BuffState>();
         public DefenseProgram Program;
-        // Read per enemy per tick: plain loops, no LINQ enumerators or closures (13차 129).
-        public float Range { get { float v = 1; for (int i = 0; i < Buffs.Count; i++) v = Math.Max(v, Buffs[i].Range); return Spec.range * v; } }
-        public float DamageMultiplier { get { float v = 1; for (int i = 0; i < Buffs.Count; i++) v = Math.Max(v, Buffs[i].Damage); return v * LevelMultiplier; } }
+        public float Range => Spec.range;
+        public float DamageMultiplier => LevelMultiplier;
         public float Damage => Spec.damage * DamageMultiplier;
-        public float Interval { get { float v = 1; for (int i = 0; i < Buffs.Count; i++) v = Math.Min(v, Buffs[i].Interval); return Spec.interval * v; } }
+        public float Interval => Spec.interval;
     }
     public sealed class EnemyState
     {
         public int Id, DefinitionIndex, RouteIndex, NextPoint = 1, BlockedBy;
+        public bool Queued; // waiting in the line behind one a tank holds (BlockedBy is that tank); worked out again every tick
         public bool Boss;
         public Vector2 Position;
         public EnemySpec Spec;

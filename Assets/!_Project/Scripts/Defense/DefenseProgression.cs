@@ -32,7 +32,7 @@ namespace CodingGame.Defense
             new BlockDrop { kind = BlockKind.Boom, weight = 3 }, new BlockDrop { kind = BlockKind.Slow, weight = 2 },
             new BlockDrop { kind = BlockKind.Shot, weight = 2 }, new BlockDrop { kind = BlockKind.Slash },
             new BlockDrop { kind = BlockKind.If }, new BlockDrop { kind = BlockKind.Else },
-            new BlockDrop { kind = BlockKind.Buff, weight = 2 }, new BlockDrop { kind = BlockKind.Block },
+            new BlockDrop { kind = BlockKind.Block },
             new BlockDrop { kind = BlockKind.While, firstWave = 3 },
             new BlockDrop { kind = BlockKind.Elif, firstWave = 3 }, new BlockDrop { kind = BlockKind.Break, firstWave = 3 },
             new BlockDrop { kind = BlockKind.Continue, firstWave = 3 }
@@ -56,7 +56,7 @@ namespace CodingGame.Defense
             if (lessons == null || lessons.Any(l => l == null || l.stage < 1 || l.stage > DefenseCurriculum.StageCount || l.wave < 1 || l.wave > MaxWaves ||
                 string.IsNullOrWhiteSpace(l.topic) || l.robots == null || l.blocks == null || l.rewards == null ||
                 (l.rewardRobots ?? Array.Empty<RobotStock>()).Concat(l.robots).Any(r => r == null || !Enum.IsDefined(typeof(RobotRole), r.role) || r.count < 1) ||
-                l.blocks.Concat(l.rewards).Any(b => b == null || !Consumes(b.kind) || b.count < 1)) ||
+                l.blocks.Concat(l.rewards).Any(b => b == null || !Consumes(b.kind) || Retired(b.kind) || b.count < 1)) ||
                 lessons.GroupBy(l => (l.stage, l.wave)).Any(g => g.Count() != 1))
                 throw new ArgumentException("스테이지별 보급·보상 설정을 확인하세요.");
             if (initialCoins < 0 || coinsPerKill < 0 || upgradeCost < 1)
@@ -83,7 +83,9 @@ namespace CodingGame.Defense
         }
         public static BlockKind Canonical(BlockKind kind) => kind == BlockKind.Attack ? BlockKind.Shot : kind == BlockKind.Distance || kind == BlockKind.Hp || kind == BlockKind.EnemyTypeOf || kind == BlockKind.Size ? BlockKind.Variable : kind;
         public static bool Consumes(BlockKind kind) => Enum.IsDefined(typeof(BlockKind), kind);
-        public static BlockKind[] ItemKinds => Enum.GetValues(typeof(BlockKind)).Cast<BlockKind>().Select(Canonical).Distinct().ToArray();
+        // The buff's blocks left the game (2026-11-26); their ints stay, nothing grants, lists or runs them.
+        public static bool Retired(BlockKind kind) => kind == BlockKind.Buff || kind == BlockKind.BuffRobot;
+        public static BlockKind[] ItemKinds => Enum.GetValues(typeof(BlockKind)).Cast<BlockKind>().Where(k => !Retired(k)).Select(Canonical).Distinct().ToArray();
         public static IEnumerable<BlockKind> Used(IEnumerable<CodeBlock> blocks)
         {
             foreach (var block in blocks)
@@ -103,7 +105,7 @@ namespace CodingGame.Defense
             {
                 case BlockKind.Shot: return "shoot(Enemy)"; case BlockKind.Slash: return "slash()";
                 case BlockKind.Block: return "block(Enemy)"; case BlockKind.Boom: return "boom(Enemy)";
-                case BlockKind.Slow: return "slow(Enemy)"; case BlockKind.Buff: return "buff()";
+                case BlockKind.Slow: return "slow(Enemy)";
                 case BlockKind.Wait: return "wait()"; case BlockKind.Number: return "0";
                 case BlockKind.Comparison: return "<"; case BlockKind.DeclareVariable: return "variable =";
                 case BlockKind.Variable: return "variable"; case BlockKind.NearestEnemy: return "get_nearest_enemy()";
@@ -122,7 +124,7 @@ namespace CodingGame.Defense
                 case BlockKind.Append: return "append()"; case BlockKind.Pop: return "pop(0)"; case BlockKind.Len: return "len()";
                 case BlockKind.In: return "in"; case BlockKind.Not: return "not"; case BlockKind.Index: return "d[k]";
                 case BlockKind.GetRobots: return "get_robots()"; case BlockKind.Role: return "role"; case BlockKind.RobotRoleName: return "Robot.Melee";
-                case BlockKind.BuffRobot: return "buff(r)"; case BlockKind.WeakPoint: return "weak_point()";
+                case BlockKind.WeakPoint: return "weak_point()";
                 default: return kind.ToString().ToLowerInvariant();
             }
         }

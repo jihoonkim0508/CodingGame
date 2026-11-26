@@ -28,13 +28,13 @@ public static class PlacementFeedbackCheck
         battle.EditorStartSession(2, 1, true, new DefenseTestOptions { tutorial = true });
         SerializedObject data;
         Place(battle, RobotRole.Ranged); Place(battle, RobotRole.Ranged); Place(battle, RobotRole.Melee);
-        Place(battle, RobotRole.Support);
+        Place(battle, RobotRole.Utility);
         Require(battle.Simulation.Robots.Count == 4, "Stage 2 wave 1 utility must fit");
         battle.Simulation.GrantRobot(RobotRole.Ranged, 2);
         Place(battle, RobotRole.Ranged); Place(battle, RobotRole.Ranged);
-        int utility = Enumerable.Range(0, Rules.RoleCount).Single(i => battle.DefinitionRole(i) == RobotRole.Support);
-        battle.Simulation.GrantRobot(RobotRole.Support, 1);
-        Require(battle.Simulation.DeploymentError(RobotRole.Support).Contains("설치개수 초과"), "Shared limit reason");
+        int utility = Enumerable.Range(0, Rules.RoleCount).Single(i => battle.DefinitionRole(i) == RobotRole.Utility);
+        battle.Simulation.GrantRobot(RobotRole.Utility, 1);
+        Require(battle.Simulation.DeploymentError(RobotRole.Utility).Contains("설치개수 초과"), "Shared limit reason");
         Require(battle.Simulation.PlacementError(battle.RobotDefinition(utility).stats, new Point(999, 999)).Contains("설치개수 초과"), "Limit takes precedence over geometry");
         battle.ChooseRobot(utility);
         var hud = UnityEngine.Object.FindFirstObjectByType<DefensePlayerHUD>();

@@ -37,8 +37,8 @@ namespace CodingGame.BlockCoding
         Index, // d[k]: a dict's value (or a list's item)
         GetRobots, // get_robots(): the placed robots
         Role, // r.role: a robot's member
-        RobotRoleName, // Robot.Melee / Robot.Ranged / Robot.Support: Value is the name
-        BuffRobot, // buff(r): the support action on one robot
+        RobotRoleName, // Robot.Melee / Robot.Ranged / Robot.Tank / Robot.Utility: Value is the name
+        BuffRobot, // retired with Buff (2026-11-26): kept for the ints after it, nothing makes or compiles either
         WeakPoint // e.weak_point(): the part of the enemy that can be hit now
     }
 

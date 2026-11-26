@@ -288,6 +288,7 @@ namespace CodingGame.Defense
                 view.SyncRobot(bot, World(bot.Position), previewCamera.transform.rotation);
                 if (healthBars && bot.Health.HasValue)
                     healthBars.Show(DefenseHealthBars.RobotKey(bot.Id), previewCamera, view.HealthAnchor, view.HealthWidth, bot.Health.Value, bot.MaxHealth);
+                if (bot.Spec.role == RobotRole.Tank) view.ShowTank(simulation, bot, previewCamera, healthBars);
             }
             foreach (var e in simulation.Enemies)
             {
@@ -408,13 +409,12 @@ namespace CodingGame.Defense
             float nextMultiplier = (float)Math.Pow(selected.UpgradeFactor, selected.Level);
             // Dim names, bright values 15% larger: the same reading pattern as the battle's top bar (not <b>: the text is already Pretendard Bold).
             stats.text = $"<size=115%>{battle.RobotName(selected.Id)}  Lv.{selected.Level}</size>" + (selected.IsMaxLevel ? "" : $" <color={UITheme.GoodHex}>→ Lv.{selected.Level + 1}</color>") +
-                (s.role == RobotRole.Support ? "" : $"\n{Stat("공격력")}{UpgradeValue(selected.Damage,selected.Damage/selected.LevelMultiplier*nextMultiplier)}") +
+                $"\n{Stat("공격력")}{UpgradeValue(selected.Damage,selected.Damage/selected.LevelMultiplier*nextMultiplier)}" +
                 $"\n{Stat("사거리")}<size=115%>{selected.Range:0.#}</size>\n{Stat("공격 간격")}<size=115%>{selected.Interval:0.##}초</size>\n" +
                 (selected.IsMaxLevel ? $"{Stat("체력")}<size=115%>{selected.Health:0}/{selected.MaxHealth:0}</size>" : $"{Stat("최대 체력")}{UpgradeValue(selected.MaxHealth,s.health*nextMultiplier)}") +
                 $"\n{Stat("계열")}{DefenseRobotStatsCard.ClassNote(s.role, battle.Simulation.Setup.RulesConfig)}" +
-                (s.role == RobotRole.Support ? $"\n{Stat("버프 피해")}{UpgradeValue(1+(s.buffDamage-1)*selected.LevelMultiplier,1+(s.buffDamage-1)*nextMultiplier)}배" +
-                    $"\n{Stat("버프 사거리")}{UpgradeValue(1+(s.buffRange-1)*selected.LevelMultiplier,1+(s.buffRange-1)*nextMultiplier)}배" +
-                    $"\n{Stat("버프 간격")}{UpgradeValue(Math.Max(.01f,1-(1-s.buffInterval)*selected.LevelMultiplier),Math.Max(.01f,1-(1-s.buffInterval)*nextMultiplier))}배" : "");
+                (s.role == RobotRole.Utility ? $"\n{Stat("감속")}<size=115%>속도 {s.slowMultiplier:0%} · {s.duration:0.#}초</size>" : "") +
+                (s.role == RobotRole.Tank ? $"\n{Stat("가드")}{UpgradeValue(selected.MaxGuard,s.guard*nextMultiplier)}  {Stat("길막기")}<size=115%>{s.blockRadius:0.#}</size>" : "");
             coinLabel.text = $"<color={UITheme.MutedHex}>코인</color>  <size=115%><color={UITheme.GoldHex}>{battle.Simulation.Coins:N0}</color></size>";
         }
         static string Stat(string name) => $"<color={UITheme.MutedHex}>{name}</color>  ";

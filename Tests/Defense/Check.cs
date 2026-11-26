@@ -17,7 +17,7 @@ static class Check
     {
         var bot = sim.Place(Spec(role), (int)role, new Vector2(x, z), out var error);
         if (bot == null) throw new Exception(error);
-        bot.AutoExecute = true; bot.BlockingEnabled = true; return bot;
+        bot.AutoExecute = true; return bot;
     }
     static void Advance(DefenseSimulation sim, double seconds) { for (int i = 0; i < (int)(seconds * 60); i++) sim.Advance(1.0 / 60); }
     static void Main()
@@ -32,8 +32,8 @@ static class Check
         // old line (half-width + radius) the body still stood on the drawn road (play test).
         Assert(sim.PlacementError(Spec(RobotRole.Melee), new Vector2(-5, 1.5f)) == "적 경로에는 로봇을 설치할 수 없습니다.", "robot body on the drawn road edge rejected");
         Assert(sim.PlacementError(Spec(RobotRole.Melee), new Vector2(-5, 2.05f)) == null, "robot clear of the drawn road allowed");
-        Place(sim, RobotRole.Support, 0, 3);
-        Assert(sim.Place(Spec(RobotRole.Support), 0, new Vector2(5, 3), out _) == null, "one buffer limit");
+        Place(sim, RobotRole.Utility, 0, 3);
+        Assert(sim.Place(Spec(RobotRole.Utility), 0, new Vector2(5, 3), out _) == null, "one utility robot limit");
         // A map that is not a rectangle: robots stand only on its tiles, with the whole body on them.
         var floored = Setup(); floored.Floor = new[] { new PlacementObstacle { Min = new Vector2(-10, 1), Max = new Vector2(0, 5) } };
         var floorSim = new DefenseSimulation(floored);
@@ -87,19 +87,9 @@ static class Check
             Advance(direct,1);
             Assert(direct.Projectiles.Count==0&&Math.Abs(direct.Enemies[0].Health-expected)<.001f,"direct action still hits a fast target that moved on: "+role);
         }
-        var crossBomb=new DefenseSimulation(Setup());var crossThrower=Place(crossBomb,RobotRole.Support,-8,3);crossThrower.AutoExecute=false;
+        var crossBomb=new DefenseSimulation(Setup());var crossThrower=Place(crossBomb,RobotRole.Utility,-8,3);crossThrower.AutoExecute=false;
         crossBomb.Start();Advance(crossBomb,.2);crossBomb.RequestAction(crossThrower.Id,RobotAction.Boom);crossBomb.RemoveRobot(crossThrower.Id);Advance(crossBomb,1);
         Assert(crossBomb.Enemies[0].Health==98.75f,"cross-class projectile keeps 25 percent damage after source removal");
-
-        var buffSim = new DefenseSimulation(Setup());
-        var buffer = Place(buffSim, RobotRole.Support, -5, 3); buffer.AutoExecute = false;
-        var recipient = Place(buffSim, RobotRole.Melee, -7, 3); recipient.AutoExecute = false;
-        buffSim.Start(); Advance(buffSim, .2); buffSim.RequestAction(buffer.Id, RobotAction.Buff);
-        Assert(recipient.Range > recipient.Spec.range && recipient.Damage > recipient.Spec.damage && recipient.Interval < recipient.Spec.interval, "buff strengthens all 3 fields");
-        Advance(buffSim, .2); buffSim.RequestAction(buffer.Id, RobotAction.Buff);
-        Assert(recipient.Buffs.Count == 1, "same source refreshes instead of stacking");
-        buffSim.RemoveRobot(buffer.Id);
-        Assert(recipient.Range == recipient.Spec.range && recipient.Damage == recipient.Spec.damage, "buff cleanup restores original values");
 
         var win = new DefenseSimulation(Setup(health: 1));
         var winner = Place(win, RobotRole.Ranged, -8, 2); win.Start(); Advance(win, 1);
@@ -118,11 +108,11 @@ static class Check
         Assert(clean.Time == 0 && clean.Robots.Count == 0 && clean.Enemies.Count == 0 && clean.Kills == 0 && clean.Phase == BattlePhase.Ready, "new session clears runtime state");
 
         var setup = Setup();
-        var reduced = new DefenseSimulation(setup); var trainee = Place(reduced, RobotRole.Support, -8, 2); trainee.AutoExecute = false;
+        var reduced = new DefenseSimulation(setup); var trainee = Place(reduced, RobotRole.Utility, -8, 2); trainee.AutoExecute = false;
         reduced.Start(); Advance(reduced, .2); reduced.RequestAction(trainee.Id, RobotAction.Attack); Advance(reduced, 1); // the shot lands on arrival
         Assert(reduced.Enemies[0].Health == 98.75f, "cross-class action uses 25 percent of the damage");
         bool rejected = false;
-        setup.Permissions = new[] { new ActionPermission { role = RobotRole.Melee, action = RobotAction.Buff, strength = .5f } };
+        setup.Permissions = new[] { new ActionPermission { role = RobotRole.Melee, action = RobotAction.Slow, strength = .5f } };
         try { new DefenseSimulation(setup); } catch (ArgumentException) { rejected = true; }
         Assert(rejected, "permission rows are no longer taken");
         Assert(Rules.SegmentDistance(new Vector2(0,2), new Vector2(-1,0), new Vector2(1,0)) == 2, "continuous segment distance");
@@ -153,17 +143,12 @@ static class Check
         var multiSim = new DefenseSimulation(multi); Place(multiSim, RobotRole.Ranged,-8,2); multiSim.Start(); Advance(multiSim, 3); // shots in flight add time
         Assert(multiSim.Phase == BattlePhase.Victory && multiSim.Spawned == 3 && multiSim.Kills == 3 && multiSim.WaveIndex == 2, "three waves finish without duplicate spawns");
 
-        var slowSim = new DefenseSimulation(Setup(health: 1000)); var utility = Place(slowSim,RobotRole.Support,-8,2); utility.AutoExecute = false;
+        var slowSim = new DefenseSimulation(Setup(health: 1000)); var utility = Place(slowSim,RobotRole.Utility,-8,2); utility.AutoExecute = false;
         slowSim.Start(); Advance(slowSim,.2); slowSim.RequestAction(utility.Id,RobotAction.Slow);
         var slowed = slowSim.Enemies.Single();
         Assert(slowed.Health == 995 && slowed.Speed(slowSim.Time) == .5f, "slow command deals sample damage and reduces speed");
         Advance(slowSim,2.1);
         Assert(slowed.Speed(slowSim.Time) == 1 && slowed.Effects.Count == 0, "slow expires and restores original speed");
-
-        var expirySim = new DefenseSimulation(Setup(health: 1000)); var expiryBuffer = Place(expirySim,RobotRole.Support,-5,3); expiryBuffer.AutoExecute = false;
-        var expiryRecipient = Place(expirySim,RobotRole.Melee,-7,3); expiryRecipient.AutoExecute = false;
-        expirySim.Start(); Advance(expirySim,.2); expirySim.RequestAction(expiryBuffer.Id,RobotAction.Buff); Advance(expirySim,2.1);
-        Assert(expiryRecipient.Buffs.Count == 0 && expiryRecipient.Range == expiryRecipient.Spec.range && expiryRecipient.Interval == expiryRecipient.Spec.interval, "buff expiration restores baseline without removing source");
 
         Console.WriteLine($"Defense checks passed: {checks}");
         ProgramCheck.Run();
@@ -182,6 +167,7 @@ static class Check
         AllocCheck.Run();
         PlacementCheck.Run();
         MoveCheck.Run();
+        TankCheck.Run();
         AuditCheck.Run();
         PlayLogCheck.Run();
         GameDataCheck.Run();

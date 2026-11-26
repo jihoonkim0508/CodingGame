@@ -4,8 +4,8 @@ using CodingGame.BlockCoding;
 static class FixtureProgression { public static DefenseProgression Create() => new DefenseProgression {
 lessons = Array.Empty<WaveLesson>(),
         robots = new RobotStock[] {
-            new RobotStock { role = RobotRole.Support }, new RobotStock { role = RobotRole.Melee, count = 2 },
-            new RobotStock { role = RobotRole.Ranged, count = 3 }
+            new RobotStock { role = RobotRole.Utility }, new RobotStock { role = RobotRole.Melee, count = 2 },
+            new RobotStock { role = RobotRole.Ranged, count = 3 }, new RobotStock { role = RobotRole.Tank, count = 2 }
         },
         initial = new BlockStock[] {
             new BlockStock { kind = BlockKind.Shot, count = 3 }, new BlockStock { kind = BlockKind.Slash, count = 2 },

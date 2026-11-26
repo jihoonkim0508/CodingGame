@@ -10,17 +10,17 @@ namespace CodingGame.Defense {
   float laidOutExtraHeight;
   public void Configure(TMP_Text t,TMP_Text d,TMP_Text r,TMP_Text i,TMP_Text h,TMP_Text e,TMP_Text c){title=t;damage=d;range=r;interval=i;health=h;extra=e;coins=c;}
   // The robot's class and what the other class's actions cost it (the block help says the same).
-  public static string ClassNote(RobotRole role,DefenseBalanceRules rules)=>(Rules.AttackClass(role)?"공격류 · 지원 기술(buff·slow)은":"지원류 · 공격 기술은")+
+  public static string ClassNote(RobotRole role,DefenseBalanceRules rules)=>(Rules.AttackClass(role)?"공격류 · 유틸 기술(slow)은":"유틸류 · 공격 기술은")+
    $" 효과 {rules.reducedStrength:0%}, 대기 {rules.reducedIntervalMultiplier:0.#}배";
   public void Show(DefenseBattle battle,RobotState bot){
    var spec=bot.Spec;float next=(float)Math.Pow(bot.UpgradeFactor,bot.Level);
    string Upgrade(float current,float upgraded)=>bot.IsMaxLevel||Mathf.Approximately(current,upgraded)?$"{current:0.##}":$"{current:0.##} <color=#98E6C6>→ {upgraded:0.##}</color>";
    title.text=$"{battle.RobotName(bot.Id)}  Lv.{bot.Level}"+(bot.IsMaxLevel?"":" → Lv."+(bot.Level+1));
-   damage.text=spec.role==RobotRole.Support?"지원형":Upgrade(bot.Damage,bot.Damage/bot.LevelMultiplier*next);
+   damage.text=Upgrade(bot.Damage,bot.Damage/bot.LevelMultiplier*next);
    range.text=$"{bot.Range:0.##}";interval.text=$"{bot.Interval:0.##}초";
    health.text=bot.IsMaxLevel?$"{bot.Health:0} / {bot.MaxHealth:0}":Upgrade(bot.MaxHealth,spec.health*next);
-   extra.text=(spec.role==RobotRole.Support?
-    $"버프 피해 {Upgrade(1+(spec.buffDamage-1)*bot.LevelMultiplier,1+(spec.buffDamage-1)*next)}배\n버프 사거리 {Upgrade(1+(spec.buffRange-1)*bot.LevelMultiplier,1+(spec.buffRange-1)*next)}배\n버프 간격 {Upgrade(Math.Max(.01f,1-(1-spec.buffInterval)*bot.LevelMultiplier),Math.Max(.01f,1-(1-spec.buffInterval)*next))}배\n":"")+
+   extra.text=(spec.role==RobotRole.Utility?$"감속 속도 {spec.slowMultiplier:0%} · {spec.duration:0.#}초\n":
+    spec.role==RobotRole.Tank?$"가드 {Upgrade(bot.MaxGuard,spec.guard*next)} · 길막기 거리 {spec.blockRadius:0.#}\n가드가 다 닳으면 {spec.knockback:0.#}초 밀려나요\n":"")+
     ClassNote(spec.role,battle.Simulation.Setup.RulesConfig);
    coins.text=$"보유 코인   {battle.Simulation.Coins:N0}";
    AlignRows(false);

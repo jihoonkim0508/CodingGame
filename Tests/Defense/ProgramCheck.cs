@@ -57,7 +57,7 @@ static class ProgramCheck
         delayed.TogglePause();Tick(delayed,32);
         Assert(delayedBot.Program.WaitRemaining(delayed.Time)==0,"wait completion clears wait display");
         Assert(!delayedBot.Program.IsEmpty&&new DefenseProgram("empty",Array.Empty<CodeBlock>()).IsEmpty,"empty program detection needs no block copies");
-        var sim=Make();var robot=Bot(sim,RobotRole.Support);robot.AutoExecute=false;sim.Start();Tick(sim,6);
+        var sim=Make();var robot=Bot(sim,RobotRole.Utility);robot.AutoExecute=false;sim.Start();Tick(sim,6);
         var target=sim.Enemies.Single();sim.RequestAction(robot.Id,RobotAction.Slash);Tick(sim,30); // the sword gets there after the wind-up
         Assert(target.Health==9995,"the support robot's slash is 25 percent of its damage");
         Tick(sim,6);sim.RequestAction(robot.Id,RobotAction.Slow);
@@ -66,7 +66,7 @@ static class ProgramCheck
         var slowed=slowing.Enemies.Single();slowing.RequestAction(melee.Id,RobotAction.Slow);
         Assert(Math.Abs(slowed.Speed(slowing.Time)/slowed.Spec.speed-.875)<.00001,"an attack robot's slow is 25 percent reduction strength, not 25 percent remaining speed");
 
-        sim=Make();robot=Bot(sim,RobotRole.Support); var other=Bot(sim,RobotRole.Ranged,-7);other.AutoExecute=false;
+        sim=Make();robot=Bot(sim,RobotRole.Utility); var other=Bot(sim,RobotRole.Ranged,-7);other.AutoExecute=false;
         var attack=new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy));
         sim.ApplyProgram(robot.Id,"cross",new[]{attack});attack.Kind=BlockKind.Buff;
         Assert(!robot.AutoExecute&&robot.Program.Source.Contains("shoot(get_nearest_enemy())"),"apply freezes source and disables automatic actions");

@@ -12,7 +12,7 @@ namespace CodingGame.Defense.Editor
     // "while True:", "for e in get_enemies():", "elif ...:", "else:" with a body indented deeper (any width), "x.shield", "break_shield(x)",
     // "x.front()", "x.top()", "x.size", "a and b", "x.reflecting", "my_hp()", "while a or b:" (any condition), "if x.left:", "x.left", "x.right",
     // and the team's: "x = []", "{Enemy.Healer: 0, ...}", "x.append(v)", "x.pop(0)", "len(x)", "v in x", "v not in x", "not c", "d[k]",
-    // "for v in x:", "get_robots()", "r.hp", "r.role", "Robot.Melee", "buff(r)", "e.weak_point()".
+    // "for v in x:", "get_robots()", "r.hp", "r.role", "Robot.Melee", "e.weak_point()", "slow(x)".
     // ponytail: only what the lesson answers use; a new answer shape needs a case here.
     public static class TutorialAnswers
     {
@@ -74,9 +74,8 @@ namespace CodingGame.Defense.Editor
                 else if (line.StartsWith("shoot(") && line.EndsWith(")")) result.Add(new CodeBlock(BlockKind.Shot, "0", Value(line.Substring(6, line.Length - 7))));
                 else if (line.StartsWith("break_shield(") && line.EndsWith(")")) result.Add(new CodeBlock(BlockKind.BreakShield, "0", Value(line.Substring(13, line.Length - 14))));
                 else if (line.StartsWith("block(") && line.EndsWith(")")) result.Add(new CodeBlock(BlockKind.Block, "0", Value(line.Substring(6, line.Length - 7))));
-                else if (line == "buff()") result.Add(new CodeBlock(BlockKind.Buff));
                 else if (line.StartsWith("wait(") && line.EndsWith(")")) result.Add(new CodeBlock(BlockKind.Wait, "0", Value(line.Substring(5, line.Length - 6))));
-                else if (line.StartsWith("buff(") && line.EndsWith(")")) result.Add(new CodeBlock(BlockKind.BuffRobot, "0", Value(line.Substring(5, line.Length - 6))));
+                else if (line.StartsWith("slow(") && line.EndsWith(")")) result.Add(new CodeBlock(BlockKind.Slow, "0", Value(line.Substring(5, line.Length - 6))));
                 else if (line.EndsWith(")") && line.Contains(".append(") && !line.Contains(" = "))
                 {
                     int at = line.IndexOf(".append(", StringComparison.Ordinal);

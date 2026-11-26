@@ -135,6 +135,9 @@ namespace CodingGame.Defense.Editor
         public static void RecordStageTwoForCheck() { RunStageTwo(); SessionState.SetBool(Record, true); }
 
         static void Log(string value) => File.AppendAllText(LogPath, value + "\n");
+        // What each tank did this wave: enemies its shield stopped, times its guard broke, where it stands.
+        static string Tanks(DefenseSimulation sim) => string.Concat(sim.Robots.Where(r => r.Spec.role == RobotRole.Tank)
+            .Select(t => $" tank held={t.HeldThisWave} knocked={t.KnockedThisWave} at={t.Position.X:0.0},{t.Position.Y:0.0}"));
         static void Require(bool value, string message) { if (!value) throw new InvalidOperationException(message); }
         static T Field<T>(object owner, string name) => (T)owner.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(owner);
         static CommandDropZone Slot(DefenseCodeEditor editor, string key) => (CommandDropZone)typeof(DefenseCodeEditor)
@@ -196,13 +199,13 @@ namespace CodingGame.Defense.Editor
             bool allFive = SessionState.GetBool("CodingGame.BeginnerLessons.AllFive", false);
             if (battle.Stage == 2)
             {
-                if (sim.Phase == BattlePhase.Victory) { End("PASS 2-1 to 2-10 completed: variables, conditions, is_dead(), break, continue lessons, free waves, boss; core=" + sim.BaseHealth); return; }
+                if (sim.Phase == BattlePhase.Victory) { End("PASS 2-1 to 2-10 completed: variables, conditions, the tank (2-4), is_dead(), break, continue lessons, free waves, boss; core=" + sim.BaseHealth); return; }
                 if (sim.Phase == BattlePhase.Defeat) { End("FAIL stage 2 wave " + (sim.WaveIndex + 1) + " lost; kills=" + sim.Kills + " leaks=" + sim.Leaks); return; }
                 // A wave whose lesson does not claim its reward: the checker does.
                 if (sim.Phase == BattlePhase.Reward && !director.IsActive)
                 {
                     Log("CLEAR wave=" + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills +
-                        " leaks=" + sim.Leaks);
+                        " leaks=" + sim.Leaks + Tanks(sim));
                     battle.ClaimRewards(); return;
                 }
                 // Free time (a wave without a lesson, or a lesson waiting for the wave's end): a second shooter with 2-1's code,
@@ -400,7 +403,7 @@ namespace CodingGame.Defense.Editor
             if (step.targetKeys.Contains("Battle.ClaimRewards"))
             {
                 Log("CLEAR wave=" + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills +
-                    " leaks=" + sim.Leaks);
+                    " leaks=" + sim.Leaks + Tanks(sim));
                 // 1-1: the Play presses fell the three basic enemies (two swings each); the tank-bodied one still gets through.
                 if (battle.Stage == 1 && sim.WaveIndex == 0) Require(sim.Kills >= 3 && sim.Leaks >= 1 && sim.BaseHealth >= 8,
                     "1-1's Play lesson did not hold the road; core=" + sim.BaseHealth + " kills=" + sim.Kills + " leaks=" + sim.Leaks);
@@ -576,18 +579,20 @@ namespace CodingGame.Defense.Editor
         static void StageTwoFree(DefenseBattle battle)
         {
             var sim = battle.Simulation;
-            // Stage 2's own robots: 2-1's shooter and warrior (1-5's clear), from 2-6 a second shooter, from 2-9 a third shooter
-            // and a second warrior (2-8's clear); every robot in stock is placed, as a player places what they have.
+            // Stage 2's own robots: 2-1's shooter and warrior (1-5's clear), from 2-4 the tank (2-3's clear), from 2-6 a second
+            // shooter, from 2-9 a third shooter and a second warrior (2-8's clear); every robot in stock is placed, as a player
+            // places what they have.
             // The first warrior stands where the lessons stand theirs (2-3 and 2-8 used to: by the road, DefenseBattle.PlaceLessonRobot).
             if (sim.RobotAvailable(RobotRole.Melee) > 0 && !sim.Robots.Any(r => r.Spec.role == RobotRole.Melee))
             { battle.PlaceLessonRobot(RobotRole.Melee); Require(sim.Robots.Any(r => r.Spec.role == RobotRole.Melee), "2-1's warrior was not stood by the road"); }
-            foreach (var role in new[] { RobotRole.Ranged, RobotRole.Melee })
+            foreach (var role in new[] { RobotRole.Ranged, RobotRole.Melee, RobotRole.Tank })
             {
                 int index = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => battle.DefinitionRole(i) == role);
                 while (sim.RobotAvailable(role) > 0) { battle.ChooseRobot(index); PlaceBest(battle, index); }
             }
             foreach (var bot in sim.Robots.Where(r => r.Program == null || r.Program.IsEmpty).ToArray())
-                sim.ApplyProgram(bot.Id, "free_" + bot.Id, TutorialAnswers.Parse(bot.Spec.role == RobotRole.Ranged ? TutorialSequenceBuilder.Code21 : "while True:\n    slash()"));
+                sim.ApplyProgram(bot.Id, "free_" + bot.Id, TutorialAnswers.Parse(bot.Spec.role == RobotRole.Ranged ? TutorialSequenceBuilder.Code21 :
+                    bot.Spec.role == RobotRole.Tank ? TutorialSequenceBuilder.Code24 : "while True:\n    slash()"));
         }
 
         // Each wave's answer code at battle start: the lessons (2-5, 2-6, 2-8) teach the first shooter, the free waves' hints
@@ -617,8 +622,9 @@ namespace CodingGame.Defense.Editor
         static void StageTwoStart(DefenseBattle battle)
         {
             var sim = battle.Simulation;
-            Require(sim.Robots.Count(r => r.Spec.role == RobotRole.Ranged) == (sim.WaveIndex >= 8 ? 3 : sim.WaveIndex >= 5 ? 2 : 1) && sim.Robots.Count(r => r.Spec.role == RobotRole.Melee) == (sim.WaveIndex >= 8 ? 2 : 1),
-                "Stage 2 must be played with a shooter and a warrior, from 2-6 a second shooter, from 2-9 a third shooter and a second warrior: " + string.Join(",", sim.Robots.Select(r => r.Spec.role)));
+            Require(sim.Robots.Count(r => r.Spec.role == RobotRole.Ranged) == (sim.WaveIndex >= 8 ? 3 : sim.WaveIndex >= 5 ? 2 : 1) && sim.Robots.Count(r => r.Spec.role == RobotRole.Melee) == (sim.WaveIndex >= 8 ? 2 : 1) &&
+                sim.Robots.Count(r => r.Spec.role == RobotRole.Tank) == (sim.WaveIndex >= 3 ? 1 : 0),
+                "Stage 2 must be played with a shooter and a warrior, from 2-4 the tank, from 2-6 a second shooter, from 2-9 a third shooter and a second warrior: " + string.Join(",", sim.Robots.Select(r => r.Spec.role)));
             StageTwoCodes(sim, true);
             battle.StartBattle();
             Log("START " + (sim.WaveIndex + 1) + " core=" + sim.BaseHealth + " kills=" + sim.Kills + " leaks=" + sim.Leaks + " robots=" +
@@ -751,7 +757,11 @@ namespace CodingGame.Defense.Editor
                     var p = new System.Numerics.Vector2(x, z);
                     if (sim.PlacementError(spec, p) == null) candidates.Add(p);
                 }
-            var best = candidates.OrderByDescending(p => samples.Count(q => System.Numerics.Vector2.Distance(p, q) <= spec.range)).First();
+            // A tank stands where its shield holds the road the other robots cover most (as the 2-4 lesson tells the player).
+            float Score(System.Numerics.Vector2 p) => spec.role != RobotRole.Tank ? samples.Count(q => System.Numerics.Vector2.Distance(p, q) <= spec.range) :
+                samples.Where(q => System.Numerics.Vector2.Distance(p, q) <= spec.blockRadius)
+                    .Sum(q => sim.Robots.Count(r => r.Spec.role != RobotRole.Tank && System.Numerics.Vector2.Distance(r.Position, q) <= r.Range));
+            var best = candidates.OrderByDescending(Score).First();
             if (sim.WaveIndex == 0 && battle.Tutorial && battle.Tutorial.EditorStep?.stepId == "B02")
             {
                 var point = new Vector3(best.X, 0, best.Y);

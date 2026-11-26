@@ -221,15 +221,8 @@ namespace CodingGame.Defense
                                 wakeTime = sim.Time + seconds; pc++; return;
                             }
                             var action = Action(block.Kind); robot.Action = action;
-                            int target = 0; bool ally = block.Kind == BlockKind.BuffRobot;
-                            if (ally)
-                            {
-                                var friend = Value(block.Arguments[0], sim, robot);
-                                if (friend.Kind != ValueKind.Robot) throw new FormatException("buff(r)에는 로봇이 필요해요. 예: for r in get_robots(): buff(r)");
-                                target = friend.Enemy;
-                                if (sim.FindRobot(target) == null) { robot.LastResult = ActionResult.NoTarget; pc++; return; }
-                            }
-                            else if (PythonTreeCompiler.HasEnemyArgument(block.Kind))
+                            int target = 0;
+                            if (PythonTreeCompiler.HasEnemyArgument(block.Kind))
                             {
                                 var enemy = waitingAt == pc && pops.Contains(block) ? waitingTarget : Value(block.Arguments[0], sim, robot);
                                 waitingTarget = enemy;
@@ -243,7 +236,7 @@ namespace CodingGame.Defense
                             // range is a miss (NoTarget): the next statement runs, nothing waits for it to come closer.
                             // A target that starts reflecting while the robot waits here is given up like a miss, so code that
                             // checked e.reflecting before the attack is not caught by the cooldown (a shot at it would come back).
-                            bool reflecting = !ally && target != 0 && Active(sim, target).Reflecting;
+                            bool reflecting = target != 0 && Active(sim, target).Reflecting;
                             if (sim.RequestAction(robot.Id, action, target) != ActionResult.CoolingDown || waitingAt == pc && reflecting && !waitedReflecting)
                             { pc++; waitingAt = -1; }
                             else { waitingAt = pc; waitedReflecting = reflecting; }
@@ -263,9 +256,7 @@ namespace CodingGame.Defense
                 case BlockKind.Boom: return RobotAction.Boom;
                 case BlockKind.Attack: case BlockKind.Shot: return RobotAction.Attack;
                 case BlockKind.Slow: return RobotAction.Slow;
-                case BlockKind.Buff: return RobotAction.Buff;
                 case BlockKind.BreakShield: return RobotAction.BreakShield;
-                case BlockKind.BuffRobot: return RobotAction.Buff;
                 default: throw new FormatException("지원하지 않는 전투 명령입니다: " + kind);
             }
         }
@@ -317,7 +308,7 @@ namespace CodingGame.Defense
                 case BlockKind.False: return Val.Of(false);
                 case BlockKind.PositionX: return Val.Of(robot.Position.X);
                 case BlockKind.PositionY: return Val.Of(robot.Position.Y);
-                case BlockKind.MyAttackRange: return Val.Of(robot.Range); // includes buffs, same range the attack uses
+                case BlockKind.MyAttackRange: return Val.Of(robot.Range); // the same range the attack uses
                 case BlockKind.MyHp: return Val.Of(robot.Health ?? 0);
                 case BlockKind.And: return Val.Of(Truth(Arg(0)) && Truth(Arg(1))); // the right side only when the left is true
                 case BlockKind.Reflecting: return Val.Of(Active(sim, EnemyId(Arg(0)))?.Reflecting ?? false);

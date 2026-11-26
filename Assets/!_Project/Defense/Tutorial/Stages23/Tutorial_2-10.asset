@@ -276,8 +276,9 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uB2E4\uC74C\uC740 <b>\uC790\uB3D9\uD654 \uC0DD\uC0B0 \uACF5\uC7A5</b>\uC774\uC57C.\n\uAC70\uAE30\uC120
-        \uAE38\uC744 \uB9C9\uB294 <b>\uD0F1\uCEE4\uD615</b> \uB85C\uBD07\uC774 \uAE30\uB2E4\uB824!"
+      text: "\uB2E4\uC74C\uC740 <b>\uC790\uB3D9\uD654 \uC0DD\uC0B0 \uACF5\uC7A5</b>\uC774\uC57C.\n\uC0C8
+        \uCE5C\uAD6C <b>\uC720\uD2F8 \uB85C\uBD07</b>\uC774 \uC801\uC744 \uB290\uB9AC\uAC8C
+        \uD574 \uC904 \uAC70\uC57C!"
       focusKeys: []
       highlightKeys: []
     targetKeys: []

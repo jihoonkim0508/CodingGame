@@ -25,7 +25,7 @@ namespace CodingGame.Defense.Editor
         public readonly List<string> Errors = new(), Warnings = new();
 
         static readonly Dictionary<string, RobotRole> RoleNames = new() {
-            ["근접 로봇"] = RobotRole.Melee, ["원거리 로봇"] = RobotRole.Ranged, ["지원 로봇"] = RobotRole.Support };
+            ["근접 로봇"] = RobotRole.Melee, ["원거리 로봇"] = RobotRole.Ranged, ["탱커 로봇"] = RobotRole.Tank, ["유틸 로봇"] = RobotRole.Utility };
         static readonly Dictionary<string, string> EnemyNames = new() { ["일반"] = "Enemy", ["빠른 적"] = "Runner", ["탱커병"] = "Heavy", ["힐러"] = "Healer", ["보호막병"] = "Shielder",
             ["큐 지네"] = "QueueCentipede", ["스택 지네"] = "StackCentipede", ["반사병"] = "Reflector", ["군단 트리"] = "TreeLegion" };
         // The names the tables use; besides them a block's enum name (Slash) or its inventory label (shoot(Enemy)) also works.
@@ -35,7 +35,7 @@ namespace CodingGame.Defense.Editor
             ["if"] = BlockKind.If, ["elif"] = BlockKind.Elif, ["else"] = BlockKind.Else, ["비교"] = BlockKind.Comparison,
             ["get_my_pos()"] = BlockKind.MyPos, ["my_attack_range()"] = BlockKind.MyAttackRange, ["is_dead()"] = BlockKind.IsDead,
             ["break"] = BlockKind.Break, ["continue"] = BlockKind.Continue, ["Enemy.Tank"] = BlockKind.EnemyTypeName,
-            ["block()"] = BlockKind.Block, ["boom()"] = BlockKind.Boom, ["slow()"] = BlockKind.Slow, ["buff()"] = BlockKind.Buff,
+            ["block()"] = BlockKind.Block, ["boom()"] = BlockKind.Boom, ["slow()"] = BlockKind.Slow,
             ["wait()"] = BlockKind.Wait, ["숫자"] = BlockKind.Number, ["산술"] = BlockKind.Arithmetic, ["True"] = BlockKind.True,
             ["False"] = BlockKind.False, ["get_pos_x()"] = BlockKind.PositionX, ["get_pos_y()"] = BlockKind.PositionY,
             ["for e in get_enemies()"] = BlockKind.ForEach, ["for in"] = BlockKind.ForEach, ["get_enemies()"] = BlockKind.GetEnemies,
@@ -44,12 +44,12 @@ namespace CodingGame.Defense.Editor
             ["left"] = BlockKind.Left, ["right"] = BlockKind.Right, ["or"] = BlockKind.Or, ["while 조건"] = BlockKind.WhileCondition,
             ["[]"] = BlockKind.EmptyList, ["{ } 사전"] = BlockKind.DictLiteral, ["append()"] = BlockKind.Append, ["pop(0)"] = BlockKind.Pop,
             ["len()"] = BlockKind.Len, ["in"] = BlockKind.In, ["not"] = BlockKind.Not, ["d[k]"] = BlockKind.Index, ["get_robots()"] = BlockKind.GetRobots,
-            ["role"] = BlockKind.Role, ["Robot.Melee"] = BlockKind.RobotRoleName, ["buff(r)"] = BlockKind.BuffRobot, ["weak_point()"] = BlockKind.WeakPoint };
+            ["role"] = BlockKind.Role, ["Robot.Melee"] = BlockKind.RobotRoleName, ["weak_point()"] = BlockKind.WeakPoint };
         static BlockKind? Block(string name)
         {
             if (BlockNames.TryGetValue(name, out var kind)) return kind;
             foreach (BlockKind k in Enum.GetValues(typeof(BlockKind)))
-                if (string.Equals(k.ToString(), name, StringComparison.OrdinalIgnoreCase) || DefenseProgression.Label(k) == name) return DefenseProgression.Canonical(k);
+                if (!DefenseProgression.Retired(k) && string.Equals(k.ToString(), name, StringComparison.OrdinalIgnoreCase) || DefenseProgression.Label(k) == name) return DefenseProgression.Canonical(k);
             return null;
         }
 
@@ -133,7 +133,7 @@ namespace CodingGame.Defense.Editor
                     var award = new Award { Stage = stage, Wave = wave, Line = line };
                     foreach (var (name, count) in Items(Cell(cells, robots), line))
                         if (RoleNames.TryGetValue(name, out var role)) award.Robots.Add((role, count));
-                        else Errors.Add($"{line}줄: 모르는 로봇 '{name}' (근접 로봇·원거리 로봇·지원 로봇)");
+                        else Errors.Add($"{line}줄: 모르는 로봇 '{name}' (근접 로봇·원거리 로봇·탱커 로봇·유틸 로봇)");
                     foreach (var (name, count) in Items(Cell(cells, blocks), line))
                         if (Block(name) is BlockKind kind) award.Blocks.Add((kind, count));
                         else Errors.Add($"{line}줄: 모르는 블록 '{name}'");

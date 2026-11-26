@@ -19,7 +19,7 @@ public static class CampaignFiveStagesCheck
                 for(int s=0;s<=20;s++)
                     if(Point.Distance(p,Point.Lerp(route.Points[i-1],route.Points[i],s/20f))<=spec.range)
                         score+=Point.Distance(route.Points[i-1],route.Points[i])/21;
-        return spec.role==RobotRole.Support ? sim.Robots.Count(r=>Point.Distance(r.Position,p)<=spec.range)*100+score : score;
+        return spec.role==RobotRole.Utility ? sim.Robots.Count(r=>Point.Distance(r.Position,p)<=spec.range)*100+score : score;
     }
     static void Deploy(DefenseBattle battle, RobotRole role)
     {
@@ -45,7 +45,7 @@ public static class CampaignFiveStagesCheck
         var kind=Action(bot.Spec.role);
         // Attacks need an explicit target: the nearest enemy, or the declared `enemy` inside the distance check.
         CodeBlock command=PythonTreeCompiler.HasEnemyArgument(kind)?new CodeBlock(kind,"0",new CodeBlock(BlockKind.NearestEnemy)):new CodeBlock(kind);
-        bool condition = sim.Setup.Stage>=2 && bot.Spec.role!=RobotRole.Support &&
+        bool condition = sim.Setup.Stage>=2 && bot.Spec.role!=RobotRole.Utility &&
             new[]{BlockKind.If,BlockKind.Comparison,BlockKind.DeclareVariable,BlockKind.Variable,BlockKind.NearestEnemy,BlockKind.MyPos}
                 .All(k=>sim.Available(k)>0) && sim.Available(BlockKind.Number)>1;
         if(condition)
@@ -84,21 +84,21 @@ public static class CampaignFiveStagesCheck
             {
                 if(stage>=2 && sim.Robots.Count==sim.Setup.RobotLimit)
                 {
-                    var replace=sim.Robots.FirstOrDefault(r=>r.Spec.role==RobotRole.Melee && sim.RobotAvailable(RobotRole.Support)>0 && sim.Robots.All(b=>b.Spec.role!=RobotRole.Support));
+                    var replace=sim.Robots.FirstOrDefault(r=>r.Spec.role==RobotRole.Melee && sim.RobotAvailable(RobotRole.Utility)>0 && sim.Robots.All(b=>b.Spec.role!=RobotRole.Utility));
                     if(replace!=null)sim.RemoveRobot(replace.Id);
                 }
                 if(stage>=3 && sim.Robots.Count==sim.Setup.RobotLimit)
                 {
-                    var replace=sim.Robots.FirstOrDefault(r=>r.Spec.role==RobotRole.Melee || r.Spec.role==RobotRole.Support);
+                    var replace=sim.Robots.FirstOrDefault(r=>r.Spec.role==RobotRole.Melee || r.Spec.role==RobotRole.Utility);
                     if(replace!=null && sim.RobotAvailable(RobotRole.Ranged)>0)sim.RemoveRobot(replace.Id);
                 }
                 if(stage>=3 && sim.Robots.All(r=>r.Spec.role!=RobotRole.Melee) && sim.RobotAvailable(RobotRole.Melee)>0 && sim.Robots.Count==sim.Setup.RobotLimit)
                     sim.RemoveRobot(sim.Robots.Last(r=>r.Spec.role==RobotRole.Ranged).Id);
                 if(stage>=3)Deploy(battle,RobotRole.Melee);
                 if(stage>=3)Deploy(battle,RobotRole.Ranged);
-                if(stage>=2)Deploy(battle,RobotRole.Support);
+                if(stage>=2)Deploy(battle,RobotRole.Utility);
                 Deploy(battle,RobotRole.Ranged);Deploy(battle,RobotRole.Ranged);
-                Deploy(battle,RobotRole.Support);Deploy(battle,RobotRole.Melee);Deploy(battle,RobotRole.Melee);
+                Deploy(battle,RobotRole.Utility);Deploy(battle,RobotRole.Melee);Deploy(battle,RobotRole.Melee);
                 foreach(var bot in sim.Robots) Program(sim,bot);
                 foreach(var bot in sim.Robots.OrderByDescending(r=>r.Damage))sim.UpgradeRobot(bot.Id);
                 battle.StartBattle();int kills=sim.Kills;

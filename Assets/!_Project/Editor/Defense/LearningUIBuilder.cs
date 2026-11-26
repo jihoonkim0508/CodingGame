@@ -177,7 +177,7 @@ namespace CodingGame.Defense.Editor
                 var badge=b.GetComponent<LearningRobotBadge>();if(!badge)badge=b.gameObject.AddComponent<LearningRobotBadge>();badge.Setup(image);
                 Symbol(b.transform,glyphByName[b.name],new Vector2(43,8),52,tint);
                 var label=b.transform.Find("Label").GetComponent<TMP_Text>();Fixed(label.rectTransform,new Vector2(1,.5f),new Vector2(-27,8),new Vector2(42,36));label.fontSize=30;label.alignment=TextAlignmentOptions.Center;
-                var title=Label(b.transform,"RoleName", b.name=="Warrior"?"전사":b.name=="Tank"?"탱커":b.name=="Shooter"?"원거리":b.name=="Bomber"?"폭탄":b.name=="Buffer"?"지원":"유틸",16,Hex("A9BFCD"));
+                var title=Label(b.transform,"RoleName", b.name=="Warrior"?"전사":b.name=="Tank"?"탱커":b.name=="Shooter"?"원거리":b.name=="Bomber"?"폭탄":b.name=="Buffer"?"유틸":"유틸",16,Hex("A9BFCD"));
                 Fixed(title.rectTransform,new Vector2(.5f,0),new Vector2(0,7),new Vector2(140,22),new Vector2(.5f,0));title.alignment=TextAlignmentOptions.Center;
             }
         }

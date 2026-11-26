@@ -10,7 +10,7 @@ using CodingGame.Defense;
 using CodingGame.Defense.Editor;
 
 // The team (stage 4): lists and dicts in the interpreter, the team board's names shared by reference across robots,
-// get_robots()/r.hp/r.role/buff(r), e.weak_point() per enemy kind, and the two snippets the stage is built on, as blocks.
+// get_robots()/r.hp/r.role, e.weak_point() per enemy kind, and the two snippets the stage is built on, as blocks.
 static class TeamCheck
 {
     static int checks;
@@ -21,9 +21,8 @@ static class TeamCheck
         "    for e in get_enemies():\n" +
         "        if e.type == Enemy.Healer and e not in jobs:\n" +
         "            jobs.append(e)\n" +
-        "    for r in get_robots():\n" +
-        "        if r.hp < 30:\n" +
-        "            buff(r)\n";
+        "    e = get_nearest_enemy()\n" +
+        "    slow(e)\n";
     // As asked but for `shoot(get_nearest_enemy().weak_point())`: a member goes after a variable in the block editor
     // (`name.` then the member), so the nearest enemy is named first.
     public const string Ranged =
@@ -74,8 +73,7 @@ static class TeamCheck
         Assert(Fault(() => PythonTreeCompiler.CompileBoard(TutorialAnswers.Parse("e = get_nearest_enemy()"), out _)) != null, "the board takes no robot values");
         Assert(Fault(() => PythonTreeCompiler.Compile("r", TutorialAnswers.Parse("x = 3\nx.append(1)"))) != null, "append() needs a list");
         Assert(Fault(() => PythonTreeCompiler.Compile("r", TutorialAnswers.Parse("for r in get_robots():\n    shoot(r)"))) != null, "shoot() takes no robot");
-        Assert(Fault(() => PythonTreeCompiler.Compile("r", TutorialAnswers.Parse("e = get_nearest_enemy()\nbuff(e)"))) != null, "buff(r) takes no enemy");
-        Assert(PythonTreeCompiler.Compile("r", TutorialAnswers.Parse("for r in get_robots():\n    if r.role == Robot.Support:\n        break")).Contains("if r.role == Robot.Support:"), "r.role and Robot.Support");
+        Assert(PythonTreeCompiler.Compile("r", TutorialAnswers.Parse("for r in get_robots():\n    if r.role == Robot.Utility:\n        break")).Contains("if r.role == Robot.Utility:"), "r.role and Robot.Utility");
         Assert(PythonTreeCompiler.Compile("r", TutorialAnswers.Parse("d = {Enemy.Tank: 1}")) .Contains("d = {Enemy.Tank: 1}"), "a dict with one pair: the empty pairs are left out");
 
         Lists(); Dicts(); SharedBoard(); WeakPoints(); Robots(); PrioritySnippet(); Wave41();
@@ -114,7 +112,7 @@ static class TeamCheck
     {
         var sim = Make(Group(EnemyType.Healer, 2, interval: .001f), Group(EnemyType.Normal, 2, delay: .1f));
         sim.ApplyBoard(TutorialAnswers.Parse(Board));
-        var scout = Robot(sim, RobotRole.Support, new Vector2(-3, 3), "for e in get_enemies():\n    if e.type == Enemy.Healer and e not in jobs:\n        jobs.append(e)\nfor e in get_enemies():\n    if e.type == Enemy.Healer and e not in jobs:\n        jobs.append(e)\n");
+        var scout = Robot(sim, RobotRole.Utility, new Vector2(-3, 3), "for e in get_enemies():\n    if e.type == Enemy.Healer and e not in jobs:\n        jobs.append(e)\nfor e in get_enemies():\n    if e.type == Enemy.Healer and e not in jobs:\n        jobs.append(e)\n");
         var taker = Robot(sim, RobotRole.Ranged, new Vector2(3, 3), "wait(1)\nif len(jobs) == 2:\n    target = jobs.pop(0)\n    shoot(target)\n");
         sim.Start(); Seconds(sim, .5);
         var jobs = sim.Board.Variables["jobs"].Items;
@@ -170,20 +168,19 @@ static class TeamCheck
         Seconds(tree, nodes * .5 + 3);
         Assert(!root.Active && tree.Events.All(e => e.Kind != "blocked"), $"shoot(e.weak_point()) fells the whole tree ({nodes} nodes), never hitting a node with living children");
     }
-    // get_robots(), r.hp, r.role, buff(r): the support finds the hurt robot anywhere and patches it.
+    // get_robots(), r.hp, r.role: the utility looks over the team and slows the nearest enemy only while a robot is hurt.
     static void Robots()
     {
-        var sim = Make(Group(EnemyType.Normal, 1));
-        var far = Robot(sim, RobotRole.Ranged, new Vector2(15, 8));
-        var near = Robot(sim, RobotRole.Melee, new Vector2(-1, 3));
-        var helper = Robot(sim, RobotRole.Support, new Vector2(-15, -8),
-            "for r in get_robots():\n    if r.hp < 30 and r.role != Robot.Support:\n        buff(r)\n", new RobotSpec { role = RobotRole.Support, range = 5, damage = 7, interval = 2, health = 100, duration = 3, buffDamage = 1.25f, buffRange = 1.15f, buffInterval = .8f });
-        far.Health = 20; sim.Start(); Seconds(sim, .5);
-        Assert(far.Health > 20 && far.Buffs.Any(b => b.Source == helper.Id) && !near.Buffs.Any() && sim.Robots.Count == 3,
-            $"buff(r) reaches the hurt robot out of range ({far.Health:0} HP) and only it");
-        var plain = Make(Group(EnemyType.Normal, 1)); var a = Robot(plain, RobotRole.Ranged, new Vector2(2, 3)); var s = Robot(plain, RobotRole.Support, new Vector2(0, 3), "buff()\n");
-        plain.Start(); Seconds(plain, .5);
-        Assert(a.Buffs.Any(b => b.Source == s.Id), "plain buff() still buffs robots in range");
+        bool Slowed(bool hurt)
+        {
+            var sim = Make(Group(EnemyType.Normal, 1));
+            var far = Robot(sim, RobotRole.Ranged, new Vector2(15, 8)); Robot(sim, RobotRole.Melee, new Vector2(-1, 3));
+            Robot(sim, RobotRole.Utility, new Vector2(-15, -8), "for r in get_robots():\n    if r.hp < 30 and r.role != Robot.Utility:\n        e = get_nearest_enemy()\n        slow(e)\n");
+            if (hurt) far.Health = 20;
+            sim.Start(); Seconds(sim, .5);
+            var e = sim.Enemies.Single(); return e.Speed(sim.Time) < e.Spec.speed;
+        }
+        Assert(Slowed(true) && !Slowed(false), "get_robots() finds the hurt robot by r.hp and r.role anywhere on the map");
     }
     // The second snippet as written: one pass that shoots the most urgent kind's weak point, the nearer normal aside.
     static void PrioritySnippet()
@@ -248,7 +245,7 @@ static class TeamCheck
         Add(data.Awards.FirstOrDefault(a => a.Stage == 4 && a.Wave == 1));
         Covers("4-2", "jobs = []\npriority = {Enemy.Healer: 0, Enemy.Shielder: 1, Enemy.Normal: 2}\n", Support, "while True:\n" + Python(Priority.Substring(Priority.IndexOf('\n') + 1)));
         Add(data.Awards.FirstOrDefault(a => a.Stage == 4 && a.Wave == 2));
-        Covers("4-3", Board, Support, Ranged, "while True:\n    for r in get_robots():\n        if r.role == Robot.Ranged and r.hp < 50:\n            buff(r)\n");
+        Covers("4-3", Board, Support, Ranged, "while True:\n    for r in get_robots():\n        if r.role == Robot.Ranged and r.hp < 50:\n            e = get_nearest_enemy()\n            slow(e)\n");
     }
     // An asset's `stats:` block (Assets/!_Project/Defense/Data/<name>.asset) into the spec's fields of the same names.
     static T Stats<T>(string root, string asset) where T : new()

@@ -6,8 +6,9 @@ using System.Text.RegularExpressions;
 using CodingGame.Defense;
 using CodingGame.Defense.Editor;
 
-// Three robots in two classes (2026-11-25): melee and ranged (공격류) do every attack action natively and differ only in
-// range; support (지원류) buffs and slows; the other class's action works at reducedStrength and reducedIntervalMultiplier.
+// Four robots in two classes (2026-11-26): melee and ranged (공격류) do every attack action natively and differ only in
+// range, the tank (공격류) holds the road; utility (지원류) slows; the other class's action works at reducedStrength and
+// reducedIntervalMultiplier. The buff is gone.
 static class ClassCheck
 {
     static int checks;
@@ -25,31 +26,27 @@ static class ClassCheck
 
     public static void Run()
     {
-        Assert(Rules.RoleCount == 3 && (int)RobotRole.Support == 0 && (int)RobotRole.Melee == 1 && (int)RobotRole.Ranged == 2, "three roles; Support and Melee keep Buffer's and Warrior's ints");
+        Assert(Rules.RoleCount == 4 && (int)RobotRole.Utility == 0 && (int)RobotRole.Melee == 1 && (int)RobotRole.Ranged == 2 && (int)RobotRole.Tank == 3, "four roles; Utility and Melee keep Buffer's and Warrior's ints, Tank appended");
         foreach (RobotRole role in Enum.GetValues(typeof(RobotRole)))
             foreach (RobotAction action in Enum.GetValues(typeof(RobotAction)))
                 Assert(Rules.Compatibility(role, action) == (Rules.AttackClass(role) == !Rules.SupportAction(action) ? ActionCompatibility.Native : ActionCompatibility.Reduced),
                     $"class compatibility {role}/{action}");
-        Assert(Rules.NativeAction(RobotRole.Melee) == RobotAction.Slash && Rules.NativeAction(RobotRole.Ranged) == RobotAction.Attack && Rules.NativeAction(RobotRole.Support) == RobotAction.Buff, "native actions");
+        Assert(Rules.NativeAction(RobotRole.Melee) == RobotAction.Slash && Rules.NativeAction(RobotRole.Ranged) == RobotAction.Attack && Rules.NativeAction(RobotRole.Utility) == RobotAction.Slow &&
+            Rules.NativeAction(RobotRole.Tank) == RobotAction.Block, "native actions");
 
         // The penalty numbers: 25% of the effect and twice the cooldown, both ways.
         var sim = Make(); var rules = sim.Setup.RulesConfig;
         Assert(rules.reducedStrength == .25f && rules.reducedIntervalMultiplier == 2, "penalty is 25% strength, 2x cooldown");
-        var melee = Place(sim, RobotRole.Melee, -2, 3.6f); var ranged = Place(sim, RobotRole.Ranged, 0, 7); var support = Place(sim, RobotRole.Support, 2, 5);
+        var melee = Place(sim, RobotRole.Melee, -2, 3.6f); var ranged = Place(sim, RobotRole.Ranged, 0, 7); var support = Place(sim, RobotRole.Utility, 2, 5);
         foreach (var action in AttackActions)
         {
             Assert(sim.ActionDamage(melee, action) == 8 && sim.ActionDamage(ranged, action) == 8 && sim.ActionInterval(melee, action) == 1 && sim.ActionInterval(ranged, action) == 1, "attack class native: " + action);
             Assert(sim.ActionDamage(support, action) == 2 && sim.ActionInterval(support, action) == 2, "support attacking: 25%, 2x: " + action);
         }
-        foreach (var action in new[] { RobotAction.Buff, RobotAction.Slow })
-        {
-            Assert(sim.ActionInterval(support, action) == 1 && sim.ActionInterval(melee, action) == 2 && sim.ActionInterval(ranged, action) == 2, "attack class supporting: 2x cooldown " + action);
-            Assert(sim.ActionDamage(melee, action) == 2, "attack class supporting: 25% " + action);
-        }
+        Assert(sim.ActionInterval(support, RobotAction.Slow) == 1 && sim.ActionInterval(melee, RobotAction.Slow) == 2 && sim.ActionInterval(ranged, RobotAction.Slow) == 2, "attack class slowing: 2x cooldown");
+        Assert(sim.ActionDamage(melee, RobotAction.Slow) == 2 && sim.ActionDamage(support, RobotAction.Slow) == 8, "attack class slowing: 25%, the utility's own slow full");
         sim.Start();
-        Assert(sim.RequestAction(melee.Id, RobotAction.Buff) == ActionResult.Executed && ranged.Buffs.Single().Damage == 1 + .25f * .25f && melee.NextAction == sim.Time + 2,
-            "a melee robot's buff works at a quarter, then waits twice as long");
-        Assert(sim.RequestAction(support.Id, RobotAction.Buff) == ActionResult.Executed && ranged.Buffs.Any(b => b.Damage == 1.25f), "the support robot's buff is full");
+        Assert(sim.RequestAction(melee.Id, RobotAction.Buff) == ActionResult.Unavailable && sim.RequestAction(support.Id, RobotAction.Buff) == ActionResult.Unavailable, "no robot buffs any more");
 
         // Melee and ranged do every attack action and hit as hard; only the reach differs.
         foreach (var action in AttackActions)
@@ -64,15 +61,16 @@ static class ClassCheck
         string Stats(string file) => Regex.Match(File.ReadAllText(Path.Combine(Root, "Assets/!_Project/Defense/Data", file)), @"  stats:\n((?:    .*\n)+)").Groups[1].Value.Replace("\r", "");
         string Without(string stats, params string[] fields) => string.Join("\n", stats.Split('\n').Where(l => !fields.Any(f => l.TrimStart().StartsWith(f + ":"))));
         string warrior = Stats("Warrior.asset"), shooter = Stats("Shooter.asset");
-        Assert(Regex.IsMatch(warrior, @"role: 1\n") && Regex.IsMatch(shooter, @"role: 2\n") && Regex.IsMatch(Stats("Buffer.asset"), @"role: 0\n"), "robot assets carry Melee 1, Ranged 2, Support 0");
+        Assert(Regex.IsMatch(warrior, @"role: 1\n") && Regex.IsMatch(shooter, @"role: 2\n") && Regex.IsMatch(Stats("Buffer.asset"), @"role: 0\n") && Regex.IsMatch(Stats("Tank.asset"), @"role: 3\n"),
+            "robot assets carry Melee 1, Ranged 2, Utility 0, Tank 3");
         Assert(Without(warrior, "role", "range") == Without(shooter, "role", "range") && warrior.Contains("range: 3.6") && shooter.Contains("range: 7"), "melee and ranged assets differ only in range (and role)");
-        foreach (var dropped in new[] { "Tank.asset", "Bomber.asset", "Utility.asset" }) Assert(!File.Exists(Path.Combine(Root, "Assets/!_Project/Defense/Data", dropped)), "dropped robot gone: " + dropped);
+        foreach (var dropped in new[] { "Bomber.asset", "Utility.asset" }) Assert(!File.Exists(Path.Combine(Root, "Assets/!_Project/Defense/Data", dropped)), "dropped robot gone: " + dropped);
         var data = GameDataTables.Parse(File.ReadAllText(Path.Combine(Root, "GameData/Award.md")), File.ReadAllText(Path.Combine(Root, "GameData/Balance.md")), 1.2f);
         var m = data.Robots.Single(r => r.Role == RobotRole.Melee); var r2 = data.Robots.Single(r => r.Role == RobotRole.Ranged);
-        Assert(m.Damage == r2.Damage && m.Interval == r2.Interval && m.Range < r2.Range && data.Robots.Count == 3, "Balance.md: melee and ranged the same but for range");
-        // Every serialized role in the campaign is one of the three.
+        Assert(m.Damage == r2.Damage && m.Interval == r2.Interval && m.Range < r2.Range && data.Robots.Count == 4, "Balance.md: melee and ranged the same but for range");
+        // Every serialized role in the campaign is one of the four.
         var roles = Regex.Matches(File.ReadAllText(Path.Combine(Root, "Assets/!_Project/Defense/Tutorial/Stage1/StageOneCampaign.asset")), @"- role: (\d+)").Select(x => int.Parse(x.Groups[1].Value)).ToArray();
-        Assert(roles.Length > 0 && roles.All(v => v <= 2), "campaign roles are 0..2");
+        Assert(roles.Length > 0 && roles.All(v => v <= 3) && roles.Contains(3), "campaign roles are 0..3, the tank among them");
         Console.WriteLine($"Class checks passed: {checks} (other class: {rules.reducedStrength:0%} strength, {rules.reducedIntervalMultiplier}x cooldown)");
     }
 }

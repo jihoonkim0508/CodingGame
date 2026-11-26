@@ -18,6 +18,7 @@ namespace CodingGame.Defense
         sealed class Bar
         {
             public RectTransform rect, fill, trail;
+            public Image fillImage; public Color fillColor, shownColor;
             public readonly DefenseHealthTrail lag = new DefenseHealthTrail();
             public int frame;
             public float ratio = -1, lagShown = -1;
@@ -34,13 +35,20 @@ namespace CodingGame.Defense
             layer = (RectTransform)transform;
             foreach (var bar in bars) { bar.gameObject.SetActive(false); spare.Push(Wrap(bar)); }
         }
-        static Bar Wrap(RectTransform rect) =>
-            new Bar { rect = rect, fill = (RectTransform)rect.Find("Well/Fill"), trail = (RectTransform)rect.Find("Well/Trail") };
+        static Bar Wrap(RectTransform rect)
+        {
+            var bar = new Bar { rect = rect, fill = (RectTransform)rect.Find("Well/Fill"), trail = (RectTransform)rect.Find("Well/Trail") };
+            bar.fillImage = bar.fill.GetComponent<Image>(); bar.fillColor = bar.shownColor = bar.fillImage ? bar.fillImage.color : Color.white;
+            return bar;
+        }
 
         // A robot's key, apart from the enemies' (their ids are counted separately).
         public static long RobotKey(int id) => (1L << 32) + id;
+        // The tank's guard bar, over its health bar (2026-11-26).
+        public static long GuardKey(int id) => (2L << 32) + id;
+        public static readonly Color GuardColor = new Color(.78f, .62f, 1), KnockedColor = new Color(.95f, .38f, .34f);
 
-        public void Show(long key, Camera camera, Vector3 anchor, float worldWidth, float health, float maximum)
+        public void Show(long key, Camera camera, Vector3 anchor, float worldWidth, float health, float maximum, Color? fill = null, float thickness = 1)
         {
             if (!shown.TryGetValue(key, out var bar))
             {
@@ -55,7 +63,7 @@ namespace CodingGame.Defense
             Vector3 edge = camera.WorldToViewportPoint(anchor + camera.transform.right * (worldWidth * .5f));
             var position = new Vector2(at.x * area.width, at.y * area.height);
             float width = Mathf.Round(Mathf.Abs(edge.x - at.x) * area.width * 2);
-            var size = new Vector2(width, Mathf.Max(MinHeight, Mathf.Round(width * Aspect)));
+            var size = new Vector2(width, Mathf.Round(Mathf.Max(MinHeight, width * Aspect) * thickness));
             // Only what changed is written: a resting bar costs nothing, a walking one moves only.
             if (float.IsNaN(bar.position.x) || (position - bar.position).sqrMagnitude > .01f) { bar.position = position; bar.rect.anchoredPosition = position; }
             if (size != bar.size) { bar.size = size; bar.rect.sizeDelta = size; }
@@ -63,6 +71,8 @@ namespace CodingGame.Defense
             float lag = bar.lag.Step(ratio, Time.unscaledDeltaTime);
             if (ratio != bar.ratio) { bar.ratio = ratio; bar.fill.anchorMax = new Vector2(ratio, 1); }
             if (lag != bar.lagShown) { bar.lagShown = lag; bar.trail.anchorMax = new Vector2(lag, 1); }
+            var color = fill ?? bar.fillColor;
+            if (bar.fillImage && color != bar.shownColor) { bar.shownColor = color; bar.fillImage.color = color; }
         }
 
         // Bars not shown since the last call go back to the pool.

@@ -86,7 +86,7 @@ static class CampaignCheck
             Assert(sim.UpgradeRobot(bot.Id)&&sim.Coins==50&&bot.Level==2&&bot.IsMaxLevel,"single paid upgrade "+role);
             Assert(Math.Abs(bot.Damage-damage*1.2f)<.001f,"upgrade damage "+role);
             Assert(!sim.UpgradeRobot(bot.Id)&&sim.Coins==50,"max level cannot charge again "+role);
-            Assert(bot.Program==null&&!bot.AutoExecute&&!bot.BlockingEnabled,"upgrade grants no automatic abilities "+role);
+            Assert(bot.Program==null&&!bot.AutoExecute,"upgrade grants no automatic abilities "+role);
             Assert(bot.Health==bot.MaxHealth,"every robot has health, full after an upgrade "+role);
             sim.RemoveRobot(bot.Id);
             Assert(sim.Coins==100&&Place(sim,role).Level==1,"recall refunds upgrade and returns level one item "+role);
@@ -131,11 +131,8 @@ static class CampaignCheck
         battle.Start();battle.DamageRobot(tank.Id,10000);
         Assert(battle.Coins==60&&!battle.RemoveRobot(tank.Id),"destroyed tank has no upgrade refund");
 
-        var buffs=new DefenseSimulation(Setup());var buffer=Place(buffs,RobotRole.Support);
-        var ally=Place(buffs,RobotRole.Melee,-5);buffs.UpgradeRobot(buffer.Id);buffs.Start();buffs.Advance(.2);
-        buffs.RequestAction(buffer.Id,RobotAction.Buff);
-        Assert(Math.Abs(ally.Buffs.Single().Damage-1.3f)<.001f&&Math.Abs(ally.Buffs.Single().Range-1.18f)<.001f&&Math.Abs(ally.Buffs.Single().Interval-.76f)<.001f,
-            "buffer upgrade strengthens bonus portions by twenty percent");
+        var guards=new DefenseSimulation(Setup());var wall=Place(guards,RobotRole.Tank);guards.UpgradeRobot(wall.Id);
+        Assert(Math.Abs(wall.MaxGuard-wall.Spec.guard*1.2f)<.001f&&wall.Guard==wall.MaxGuard,"tank upgrade raises its guard by twenty percent");
 
         var leakSetup=Setup();leakSetup.Waves=new[]{new[]{new SpawnGroup{Count=1,Interval=1,Enemy=new EnemySpec{speed=500}}}};
         var leak=new DefenseSimulation(leakSetup);Place(leak,RobotRole.Melee);leak.Start();RunWave(leak);
@@ -178,7 +175,7 @@ static class CampaignCheck
         var neededSetup=Setup();neededSetup.Waves[0][0].Count=5;
         var needed=new DefenseSimulation(neededSetup);var neededBot=Place(needed,RobotRole.Ranged);
         needed.ApplyProgram(neededBot.Id,"fire",new[]{new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy))});needed.Start();RunWave(needed);
-        Assert(needed.PendingDrops.Take(4).SequenceEqual(new[]{BlockKind.Buff,BlockKind.Boom,BlockKind.Boom,BlockKind.Slow}),
+        Assert(needed.PendingDrops.Take(4).SequenceEqual(new[]{BlockKind.Block,BlockKind.Boom,BlockKind.Boom,BlockKind.Slow}),
             "drops fill missing native actions before surplus blocks: "+string.Join(",",needed.PendingDrops));
         // Play (play feedback 4): battle start calls each function once; Play calls it again, never while it runs.
         var runs=new DefenseSimulation(Setup());var caller=Place(runs,RobotRole.Melee);
@@ -190,7 +187,7 @@ static class CampaignCheck
         var flow=Setup();
         var sim=new DefenseSimulation(flow); sim.Start();Assert(sim.Phase==BattlePhase.Ready,"no robots start rejected");
         var bot=Place(sim,RobotRole.Ranged);
-        Assert(bot.Program==null&&!bot.AutoExecute&&!bot.BlockingEnabled,"placed robot is empty");
+        Assert(bot.Program==null&&!bot.AutoExecute,"placed robot is empty");
         Assert(sim.StartError()==null,"empty robot does not block start");
         sim.ApplyProgram(bot.Id,"empty",Array.Empty<CodeBlock>());Assert(sim.StartError()==null,"empty applied code does not block start");
         sim.ApplyProgram(bot.Id,"fire",new[]{new CodeBlock(BlockKind.Shot,"0",new CodeBlock(BlockKind.NearestEnemy))});
@@ -221,7 +218,7 @@ static class CampaignCheck
         Assert(sim.Kills==20&&sim.BaseHealth==20,"five wave win");
         var emptySetup=Setup();
         var emptySim=new DefenseSimulation(emptySetup);var tank=Place(emptySim,RobotRole.Melee);emptySim.Start();RunWave(emptySim);
-        Assert(tank.Executions==0&&!tank.BlockingEnabled&&emptySim.Kills==0,"empty tank never auto blocks or attacks");
+        Assert(tank.Executions==0&&emptySim.Kills==0,"an empty robot never acts on its own");
         var reset=new DefenseSimulation(Setup());Assert(reset.Inventory.Values.Sum()==Setup().Progression.initial.Sum(s=>s.count)&&reset.PendingDrops.Count==0,"new run resets stock");
         var leakSetup=Setup();leakSetup.Waves=new[]{new[]{new SpawnGroup{Count=1,Interval=1,Enemy=new EnemySpec{speed=500,health=10}}}};
         var leaks=new DefenseSimulation(leakSetup);var idle=Place(leaks,RobotRole.Ranged);
