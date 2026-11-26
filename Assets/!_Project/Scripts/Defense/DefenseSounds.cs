@@ -42,7 +42,7 @@ namespace CodingGame.Defense
             Tone("launch", () => clips["shot"]);
             Tone("killed", () => Sweep("killed", .09f, 500, 950, volume: .25f));
             Tone("stun", () => Sweep("stun", .12f, 140, 90, square: .5f, volume: .28f));
-            Tone("buff", () => Notes("buff", .06f, .14f, 660, 990));
+            Tone("guard-break", () => Sweep("guard-break", .3f, 260, 70, square: .5f, noise: .4f, volume: .32f));
             Tone("blast", () => Sweep("blast", .2f, 180, 60, noise: .8f, volume: .3f));
             Tone("leaked", () => Sweep("leaked", .25f, 170, 150, square: .8f, volume: .3f));
             Tone("robot-destroyed", () => Sweep("robot-destroyed", .3f, 320, 90, square: .4f, volume: .3f));

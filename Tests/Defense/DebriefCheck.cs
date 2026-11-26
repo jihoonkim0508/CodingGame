@@ -59,7 +59,7 @@ static class DebriefCheck
             DefenseDebrief.Advice(tough, tired, DefenseDebrief.Issue.OutOfRuns).Contains("'실행'"), "an ended function's advice is Play or a loop");
 
         var weak = Sim(.4f, 1);
-        var offRole = Bot(weak, RobotRole.Support, -8, 2, Slash());
+        var offRole = Bot(weak, RobotRole.Utility, -8, 2, Slash());
         RunToEnd(weak);
         Assert(weak.WaveLeaks == 0 && DefenseDebrief.Diagnose(weak, offRole) == DefenseDebrief.Issue.Reduced, "the other class's action is flagged");
         Assert(DefenseDebrief.Report(weak, bot => "R").Contains("25%"), "a cleared wave still leads with the reduced-strength advice");

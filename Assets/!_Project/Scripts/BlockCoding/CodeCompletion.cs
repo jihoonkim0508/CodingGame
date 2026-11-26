@@ -20,7 +20,7 @@ namespace CodingGame.BlockCoding
         {
             ("get_nearest_enemy()", BlockKind.NearestEnemy, null), ("shoot(", BlockKind.Shot, null), ("wait(", BlockKind.Wait, null),
             ("slash()", BlockKind.Slash, null), ("block(", BlockKind.Block, null), ("boom(", BlockKind.Boom, null),
-            ("slow(", BlockKind.Slow, null), ("buff()", BlockKind.Buff, null),
+            ("slow(", BlockKind.Slow, null),
             ("get_my_pos()", BlockKind.MyPos, null), ("get_pos_x()", BlockKind.PositionX, null), ("get_pos_y()", BlockKind.PositionY, null),
             ("my_attack_range()", BlockKind.MyAttackRange, null),
             ("if ", BlockKind.If, null), ("elif ", BlockKind.Elif, null), ("else:", BlockKind.Else, null),

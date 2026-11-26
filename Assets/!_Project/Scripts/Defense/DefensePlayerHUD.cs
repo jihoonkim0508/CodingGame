@@ -272,9 +272,12 @@ namespace CodingGame.Defense
                 if (goalBackground) goalBackground.color = goalColor;
             }
             notice.text = battle.StatusMessage;
-            if (Changed(ref shownPlaced, (sim.Robots.Count, sim.Setup.RobotLimit, 0)))
+            // The one-of-a-kind limits only once that robot is in the game (유틸 from stage 3, 탱커 from 2-4).
+            int unlocked = (sim.RobotUnlocked(RobotRole.Utility) ? 1 : 0) | (sim.RobotUnlocked(RobotRole.Tank) ? 2 : 0);
+            if (Changed(ref shownPlaced, (sim.Robots.Count, sim.Setup.RobotLimit, unlocked)))
             {
-                inventory.text = $"설치 {sim.Robots.Count} / {sim.Setup.RobotLimit}대  ·  지원 로봇 최대 {sim.Setup.RulesConfig.roleLimits[(int)RobotRole.Support]}대  ·  Esc 메뉴";
+                string Limit(RobotRole role) => sim.RobotUnlocked(role) ? $"  ·  {Rules.RoleName(role).Replace(" 로봇", "")} 최대 {sim.Setup.RulesConfig.roleLimits[(int)role]}대" : "";
+                inventory.text = $"설치 {sim.Robots.Count} / {sim.Setup.RobotLimit}대{Limit(RobotRole.Tank)}{Limit(RobotRole.Utility)}  ·  Esc 메뉴";
                 inventory.color = sim.Robots.Count >= sim.Setup.RobotLimit ? new Color(.64f,.2f,.14f) : new Color(.1f,.28f,.36f);
             }
             startButton.interactable = ready;
@@ -565,6 +568,10 @@ namespace CodingGame.Defense
                 Float(evt.Position, "반사 -" + evt.Amount.ToString("0.#"), new Color(1, .42f, .36f), 32, .8f, 60);
             else if (evt.Kind == "reflect-on")
                 Float(evt.Position, "반사!", new Color(.8f, .97f, 1), 28, .7f, 50);
+            else if (evt.Kind == "hold") // a tank's shield stopped an enemy on the road
+                Float(evt.Position, "붙잡음", new Color(.86f, .74f, 1), 26, .6f, 44);
+            else if (evt.Kind == "guard-break") // the guard is gone: the tank is knocked back, the ones it held walk on
+                Float(evt.Position, "가드 붕괴!", DefenseHealthBars.KnockedColor, 36, 1.1f, 70, .8f);
             else if (evt.Kind == "blocked") // a centipede segment that is not its open end
                 Float(evt.Position, "막힘", new Color(.62f, .7f, .82f), 28, .6f, 46);
             else if (evt.Kind == "killed" && sim.Setup.PlayerFlow && sim.KillCoins > 0)
@@ -1354,7 +1361,7 @@ namespace CodingGame.Defense
                     $"\n<color={UITheme.MutedHex}><size=88%>{line.Stats}</size></color>";
                 card.share.rectTransform.anchorMax = new Vector2(line.Bot.DamageThisWave / most, 1);
                 card.share.color = card.stripe.color;
-                card.share.transform.parent.gameObject.SetActive(line.Bot.Spec.role != RobotRole.Support);
+                card.share.transform.parent.gameObject.SetActive(line.Bot.Spec.role != RobotRole.Tank); // the tank holds, its damage share says little
                 card.advice.text = line.Advice ?? "";
                 card.advice.gameObject.SetActive(line.Advice != null);
             }

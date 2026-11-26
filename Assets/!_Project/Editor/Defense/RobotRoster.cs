@@ -32,7 +32,7 @@ namespace CodingGame.Defense.Editor
             string log = "";
             foreach (var label in Object.FindObjectsByType<TMPro.TMP_Text>(FindObjectsInactive.Include, FindObjectsSortMode.None).Where(t => t.name == "RoleName" && t.transform.parent))
             {
-                string name = label.transform.parent.name switch { "Buffer" => "지원", "Warrior" => "근접", "Shooter" => "원거리", _ => null };
+                string name = label.transform.parent.name switch { "Buffer" => "유틸", "Tank" => "탱커", "Warrior" => "근접", "Shooter" => "원거리", _ => null };
                 if (name == null || label.text == name) continue;
                 Undo.RecordObject(label, "rename"); label.text = name; EditorUtility.SetDirty(label);
                 log += "card " + label.transform.parent.name + " → " + name + "; ";

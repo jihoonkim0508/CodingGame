@@ -127,9 +127,9 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uADF8\uB798\uC11C <b>\uD0F1\uCEE4\uD615</b>\uC744 \uB370\uB824\uC654\uC5B4.\n\uAE38
-        \uC704\uC5D0 \uBC84\uD2F0\uACE0 \uC11C\uC11C \uBAB8\uC73C\uB85C \uB9C9\uB294
-        \uB85C\uBD07\uC774\uC57C!"
+      text: "\uADF8\uB798\uC11C <b>\uADFC\uC811 \uB85C\uBD07</b>\uB3C4 `block()`\uC744
+        \uC4F0\uAC8C \uD588\uC5B4.\n\uD0F1\uCEE4 \uB85C\uBD07\uCC98\uB7FC \uBC29\uD328\uB85C
+        \uCCD0\uC11C \uC801\uC744 \uBA48\uCDB0!"
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -178,7 +178,7 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uC544\uB798\uCABD <b>\uD0F1\uCEE4\uD615</b> \uBC84\uD2BC\uC744 \uB20C\uB7EC
+      text: "\uC544\uB798\uCABD <b>\uADFC\uC811</b> \uCE74\uB4DC\uB97C \uB20C\uB7EC
         \uC918!"
       focusKeys: []
       highlightKeys: []
@@ -229,9 +229,9 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uD0F1\uCEE4\uD615\uC740 <b>\uAE38 \uC704</b>\uC5D0 \uC138\uC6B8 \uC218
-        \uC788\uC5B4.\n\uC801\uC774 \uC9C0\uB098\uAC00\uB294 \uAE38\uC744 \uB20C\uB7EC
-        \uC918!"
+      text: "\uADFC\uC811 \uB85C\uBD07\uC740 <b>\uAE38 \uBC14\uB85C \uC606</b>\uC5D0
+        \uC138\uC6CC.\n\uC801\uC774 \uC9C0\uB098\uAC00\uB294 \uAE38 \uAC00\uAE4C\uC774\uB97C
+        \uB20C\uB7EC \uC918!"
       focusKeys:
       - Battle.Route
       highlightKeys: []
@@ -282,7 +282,7 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uD0F1\uCEE4\uD615\uC740 `block(enemy)`\uB85C \uADF8 \uC801\uC744 \uAC00\uB85C\uB9C9\uC544.\n`while
+      text: "`block(enemy)`\uB294 \uADF8 \uC801\uC744 \uC7A0\uAE50 \uAE30\uC808\uC2DC\uCF1C.\n`while
         True` \uC548\uC5D0\uC11C 2-1\uCC98\uB7FC enemy\uB97C \uCC3E\uC544 \uB123\uC5B4
         \uBD10!"
       focusKeys: []
@@ -333,7 +333,7 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uB9C9\uD78C \uC801\uC740 \uB2E4\uB978 \uB85C\uBD07\uC774 \uB9C8\uC74C\uAECF
+      text: "\uBA48\uCD98 \uC801\uC740 \uB2E4\uB978 \uB85C\uBD07\uC774 \uB9C8\uC74C\uAECF
         \uACF5\uACA9\uD574!\n<b>\u2018\uAC1C\uBC1C\u2019</b>\uC5D0\uC11C \uBA85\uB839\uC744
         \uB123\uACE0 <b>\u2018\uC804\uD22C \uC2DC\uC791\u2019</b>!"
       focusKeys: []
@@ -384,7 +384,7 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uD574\uB0C8\uB2E4! \uD0F1\uCEE4\uD615\uC774 \uAE38\uC744 \uB9C9\uC544
+      text: "\uD574\uB0C8\uB2E4! \uADFC\uC811 \uB85C\uBD07\uC774 \uC801\uC744 \uBA48\uCDB0
         \uC900 \uB355\uBD84\uC774\uC57C!"
       focusKeys: []
       highlightKeys: []
@@ -434,9 +434,9 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uD734, \uBC84\uD17C\uC9C0\uB9CC \uC624\uB958 \uCF54\uB4DC\uAC00 \uBE60\uC838\uB098\uAC14\uC5B4.\n<b>\uD0F1\uCEE4\uD615</b>\uC744
-        \uC801\uC774 \uC9C0\uB098\uAC00\uB294 \uAE38 \uC704\uC5D0 \uC138\uC6B0\uACE0,
-        \uB2E4\uB978 \uB85C\uBD07\uC740 \uADF8 \uB458\uB808\uC5D0\uC11C \uACF5\uACA9\uD558\uAC8C
+      text: "\uD734, \uBC84\uD17C\uC9C0\uB9CC \uC624\uB958 \uCF54\uB4DC\uAC00 \uBE60\uC838\uB098\uAC14\uC5B4.\n<b>\uADFC\uC811
+        \uB85C\uBD07</b>\uC744 \uAE38 \uAC00\uAE4C\uC774 \uC138\uC6B0\uACE0, \uB2E4\uB978
+        \uB85C\uBD07\uC740 \uADF8 \uB458\uB808\uC5D0\uC11C \uACF5\uACA9\uD558\uAC8C
         \uD574 \uBD10!"
       focusKeys: []
       highlightKeys: []

@@ -295,7 +295,7 @@ namespace CodingGame.Defense.Editor
             Relaxed(() =>
             {
                 sim.ApplyBoard(TutorialAnswers.Parse("jobs = []\npriority = {Enemy.Healer: 0, Enemy.Shielder: 1, Enemy.Normal: 2}\n"));
-                foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Support)) sim.ApplyProgram(bot.Id, "scout", TutorialAnswers.Parse(TeamSupport));
+                foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Utility)) sim.ApplyProgram(bot.Id, "scout", TutorialAnswers.Parse(TeamSupport));
                 foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Ranged)) sim.ApplyProgram(bot.Id, "sniper_" + bot.Id, TutorialAnswers.Parse(TeamRanged));
             });
             Debug.Log("[ScreenTour] team: " + string.Join(", ", sim.Robots.Select(r => $"{r.Spec.role} {r.Program?.Name}")) + " · board " + sim.Board.Source.Replace("\n", " / "));
@@ -339,8 +339,7 @@ namespace CodingGame.Defense.Editor
             panel.Workspace.ZoomAt(RectTransformUtility.WorldToScreenPoint(null, panel.DefBlock.position), null, zoom);
             panel.ShowDefAtTopLeft();
         }
-        const string TeamSupport = "while True:\n    for e in get_enemies():\n        if e.type == Enemy.Healer and e not in jobs:\n            jobs.append(e)\n" +
-            "    for r in get_robots():\n        if r.hp < 30:\n            buff(r)\n";
+        const string TeamSupport = "while True:\n    for e in get_enemies():\n        if e.type == Enemy.Healer and e not in jobs:\n            jobs.append(e)\n    e = get_nearest_enemy()\n    slow(e)\n";
         const string TeamRanged = "while True:\n    if len(jobs) > 0:\n        target = jobs.pop(0)\n        while not target.is_dead():\n            shoot(target.weak_point())\n" +
             "    else:\n        e = get_nearest_enemy()\n        shoot(e.weak_point())\n";
         static IEnumerator Outcome(DefenseSimulation sim)
@@ -690,7 +689,7 @@ namespace CodingGame.Defense.Editor
             foreach (var bot in sim.Robots) Debug.Log($"[ScreenTour] {bot.Spec.role}: {bot.Program?.Source?.Replace("\n", " / ")}");
         }
         // Enemies walk a while before they reach the robots: the wave runs at three times speed until that many robots have
-        // acted (hit something, buffed someone), so the clip opens on the fight instead of robots waiting.
+        // acted (hit or slowed something), so the clip opens on the fight instead of robots waiting.
         static IEnumerator Engage(int robots, double seconds = 40)
         {
             var sim = DevTest.Sim;

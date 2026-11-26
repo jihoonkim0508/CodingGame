@@ -16,9 +16,11 @@ namespace CodingGame.Defense
 
         public static Issue Diagnose(DefenseSimulation sim, RobotState bot)
         {
+            // A tank's job is the road: one that held nobody stood too far from it, code or not.
+            if (bot.Spec.role == RobotRole.Tank && bot.HeldThisWave == 0) return Issue.NoEnemyInRange;
             if (bot.Program == null || bot.Program.IsEmpty) return Issue.NoCode;
             if (bot.Program.Fault != null) return Issue.Fault;
-            if (bot.ActionsThisWave == 0) return bot.Spec.role == RobotRole.Support || bot.SawEnemyThisWave ? Issue.NeverActed : Issue.NoEnemyInRange;
+            if (bot.ActionsThisWave == 0) return bot.SawEnemyThisWave ? Issue.NeverActed : Issue.NoEnemyInRange;
             // The function ended while enemies still got by. A for loop counts turns, not attacks: half its turns or more without
             // one spent the count on false conditions.
             if (!bot.Program.Running && Missed(sim) > 0)
@@ -32,11 +34,12 @@ namespace CodingGame.Defense
             string native = DefenseProgression.Label(DefenseProgression.ActionBlock(bot.Spec.NativeAction));
             switch (issue)
             {
-                case Issue.NoCode: return "코드가 없어 아무것도 하지 않았어요. 로봇을 클릭해 '개발'에서 코드를 넣어 보세요.";
+                case Issue.NoCode: return bot.Spec.role == RobotRole.Tank ? "코드 없이도 길은 막았어요. block(enemy)로 방패를 휘두르면 붙잡은 적이 기절해 가드가 덜 닳아요."
+                    : "코드가 없어 아무것도 하지 않았어요. 로봇을 클릭해 '개발'에서 코드를 넣어 보세요.";
                 case Issue.Fault: return "코드가 실행 중에 멈췄어요: " + bot.Program.Fault;
-                case Issue.NoEnemyInRange: return "사거리 안에 적이 한 번도 들어오지 않았어요. 길 가까이 옮겨 보세요.";
+                case Issue.NoEnemyInRange: return bot.Spec.role == RobotRole.Tank ? "적을 한 번도 붙잡지 못했어요. 방패가 길에 닿도록 길 바로 옆에 세워 보세요."
+                    : "사거리 안에 적이 한 번도 들어오지 않았어요. 길 가까이 옮겨 보세요.";
                 case Issue.NeverActed:
-                    if (bot.Spec.role == RobotRole.Support) return "사거리 안에 다른 로봇이 없어 버프를 못 했어요. 공격 로봇 옆에 두세요.";
                     return bot.Program.BlockCount(BlockKind.If) > 0
                         ? "적이 사거리에 들어왔지만 공격하지 않았어요. if 조건이 참이 되는 값인지 확인해 보세요."
                         : "적이 사거리에 들어왔지만 공격 명령이 실행되지 않았어요. 공격 블록과 대상 칸을 확인해 보세요.";
@@ -92,7 +95,9 @@ namespace CodingGame.Defense
             var lines = issues.Select(x => new Line
             {
                 Bot = x.bot, Issue = x.issue, Name = name(x.bot), Mvp = x.bot == mvp && mvp.DamageThisWave > 0,
-                Stats = x.bot.Spec.role == RobotRole.Support ? $"버프 {x.bot.ActionsThisWave}" : $"공격 {x.bot.ActionsThisWave} · 피해 {x.bot.DamageThisWave:0} · 처치 {x.bot.KillsThisWave}",
+                Stats = x.bot.Spec.role == RobotRole.Tank ? $"붙잡기 {x.bot.HeldThisWave} · 방패 {x.bot.ActionsThisWave}" + (x.bot.KnockedThisWave > 0 ? $" · 밀려남 {x.bot.KnockedThisWave}" : "")
+                    : x.bot.Spec.role == RobotRole.Utility ? $"감속 {x.bot.ActionsThisWave} · 피해 {x.bot.DamageThisWave:0}"
+                    : $"공격 {x.bot.ActionsThisWave} · 피해 {x.bot.DamageThisWave:0} · 처치 {x.bot.KillsThisWave}",
                 Advice = x.bot == worst.bot ? null : Advice(sim, x.bot, x.issue),
             }).ToArray();
             return (headline, lines);

@@ -217,7 +217,7 @@ namespace CodingGame.Defense
                 case "shield-break":
                     Emit(sparks, at + Vector3.up * .3f, Cyan, .22f, 16); Emit(ring, DefenseViews.World(evt.Position, .1f), Cyan, 2.6f); Kick(.1f);
                     break;
-                case "tank-destroyed":
+                case "guard-break": // a tank knocked back (its guard gone)
                     Emit(flash, at, Ember, 3); Emit(sparks, at, Ember, .26f, 22); Emit(smoke, at, new Color(.4f, .4f, .4f, .7f), 1.2f, 8); Kick(.35f);
                     break;
                 case "wave-completed":

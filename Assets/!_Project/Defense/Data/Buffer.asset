@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: edcc99cf8b3b0cd458ba8145cc320c0e, type: 3}
   m_Name: Buffer
   m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.RobotDefinition
-  displayName: "\uC9C0\uC6D0 \uB85C\uBD07"
-  description: "\uC9C0\uC6D0\uB958. \uC8FC\uBCC0 \uB85C\uBD07\uC744 \uAC15\uD654\uD558\uACE0
-    \uC801\uC744 \uB290\uB9AC\uAC8C \uD569\uB2C8\uB2E4. \uACF5\uACA9 \uAE30\uC220\uC740
+  displayName: "\uC720\uD2F8 \uB85C\uBD07"
+  description: "\uC9C0\uC6D0\uB958. slow(enemy)\uB85C \uC801\uC744 \uB290\uB9AC\uAC8C
+    \uD558\uACE0 \uD53C\uD574\uB3C4 \uC90D\uB2C8\uB2E4. \uACF5\uACA9 \uAE30\uC220\uC740
     \uC57D\uD558\uAC8C \uC368\uC694."
   color: {r: 0.39, g: 0.85, b: 0.64, a: 1}
   stats:
@@ -25,14 +25,12 @@ MonoBehaviour:
     radius: 0.75
     health: 100
     blockRadius: 1.1
-    blockCapacity: 3
     effectRadius: 2
     duration: 3
     slowMultiplier: 0.5
     projectileSpeed: 4
-    buffDamage: 1.25
-    buffRange: 1.15
-    buffInterval: 0.8
+    guard: 10
+    knockback: 3
     strikeShare: 0.4
     shieldBreakInterval: 3
     shieldBreakDamage: 2

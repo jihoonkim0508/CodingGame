@@ -75,9 +75,8 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uC774\uBC88\uC5D4 <b>\uBE60\uB978 \uC801</b>\uC774 \uBA3C\uC800 \uBAB0\uB824\uC640!\n\uC0C8\uB85C
-        \uBC30\uC6B8 \uAC74 \uC5C6\uACE0, \uC9C0\uAE08 \uB85C\uBD07\uB4E4\uB85C \uB9C9\uB294
-        \uD310\uC774\uC57C."
+      text: "\uC774\uBC88\uC5D4 <b>\uBE60\uB978 \uC801</b>\uC774 \uBA3C\uC800 \uBAB0\uB824\uC640!\n\uADF8\uB798\uC11C
+        \uAE38\uC744 \uB9C9\uB294 <b>\uD0F1\uCEE4 \uB85C\uBD07</b>\uC744 \uB370\uB824\uC654\uC5B4."
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -121,16 +120,119 @@ MonoBehaviour:
     holdSeconds: 0
     triggerDelay: 0
   - stepId: A03
+    kind: 1
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "\uC544\uB798\uCABD <b>\uD0F1\uCEE4</b> \uCE74\uB4DC\uB97C \uB20C\uB7EC
+        \uC918!"
+      focusKeys: []
+      highlightKeys: []
+    targetKeys:
+    - Battle.Robot.3
+    dim: 1
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    roundFocus: 0
+    completionMode: 1
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    rushTank: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    placeShooter: 0
+    placeWarrior: 0
+    prepareBaselineExample: 0
+    prepareExample: 
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
+  - stepId: A04
+    kind: 1
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "\uB2E4\uB978 \uB85C\uBD07\uB4E4\uC774 \uB2FF\uB294 <b>\uAE38 \uBC14\uB85C
+        \uC606</b>\uC5D0 \uC138\uC6CC \uC918.\n\uBC29\uD328\uAC00 \uB2FF\uB294 \uAE38\uBAA9\uC5D0\uC11C
+        \uC801\uC744 <b>\uBD99\uC7A1\uC544</b>!"
+      focusKeys: []
+      highlightKeys: []
+    targetKeys:
+    - Battle.DeploymentArea
+    dim: 0
+    undimmed: 1
+    blockInput: 1
+    outline: 1
+    roundFocus: 0
+    completionMode: 3
+    completionSignal: RobotPlaced
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    rushTank: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    placeShooter: 0
+    placeWarrior: 0
+    prepareBaselineExample: 0
+    prepareExample: 
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
+  - stepId: A05
     kind: 0
     dialoguePosition: 0
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uC804\uC0AC\uD615\uC740 2-3\uC758 \uC870\uAC74\uBB38\uC73C\uB85C, \uC6D0\uAC70\uB9AC\uD615\uC740
-        2-1 \uCF54\uB4DC\uB85C\n<b>\uB458\uC774 \uD568\uAED8</b> \uB9C9\uC544. \uCF54\uB4DC\uB294
-        \uADF8\uB300\uB85C \uB46C\uB3C4 \uB3FC!"
+      text: "\uBD99\uC7A1\uD78C \uC801 \uB4A4\uB85C \uB2E4\uB978 \uC801\uC774 <b>\uC904\uC744
+        \uC11C</b>.\n\uADF8\uB3D9\uC548 \uADFC\uC811\xB7\uC6D0\uAC70\uB9AC \uB85C\uBD07\uC774
+        \uCC98\uCE58\uD574!"
       focusKeys:
-      - Battle.Goal
+      - Robot.Unit.-1
       highlightKeys: []
     targetKeys: []
     dim: 0
@@ -172,7 +274,110 @@ MonoBehaviour:
     dismissable: 0
     holdSeconds: 0
     triggerDelay: 0
-  - stepId: A04
+  - stepId: A06
+    kind: 0
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "\uD0F1\uCEE4 \uC55E \uBCF4\uB77C \uB9C9\uB300\uB294 <b>\uAC00\uB4DC</b>\uC57C.
+        \uBD99\uC7A1\uC744\uC218\uB85D \uB2F3\uACE0,\n\uB2E4 \uB2F3\uC73C\uBA74 \uC7A0\uAE50
+        <b>\uBC00\uB824\uB098\uC11C</b> \uC801\uC774 \uC9C0\uB098\uAC00!"
+      focusKeys:
+      - Robot.Unit.-1
+      highlightKeys: []
+    targetKeys: []
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    roundFocus: 0
+    completionMode: 0
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    rushTank: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    placeShooter: 0
+    placeWarrior: 0
+    prepareBaselineExample: 0
+    prepareExample: 
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
+  - stepId: A07
+    kind: 0
+    dialoguePosition: 0
+    texts:
+    - textId: t1
+      speaker: "\uB514\uBC84"
+      text: "`block(enemy)`\uB85C \uBC29\uD328\uB97C \uD718\uB450\uB974\uBA74 \uC801\uC774
+        <b>\uAE30\uC808</b>\uD558\uACE0\n<b>\uBCF4\uD638\uB9C9</b>\uB3C4 \uAE68\uC838.
+        \uD78C\uD2B8\uC5D0 \uCF54\uB4DC\uAC00 \uC788\uC5B4!"
+      focusKeys: []
+      highlightKeys: []
+    targetKeys: []
+    dim: 0
+    undimmed: 0
+    blockInput: 1
+    outline: 1
+    roundFocus: 0
+    completionMode: 0
+    completionSignal: 
+    requiredSlotBlock: 
+    sourceKey: 
+    destinationKey: 
+    pauseBattle: 1
+    slowBattle: 0
+    allowPreview: 0
+    rushTank: 0
+    highlightPadding: 10
+    trigger: 
+    skipIf: 
+    expectedCode: 
+    pointerKey: 
+    autoSelectSlot: 
+    hintCode: 
+    pointerDelay: 0
+    closeEditor: 0
+    clearProgram: 0
+    openEditor: 0
+    robotIndex: 0
+    prepareDistanceExample: 0
+    placeShooter: 0
+    placeWarrior: 0
+    prepareBaselineExample: 0
+    prepareExample: 
+    restartPreview: 0
+    introEntrance: 0
+    alertCards: 0
+    dragDemo: 
+    autoAdvance: 0
+    dismissable: 0
+    holdSeconds: 0
+    triggerDelay: 0
+  - stepId: A08
     kind: 0
     dialoguePosition: 0
     texts:
@@ -181,7 +386,8 @@ MonoBehaviour:
       text: "\uCF54\uC778\uC774 \uC788\uC73C\uBA74 \uB85C\uBD07\uC744 \uB20C\uB7EC
         <b>\u2018\uB808\uBCA8\uC5C5\u2019</b>\uD574\uB3C4 \uC88B\uC544.\n\uC900\uBE44\uB418\uBA74
         <b>\u2018\uC804\uD22C \uC2DC\uC791\u2019</b>!"
-      focusKeys: []
+      focusKeys:
+      - Battle.Goal
       highlightKeys: []
     targetKeys: []
     dim: 0
@@ -229,8 +435,8 @@ MonoBehaviour:
     texts:
     - textId: t1
       speaker: "\uB514\uBC84"
-      text: "\uD574\uB0C8\uB2E4! \uC804\uC0AC\uD615\uACFC \uC6D0\uAC70\uB9AC\uD615\uC774\n\uD798\uC744
-        \uD569\uCCD0 \uB9C9\uC544 \uB0C8\uC5B4!"
+      text: "\uD574\uB0C8\uB2E4! \uD0F1\uCEE4 \uB85C\uBD07\uC774 \uBD99\uC7A1\uACE0\n\uADFC\uC811\xB7\uC6D0\uAC70\uB9AC
+        \uB85C\uBD07\uC774 \uCC98\uCE58\uD588\uC5B4!"
       focusKeys: []
       highlightKeys: []
     targetKeys: []
@@ -254,8 +460,7 @@ MonoBehaviour:
     expectedCode: 
     pointerKey: 
     autoSelectSlot: 
-    hintCode: "while True:\n    enemy = get_nearest_enemy()\n    if enemy.distance(get_my_pos())
-      <= my_attack_range():\n        slash()"
+    hintCode: "while True:\n    enemy = get_nearest_enemy()\n    block(enemy)"
     pointerDelay: 0
     closeEditor: 0
     clearProgram: 0

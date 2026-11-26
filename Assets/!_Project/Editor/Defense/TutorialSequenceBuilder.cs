@@ -1,6 +1,7 @@
 // Builds the tutorial sequences from Docs/flow_stage1/tutorial_stage1_대본.md, applies the campaign's waves and rewards from GameData/,
 // and wires the sequences into Defense.unity. Stages (13차 179): 1-1 melee, 1-2 free, 1-3 loops, 1-4 free, 1-5 boss;
-// 2-1 variables and the shooter, 2-2 free, 2-3 conditions, 2-4 and 2-5 free, 2-6 boss; 3-1 the tank, 3-2 and 3-3 free, 3-4 boss.
+// 2-1 variables and the shooter, 2-2 free, 2-3 conditions, 2-4 the tank (path blocking), 2-5 is_dead() ... 2-10 boss; 3-1 the
+// melee robot's block(), 3-2 and 3-3 free, 3-4 boss.
 // Run from Tools/Develop after editing the script document; Defense.unity must be the open scene.
 using System;
 using System.Collections.Generic;
@@ -58,6 +59,8 @@ namespace CodingGame.Defense.Editor
         const string Code11 = "slash()";
         const string Code13 = "while True:\n    slash()";
         const string Code31 = "while True:\n    enemy = get_nearest_enemy()\n    block(enemy)";
+        // 2-4: the tank's shield bash on the nearest enemy, on and on (it holds the road without code; the bash stuns).
+        internal const string Code24 = Code31;
         // 2-1: the found enemy kept in a variable; 2-3: the warrior slashes only once the nearest enemy is within its range,
         // instead of slashing air and resting 1.6 s while an enemy walks in.
         internal const string Code21 = "while True:\n    enemy = get_nearest_enemy()\n    shoot(enemy)";
@@ -433,9 +436,14 @@ namespace CodingGame.Defense.Editor
             L("2-2.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code21; s.Battle = true; }),
             L("2-2.B02", Claim),
         };
+        // 2-4 (2026-11-26, the four robots): 2-3's clear brought the tank. The player picks its card and stands it beside the
+        // road (no lit road: 2-6 F04), hears what it holds, its guard and block(enemy), then free play with that hint.
         static List<S> TwoFour() => new List<S> {
-            L("2-4.A01", s => s.Cards = true), L("2-4.A02"), L("2-4.A03", Focus(TutorialKeys.Goal)), L("2-4.A04"),
-            L("2-4.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code23; s.Battle = true; }),
+            L("2-4.A01", s => s.Cards = true), L("2-4.A02"),
+            L("2-4.A03", Click(TutorialKeys.RobotButton((int)RobotRole.Tank), s => s.Dim = true)),
+            L("2-4.A04", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, s => s.Undimmed = true)),
+            L("2-4.A05", Focus(Newest)), L("2-4.A06", Focus(Newest)), L("2-4.A07"), L("2-4.A08", Focus(TutorialKeys.Goal)),
+            L("2-4.B01", s => { s.Trigger = TutorialSignals.WaveCleared; s.HintCode = Code24; s.Battle = true; }),
             L("2-4.B02", Claim),
         };
         // 2-7: the one new thing is the is_dead() break (2-6's code lets a fallen enemy go already: its distance reads as
@@ -463,8 +471,8 @@ namespace CodingGame.Defense.Editor
             L("1-4.B04", Click("Battle.ClaimRewards", s => { s.Pointer = "Battle.ClaimRewards"; s.Top = true; })),
         };
 
-        // 3-1 (13차 179): 디버 brings the tank, the player picks it and stands it on the road; its code is the player's (the
-        // hint holds the loop with block(enemy)), then the battle.
+        // 3-1: the melee robot gets block() (the tank's since 2-4); the player picks it and stands it by the road; its code is the
+        // player's (the hint holds the loop with block(enemy)), then the battle.
         static List<S> ThreeOne() => new List<S> {
             L("3-1.A01", s => s.Cards = true), L("3-1.A02"), L("3-1.A03"),
             L("3-1.B01", Click(TutorialKeys.RobotButton((int)RobotRole.Melee), s => s.Dim = true)),
@@ -564,7 +572,7 @@ namespace CodingGame.Defense.Editor
             void Topic(int stage, int wave, string topic, string goal = "")
             { var lesson = Lesson(stage, wave); lesson.FindPropertyRelative("topic").stringValue = topic; lesson.FindPropertyRelative("goal").stringValue = goal; }
             // 1-1 the swing and the Play button, 1-2 free, 1-3 the loop, 1-4 free, 1-5 the boss; the shooter and variables at 2-1,
-            // conditions at 2-3, is_dead() 2-5, break 2-6, continue 2-8, the boss 2-10; the tank at 3-1 (13차 179).
+            // conditions at 2-3, the tank 2-4, is_dead() 2-5, break 2-6, continue 2-8, the boss 2-10; the melee block() at 3-1.
             Topic(1, 1, "베기와 실행 버튼", "전사를 배치하고 slash()와 '실행'으로 적 막기");
             Topic(1, 2, "베기 자유 플레이", "새 전사를 배치하고 '실행'으로 베기");
             Topic(1, 3, "반복문", "반복문으로 slash()를 여러 번 실행해 적 8마리 막기");
@@ -573,21 +581,21 @@ namespace CodingGame.Defense.Editor
             Topic(2, 1, "변수: 찾은 적을 상자에 담기(원거리)", "찾은 적을 변수에 담아 원거리 로봇으로 공격하기");
             Topic(2, 2, "변수 자유 플레이", "2-1에서 만든 코드로 원거리 로봇과 근접 로봇이 함께 막기 · 빠른 적 첫 등장");
             Topic(2, 3, "조건문: 벨 때 고르기(근접 로봇)", "적이 공격 범위에 들어왔을 때만 베는 조건문으로 막기");
-            Topic(2, 4, "조건 자유 플레이", "빠른 적이 먼저 와요 · 조건문 근접 로봇과 원거리 로봇이 함께 막기");
+            Topic(2, 4, "탱커 로봇: 길막기", "탱커 로봇을 길 바로 옆에 세워 적을 붙잡고 근접·원거리 로봇이 처치 · block(enemy)로 기절");
             Topic(2, 5, "is_dead(): 한 적을 끝까지", "쓰러진 적이면 새로 찾는 is_dead()로 한 적씩 끝내기");
             Topic(2, 6, "break: 사거리를 벗어나면 놓아주기", "빠른 적 등장 · 사거리 밖으로 나간 적은 break로 놓아주기 · 새 원거리 로봇엔 코드 복사");
             Topic(2, 7, "자유 실습: 쓰러지면 break", "원거리 로봇 안쪽 반복 맨 위에 if enemy.is_dead(): break 넣기");
             Topic(2, 8, "continue와 enemy.type", "단단한 적 등장 · 원거리 로봇은 continue로 단단한 적만, 작은 적은 근접 로봇이");
             Topic(2, 9, "자유 종합", "모든 종류의 적 · is_dead(), break, continue로 로봇마다 맡을 적 나누기");
             Topic(2, 10, "보스", "보스 등장 · 작은 적을 모두 막고 보스를 쓰러뜨리기");
-            Topic(3, 1, "block() 소개", "근접 로봇의 block()으로 적을 멈추고 다른 로봇으로 공격하기");
+            Topic(3, 1, "block()으로 멈추기(근접 로봇)", "근접 로봇의 block()으로 적을 멈추고 다른 로봇으로 공격하기");
             Topic(3, 2, "자유 플레이", "적이 두 번에 나눠 와요 · 끝까지 막기");
             Topic(3, 3, "반사병: continue로 건너뛰기", "반사병 등장 · e.reflecting이면 continue로 건너뛰고 다른 적을 쏘기");
             Topic(3, 4, "보스", "마지막 보스 · 작은 적을 모두 막고 보스를 쓰러뜨리기");
             // Stage 4 (팀 플레이): the team board's shared names, each robot keeping its own code.
-            Topic(4, 1, "팀 보드: 함께 쓰는 jobs 큐", "팀 보드에 jobs = [] · 지원 로봇이 힐러를 jobs.append(e), 원거리 로봇이 jobs.pop(0)으로 꺼내 처치");
+            Topic(4, 1, "팀 보드: 함께 쓰는 jobs 큐", "팀 보드에 jobs = [] · 유틸 로봇이 힐러를 jobs.append(e)·가까운 적은 slow(e), 원거리 로봇이 jobs.pop(0)으로 꺼내 처치");
             Topic(4, 2, "사전: 우선순위 표", "팀 보드에 priority = {Enemy.Healer: 0, ...} · priority[e.type]이 가장 작은 적부터 쏘기");
-            Topic(4, 3, "팀 종합: weak_point()와 get_robots()", "e.weak_point()로 지네·트리의 약점을, get_robots()와 buff(r)로 다친 로봇을 돌보기");
+            Topic(4, 3, "팀 종합: weak_point()와 get_robots()", "e.weak_point()로 지네·트리의 약점을, get_robots()로 다친 로봇을 찾아 유틸 로봇이 slow()로 적을 늦추기");
             void Stock(SerializedProperty list, string field, IList<(int value, int count)> items)
             {
                 list.arraySize = items.Count;

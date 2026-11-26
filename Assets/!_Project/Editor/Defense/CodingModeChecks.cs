@@ -129,7 +129,7 @@ namespace CodingGame.Defense.Editor
                 "    if enemy.is_dead():\n        enemy = get_nearest_enemy()\n        continue\n" +
                 "    elif enemy.distance(get_my_pos()) <= r:\n        shoot(enemy)\n        slash()\n" +
                 "    elif enemy.type == Enemy.Tank:\n        block(enemy)\n        boom(enemy)\n" +
-                "    else:\n        slow(enemy)\n        buff()\n" +
+                "    else:\n        slow(enemy)\n" +
                 "    for i in range(3):\n        if enemy.hp > 10:\n            break\n        wait(0.5)\n    if True:\n        pass\n    if False:\n        wait(1.5)\n";
             panel.LoadProgram("robot_1", PythonTreeParser.Parse(every).ToArray());
             yield return Wait(.3);
@@ -173,7 +173,7 @@ namespace CodingGame.Defense.Editor
             Require(panel.HintText != null && panel.HintText.StartsWith("wait(초)"), "wait( shows its hint: " + panel.HintText);
             panel.CloseCompletion();
 
-            // 에러 and 오류: slash() on the shooter, buff() on the tank, an empty slot.
+            // 에러 and 오류: slash() on the shooter, slow() on the melee robot, an empty slot.
             panel.TypePython("enemy = get_nearest_enemy()\nwhile True:\n    slash()\n    shoot(enemy)\n"); panel.ReadPython();
             Require(panel.Problems.Any(p => !p.error && p.message.Contains("slash()")) && panel.IsApplied, "slash() on the shooter: 에러, still runs");
             Require(panel.Squiggles.Any(s => s.line == 3 && s.color == CommandCodingPanel.WarningLine), "yellow underline on line 3");
@@ -266,11 +266,11 @@ namespace CodingGame.Defense.Editor
             yield return Shot("2026-11-25_에러 말풍선 파이썬 탭");
             panel.SetMode(CodingMode.Block);
 
-            // The tank: buff() does nothing there.
+            // The melee robot: slow() is the utility robot's, weak there.
             Open(tank);
             yield return Wait(.3);
-            panel.LoadProgram("robot_" + tank, PythonTreeParser.Parse("while True:\n    buff()\n").ToArray());
-            Require(panel.Problems.Any(p => !p.error && p.message.Contains("효과가 없어요")) && panel.IsApplied, "buff() on the tank: 에러, still runs");
+            panel.LoadProgram("robot_" + tank, PythonTreeParser.Parse("enemy = get_nearest_enemy()\nwhile True:\n    slow(enemy)\n").ToArray());
+            Require(panel.Problems.Any(p => !p.error && p.message.Contains("약하게")) && panel.IsApplied, "slow() on the melee robot: 에러, still runs");
 
             // Typed code runs like the same code built from blocks.
             Open(shooter); yield return Wait(.2);

@@ -16,6 +16,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b76e43feb9140fb4c990f1a9cccda0c1, type: 2}
   - {fileID: 11400000, guid: 555b893354686a048b947ce173a1fe96, type: 2}
   - {fileID: 11400000, guid: 184c96b05a09845438c3febe6291b714, type: 2}
+  - {fileID: 11400000, guid: 37b268531f66c7a49bd06e8896797a6f, type: 2}
   enemies:
   - {fileID: 11400000, guid: e6fe6b22773b3054f95e53347a1b3c47, type: 2}
   - {fileID: 11400000, guid: a80369efe8c109740a6948b66a7c0830, type: 2}
@@ -31,7 +32,7 @@ MonoBehaviour:
   rules:
     maxLevel: 3
     upgradeMultiplier: 1.2
-    roleLimits: 010000001200000012000000
+    roleLimits: 01000000120000001200000002000000
     healthLinear: 0.045
     healthQuadratic: 0.0015
     speedLinear: 0.025
@@ -203,6 +204,8 @@ MonoBehaviour:
       robots: []
       blocks: []
       rewards:
+      - kind: 20
+        count: 1
       - kind: 35
         count: 1
       - kind: 34
@@ -217,15 +220,17 @@ MonoBehaviour:
         count: 1
       - kind: 15
         count: 2
-      rewardRobots: []
+      rewardRobots:
+      - role: 3
+        count: 1
       startCoins: -1
       coinsPerKill: 5
     - stage: 2
       wave: 4
-      topic: "\uC870\uAC74 \uC790\uC720 \uD50C\uB808\uC774"
-      goal: "\uBE60\uB978 \uC801\uC774 \uBA3C\uC800 \uC640\uC694 \xB7 \uC870\uAC74\uBB38
-        \uADFC\uC811 \uB85C\uBD07\uACFC \uC6D0\uAC70\uB9AC \uB85C\uBD07\uC774 \uD568\uAED8
-        \uB9C9\uAE30"
+      topic: "\uD0F1\uCEE4 \uB85C\uBD07: \uAE38\uB9C9\uAE30"
+      goal: "\uD0F1\uCEE4 \uB85C\uBD07\uC744 \uAE38 \uBC14\uB85C \uC606\uC5D0 \uC138\uC6CC
+        \uC801\uC744 \uBD99\uC7A1\uACE0 \uADFC\uC811\xB7\uC6D0\uAC70\uB9AC \uB85C\uBD07\uC774
+        \uCC98\uCE58 \xB7 block(enemy)\uB85C \uAE30\uC808"
       robots: []
       blocks: []
       rewards:
@@ -273,7 +278,7 @@ MonoBehaviour:
       coinsPerKill: 5
     - stage: 3
       wave: 1
-      topic: "block() \uC18C\uAC1C"
+      topic: "block()\uC73C\uB85C \uBA48\uCD94\uAE30(\uADFC\uC811 \uB85C\uBD07)"
       goal: "\uADFC\uC811 \uB85C\uBD07\uC758 block()\uC73C\uB85C \uC801\uC744 \uBA48\uCD94\uACE0
         \uB2E4\uB978 \uB85C\uBD07\uC73C\uB85C \uACF5\uACA9\uD558\uAE30"
       robots: []
@@ -389,8 +394,6 @@ MonoBehaviour:
       - kind: 52
         count: 1
       - kind: 54
-        count: 1
-      - kind: 57
         count: 1
       - kind: 45
         count: 1
@@ -537,9 +540,7 @@ MonoBehaviour:
         count: 1
       - kind: 15
         count: 1
-      - kind: 20
-        count: 1
-      - kind: 24
+      - kind: 23
         count: 1
       rewardRobots:
       - role: 1
@@ -551,9 +552,10 @@ MonoBehaviour:
     - stage: 4
       wave: 1
       topic: "\uD300 \uBCF4\uB4DC: \uD568\uAED8 \uC4F0\uB294 jobs \uD050"
-      goal: "\uD300 \uBCF4\uB4DC\uC5D0 jobs = [] \xB7 \uC9C0\uC6D0 \uB85C\uBD07\uC774
-        \uD790\uB7EC\uB97C jobs.append(e), \uC6D0\uAC70\uB9AC \uB85C\uBD07\uC774
-        jobs.pop(0)\uC73C\uB85C \uAEBC\uB0B4 \uCC98\uCE58"
+      goal: "\uD300 \uBCF4\uB4DC\uC5D0 jobs = [] \xB7 \uC720\uD2F8 \uB85C\uBD07\uC774
+        \uD790\uB7EC\uB97C jobs.append(e)\xB7\uAC00\uAE4C\uC6B4 \uC801\uC740 slow(e),
+        \uC6D0\uAC70\uB9AC \uB85C\uBD07\uC774 jobs.pop(0)\uC73C\uB85C \uAEBC\uB0B4
+        \uCC98\uCE58"
       robots: []
       blocks: []
       rewards:
@@ -602,7 +604,7 @@ MonoBehaviour:
         count: 1
       - kind: 54
         count: 1
-      - kind: 57
+      - kind: 23
         count: 1
       - kind: 32
         count: 1
@@ -625,7 +627,8 @@ MonoBehaviour:
       wave: 3
       topic: "\uD300 \uC885\uD569: weak_point()\uC640 get_robots()"
       goal: "e.weak_point()\uB85C \uC9C0\uB124\xB7\uD2B8\uB9AC\uC758 \uC57D\uC810\uC744,
-        get_robots()\uC640 buff(r)\uB85C \uB2E4\uCE5C \uB85C\uBD07\uC744 \uB3CC\uBCF4\uAE30"
+        get_robots()\uB85C \uB2E4\uCE5C \uB85C\uBD07\uC744 \uCC3E\uC544 \uC720\uD2F8
+        \uB85C\uBD07\uC774 slow()\uB85C \uC801\uC744 \uB2A6\uCD94\uAE30"
       robots: []
       blocks: []
       rewards: []

@@ -39,13 +39,13 @@ namespace CodingGame.BlockCoding
 
         // Words the player may have meant, for "did you mean" on a typo (whlie).
         static readonly string[] Words = { "if", "elif", "else", "while", "for", "break", "continue", "pass", "True", "False", "range",
-            "shoot", "wait", "slash", "buff", "block", "boom", "slow", "get_nearest_enemy", "get_pos_x", "get_pos_y", "get_my_pos",
+            "shoot", "wait", "slash", "block", "boom", "slow", "get_nearest_enemy", "get_pos_x", "get_pos_y", "get_my_pos",
             "my_attack_range", "Enemy" };
         internal static readonly Dictionary<string, BlockKind> Calls = new Dictionary<string, BlockKind>
         {
             ["get_nearest_enemy"] = BlockKind.NearestEnemy, ["get_pos_x"] = BlockKind.PositionX, ["get_pos_y"] = BlockKind.PositionY,
             ["get_my_pos"] = BlockKind.MyPos, ["my_attack_range"] = BlockKind.MyAttackRange,
-            ["shoot"] = BlockKind.Shot, ["wait"] = BlockKind.Wait, ["slash"] = BlockKind.Slash, ["buff"] = BlockKind.Buff,
+            ["shoot"] = BlockKind.Shot, ["wait"] = BlockKind.Wait, ["slash"] = BlockKind.Slash,
             ["block"] = BlockKind.Block, ["boom"] = BlockKind.Boom, ["slow"] = BlockKind.Slow,
         };
         static readonly HashSet<string> Reserved = new HashSet<string> { "if", "elif", "else", "while", "for", "in", "break", "continue",

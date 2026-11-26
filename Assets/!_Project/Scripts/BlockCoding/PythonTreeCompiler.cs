@@ -55,9 +55,9 @@ namespace CodingGame.BlockCoding
                 case BlockKind.For: case BlockKind.While: case BlockKind.If: case BlockKind.Elif:
                 case BlockKind.Else: case BlockKind.Break: case BlockKind.Continue:
                 case BlockKind.Slash: case BlockKind.Block: case BlockKind.Boom:
-                case BlockKind.Shot: case BlockKind.Slow: case BlockKind.Buff:
+                case BlockKind.Shot: case BlockKind.Slow:
                 case BlockKind.ForEach: case BlockKind.BreakShield: case BlockKind.WhileCondition:
-                case BlockKind.Append: case BlockKind.BuffRobot:
+                case BlockKind.Append:
                     return BlockSlotKind.Statement;
                 default: throw new FormatException("지원하지 않는 블록입니다.");
             }
@@ -82,7 +82,7 @@ namespace CodingGame.BlockCoding
                 case BlockKind.Front: case BlockKind.Top: case BlockKind.Size: case BlockKind.Reflecting: case BlockKind.Left: case BlockKind.Right: return 1; // the members (Hp ... Right): receiver
                 case BlockKind.WhileCondition: return 1;
                 case BlockKind.Pop: case BlockKind.Role: case BlockKind.WeakPoint: return 1; // members: their receiver
-                case BlockKind.Len: case BlockKind.Not: case BlockKind.BuffRobot: return 1;
+                case BlockKind.Len: case BlockKind.Not: return 1;
                 case BlockKind.Comparison: case BlockKind.Arithmetic: case BlockKind.And: case BlockKind.Or: return 2;
                 case BlockKind.Append: case BlockKind.In: case BlockKind.Index: return 2; // the list or dict, and the item or key
                 case BlockKind.DictLiteral: return 2 * DictPairs;
@@ -409,7 +409,7 @@ namespace CodingGame.BlockCoding
             BlockKind.Left => "left", BlockKind.Right => "right", BlockKind.Or => "or", BlockKind.WhileCondition => "while 조건",
             BlockKind.DictLiteral => "{ } 사전", BlockKind.Append => "append()", BlockKind.Pop => "pop(0)", BlockKind.Len => "len()",
             BlockKind.In => "in 블록", BlockKind.Not => "not 블록", BlockKind.Index => "[ ] 꺼내기", BlockKind.Role => "role",
-            BlockKind.RobotRoleName => "Robot.종류", BlockKind.BuffRobot => "buff(r)", BlockKind.WeakPoint => "weak_point()",
+            BlockKind.RobotRoleName => "Robot.종류", BlockKind.WeakPoint => "weak_point()",
             BlockKind.Shot or BlockKind.Attack => "shoot()", BlockKind.Wait => "wait()", BlockKind.Block => "block()", BlockKind.Boom => "boom()", BlockKind.Slow => "slow()",
             _ => Call(kind) ?? kind.ToString().ToLowerInvariant(),
         };
@@ -429,7 +429,6 @@ namespace CodingGame.BlockCoding
                 case BlockKind.EmptyList: return "[]";
                 case BlockKind.True: return "True";
                 case BlockKind.False: return "False";
-                case BlockKind.Buff: return "buff()";
                 case BlockKind.Slash: return "slash()";
                 default: return null;
             }
@@ -454,7 +453,6 @@ namespace CodingGame.BlockCoding
                 case BlockKind.Len: return "len(" + Arg(0) + ")";
                 case BlockKind.Index: return Arg(0) + "[" + Arg(1) + "]";
                 case BlockKind.Append: return Arg(0) + ".append(" + Arg(1) + ")";
-                case BlockKind.BuffRobot: return "buff(" + Arg(0) + ")";
                 case BlockKind.RobotRoleName: return "Robot." + block.Value;
                 case BlockKind.DictLiteral: return "{" + string.Join(", ", Enumerable.Range(0, block.Arguments.Count / 2)
                     .Where(i => block.Arguments[2 * i] != null || block.Arguments[2 * i + 1] != null).Select(i => Arg(2 * i) + ": " + Arg(2 * i + 1))) + "}";
@@ -485,7 +483,7 @@ namespace CodingGame.BlockCoding
                     TypeOf(block, variables);
                     return NormalizeIdentifier(block.Value);
                 case BlockKind.PositionX: case BlockKind.PositionY: case BlockKind.MyAttackRange: case BlockKind.MyPos: case BlockKind.NearestEnemy:
-                case BlockKind.MyHp: case BlockKind.GetEnemies: case BlockKind.True: case BlockKind.False: case BlockKind.Buff: case BlockKind.Slash:
+                case BlockKind.MyHp: case BlockKind.GetEnemies: case BlockKind.True: case BlockKind.False: case BlockKind.Slash:
                 case BlockKind.GetRobots: case BlockKind.EmptyList:
                     return Call(block.Kind);
                 case BlockKind.DictLiteral:
@@ -533,9 +531,6 @@ namespace CodingGame.BlockCoding
                 case BlockKind.WeakPoint:
                     Require(block.Arguments[0], variables, ValueType.Enemy, "weak_point()는 Enemy 객체에서만 쓸 수 있어요. 예: e.weak_point()");
                     return Arg(0) + ".weak_point()";
-                case BlockKind.BuffRobot:
-                    Require(block.Arguments[0], variables, ValueType.Robot, "buff(r)에는 로봇을 넣어 주세요. 예: for r in get_robots(): buff(r)");
-                    return "buff(" + Arg(0) + ")";
                 case BlockKind.Wait:
                     Require(block.Arguments[0], variables, Numeric, "wait에는 초 단위의 숫자가 필요합니다.");
                     return "wait(" + Arg(0) + ")";
@@ -587,7 +582,7 @@ namespace CodingGame.BlockCoding
                     bool kind(int i) => (TypeOf(block.Arguments[i], variables) & ValueType.EnemyType) != 0;
                     if (kind(0) != kind(1)) throw new FormatException("적 종류는 Enemy.Tank 같은 종류와 비교해야 합니다. 예: enemy.type != Enemy.Tank");
                     bool role(int i) => (TypeOf(block.Arguments[i], variables) & ValueType.RobotRole) != 0;
-                    if (role(0) != role(1)) throw new FormatException("로봇 종류는 Robot.Melee 같은 종류와 비교해야 합니다. 예: r.role == Robot.Support");
+                    if (role(0) != role(1)) throw new FormatException("로봇 종류는 Robot.Melee 같은 종류와 비교해야 합니다. 예: r.role == Robot.Utility");
                     if (block.Value != "==" && block.Value != "!=") // equality works on any values; order needs numbers
                     {
                         Require(block.Arguments[0], variables, Numeric, "대소 비교에는 숫자가 필요합니다.");
@@ -667,7 +662,7 @@ namespace CodingGame.BlockCoding
             BlockKind.DeclareVariable => "{이름} 을(를) {값} (으)로 정하기",
             BlockKind.Wait => "{초} 초 기다리기", BlockKind.Shot or BlockKind.Attack => "{적} 에게 쏘기",
             BlockKind.Block => "{적} 막기", BlockKind.Boom => "{적} 에 폭탄 던지기", BlockKind.Slow => "{적} 느리게 하기",
-            BlockKind.Slash => "베기", BlockKind.Buff => "강화하기",
+            BlockKind.Slash => "베기",
             BlockKind.NearestEnemy => "가장 가까운 적", BlockKind.PositionX => "내 x 위치", BlockKind.PositionY => "내 y 위치",
             BlockKind.MyPos => "내 위치", BlockKind.MyAttackRange => "내 공격 범위",
             BlockKind.True => "참", BlockKind.False => "거짓", BlockKind.EnemyTypeName => "{종류}",
@@ -690,7 +685,7 @@ namespace CodingGame.BlockCoding
         // The game's enemy kinds (Defense.EnemyType) as the Python names after `Enemy.`.
         public static readonly string[] EnemyTypes = { "Normal", "Fast", "Tank", "Healer", "Shielder", "Queue", "Stack", "Reflector", "Tree" };
         // The robots (Defense.RobotRole, in its order) as the Python names after `Robot.`, and the in block's two choices.
-        public static readonly string[] RobotRoles = { "Support", "Melee", "Ranged" };
+        public static readonly string[] RobotRoles = { "Utility", "Melee", "Ranged", "Tank" };
         public static readonly string[] Membership = { "in", "not in" };
         static string Member(BlockKind kind) => kind == BlockKind.Front ? ".front()" : kind == BlockKind.Top ? ".top()" : kind == BlockKind.Left ? ".left" : kind == BlockKind.Right ? ".right" :
             kind == BlockKind.Pop ? ".pop(0)" : kind == BlockKind.Role ? ".role" : kind == BlockKind.WeakPoint ? ".weak_point()" : ".size";

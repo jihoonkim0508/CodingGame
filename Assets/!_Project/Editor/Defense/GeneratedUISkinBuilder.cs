@@ -118,7 +118,7 @@ namespace CodingGame.Defense.Editor {
    var capacity=(RectTransform)deck.Find("DeploymentCount");capacity.anchorMin=new Vector2(0,.62f);capacity.anchorMax=new Vector2(.66f,.78f);capacity.offsetMin=new Vector2(24,0);capacity.offsetMax=Vector2.zero;
    var robots=(RectTransform)deck.Find("Robots");SetRect(robots,Vector2.zero,new Vector2(24,10),new Vector2(1240,94),Vector2.zero);
    foreach(var b in robots.GetComponentsInChildren<Button>(true)){
-    int index=b.name=="Warrior"?0:b.name=="Tank"?1:b.name=="Shooter"?2:b.name=="Bomber"?3:b.name=="Buffer"?4:5;
+    int index=b.name=="Warrior"?0:b.name=="Tank"?1:b.name=="Shooter"?2:b.name=="Bomber"?3:5; // the utility robot (Buffer) the signal tower, no plus
     Picture(b.transform,roles[index],new Vector2(49,12),new Vector2(66,66));
     var title=b.transform.Find("RoleName");if(title)SetRect((RectTransform)title,new Vector2(.5f,0),new Vector2(0,6),new Vector2(140,22),new Vector2(.5f,0));
     var count=(RectTransform)b.transform.Find("Label");SetRect(count,new Vector2(1,.5f),new Vector2(-29,10),new Vector2(48,38),new Vector2(.5f,.5f));

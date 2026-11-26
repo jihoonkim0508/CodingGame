@@ -47,7 +47,7 @@ namespace CodingGame.Defense
             Place(divider, width - 37 - actionWidth, 20, 1, 66);
             float cardWidth = count > 0 ? Mathf.Min(PreferredCardWidth, (rosterWidth - gapWidth) / count) : PreferredCardWidth;
             float x = Mathf.Max(0, (rosterWidth - (count * cardWidth + gapWidth)) / 2);
-            // 근접, 원거리, 지원 left to right (2026-11-26): the support card (robot 0) goes last; indices, clicks and the
+            // 근접, 원거리, 탱커, 유틸 left to right (2026-11-26): the utility card (robot 0) goes last; indices, clicks and the
             // tutorial's Battle.Robot.N targets stay on their cards.
             for (int k = 1; k <= robots.Length; k++)
             {

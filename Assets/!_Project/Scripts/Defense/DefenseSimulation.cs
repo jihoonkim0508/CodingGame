@@ -150,7 +150,7 @@ namespace CodingGame.Defense
             nextWave = WaveIndex + 1 < Setup.Waves.Length ? ScaledWave(WaveIndex + 1) : Array.Empty<SpawnGroup>();
             groupCounts = new int[currentWave.Length]; groupChains = new Centipede[currentWave.Length]; spawnElapsed = 0;
             waveLeaksAtStart = Leaks; ObjectiveFailed = false;
-            foreach (var bot in Robots) { bot.AttacksThisWave = bot.ActionsThisWave = bot.KillsThisWave = bot.LoopTurnsThisWave = 0; bot.DamageThisWave = 0; bot.SawEnemyThisWave = false; }
+            foreach (var bot in Robots) { bot.AttacksThisWave = bot.ActionsThisWave = bot.KillsThisWave = bot.LoopTurnsThisWave = bot.HeldThisWave = bot.KnockedThisWave = 0; bot.DamageThisWave = 0; bot.SawEnemyThisWave = false; }
             if (Setup.PlayerFlow && Lesson != null && Lesson.startCoins >= 0) Coins = Lesson.startCoins;
             if (Setup.PlayerFlow && Lesson != null) GrantSupply(Lesson);
         }
@@ -180,7 +180,7 @@ namespace CodingGame.Defense
             {
                 bot.Spec=robots[bot.DefinitionIndex].Copy();bot.LevelCap=Setup.RulesConfig.maxLevel;bot.UpgradeFactor=Setup.RulesConfig.upgradeMultiplier;
                 bot.Level=Math.Min(bot.Level,bot.LevelCap);bot.Health=bot.MaxHealth;
-                bot.Buffs.Clear();bot.NextAction=Time;
+                bot.Guard=bot.MaxGuard;bot.KnockedUntil=0;bot.NextAction=Time;
             }
             foreach(var enemy in Enemies){enemy.Spec=Setup.RulesConfig.Scale(enemies[enemy.DefinitionIndex],Setup.Stage,WaveIndex);enemy.Health=enemy.Spec.health;enemy.NextAttack=Time;}
             for(int i=0;i<authoredGroups;i++){currentWave[i].Count=Math.Max(groupCounts[i],replacement[i].Count);currentWave[i].Delay=replacement[i].Delay;currentWave[i].Interval=replacement[i].Interval;}
@@ -225,7 +225,7 @@ namespace CodingGame.Defense
             foreach (var bot in Robots)
             {
                 // Ready from battle start, so a slow shooter can fire as soon as an enemy comes in range.
-                bot.Buffs.Clear(); bot.BlockingEnabled = false; bot.NextAction = Time;
+                bot.Guard = bot.MaxGuard; bot.KnockedUntil = 0; bot.NextAction = Time;
                 if (bot.Program != null) bot.Program = Compiled(bot.Program.Name, bot.Program.CopyBlocks()) ?? bot.Program;
             }
         }
@@ -321,7 +321,7 @@ namespace CodingGame.Defense
             {
                 var bot = Place(saved.Spec, saved.DefinitionIndex, saved.Position, out var error);
                 if (bot == null) throw new ArgumentException("로봇을 다시 놓지 못했습니다: " + error);
-                bot.Level = saved.Level; bot.UpgradeCostPaid = saved.UpgradeCostPaid; bot.Health = saved.Health;
+                bot.Level = saved.Level; bot.UpgradeCostPaid = saved.UpgradeCostPaid; bot.Health = saved.Health; bot.Guard = bot.MaxGuard;
                 if (saved.Code != null) ApplyProgram(bot.Id, saved.Name, saved.Code);
             }
             if (checkpoint.RobotStock != null) { RobotInventory.Clear(); foreach (var stock in checkpoint.RobotStock) RobotInventory[stock.Key] = stock.Value; }
@@ -404,7 +404,7 @@ namespace CodingGame.Defense
             if (error != null) {Events.Add(new CombatEvent{Kind="placement-failed",Reason=error,Target=definitionIndex,Position=point});return null;}
             var bot = new RobotState { Id = nextId++, DefinitionIndex = definitionIndex, Position = point, Spec = spec.Copy(),
                 LevelCap = Setup.RulesConfig.maxLevel, UpgradeFactor = Setup.RulesConfig.upgradeMultiplier,
-                Action = spec.NativeAction, Health = spec.health,
+                Action = spec.NativeAction, Health = spec.health, Guard = spec.guard,
                 NextAction = Time };
             if (Setup.PlayerFlow && Options.inventoryLimit) RobotInventory[spec.role]--;
             Robots.Add(bot);
@@ -459,13 +459,13 @@ namespace CodingGame.Defense
             int cost = UpgradeCostFor(bot);
             Coins -= cost; bot.UpgradeCostPaid += cost; bot.Level++;
             if (bot.Health.HasValue) bot.Health = bot.MaxHealth * healthRatio;
+            bot.Guard = bot.MaxGuard;
             Log("upgrade", id);
             return true;
         }
         void Detach(RobotState bot)
         {
             Robots.Remove(bot);
-            foreach (var r in Robots) r.Buffs.RemoveAll(b => b.Source == bot.Id);
             foreach (var e in Enemies) if (e.BlockedBy == bot.Id) e.BlockedBy = 0;
         }
         public bool DamageRobot(int id, float damage, int source = 0)
@@ -489,8 +489,6 @@ namespace CodingGame.Defense
                 if (Available(kind) < 1) throw new FormatException(DefenseProgression.Label(kind) + " 블록은 아직 해금되지 않았습니다.");
             bot.Program = program; bot.AutoExecute = false;
             var input = Log("program", id); input.name = name; input.code = PlayLog.Flatten(blocks);
-            bot.BlockingEnabled = false;
-            foreach (var e in Enemies) if (e.BlockedBy == id) e.BlockedBy = 0;
         }
         public void RestoreAutomatic(int id)
         {
@@ -511,7 +509,7 @@ namespace CodingGame.Defense
         public ActionResult RequestAction(int robotId, RobotAction action, int targetId = 0)
         {
             var bot = FindRobot(robotId);
-            if (bot == null || Phase != BattlePhase.Running || !IsAction(action)) return ActionResult.Unavailable;
+            if (bot == null || Phase != BattlePhase.Running || !IsAction(action) || action == RobotAction.Buff) return ActionResult.Unavailable;
             var compatibility = Compatibility(bot, action);
             if (compatibility == ActionCompatibility.Ineffective) return bot.LastResult = ActionResult.Ineffective;
             if (compatibility == ActionCompatibility.Undecided) return bot.LastResult = ActionResult.Undecided;
@@ -519,49 +517,22 @@ namespace CodingGame.Defense
             if (Time + .000001 < (breaking ? bot.NextShieldBreak : bot.NextAction)) return bot.LastResult = ActionResult.CoolingDown;
             float strength = Strength(bot, action);
             var profile = bot.Spec;
-            if (action == RobotAction.Buff)
+            var targets = Enemies.Where(e => e.Active && Vector2.DistanceSquared(e.Position, bot.Position) <= bot.Range * bot.Range).ToList();
+            var target = targetId == 0 ? Rules.Nearest(targets, bot.Position) : targets.FirstOrDefault(e => e.Id == targetId);
+            if (target == null && action != RobotAction.Slash) return bot.LastResult = ActionResult.NoTarget;
+            switch (action)
             {
-                if (!Buff(bot, profile, strength, targetId)) return bot.LastResult = ActionResult.NoTarget;
-            }
-            else
-            {
-                var targets = Enemies.Where(e => e.Active && Vector2.DistanceSquared(e.Position, bot.Position) <= bot.Range * bot.Range).ToList();
-                var target = targetId == 0 ? Rules.Nearest(targets, bot.Position) : targets.FirstOrDefault(e => e.Id == targetId);
-                if (target == null && action != RobotAction.Slash) return bot.LastResult = ActionResult.NoTarget;
-                switch (action)
-                {
-                    case RobotAction.Block: Stun(bot, profile, strength, targets, target); break;
-                    case RobotAction.Boom: Launch(bot, profile, strength, target); break;
-                    case RobotAction.Slash: Slash(bot, target, targets); break;
-                    case RobotAction.BreakShield: BreakShield(bot, target); break;
-                    default: Shoot(bot, action, profile, strength, target); break;
-                }
+                case RobotAction.Block: Stun(bot, profile, strength, targets, target); break;
+                case RobotAction.Boom: Launch(bot, profile, strength, target); break;
+                case RobotAction.Slash: Slash(bot, target, targets); break;
+                case RobotAction.BreakShield: BreakShield(bot, target); break;
+                default: Shoot(bot, action, profile, strength, target); break;
             }
             if (breaking) bot.NextShieldBreak = Time + bot.Spec.shieldBreakInterval; else bot.NextAction = Time + ActionInterval(bot, action);
             bot.Executions++;
             bool whiff = action == RobotAction.Slash && !Enemies.Any(e => e.Active && Vector2.DistanceSquared(e.Position, bot.Position) <= bot.Range * bot.Range);
-            if (!whiff) { bot.ActionsThisWave++; if (action != RobotAction.Buff) bot.AttacksThisWave++; }
+            if (!whiff) { bot.ActionsThisWave++; bot.AttacksThisWave++; }
             return bot.LastResult = ActionResult.Executed;
-        }
-        // buff(): every other robot in range. buff(r): that one robot wherever it stands (itself too), and BuffRepair of its
-        // health back, so `if r.hp < 30: buff(r)` keeps a robot a reflector hurts on the field.
-        public const float BuffRepair = 20;
-        bool Buff(RobotState bot, RobotSpec profile, float strength, int robot = 0)
-        {
-            var targets = robot != 0 ? Robots.Where(r => r.Id == robot).ToList() :
-                Robots.Where(r => r.Id != bot.Id && Vector2.DistanceSquared(r.Position, bot.Position) <= bot.Range * bot.Range).ToList();
-            if (targets.Count == 0) return false;
-            float buffStrength = strength * bot.LevelMultiplier;
-            foreach (var r in targets)
-            {
-                r.Buffs.RemoveAll(b => b.Source == bot.Id);
-                r.Buffs.Add(new BuffState { Source = bot.Id, Until = Time + profile.duration, Damage = 1 + (profile.buffDamage - 1) * buffStrength,
-                    Range = 1 + (profile.buffRange - 1) * buffStrength, Interval = Math.Max(.01f, 1 - (1 - profile.buffInterval) * buffStrength) });
-                if (robot != 0 && r.Health.HasValue) r.Health = Math.Min(r.MaxHealth, r.Health.Value + BuffRepair * buffStrength);
-            }
-            if (robot != 0) Events.Add(new CombatEvent { Kind = "buff", Source = bot.Id, Target = robot, Origin = bot.Position, Position = targets[0].Position, Radius = 1.2f }); // a small ring on the robot it reached
-            else Emit("buff", bot.Id, 0, bot.Position, 0, bot.Range);
-            return true;
         }
         // break_shield(): the shield is gone at once, then a little damage to health (a laser like the shot's, no flight).
         void BreakShield(RobotState bot, EnemyState target)
@@ -593,10 +564,16 @@ namespace CodingGame.Defense
             for (int i = e.NextPoint; i < path.Length; i++) { distance += Vector2.Distance(at, path[i]); at = path[i]; }
             return distance;
         }
+        // block(): every enemy in range stunned, the target hit. The tank's is a shield bash that also knocks their shields off
+        // (a shielder's pulse would otherwise keep the line it holds alive for ever, 2-4).
         void Stun(RobotState bot, RobotSpec profile, float strength, List<EnemyState> targets, EnemyState target)
         {
-            foreach (var e in targets) { var effect = Effect(e, bot.Id); effect.StunUntil = Math.Max(effect.StunUntil, Time + profile.duration * strength); }
-            Hit(target, ActionDamage(bot, RobotAction.Block, Vector2.Distance(bot.Position, target.Position)), bot.Id);
+            foreach (var e in targets)
+            {
+                var effect = Effect(e, bot.Id); effect.StunUntil = Math.Max(effect.StunUntil, Time + profile.duration * strength);
+                if (bot.Spec.role == RobotRole.Tank && e.Shield > 0 && !e.Reflecting) { e.Shield = 0; Emit("shield-break", bot.Id, e.Id, e.Position); }
+            }
+            Hit(target, ActionDamage(bot, RobotAction.Block, Vector2.Distance(bot.Position, target.Position)), bot.Id, meleeSource: bot);
             Emit("stun", bot.Id, target.Id, bot.Position, 0, bot.Range);
         }
         void Launch(RobotState bot, RobotSpec profile, float strength, EnemyState target)
@@ -750,8 +727,6 @@ namespace CodingGame.Defense
             const float dt = (float)TickDuration;
             Time += TickDuration; Ticks++;
             if (Options.enemySpawn) { spawnElapsed += TickDuration; Spawn(); }
-            foreach (var bot in Robots)
-                for (int i = bot.Buffs.Count - 1; i >= 0; i--) if (bot.Buffs[i].Until <= Time) bot.Buffs.RemoveAt(i);
             foreach (var e in Enemies)
             {
                 for (int i = e.Effects.Count - 1; i >= 0; i--) if (e.Effects[i].SlowUntil <= Time && e.Effects[i].StunUntil <= Time) e.Effects.RemoveAt(i);
@@ -765,6 +740,7 @@ namespace CodingGame.Defense
                 }
             }
             for (int i = 0, count = Enemies.Count; i < count; i++) Push(Enemies[i]); // appends: not in the foreach
+            Queue();
             foreach (var bot in Robots)
                 if (!bot.SawEnemyThisWave) bot.SawEnemyThisWave = AnyEnemyWithin(bot.Position, bot.Range);
             // A copy, as before: a robot's code may recall robots. Reused, so no array per tick.
@@ -772,6 +748,7 @@ namespace CodingGame.Defense
             if (Options.robotCode) foreach (var bot in tickRobots)
                 if (bot.Program != null) bot.Program.Tick(this, bot);
                 else if (bot.AutoExecute) RequestAction(bot.Id, bot.Action);
+            foreach (var bot in Robots) if (bot.Spec.role == RobotRole.Tank) Guard(bot);
             foreach (var e in Enemies)
             {
                 if (!e.Active) continue;
@@ -779,11 +756,6 @@ namespace CodingGame.Defense
                 // A stack's books ride on its bottom book (it moved earlier in this loop: it is older).
                 if (InPile(e)) { var bottom = e.Chain.Front; e.Position = bottom.Position; e.RouteIndex = bottom.RouteIndex; e.NextPoint = bottom.NextPoint; continue; }
                 if (e.Stunned(Time)) continue;
-                if (e.BlockedBy != 0)
-                {
-                    if (Options.enemyAttack && Time + .000001 >= e.NextAttack)
-                    { DamageRobot(e.BlockedBy, e.Spec.damage,e.Id); e.NextAttack = Time + e.Spec.attackInterval; }
-                }
                 if (Options.enemyMovement && e.BlockedBy == 0 && !Crowded(e)) Move(e, e.Speed(Time) * dt);
             }
             if (BaseHealth <= 0 || ObjectiveFailed) { Enemies.RemoveAll(e => !e.Active); Projectiles.Clear(); strikes.Clear(); Phase = BattlePhase.Defeat; return; }
@@ -886,20 +858,75 @@ namespace CodingGame.Defense
             head.Chain.Segments.Add(e); Enemies.Add(e); Spawned++;
             Emit("push", head.Id, e.Id, e.Position, head.Chain.Segments.Count);
         }
+        // A tank holds the road round it (2026-11-26): an enemy whose step enters its blockRadius stops there, held, until it
+        // falls, the tank is knocked back (Guard) or moves. A boss is not held, only slowed (Guard).
         bool TryBlock(EnemyState e, Vector2 start, Vector2 end, out Vector2 point)
         {
             point = end; RobotState chosen = null; float nearest = float.MaxValue;
+            if (e.Boss) return false;
             foreach (var bot in Robots)
             {
-                if (!bot.BlockingEnabled) continue;
-                // 이번 이동으로 닿는 탱커에 대해서만 저지 인원수를 계산합니다.
+                if (!bot.Holding(Time)) continue;
                 if (!Rules.CircleEntry(start, end, bot.Position, bot.Spec.blockRadius, out float t) || t >= nearest) continue;
-                if (Enemies.Count(other => other.Active && other.BlockedBy == bot.Id) >= bot.Spec.blockCapacity) continue;
                 nearest = t; chosen = bot;
             }
             if (chosen == null) return false;
-            e.BlockedBy = chosen.Id; e.NextAttack = Time + e.Spec.attackInterval;
-            point = Vector2.Lerp(start, end, nearest); return true;
+            e.BlockedBy = chosen.Id; chosen.HeldThisWave++;
+            point = Vector2.Lerp(start, end, nearest); Emit("hold", chosen.Id, e.Id, point); return true;
+        }
+        // The line behind a held enemy: one that walks up to it on the same road waits QueueGap behind and is held by the same
+        // tank, so a crowd stacks up behind the shield instead of walking through it.
+        public const float QueueGap = .8f;
+        readonly List<EnemyState> line = new List<EnemyState>();
+        Comparison<EnemyState> byPath;
+        void Queue()
+        {
+            bool held = false;
+            foreach (var e in Enemies)
+            {
+                if (e.Queued) { e.Queued = false; e.BlockedBy = 0; }
+                else if (e.Active && e.BlockedBy != 0) held = true;
+            }
+            if (!held) return;
+            byPath ??= (a, b) => RemainingPath(a).CompareTo(RemainingPath(b));
+            for (int route = 0; route < Setup.Routes.Length; route++)
+            {
+                line.Clear();
+                foreach (var e in Enemies) if (e.Active && e.RouteIndex == route && !Rides(e) && !InPile(e)) line.Add(e);
+                line.Sort(byPath);
+                for (int i = 1; i < line.Count; i++)
+                {
+                    var ahead = line[i - 1]; var e = line[i];
+                    if (ahead.BlockedBy != 0 && e.BlockedBy == 0 && !e.Boss && RemainingPath(e) - RemainingPath(ahead) < QueueGap)
+                    { e.BlockedBy = ahead.BlockedBy; e.Queued = true; }
+                }
+            }
+        }
+        // The tank's guard: each enemy it holds wears it GuardWear a second (a tank-type enemy TankWear, a stunned one nothing:
+        // block() buys time), a boss at its shield is slowed to BossSlow and wears it BossWear. At 0 the tank is knocked back
+        // for Spec.knockback seconds, the ones it held walk on, and the guard fills up again meanwhile; with nobody at the
+        // shield (stunned ones count as there) it recovers GuardRecover a second.
+        public const float GuardWear = 1, TankWear = 2.5f, BossWear = 3, GuardRecover = 2, BossSlow = .5f;
+        void Guard(RobotState tank)
+        {
+            const float dt = (float)TickDuration;
+            if (!tank.Holding(Time)) { tank.Guard = tank.MaxGuard * (float)Math.Max(0, 1 - (tank.KnockedUntil - Time) / tank.Spec.knockback); return; }
+            float wear = 0, reach = tank.Spec.blockRadius * tank.Spec.blockRadius; bool pressed = false;
+            foreach (var e in Enemies)
+            {
+                if (!e.Active) continue;
+                bool stunned = e.Stunned(Time);
+                if (e.BlockedBy == tank.Id) { pressed = true; if (!stunned) wear += e.Spec.type == EnemyType.Tank ? TankWear : GuardWear; }
+                else if (e.Boss && Vector2.DistanceSquared(e.Position, tank.Position) <= reach)
+                { pressed = true; if (!stunned) wear += BossWear; var slow = Effect(e, tank.Id); slow.SlowUntil = Time + .1; slow.Multiplier = BossSlow; }
+            }
+            if (!pressed) { tank.Guard = Math.Min(tank.MaxGuard, tank.Guard + GuardRecover * dt); return; }
+            if (!Options.enemyAttack) return;
+            tank.Guard -= wear * dt;
+            if (tank.Guard > 0) return;
+            tank.Guard = 0; tank.KnockedThisWave++; tank.KnockedUntil = Time + tank.Spec.knockback; tank.NextAction = Math.Max(tank.NextAction, tank.KnockedUntil);
+            foreach (var e in Enemies) if (e.BlockedBy == tank.Id) { e.BlockedBy = 0; e.Queued = false; }
+            Emit("guard-break", tank.Id, 0, tank.Position, 0, tank.Spec.blockRadius);
         }
         void Move(EnemyState e, float distance)
         {

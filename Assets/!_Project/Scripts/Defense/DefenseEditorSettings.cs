@@ -22,7 +22,7 @@ namespace CodingGame.Defense
     {
         public int maxLevel = 2;
         public float upgradeMultiplier = 1.2f;
-        public int[] roleLimits = { 1, 18, 18 }; // by RobotRole: Support, Melee, Ranged
+        public int[] roleLimits = { 1, 18, 18, 2 }; // by RobotRole: Utility, Melee, Ranged, Tank
         public float healthLinear = .045f, healthQuadratic = .0015f;
         public float speedLinear = .025f, speedQuadratic = .0005f, speedCap = 1.7f;
         public float fastHealth = .75f, tankHealth = 1.5f, fastSpeed = 1.3f, tankSpeed = .75f;
@@ -33,8 +33,8 @@ namespace CodingGame.Defense
         public float[] waveMultipliers = { .9f, 1f, 1.05f, 1.15f, 1f };
         // Difficulty steps a stage adds to the health/speed curves (progress = (stage - 1) * stageProgress + wave).
         public int stageProgress = 5;
-        // An action of the other class (attack robot buffing or slowing, support robot attacking): this share of its effect
-        // (damage, buff, slow, stun) and this many times its cooldown.
+        // An action of the other class (an attack robot slowing, the utility robot attacking): this share of its effect
+        // (damage, slow, stun) and this many times its cooldown.
         public float reducedStrength = .25f, reducedIntervalMultiplier = 2;
         // Stage result: 3 stars with this % of the core left, 2 with twoStarCorePercent, 1 for a clear.
         public int threeStarCorePercent = 80, twoStarCorePercent = 40;

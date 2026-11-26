@@ -326,13 +326,18 @@ namespace CodingGame.Defense.Editor
         }
         static float Coverage(DefenseSimulation sim, RobotSpec spec, Point p)
         {
-            float score = 0;
+            // A tank: the road its shield holds, counted once for every other robot that covers it there.
+            float score = 0, reach = spec.role == RobotRole.Tank ? spec.blockRadius : spec.range;
             foreach (var route in sim.Setup.Routes)
                 for (int i = 1; i < route.Points.Length; i++)
                     for (int s = 0; s <= 20; s++)
-                        if (Point.Distance(p, Point.Lerp(route.Points[i - 1], route.Points[i], s / 20f)) <= spec.range)
-                            score += Point.Distance(route.Points[i - 1], route.Points[i]) / 21;
-            return spec.role == RobotRole.Support ? sim.Robots.Count(r => Point.Distance(r.Position, p) <= spec.range) * 100 + score : score;
+                    {
+                        var q = Point.Lerp(route.Points[i - 1], route.Points[i], s / 20f);
+                        if (Point.Distance(p, q) <= reach)
+                            score += Point.Distance(route.Points[i - 1], route.Points[i]) / 21 *
+                                (spec.role == RobotRole.Tank ? sim.Robots.Count(r => r.Spec.role != RobotRole.Tank && Point.Distance(r.Position, q) <= r.Range) : 1);
+                    }
+            return score;
         }
 
         // Starts the wave if needed and simulates it to the end in one call. Views catch up on the next frame.

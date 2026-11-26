@@ -27,7 +27,7 @@ namespace CodingGame.Defense.Editor
             Relaxed(() =>
             {
                 sim.ApplyBoard(TutorialAnswers.Parse("jobs = []\npriority = {Enemy.Healer: 0, Enemy.Shielder: 1, Enemy.Normal: 2}\n"));
-                foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Support)) sim.ApplyProgram(bot.Id, "scout", TutorialAnswers.Parse(TeamSupport));
+                foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Utility)) sim.ApplyProgram(bot.Id, "scout", TutorialAnswers.Parse(TeamSupport));
                 foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Ranged)) sim.ApplyProgram(bot.Id, "sniper_" + bot.Id, TutorialAnswers.Parse(TeamRanged));
             });
             Relaxed(() => battle.CodeEditor.OpenBoard()); battle.CodeEditor.Panel.RefreshPalette();
