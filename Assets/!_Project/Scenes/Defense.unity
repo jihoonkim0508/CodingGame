@@ -20764,6 +20764,7 @@ GameObject:
   - component: {fileID: 367391519}
   - component: {fileID: 367391521}
   - component: {fileID: 367391520}
+  - component: {fileID: 367391522}
   m_Layer: 0
   m_Name: CodePreview
   m_TagString: Untagged
@@ -20831,6 +20832,23 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 367391518}
   m_CullTransparentMesh: 1
+--- !u!114 &367391522
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 367391518}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 539c1201cf4ebfb4b92227c22fb84c0e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.LearningCardShape
+  radius: 12
+  borderWidth: 1
+  border: {r: 0.24, g: 0.36, b: 0.47, a: 1}
+  shadow: 0
+  fadeBorderWithFill: 1
 --- !u!114 &368287930 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 1527679794925793873, guid: 983eb9d780f8648498a2271edbc670d2, type: 3}
@@ -48833,11 +48851,11 @@ RectTransform:
   - {fileID: 961535399}
   m_Father: {fileID: 429884506}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0}
-  m_AnchorMax: {x: 0.5, y: 0}
-  m_AnchoredPosition: {x: 0, y: 24}
-  m_SizeDelta: {x: 1264, y: 164}
-  m_Pivot: {x: 0.5, y: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 0}
+  m_AnchoredPosition: {x: 0, y: 92.5}
+  m_SizeDelta: {x: 0, y: 185}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &803256030
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -137418,7 +137436,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -26.311768, y: -376.6571}
+  m_AnchoredPosition: {x: -24, y: -264}
   m_SizeDelta: {x: 256, y: 30}
   m_Pivot: {x: 1, y: 0.5}
 --- !u!222 &2140896144
