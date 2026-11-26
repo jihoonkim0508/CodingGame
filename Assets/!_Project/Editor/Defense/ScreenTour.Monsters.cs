@@ -34,6 +34,147 @@ namespace CodingGame.Defense.Editor
             }
         }
 
+        // 시안/탱커 크기: the shield brute (Heavy) at 100, 90 and 80% of its size in the same moments, into
+        // TestResults/Editor/brute-sizes: 2-9 stopped at one battle time (NN_<size> 전투 화면.png), the brute nearest a warrior
+        // robot zoomed in at one fixed framing (근접) and 2-10's boss brute after its entrance (보스); logs each one's height on a
+        // 1080-line screen against the warrior's. Heavy is put back to 100% at the end.
+        public static void RunBruteSizes() => Start("TestResults/Editor/brute-sizes", BruteSizes(true));
+        public static void RunBruteBossSizes() => Start("TestResults/Editor/brute-sizes-boss", BruteSizes(false));
+        // A boss wave fails the moment a minion gets through, so the robots fight until the boss is on the road (the core
+        // takes no damage), then stand idle while it walks.
+        static readonly DefenseTestOptions Fight = new DefenseTestOptions { tutorial = false, tutorialInput = false, baseDamage = false };
+
+        static IEnumerator BruteSizes(bool battle)
+        {
+            double moment = 0, bossMoment = 0; float current = 1;
+            foreach (var size in new[] { 1f, .9f, .8f })
+            {
+                if (size != current) { ScaleModel("Heavy", size / current); current = size; }
+                string tag = $"{size * 100:0}%";
+                if (!battle) goto Boss;
+                DevTest.PlayDefense(2, 9, true, Idle);
+                yield return Until(() => DevTest.Ready);
+                yield return Seconds(.5);
+                Deploy();
+                foreach (var hover in Object.FindObjectsByType<DefenseHoverInfo>(FindObjectsInactive.Include, FindObjectsSortMode.None)) hover.enabled = false;
+                DevTest.Battle.StartBattle();
+                var sim = DevTest.Sim;
+                if (moment == 0) // the first size picks the moment: several of each kind on screen
+                {
+                    int Count(EnemyType type) => sim.Enemies.Count(e => e.Active && e.Spec.type == type && OnScreen(e));
+                    DevTest.Speed(3);
+                    yield return Until(() => Count(EnemyType.Normal) >= 3 && Count(EnemyType.Fast) >= 3 && Count(EnemyType.Tank) >= 2, 40);
+                    moment = System.Math.Ceiling(sim.Time);
+                }
+                yield return RunTo(moment);
+                yield return Shot(tag + " 전투 화면");
+                var tank = sim.Enemies.Where(e => e.Active && e.Spec.type == EnemyType.Tank)
+                    .OrderBy(e => sim.Robots.Min(r => System.Numerics.Vector2.Distance(r.Position, e.Position))).First();
+                var brute = ViewAt(tank.Position);
+                var warrior = ViewAt(sim.Robots.Where(r => r.Spec.NativeAction == RobotAction.Slash)
+                    .OrderBy(r => System.Numerics.Vector2.Distance(r.Position, tank.Position)).First().Position);
+                float b = ScreenPx(brute), w = ScreenPx(warrior);
+                Debug.Log($"[BruteSizes] {tag} t={sim.Time:0.00}: brute #{tank.Id} {b:0} px, warrior {w:0} px, ratio {b / w:0.00}");
+                var restore = Zoom(brute.transform.position + Vector3.up * 2, 11);
+                yield return Seconds(.3);
+                yield return Shot(tag + " 근접");
+                restore();
+                DevTest.Speed(1);
+                continue;
+
+            Boss:
+                // 2-10's boss brute, the boss warning over, at one battle time.
+                DevTest.Speed(1);
+                DevTest.PlayDefense(2, 10, true, Fight);
+                yield return Until(() => DevTest.Ready);
+                yield return Seconds(.5);
+                Deploy();
+                foreach (var hover in Object.FindObjectsByType<DefenseHoverInfo>(FindObjectsInactive.Include, FindObjectsSortMode.None)) hover.enabled = false;
+                DevTest.Battle.StartBattle(); DevTest.Speed(4);
+                var sim2 = DevTest.Sim;
+                yield return Until(() => sim2.Enemies.Any(e => e.Active && e.Boss) || sim2.Phase == BattlePhase.Defeat, 240);
+                DevTest.SetOptions(Idle);
+                DevTest.Speed(1);
+                sim = sim2;
+                yield return Seconds(DefenseBossWarning.Seconds + .5);
+                if (bossMoment == 0) bossMoment = System.Math.Ceiling(sim.Time) + 1;
+                yield return RunTo(bossMoment);
+                var bossState = sim.Enemies.FirstOrDefault(e => e.Active && e.Boss);
+                Debug.Log($"[BruteSizes] {tag} 2-10 t={sim.Time:0.00} {sim.Phase} wave {sim.WaveIndex + 1}: entered {DevTest.Battle.EditorBossEntered}, {sim.Enemies.Count(e => e.Active)} on the road, boss {(bossState == null ? "none" : "#" + bossState.Id)}");
+                if (bossState == null) continue;
+                var boss = ViewAt(bossState.Position);
+                var near = ViewAt(sim.Robots.Where(r => r.Spec.NativeAction == RobotAction.Slash)
+                    .OrderBy(r => System.Numerics.Vector2.Distance(r.Position, bossState.Position)).First().Position);
+                float bb = ScreenPx(boss), ww = ScreenPx(near);
+                Debug.Log($"[BruteSizes] {tag} boss t={sim.Time:0.00}: boss {bb:0} px, warrior {ww:0} px, ratio {bb / ww:0.00}");
+                restore = Zoom(boss.transform.position + Vector3.up * 3, 18);
+                yield return Seconds(.3);
+                yield return Shot(tag + " 보스");
+                restore();
+                DevTest.Speed(1);
+            }
+            ScaleModel("Heavy", 1 / current);
+        }
+
+        // The battle run on to one battle time and held there.
+        static IEnumerator RunTo(double time)
+        {
+            var sim = DevTest.Sim;
+            DevTest.Speed(3);
+            yield return Until(() => sim.Time >= time - .4, 120);
+            DevTest.Speed(.5f);
+            yield return Until(() => sim.Time >= time, 20);
+            DevTest.Speed(0);
+            yield return Seconds(.4);
+        }
+
+        static DefenseActorView ViewAt(System.Numerics.Vector2 at) => Object.FindObjectsByType<DefenseActorView>(FindObjectsSortMode.None)
+            .OrderBy(v => (v.transform.position - new Vector3(at.X, 0, at.Y)).sqrMagnitude).First();
+
+        // A size draft: the prefab's model scaled by k about the prefab's origin, its health bar and walk (planted feet) with it,
+        // as MonsterModels' size would make them.
+        static void ScaleModel(string prefab, float k)
+        {
+            string path = "Assets/!_Project/Defense/Prefabs/" + prefab + ".prefab";
+            var root = UnityEditor.PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                var model = root.transform.Find("Model"); model.localScale *= k; model.localPosition *= k;
+                root.transform.Find("Health").localPosition *= k;
+                var view = new UnityEditor.SerializedObject(root.GetComponent<DefenseActorView>());
+                view.FindProperty("walkSpeed").floatValue *= k; view.ApplyModifiedPropertiesWithoutUndo();
+                UnityEditor.PrefabUtility.SaveAsPrefabAsset(root, path);
+            }
+            finally { UnityEditor.PrefabUtility.UnloadPrefabContents(root); }
+        }
+
+        // An actor's silhouette height on a 1080-line screen from the battle camera: its posed meshes, projected.
+        static float ScreenPx(DefenseActorView view)
+        {
+            var camera = BattleCamera; float lo = float.MaxValue, hi = float.MinValue;
+            foreach (var r in view.GetComponentsInChildren<Renderer>())
+            {
+                if (!r.enabled || r.GetComponentsInParent<Transform>(true).Any(t => t.name == "Health")) continue;
+                System.Collections.Generic.IEnumerable<Vector3> points;
+                if (r is SkinnedMeshRenderer skin)
+                {
+                    // skinned by hand (bones and bind poses), so the pose and every scale above it count exactly once
+                    var mesh = skin.sharedMesh; var weights = mesh.boneWeights;
+                    var bone = skin.bones.Select((b, i) => b.localToWorldMatrix * mesh.bindposes[i]).ToArray();
+                    points = mesh.vertices.Select((v, i) =>
+                    {
+                        var w = weights[i];
+                        return bone[w.boneIndex0].MultiplyPoint3x4(v) * w.weight0 + bone[w.boneIndex1].MultiplyPoint3x4(v) * w.weight1 +
+                               bone[w.boneIndex2].MultiplyPoint3x4(v) * w.weight2 + bone[w.boneIndex3].MultiplyPoint3x4(v) * w.weight3;
+                    });
+                }
+                else if (r is MeshRenderer && r.TryGetComponent<MeshFilter>(out var filter) && filter.sharedMesh) points = filter.sharedMesh.vertices.Select(r.transform.TransformPoint);
+                else continue;
+                foreach (var p in points) { float y = camera.WorldToScreenPoint(p).y; lo = Mathf.Min(lo, y); hi = Mathf.Max(hi, y); }
+            }
+            return (hi - lo) * 1080f / camera.pixelHeight;
+        }
+
         // 2-9 at three times speed until several of each kind walk on screen.
         static IEnumerator Wave29()
         {
