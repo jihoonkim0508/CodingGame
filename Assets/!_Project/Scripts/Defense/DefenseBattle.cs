@@ -87,7 +87,7 @@ namespace CodingGame.Defense
 
         readonly Dictionary<int, DefenseActorView> robotViews = new Dictionary<int, DefenseActorView>();
         DefenseSounds sounds;
-        DefenseBattleFx fx; // the battle's show: bursts, shakes, the road's flow, the core's dome, the look (2026-11-25)
+        DefenseBattleFx fx; // the battle's show: bursts, shakes, the road's packets, the rift, the look (2026-11-25)
         public void PlaySound(string kind) => sounds.Play(kind);
         readonly Dictionary<int, DefenseActorView> enemyViews = new Dictionary<int, DefenseActorView>();
         readonly List<Transform> dropViews = new List<Transform>();

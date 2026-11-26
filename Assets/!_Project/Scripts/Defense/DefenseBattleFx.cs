@@ -8,9 +8,8 @@ namespace CodingGame.Defense
     // The battle's show (2026-11-25, the user: "화려하고 재밌게, 하지만 읽히게"), all built at runtime so the scene stays as it is:
     // - the look: a post-processing volume on the battle camera (bloom on HDR glows only, a soft vignette, a little contrast),
     //   red at the edges while the core is low, colour drained with a chromatic split on defeat; the overlay HUD is untouched;
-    // - the desk alive: chevrons and data packets flowing along the road to the core, a rift where enemies come in, an energy
-    //   dome over the core that flickers and reddens as it loses health and shatters on defeat, glowing monitor code and lamp,
-    //   coffee steam, dust motes;
+    // - the desk alive: data packets flowing along the road to the core, a rift where enemies come in, glowing monitor code
+    //   and lamp, coffee steam, dust motes (the road's chevrons and the core's dome went on 2026-11-26: not asked for);
     // - combat juice: a burst on every kill (big for a boss, with hit-stop), bomb blasts, leaks, screen shake on big moments
     //   (boss footsteps, boss fall, blasts, leaks, the wave's last kill), slow motion on the last kill, confetti on victory.
     // Everything moves on the battle's pace (still while paused, faster at 2x/3x); shakes go through the lens
@@ -213,7 +212,7 @@ namespace CodingGame.Defense
                 case "leaked":
                     Emit(flash, at, Error, 3.2f); Emit(ring, DefenseViews.World(evt.Position, .08f), Error, 5);
                     Emit(sparks, at, Error, .25f, 18);
-                    Kick(.45f); shieldHit = 1;
+                    Kick(.45f);
                     break;
                 case "shield-break":
                     Emit(sparks, at + Vector3.up * .3f, Cyan, .22f, 16); Emit(ring, DefenseViews.World(evt.Position, .1f), Cyan, 2.6f); Kick(.1f);
@@ -231,46 +230,21 @@ namespace CodingGame.Defense
             }
         }
 
-        // ---- The map: road chevrons and packets, the rift, the core's dome, props, dust.
+        // ---- The map: road packets, the rift, props, dust.
         Transform mapRoot; DefenseSimulation mapFor; int routesShown = -1; Bounds? gate;
-        readonly List<(MeshRenderer strip, Material material)> roads = new List<(MeshRenderer, Material)>();
-        // A flat strip of the given width along the path (mitred at the corners), u running along it one per tile length.
-        static Mesh Ribbon(Vector3[] path, float width, float tile)
-        {
-            int n = path.Length;
-            var vertices = new Vector3[n * 2]; var uv = new Vector2[n * 2]; var triangles = new int[(n - 1) * 6];
-            float along = 0;
-            for (int i = 0; i < n; i++)
-            {
-                if (i > 0) along += Vector3.Distance(path[i - 1], path[i]);
-                Vector3 Dir(int a, int b) { var d = path[b] - path[a]; d.y = 0; return d.normalized; }
-                var forward = i == 0 ? Dir(0, 1) : i == n - 1 ? Dir(n - 2, n - 1) : (Dir(i - 1, i) + Dir(i, i + 1)).normalized;
-                var side = new Vector3(-forward.z, 0, forward.x);
-                float miter = i == 0 || i == n - 1 ? 1 : 1 / Mathf.Max(.35f, Vector3.Dot(side, new Vector3(-Dir(i - 1, i).z, 0, Dir(i - 1, i).x)));
-                vertices[i * 2] = path[i] + side * (width * .5f * miter); vertices[i * 2 + 1] = path[i] - side * (width * .5f * miter);
-                uv[i * 2] = new Vector2(along / tile, 1); uv[i * 2 + 1] = new Vector2(along / tile, 0);
-                if (i == n - 1) continue;
-                int v = i * 2, t = i * 6;
-                triangles[t] = v; triangles[t + 1] = v + 2; triangles[t + 2] = v + 1; triangles[t + 3] = v + 1; triangles[t + 4] = v + 2; triangles[t + 5] = v + 3;
-            }
-            var mesh = new Mesh { name = "Road flow", vertices = vertices, uv = uv, triangles = triangles };
-            mesh.RecalculateNormals(); mesh.RecalculateBounds();
-            return mesh;
-        }
         readonly List<(Transform glow, Transform dot, Vector3[] path, float[] along, float total, float offset)> packets = new List<(Transform, Transform, Vector3[], float[], float, float)>();
         readonly List<(Transform root, Transform ring, Transform swirl, ParticleSystem motes)> rifts = new List<(Transform, Transform, Transform, ParticleSystem)>();
-        Transform dome; Material domeMaterial; float shieldHit; bool domeBroken;
         readonly List<(Renderer renderer, Color color, int role, float phase)> props = new List<(Renderer, Color, int, float)>();
         MaterialPropertyBlock block;
         ParticleSystem motes;
         readonly List<Object> mapMade = new List<Object>();
-        float clock, chevronOffset;
-        static Texture2D chevron, square;
+        float clock;
+        static Texture2D square;
 
         void BuildMap(DefenseSimulation sim)
         {
             foreach (var o in mapMade) if (o) Destroy(o is Component c ? c.gameObject : o);
-            mapMade.Clear(); roads.Clear(); packets.Clear(); rifts.Clear(); props.Clear(); dome = null; domeBroken = false;
+            mapMade.Clear(); packets.Clear(); rifts.Clear(); props.Clear();
             if (motes) paced.Remove(motes);
             mapFor = sim; routesShown = -1;
             var core = battle.CoreModel;
@@ -287,11 +261,10 @@ namespace CodingGame.Defense
                 if (points.Length < 2) continue;
                 var path = new Vector3[points.Length];
                 for (int p = 0; p < points.Length; p++) path[p] = DefenseViews.World(points[p], .09f);
-                Road(path, sim.Setup.Routes[i].HalfWidth);
+                Packets(path, sim.Setup.Routes[i].HalfWidth);
                 Rift(path);
             }
             routesShown = RoutesKey(sim);
-            if (core) Dome(core);
             if (mapRoot) Props(mapRoot);
             Motes(sim);
         }
@@ -305,17 +278,9 @@ namespace CodingGame.Defense
             var r = go.GetComponent<MeshRenderer>(); r.sharedMaterial = material; r.shadowCastingMode = ShadowCastingMode.Off; r.receiveShadows = false;
             return go.transform;
         }
-        void Road(Vector3[] path, float halfWidth)
+        // The packets: a blue dot that reads on the cream road under an added glow that blooms.
+        void Packets(Vector3[] path, float halfWidth)
         {
-            if (!chevron) chevron = MakeChevron();
-            var go = Made("Road flow");
-            var mesh = Ribbon(path, halfWidth * .62f, halfWidth * .85f); made.Add(mesh);
-            go.AddComponent<MeshFilter>().sharedMesh = mesh;
-            var strip = go.AddComponent<MeshRenderer>(); strip.shadowCastingMode = ShadowCastingMode.Off; strip.receiveShadows = false;
-            var material = Tinted("FxMarkerRing", new Color(.2f, .62f, 1f, .4f), true, chevron);
-            strip.sharedMaterial = material;
-            roads.Add((strip, material));
-            // The packets: a blue dot that reads on the cream road under an added glow that blooms.
             var along = new float[path.Length]; for (int i = 1; i < path.Length; i++) along[i] = along[i - 1] + Vector3.Distance(path[i - 1], path[i]);
             float total = along[along.Length - 1];
             var dotMaterial = Tinted("FxGlow", new Color(.08f, .42f, 1f, .95f), true);
@@ -363,22 +328,6 @@ namespace CodingGame.Defense
             go.GetComponent<ParticleSystemRenderer>().sharedMaterial = Tinted("FxGlow", new Color(2.4f, 1.4f, 2.4f, 1));
             ps.Play(); paced.Add(ps);
             rifts.Add((root, ringT, swirl, ps));
-        }
-        void Dome(Transform core)
-        {
-            Bounds? hull = null;
-            foreach (var r in core.GetComponentsInChildren<Renderer>()) { if (hull is Bounds h) { h.Encapsulate(r.bounds); hull = h; } else hull = r.bounds; }
-            if (!(hull is Bounds b)) return;
-            var source = Find("FxShieldBubble"); if (!source) return;
-            var go = GameObject.CreatePrimitive(PrimitiveType.Sphere); go.name = "Core dome"; Destroy(go.GetComponent<Collider>());
-            go.transform.SetParent(root, false); mapMade.Add(go);
-            float radius = Mathf.Max(b.extents.x, b.extents.z) * 1.12f, height = b.max.y * 1.15f;
-            go.transform.position = new Vector3(b.center.x, 0, b.center.z);
-            go.transform.localScale = new Vector3(radius * 2, height * 2, radius * 2);
-            domeMaterial = new Material(source); made.Add(domeMaterial);
-            domeMaterial.SetFloat("_Lines", 3.5f); domeMaterial.SetFloat("_LineSpeed", 1.6f);
-            var r2 = go.GetComponent<MeshRenderer>(); r2.sharedMaterial = domeMaterial; r2.shadowCastingMode = ShadowCastingMode.Off;
-            dome = go.transform;
         }
         // The desk's glowing parts (Stage01 props: CyanGlow, AmberGlow, WhiteGlow) breathe, the monitor's and the core's
         // code lines (Coral/Gold/Azure/Mint under Monitor or CodeBase) blink like code being run, the coffee steams.
@@ -470,22 +419,6 @@ namespace CodingGame.Defense
             }
             bloomKick = Mathf.Max(bloomKick, .6f);
         }
-        static Texture2D MakeChevron()
-        {
-            const int w = 64, h = 64;
-            var t = new Texture2D(w, h, TextureFormat.RGBA32, true) { wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Bilinear, anisoLevel = 4 };
-            var px = new Color32[w * h];
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
-                {
-                    // A ">" pointing along +u (toward the core), its stroke a fifth of the tile.
-                    float vv = Mathf.Abs((y + .5f) / h * 2 - 1), u = (x + .5f) / w, centre = .58f - .3f * vv;
-                    float a = Mathf.Clamp01((.1f - Mathf.Abs(u - centre)) * 40) * Mathf.Clamp01((.88f - vv) * 20);
-                    px[y * w + x] = new Color32(255, 255, 255, (byte)(255 * a));
-                }
-            t.SetPixels32(px); t.Apply(true);
-            return t;
-        }
 
         // ---- Per frame.
         BattlePhase shownPhase = BattlePhase.Ready;
@@ -538,16 +471,8 @@ namespace CodingGame.Defense
         {
             if (sim.Phase == shownPhase) return;
             if (sim.Phase == BattlePhase.Victory) Celebrate();
-            if (sim.Phase == BattlePhase.Defeat) { Kick(.9f); shieldHit = 1; if (dome && !domeBroken) BreakDome(); }
-            if (shownPhase == BattlePhase.Defeat && dome) { domeBroken = false; dome.gameObject.SetActive(true); }
+            if (sim.Phase == BattlePhase.Defeat) Kick(.9f);
             shownPhase = sim.Phase;
-        }
-        void BreakDome()
-        {
-            domeBroken = true; dome.gameObject.SetActive(false);
-            var at = dome.position + Vector3.up * dome.localScale.y * .3f;
-            Emit(flash, at, Cyan, 8); Emit(shards, at, Cyan, .4f, 60); Emit(sparks, at, Color.white, .3f, 40);
-            Emit(ring, new Vector3(at.x, .1f, at.z), Cyan, dome.localScale.x * 1.6f);
         }
         EnemyState BossOnRoad(DefenseSimulation sim)
         {
@@ -574,15 +499,6 @@ namespace CodingGame.Defense
         void Map(DefenseSimulation sim, float dt)
         {
             bool fighting = sim.Phase == BattlePhase.Running || sim.Phase == BattlePhase.Paused;
-            // Chevrons flow toward the core, brighter during a wave.
-            chevronOffset -= dt * (fighting ? 1.1f : .45f);
-            foreach (var (line, material) in roads)
-            {
-                if (!line) continue;
-                material.mainTextureOffset = new Vector2(chevronOffset, 0);
-                var c = material.GetColor("_BaseColor"); c.a = Mathf.MoveTowards(c.a, fighting ? .5f : .28f, Time.unscaledDeltaTime);
-                material.SetColor("_BaseColor", c);
-            }
             for (int i = 0; i < packets.Count; i++)
             {
                 var p = packets[i]; if (!p.glow) continue;
@@ -602,18 +518,6 @@ namespace CodingGame.Defense
                 swirl.localRotation = Quaternion.Euler(90, -clock * 120, 0);
                 float breathe = 1 + .05f * Mathf.Sin(clock * 3) + .35f * riftPulse;
                 root.localScale = Vector3.one * breathe;
-            }
-            if (dome && !domeBroken)
-            {
-                int full = Mathf.Max(1, sim.Setup.BaseHealth);
-                float health = Mathf.Clamp01(sim.BaseHealth / (float)full);
-                shieldHit = Mathf.MoveTowards(shieldHit, 0, Time.unscaledDeltaTime * 1.6f);
-                // Low health: it flickers off and on, its lines thicken (it is failing).
-                float flicker = health < .35f && Mathf.PerlinNoise(Time.unscaledTime * 9, 1.3f) > .62f ? .25f : 1;
-                var tint = Color.Lerp(new Color(1, .3f, .25f), new Color(.4f, .85f, 1), health);
-                domeMaterial.SetColor("_BaseColor", new Color(tint.r, tint.g, tint.b, (.04f + .18f * shieldHit) * flicker));
-                domeMaterial.SetColor("_RimColor", new Color(Mathf.Lerp(tint.r, 1, shieldHit), Mathf.Lerp(tint.g, 1, shieldHit), Mathf.Lerp(tint.b, 1, shieldHit), (.5f + .4f * shieldHit) * flicker));
-                domeMaterial.SetFloat("_LineStrength", .12f + .3f * (1 - health) + .4f * shieldHit);
             }
             if (props.Count > 0)
             {

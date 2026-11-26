@@ -64,6 +64,39 @@ namespace CodingGame.Defense.Editor
             Debug.Log($"[ScreenTour] 2-10 after the claim: {DevTest.Sim.Phase}");
         }
 
+        // 2026-11-26: no road chevrons, no core dome, rimmed monster icons, the deck 근접·원거리·지원, the goal bar as wide as its
+        // line. 2-2 (three monster types) before its wave, during it, with the core at 2 HP (the screen-edge red stays), then
+        // the goal bar on 1-2 (short) and 4-1 (long):
+        //   Unity.exe -projectPath . -executeMethod CodingGame.Defense.Editor.ScreenTour.RunBattleCleanup -logFile cleanup.log
+        public static void RunBattleCleanup() => Start("TestResults/Editor/battle_cleanup", BattleCleanup());
+        static IEnumerator BattleCleanup()
+        {
+            DefenseSelectionCamera.InputLocked = true;
+            DevTest.PlayDefense(2, 2, true, Sandbox);
+            yield return Until(() => DevTest.Ready && !GameFlow.Loading, 120);
+            DevTest.GrantAll();
+            yield return Seconds(1.5);
+            yield return Shot("ready");
+            var sim = DevTest.Sim;
+            Deploy(); DevTest.Battle.StartBattle();
+            yield return Until(() => sim.Enemies.Count(e => e.Active) >= 3, 30);
+            yield return Seconds(.8);
+            yield return Shot("fighting");
+            typeof(DefenseSimulation).GetProperty(nameof(DefenseSimulation.BaseHealth)).SetValue(sim, 2);
+            yield return Seconds(1.2);
+            yield return Shot("low_core");
+            // The goal bar fitted to its line: 1-2's short goal, 4-1's long one.
+            foreach (var (stage, wave) in new[] { (1, 2), (4, 1) })
+            {
+                DevTest.PlayDefense(stage, wave, true, Sandbox);
+                yield return Until(() => DevTest.Ready && !GameFlow.Loading, 120);
+                yield return Seconds(1.5);
+                Debug.Log($"[ScreenTour] goal {stage}-{wave}: {DevTest.Sim.Lesson?.goal}");
+                yield return Shot($"goal_{stage}-{wave}");
+            }
+            DefenseSelectionCamera.InputLocked = false;
+        }
+
         static DefenseSelectionCamera PlayerCamera => Object.FindFirstObjectByType<DefenseSelectionCamera>();
         static Camera View => DevTest.Battle.BattleCamera;
         // Input events as the devices would send them; every device input reaches the game view meanwhile (batchmode has no focus).
