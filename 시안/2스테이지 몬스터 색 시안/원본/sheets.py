@@ -1,4 +1,4 @@
-# python sheets.py <renders> <out_dir>
+# python sheets.py <renders> <out_dir> [neck]      (neck: only 탱커병 1 방패 1.7배/목 올림.png, from render.py tank neck)
 # Lays out render.py's renders (<renders>/imp, /raptor, /tank) into the colour-draft sheets:
 #   일반 4 뿔 마귀/ and 빠른 적 3 추격 랩터/: 색 1.png … 색 6.png, 색 6안 비교.png, 전투 카메라 크기.png
 #   탱커병 1 방패 1.7배/: 1.png, 방패 전후 비교.png, 전투 카메라 크기.png
@@ -271,6 +271,47 @@ def tank():
     c.convert('RGB').save(os.path.join(out, '전투 카메라 크기.png'))
 
 
-colour_set('imp')
-colour_set('raptor')
-tank()
+def neck():
+    """목 올림.png: the 1.7x-shield brute with its neck raised (render.py tank neck), front 3/4 and beside the tank robot."""
+    r = os.path.join(R, 'tank'); out = os.path.join(OUT, FOLDER['tank']); os.makedirs(out, exist_ok=True)
+    nk = json.load(open(os.path.join(r, 'neck.json')))
+    c = Image.new('RGBA', (W, H), BG); d = ImageDraw.Draw(c)
+    badge(d, 40, 34, 1, 84)
+    d.text((148, 56), '철방패 거병 · 방패 1.7배 · 목 올림', font=F(48, True), fill=INK, anchor='lm')
+    d.text((150, 104), '방패(높이 2.29)에 가려지던 얼굴을 위로: 몸통과 어깨판을 올리고, 짧고 굵은 목으로 머리를 방패 위에 얹어 앞으로 숙인다. 방패·갈퀴 손은 그대로',
+           font=F(21), fill=SUB, anchor='lm')
+    card(d, (40, 146, 1270, 1046))
+    big = load(os.path.join(r, 't1neck_q34.png')); big = scaled(big, min(1.0, 820 / big.height, 1150 / big.width))
+    c.alpha_composite(big, (655 - big.width // 2, 990 - big.height))
+    d.text((655, 1008), '3/4 정면', font=F(18), fill=SUB, anchor='mt')
+    card(d, (1296, 146, 1880, 1046))
+    shot = Image.open(os.path.join(r, 't1neck_pair.png')).convert('RGBA')
+    rb, mb = nk['robot'], nk['monster']
+    box = (min(rb[0], mb[0]) - 24, min(rb[1], mb[1]) - 18, max(rb[2], mb[2]) + 24, max(rb[3], mb[3]) + 18)
+    pc = crop(shot, box, 0)
+    d.text((1320, 166), '실제 전투 화면 크기 (1:1) · 아군 탱커 로봇 옆', font=F(19, True), fill=SUB)
+    cx, cy = 1588 - pc.width // 2, 200
+    c.alpha_composite(pc, (cx, cy)); d.rounded_rectangle((cx, cy, cx + pc.width, cy + pc.height), 10, outline=LINE, width=2)
+    y = cy + pc.height + 24
+    zoom = crop(shot, (mb[0] - 12, mb[1] - 12, mb[2] + 12, mb[3] + 12), 0)
+    f = min(536 / zoom.width, (1046 - 140 - (y + 34) - 22) / zoom.height)
+    d.text((1320, y), f'같은 장면, 거병만 {f:.1f}배 확대', font=F(19, True), fill=SUB)
+    p2 = scaled(zoom, f, nearest=True)
+    c.alpha_composite(p2, (1588 - p2.width // 2, y + 34))
+    ty = y + 34 + p2.height + 22
+    d.line((1320, ty, 1856, ty), fill=LINE, width=2)
+    ok = lambda v: '보임' if all(v) else '가림'
+    facts = [('높이', f'뿔 끝 {nk["height"]:.2f} · 눈 {nk["eye_z"]:.2f} · 방패 위 끝 {nk["shield_top"]:.2f}'),
+             ('눈 (방패 너머로 보이는지)', f'3/4 정면 {ok(nk["eyes_q34"])} · 전투 카메라 {ok(nk["eyes_battle"])} · 정면으로 걸어올 때 {ok(nk["eyes_battle_head_on"])}')]
+    for i, (k, v) in enumerate(facts):
+        d.text((1320, ty + 12 + i * 50), k, font=F(16, True), fill=SUB)
+        d.text((1320, ty + 32 + i * 50), v, font=F(19), fill=INK)
+    c.convert('RGB').save(os.path.join(out, '목 올림.png'))
+
+
+if sys.argv[3:] == ['neck']:
+    neck()
+else:
+    colour_set('imp')
+    colour_set('raptor')
+    tank()
