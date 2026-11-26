@@ -3,16 +3,16 @@ using UnityEngine;
 
 namespace CodingGame.Defense
 {
-    // Dust kicked up where the tanker's feet come down (시안/탱커 흙먼지): watches the pod end of each leg bone and emits a few
+    // Dust kicked up where the tanker's feet come down (시안/탱커 흙먼지): watches each foot's bone (its sole) and emits a few
     // particles of the effect there as it lands. The effect simulates in world space, so the puff stays where the foot landed;
     // a tanker standing still (blocked, stunned, paused) lands no feet and raises no dust. Set up by TankerDustEffects.Attach.
     public sealed class TankerDust : MonoBehaviour
     {
         [SerializeField, Tooltip("발 디딜 때 흙먼지 (Defense/Effects/TankerDust의 시안 프리팹)")] ParticleSystem effect;
-        [SerializeField] Transform[] legs = Array.Empty<Transform>();
+        [SerializeField, Tooltip("발바닥 본(Foot_L/R)")] Transform[] legs = Array.Empty<Transform>();
         [SerializeField, Min(1)] int perStep = 3;
-        // Each leg is one bone, its pod's foot at -X 0.892 (TankerWalk); heights in Heavy's own units (the walk lifts a pod 0.1).
-        const float LegLength = .892f, Lifted = .05f, Landed = .015f;
+        // Heights in Heavy's own units (the shield brute's stomp lifts a foot about 0.17).
+        const float Lifted = .05f, Landed = .015f;
         ParticleSystem dust;
         DefenseActorView view;
         float[] low;
@@ -36,7 +36,7 @@ namespace CodingGame.Defense
             var main = dust.main; if (main.simulationSpeed != pace) main.simulationSpeed = pace;
             for (int i = 0; i < legs.Length; i++)
             {
-                var foot = legs[i].TransformPoint(-LegLength, 0, 0);
+                var foot = legs[i].position;
                 float y = transform.InverseTransformPoint(foot).y;
                 low[i] = Mathf.Min(low[i], y);
                 if (y > low[i] + Lifted) up[i] = true;

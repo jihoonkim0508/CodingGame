@@ -87,7 +87,7 @@ namespace CodingGame.Defense.Editor
                 camera = cameraObject.AddComponent<Camera>();
                 camera.scene = scene; camera.overrideSceneCullingMask = EditorSceneManager.GetSceneCullingMask(scene);
                 camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = Color.clear;
-                camera.orthographic = true; camera.aspect = 1; camera.orthographicSize = Mathf.Max(bounds.extents.y, bounds.extents.x) * 1.22f; // room for the tilted view: a tight fit cut off tall heads
+                camera.orthographic = true; camera.aspect = 1; camera.orthographicSize = Mathf.Max(bounds.extents.y, bounds.extents.x, bounds.extents.z * .8f) * 1.22f; // room for the tilted view: a tight fit cut off tall heads (and the long raptor)
                 // A little above and to the right of the robot's front, the way the battle camera sees it.
                 camera.transform.position = bounds.center + new Vector3(.45f, .4f, 1).normalized * (bounds.size.magnitude * 2);
                 camera.transform.LookAt(bounds.center);

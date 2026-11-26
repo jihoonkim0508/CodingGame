@@ -1,212 +1,138 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
-using UnityEditor.SceneManagement;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace CodingGame.Defense.Editor
 {
-    // The team's monster models (tank and runner, static meshes with one texture each) on the Heavy and Runner enemies,
-    // in place of the primitive robot shapes. Models/Monsters holds the FBX, texture and URP material of each.
+    // The stage-2 monsters chosen from 시안/2스테이지 몬스터 3차 초안 (일반 4 뿔 마귀, 빠른 적 3 추격 랩터, 탱커병 1 철방패 거병) on
+    // the enemy prefabs Enemy, Runner and Heavy. Every stage shares those prefabs (one enemy set per campaign), so they are the
+    // monsters of every stage. 시안/2스테이지 몬스터 3차 초안/게임 모델/build_game.py writes each one's <Model>.fbx (one skinned mesh
+    // walking on a looping "Walk" take) and <Model>.json into Models/Monsters; Apply() imports them, paints their palettes from
+    // Palettes below, fits them and photographs the next-wave cards again. Needs a GPU for the cards (batchmode without -nographics):
+    //   Unity.exe -batchmode -projectPath . -executeMethod CodingGame.Defense.Editor.MonsterModels.Apply -quit
     public static class MonsterModels
     {
         const string Folder = "Assets/!_Project/Resources/Models/Monsters/", Prefabs = "Assets/!_Project/Defense/Prefabs/";
-
-        // Four sides of each model (front = looking down -Z at its +Z face) into TestResults/Editor/monsters, to see which
-        // way it faces before it is fitted.
-        public static void Sides()
+        // The drafts' design units in the world: their melee robot (the AttackRobot model, as the Warrior prefab wears it) stands
+        // 1.55 of them, so every monster keeps its drafted size beside the robots.
+        static float Design
         {
-            Directory.CreateDirectory("TestResults/Editor/monsters");
-            var scene = EditorSceneManager.NewPreviewScene();
-            try
+            get
             {
-                var camera = new GameObject("Camera").AddComponent<Camera>(); camera.scene = scene;
-                UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(camera.gameObject, scene);
-                camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = new Color(.2f, .25f, .3f); camera.orthographic = true;
-                var light = new GameObject("Light").AddComponent<Light>(); light.type = LightType.Directional; light.intensity = 1.2f;
-                UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(light.gameObject, scene);
-                light.transform.rotation = Quaternion.Euler(40, 30, 0);
-                foreach (var (name, material) in new[] { ("MonsterTanker", "MonsterTank"), ("MonsterRunner", "MonsterRunner") })
-                {
-                    var model = (GameObject)Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(Folder + name + ".fbx"));
-                    UnityEngine.SceneManagement.SceneManager.MoveGameObjectToScene(model, scene);
-                    foreach (var r in model.GetComponentsInChildren<Renderer>()) r.sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>(Folder + material + ".mat");
-                    var bounds = Bounds(model);
-                    camera.orthographicSize = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z) * .6f;
-                    foreach (var (side, direction) in new[] { ("front", Vector3.forward), ("right", Vector3.right), ("back", Vector3.back), ("left", Vector3.left) })
-                    {
-                        camera.transform.position = bounds.center + direction * 10 + Vector3.up * 2;
-                        camera.transform.LookAt(bounds.center);
-                        Render(camera, $"TestResults/Editor/monsters/{name}_{side}.png");
-                    }
-                    Object.DestroyImmediate(model);
-                }
+                var warrior = AssetDatabase.LoadAssetAtPath<GameObject>(Prefabs + "Warrior.prefab").transform;
+                return LocalBounds(warrior, warrior.GetComponentInChildren<SkinnedMeshRenderer>()).size.y * warrior.localScale.y / 1.55f;
             }
-            finally { EditorSceneManager.ClosePreviewScene(scene); }
-            Debug.Log("[MonsterModels] sides → TestResults/Editor/monsters");
         }
+        // Prefab, model, size against the draft (the user asked for the imp a quarter bigger).
+        static readonly (string prefab, string model, float size)[] Monsters =
+        {
+            ("Enemy", "MonsterImp", 1.25f), ("Runner", "MonsterRaptor", 1), ("Heavy", "MonsterShieldBrute", 1),
+        };
 
-        // The tank on Heavy and the runner on Runner: the primitive body, helmet and visor are switched off and the base disc
-        // removed, the model stands on the ground at a height in the enemy's own units (Heavy is scaled 1.3, Runner 0.8) and faces +Z as
-        // the walk turns it, and it becomes the body DefenseActorView tints when stunned or slowed.
+        // Each monster's colours, one per region of its palette texture, in build_game.py's REGIONS order. The drafts' colours
+        // for now; another colourway is a change here and a run of Paint (or Apply).
+        static readonly string[] Regions = { "white", "lightgrey", "midgrey", "charcoal", "gunmetal", "accent", "eye" };
+        static readonly Dictionary<string, Color32[]> Palettes = new Dictionary<string, Color32[]>
+        {
+            //                                white          light grey     mid grey       charcoal    gunmetal    accent          eye slits
+            ["MonsterImp"] = new[] { C(246, 246, 246), C(174, 174, 174), C(108, 108, 108), C(33, 33, 33), C(62, 62, 68), C(255, 128, 0), C(255, 236, 170) },
+            ["MonsterRaptor"] = new[] { C(246, 246, 246), C(174, 174, 174), C(108, 108, 108), C(33, 33, 33), C(64, 66, 74), C(240, 44, 52), C(255, 92, 80) },
+            ["MonsterShieldBrute"] = new[] { C(246, 246, 246), C(174, 174, 174), C(108, 108, 108), C(33, 33, 33), C(66, 70, 80), C(255, 190, 0), C(255, 214, 92) },
+        };
+        static Color32 C(byte r, byte g, byte b) => new Color32(r, g, b, 255);
+        const int Cell = 8, Cols = 4; // the palette: 4 x 4 cells of 8 px, UVs on the cell centres
+
+        [Serializable] sealed class Info { public float height = 1, speed, cycle; }
+
         public static void Apply()
         {
-            Tanker();
-            Runner();
-            Debug.Log("[MonsterModels] Heavy and Runner use the team's models");
+            Debug.Log($"[MonsterModels] one design unit = {Design:0.000} world units");
+            foreach (var (prefab, model, size) in Monsters) Fit(prefab, model, size);
+            TankerDustEffects.Attach(); // on the brute's foot bones
+            AssetDatabase.SaveAssets();
+            RobotIcons.Build();
+            Debug.Log("[MonsterModels] " + string.Join(", ", Monsters.Select(m => $"{m.prefab} = {m.model}")));
         }
 
-        // The team's rigged tanker (3ds Max, 17 bones, the same texture as the static MonsterTank it replaces) on Heavy: the
-        // model from MonsterTanker.fbx, its walk (1 s, a trot with planted feet) baked by TankerWalk looping on the model's
-        // Animator. The artist's walk (MonsterTankerWalk.fbx) slid its feet and was replaced (시안/탱커 걷기).
-        public static void Tanker()
+        // The palettes and materials again, after a change to Palettes.
+        public static void Paint()
         {
-            var importer = (ModelImporter)AssetImporter.GetAtPath(Folder + "MonsterTanker.fbx");
-            importer.materialImportMode = ModelImporterMaterialImportMode.None; // MonsterTank.mat (URP Lit) is set on the prefab
+            foreach (var m in Monsters) Material(m.model);
+            AssetDatabase.SaveAssets();
+            RobotIcons.Build();
+        }
+
+        // <Model>_Palette.png from Palettes and <Model>.mat: the robots' toon shader (the monsters' Monster.mat: cel bands and its
+        // own thin outline, no emission) over the palette, its rim light in the accent.
+        static Material Material(string model)
+        {
+            var colours = Palettes[model];
+            var image = new Texture2D(Cell * Cols, Cell * Cols, TextureFormat.RGBA32, false);
+            image.SetPixels32(Enumerable.Repeat(new Color32(0, 0, 0, 255), Cell * Cols * Cell * Cols).ToArray());
+            for (int i = 0; i < colours.Length; i++)
+                image.SetPixels32(i % Cols * Cell, (Cols - 1 - i / Cols) * Cell, Cell, Cell, Enumerable.Repeat(colours[i], Cell * Cell).ToArray());
+            string png = Folder + model + "_Palette.png";
+            File.WriteAllBytes(png, image.EncodeToPNG());
+            Object.DestroyImmediate(image);
+            AssetDatabase.ImportAsset(png);
+            var texture = (TextureImporter)AssetImporter.GetAtPath(png);
+            texture.filterMode = FilterMode.Point; texture.mipmapEnabled = false; texture.wrapMode = TextureWrapMode.Clamp;
+            texture.textureCompression = TextureImporterCompression.Uncompressed; texture.sRGBTexture = true; texture.npotScale = TextureImporterNPOTScale.None;
+            texture.SaveAndReimport();
+
+            string path = Folder + model + ".mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (!material)
+            {
+                material = new Material(AssetDatabase.LoadAssetAtPath<Material>("Assets/!_Project/Resources/Models/CharacterAnimation/Materials/Monster.mat"));
+                AssetDatabase.CreateAsset(material, path);
+            }
+            // White tint: DefenseActorView tints it (stunned, slowed) over every colour of the palette at once.
+            material.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>(png)); material.SetColor("_BaseColor", Color.white);
+            material.SetColor("_AccentColor", colours[Array.IndexOf(Regions, "accent")]);
+            material.SetFloat("_TextureSaturation", 1);
+            material.SetFloat("_OutlineWidth", 1.8f); material.SetFloat("_OutlineUseSmoothNormals", 1); // as the robots (CharacterOutlineImporter)
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        // The FBX as a Generic rig whose one clip loops, and a controller playing it.
+        static (RuntimeAnimatorController walk, Info info) Import(string model)
+        {
+            string path = Folder + model + ".fbx";
+            var importer = (ModelImporter)AssetImporter.GetAtPath(path);
+            importer.materialImportMode = ModelImporterMaterialImportMode.None;
+            importer.bakeAxisConversion = true;
             importer.animationType = ModelImporterAnimationType.Generic;
             importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
             importer.importAnimation = true;
+            importer.animationCompression = ModelImporterAnimationCompression.Off; // reduced keys would let planted feet creep
+            var clips = importer.defaultClipAnimations;
+            foreach (var c in clips) { c.name = "Walk"; c.loopTime = true; }
+            importer.clipAnimations = clips;
             importer.SaveAndReimport();
-            var walk = TankerWalk.Bake();
-            var controller = AssetDatabase.LoadAssetAtPath<UnityEditor.Animations.AnimatorController>(Folder + "MonsterTanker.controller");
-            if (!controller) controller = UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPathWithClip(Folder + "MonsterTanker.controller", walk);
+            var info = JsonUtility.FromJson<Info>(File.ReadAllText(Folder + model + ".json"));
+            var clip = AssetDatabase.LoadAllAssetsAtPath(path).OfType<AnimationClip>().First(c => !c.name.StartsWith("__preview__"));
+            var controller = AssetDatabase.LoadAssetAtPath<UnityEditor.Animations.AnimatorController>(Folder + model + ".controller");
+            if (!controller) controller = UnityEditor.Animations.AnimatorController.CreateAnimatorControllerAtPathWithClip(Folder + model + ".controller", clip);
             var state = controller.layers[0].stateMachine.defaultState;
-            state.name = "Walk"; state.motion = walk;
+            state.name = "Walk"; state.motion = clip;
             EditorUtility.SetDirty(controller);
-            Fit("Heavy", "MonsterTanker", 1.1f, "MonsterTank", controller);
-            TankerDustEffects.Attach(); // the refitted model's leg bones
-            AssetDatabase.SaveAssets();
-            RobotIcons.Build();
-            Debug.Log("[MonsterModels] Heavy walks as the team's rigged tanker");
+            return (controller, info);
         }
 
-        // The runner flies: lifted off the ground and bobbing (DefenseActorView.hover), a flame from each foot (the two
-        // octagonal nozzles low on its left and right, facing outward and down).
-        public static void Runner()
+        // The model in place of the old one: the primitive body, helmet and visor switched off, facing +Z (the view turns the
+        // prefab along its walk), its design units scaled to the world's in the prefab's own scale (Heavy 1.3, Runner 0.8),
+        // centred on the enemy's place with its feet on the ground; it becomes the body DefenseActorView tints, and its walk
+        // plays at the enemy's speed (walkSpeed).
+        static void Fit(string enemy, string model, float size)
         {
-            Fit("Runner", "MonsterRunner", 1.25f); // at 1.0 the runner read as a small dot on the road (3-5 screenshot)
-            Thrusters("Runner", .5f);
-            AssetDatabase.SaveAssets();
-        }
-
-        // No dark base disc under the enemies (the team's models stood on a primitive cylinder): removed from the three enemy
-        // prefabs, the walking model set down onto the ground, and the next-wave cards photographed again.
-        public static void NoBase()
-        {
-            foreach (var enemy in new[] { "Enemy", "Heavy", "Runner" })
-            {
-                string path = Prefabs + enemy + ".prefab";
-                var root = PrefabUtility.LoadPrefabContents(path);
-                try
-                {
-                    var disc = root.transform.Find("Base");
-                    if (disc) Object.DestroyImmediate(disc.gameObject);
-                    var model = root.transform.Find("Model"); // the runner's flies in Hover
-                    var mesh = model ? model.GetComponentInChildren<MeshRenderer>() : null;
-                    if (mesh) model.localPosition -= Vector3.up * LocalBounds(root.transform, mesh).min.y;
-                    PrefabUtility.SaveAsPrefabAsset(root, path);
-                }
-                finally { PrefabUtility.UnloadPrefabContents(root); }
-            }
-            RobotIcons.Build();
-        }
-
-        static void Thrusters(string enemy, float lift)
-        {
-            string path = Prefabs + enemy + ".prefab";
-            var root = PrefabUtility.LoadPrefabContents(path);
-            try
-            {
-                var model = root.transform.Find("Model");
-                var renderer = model.GetComponentInChildren<MeshRenderer>();
-                var hover = new GameObject("Hover").transform; hover.SetParent(root.transform, false);
-                model.SetParent(hover, true);
-                var glow = AssetDatabase.LoadAssetAtPath<Material>(Folder + "ThrusterFlame.mat");
-                if (!glow)
-                {
-                    glow = new Material(AssetDatabase.LoadAssetAtPath<Material>("Assets/!_Project/Defense/Effects/HIE_Hit_04_PointGlow_01.mat"));
-                    AssetDatabase.CreateAsset(glow, Folder + "ThrusterFlame.mat");
-                }
-                // The hit glow's soft dot, alpha-blended instead of added: added light vanished on the cream road and desk wood.
-                glow.SetFloat("_Blend", 0);
-                glow.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha); glow.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                glow.SetFloat("_SrcBlendAlpha", 1); glow.SetFloat("_DstBlendAlpha", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                EditorUtility.SetDirty(glow);
-                var flames = new[] { -1, 1 }.Select(side =>
-                {
-                    var (at, outward) = Nozzle(root.transform, renderer, side);
-                    return Flame(hover, side < 0 ? "Thruster L" : "Thruster R", at, outward, glow);
-                }).ToArray();
-                hover.localPosition = Vector3.up * lift;
-                // The health bar as far over the lifted head as it was over the standing one.
-                root.transform.Find("Health").localPosition = Vector3.up * (LocalBounds(root.transform, renderer).max.y + .34f);
-                var view = new SerializedObject(root.GetComponent<DefenseActorView>());
-                view.FindProperty("hover").objectReferenceValue = hover;
-                var list = view.FindProperty("thrusters"); list.arraySize = flames.Length;
-                for (int i = 0; i < flames.Length; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = flames[i];
-                view.ApplyModifiedPropertiesWithoutUndo();
-                PrefabUtility.SaveAsPrefabAsset(root, path);
-            }
-            finally { PrefabUtility.UnloadPrefabContents(root); }
-        }
-
-        // The outer face centre and facing of the nozzle on one side, in the enemy's local space: the mesh's points low on that
-        // side near the middle (the runner's nozzles sit at x ±0.39, y 0.1-0.25, z 0 at height 1.25).
-        static (Vector3 at, Vector3 outward) Nozzle(Transform space, MeshRenderer renderer, int side)
-        {
-            var mesh = renderer.GetComponent<MeshFilter>().sharedMesh;
-            var toSpace = space.worldToLocalMatrix * renderer.transform.localToWorldMatrix;
-            var vertices = mesh.vertices; var normals = mesh.normals;
-            float bottom = LocalBounds(space, renderer).min.y;
-            var points = new System.Collections.Generic.List<Vector3>(); var normal = Vector3.zero;
-            for (int i = 0; i < vertices.Length; i++)
-            {
-                var p = toSpace.MultiplyPoint3x4(vertices[i]);
-                if (p.y > bottom + .25f || side * p.x < .28f || Mathf.Abs(p.z) > .13f) continue;
-                points.Add(p); normal += toSpace.MultiplyVector(normals[i]).normalized;
-            }
-            var outward = normal.normalized;
-            if (points.Count < 20 || outward.y > -.3f || side * outward.x < .3f)
-                throw new InvalidOperationException($"{renderer.name}: {side} 쪽 발(노즐)을 찾지 못했습니다 (점 {points.Count}, 방향 {outward}).");
-            var centre = points.Aggregate(Vector3.zero, (sum, p) => sum + p) / points.Count;
-            return (centre + outward * points.Max(p => Vector3.Dot(p - centre, outward)), outward);
-        }
-
-        // A short jet along the nozzle's facing: white-yellow at the nozzle, orange, red, gone; in the enemy's own space and
-        // scale, so it turns and shrinks with it.
-        static ParticleSystem Flame(Transform parent, string name, Vector3 at, Vector3 outward, Material glow)
-        {
-            var flame = new GameObject(name, typeof(ParticleSystem)).GetComponent<ParticleSystem>();
-            flame.transform.SetParent(parent, false);
-            flame.transform.localPosition = at; flame.transform.localRotation = Quaternion.LookRotation(outward);
-            flame.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            var main = flame.main;
-            main.duration = 1; main.loop = true; main.playOnAwake = true; main.maxParticles = 70;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(.26f, .34f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(2f, 2.4f);
-            main.startSize = new ParticleSystem.MinMaxCurve(.8f, 1f); // the glow dot fills only the middle of its quad; seen from the battle camera
-            main.startColor = Color.white;
-            main.simulationSpace = ParticleSystemSimulationSpace.Local; main.scalingMode = ParticleSystemScalingMode.Hierarchy;
-            var emission = flame.emission; emission.rateOverTime = 130;
-            var shape = flame.shape; shape.shapeType = ParticleSystemShapeType.Cone; shape.angle = 5; shape.radius = .04f;
-            var size = flame.sizeOverLifetime; size.enabled = true; size.size = new ParticleSystem.MinMaxCurve(1, AnimationCurve.Linear(0, 1, 1, .3f));
-            var gradient = new Gradient();
-            gradient.SetKeys(
-                new[] { new GradientColorKey(new Color(1, 1, .85f), 0), new GradientColorKey(new Color(1, .85f, .3f), .2f),
-                        new GradientColorKey(new Color(1, .45f, .08f), .5f), new GradientColorKey(new Color(.75f, .12f, .05f), 1) },
-                new[] { new GradientAlphaKey(1, 0), new GradientAlphaKey(1, .45f), new GradientAlphaKey(.75f, .75f), new GradientAlphaKey(0, 1) });
-            var color = flame.colorOverLifetime; color.enabled = true; color.color = gradient;
-            var look = flame.GetComponent<ParticleSystemRenderer>();
-            // Stretched along the jet, so the dots read as one flame.
-            look.renderMode = ParticleSystemRenderMode.Stretch; look.lengthScale = 1.8f; look.velocityScale = 0;
-            look.sharedMaterial = glow; look.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; look.receiveShadows = false;
-            return flame;
-        }
-
-        static void Fit(string enemy, string model, float height, string material = null, RuntimeAnimatorController walk = null)
-        {
+            var (walk, info) = Import(model);
+            var material = Material(model);
             string path = Prefabs + enemy + ".prefab";
             var root = PrefabUtility.LoadPrefabContents(path);
             try
@@ -214,63 +140,51 @@ namespace CodingGame.Defense.Editor
                 foreach (var name in new[] { "Body", "Head/Helmet", "Head/Visor" })
                 { var part = root.transform.Find(name); if (part) part.gameObject.SetActive(false); }
                 var disc = root.transform.Find("Base"); if (disc) Object.DestroyImmediate(disc.gameObject);
-                var old = root.transform.Find("Hover") ?? root.transform.Find("Model"); // the runner's model flies in Hover
+                var old = root.transform.Find("Hover") ?? root.transform.Find("Model"); // the old runner flew in Hover
                 if (old) Object.DestroyImmediate(old.gameObject);
-                var instance = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(Folder + model + ".fbx"), root.transform);
+                var source = AssetDatabase.LoadAssetAtPath<GameObject>(Folder + model + ".fbx");
+                var instance = (GameObject)PrefabUtility.InstantiatePrefab(source, root.transform);
                 instance.name = "Model";
-                var renderer = instance.GetComponentInChildren<Renderer>();
-                renderer.sharedMaterial = AssetDatabase.LoadAssetAtPath<Material>(Folder + (material ?? model) + ".mat");
+                var renderer = instance.GetComponentInChildren<SkinnedMeshRenderer>();
+                renderer.sharedMaterial = material;
                 renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
-                if (walk)
-                {
-                    // The Generic FBX's own Animator and avatar; the walk turns with the enemy, no root motion.
-                    var animator = instance.GetComponent<Animator>();
-                    animator.runtimeAnimatorController = walk; animator.applyRootMotion = false; animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-                }
-                // Size and place in the enemy's local space: as tall as asked, centred, standing on the ground. The
-                // FBX root keeps its own rotation and scale (3ds Max axes: the tank turned 270° on X, the runner scaled -0.04).
-                var source = AssetDatabase.LoadAssetAtPath<GameObject>(Folder + model + ".fbx").transform;
-                instance.transform.localPosition = Vector3.zero; instance.transform.localRotation = source.localRotation; instance.transform.localScale = source.localScale;
+                var animator = instance.GetComponent<Animator>();
+                animator.runtimeAnimatorController = walk; animator.applyRootMotion = false; animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+
+                var model0 = instance.transform;
+                model0.localPosition = Vector3.zero; model0.localRotation = source.transform.localRotation; model0.localScale = source.transform.localScale;
+                // The head is the front.
+                var head = instance.GetComponentsInChildren<Transform>().First(t => t.name == "Head");
+                if (root.transform.InverseTransformPoint(head.position).z < 0) model0.localRotation = Quaternion.Euler(0, 180, 0) * model0.localRotation;
+                // The design's ground is the model's origin and its top info.height above it.
+                float tall = info.height * Design * size / root.transform.lossyScale.y; // in the prefab's units
+                model0.localScale *= tall / LocalBounds(root.transform, renderer).max.y;
                 var local = LocalBounds(root.transform, renderer);
-                float k = height / local.size.y;
-                instance.transform.localScale = source.localScale * k;
-                local = LocalBounds(root.transform, renderer);
-                instance.transform.localPosition = new Vector3(-local.center.x, -local.min.y, -local.center.z);
+                model0.localPosition = new Vector3(-local.center.x, 0, -local.center.z);
+                root.transform.Find("Health").localPosition = Vector3.up * (tall + .1f); // the view lifts it HealthLift more
+
                 var view = new SerializedObject(root.GetComponent<DefenseActorView>());
                 view.FindProperty("body").objectReferenceValue = renderer;
+                view.FindProperty("hover").objectReferenceValue = null;
+                view.FindProperty("thrusters").arraySize = 0;
+                view.FindProperty("walkSpeed").floatValue = info.speed * Design * size / root.transform.lossyScale.z;
                 view.ApplyModifiedPropertiesWithoutUndo();
                 PrefabUtility.SaveAsPrefabAsset(root, path);
+                Debug.Log($"[MonsterModels] {enemy}: {model} {tall * root.transform.lossyScale.y:0.00} world units tall, " +
+                          $"{renderer.sharedMesh.triangles.Length / 3} triangles, walk {info.cycle:0.00} s at {info.speed * Design * size:0.00} world units/s");
             }
             finally { PrefabUtility.UnloadPrefabContents(root); }
         }
 
-        // A renderer's mesh bounds in another transform's local space.
+        // A renderer's mesh bounds (a skinned mesh's bind pose) in another transform's local space.
         static Bounds LocalBounds(Transform space, Renderer renderer)
         {
-            var mesh = renderer is SkinnedMeshRenderer skinned ? skinned.sharedMesh : renderer.GetComponent<MeshFilter>().sharedMesh; // skinned: its bind pose
+            var mesh = renderer is SkinnedMeshRenderer skinned ? skinned.sharedMesh : renderer.GetComponent<MeshFilter>().sharedMesh;
             var toSpace = space.worldToLocalMatrix * renderer.transform.localToWorldMatrix;
             var b = mesh.bounds; var result = new Bounds(toSpace.MultiplyPoint3x4(b.center), Vector3.zero);
             for (int i = 0; i < 8; i++)
                 result.Encapsulate(toSpace.MultiplyPoint3x4(b.center + Vector3.Scale(b.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1))));
             return result;
-        }
-
-        public static Bounds Bounds(GameObject root)
-        {
-            var renderers = root.GetComponentsInChildren<Renderer>();
-            var bounds = renderers[0].bounds;
-            foreach (var r in renderers.Skip(1)) bounds.Encapsulate(r.bounds);
-            return bounds;
-        }
-
-        static void Render(Camera camera, string path)
-        {
-            var target = RenderTexture.GetTemporary(512, 512, 24);
-            camera.targetTexture = target; camera.Render();
-            var previous = RenderTexture.active; RenderTexture.active = target;
-            var image = new Texture2D(512, 512, TextureFormat.RGB24, false); image.ReadPixels(new Rect(0, 0, 512, 512), 0, 0); image.Apply();
-            File.WriteAllBytes(path, image.EncodeToPNG());
-            RenderTexture.active = previous; camera.targetTexture = null; RenderTexture.ReleaseTemporary(target); Object.DestroyImmediate(image);
         }
     }
 }

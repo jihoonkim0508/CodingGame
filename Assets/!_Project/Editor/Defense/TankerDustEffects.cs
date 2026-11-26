@@ -9,14 +9,14 @@ namespace CodingGame.Defense.Editor
 {
     // The tanker's footfall dust (TankerDust), one 시안 per particle texture already in the project or from Unity Labs:
     // Build() makes a material and an effect prefab per option in Defense/Effects/TankerDust, Attach() puts TankerDust on
-    // Heavy.prefab with the chosen one (MonsterModels.Tanker calls it after refitting the model), Record() renders each option
+    // Heavy.prefab with the chosen one (MonsterModels.Apply calls it after refitting the model), Record() renders each option
     // walking into TestResults/Editor/tanker-dust (Python turns the frames into the GIFs in 시안/탱커 흙먼지).
     public static class TankerDustEffects
     {
         const string Folder = "Assets/!_Project/Defense/Effects/TankerDust/", Heavy = "Assets/!_Project/Defense/Prefabs/Heavy.prefab";
         const string Out = "TestResults/Editor/tanker-dust/";
         public const string Default = "TankerDust1_Kenney";
-        static readonly string[] Legs = { "Bone027", "Bone029", "Bone025", "Bone028" };
+        static readonly string[] Feet = { "Foot_L", "Foot_R" }; // the shield brute's sole bones (build_game.py)
 
         // name, texture, flipbook tiles, stretched streaks, size, speed, lifetime, particles per footfall, brightness, alpha (시안1 at 50%: 시안/탱커 흙먼지 농도)
         static readonly (string name, string texture, int tiles, bool streak, float size, float speed, float life, int perStep, float bright, float alpha)[] Options =
@@ -99,7 +99,7 @@ namespace CodingGame.Defense.Editor
             Debug.Log("[TankerDustEffects] built " + string.Join(", ", Options.Select(o => o.name)));
         }
 
-        // TankerDust on Heavy.prefab with its four leg bones; keeps the option already chosen, else Default.
+        // TankerDust on Heavy.prefab with its two foot bones; keeps the option already chosen, else Default.
         public static void Attach()
         {
             var root = PrefabUtility.LoadPrefabContents(Heavy);
@@ -127,15 +127,15 @@ namespace CodingGame.Defense.Editor
 
         static void Set(TankerDust dust, Transform heavy, string option)
         {
-            var spine = heavy.Find("Model/spine");
             var serialized = new SerializedObject(dust);
             var effect = serialized.FindProperty("effect");
             if (option != null || !effect.objectReferenceValue)
                 effect.objectReferenceValue = AssetDatabase.LoadAssetAtPath<ParticleSystem>(Folder + (option ?? Default) + ".prefab");
             var chosen = Options.FirstOrDefault(o => effect.objectReferenceValue && o.name == effect.objectReferenceValue.name);
             if (chosen.name != null) serialized.FindProperty("perStep").intValue = chosen.perStep;
-            var legs = serialized.FindProperty("legs"); legs.arraySize = Legs.Length;
-            for (int i = 0; i < Legs.Length; i++) legs.GetArrayElementAtIndex(i).objectReferenceValue = spine.Find(Legs[i]);
+            var bones = heavy.Find("Model").GetComponentsInChildren<Transform>();
+            var legs = serialized.FindProperty("legs"); legs.arraySize = Feet.Length;
+            for (int i = 0; i < Feet.Length; i++) legs.GetArrayElementAtIndex(i).objectReferenceValue = bones.First(b => b.name == Feet[i]);
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -178,7 +178,7 @@ namespace CodingGame.Defense.Editor
                         if (seed != 0) { copy.useAutoRandomSeed = false; copy.randomSeed = seed; }
                         var so = new SerializedObject(dust); so.FindProperty("effect").objectReferenceValue = copy; so.ApplyModifiedPropertiesWithoutUndo();
                     }
-                    var walk = AssetDatabase.LoadAssetAtPath<AnimationClip>(TankerWalk.Clip);
+                    var walk = model.GetComponent<Animator>().runtimeAnimatorController.animationClips[0];
                     // The skinned mesh does not deform in a preview scene's Camera.Render: its pose is baked into a plain mesh per frame.
                     var skin = model.GetComponentInChildren<SkinnedMeshRenderer>();
                     var posed = new GameObject("Posed", typeof(MeshFilter), typeof(MeshRenderer));
@@ -203,7 +203,7 @@ namespace CodingGame.Defense.Editor
 
                     heavy.rotation = Quaternion.LookRotation(Vector3.right);
                     ParticleSystem particles = null;
-                    const float speed = DefenseActorView.TankerWalkSpeed, start = -4;
+                    float speed = heavy.GetComponent<DefenseActorView>().WalkSpeed * heavy.lossyScale.z; const float start = -4;
                     for (int f = -30; f < 90; f++)
                     {
                         float time = f / 30f;
