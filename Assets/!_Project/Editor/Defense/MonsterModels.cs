@@ -27,10 +27,11 @@ namespace CodingGame.Defense.Editor
                 return LocalBounds(warrior, warrior.GetComponentInChildren<SkinnedMeshRenderer>()).size.y * warrior.localScale.y / 1.55f;
             }
         }
-        // Prefab, model, size against the draft (the user asked for the imp a quarter bigger).
+        // Prefab, model, size against the draft (the user asked for the imp a quarter bigger, and the shield brute at 80%:
+        // 시안/탱커 크기).
         static readonly (string prefab, string model, float size)[] Monsters =
         {
-            ("Enemy", "MonsterImp", 1.25f), ("Runner", "MonsterRaptor", 1), ("Heavy", "MonsterShieldBrute", 1),
+            ("Enemy", "MonsterImp", 1.25f), ("Runner", "MonsterRaptor", 1), ("Heavy", "MonsterShieldBrute", .8f),
         };
 
         // Each monster's colours, one per region of its palette texture, in build_game.py's REGIONS order. The drafts' colours
