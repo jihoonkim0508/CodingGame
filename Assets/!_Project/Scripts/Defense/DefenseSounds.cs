@@ -45,7 +45,7 @@ namespace CodingGame.Defense
             Tone("buff", () => Notes("buff", .06f, .14f, 660, 990));
             Tone("blast", () => Sweep("blast", .2f, 180, 60, noise: .8f, volume: .3f));
             Tone("leaked", () => Sweep("leaked", .25f, 170, 150, square: .8f, volume: .3f));
-            Tone("tank-destroyed", () => Sweep("tank-destroyed", .3f, 320, 90, square: .4f, volume: .3f));
+            Tone("robot-destroyed", () => Sweep("robot-destroyed", .3f, 320, 90, square: .4f, volume: .3f));
             Tone("place", () => Sweep("place", .05f, 700, 900, volume: .2f));
             Tone("deny", () => Notes("deny", .07f, .2f, 220, 180));
             Tone("clear", () => Notes("clear", .1f, .28f, 523.25f, 659.25f, 783.99f));

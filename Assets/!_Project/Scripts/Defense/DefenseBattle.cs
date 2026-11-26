@@ -63,10 +63,14 @@ namespace CodingGame.Defense
         [SerializeField] DefenseAttackPreview attackPreview;
         [SerializeField, Min(1)] int stage = 1;
         public int Stage => stage;
-        // The prototype is built up to Stage 3 (3-4): winning it ends the play-through with a notice (Stage 2 goes on to Stage 3).
-        public const int PrototypeLastStage = 3;
+        // The prototype is built up to Stage 4 (4-3, 팀 플레이): winning it ends the play-through with a notice.
+        public const int PrototypeLastStage = 4;
         public bool PrototypeEnded => Simulation != null && Simulation.Phase == BattlePhase.Victory && stage >= PrototypeLastStage;
         public bool FromStageMap => StageMap.StageProgress.SelectedStage > 0;
+        // The stage map has three islands: Stage 4 has none yet, so a Stage 3 won from the map goes on to it here.
+        // ponytail: when the map gets a fourth island, set MapStages to 4 and Stage 4 starts from the map like the others.
+        public const int MapStages = 3;
+        public bool ReturnsToMap => PrototypeEnded || FromStageMap && !(Simulation != null && Simulation.CanAdvanceStage && stage >= MapStages);
         public RobotDefinition RobotDefinition(int index) => robots[index];
         public IReadOnlyList<RobotDefinition> RobotDefinitions => robots;
         [Header("Authored HUD")]
@@ -83,6 +87,7 @@ namespace CodingGame.Defense
 
         readonly Dictionary<int, DefenseActorView> robotViews = new Dictionary<int, DefenseActorView>();
         DefenseSounds sounds;
+        DefenseBattleFx fx; // the battle's show: bursts, shakes, the road's packets, the rift, the look (2026-11-25)
         public void PlaySound(string kind) => sounds.Play(kind);
         readonly Dictionary<int, DefenseActorView> enemyViews = new Dictionary<int, DefenseActorView>();
         readonly List<Transform> dropViews = new List<Transform>();
@@ -119,7 +124,10 @@ namespace CodingGame.Defense
              tutorial && (tutorial.Focused("Battle.Upgrade") || tutorial.Focused("Battle.Recall")));
         bool Placing => palette >= 0 || moving != 0;
         // The battle's pace: the player's speed under the tutorial's hold, or the tutorial's own rush in its place.
-        float Pace => tutorial && tutorial.Rushing ? tutorial.BattlePace : BattleSpeed * (tutorial ? tutorial.BattlePace : 1f);
+        // The effects' hit-stop (a boss's fall) dips it for a moment.
+        float Pace => (tutorial && tutorial.Rushing ? tutorial.BattlePace : BattleSpeed * (tutorial ? tutorial.BattlePace : 1f)) * (fx ? fx.TimeScale : 1);
+        // The views' pace: still while paused, the battle's pace in a wave, normal outside one.
+        public float ViewPace => Simulation == null ? 1 : Simulation.Phase == BattlePhase.Paused ? 0 : Simulation.Phase == BattlePhase.Running ? Pace : 1;
         public string DefinitionName(int index) => robots[index].displayName;
         public RobotRole DefinitionRole(int index) => robots[index].stats.role;
         public string RoleName(RobotRole role) => robots.FirstOrDefault(r => r.stats.role == role)?.displayName ?? role.ToString();
@@ -146,6 +154,9 @@ namespace CodingGame.Defense
             ValidateReferences();
             // Body texts are saved in Pretendard Bold (Tools/Optimize/126); no font pass at load.
             sounds = gameObject.AddComponent<DefenseSounds>();
+            DefenseTeamBoardView.Attach(this);
+            fx = gameObject.AddComponent<DefenseBattleFx>(); fx.Setup(this, battleCamera);
+            selectionCamera.Gate = CameraInput;
             developerRoot.SetActive(false);
             developerHint.SetActive(false); // PR #19's header puts the coin stat in this corner; F1 still works in developer mode
             startButton.onClick.AddListener(RequestStartBattle);
@@ -185,6 +196,7 @@ namespace CodingGame.Defense
             // The area was sized for the workshop map: grow it over the active map's floor (stage 1's right column lay outside).
             foreach(var t in tiles){bounds.Encapsulate(new Vector3(t.Min.X,0,t.Min.Y));bounds.Encapsulate(new Vector3(t.Max.X,0,t.Max.Y));}
             if(map&&map.hasBase&&core)core.position=map.CellPosition(map.baseCell);
+            selectionCamera.SetArea(bounds); // the player's pan keeps the view over this ground
             return new BattleSetup {
                 PlayerFlow=true, Stage=selectedStage, BaseHealth=content.baseHealth, RobotLimit=content.robotLimit,
                 RulesConfig=JsonUtility.FromJson<DefenseBalanceRules>(JsonUtility.ToJson(content.rules)),
@@ -599,7 +611,7 @@ namespace CodingGame.Defense
             if (Simulation.Phase == BattlePhase.Reward) { ClaimRewards(); return; }
             if (Simulation.Phase == BattlePhase.Defeat) { if (CanRetryWave) RetryWave(); else Restart(); return; }
             if (!TutorialAllows("Battle.ContinueCampaign")) return;
-            if (FromStageMap || PrototypeEnded) { GameFlow.LoadScene(GameFlow.StageScene); return; }
+            if (ReturnsToMap) { GameFlow.LoadScene(GameFlow.StageScene); return; }
             if (Simulation.CanAdvanceStage && stageOneMap && stage == 1)
             {
                 // Stage 2 is on another map, so it starts as a new session with Stage 1's rewards (as from the stage map).
@@ -723,7 +735,7 @@ namespace CodingGame.Defense
         }
         // 2-1 and 2-3: the tutorial stands the lesson's robot by the road, far enough past the entrance (8) that the enemies walk
         // into its range and close enough to the road (2 to 2.8) that a warrior's range reaches them.
-        public void PlaceLessonShooter() => PlaceLessonRobot(RobotRole.Shooter);
+        public void PlaceLessonShooter() => PlaceLessonRobot(RobotRole.Ranged);
         // A robot of the role by the road unless one stands already (another one for a lesson that teaches the newest, 2-3);
         // a warrior comes with while True: slash() (2-3's code to compare, 2-8's for the small ones).
         public void PlaceLessonRobot(RobotRole role, bool another = false)
@@ -742,7 +754,7 @@ namespace CodingGame.Defense
                         if (sim.PlacementError(robots[index].stats, spot) != null) continue;
                         var bot = sim.Place(robots[index].stats, index, spot, out _);
                         SpawnRobotView(bot);
-                        if (role == RobotRole.Warrior)
+                        if (role == RobotRole.Melee)
                         {
                             var loop = new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.While); loop.Body.Add(new CodingGame.BlockCoding.CodeBlock(CodingGame.BlockCoding.BlockKind.Slash));
                             // Without the blocks in stock (GameData/Award.md gives none) the warrior stands without code.
@@ -960,7 +972,7 @@ namespace CodingGame.Defense
             SyncViews(elapsed);
             SyncTutorialTargets();
             hitEffects.Tick(Simulation.Phase == BattlePhase.Paused ? 0 :
-                Simulation.Phase == BattlePhase.Running ? elapsed : UnityEngine.Time.deltaTime * BattleSpeed);
+                Simulation.Phase == BattlePhase.Running ? elapsed : UnityEngine.Time.deltaTime * BattleSpeed * fx.EffectScale);
             foreach (var evt in Simulation.Events)
             {
                 robotViews.TryGetValue(evt.Source, out var source);
@@ -968,8 +980,11 @@ namespace CodingGame.Defense
                 EditorObserve("Battle",Simulation,evt);
 #endif
                 hitEffects.Show(evt, actorsRoot, Vector3.zero, battleCamera.transform.rotation, source, effectRing);
+                fx.OnEvent(evt);
                 sounds.Play(evt.Kind);
                 playerHUD.ShowCombatText(evt);
+                if (evt.Kind == "reflect" && robotViews.TryGetValue(evt.Target, out var hitBack))
+                { hitBack.Flash(); if (enemyViews.TryGetValue(evt.Source, out var mirror)) mirror.HitBack(hitBack.transform.position); }
                 if (evt.Kind == "drop") dropViews.Add(Instantiate(blockDropPrefab, DefenseViews.World(evt.Position, .35f), Quaternion.Euler(0, 45, 0), actorsRoot));
             }
             Simulation.Events.Clear();
@@ -985,6 +1000,20 @@ namespace CodingGame.Defense
             else if (!Placing) rangeRing.Hide();
             if (current == null) selected = 0;
             RefreshHUD();
+        }
+        // The player's camera (DefenseSelectionCamera): the keys pan unless something takes the keyboard (the code panel, a
+        // text field, a menu, the start check, a lesson's lock); the wheel zooms unless the pointer is on UI; the screen's edges
+        // pan unless the pointer is on UI that takes it (buttons, the code area, scroll views).
+        (bool keys, bool wheel, bool edge) CameraInput()
+        {
+            if (Simulation == null || HelpOpen || DeveloperMode || inventoryUI.IsOpen || playerHUD.MenuOpen || playerHUD.ConfirmOpen ||
+                TutorialBlocksInput || tutorial && tutorial.DialogueInputCaptured) return default;
+            if (codeEditor.IsOpen) return default; // the code panel has its own wheel zoom and pan, and WASD types there
+            var focus = eventSystem.currentSelectedGameObject;
+            bool typing = focus && focus.TryGetComponent<TMP_InputField>(out var field) && field.isFocused;
+            var mouse = Mouse.current; var at = mouse != null ? mouse.position.ReadValue() : Vector2.zero;
+            bool onDev = devWindow && devWindow.HasPointer(at);
+            return (!typing, !onDev && !eventSystem.IsPointerOverGameObject(), !onDev && !DefenseSelectionCamera.PointerOnInteractiveUI(at));
         }
         void CancelPlacement()
         {
@@ -1027,7 +1056,7 @@ namespace CodingGame.Defense
         public const float RobotHeight = 2.7f;
         const float RobotWidth = 2f, RobotClickHeight = RobotHeight;
         // The route's points with the last one pulled back one cell: the walk ends on the core, the painted road a cell before.
-        static Point[] RoadPoints(Route path)
+        internal static Point[] RoadPoints(Route path)
         {
             var points = path.Points.ToArray();
             if (points.Length < 2) return points;
@@ -1102,8 +1131,7 @@ namespace CodingGame.Defense
         void SyncViews(float elapsed)
         {
             // Animations follow the battle: still while paused (or held by the tutorial), faster at 2x/3x, normal outside a wave.
-            float pace = Simulation.Phase == BattlePhase.Paused ? 0 : Simulation.Phase == BattlePhase.Running
-                ? Pace : 1;
+            float pace = ViewPace;
             if (coreGlitch) coreGlitch.Show(Simulation.BaseHealth, Simulation.Phase == BattlePhase.Defeat, pace);
             // Every self-playing particle under the actors keeps the pace too (hit effects are stepped by hitEffects.Tick and
             // stay paused between steps, so they are left alone).
@@ -1121,7 +1149,7 @@ namespace CodingGame.Defense
             foreach (var id in goneIds) { DefenseViews.Discard(robotViews[id]); robotViews.Remove(id); }
             liveIds.Clear(); foreach (var e in Simulation.Enemies) liveIds.Add(e.Id);
             goneIds.Clear(); foreach (var id in enemyViews.Keys) if (!liveIds.Contains(id)) goneIds.Add(id);
-            foreach (var id in goneIds) { DefenseViews.Discard(enemyViews[id]); enemyViews.Remove(id); }
+            foreach (var id in goneIds) { enemyViews[id].Die(); DefenseViews.Discard(enemyViews[id]); enemyViews.Remove(id); }
             foreach (var bot in Simulation.Robots)
             {
                 // A robot placed straight into the simulation (dev tools, tests) has no view; skip it instead of throwing every frame.
@@ -1134,7 +1162,8 @@ namespace CodingGame.Defense
             {
                 if (!enemyViews.TryGetValue(enemy.Id, out var view))
                 {
-                    view = Instantiate(enemies[enemy.DefinitionIndex].prefab, DefenseViews.World(enemy.Position), Quaternion.identity, actorsRoot);
+                    var definition = enemies[enemy.DefinitionIndex];
+                    view = Instantiate(DefenseSimulation.Rides(enemy) && definition.nodePrefab ? definition.nodePrefab : definition.prefab, DefenseViews.World(enemy.Position), Quaternion.identity, actorsRoot);
                     if (enemy.Boss)
                     {
                         view.gameObject.AddComponent<DefenseBossAura>();
@@ -1152,7 +1181,7 @@ namespace CodingGame.Defense
                 }
                 view.SyncEnemy(enemy, Simulation.Time, DefenseViews.World(enemy.Position), battleCamera.transform.rotation);
                 view.TickVisual(elapsed); view.SetPace(pace);
-                if (healthBars) healthBars.Show(enemy.Id, battleCamera, view.HealthAnchor, view.HealthWidth, enemy.Health, enemy.Spec.health);
+                if (healthBars && view.ShowsHealth) healthBars.Show(enemy.Id, battleCamera, view.HealthAnchor, view.HealthWidth, enemy.Health, enemy.Spec.health);
             }
             if (healthBars) healthBars.Flush();
         }
@@ -1161,7 +1190,7 @@ namespace CodingGame.Defense
             switch (Simulation.Compatibility(bot, bot.Action))
             {
                 case ActionCompatibility.Native: return "전문 행동 · 정상 실행";
-                case ActionCompatibility.Reduced: return !Rules.NeedsPermission(bot.Action) ? "비전문 행동 · 효율 " + Simulation.Setup.RulesConfig.reducedStrength.ToString("0%") : "승인된 비전문 행동 · 낮은 효율";
+                case ActionCompatibility.Reduced: return "다른 계열 기술 · " + DefenseRobotStatsCard.ClassNote(bot.Spec.role, Simulation.Setup.RulesConfig);
                 case ActionCompatibility.Ineffective: return "실행 무효 · 이 로봇에서는 " + ActionName(bot.Action) + "이 동작하지 않습니다.";
                 default: return "호환 미정 · 효과를 실행하지 않습니다. 기획 확정 후 데이터에 등록하세요.";
             }
@@ -1190,13 +1219,13 @@ namespace CodingGame.Defense
             removeButton.interactable = bot != null && Simulation.CanPrepare;
             if (bot != null)
             {
-                string health = bot.Health.HasValue ? $"HP {bot.Health:0}/{bot.MaxHealth:0} · 저지 {Simulation.Enemies.Count(e => e.BlockedBy == bot.Id)}/{bot.Spec.blockCapacity}" : "체력 없음 · 적 피해 대상 제외";
+                string health = $"HP {bot.Health:0}/{bot.MaxHealth:0}";
                 string control = bot.Program == null || bot.Program.IsEmpty ? "빈 로봇 · 코드 필요" : bot.Program.Fault == null ? "코드: " + bot.Program.Name : "코드 중지: " + bot.Program.Fault;
                 if (bot.Program != null && !bot.Program.IsEmpty) control += bot.Program.Running ? " · 실행 중" : $" · 실행 {bot.Program.CompletedRuns}번 끝";
                 string attacks = $"공격 {bot.AttacksThisWave}회";
                 selectionText.text = $"{robots[bot.DefinitionIndex].displayName}  #{bot.Id}\n\n{health}\n사거리 {bot.Range:0.00}    피해 {Simulation.ActionDamage(bot, bot.Action):0.##}\n공격 간격 {Simulation.ActionInterval(bot, bot.Action):0.00}s\n\n{ActionName(bot.Action)}\n{CompatibilityText(bot)}\n{control}\n실행 {bot.Executions}회 · {attacks} · 버프 {bot.Buffs.Count}개";
             }
-            else if (palette >= 0) selectionText.text = robots[palette].displayName + "\n\n자유 배치 중\n초록: 설치 가능\n빨강: 설치 불가\n\n탱커: 경로 안\n일반 로봇: 경로 밖\n\n클릭 설치 / 우클릭 취소";
+            else if (palette >= 0) selectionText.text = robots[palette].displayName + "\n\n자유 배치 중\n초록: 설치 가능\n빨강: 설치 불가\n\n로봇: 경로 밖\n\n클릭 설치 / 우클릭 취소";
             else selectionText.text = "로봇 클릭: 코드 편집\nTAB 인벤토리\nSPACE 시작 / 정지";
             resultPanel.SetActive(ended);
             if (ended)

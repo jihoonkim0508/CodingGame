@@ -95,7 +95,7 @@ public static class TutorialAuditCheck
 
         // 1-1 as the player has it at C05: the first warrior on its spot, its editor open and empty, the tutorial limiting input.
         battle.EditorStartSession(1, 1, false, new DefenseTestOptions { tutorial = true });
-        int warrior = Enumerable.Range(0, battle.RobotDefinitions.Count).First(i => battle.DefinitionRole(i) == RobotRole.Warrior);
+        int warrior = Enumerable.Range(0, battle.RobotDefinitions.Count).First(i => battle.DefinitionRole(i) == RobotRole.Melee);
         Require(battle.PlaceRobot(warrior, DefenseBattle.FirstWarriorPosition), "the warrior could not stand on 1-1's spot: " + battle.StatusMessage);
         battle.SelectRobot(battle.Simulation.Robots[0].Id); battle.DevelopSelected();
         Require(editor.IsOpen, "the code editor did not open");
@@ -162,7 +162,7 @@ public static class TutorialAuditCheck
             string answer = sequence.steps.Select(s => s.hintCode).Concat(sequence.steps.Where(s => s.completionSignal == TutorialSignals.ProgramMatches).Select(s => s.expectedCode))
                 .Where(c => !string.IsNullOrWhiteSpace(c)).OrderByDescending(c => c.Length).FirstOrDefault() ?? "";
             var id = sequence.sequenceId.Split('-');
-            Open(battle, int.Parse(id[0]), int.Parse(id[1]), answer.Contains("slash(") ? RobotRole.Warrior : RobotRole.Shooter, false);
+            Open(battle, int.Parse(id[0]), int.Parse(id[1]), answer.Contains("slash(") ? RobotRole.Melee : RobotRole.Ranged, false);
             yield return null;
             foreach (var step in demos)
             {
@@ -196,9 +196,9 @@ public static class TutorialAuditCheck
         var runs = new List<string>();
         foreach (bool holding in new[] { true, false })
         {
-            Open(battle, 2, 8, RobotRole.Shooter, true);
+            Open(battle, 2, 8, RobotRole.Ranged, true);
             var sim = battle.Simulation; var teacher = sim.Robots[0];
-            int second = Place(battle, RobotRole.Shooter);
+            int second = Place(battle, RobotRole.Ranged);
             sim.ApplyProgram(second, "second", holding ? TutorialAnswers.Parse(Code27).ToArray() : new CodeBlock[0]);
             battle.SelectRobot(teacher.Id); battle.DevelopSelected();
             yield return null;

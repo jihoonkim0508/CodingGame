@@ -1,0 +1,7 @@
+Monster effects (2-4 / 3-4 monsters, SupportMonsterArt.cs)
+
+- Particle textures: Kenney Particle Pack 1.1 (circle_03, light_01, spark_01, star_04, smoke_04), already in Assets/ThirdParty/Kenney/Particles.
+  https://kenney.nl/assets/particle-pack - CC0 1.0 (public domain), see its License.txt.
+- Flash rays texture: from the project's existing HIE_Hit_04_FlashRays_01 material (Defense/Effects).
+- Plus.png, MonsterRim.shader, the materials and every monster model (Models/Monsters/Support): made for this project
+  (models built in Blender by Art~/monsters/build_new_monsters.py). No new downloads.

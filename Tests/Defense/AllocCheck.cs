@@ -32,7 +32,7 @@ static class AllocCheck
         for (int i = 0; i < 4; i++)
         {
             bool melee = i % 2 == 0;
-            var spec = new RobotSpec { role = melee ? RobotRole.Warrior : RobotRole.Shooter, range = melee ? 3 : 7, damage = 4, interval = .5f, projectileSpeed = 12 };
+            var spec = new RobotSpec { role = melee ? RobotRole.Melee : RobotRole.Ranged, range = melee ? 3 : 7, damage = 4, interval = .5f, projectileSpeed = 12 };
             var bot = sim.Place(spec, (int)spec.role, new Vector2(-9 + i * 5, 2.2f), out _);
             if (withCode) sim.ApplyProgram(bot.Id, "bot" + i, Code(melee)); else bot.AutoExecute = true;
         }

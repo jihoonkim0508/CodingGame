@@ -141,7 +141,7 @@ namespace CodingGame.Defense
             // teach the next enemy and the enemy's kind.
             int wave = live.WaveIndex + 1; bool stageTwo = live.Setup.Stage == 2;
             bool breakLesson = stageTwo && (wave == 6 || wave == 7);
-            bool single = breakLesson || selected.Spec.role == RobotRole.Shooter && !(stageTwo && (wave == 5 || wave == 8));
+            bool single = breakLesson || selected.Spec.role == RobotRole.Ranged && !(stageTwo && (wave == 5 || wave == 8));
             // 2-6's is the wave's fast one, which outlives the range (what break is for); a normal one fell inside it.
             var kind = stageTwo && wave == 6 ? EnemyType.Fast : EnemyType.Normal;
             IReadOnlyList<SpawnGroup> groups = live.CurrentWave;
@@ -153,7 +153,7 @@ namespace CodingGame.Defense
             if (breakLesson) { demo[0].Count = 2; demo[0].Interval = Math.Max(1, 2 + (float)Math.Sqrt(Math.Max(0, selected.Range * selected.Range - 1.8f * 1.8f)) - 1) / Math.Max(.1f, demo[0].Enemy.speed); }
             float approachStart = Math.Max(7, selected.Range + 1);
             // 2-3's warrior: the enemy timed so `while True: slash()` lets it through and the if fells it (see TimeMeleeDemo).
-            if (approach && selected.Spec.role == RobotRole.Warrior)
+            if (approach && selected.Spec.role == RobotRole.Melee)
                 DefenseSimulation.TimeMeleeDemo(demo[0], selected.Range, 1.8f, approachStart, live.ActionInterval(selected, RobotAction.Slash),
                     live.ActionInterval(selected, RobotAction.Slash) * (float)selected.Spec.strikeShare, live.ActionDamage(selected, RobotAction.Slash));
             var setup = new BattleSetup {
@@ -166,12 +166,15 @@ namespace CodingGame.Defense
             };
             CopyRules(setup);
             simulation = new DefenseSimulation(setup);
-            var point = new Point(0, selected.Spec.role == RobotRole.Tank ? 0 : 1.8f);
+            var point = new Point(0, 1.8f);
             var bot = simulation.Place(selected.Spec.Copy(), selected.DefinitionIndex, point, out var error);
             if (bot == null) throw new InvalidOperationException(error);
             bot.Level = selected.Level;
-            bot.Health = selected.Health; // a tank hurt in an earlier wave starts hurt here too
-            if (source != null) simulation.ApplyProgram(bot.Id, source.Name, source.CopyBlocks());
+            bot.Health = selected.Health; // a robot hurt in an earlier wave starts hurt here too
+            // The team board's names too (jobs = []): a robot's code that uses them compiles and runs against the same lines.
+            // A robot whose code no longer compiles (a board name it used is gone) stands still in the preview.
+            try { simulation.ApplyBoard(live.Board.Blocks); if (source != null) simulation.ApplyProgram(bot.Id, source.Name, source.CopyBlocks()); }
+            catch (FormatException) { }
             AddView(bot.Id, battle.RobotDefinition(bot.DefinitionIndex).prefab);
             views[bot.Id].Face(previewCamera.transform.position);
             rangeRing.Show(World(bot.Position), bot.Range, battle.RobotDefinition(bot.DefinitionIndex).color);
@@ -396,13 +399,6 @@ namespace CodingGame.Defense
                 case ActionResult.Undecided: state = "호환 미정 명령"; break;
                 default: state = $"코드 시연 · {bot.Executions}회"; break;
             }
-            if (bot.Spec.role == RobotRole.Tank)
-            {
-                int blocked = simulation.Enemies.Count(e => e.Active && e.BlockedBy == bot.Id);
-                string blocking = !bot.BlockingEnabled ? "저지 비활성" :
-                    $"저지 {blocked}/{bot.Spec.blockCapacity}" + (blocked >= bot.Spec.blockCapacity ? " · 한도 도달" : "");
-                state += "  |  " + blocking;
-            }
             status.text = state;
         }
         void RefreshStats()
@@ -412,11 +408,11 @@ namespace CodingGame.Defense
             float nextMultiplier = (float)Math.Pow(selected.UpgradeFactor, selected.Level);
             // Dim names, bright values 15% larger: the same reading pattern as the battle's top bar (not <b>: the text is already Pretendard Bold).
             stats.text = $"<size=115%>{battle.RobotName(selected.Id)}  Lv.{selected.Level}</size>" + (selected.IsMaxLevel ? "" : $" <color={UITheme.GoodHex}>→ Lv.{selected.Level + 1}</color>") +
-                (s.role == RobotRole.Buffer ? "" : $"\n{Stat("공격력")}{UpgradeValue(selected.Damage,selected.Damage/selected.LevelMultiplier*nextMultiplier)}") +
+                (s.role == RobotRole.Support ? "" : $"\n{Stat("공격력")}{UpgradeValue(selected.Damage,selected.Damage/selected.LevelMultiplier*nextMultiplier)}") +
                 $"\n{Stat("사거리")}<size=115%>{selected.Range:0.#}</size>\n{Stat("공격 간격")}<size=115%>{selected.Interval:0.##}초</size>\n" +
-                (selected.Health.HasValue ? (selected.IsMaxLevel ? $"{Stat("체력")}<size=115%>{selected.Health:0}/{selected.MaxHealth:0}</size>" : $"{Stat("최대 체력")}{UpgradeValue(selected.MaxHealth,s.health*nextMultiplier)}") + $"\n{Stat("저지")}<size=115%>{s.blockCapacity}마리</size>" : $"{Stat("체력")}공격받지 않음") +
-                (s.role == RobotRole.Bomber ? $"\n{Stat("폭발 반경")}<size=115%>{s.effectRadius:0.#}</size>" : s.role == RobotRole.Utility ? $"\n{Stat("감속")}<size=115%>{(1-s.slowMultiplier)*100:0}%</size>" :
-                s.role == RobotRole.Buffer ? $"\n{Stat("버프 피해")}{UpgradeValue(1+(s.buffDamage-1)*selected.LevelMultiplier,1+(s.buffDamage-1)*nextMultiplier)}배" +
+                (selected.IsMaxLevel ? $"{Stat("체력")}<size=115%>{selected.Health:0}/{selected.MaxHealth:0}</size>" : $"{Stat("최대 체력")}{UpgradeValue(selected.MaxHealth,s.health*nextMultiplier)}") +
+                $"\n{Stat("계열")}{DefenseRobotStatsCard.ClassNote(s.role, battle.Simulation.Setup.RulesConfig)}" +
+                (s.role == RobotRole.Support ? $"\n{Stat("버프 피해")}{UpgradeValue(1+(s.buffDamage-1)*selected.LevelMultiplier,1+(s.buffDamage-1)*nextMultiplier)}배" +
                     $"\n{Stat("버프 사거리")}{UpgradeValue(1+(s.buffRange-1)*selected.LevelMultiplier,1+(s.buffRange-1)*nextMultiplier)}배" +
                     $"\n{Stat("버프 간격")}{UpgradeValue(Math.Max(.01f,1-(1-s.buffInterval)*selected.LevelMultiplier),Math.Max(.01f,1-(1-s.buffInterval)*nextMultiplier))}배" : "");
             coinLabel.text = $"<color={UITheme.MutedHex}>코인</color>  <size=115%><color={UITheme.GoldHex}>{battle.Simulation.Coins:N0}</color></size>";

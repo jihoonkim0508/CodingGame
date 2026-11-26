@@ -190,6 +190,9 @@ namespace CodingGame.Defense
                 case "program":
                     try { sim.ApplyProgram(input.id, input.name, Unflatten(input.code)); return true; }
                     catch (FormatException) { return false; }
+                case "board":
+                    try { sim.ApplyBoard(Unflatten(input.code)); return true; }
+                    catch (FormatException) { return false; }
                 case "draft": return true; // block reservations are gone (blocks are unlimited); older logs still hold them
                 case "invoke": return sim.Invoke(input.id);
                 case "start": sim.Start(); return sim.Phase == BattlePhase.Running;

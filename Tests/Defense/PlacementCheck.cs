@@ -20,13 +20,11 @@ static class PlacementCheck
     public static void Run()
     {
         var sim = Make();
-        var warrior = Spec(RobotRole.Warrior);
+        var warrior = Spec(RobotRole.Melee);
         // Road: half-width 1, radius .75. Before, the body had to clear the road by .25 (1 + .75 + .25 = 2.0).
         Assert(sim.PlacementError(warrior, new Vector2(-5, 1.8f)) == null, "a warrior 1.8 from the road's middle now fits (was 2.0)");
-        Assert(sim.PlacementError(warrior, new Vector2(-5, 1.3f)) == "적 경로에는 탱커만 설치할 수 있습니다.", "a warrior over the road is still turned away");
-        // A tank may hang a little over the road's edge (before: its whole body inside the half-width).
-        Assert(sim.PlacementError(Spec(RobotRole.Tank, .5f), new Vector2(-5, .6f)) == null, "a tank whose body hangs a bit over the road's edge fits");
-        Assert(sim.PlacementError(Spec(RobotRole.Tank, .5f), new Vector2(-5, 1.2f)) == "탱커는 몸체가 경로 안에 들어가도록 설치하세요.", "a tank beside the road is still turned away");
+        Assert(sim.PlacementError(warrior, new Vector2(-5, 1.3f)) == "적 경로에는 로봇을 설치할 수 없습니다.", "a warrior over the road is still turned away");
+        Assert(sim.PlacementError(Spec(RobotRole.Ranged, .5f), new Vector2(-5, .6f)) != null, "no robot stands on the road (the tank that did is gone)");
         // Neighbours: two radii .75 needed 1.62 apart; now 1.35 is enough, the same spot is not.
         var first = sim.Place(warrior, 1, new Vector2(-5, 4), out var error);
         Assert(first != null, "first warrior placed: " + error);

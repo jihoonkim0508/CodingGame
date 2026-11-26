@@ -380,7 +380,7 @@ namespace CodingGame.Defense.Editor
             // place clear of the row to right-click (2-8 F01, the longer code, put the line over it).
             L("2-6.F02", Signal(TutorialSignals.CodeCopied, new[] { Drop }, With(s => { s.Pointer = "Editor.Code.Head.1"; s.Preview = true; }, Focus("Editor.Code.Head.1")))),
             L("2-6.F02a", CloseClick),
-            L("2-6.F03", Click(TutorialKeys.RobotButton((int)RobotRole.Shooter), s => s.Dim = true)),
+            L("2-6.F03", Click(TutorialKeys.RobotButton((int)RobotRole.Ranged), s => s.Dim = true)),
             // Beside the road, so no road lit (play test 2026-11-20: the lit road drew the click onto it, where only a tank may
             // stand) and no dim: the whole map shows, and the placement ring greys over the road.
             L("2-6.F04", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, s => s.Undimmed = true)),
@@ -467,7 +467,7 @@ namespace CodingGame.Defense.Editor
         // hint holds the loop with block(enemy)), then the battle.
         static List<S> ThreeOne() => new List<S> {
             L("3-1.A01", s => s.Cards = true), L("3-1.A02"), L("3-1.A03"),
-            L("3-1.B01", Click(TutorialKeys.RobotButton((int)RobotRole.Tank), s => s.Dim = true)),
+            L("3-1.B01", Click(TutorialKeys.RobotButton((int)RobotRole.Melee), s => s.Dim = true)),
             L("3-1.B02", Signal(TutorialSignals.RobotPlaced, new[] { TutorialKeys.Deployment }, With(s => s.Dim = true, Focus(Route)))),
             L("3-1.B03"), L("3-1.B04"),
             // The praise only for a wave held without a leak; otherwise E01a (shown on a leak) says what to change.
@@ -570,20 +570,24 @@ namespace CodingGame.Defense.Editor
             Topic(1, 3, "반복문", "반복문으로 slash()를 여러 번 실행해 적 8마리 막기");
             Topic(1, 4, "반복 자유 플레이", "새 전사와 반복문으로 몰려오는 적 막기");
             Topic(1, 5, "반복 보스 실습", "반복문으로 작은 적을 모두 막고 보스 쓰러뜨리기");
-            Topic(2, 1, "변수: 찾은 적을 상자에 담기(원거리)", "찾은 적을 변수에 담아 원거리형으로 공격하기");
-            Topic(2, 2, "변수 자유 플레이", "2-1에서 만든 코드로 원거리형과 전사형이 함께 막기 · 빠른 적 첫 등장");
-            Topic(2, 3, "조건문: 벨 때 고르기(전사형)", "적이 공격 범위에 들어왔을 때만 베는 조건문으로 막기");
-            Topic(2, 4, "조건 자유 플레이", "빠른 적이 먼저 와요 · 조건문 전사형과 원거리형이 함께 막기");
+            Topic(2, 1, "변수: 찾은 적을 상자에 담기(원거리)", "찾은 적을 변수에 담아 원거리 로봇으로 공격하기");
+            Topic(2, 2, "변수 자유 플레이", "2-1에서 만든 코드로 원거리 로봇과 근접 로봇이 함께 막기 · 빠른 적 첫 등장");
+            Topic(2, 3, "조건문: 벨 때 고르기(근접 로봇)", "적이 공격 범위에 들어왔을 때만 베는 조건문으로 막기");
+            Topic(2, 4, "조건 자유 플레이", "빠른 적이 먼저 와요 · 조건문 근접 로봇과 원거리 로봇이 함께 막기");
             Topic(2, 5, "is_dead(): 한 적을 끝까지", "쓰러진 적이면 새로 찾는 is_dead()로 한 적씩 끝내기");
-            Topic(2, 6, "break: 사거리를 벗어나면 놓아주기", "빠른 적 등장 · 사거리 밖으로 나간 적은 break로 놓아주기 · 새 원거리형엔 코드 복사");
-            Topic(2, 7, "자유 실습: 쓰러지면 break", "원거리형 안쪽 반복 맨 위에 if enemy.is_dead(): break 넣기");
-            Topic(2, 8, "continue와 enemy.type", "단단한 적 등장 · 원거리형은 continue로 단단한 적만, 작은 적은 전사형이");
+            Topic(2, 6, "break: 사거리를 벗어나면 놓아주기", "빠른 적 등장 · 사거리 밖으로 나간 적은 break로 놓아주기 · 새 원거리 로봇엔 코드 복사");
+            Topic(2, 7, "자유 실습: 쓰러지면 break", "원거리 로봇 안쪽 반복 맨 위에 if enemy.is_dead(): break 넣기");
+            Topic(2, 8, "continue와 enemy.type", "단단한 적 등장 · 원거리 로봇은 continue로 단단한 적만, 작은 적은 근접 로봇이");
             Topic(2, 9, "자유 종합", "모든 종류의 적 · is_dead(), break, continue로 로봇마다 맡을 적 나누기");
             Topic(2, 10, "보스", "보스 등장 · 작은 적을 모두 막고 보스를 쓰러뜨리기");
-            Topic(3, 1, "탱커형 소개", "탱커형으로 길을 막고 다른 로봇으로 공격하기");
-            Topic(3, 2, "자유 플레이", "적이 두 번에 나눠 와요 · 탱커형과 함께 끝까지 막기");
-            Topic(3, 3, "자유 플레이", "탱커병 뒤로 적이 줄지어 와요 · 길을 막고 한꺼번에 공격하기");
+            Topic(3, 1, "block() 소개", "근접 로봇의 block()으로 적을 멈추고 다른 로봇으로 공격하기");
+            Topic(3, 2, "자유 플레이", "적이 두 번에 나눠 와요 · 끝까지 막기");
+            Topic(3, 3, "반사병: continue로 건너뛰기", "반사병 등장 · e.reflecting이면 continue로 건너뛰고 다른 적을 쏘기");
             Topic(3, 4, "보스", "마지막 보스 · 작은 적을 모두 막고 보스를 쓰러뜨리기");
+            // Stage 4 (팀 플레이): the team board's shared names, each robot keeping its own code.
+            Topic(4, 1, "팀 보드: 함께 쓰는 jobs 큐", "팀 보드에 jobs = [] · 지원 로봇이 힐러를 jobs.append(e), 원거리 로봇이 jobs.pop(0)으로 꺼내 처치");
+            Topic(4, 2, "사전: 우선순위 표", "팀 보드에 priority = {Enemy.Healer: 0, ...} · priority[e.type]이 가장 작은 적부터 쏘기");
+            Topic(4, 3, "팀 종합: weak_point()와 get_robots()", "e.weak_point()로 지네·트리의 약점을, get_robots()와 buff(r)로 다친 로봇을 돌보기");
             void Stock(SerializedProperty list, string field, IList<(int value, int count)> items)
             {
                 list.arraySize = items.Count;
@@ -625,10 +629,20 @@ namespace CodingGame.Defense.Editor
             // Balance.md: a boss comes once every minion is down (its delay unused) and takes 12 core health on reaching it; the
             // others the enemy's own. Roads stay as they were (1-5's minions walk the second one).
             var stages = so.FindProperty("stages");
-            EnemyDefinition Data(string name) => AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"Assets/!_Project/Defense/Data/{name}.asset") ??
-                throw new InvalidOperationException(name + " enemy asset not found");
+            var enemyList = so.FindProperty("enemies");
+            EnemyDefinition Data(string name)
+            {
+                var enemy = AssetDatabase.LoadAssetAtPath<EnemyDefinition>($"Assets/!_Project/Defense/Data/{name}.asset") ??
+                    throw new InvalidOperationException(name + " enemy asset not found");
+                // A kind the campaign did not have yet (Healer, Shielder) joins its enemy list.
+                if (!Enumerable.Range(0, enemyList.arraySize).Any(i => enemyList.GetArrayElementAtIndex(i).objectReferenceValue == enemy))
+                { enemyList.arraySize++; enemyList.GetArrayElementAtIndex(enemyList.arraySize - 1).objectReferenceValue = enemy; }
+                return enemy;
+            }
             foreach (var stageGroups in data.Groups.GroupBy(g => g.Stage))
             {
+                // A stage the tables add (4) starts as a copy of the last one (its roads), its waves rewritten below.
+                if (stageGroups.Key == stages.arraySize + 1) stages.arraySize++;
                 if (stageGroups.Key > stages.arraySize) throw new InvalidOperationException($"캠페인에 {stageGroups.Key}스테이지가 없습니다.");
                 var waveList = stages.GetArrayElementAtIndex(stageGroups.Key - 1).FindPropertyRelative("waves");
                 waveList.arraySize = stageGroups.Max(g => g.Wave);

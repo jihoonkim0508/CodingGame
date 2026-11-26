@@ -28,11 +28,11 @@ static class DebriefCheck
     public static void Run()
     {
         var sim = Sim(10, 3);
-        var worker = Bot(sim, RobotRole.Warrior, -8, 2, Forever(Slash()));
-        var far = Bot(sim, RobotRole.Warrior, 8, 7, Slash());
-        var empty = Bot(sim, RobotRole.Shooter, -6, -2);
+        var worker = Bot(sim, RobotRole.Melee, -8, 2, Forever(Slash()));
+        var far = Bot(sim, RobotRole.Melee, 8, 7, Slash());
+        var empty = Bot(sim, RobotRole.Ranged, -6, -2);
         var never = new CodeBlock(BlockKind.If, "0", new CodeBlock(BlockKind.False)); never.Body.Add(Slash());
-        var stuck = Bot(sim, RobotRole.Warrior, -9, -2, never);
+        var stuck = Bot(sim, RobotRole.Melee, -9, -2, never);
         RunToEnd(sim);
         Assert(sim.Phase == BattlePhase.Victory && sim.WaveLeaks == 0, "debrief wave cleared");
         Assert(worker.KillsThisWave == 3 && Math.Abs(worker.DamageThisWave - 30) < .001f && worker.ActionsThisWave >= 2, "damage counts what the enemies lost, kills credit the robot");
@@ -52,19 +52,19 @@ static class DebriefCheck
             DefenseDebrief.ResultTag(sim, worker, "전사형 1").Contains("1971C2"), "result tags name the robot, yellow when it has advice");
 
         var tough = Sim(1000, 1);
-        var tired = Bot(tough, RobotRole.Warrior, -8, 2, Slash());
+        var tired = Bot(tough, RobotRole.Melee, -8, 2, Slash());
         RunToEnd(tough);
         Assert(tough.WaveLeaks == 1 && !tired.Program.Running && tired.Program.CompletedRuns == 1, "one call, one swing: the tough enemy walks past the ended function");
         Assert(DefenseDebrief.Diagnose(tough, tired) == DefenseDebrief.Issue.OutOfRuns &&
             DefenseDebrief.Advice(tough, tired, DefenseDebrief.Issue.OutOfRuns).Contains("'실행'"), "an ended function's advice is Play or a loop");
 
         var weak = Sim(.4f, 1);
-        var offRole = Bot(weak, RobotRole.Shooter, -8, 2, Slash());
+        var offRole = Bot(weak, RobotRole.Support, -8, 2, Slash());
         RunToEnd(weak);
-        Assert(weak.WaveLeaks == 0 && DefenseDebrief.Diagnose(weak, offRole) == DefenseDebrief.Issue.Reduced, "another role's command is flagged");
-        Assert(DefenseDebrief.Report(weak, bot => "R").Contains("10%"), "a cleared wave still leads with the reduced-strength advice");
+        Assert(weak.WaveLeaks == 0 && DefenseDebrief.Diagnose(weak, offRole) == DefenseDebrief.Issue.Reduced, "the other class's action is flagged");
+        Assert(DefenseDebrief.Report(weak, bot => "R").Contains("25%"), "a cleared wave still leads with the reduced-strength advice");
         var clean = Sim(.4f, 1);
-        Bot(clean, RobotRole.Warrior, -8, 2, Slash());
+        Bot(clean, RobotRole.Melee, -8, 2, Slash());
         RunToEnd(clean);
         Assert(DefenseDebrief.Report(clean, bot => "R").Contains("완벽 방어!</b></color> MVP R"), "clean wave without issues praises the MVP");
         CheckLiveStatus();
@@ -89,9 +89,9 @@ static class DebriefCheck
     {
         string Tag(DefenseSimulation s, RobotState bot) => DefenseDebrief.LiveStatus(s, bot) ?? "";
         var live = Sim(1000, 1);
-        var runner = Bot(live, RobotRole.Warrior, -8, 2, Slash());
-        var sandbox = Bot(live, RobotRole.Shooter, -6, -2);
-        var broken = Bot(live, RobotRole.Shooter, -4, -2, new CodeBlock(BlockKind.Wait, "0", new CodeBlock(BlockKind.Number, "-1")));
+        var runner = Bot(live, RobotRole.Melee, -8, 2, Slash());
+        var sandbox = Bot(live, RobotRole.Ranged, -6, -2);
+        var broken = Bot(live, RobotRole.Ranged, -4, -2, new CodeBlock(BlockKind.Wait, "0", new CodeBlock(BlockKind.Number, "-1")));
         Assert(Tag(live, runner) == "" && Tag(live, sandbox) == "", "no tag while preparing, none for a sandbox robot without code");
         live.Start();
         Assert(Tag(live, runner) == "" && runner.Program.Running, "a running function has no tag");
@@ -100,7 +100,7 @@ static class DebriefCheck
         Assert(live.Invoke(runner.Id) && Tag(live, runner) == "" && !live.Invoke(runner.Id), "Play calls it again, and not twice at once");
         Assert(broken.Program.Fault != null && Tag(live, broken).Contains("코드 오류"), "stopped code is tagged");
         var campaign = Sim(10, 1, playerFlow: true);
-        Assert(Tag(campaign, Bot(campaign, RobotRole.Shooter, -6, -2)).Contains("코드 없음"), "a campaign robot without code is tagged while preparing");
+        Assert(Tag(campaign, Bot(campaign, RobotRole.Ranged, -6, -2)).Contains("코드 없음"), "a campaign robot without code is tagged while preparing");
         CheckLoops(Tag);
     }
 
@@ -120,7 +120,7 @@ static class DebriefCheck
     {
         var sim = OneRun();
         var loop = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "3")); loop.Body.Add(Slash());
-        var waiter = Bot(sim, RobotRole.Warrior, 0, 2, loop);
+        var waiter = Bot(sim, RobotRole.Melee, 0, 2, loop);
         sim.Start();
         for (int i = 0; i < 60; i++) sim.Advance(1.0 / 60);
         Assert(waiter.Executions == 3 && waiter.KillsThisWave == 0 && !waiter.Program.Running && tag(sim, waiter).Contains("함수 끝"),
@@ -134,7 +134,7 @@ static class DebriefCheck
         var spin = new CodeBlock(BlockKind.For, "0", new CodeBlock(BlockKind.Number, "30"));
         // slash() has no target; the shooter's shoot(enemy) is what can hold an enemy that is gone.
         spin.Body.Add(new CodeBlock(BlockKind.Shot, "0", new CodeBlock(BlockKind.Variable, "enemy")));
-        var spinner = Bot(stale, RobotRole.Shooter, 0, 2, new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)), spin);
+        var spinner = Bot(stale, RobotRole.Ranged, 0, 2, new CodeBlock(BlockKind.DeclareVariable, "enemy", new CodeBlock(BlockKind.NearestEnemy)), spin);
         stale.Start(); Near(stale, spinner); stale.Invoke(spinner.Id);
         for (int i = 0; i < 60 * 60 && stale.Phase == BattlePhase.Running; i++) stale.Advance(1.0 / 60);
         Assert(spinner.KillsThisWave == 1 && spinner.LoopTurnsThisWave == 60 && stale.WaveLeaks == 2, "turns on a gone or far enemy spend the count"); // shots still in flight let it fire at the same enemy a few times

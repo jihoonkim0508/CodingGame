@@ -976,7 +976,7 @@ MonoBehaviour:
       focusKeys: []
       highlightKeys: []
     targetKeys:
-    - Battle.Robot.4
+    - Battle.Robot.2
     dim: 1
     undimmed: 0
     blockInput: 1

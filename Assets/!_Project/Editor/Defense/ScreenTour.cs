@@ -68,6 +68,344 @@ namespace CodingGame.Defense.Editor
             Debug.Log($"[ScreenTour] battle loading screen up {EditorApplication.timeSinceStartup - shownAt:0.00} s");
         }
 
+        // 3-4 and 2-4 with the support enemies: the shooter's for-each healer loop in the code editor, a healer pulsing among the
+        // tanks, a shielded enemy's bubble: TestResults/Editor/support/NN_*.png. Batchmode without -nographics, like RunDemo.
+        public static void RunSupportEnemies() => Start("TestResults/Editor/support", SupportEnemies());
+        static IEnumerator SupportEnemies()
+        {
+            const string pick = "while True:\n    target = get_nearest_enemy()\n    for e in get_enemies():\n        if e.type == Enemy.Healer:\n" +
+                "            target = e\n            break\n    shoot(target)";
+            DevTest.PlayDefense(3, 4, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy();
+            var battle = DevTest.Battle; var sim = battle.Simulation;
+            var shooter = sim.Robots.FirstOrDefault(r => r.Spec.role == RobotRole.Ranged) ?? sim.Robots[0];
+            battle.SelectRobot(shooter.Id); battle.DevelopSelected();
+            yield return Seconds(.6);
+            Program(TutorialAnswers.Parse(pick));
+            yield return Seconds(1);
+            Debug.Log("[ScreenTour] editor code: " + battle.CodeEditor.Panel.FunctionName + " applied " + battle.CodeEditor.Panel.IsApplied);
+            yield return Shot("foreach_editor");
+            battle.CodeEditor.Close();
+            Relaxed(() => { foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Ranged)) sim.ApplyProgram(bot.Id, "pick_healer", TutorialAnswers.Parse(pick)); });
+            yield return Seconds(.3);
+            battle.StartBattle(); DevTest.Speed(2);
+            yield return Until(() => sim.Enemies.Any(e => e.Active && e.Spec.type == EnemyType.Healer && sim.Time - e.LastAbility < .05), 60);
+            DevTest.Speed(1);
+            yield return Seconds(.1);
+            Debug.Log("[ScreenTour] 3-4 road: " + string.Join(", ", sim.Enemies.Where(e => e.Active).Select(e => $"{e.Spec.type} hp {e.Health:0}/{e.Spec.health:0}")));
+            yield return Shot("healer"); DevTest.Speed(3);
+            yield return Outcome(sim);
+            Debug.Log($"[ScreenTour] 3-4 with the healer loop: {sim.Phase}, core {sim.BaseHealth}, leaks {sim.WaveLeaks}");
+
+            DevTest.PlayDefense(2, 4, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy();
+            sim = DevTest.Sim;
+            DevTest.Battle.StartBattle(); DevTest.Speed(2);
+            yield return Until(() => sim.Enemies.Count(e => e.Active && e.Shield > 0) >= 1 && sim.Time - sim.Enemies.Where(e => e.Spec.type == EnemyType.Shielder).Select(e => e.LastAbility).DefaultIfEmpty(-9).Max() > .4, 90);
+            DevTest.Speed(1);
+            Debug.Log("[ScreenTour] 2-4 road: " + string.Join(", ", sim.Enemies.Where(e => e.Active).Select(e => $"{e.Spec.type} hp {e.Health:0} shield {e.Shield:0}")));
+            yield return Shot("shield"); DevTest.Speed(3);
+            yield return Outcome(sim);
+            Debug.Log($"[ScreenTour] 2-4 with shoot(nearest): {sim.Phase}, core {sim.BaseHealth}, leaks {sim.WaveLeaks}");
+
+            // 3-4 again with every shooter on the nearest enemy (the healer ignored), for comparison.
+            DevTest.PlayDefense(3, 4, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy();
+            sim = DevTest.Sim;
+            DevTest.Battle.StartBattle(); DevTest.Speed(3);
+            yield return Outcome(sim);
+            Debug.Log($"[ScreenTour] 3-4 with shoot(nearest): {sim.Phase}, core {sim.BaseHealth}, leaks {sim.WaveLeaks}");
+
+            // And 3-4 as it was before the healers and their tanks, the same robots: the baseline.
+            DevTest.PlayDefense(3, 4, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            sim = DevTest.Sim;
+            sim.SetWaveGroups(3, 3, sim.Setup.Waves[3].Where(g => g.Boss || g.Enemy.type != EnemyType.Healer && g.Enemy.type != EnemyType.Tank).ToArray());
+            Deploy();
+            DevTest.Battle.StartBattle(); DevTest.Speed(3);
+            yield return Outcome(sim);
+            Debug.Log($"[ScreenTour] 3-4 without healers and tanks (before): {sim.Phase}, core {sim.BaseHealth}, leaks {sim.WaveLeaks}");
+        }
+
+        // 3-4 with the Queue and Stack centipedes: the shooter's front()/top() loop in the code editor, then each centipede on the
+        // road with its open end ringed (under the nearest-enemy code, so the chains stay long), and the wave played out three
+        // ways for comparison: TestResults/Editor/centipede/NN_*.png. Batchmode without -nographics, like RunSupportEnemies.
+        public static void RunCentipedes() => Start("TestResults/Editor/centipede", Centipedes());
+        const string StackQueue = "while True:\n    for e in get_enemies():\n        if e.type == Enemy.Stack:\n            shoot(e.top())\n" +
+            "        elif e.type == Enemy.Queue:\n            shoot(e.front())";
+        static IEnumerator Centipedes()
+        {
+            // Every shooter on the snippet plus `else: shoot(e)`, so the other enemies are shot too.
+            string withElse = StackQueue + "\n        else:\n            shoot(e)";
+            foreach (var (code, name) in new[] { (withElse, "snippet + else: shoot(e)"), (StackQueue, "snippet only"), (null, "shoot(get_nearest_enemy())") })
+            {
+                DevTest.PlayDefense(3, 4, true, Sandbox);
+                yield return Until(() => DevTest.Ready);
+                yield return Seconds(.5);
+                Deploy();
+                var battle = DevTest.Battle; var sim = battle.Simulation;
+                if (code == withElse)
+                {
+                    var shooter = sim.Robots.FirstOrDefault(r => r.Spec.role == RobotRole.Ranged) ?? sim.Robots[0];
+                    battle.SelectRobot(shooter.Id); battle.DevelopSelected();
+                    yield return Seconds(.6);
+                    Program(TutorialAnswers.Parse(StackQueue));
+                    yield return Seconds(1);
+                    Debug.Log("[ScreenTour] editor code: " + battle.CodeEditor.Panel.FunctionName + " applied " + battle.CodeEditor.Panel.IsApplied);
+                    yield return Shot("centipede_editor");
+                    battle.CodeEditor.Close();
+                }
+                if (code != null) Relaxed(() => { foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Ranged)) sim.ApplyProgram(bot.Id, "stack_queue", TutorialAnswers.Parse(code)); });
+                yield return Seconds(.3);
+                battle.StartBattle(); DevTest.Speed(3);
+                if (code == null)
+                {
+                    foreach (var type in new[] { EnemyType.Queue, EnemyType.Stack })
+                    {
+                        yield return Until(() => sim.Enemies.Count(e => e.Active && e.Spec.type == type) >= 4, 90);
+                        DevTest.Speed(1);
+                        yield return Seconds(.6);
+                        Debug.Log($"[ScreenTour] 3-4 {type}: " + string.Join(", ", sim.Enemies.Where(e => e.Active && e.Chain != null).Select(e => $"{e.Spec.type}#{e.Id}{(e.Chain.Hittable == e ? "*" : "")} hp {e.Health:0}/{e.Spec.health:0}")));
+                        yield return Shot(type == EnemyType.Queue ? "queue" : "stack"); DevTest.Speed(3);
+                    }
+                }
+                int blocked = 0, pushed = 0;
+                var kinds = new System.Collections.Generic.Dictionary<int, EnemyType>();
+                for (double end = EditorApplication.timeSinceStartup + 150; sim.Phase == BattlePhase.Running && EditorApplication.timeSinceStartup < end;)
+                {
+                    foreach (var e in sim.Enemies) kinds[e.Id] = e.Spec.type;
+                    foreach (var evt in sim.Events)
+                    {
+                        if (evt.Kind == "blocked") blocked++;
+                        if (evt.Kind == "push") pushed++;
+                        if (evt.Kind == "leaked") Debug.Log($"[ScreenTour] leaked {(kinds.TryGetValue(evt.Source, out var k) ? k.ToString() : "?")} at {sim.Time:0.0} s");
+                    }
+                    yield return null;
+                }
+                Debug.Log($"[ScreenTour] 3-4 with {name}: {sim.Phase}, core {sim.BaseHealth}, leaks {sim.WaveLeaks}, kills {sim.Kills}, blocked hits {blocked}, stack pushes {pushed} (stack segments seen {kinds.Count(k => k.Value == EnemyType.Stack)}), {sim.Time:0.0} s");
+            }
+        }
+
+        // 3-3 with the Reflectors (2026-11-25): the three-robot dock before anything is placed, then a reflector in its reflect
+        // state hitting a shooter's shot back (plain shoot(nearest)), and the wave played out with plain code and with the
+        // e.reflecting snippet: TestResults/Editor/reflector/NN_*.png. Batchmode without -nographics, like RunSupportEnemies.
+        public static void RunReflectors() => Start("TestResults/Editor/reflector", Reflectors());
+        static IEnumerator Reflectors()
+        {
+            const string plain = "while True:\n    e = get_nearest_enemy()\n    shoot(e)";
+            foreach (var (code, name) in new[] { (plain, "shoot(get_nearest_enemy())"), (ReflectorSnippet, "e.reflecting snippet") })
+            {
+                DevTest.PlayDefense(3, 3, true, Sandbox);
+                yield return Until(() => DevTest.Ready);
+                yield return Seconds(1);
+                var battle = DevTest.Battle; var sim = battle.Simulation;
+                Debug.Log("[ScreenTour] 3-3 stock: " + string.Join(", ", System.Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(r => $"{r} {sim.RobotAvailable(r)}")));
+                Deploy();
+                yield return Seconds(3);
+                if (code == plain) yield return Shot("robot_dock");
+                Relaxed(() => { foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Ranged)) sim.ApplyProgram(bot.Id, "aim", TutorialAnswers.Parse(code)); });
+                yield return Seconds(.3);
+                battle.StartBattle(); DevTest.Speed(2);
+                if (code == plain)
+                {
+                    yield return Until(() => sim.Robots.Any(r => r.Spec.role == RobotRole.Ranged && sim.Time - r.LastReflected < .03), 90);
+                    DevTest.Speed(1);
+                    Debug.Log("[ScreenTour] 3-3 reflect: " + string.Join(", ", sim.Enemies.Where(e => e.Active && e.Spec.type == EnemyType.Reflector).Select(e => $"#{e.Id} {(e.Reflecting ? "reflecting" : "normal")} hp {e.Health:0}")) +
+                        " · robots " + string.Join(", ", sim.Robots.Select(r => $"{r.Spec.role} {r.Health:0}/{r.MaxHealth:0}")));
+                    yield return Shot("reflect_hit_back"); DevTest.Speed(3);
+                }
+                for (double end = EditorApplication.timeSinceStartup + 150; sim.Phase == BattlePhase.Running && EditorApplication.timeSinceStartup < end;) yield return null;
+                Debug.Log($"[ScreenTour] 3-3 with {name}: {sim.Phase}, core {sim.BaseHealth}, leaks {sim.WaveLeaks}, kills {sim.Kills}, robots " +
+                    string.Join(", ", sim.Robots.Select(r => $"{r.Spec.role} {r.Health:0}/{r.MaxHealth:0}")) + $", {sim.Time:0.0} s");
+            }
+        }
+        const string ReflectorSnippet = "while True:\n    for e in get_enemies():\n        if e.type == Enemy.Reflector and e.reflecting:\n            continue\n        shoot(e)\n        break";
+        // 3-3 with the tree legion: the leaf-finding snippet in the shooter's code editor, a depth-4 tree on the road with its
+        // leaves glowing (close up, before it walks into the shooter's range), then the same tree after the snippet cut some
+        // leaves: TestResults/Editor/tree/NN_*.png. Batchmode without -nographics, like RunCentipedes.
+        public static void RunTrees() => Start("TestResults/Editor/tree", Trees());
+        const string Leaf = "while True:\n    n = get_nearest_enemy()\n    while n.left or n.right:\n        if n.left:\n            n = n.left\n" +
+            "        else:\n            n = n.right\n    shoot(n)";
+        static IEnumerator Trees()
+        {
+            DevTest.PlayDefense(3, 3, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy();
+            var battle = DevTest.Battle; var sim = battle.Simulation;
+            var shooter = sim.Robots.FirstOrDefault(r => r.Spec.role == RobotRole.Ranged) ?? sim.Robots[0];
+            battle.SelectRobot(shooter.Id); battle.DevelopSelected();
+            yield return Seconds(.6);
+            Program(TutorialAnswers.Parse(Leaf));
+            yield return Seconds(1);
+            Debug.Log("[ScreenTour] editor code: " + battle.CodeEditor.Panel.FunctionName + " applied " + battle.CodeEditor.Panel.IsApplied);
+            yield return Shot("tree_code");
+            battle.CodeEditor.Close();
+            yield return Seconds(.3);
+            battle.StartBattle(); DevTest.Speed(3);
+            EnemyState Deep() => sim.Enemies.FirstOrDefault(e => e.Active && e.Node != null && e.Node.Parent == null &&
+                sim.Enemies.Any(c => c.Active && c.Node?.Root == e && c.Node.Depth == 4));
+            yield return Until(() => Deep() != null, 120);
+            var tree = Deep();
+            yield return Seconds(1.5); // a few steps onto the road
+            if (tree == null) { Debug.LogWarning("[ScreenTour] no depth-4 tree"); yield break; }
+            string Nodes() => string.Join(", ", sim.Enemies.Where(e => e.Node?.Root == tree).Select(e => $"{e.Node.Depth}/{e.Node.Slot}{(e.Active ? e.Node.Open ? "*" : "" : " dead")}"));
+            var camera = Object.FindAnyObjectByType<DefenseSelectionCamera>();
+            DevTest.Speed(1);
+            camera.FocusBoss(new Vector3(tree.Position.X, 1.4f, tree.Position.Y));
+            yield return Seconds(.8);
+            camera.FocusBoss(new Vector3(tree.Position.X, 1.4f, tree.Position.Y)); // again: the battle's start may have turned it back
+            yield return Seconds(1);
+            Debug.Log("[ScreenTour] depth-4 tree: " + Nodes());
+            yield return Shot("tree_depth4");
+            // The shooter runs the snippet from the editor: leaves go first once the tree walks into its range.
+            int nodes = sim.Enemies.Count(e => e.Node?.Root == tree);
+            DevTest.Speed(3);
+            yield return Until(() => !tree.Active || sim.Enemies.Count(e => e.Node?.Root == tree && e.Active) <= nodes - 3, 90);
+            DevTest.Speed(1);
+            camera.FocusBoss(new Vector3(tree.Position.X, 1.4f, tree.Position.Y));
+            yield return Seconds(.9);
+            Debug.Log("[ScreenTour] after the snippet: " + Nodes());
+            yield return Shot("tree_cut");
+            camera.Restore(); DevTest.Speed(3);
+            for (double end = EditorApplication.timeSinceStartup + 150; sim.Phase == BattlePhase.Running && EditorApplication.timeSinceStartup < end;) yield return null;
+            Debug.Log($"[ScreenTour] 3-3 with the snippet: {sim.Phase}, core {sim.BaseHealth}, leaks {sim.WaveLeaks}, kills {sim.Kills}, {sim.Time:0.0} s");
+        }
+
+        // The wave to its end, logging which kinds leaked.
+        // 4-1 팀 플레이 (2026-11-26): the team board with jobs and priority in its editor, the ranged robot's code with
+        // jobs.pop(0) as blocks, then the wave with the support scouting healers into jobs (cards slide in), the ranged robots
+        // popping them (cards fly to them, a line to the job) and the numbered reticles; team_board.mp4 of the fight.
+        // TestResults/Editor/team/NN_*.png. Windowed Editor, like Run.
+        public static void RunTeam() => Start("TestResults/Editor/team", Team());
+        static IEnumerator Team()
+        {
+            DevTest.PlayDefense(4, 1, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(1);
+            var battle = DevTest.Battle; var sim = battle.Simulation;
+            Deploy();
+            Relaxed(() =>
+            {
+                sim.ApplyBoard(TutorialAnswers.Parse("jobs = []\npriority = {Enemy.Healer: 0, Enemy.Shielder: 1, Enemy.Normal: 2}\n"));
+                foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Support)) sim.ApplyProgram(bot.Id, "scout", TutorialAnswers.Parse(TeamSupport));
+                foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Ranged)) sim.ApplyProgram(bot.Id, "sniper_" + bot.Id, TutorialAnswers.Parse(TeamRanged));
+            });
+            Debug.Log("[ScreenTour] team: " + string.Join(", ", sim.Robots.Select(r => $"{r.Spec.role} {r.Program?.Name}")) + " · board " + sim.Board.Source.Replace("\n", " / "));
+            // Opened with the stock lifted, like the code above: the editor applies what it loads, and 4-1 holds no dict yet
+            // (4-1's clear reward), so the board would come back empty. The palette's counts are the real ones again after.
+            Relaxed(() => battle.CodeEditor.OpenBoard()); battle.CodeEditor.Panel.RefreshPalette();
+            yield return Seconds(.6);
+            FitCode(.72f);
+            yield return Seconds(1);
+            yield return Shot("team_board_declared");
+            battle.CodeEditor.Close();
+            var sniper = sim.Robots.First(r => r.Spec.role == RobotRole.Ranged);
+            battle.SelectRobot(sniper.Id); Relaxed(() => battle.DevelopSelected()); battle.CodeEditor.Panel.RefreshPalette();
+            yield return Seconds(.6);
+            FitCode(.85f);
+            yield return Seconds(1);
+            yield return Shot("ranged_code_pop");
+            battle.CodeEditor.Close();
+            yield return Seconds(.3);
+            battle.StartBattle(); DevTest.Speed(2);
+            yield return Until(() => sim.Board.Variables.TryGetValue("jobs", out var jobs) && jobs.Items.Count >= 2 && sim.Robots.Any(r => r.Job != 0), 60);
+            DevTest.Speed(1);
+            yield return Seconds(1.5);
+            Debug.Log("[ScreenTour] jobs " + (sim.Board.Variables.TryGetValue("jobs", out var listed) ? listed.Items.Count : -1) + ", reticles on " + sim.Enemies.Count(e => e.Active && sim.Board.IndexOf(e.Id, out _) >= 0));
+            yield return Shot("battle_jobs_reticles");
+            int pops = sim.Board.Notes.Count(n => n.Kind == "pop");
+            yield return Until(() => sim.Board.Notes.Count(n => n.Kind == "pop") > pops, 40);
+            yield return Seconds(.18);
+            yield return Shot("battle_card_flies");
+            yield return Record("team_board", 26);
+            DevTest.Speed(3);
+            for (double end = EditorApplication.timeSinceStartup + 150; sim.Phase == BattlePhase.Running && EditorApplication.timeSinceStartup < end;) yield return null;
+            Debug.Log($"[ScreenTour] 4-1 with the team: {sim.Phase}, core {sim.BaseHealth}, leaks {sim.WaveLeaks}, kills {sim.Kills}, " +
+                $"appends {sim.Board.Notes.Count(n => n.Kind == "append")}, pops {sim.Board.Notes.Count(n => n.Kind == "pop")}, {sim.Time:0.0} s");
+        }
+        // The code area zoomed out round its def block, so a whole program (or the board's wide dict) is in the picture.
+        static void FitCode(float zoom)
+        {
+            var panel = DevTest.Battle.CodeEditor.Panel;
+            if (!panel.Workspace || !panel.DefBlock) return;
+            panel.Workspace.ZoomAt(RectTransformUtility.WorldToScreenPoint(null, panel.DefBlock.position), null, zoom);
+            panel.ShowDefAtTopLeft();
+        }
+        const string TeamSupport = "while True:\n    for e in get_enemies():\n        if e.type == Enemy.Healer and e not in jobs:\n            jobs.append(e)\n" +
+            "    for r in get_robots():\n        if r.hp < 30:\n            buff(r)\n";
+        const string TeamRanged = "while True:\n    if len(jobs) > 0:\n        target = jobs.pop(0)\n        while not target.is_dead():\n            shoot(target.weak_point())\n" +
+            "    else:\n        e = get_nearest_enemy()\n        shoot(e.weak_point())\n";
+        static IEnumerator Outcome(DefenseSimulation sim)
+        {
+            var kinds = new System.Collections.Generic.Dictionary<int, EnemyType>(); var logged = new System.Collections.Generic.HashSet<int>();
+            for (double end = EditorApplication.timeSinceStartup + 120; sim.Phase == BattlePhase.Running && EditorApplication.timeSinceStartup < end;)
+            {
+                foreach (var e in sim.Enemies) kinds[e.Id] = e.Spec.type;
+                foreach (var evt in sim.Events) if (evt.Kind == "leaked" && logged.Add(evt.Source)) Debug.Log($"[ScreenTour] leaked {(kinds.TryGetValue(evt.Source, out var k) ? k.ToString() : "?")} at {sim.Time:0.0} s");
+                yield return null;
+            }
+        }
+        // The code area's def block, pan and zoom (2026-11-25): an empty while in def robot_N():, zoomed out with a loose block, the
+        // 동떨어진 블록이 있어요 note, the def back at the top-left after a robot switch, and a clip of panning and zooming:
+        // TestResults/Editor/workspace/NN_*.png and workspace_pan_zoom.mp4. Windowed Editor, like Run.
+        public static void RunWorkspace() => Start("TestResults/Editor/workspace", Workspace());
+        static IEnumerator Workspace()
+        {
+            DevTest.PlayDefense(2, 1, true, Sandbox);
+            yield return Until(() => DevTest.Ready);
+            yield return Seconds(.5);
+            Deploy(); DevTest.GrantAll();
+            var battle = DevTest.Battle; var sim = battle.Simulation;
+            var robots = sim.Robots.OrderBy(r => r.Id).ToList();
+            battle.SelectRobot(robots[0].Id); battle.DevelopSelected();
+            yield return Seconds(.6);
+            var panel = battle.CodeEditor.Panel; var space = panel.Workspace; var content = panel.Program.Rect;
+            Program(new CodeBlock(BlockKind.While));
+            yield return Seconds(.8);
+            yield return Shot("def_empty_while");
+            var wait = panel.Palette.First(p => p.view.BaseKind == BlockKind.Wait).view;
+            Relaxed(() => panel.Program.PlaceFree(wait, new Vector2(520, -330)));
+            var view = (RectTransform)space.transform;
+            Vector2 Middle() => RectTransformUtility.WorldToScreenPoint(null, view.TransformPoint(view.rect.center));
+            space.ZoomAt(Middle(), null, .6f);
+            yield return Seconds(.6);
+            yield return Shot("zoomed_out_loose_block");
+            space.ZoomAt(Middle(), null, 1);
+            Relaxed(() => panel.Program.PlaceFree(wait, new Vector2(1900, -120)));
+            yield return Seconds(.6);
+            yield return Shot("offscreen_note");
+            content.anchoredPosition += new Vector2(-420, 260);
+            yield return Seconds(.4);
+            yield return Shot("panned_away");
+            battle.CodeEditor.Close(false); battle.SelectRobot(robots[1].Id); battle.DevelopSelected();
+            yield return Seconds(.4);
+            battle.CodeEditor.Close(false); battle.SelectRobot(robots[0].Id); battle.DevelopSelected();
+            yield return Seconds(.6);
+            yield return Shot("def_top_left_after_switch");
+            // The clip: a pan right and down and back, a zoom out and in round the code, the note's click.
+            Begin("workspace_pan_zoom");
+            yield return Seconds(.5);
+            var home = content.anchoredPosition;
+            for (double t = 0; t < 1; t += .02) { content.anchoredPosition = home + new Vector2(-260, 160) * Mathf.Sin((float)t * Mathf.PI); yield return Seconds(.03); }
+            content.anchoredPosition = home;
+            for (int i = 0; i < 6; i++) { space.ZoomAt(Middle(), null, space.Zoom / 1.1f); yield return Seconds(.25); }
+            yield return Seconds(.6);
+            for (int i = 0; i < 6; i++) { space.ZoomAt(Middle(), null, space.Zoom * 1.1f); yield return Seconds(.25); }
+            yield return Seconds(.8);
+            space.RevealTarget();
+            yield return Seconds(1.2);
+            panel.ShowDefAtTopLeft();
+            yield return Seconds(1);
+            End();
+        }
         static void Start(string into, IEnumerator steps)
         {
             folder = into;

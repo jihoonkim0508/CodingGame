@@ -26,7 +26,7 @@ static class PlayLogCheck
 
         // A play at uneven frame lengths (speed, slow motion), with a pause, a Play press, a claim and the next wave's preparation.
         var play = new DefenseSimulation(Setup());
-        var bot = play.Place(Spec(RobotRole.Shooter), (int)RobotRole.Shooter, new Vector2(0, 3), out var error);
+        var bot = play.Place(Spec(RobotRole.Ranged), (int)RobotRole.Ranged, new Vector2(0, 3), out var error);
         Assert(bot != null, "shooter placed: " + error);
         play.ApplyProgram(bot.Id, "fire", new[] { shot });
         play.Start(); Frames(play, 40, 1.0 / 23); play.TogglePause(); Frames(play, 10, .05); play.TogglePause();

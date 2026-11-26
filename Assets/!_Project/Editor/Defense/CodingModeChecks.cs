@@ -82,7 +82,7 @@ namespace CodingGame.Defense.Editor
         {
             battle = DevTest.Battle; sim = battle.Simulation; editor = battle.CodeEditor; panel = editor.Panel;
             battle.EditorGrantAll();
-            int shooter = Place(RobotRole.Shooter), tank = Place(RobotRole.Tank);
+            int shooter = Place(RobotRole.Ranged), tank = Place(RobotRole.Melee);
             Open(shooter);
             yield return Wait(.5);
             Require(panel.Mode == CodingMode.Block, "the editor opens on the 블록 tab");

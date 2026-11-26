@@ -182,9 +182,9 @@ namespace CodingGame.Defense.Editor
             yield return Seconds(1);
             b = DevTest.Battle;
             var marker = Field<Transform>(b, "placementMarker");
-            foreach (var role in new[] { RobotRole.Warrior, RobotRole.Shooter, RobotRole.Tank })
+            foreach (var role in new[] { RobotRole.Melee, RobotRole.Ranged })
             {
-                int index = Enumerable.Range(0, 6).First(i => b.DefinitionRole(i) == role);
+                int index = Enumerable.Range(0, Rules.RoleCount).First(i => b.DefinitionRole(i) == role);
                 if (b.Simulation.RobotAvailable(role) < 1) b.Simulation.GrantRobot(role, 1);
                 b.ChooseRobot(index);
                 float radius = b.RobotDefinition(index).stats.radius;

@@ -18,7 +18,7 @@ namespace CodingGame.Defense
         {
             if (bot.Program == null || bot.Program.IsEmpty) return Issue.NoCode;
             if (bot.Program.Fault != null) return Issue.Fault;
-            if (bot.ActionsThisWave == 0) return bot.Spec.role == RobotRole.Buffer || bot.SawEnemyThisWave ? Issue.NeverActed : Issue.NoEnemyInRange;
+            if (bot.ActionsThisWave == 0) return bot.Spec.role == RobotRole.Support || bot.SawEnemyThisWave ? Issue.NeverActed : Issue.NoEnemyInRange;
             // The function ended while enemies still got by. A for loop counts turns, not attacks: half its turns or more without
             // one spent the count on false conditions.
             if (!bot.Program.Running && Missed(sim) > 0)
@@ -36,7 +36,7 @@ namespace CodingGame.Defense
                 case Issue.Fault: return "코드가 실행 중에 멈췄어요: " + bot.Program.Fault;
                 case Issue.NoEnemyInRange: return "사거리 안에 적이 한 번도 들어오지 않았어요. 길 가까이 옮겨 보세요.";
                 case Issue.NeverActed:
-                    if (bot.Spec.role == RobotRole.Buffer) return "사거리 안에 다른 로봇이 없어 버프를 못 했어요. 공격 로봇 옆에 두세요.";
+                    if (bot.Spec.role == RobotRole.Support) return "사거리 안에 다른 로봇이 없어 버프를 못 했어요. 공격 로봇 옆에 두세요.";
                     return bot.Program.BlockCount(BlockKind.If) > 0
                         ? "적이 사거리에 들어왔지만 공격하지 않았어요. if 조건이 참이 되는 값인지 확인해 보세요."
                         : "적이 사거리에 들어왔지만 공격 명령이 실행되지 않았어요. 공격 블록과 대상 칸을 확인해 보세요.";
@@ -46,7 +46,7 @@ namespace CodingGame.Defense
                 case Issue.OutOfRuns:
                     return $"함수가 끝나 멈춰 있었어요(이번 웨이브 {bot.Program.CompletedRuns}번 실행). 적이 올 때 로봇 아래 '실행'을 눌러 다시 부르거나 " +
                         (sim.LoopsUnlocked ? "반복문으로 계속 공격하게 해 보세요." : "함수 안에 공격 블록을 더 넣어 보세요.");
-                case Issue.Reduced: return $"다른 직군 명령이라 힘이 {sim.Setup.RulesConfig.reducedStrength:0%}만 나왔어요. 이 로봇은 {native}가 제일 강해요.";
+                case Issue.Reduced: return $"다른 계열 기술이라 힘이 {sim.Setup.RulesConfig.reducedStrength:0%}만 나오고 대기가 {sim.Setup.RulesConfig.reducedIntervalMultiplier:0.#}배예요. 이 로봇은 {native}가 제일 강해요.";
                 default: return null;
             }
         }
@@ -92,7 +92,7 @@ namespace CodingGame.Defense
             var lines = issues.Select(x => new Line
             {
                 Bot = x.bot, Issue = x.issue, Name = name(x.bot), Mvp = x.bot == mvp && mvp.DamageThisWave > 0,
-                Stats = x.bot.Spec.role == RobotRole.Buffer ? $"버프 {x.bot.ActionsThisWave}" : $"공격 {x.bot.ActionsThisWave} · 피해 {x.bot.DamageThisWave:0} · 처치 {x.bot.KillsThisWave}",
+                Stats = x.bot.Spec.role == RobotRole.Support ? $"버프 {x.bot.ActionsThisWave}" : $"공격 {x.bot.ActionsThisWave} · 피해 {x.bot.DamageThisWave:0} · 처치 {x.bot.KillsThisWave}",
                 Advice = x.bot == worst.bot ? null : Advice(sim, x.bot, x.issue),
             }).ToArray();
             return (headline, lines);

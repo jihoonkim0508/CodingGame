@@ -47,8 +47,12 @@ namespace CodingGame.Defense
             Place(divider, width - 37 - actionWidth, 20, 1, 66);
             float cardWidth = count > 0 ? Mathf.Min(PreferredCardWidth, (rosterWidth - gapWidth) / count) : PreferredCardWidth;
             float x = Mathf.Max(0, (rosterWidth - (count * cardWidth + gapWidth)) / 2);
-            foreach (var button in robots) if (button && button.gameObject.activeSelf)
+            // 근접, 원거리, 지원 left to right (2026-11-26): the support card (robot 0) goes last; indices, clicks and the
+            // tutorial's Battle.Robot.N targets stay on their cards.
+            for (int k = 1; k <= robots.Length; k++)
             {
+                var button = robots[k % robots.Length];
+                if (!button || !button.gameObject.activeSelf) continue;
                 Place((RectTransform)button.transform, x, 0, cardWidth, 78);
                 x += cardWidth + CardGap;
             }

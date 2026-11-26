@@ -51,14 +51,14 @@ static class WhileTrueCheck
 
         // Melee: three enemies five seconds apart all fall to the one robot that never stops.
         var sim = Make(new SpawnGroup { Enemy = new EnemySpec { health = 20, speed = 1 }, Count = 3, Interval = 5 });
-        var bot = sim.Place(new RobotSpec { role = RobotRole.Warrior, range = 3, damage = 20, interval = .5f }, (int)RobotRole.Warrior, new Vector2(0, 2), out _);
+        var bot = sim.Place(new RobotSpec { role = RobotRole.Melee, range = 3, damage = 20, interval = .5f }, (int)RobotRole.Melee, new Vector2(0, 2), out _);
         sim.ApplyProgram(bot.Id, "melee", melee);
         sim.Start(); Tick(sim, 40);
         Assert(sim.Kills == 3 && sim.Leaks == 0 && bot.Program.Fault == null, $"while True + slash() keeps cutting: kills={sim.Kills} leaks={sim.Leaks} fault={bot.Program.Fault}");
 
         // Ranged, range 10: it holds fire until the enemy is inside 3 (0.3 of the range).
         sim = Make(new SpawnGroup { Enemy = new EnemySpec { health = 1000, speed = 1 }, Count = 1, Interval = 1 });
-        bot = sim.Place(new RobotSpec { role = RobotRole.Shooter, range = 10, damage = 20, interval = .5f, projectileSpeed = 100 }, (int)RobotRole.Shooter, new Vector2(0, 2), out _);
+        bot = sim.Place(new RobotSpec { role = RobotRole.Ranged, range = 10, damage = 20, interval = .5f, projectileSpeed = 100 }, (int)RobotRole.Ranged, new Vector2(0, 2), out _);
         sim.ApplyProgram(bot.Id, "ranged", ranged);
         sim.Start();
         float first = -1;
@@ -74,7 +74,7 @@ static class WhileTrueCheck
 
         // Dividing by zero stops that robot's code with a message instead of breaking the battle.
         sim = Make(new SpawnGroup { Enemy = new EnemySpec { health = 20, speed = 1 }, Count = 1, Interval = 1 });
-        bot = sim.Place(new RobotSpec { role = RobotRole.Warrior, range = 3, damage = 20, interval = .5f }, (int)RobotRole.Warrior, new Vector2(0, 2), out _);
+        bot = sim.Place(new RobotSpec { role = RobotRole.Melee, range = 3, damage = 20, interval = .5f }, (int)RobotRole.Melee, new Vector2(0, 2), out _);
         sim.ApplyProgram(bot.Id, "zero", new[] { B(BlockKind.DeclareVariable, "x", B(BlockKind.Arithmetic, "/", B(BlockKind.Number, "1"), B(BlockKind.Number, "0"))), B(BlockKind.Slash) });
         sim.Start(); Tick(sim, 20);
         Assert(bot.Program.Fault != null && bot.Program.Fault.Contains("0으로"), "x = 1 / 0 faults with a message: " + bot.Program.Fault);

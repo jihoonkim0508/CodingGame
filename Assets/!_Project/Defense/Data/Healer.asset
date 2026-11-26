@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54b331f6175a49043999eb0bbda985bf, type: 3}
+  m_Name: Healer
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.EnemyDefinition
+  displayName: "\uD790\uB7EC"
+  description: "\uBA87 \uCD08\uB9C8\uB2E4 \uC8FC\uBCC0 \uC801\uC758 \uCCB4\uB825\uC744
+    \uD68C\uBCF5\uC2DC\uD0B5\uB2C8\uB2E4. \uBA3C\uC800 \uC4F0\uB7EC\uB728\uB9AC\uC9C0
+    \uC54A\uC73C\uBA74 \uB2E4\uB978 \uC801\uC774 \uC798 \uC8FD\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4."
+  stats:
+    type: 3
+    health: 30
+    speed: 1.4
+    damage: 6
+    attackInterval: 1.2
+    leakDamage: 1
+    abilityInterval: 2.5
+    abilityRadius: 3
+    abilityAmount: 10
+    segmentCap: 8
+    reflectOn: 2
+    reflectOff: 3
+  prefab: {fileID: 8292641712839652615, guid: 9cdb5584ecce81741bdf0ecf3c88f845, type: 3}
+  icon: {fileID: 2800000, guid: e8b76693eeb1d9e43852fd9bd8054fd0, type: 3}

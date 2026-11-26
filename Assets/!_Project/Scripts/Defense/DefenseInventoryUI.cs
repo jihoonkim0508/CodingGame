@@ -21,7 +21,7 @@ namespace CodingGame.Defense
         public bool IsOpen => inventoryRoot.activeSelf;
         void Start()
         {
-            if (!battle || !inventoryRoot || !closeButton || robotButtons.Length != 6 || robotLabels.Length != 6 ||
+            if (!battle || !inventoryRoot || !closeButton || robotButtons.Length != Rules.RoleCount || robotLabels.Length != Rules.RoleCount ||
                 robotButtons.Any(b => !b) || robotLabels.Any(t => !t) || blockSlots.Length != kinds.Length || blockSlots.Any(s => !s.label))
                 throw new InvalidOperationException("인벤토리 Inspector 참조를 연결하세요.");
             closeButton.onClick.AddListener(Close);
