@@ -7,6 +7,8 @@
 # blender -b --factory-startup -P render.py -- tank compare <out>         TankRobot, t1, t1big at one scale: 3/4 and side rows
 # blender -b --factory-startup -P render.py -- tank battle <out>          both robots, t1 and t1big, battle camera
 # blender -b --factory-startup -P render.py -- tank pairs <out>           t1big beside the TankRobot, battle camera (sheet crop)
+# blender -b --factory-startup -P render.py -- tank neck <out>            t1neck (neck.py): big 3/4 and beside the TankRobot
+#                                                                         through the battle camera; neck.json says if its eyes clear the shield
 import bpy, sys, os, math, json, re
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
@@ -235,6 +237,59 @@ elif who == 'tank' and mode == 'battle':
     for k, b in marks.items(): print('BATTLE', k, 'h %.0f w %.0f px' % (b[3] - b[1], b[2] - b[0]))
     json.dump(marks, open(os.path.join(out, 'battle.json'), 'w'), indent=1)
     T.render(os.path.join(out, 'battle.png'))
+
+elif who == 'tank' and mode == 'neck':
+    import neck as NK
+
+    def eyes_seen(root, origin=None, along=None):
+        """Per eye slit: whether a ray from the camera (a point, or a direction for orthographic) reaches it first."""
+        bpy.context.view_layer.update()
+        eyes = [o for o in parts(root) if o.name.split('.')[0] in ('eye-1', 'eye1')]
+        verts, faces = [], []
+        for o in parts(root):           # the tank's parts carry no modifiers (only their outline hulls do)
+            if o in eyes: continue
+            me = o.data; n = len(verts)
+            verts += [o.matrix_world @ v.co for v in me.vertices]; faces += [tuple(i + n for i in p.vertices) for p in me.polygons]
+        tree = BVHTree.FromPolygons(verts, faces)
+        seen = []
+        for e in eyes:
+            c = sum((e.matrix_world @ v.co for v in e.data.vertices), Vector()) / len(e.data.vertices)
+            start = origin if origin is not None else c - along * 60
+            d = c - start
+            hit = tree.ray_cast(start, d.normalized(), d.length - 0.04)   # short of the slit's own depth: it sits in the visor
+            seen.append(hit[0] is None)
+        return seen
+
+    info = {}
+    T.reset(); root = NK.t1neck(); bpy.context.view_layer.update()
+    lo, hi = bounds(root); c = (lo + hi) / 2; size = (hi - lo).length * 1.08
+    sh = [o for o in parts(root) if o.parent.name.startswith('shield')]
+    info['height'] = hi.z
+    info['shield_top'] = max((o.matrix_world @ v.co).z for o in sh for v in o.data.vertices)
+    info['eye_z'] = max((o.matrix_world @ v.co).z for o in parts(root) if o.name.split('.')[0] in ('eye-1', 'eye1') for v in o.data.vertices)
+    T.set_line(2.0 / 400)
+    T.ortho(25, 35, c, size, (int(size * 400), int(size * 400)))
+    s = bpy.context.scene
+    info['eyes_q34'] = eyes_seen(root, along=s.camera.matrix_world.to_3x3() @ Vector((0, 0, -1)))
+    def tree(o):
+        return BVHTree.FromPolygons([o.matrix_world @ v.co for v in o.data.vertices], [tuple(p.vertices) for p in o.data.polygons])
+    st = [tree(o) for o in sh]
+    info['clips_shield'] = sorted({b.name for b in parts(root) if b not in sh and any(tree(b).overlap(t) for t in st)})
+    T.render(os.path.join(out, 't1neck_q34.png'))
+    s = T.reset(); T.set_sun(BATTLE_SUN)
+    desk(-6, 6, ((0.7, 3.2),))
+    rob = ALL['robot_tank'](at=(-1.35, 0.7, 0), yaw=30)
+    mon = NK.t1neck(at=(1.3, 0.7, 0), yaw=-30)
+    battle_cam(s, (0.0, 0.7, 0.6))
+    bpy.context.view_layer.update()
+    info['eyes_battle'] = eyes_seen(mon, origin=s.camera.location.copy())
+    mon.rotation_euler.z = 0                 # head-on: walking straight down the screen at the camera
+    info['eyes_battle_head_on'] = eyes_seen(mon, origin=s.camera.location.copy())
+    mon.rotation_euler.z = math.radians(-30); bpy.context.view_layer.update()
+    info['robot'], info['monster'] = screen_box(s, rob, 1920), screen_box(s, mon, 1920)
+    print('NECK', json.dumps(info))
+    json.dump(info, open(os.path.join(out, 'neck.json'), 'w'), indent=1)
+    T.render(os.path.join(out, 't1neck_pair.png'))
 
 elif who == 'tank' and mode == 'pairs':
     s = T.reset(); T.set_sun(BATTLE_SUN)

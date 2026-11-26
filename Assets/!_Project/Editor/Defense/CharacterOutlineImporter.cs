@@ -12,9 +12,11 @@ namespace CodingGame.Defense.Editor
 
         void OnPostprocessModel(GameObject root)
         {
-            const string folder = "Assets/!_Project/Resources/Models/CharacterAnimation/FBX/";
+            const string folder = "Assets/!_Project/Resources/Models/CharacterAnimation/FBX/", monsters = "Assets/!_Project/Resources/Models/Monsters/";
             if (assetPath != folder + "Monster.fbx" && assetPath != folder + "AttackRobot.fbx" &&
-                assetPath != folder + "ShotRobot.fbx" && assetPath != folder + "TankRobot.fbx") return;
+                assetPath != folder + "ShotRobot.fbx" && assetPath != folder + "TankRobot.fbx" &&
+                assetPath != monsters + "MonsterImp.fbx" && assetPath != monsters + "MonsterRaptor.fbx" &&
+                assetPath != monsters + "MonsterShieldBrute.fbx") return;
 
             var meshes = new HashSet<Mesh>();
             foreach (var renderer in root.GetComponentsInChildren<SkinnedMeshRenderer>(true))
