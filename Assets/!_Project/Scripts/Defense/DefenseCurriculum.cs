@@ -3,27 +3,29 @@ using CodingGame.BlockCoding;
 namespace CodingGame.Defense
 {
     // 공격 블록은 대상이 필요하므로 공격 로봇을 줄 때마다 get_nearest_enemy()와 변수 블록도 함께 지급합니다.
+    // 2-4는 보호막병과 break_shield()·shield, 3-4는 힐러와 for e in get_enemies()를 줍니다(GameData가 적용되면 그 표가 우선).
+    // 3-3 보상의 front()·top()은 3-4의 큐 지네·스택 지네용, 3-2 보상의 while 조건·or·left·right는 3-3의 군단 트리용입니다.
     // 지급량은 추가 수량입니다. 준비 보급은 학습 전에, 보상은 웨이브 종료 후 한 번 지급합니다.
     public static class DefenseCurriculum
     {
-        public const int StageCount = 3;
+        public const int StageCount = 4;
         static BlockStock B(BlockKind kind, int count = 1) => new BlockStock { kind = kind, count = count };
         static RobotStock R(RobotRole role, int count = 1) => new RobotStock { role = role, count = count };
         public static WaveLesson[] Create() => new[] {
-            new WaveLesson { stage=1, wave=1, topic="변수: damage 값 변경", robots=new[]{R(RobotRole.Shooter,2)}, blocks=new[]{B(BlockKind.Shot,2),B(BlockKind.DeclareVariable,4),B(BlockKind.Number,4),B(BlockKind.NearestEnemy,2),B(BlockKind.Variable,2)}, rewards=new[]{B(BlockKind.Shot)} },
+            new WaveLesson { stage=1, wave=1, topic="변수: damage 값 변경", robots=new[]{R(RobotRole.Ranged,2)}, blocks=new[]{B(BlockKind.Shot,2),B(BlockKind.DeclareVariable,4),B(BlockKind.Number,4),B(BlockKind.NearestEnemy,2),B(BlockKind.Variable,2)}, rewards=new[]{B(BlockKind.Shot)} },
             new WaveLesson { stage=1, wave=2, topic="여러 변수: damage와 range", blocks=new[]{B(BlockKind.DeclareVariable,2),B(BlockKind.Number,2)}, rewards=new[]{B(BlockKind.Shot)} },
             new WaveLesson { stage=1, wave=3, topic="조건: 거리 비교", blocks=new[]{B(BlockKind.If,2),B(BlockKind.Comparison,2),B(BlockKind.Variable,4),B(BlockKind.Number,4)}, rewards=new[]{B(BlockKind.Comparison)} },
             new WaveLesson { stage=1, wave=4, topic="조건값 변경과 배치 전략", rewards=new[]{B(BlockKind.Number)} },
             new WaveLesson { stage=1, wave=5, topic="변수와 조건: 보스 종합 실습", blocks=new[]{B(BlockKind.DeclareVariable,2),B(BlockKind.Variable,2),B(BlockKind.Number,2)}, rewards=new[]{B(BlockKind.Shot)} },
-            new WaveLesson { stage=2, wave=1, topic="반복 해금: while True", robots=new[]{R(RobotRole.Utility)}, blocks=new[]{B(BlockKind.While,2),B(BlockKind.If,2),B(BlockKind.Comparison,2),B(BlockKind.DeclareVariable),B(BlockKind.Variable,3),B(BlockKind.NearestEnemy,3),B(BlockKind.PositionX),B(BlockKind.PositionY),B(BlockKind.Number,4),B(BlockKind.Slow)}, rewards=new[]{B(BlockKind.While)} },
+            new WaveLesson { stage=2, wave=1, topic="반복 해금: while True", robots=new[]{R(RobotRole.Support)}, blocks=new[]{B(BlockKind.While,2),B(BlockKind.If,2),B(BlockKind.Comparison,2),B(BlockKind.DeclareVariable),B(BlockKind.Variable,3),B(BlockKind.NearestEnemy,3),B(BlockKind.PositionX),B(BlockKind.PositionY),B(BlockKind.Number,4),B(BlockKind.Slow)}, rewards=new[]{B(BlockKind.While)} },
             new WaveLesson { stage=2, wave=2, topic="거리 기준값 조정", rewards=new[]{B(BlockKind.Comparison)} },
             new WaveLesson { stage=2, wave=3, topic="거리 조건과 감속", rewards=new[]{B(BlockKind.Slow)} },
-            new WaveLesson { stage=2, wave=4, topic="if / elif / else 분기", robots=new[]{R(RobotRole.Buffer)}, blocks=new[]{B(BlockKind.Elif),B(BlockKind.Else),B(BlockKind.Buff),B(BlockKind.True),B(BlockKind.False)}, rewards=new[]{B(BlockKind.Comparison)} },
+            new WaveLesson { stage=2, wave=4, topic="if / elif / else 분기", blocks=new[]{B(BlockKind.Elif),B(BlockKind.Else),B(BlockKind.Buff),B(BlockKind.True),B(BlockKind.False),B(BlockKind.BreakShield),B(BlockKind.Shield,2)}, rewards=new[]{B(BlockKind.Comparison)} },
             new WaveLesson { stage=2, wave=5, topic="거리 조건과 분기 종합", rewards=new[]{B(BlockKind.If)} },
-            new WaveLesson { stage=3, wave=1, topic="while True로 계속 반복", robots=new[]{R(RobotRole.Bomber),R(RobotRole.Tank)}, blocks=new[]{B(BlockKind.While,2),B(BlockKind.Number,3),B(BlockKind.Boom),B(BlockKind.Block),B(BlockKind.NearestEnemy,2),B(BlockKind.Variable,2)}, rewards=new[]{B(BlockKind.While)} },
-            new WaveLesson { stage=3, wave=2, topic="반복 안 명령 바꾸기", rewards=new[]{B(BlockKind.Number)} },
-            new WaveLesson { stage=3, wave=3, topic="반복과 공격 효율", rewards=new[]{B(BlockKind.While)} },
-            new WaveLesson { stage=3, wave=4, topic="반복 멈추기: break와 continue", blocks=new[]{B(BlockKind.Break),B(BlockKind.Continue)}, rewards=new[]{B(BlockKind.Wait)} },
+            new WaveLesson { stage=3, wave=1, topic="while True로 계속 반복", robots=new[]{R(RobotRole.Melee)}, blocks=new[]{B(BlockKind.While,2),B(BlockKind.Number,3),B(BlockKind.Boom),B(BlockKind.Block),B(BlockKind.NearestEnemy,2),B(BlockKind.Variable,2)}, rewards=new[]{B(BlockKind.While)} },
+            new WaveLesson { stage=3, wave=2, topic="반복 안 명령 바꾸기", rewards=new[]{B(BlockKind.Number),B(BlockKind.WhileCondition),B(BlockKind.Or),B(BlockKind.Left,2),B(BlockKind.Right,2),B(BlockKind.Else)} },
+            new WaveLesson { stage=3, wave=3, topic="반복과 공격 효율", rewards=new[]{B(BlockKind.While),B(BlockKind.Front),B(BlockKind.Top),B(BlockKind.Elif)} },
+            new WaveLesson { stage=3, wave=4, topic="반복 멈추기: break와 continue", blocks=new[]{B(BlockKind.Break),B(BlockKind.Continue),B(BlockKind.ForEach),B(BlockKind.GetEnemies),B(BlockKind.If),B(BlockKind.Comparison),B(BlockKind.EnemyTypeName),B(BlockKind.DeclareVariable),B(BlockKind.Variable,2)}, rewards=new[]{B(BlockKind.Wait)} },
             new WaveLesson { stage=3, wave=5, topic="반복문 선택과 응용", rewards=new[]{B(BlockKind.While)} }
         };
     }

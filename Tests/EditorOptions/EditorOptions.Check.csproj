@@ -9,6 +9,7 @@
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseSimulation.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/PlayLog.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseProgram.cs" />
+    <Compile Include="../../Assets/!_Project/Scripts/Defense/DefenseTeamBoard.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/BlockCoding/BlockProgram.cs" />
     <Compile Include="../../Assets/!_Project/Scripts/BlockCoding/PythonTreeCompiler.cs" />
   </ItemGroup>

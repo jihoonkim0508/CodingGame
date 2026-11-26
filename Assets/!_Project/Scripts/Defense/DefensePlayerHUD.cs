@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 namespace CodingGame.Defense
 {
-    public sealed class DefensePlayerHUD : MonoBehaviour
+    public sealed partial class DefensePlayerHUD : MonoBehaviour
     {
         [SerializeField] DefenseBattle battle;
         [SerializeField] GameObject canvasRoot, rewardPanel;
@@ -74,7 +74,7 @@ namespace CodingGame.Defense
             if (!battleCamera || !robotActions || !upgradeRobotButton || !developRobotButton || !recallRobotButton || !upgradeRobotLabel || !placementToast || !placementToastText || !battle || !rewardScroll || !combatControls || enemyCards.Length != 3 || enemyCounts.Length != 3 || enemyCards.Any(x => !x) || enemyCounts.Any(x => !x) ||
                 !upcoming || !brand || !canvasRoot || !rewardPanel || !counters || !guide || !inventory || !notice || !pauseLabel || !speedLabel ||
                 !rewardTitle || !rewardItems || !claimLabel || !startButton || !pauseButton || !speedButton || !claimButton ||
-                robotLabels.Length != 6 || robotLabels.Any(t => !t) || robotButtons.Length != 6 || robotButtons.Any(b => !b)) throw new InvalidOperationException("DefensePlayerHUD Inspector 참조를 연결하세요.");
+                robotLabels.Length != Rules.RoleCount || robotLabels.Any(t => !t) || robotButtons.Length != Rules.RoleCount || robotButtons.Any(b => !b)) throw new InvalidOperationException("DefensePlayerHUD Inspector 참조를 연결하세요.");
             startButton.onClick.AddListener(battle.RequestStartBattle);
             pauseButton.onClick.AddListener(battle.TogglePause); speedButton.onClick.AddListener(battle.ToggleSpeed);
             // The speed button's "F" key hint reads 2 sizes under the "3x" label, bold, set here so the scene stays as it is.
@@ -269,7 +269,7 @@ namespace CodingGame.Defense
             notice.text = battle.StatusMessage;
             if (Changed(ref shownPlaced, (sim.Robots.Count, sim.Setup.RobotLimit, 0)))
             {
-                inventory.text = $"설치 {sim.Robots.Count} / {sim.Setup.RobotLimit}대  ·  버프형 최대 {sim.Setup.RulesConfig.roleLimits[(int)RobotRole.Buffer]}대  ·  Esc 메뉴";
+                inventory.text = $"설치 {sim.Robots.Count} / {sim.Setup.RobotLimit}대  ·  지원 로봇 최대 {sim.Setup.RulesConfig.roleLimits[(int)RobotRole.Support]}대  ·  Esc 메뉴";
                 inventory.color = sim.Robots.Count >= sim.Setup.RobotLimit ? new Color(.64f,.2f,.14f) : new Color(.1f,.28f,.36f);
             }
             startButton.interactable = ready;
@@ -284,6 +284,7 @@ namespace CodingGame.Defense
             RefreshRobotActions(sim);
             RefreshRobotStatus(sim);
             RefreshPlayButtons(sim);
+            RefreshCodeHolograms(sim); AnimateCoins(); // DefensePlayerHUD.Fx.cs
             rewardPanel.SetActive(reward || ended);
             if (reward || ended) RefreshRewardPanel(sim, reward);
             ShowPrototypeEnd(ended && battle.PrototypeEnded, sim);
@@ -439,13 +440,17 @@ namespace CodingGame.Defense
                 waveCall.text = (last ? "마지막 웨이브" : $"WAVE {sim.WaveIndex + 1}") + $"\n<size=36%>오류 코드 {sim.RemainingEnemies}마리 접근!</size>";
                 waveCall.color = last ? UITheme.Coral : UITheme.Sunny;
                 waveCall.transform.SetAsLastSibling();
+                WaveBand().SetSiblingIndex(waveCall.transform.GetSiblingIndex());
                 waveCallAt = Time.unscaledTime; battle.PlaySound("wave-start");
             }
             lastPhase = sim.Phase;
             if (!waveCall) return;
             float t = Time.unscaledTime - waveCallAt;
             waveCall.gameObject.SetActive(t < WaveCallSeconds && !MenuOpen); // it would show through the Esc menu's shade
+            AnimateWaveBand(t, t < WaveCallSeconds && !MenuOpen, waveCall.color);
             if (t >= WaveCallSeconds) return;
+            float slide = t < .25f ? -240 * Mathf.Pow(1 - t / .25f, 3) : t > WaveCallSeconds - .3f ? 300 * Mathf.Pow((t - (WaveCallSeconds - .3f)) / .3f, 2) : 0;
+            waveCall.rectTransform.anchoredPosition = new Vector2(slide, 110);
             waveCall.rectTransform.localScale = Vector3.one * (t < .2f ? Mathf.Lerp(1.6f, 1, Mathf.SmoothStep(0, 1, t / .2f)) : 1 + .02f * (t - .2f));
             waveCall.alpha = t < .2f ? t / .2f : t > WaveCallSeconds - .45f ? (WaveCallSeconds - t) / .45f : 1;
         }
@@ -462,9 +467,15 @@ namespace CodingGame.Defense
             waveCall.gameObject.SetActive(false);
         }
 
-        // The damage a hit did, over the enemy, and "+n 코인" over a kill: rising and fading, so every attack the code makes
+        // The damage a hit did, over the enemy (a kill's coin flies to the counter, DefensePlayerHUD.Fx): rising and fading, so every attack the code makes
         // shows its result. A small pool is reused oldest first, so a burst of hits never piles up labels.
-        sealed class Floater { public TextMeshProUGUI label; public Vector3 world; public float born, life, rise, drift; }
+        // lastAt: the last hit rolled into it (its fade and pop count from there, its rise from born); enemy/total: whose hits it sums.
+        sealed class Floater { public TextMeshProUGUI label; public Vector3 world; public float born, lastAt, life, rise, drift, pop = .35f, total; public int enemy; }
+        float usualHit;
+        // One number per enemy: hits on it within RollSeconds of the last add up in the number shown, so a group under
+        // several robots reads "12.4" over each enemy, not "4.8 4 2 8.4" (2026-11-26).
+        const float RollSeconds = .4f;
+        readonly System.Collections.Generic.Dictionary<int, Floater> rolling = new System.Collections.Generic.Dictionary<int, Floater>();
         readonly System.Collections.Generic.List<Floater> floaters = new System.Collections.Generic.List<Floater>();
         [SerializeField, HideInInspector] RectTransform floaterLayer;
         [SerializeField, HideInInspector] System.Collections.Generic.List<TextMeshProUGUI> floaterLabels = new System.Collections.Generic.List<TextMeshProUGUI>();
@@ -474,12 +485,32 @@ namespace CodingGame.Defense
         {
             var sim = battle.Simulation;
             if (sim == null || !sim.Options.hitEffects) return;
+            NoteAction(evt);
             if ((evt.Kind == "hit" || evt.Kind == "projectile-hit") && evt.AppliedAmount > 0)
-                Float(evt.Position, evt.AppliedAmount.ToString("0.##"), Color.white, 30, .6f, 46);
+            {
+                // A hit well above the usual (the running average) pops bigger and golden.
+                float amount = evt.AppliedAmount; usualHit = usualHit <= 0 ? amount : Mathf.Lerp(usualHit, amount, .08f);
+                bool big = amount >= 6 && amount >= usualHit * 1.6f;
+                float now = Time.unscaledTime;
+                if (rolling.TryGetValue(evt.Target, out var shown) && shown.enemy == evt.Target && shown.label.gameObject.activeSelf && now - shown.lastAt < RollSeconds)
+                {
+                    shown.total += amount; shown.lastAt = now; shown.label.text = shown.total.ToString("0.#");
+                    if (big) { shown.label.color = new Color(1, .8f, .3f); shown.label.fontSize = Mathf.Max(shown.label.fontSize, 40); shown.pop = .8f; }
+                    return;
+                }
+                var floater = Float(evt.Position, amount.ToString("0.##"), big ? new Color(1, .8f, .3f) : Color.white, big ? 40 : 30, big ? .8f : .6f, big ? 64 : 46, big ? .8f : .35f);
+                floater.enemy = evt.Target; floater.total = amount; rolling[evt.Target] = floater;
+            }
+            else if (evt.Kind == "reflect") // a reflector sent the hit back: over the robot that made it
+                Float(evt.Position, "반사 -" + evt.Amount.ToString("0.#"), new Color(1, .42f, .36f), 32, .8f, 60);
+            else if (evt.Kind == "reflect-on")
+                Float(evt.Position, "반사!", new Color(.8f, .97f, 1), 28, .7f, 50);
+            else if (evt.Kind == "blocked") // a centipede segment that is not its open end
+                Float(evt.Position, "막힘", new Color(.62f, .7f, .82f), 28, .6f, 46);
             else if (evt.Kind == "killed" && sim.Setup.PlayerFlow && sim.KillCoins > 0)
-                Float(evt.Position, $"+{sim.KillCoins} 코인", new Color(1, .83f, .42f), 32, 1f, 74);
+                FlyCoin(evt.Position, sim.KillCoins); // a coin with "+n" flies into the header's coin count
         }
-        void Float(System.Numerics.Vector2 position, string text, Color color, float size, float life, float rise)
+        Floater Float(System.Numerics.Vector2 position, string text, Color color, float size, float life, float rise, float pop = .35f)
         {
             if (!floaterLayer) BuildFloaterLayer();
             // A resting label, else a new one up to the pool's size, else the oldest (a loop, not a query per hit).
@@ -493,13 +524,13 @@ namespace CodingGame.Defense
             floater ??= oldest;
             // Scattered round the head and rising at its own pace, so hits landing together read as separate numbers.
             floater.world = DefenseViews.World(position, EnemyHeadHeight) + DefenseHitVisuals.Scatter();
-            floater.born = Time.unscaledTime; floater.life = life; floater.rise = rise * UnityEngine.Random.Range(.85f, 1.15f);
+            floater.born = floater.lastAt = Time.unscaledTime; floater.life = life; floater.rise = rise * UnityEngine.Random.Range(.85f, 1.15f); floater.enemy = 0;
             // px to the side; a number landing on one just shown over the same enemy goes to its other side, so two hits
             // together never read as one number ("78.4"). ponytail: a third at once may overlap the first; fine at 0.6 s life.
             Floater beside = null;
             foreach (var f in floaters)
                 if (f != floater && f.label.gameObject.activeSelf && Time.unscaledTime - f.born < .3f && (f.world - floater.world).sqrMagnitude < 1) beside = f;
-            floater.label.text = text; floater.label.fontSize = size; floater.label.color = color;
+            floater.label.text = text; floater.label.fontSize = size; floater.label.color = color; floater.pop = pop;
             floater.drift = UnityEngine.Random.Range(-30f, 30f);
             if (beside != null)
             {
@@ -510,6 +541,7 @@ namespace CodingGame.Defense
                 floater.drift = beside.drift - (beside.drift < 0 ? -1 : 1) * gap;
             }
             floater.label.gameObject.SetActive(true);
+            return floater;
         }
         void BuildFloaterLayer()
         {
@@ -532,18 +564,36 @@ namespace CodingGame.Defense
         void AnimateFloaters()
         {
             var canvas = (RectTransform)canvasRoot.transform;
+            float now = Time.unscaledTime;
             foreach (var f in floaters)
             {
                 if (!f.label.gameObject.activeSelf) continue;
-                float k = (Time.unscaledTime - f.born) / f.life;
-                if (k >= 1) { f.label.gameObject.SetActive(false); continue; }
+                // k: the fade and pop since the last hit rolled in; the rise runs once from the first.
+                float k = (now - f.lastAt) / f.life, up = Mathf.Min(1, (now - f.born) / f.life);
+                if (k >= 1) { f.label.gameObject.SetActive(false); if (rolling.TryGetValue(f.enemy, out var r) && r == f) rolling.Remove(f.enemy); continue; }
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, battleCamera.WorldToScreenPoint(f.world), null, out var at);
                 // Pops up fast, then drifts; fades over the last half.
-                f.label.rectTransform.anchoredPosition = at + new Vector2(f.drift, f.rise * (1 - (1 - k) * (1 - k)));
+                f.label.rectTransform.anchoredPosition = at + new Vector2(f.drift, f.rise * (1 - (1 - up) * (1 - up)));
                 f.label.alpha = k < .5f ? 1 : 1 - (k - .5f) * 2;
-                f.label.transform.localScale = Vector3.one * (k < .12f ? 1 + .35f * (1 - k / .12f) : 1);
+                f.label.transform.localScale = Vector3.one * (k < .12f ? 1 + f.pop * (1 - k / .12f) : 1);
+                shownFloaters.Add(f.label);
             }
+            // Numbers over a crowd that would overlap: each one (lowest first) moves up clear of those below it.
+            shownFloaters.Sort((a, b) => a.rectTransform.anchoredPosition.y.CompareTo(b.rectTransform.anchoredPosition.y));
+            for (int i = 0; i < shownFloaters.Count; i++)
+            {
+                var upper = shownFloaters[i]; var p = upper.rectTransform.anchoredPosition;
+                for (int j = 0; j < i; j++)
+                {
+                    var lower = shownFloaters[j]; var q = lower.rectTransform.anchoredPosition;
+                    float clear = q.y + (upper.fontSize + lower.fontSize) * .5f + 2;
+                    if (Mathf.Abs(p.x - q.x) < (upper.preferredWidth + lower.preferredWidth) * .5f + 4 && p.y < clear) p.y = clear;
+                }
+                upper.rectTransform.anchoredPosition = p;
+            }
+            shownFloaters.Clear();
         }
+        readonly System.Collections.Generic.List<TextMeshProUGUI> shownFloaters = new System.Collections.Generic.List<TextMeshProUGUI>();
 
         // When an enemy reaches the core the screen's edges glow red for a moment (the core bar shakes with it), so a leak
         // is felt even while the player is looking at the other end of the road.
@@ -610,7 +660,7 @@ namespace CodingGame.Defense
                 button.interactable = !running && sim.Phase == BattlePhase.Running;
                 // Running: a small, flat "···" pill (the chip's top and bottom cut off, its corners still round), so it says busy
                 // without competing with the robots (play feedback 2026-11-12).
-                label.text = running ? "<voffset=-0.14em>···</voffset>" : "실행";
+                label.text = running ? RunningDots() : "실행";
                 label.fontSize = running ? 36 : 22; // big dots on the flat pill
                 // The dots sit at the font's middle, above the line's centre: in the whole pill (the chip's padding is 6 over 8
                 // under), centred by their shape and lowered 0.14 em (measured on screen: they showed 3.5 px high).
@@ -1244,7 +1294,7 @@ namespace CodingGame.Defense
                     $"\n<color={UITheme.MutedHex}><size=88%>{line.Stats}</size></color>";
                 card.share.rectTransform.anchorMax = new Vector2(line.Bot.DamageThisWave / most, 1);
                 card.share.color = card.stripe.color;
-                card.share.transform.parent.gameObject.SetActive(line.Bot.Spec.role != RobotRole.Buffer);
+                card.share.transform.parent.gameObject.SetActive(line.Bot.Spec.role != RobotRole.Support);
                 card.advice.text = line.Advice ?? "";
                 card.advice.gameObject.SetActive(line.Advice != null);
             }
@@ -1307,7 +1357,7 @@ namespace CodingGame.Defense
             SplitDefeatButtons(retry);
             claimLabel.text = reward ? (sim.WaveIndex + 1 == sim.Setup.Waves.Length ? "보상 수령 · 스테이지 완료" : "보상 수령 · 다음 준비") :
                 // Two lines in one button: smaller and closer together, or the second line touched the button's edge.
-                retry ? $"<size=88%>WAVE {sim.Checkpoint.Wave + 1} 다시 도전</size>\n<size=60%>배치·코드 그대로</size>" : sim.Phase != BattlePhase.Victory ? "이 스테이지 재도전" : battle.FromStageMap || battle.PrototypeEnded ? "스테이지 맵으로" : sim.CanAdvanceStage ? $"스테이지 {battle.Stage + 1}로 진행" : "3스테이지 완료";
+                retry ? $"<size=88%>WAVE {sim.Checkpoint.Wave + 1} 다시 도전</size>\n<size=60%>배치·코드 그대로</size>" : sim.Phase != BattlePhase.Victory ? "이 스테이지 재도전" : battle.ReturnsToMap ? "스테이지 맵으로" : sim.CanAdvanceStage ? $"스테이지 {battle.Stage + 1}로 진행" : "4스테이지 완료";
             if (shownRewardPhase != sim.Phase || shownRewardWave != sim.WaveIndex || shownRewardStage != battle.Stage)
             {
                 // Korean first; the banner keeps the English call as a small line above it.
@@ -1320,7 +1370,7 @@ namespace CodingGame.Defense
                 if (shownRewardPhase != sim.Phase) ShowEndBanner($"<size=40%>{english}</size>\n{rewardTitle.text}", sim.Phase == BattlePhase.Defeat);
                 // The victory sentence on two lines: in Pretendard Bold it no longer fits the card on one and left "다." alone.
                 rewardItems.text = reward ? (sim.PendingDrops.Count == 0 && sim.PendingRobots.Count == 0 ? "지급할 보상이 없습니다." : "") :
-                    (sim.Phase == BattlePhase.Victory ? battle.FromStageMap ? $"{sim.Setup.Waves.Length}개 웨이브 방어 성공\n스테이지 맵에서 다음 스테이지를 선택하세요." : sim.CanAdvanceStage ? $"{sim.Setup.Waves.Length}개 웨이브 방어 성공\n보유 블록과 로봇을 다음 스테이지로 가져갑니다." : $"1~3스테이지, 총 {sim.Setup.CampaignWaves?.Sum(waves => waves.Length) ?? sim.Setup.Waves.Length}개 웨이브를 완료했습니다." : "방어 실패 · 배치와 코드를 바꿔 도전하세요") + $"\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
+                    (sim.Phase == BattlePhase.Victory ? battle.ReturnsToMap && !battle.PrototypeEnded ? $"{sim.Setup.Waves.Length}개 웨이브 방어 성공\n스테이지 맵에서 다음 스테이지를 선택하세요." : sim.CanAdvanceStage ? $"{sim.Setup.Waves.Length}개 웨이브 방어 성공\n보유 블록과 로봇을 다음 스테이지로 가져갑니다." : $"1~4스테이지, 총 {sim.Setup.CampaignWaves?.Sum(waves => waves.Length) ?? sim.Setup.Waves.Length}개 웨이브를 완료했습니다." : "방어 실패 · 배치와 코드를 바꿔 도전하세요") + $"\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";
                 if (sim.Phase == BattlePhase.Victory) rewardItems.text = StarLine(sim) + "\n\n" + rewardItems.text;
                 if (battle.PrototypeEnded)
                     rewardItems.text = StarLine(sim) + $"\n\n스테이지 {battle.Stage} · {battle.Stage}-{sim.Setup.Waves.Length}까지가 지금 개발된 프로토타입이에요.\n다음 스테이지는 개발 중입니다.\n\n처치 {sim.Kills}   /   돌파 {sim.Leaks}";

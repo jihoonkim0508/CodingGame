@@ -46,7 +46,7 @@ public static class HudAuditCheck
     static void Late(DefensePlayerHUD h) => typeof(DefensePlayerHUD).GetMethod("LateUpdate", All).Invoke(h, null);
     static int Place(DefenseSimulation sim, RobotRole role)
     {
-        int index = Enumerable.Range(0, 6).Single(i => battle.DefinitionRole(i) == role);
+        int index = Enumerable.Range(0, Rules.RoleCount).Single(i => battle.DefinitionRole(i) == role);
         for (float x = sim.Setup.Min.X + 1; x < sim.Setup.Max.X - 1; x++)
             for (float y = sim.Setup.Min.Y + 1; y < sim.Setup.Max.Y - 1; y++)
                 if (sim.PlacementError(battle.RobotDefinition(index).stats, new Point(x, y)) == null &&
@@ -181,7 +181,7 @@ public static class HudAuditCheck
         Run("H5 spin follows battle speed once", () =>
         {
             var sim = Fresh(1, 1);
-            var view = ViewOf(Place(sim, RobotRole.Warrior)); var head = Get<Transform>(view, "head");
+            var view = ViewOf(Place(sim, RobotRole.Melee)); var head = Get<Transform>(view, "head");
             var target = head.position + new Vector3(3, 0, 0);
             float Turn(float pace) { view.SetPace(pace); view.Spin(target, 1f); var r0 = head.rotation; view.TickVisual(.1f); return Quaternion.Angle(r0, head.rotation); }
             float expected = 360 * Mathf.SmoothStep(0, 1, .1f / 2); // .1 s of battle time into a 2 s turn
@@ -193,7 +193,7 @@ public static class HudAuditCheck
         Run("H5 hover follows battle speed once", () =>
         {
             var sim = Fresh(1, 1);
-            var view = ViewOf(Place(sim, RobotRole.Warrior));
+            var view = ViewOf(Place(sim, RobotRole.Melee));
             var bob = new GameObject("hover test").transform; bob.SetParent(view.transform, false);
             Set(view, "hover", bob); Set(view, "hoverY", 0f); Set(view, "hoverTime", 0f);
             view.SetPace(3); view.TickVisual(.1f);
@@ -204,7 +204,7 @@ public static class HudAuditCheck
         Run("H5 visuals cleared puts the model back", () =>
         {
             var sim = Fresh(1, 1);
-            var view = ViewOf(Place(sim, RobotRole.Warrior)); var head = Get<Transform>(view, "head");
+            var view = ViewOf(Place(sim, RobotRole.Melee)); var head = Get<Transform>(view, "head");
             view.SetPace(1); view.Spin(head.position + new Vector3(3, 0, 0), 1f);
             var facing = head.rotation; view.TickVisual(.5f);
             float mid = Quaternion.Angle(facing, head.rotation);
@@ -217,7 +217,7 @@ public static class HudAuditCheck
         Run("H6 no beam to itself on buff/stun", () =>
         {
             var sim = Fresh(1, 1);
-            int id = Place(sim, RobotRole.Shooter); var view = ViewOf(id); var beam = Get<LineRenderer>(view, "beam");
+            int id = Place(sim, RobotRole.Ranged); var view = ViewOf(id); var beam = Get<LineRenderer>(view, "beam");
             var fx = Get<object>(battle, "hitEffects"); var show = fx.GetType().GetMethod("Show");
             var own = sim.FindRobot(id).Position; var problems = new List<string>();
             foreach (var kind in new[] { "buff", "stun" })
@@ -232,7 +232,7 @@ public static class HudAuditCheck
         Run("H7 laser impact at the enemy when the hit lands", () =>
         {
             var sim = Fresh(1, 1);
-            int id = Place(sim, RobotRole.Shooter); var view = ViewOf(id);
+            int id = Place(sim, RobotRole.Ranged); var view = ViewOf(id);
             if (!view.HasMuzzle) return "test setup: shooter view has no muzzle";
             var fx = Get<object>(battle, "hitEffects"); var type = fx.GetType(); var active = Get<IList>(fx, "active");
             type.GetMethod("Clear").Invoke(fx, null);
@@ -291,7 +291,7 @@ public static class HudAuditCheck
 
         Run("H11 shooter text matches the damage rule", () =>
         {
-            var shooter = battle.RobotDefinitions.Single(r => r.stats.role == RobotRole.Shooter);
+            var shooter = battle.RobotDefinitions.Single(r => r.stats.role == RobotRole.Ranged);
             // Damage does not depend on distance (inverse-distance bonus dropped 2026-11-18): no text may promise more up close.
             string text = shooter.description;
             return new[] { "1m", "1/3", "반비례", "가까운 적일수록", "최대 피해" }.Any(text.Contains) ? "description still describes distance-based damage: " + text : null;

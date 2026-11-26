@@ -191,13 +191,13 @@ namespace CodingGame.Defense.Editor
                 .Concat(current ? current.steps.Take(step) : Enumerable.Empty<TutorialStep>());
             var sim = b.Simulation;
             var coded = new HashSet<int>(sim.Robots.Where(r => r.Program != null).Select(r => r.Id));
-            var roles = new List<RobotRole>(); var dock = RobotRole.Warrior;
+            var roles = new List<RobotRole>(); var dock = RobotRole.Melee;
             foreach (var s in done)
             {
                 var button = (s.targetKeys ?? Array.Empty<string>()).LastOrDefault(k => k.StartsWith(TutorialKeys.RobotButtonPrefix));
                 if (button != null && int.TryParse(button.Substring(TutorialKeys.RobotButtonPrefix.Length), out int i) && i >= 0 && i < sim.Setup.ActionProfiles.Length) dock = b.DefinitionRole(i);
-                if (s.placeShooter) Place(b, roles, RobotRole.Shooter, false, true);
-                if (s.placeWarrior) Place(b, roles, RobotRole.Warrior, s.robotIndex < 0, true);
+                if (s.placeShooter) Place(b, roles, RobotRole.Ranged, false, true);
+                if (s.placeWarrior) Place(b, roles, RobotRole.Melee, s.robotIndex < 0, true);
                 if (s.completionSignal == TutorialSignals.RobotPlaced) Place(b, roles, dock, true, false);
                 if (s.completionSignal != TutorialSignals.ProgramMatches) continue;
                 var bot = sim.Robots.OrderBy(r => r.Id).ElementAtOrDefault(s.robotIndex < 0 ? roles.Count + s.robotIndex : s.robotIndex);
@@ -332,7 +332,7 @@ namespace CodingGame.Defense.Editor
                     for (int s = 0; s <= 20; s++)
                         if (Point.Distance(p, Point.Lerp(route.Points[i - 1], route.Points[i], s / 20f)) <= spec.range)
                             score += Point.Distance(route.Points[i - 1], route.Points[i]) / 21;
-            return spec.role == RobotRole.Buffer ? sim.Robots.Count(r => Point.Distance(r.Position, p) <= spec.range) * 100 + score : score;
+            return spec.role == RobotRole.Support ? sim.Robots.Count(r => Point.Distance(r.Position, p) <= spec.range) * 100 + score : score;
         }
 
         // Starts the wave if needed and simulates it to the end in one call. Views catch up on the next frame.

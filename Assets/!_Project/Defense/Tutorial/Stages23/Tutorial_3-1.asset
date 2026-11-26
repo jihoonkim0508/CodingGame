@@ -183,7 +183,7 @@ MonoBehaviour:
       focusKeys: []
       highlightKeys: []
     targetKeys:
-    - Battle.Robot.2
+    - Battle.Robot.1
     dim: 1
     undimmed: 0
     blockInput: 1

@@ -31,7 +31,7 @@ static class AuditCheck
     static void BossWaveLeak()
     {
         var sim = new DefenseSimulation(Setup(2, 0, new[] { Group(1, 200), Group(1, 1, 0, true) }));
-        Place(sim, RobotRole.Shooter, 8, 9.5f);
+        Place(sim, RobotRole.Ranged, 8, 9.5f);
         sim.Start(); Tick(sim, 120);
         Assert(sim.Leaks == 1, "the minion leaked");
         Assert(sim.Phase == BattlePhase.Defeat && sim.ObjectiveFailed, $"2 s after the leak: phase {sim.Phase}, ObjectiveFailed {sim.ObjectiveFailed}");
@@ -43,7 +43,7 @@ static class AuditCheck
         foreach (var op in new[] { "==", "!=" })
         {
             var sim = new DefenseSimulation(Setup(2, 0, new[] { Group(1, 1, 100) }));
-            var bot = Place(sim, RobotRole.Warrior, -9, 2);
+            var bot = Place(sim, RobotRole.Melee, -9, 2);
             var distance = B(BlockKind.Distance, "0", B(BlockKind.Variable, "enemy"), B(BlockKind.MyPos));
             sim.ApplyProgram(bot.Id, "cmp", new[] { B(BlockKind.DeclareVariable, "enemy", B(BlockKind.NearestEnemy)),
                 With(B(BlockKind.If, "0", B(BlockKind.Comparison, op, distance, B(BlockKind.Number, "3"))), B(BlockKind.Slash)) });
@@ -58,8 +58,8 @@ static class AuditCheck
     {
         var sim = new DefenseSimulation(Setup(2, 2, new[] { Group(2, 1) }, new[] { Group(2, 1) }, new[] { Group(4, 1) }));
         foreach (var g in sim.CurrentWave) g.Enemy.health = 1000; // outlives the other robot's fire
-        var teacher = Place(sim, RobotRole.Shooter, -9, 5);
-        var other = Place(sim, RobotRole.Shooter, -8, 3); other.AutoExecute = true;
+        var teacher = Place(sim, RobotRole.Ranged, -9, 5);
+        var other = Place(sim, RobotRole.Ranged, -8, 3); other.AutoExecute = true;
         var watcher = new TutorialWatcher();
         sim.Start();
         var early = new List<string>();
@@ -77,15 +77,15 @@ static class AuditCheck
     {
         BattleSetup S(int wave) => Setup(2, wave, new[] { Group(2, 1) }, new[] { Group(2, 1) }, new[] { Group(2, 1) });
         var sim = new DefenseSimulation(S(0));
-        Place(sim, RobotRole.Shooter, 8, 9.5f); var tank = Place(sim, RobotRole.Tank, 0, 0);
+        Place(sim, RobotRole.Ranged, 8, 9.5f); var tank = Place(sim, RobotRole.Melee, 0, 3);
         sim.Start(); sim.DamageRobot(tank.Id, 1e6f);
-        Assert(sim.Robots.All(r => r.Spec.role != RobotRole.Tank), "setup: the tank is destroyed");
+        Assert(sim.Robots.All(r => r.Spec.role != RobotRole.Melee), "setup: the tank is destroyed");
         for (int i = 0; i < 6000 && sim.Phase == BattlePhase.Running; i++) sim.Advance(1.0 / 60);
         sim.ClaimRewards(); sim.Start();
         Assert(sim.WaveIndex == 1 && sim.Checkpoint != null, "setup: wave 2 started");
-        int left = sim.RobotAvailable(RobotRole.Tank);
+        int left = sim.RobotAvailable(RobotRole.Melee);
         var retry = new DefenseSimulation(S(1)); retry.Restore(sim.Checkpoint);
-        Assert(retry.RobotAvailable(RobotRole.Tank) == left, $"tanks in stock: {left} when the wave began, {retry.RobotAvailable(RobotRole.Tank)} after the retry");
+        Assert(retry.RobotAvailable(RobotRole.Melee) == left, $"tanks in stock: {left} when the wave began, {retry.RobotAvailable(RobotRole.Melee)} after the retry");
     }
 
     // S5: a while loop that goes around counts as loop turns exactly like for.
@@ -94,7 +94,7 @@ static class AuditCheck
         var setup = Setup(2, 0, new[] { Group(1, 1, 100) });
         setup.Progression.initial = setup.Progression.initial.Append(new BlockStock { kind = BlockKind.While }).ToArray(); // the fixture has no while block
         var sim = new DefenseSimulation(setup);
-        var bot = Place(sim, RobotRole.Warrior, -9, 2);
+        var bot = Place(sim, RobotRole.Melee, -9, 2);
         sim.ApplyProgram(bot.Id, "forever", new[] { With(B(BlockKind.While), B(BlockKind.Wait, "0", B(BlockKind.Number, "0.1"))) });
         sim.Start(); Tick(sim, 60);
         Assert(bot.Program.Fault == null && bot.Program.Running, "setup: the loop keeps running");

@@ -23,21 +23,21 @@ static class Check
         loop.Body.AddRange(body); return loop;
     }
     // The warrior as in Warrior.asset.
-    static RobotSpec Warrior() => new RobotSpec { role = RobotRole.Warrior, range = 3.6f, interval = 1.6f, damage = 7 };
+    static RobotSpec Warrior() => new RobotSpec { role = RobotRole.Melee, range = 3.6f, interval = 1.6f, damage = 7 };
     static RobotSpec[] Profiles() => Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>()
-        .Select(role => role == RobotRole.Warrior ? Warrior() : new RobotSpec { role = role, range = 3.6f, interval = .8f, damage = 14 }).ToArray();
+        .Select(role => role == RobotRole.Melee ? Warrior() : new RobotSpec { role = role, range = 3.6f, interval = .8f, damage = 14 }).ToArray();
     static int Attacks(string op)
     {
         var sim = new DefenseSimulation(new BattleSetup {
             Progression = new DefenseProgression {
-                lessons = Array.Empty<WaveLesson>(), robots = new[] { new RobotStock { role = RobotRole.Warrior } },
+                lessons = Array.Empty<WaveLesson>(), robots = new[] { new RobotStock { role = RobotRole.Melee } },
                 initial = DefenseProgression.ItemKinds.Select(k => new BlockStock { kind = k, count = 20 }).ToArray()
             },
             Min = new Vector2(-20, -10), Max = new Vector2(20, 10), ActionProfiles = Profiles(),
             Routes = new[] { new Route(new[] { new Vector2(-10, 0), new Vector2(10, 0) }, 1) },
             Waves = new[] { new[] { new SpawnGroup { Enemy = new EnemySpec { health = 1000, speed = .01f }, Count = 1, Interval = 1 } } }
         });
-        var robot = sim.Place(Warrior(), (int)RobotRole.Warrior, new Vector2(-9, 2), out var error); // 2.2 from the enemy: within range
+        var robot = sim.Place(Warrior(), (int)RobotRole.Melee, new Vector2(-9, 2), out var error); // 2.2 from the enemy: within range
         Require(robot != null, error);
         sim.ApplyProgram(robot.Id, "condition_example", Program(op)); sim.Start();
         for (int i = 0; i < 180; i++) sim.Advance(1.0 / 60);
@@ -53,7 +53,7 @@ static class Check
             Routes = new[] { new Route(new[] { new Vector2(12, 0), new Vector2(-25, 0) }, .75f) },
             Waves = new[] { new[] { new SpawnGroup { Enemy = new EnemySpec { health = 10.7f, speed = 1.6f }, Count = 5, Delay = lag, Interval = 6.25f } } }
         });
-        var robot = sim.Place(Warrior(), (int)RobotRole.Warrior, new Vector2(0, 2.6f), out var error);
+        var robot = sim.Place(Warrior(), (int)RobotRole.Melee, new Vector2(0, 2.6f), out var error);
         Require(robot != null, error);
         var code = guarded ? new[] { Loop(Program("<=")) } : new[] { Loop(new CodeBlock(BlockKind.Slash)) };
         sim.ApplyProgram(robot.Id, guarded ? "guarded" : "baseline", code); sim.Start();
@@ -66,7 +66,7 @@ static class Check
     // hold the input. A basic enemy falls to one swing; the tank-bodied one does not.
     static void IntroLeak()
     {
-        var spec = new RobotSpec { role = RobotRole.Warrior, range = 3.6f, interval = .8f, damage = 14 };
+        var spec = new RobotSpec { role = RobotRole.Melee, range = 3.6f, interval = .8f, damage = 14 };
         var basic = new EnemySpec { health = 12.6f, speed = 1.26f, leakDamage = 1 };
         var setup = new BattleSetup {
             Min = new Vector2(-12, -4), Max = new Vector2(12, 4), BaseHealth = 12,

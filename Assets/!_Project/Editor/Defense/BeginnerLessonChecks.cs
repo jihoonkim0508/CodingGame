@@ -215,7 +215,7 @@ namespace CodingGame.Defense.Editor
             {
                 if (sim.Phase == BattlePhase.Victory)
                 {
-                    Require(battle.PrototypeEnded, "3-4 won without the prototype end");
+                    Require(sim.CanAdvanceStage && !battle.PrototypeEnded, "3-4 won but Stage 4 (팀 플레이) does not come next");
                     End("PASS 3-1 to 3-4 completed: the tank introduced and stood on the road, every wave held, the boss won; kills=" + sim.Kills + " core=" + sim.BaseHealth); return;
                 }
                 if (sim.Phase == BattlePhase.Defeat) { End("FAIL stage 3 wave " + (sim.WaveIndex + 1) + " lost; kills=" + sim.Kills + " leaks=" + sim.Leaks); return; }
@@ -229,7 +229,7 @@ namespace CodingGame.Defense.Editor
                 bool waiting = director.EditorStep?.stepId == "E01" || !director.IsActive;
                 if (sim.Phase == BattlePhase.Ready && waiting)
                 {
-                    if (sim.WaveIndex == 0) Require(sim.Robots.Any(r => r.Spec.role == RobotRole.Tank), "3-1 did not place the tank");
+                    if (sim.WaveIndex == 0) Require(sim.Robots.Any(r => r.Spec.role == RobotRole.Melee), "3-1 did not place the melee robot");
                     // 3-1's reward is claimed by its lesson (E02): whether its wave was held is seen as 3-2 begins.
                     if (sim.WaveIndex == 1) Require(sim.Kills >= 4 && sim.BaseHealth >= 6, "3-1's wave was not held; kills=" + sim.Kills + " core=" + sim.BaseHealth);
                     PlaceStock(sim);
@@ -579,15 +579,15 @@ namespace CodingGame.Defense.Editor
             // Stage 2's own robots: 2-1's shooter and warrior (1-5's clear), from 2-6 a second shooter, from 2-9 a third shooter
             // and a second warrior (2-8's clear); every robot in stock is placed, as a player places what they have.
             // The first warrior stands where the lessons stand theirs (2-3 and 2-8 used to: by the road, DefenseBattle.PlaceLessonRobot).
-            if (sim.RobotAvailable(RobotRole.Warrior) > 0 && !sim.Robots.Any(r => r.Spec.role == RobotRole.Warrior))
-            { battle.PlaceLessonRobot(RobotRole.Warrior); Require(sim.Robots.Any(r => r.Spec.role == RobotRole.Warrior), "2-1's warrior was not stood by the road"); }
-            foreach (var role in new[] { RobotRole.Shooter, RobotRole.Warrior })
+            if (sim.RobotAvailable(RobotRole.Melee) > 0 && !sim.Robots.Any(r => r.Spec.role == RobotRole.Melee))
+            { battle.PlaceLessonRobot(RobotRole.Melee); Require(sim.Robots.Any(r => r.Spec.role == RobotRole.Melee), "2-1's warrior was not stood by the road"); }
+            foreach (var role in new[] { RobotRole.Ranged, RobotRole.Melee })
             {
                 int index = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => battle.DefinitionRole(i) == role);
                 while (sim.RobotAvailable(role) > 0) { battle.ChooseRobot(index); PlaceBest(battle, index); }
             }
             foreach (var bot in sim.Robots.Where(r => r.Program == null || r.Program.IsEmpty).ToArray())
-                sim.ApplyProgram(bot.Id, "free_" + bot.Id, TutorialAnswers.Parse(bot.Spec.role == RobotRole.Shooter ? TutorialSequenceBuilder.Code21 : "while True:\n    slash()"));
+                sim.ApplyProgram(bot.Id, "free_" + bot.Id, TutorialAnswers.Parse(bot.Spec.role == RobotRole.Ranged ? TutorialSequenceBuilder.Code21 : "while True:\n    slash()"));
         }
 
         // Each wave's answer code at battle start: the lessons (2-5, 2-6, 2-8) teach the first shooter, the free waves' hints
@@ -603,11 +603,11 @@ namespace CodingGame.Defense.Editor
         static void StageTwoCodes(DefenseSimulation sim, bool battle)
         {
             var teacher = TutorialWatcher.TeachingRobot(sim); int wave = sim.WaveIndex;
-            var others = sim.Robots.Where(r => r.Spec.role == RobotRole.Shooter && r != teacher).OrderBy(r => r.Id).ToArray();
+            var others = sim.Robots.Where(r => r.Spec.role == RobotRole.Ranged && r != teacher).OrderBy(r => r.Id).ToArray();
             if (!battle) { foreach (var bot in others.Where(r => r.Program == null || r.Program.IsEmpty)) Apply(sim, bot, TutorialSequenceBuilder.Code21); return; }
             foreach (var bot in others) Apply(sim, bot, SecondShooter[wave]);
             if ((wave == 6 || wave == 8 || wave == 9) && teacher != null) Apply(sim, teacher, wave == 6 ? TutorialSequenceBuilder.Code27 : TutorialSequenceBuilder.Code28);
-            if (wave >= 8) foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Warrior)) Apply(sim, bot, TutorialSequenceBuilder.Code23);
+            if (wave >= 8) foreach (var bot in sim.Robots.Where(r => r.Spec.role == RobotRole.Melee)) Apply(sim, bot, TutorialSequenceBuilder.Code23);
         }
         static void Apply(DefenseSimulation sim, RobotState bot, string code)
         {
@@ -617,7 +617,7 @@ namespace CodingGame.Defense.Editor
         static void StageTwoStart(DefenseBattle battle)
         {
             var sim = battle.Simulation;
-            Require(sim.Robots.Count(r => r.Spec.role == RobotRole.Shooter) == (sim.WaveIndex >= 8 ? 3 : sim.WaveIndex >= 5 ? 2 : 1) && sim.Robots.Count(r => r.Spec.role == RobotRole.Warrior) == (sim.WaveIndex >= 8 ? 2 : 1),
+            Require(sim.Robots.Count(r => r.Spec.role == RobotRole.Ranged) == (sim.WaveIndex >= 8 ? 3 : sim.WaveIndex >= 5 ? 2 : 1) && sim.Robots.Count(r => r.Spec.role == RobotRole.Melee) == (sim.WaveIndex >= 8 ? 2 : 1),
                 "Stage 2 must be played with a shooter and a warrior, from 2-6 a second shooter, from 2-9 a third shooter and a second warrior: " + string.Join(",", sim.Robots.Select(r => r.Spec.role)));
             StageTwoCodes(sim, true);
             battle.StartBattle();
@@ -632,12 +632,12 @@ namespace CodingGame.Defense.Editor
         {
             var sim = battle.Simulation;
             // 1-4 brings a third warrior (the shooter waits for 2-1 since 13차 179).
-            Require(sim.RobotAvailable(RobotRole.Warrior) >= 1 && sim.RobotAvailable(RobotRole.Shooter) == 0, "1-4 must bring a new warrior and no shooter");
+            Require(sim.RobotAvailable(RobotRole.Melee) >= 1 && sim.RobotAvailable(RobotRole.Ranged) == 0, "1-4 must bring a new warrior and no shooter");
             Require(sim.StartError() == null, "1-4 free play must start without new code: " + sim.StartError());
-            int warrior = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => battle.DefinitionRole(i) == RobotRole.Warrior);
+            int warrior = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => battle.DefinitionRole(i) == RobotRole.Melee);
             battle.ChooseRobot(warrior); PlaceBest(battle, warrior);
             var learner = sim.Robots.OrderBy(r => r.Id).Last();
-            Require(learner.Spec.role == RobotRole.Warrior, "1-4's new robot is not a warrior");
+            Require(learner.Spec.role == RobotRole.Melee, "1-4's new robot is not a warrior");
             battle.SelectRobot(learner.Id); battle.DevelopSelected();
             battle.CodeEditor.Panel.LoadProgram("loop_practice", TutorialAnswers.Parse("while True:\n    slash()"));
             Require(battle.CodeEditor.Panel.IsApplied, "1-4 warrior code was not applied: " +
@@ -695,15 +695,15 @@ namespace CodingGame.Defense.Editor
             // placed and looped here as 1-4's (three warriors do not hold the boss). Its clear reward is 2-1's.
             Require(sim.Lesson != null && sim.Lesson.blocks.Length == 0 && sim.Lesson.robots.Length == 0,
                 "1-5 should bring no blocks or robots");
-            Require(sim.RobotAvailable(RobotRole.Warrior) >= 1, "1-5 must have the warrior 1-4's clear gave");
-            int warrior = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => battle.DefinitionRole(i) == RobotRole.Warrior);
+            Require(sim.RobotAvailable(RobotRole.Melee) >= 1, "1-5 must have the warrior 1-4's clear gave");
+            int warrior = Enumerable.Range(0, sim.Setup.ActionProfiles.Length).First(i => battle.DefinitionRole(i) == RobotRole.Melee);
             battle.ChooseRobot(warrior); PlaceBest(battle, warrior);
             var fourth = sim.Robots.OrderBy(r => r.Id).Last();
             battle.SelectRobot(fourth.Id); battle.DevelopSelected();
             battle.CodeEditor.Panel.LoadProgram("loop_practice", TutorialAnswers.Parse("while True:\n    slash()"));
             Require(battle.CodeEditor.Panel.IsApplied, "1-5 fourth warrior code was not applied: " + Field<TMP_Text>(battle.CodeEditor.Panel, "status").text);
             battle.CodeEditor.Close();
-            Require(sim.Robots.Count(r => r.Spec.role == RobotRole.Warrior && r.Program != null && !r.Program.IsEmpty) == 4, "1-5 starts with four coded warriors");
+            Require(sim.Robots.Count(r => r.Spec.role == RobotRole.Melee && r.Program != null && !r.Program.IsEmpty) == 4, "1-5 starts with four coded warriors");
             Require(sim.Available(BlockKind.DeclareVariable) == 0 && sim.Available(BlockKind.If) == 0, "Variables and conditions open in Stage 2, not 1-5");
             battle.StartBattle();
             Require(battle.Simulation.Phase == BattlePhase.Running, "1-5 battle did not start");

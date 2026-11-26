@@ -28,7 +28,7 @@ System.Func<int, CodingGame.Defense.DefenseSimulation> make = limit => {
         Waves = new[] { new[] { new CodingGame.Defense.SpawnGroup { Enemy = new CodingGame.Defense.EnemySpec(), Count = 1, Delay = 100, Interval = 1 } } }
     });
     sim.Robots.Add(new CodingGame.Defense.RobotState { Id = 100, Position = System.Numerics.Vector2.Zero,
-        Spec = new CodingGame.Defense.RobotSpec { role = CodingGame.Defense.RobotRole.Warrior, range = 3, damage = 10, interval = .1f } });
+        Spec = new CodingGame.Defense.RobotSpec { role = CodingGame.Defense.RobotRole.Melee, range = 3, damage = 10, interval = .1f } });
     sim.Start(); return sim;
 };
 var battle = make(5);

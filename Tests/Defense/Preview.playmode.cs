@@ -87,7 +87,7 @@ try
     Check(Stock()==stock&&battle.Simulation.Time==time&&battle.Simulation.BaseHealth==baseHealth&&actualTank.Health==health,
         "preview does not consume actual inventory, time or health");
     // A shooter's preview puts a yellow crosshair over the enemy its shot went at; a restart takes it away.
-    int shooterIndex=Enumerable.Range(0,battle.RobotDefinitions.Count).First(i=>battle.DefinitionRole(i)==CodingGame.Defense.RobotRole.Shooter);
+    int shooterIndex=Enumerable.Range(0,battle.RobotDefinitions.Count).First(i=>battle.DefinitionRole(i)==CodingGame.Defense.RobotRole.Ranged);
     var shooterSpec=battle.RobotDefinition(shooterIndex).stats; bool placed=false;
     for(float x=-12;x<12&&!placed;x+=.5f) for(float y=-8;y<8&&!placed;y+=.5f)
         placed=battle.Simulation.PlacementError(shooterSpec,new System.Numerics.Vector2(x,y))==null&&battle.PlaceRobot(shooterIndex,new UnityEngine.Vector3(x,0,y));

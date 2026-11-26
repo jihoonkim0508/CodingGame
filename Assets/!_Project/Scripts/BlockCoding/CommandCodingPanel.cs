@@ -25,7 +25,11 @@ namespace CodingGame.BlockCoding
         [SerializeField] CommandBlockView variablePrefab;
         [SerializeField] GameObject variableEmptyHint;
         [SerializeField, Tooltip("Optional hint shown while the program has no blocks.")] GameObject programEmptyHint;
-        readonly HashSet<string> enemyVariables = new HashSet<string>();
+        Dictionary<string, PythonTreeCompiler.Sort> sorts = new Dictionary<string, PythonTreeCompiler.Sort>();
+        // The team board's names, so a robot's code may use them (DefenseCodeEditor gives the battle's); null outside a battle.
+        public Func<PythonTreeCompiler.Shared> Shared { get; set; }
+        // The team board's own lines are edited here too: then the code compiles as the board (`name = value` only).
+        public bool BoardMode { get; set; }
         List<CommandBlockView> dragging = new List<CommandBlockView>();
         readonly List<CommandBlockView> ghosts = new List<CommandBlockView>();
         // See-through copies of the dragged lines where they will land (snap preview draft 1), and the zone opened for them.
@@ -46,6 +50,17 @@ namespace CodingGame.BlockCoding
         bool restoringHistory;
         string sizedFunctionName;
         float sizedTitleWidth = -1;
+        // The def robot_N(): block round the start anchor (2026-11-25 request): a C like while's, its mouth holding the chain that
+        // runs; drawn only (no CommandBlockView), so it cannot be dragged off or deleted, and the Python text is as before. Its
+        // header is the name row that sat over the code area.
+        CommandBlockShape defBlock;
+        RectTransform titleBar;
+        float defMouth;
+        const float DefHeader = 52, DefEmptyMouth = 52;
+        // The def block's top-left in the program's units: its spine and header round the start anchor.
+        static Vector2 DefOrigin => CommandDropZone.FirstPosition + new Vector2(-CommandBlockShape.ControlSpineWidth, DefHeader);
+        public CommandWorkspace Workspace { get; private set; }
+        public RectTransform DefBlock => defBlock ? defBlock.rectTransform : null;
         internal sealed class Draft
         {
             public string name;
@@ -120,6 +135,15 @@ namespace CodingGame.BlockCoding
             functionName.onValueChanged.AddListener(_ => { CommandBlockView.FitInput(functionName, 80); Changed(); });
             CommandBlockView.FitInput(functionName, 80);
             program.Bind(this, null);
+            BuildDef();
+            var scroll = program.GetComponentInParent<ScrollRect>(true);
+            if (scroll)
+            {
+                var view = scroll.viewport ? scroll.viewport : (RectTransform)program.transform.parent;
+                Workspace = view.gameObject.AddComponent<CommandWorkspace>();
+                Workspace.Bind(this, scroll);
+                ShowDefAtTopLeft();
+            }
             foreach (var item in palette) item.view.Bind(this, null, true);
             variablePrefab.Bind(this, null, true);
             for (int i = 0; i < categoryButtons.Length; i++)
@@ -218,24 +242,73 @@ namespace CodingGame.BlockCoding
             if (!target.Insert(source, at)) ShowMessage("먼저 맞는 모양의 빈 슬롯을 선택하거나, 블록을 원하는 위치로 드래그하세요.");
             else if (target == program && at == program.Blocks.Count - 1) RevealProgramEnd();
         }
-        // A click-add at the program's end lands below a long program: scroll the workspace down to it.
+        // A click-add at the program's end lands below a long program: pan the workspace up to it.
         // ponytail: only top-level appends; a block added inside a nested block at the bottom does not scroll.
         void RevealProgramEnd()
         {
-            var scroll = program.GetComponentInParent<ScrollRect>();
-            if (!scroll) return;
-            Canvas.ForceUpdateCanvases();
-            scroll.verticalNormalizedPosition = 0;
+            var last = program.StartChain().LastOrDefault();
+            if (!Workspace || !last) return;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(program.Rect);
+            Workspace.KeepInView(last.Rect);
+        }
+        void BuildDef()
+        {
+            defBlock = new GameObject("DefBlock", typeof(RectTransform), typeof(CanvasRenderer), typeof(CommandBlockShape)).GetComponent<CommandBlockShape>();
+            var rect = defBlock.rectTransform;
+            rect.SetParent(program.Rect, false); rect.SetAsFirstSibling();
+            defBlock.Configure(BlockSlotKind.Statement, true, true);
+            defBlock.HeaderHeight = DefHeader;
+            defBlock.color = UITheme.BlockCategories[0]; // while's and if's
+            titleBar = (RectTransform)functionName.transform.parent;
+            // The name row's place over the code area goes to the code: the divider comes up to where the row began.
+            var divider = titleBar.parent ? titleBar.parent.Find("HeaderDivider") as RectTransform : null;
+            var area = program.GetComponentInParent<ScrollRect>(true);
+            if (divider && area && divider.parent == titleBar.parent && area.transform.parent == titleBar.parent)
+            {
+                float freed = titleBar.anchoredPosition.y + titleBar.rect.height * (1 - titleBar.pivot.y) - divider.anchoredPosition.y - 4;
+                divider.anchoredPosition += new Vector2(0, freed);
+                ((RectTransform)area.transform).offsetMax += new Vector2(0, freed);
+            }
+            titleBar.SetParent(rect, false);
+            // Wide enough for any name (RefreshFunctionNameSize fits the field to it); the block is as wide as what is shown.
+            CommandBlockView.Place(titleBar, 14, 6, 600, DefHeader - 12);
+            defMouth = DefEmptyMouth;
+            LayoutDef();
+        }
+        // The def block's mouth follows the chain that runs (one line high when empty), easing like a C block's body.
+        void LayoutDef()
+        {
+            var chain = program.StartChainSize();
+            float mouth = Mathf.Max(DefEmptyMouth, chain.y);
+            defMouth = Mathf.Abs(defMouth - mouth) < .5f ? mouth : Mathf.Lerp(defMouth, mouth, 1 - Mathf.Exp(-Time.unscaledDeltaTime * 25));
+            float width = Mathf.Max(LayoutUtility.GetPreferredWidth(titleBar) + 28, CommandBlockShape.ControlSpineWidth + Mathf.Max(160, chain.x));
+            var size = new Vector2(width, DefHeader + defMouth + CommandBlockShape.ControlFooterHeight);
+            if (defBlock.rectTransform.sizeDelta == size) return;
+            CommandBlockView.Place(defBlock.rectTransform, DefOrigin.x, -DefOrigin.y, size.x, size.y);
+            defBlock.SetVerticesDirty();
+        }
+        // Pans the code so the def block sits at the code area's top-left; zoom and blocks stay as they are. Done when the editor
+        // shows another robot's code (the editor has no block/text modes: its Python view and preview toggles are switched off).
+        public void ShowDefAtTopLeft() { if (Workspace) Workspace.ShowAtTopLeft(DefOrigin); }
+        // What the off-screen note looks for: the def block (with the program in it) and each loose chain.
+        internal IEnumerable<IReadOnlyList<RectTransform>> Chains()
+        {
+            if (defBlock) yield return new[] { defBlock.rectTransform };
+            foreach (var root in program.LooseRoots()) yield return program.Group(root).Select(b => b.Rect).ToList();
         }
         public void ShowMessage(string text) => status.text = text;
+        // The team board's def row reads team_board and cannot be renamed.
+        public void SetNameEditable(bool editable) { Initialize(); functionName.interactable = editable; }
         internal void FillNewLoop(CommandBlockView block)
         {
-            if (block.Kind != BlockKind.For || block.Arguments[0].Blocks.Count != 0) return;
-            var number = palette.FirstOrDefault(item => item.view.BaseKind == BlockKind.Number).view;
-            if (number && (IsAvailable?.Invoke(BlockKind.Number) ?? true) && CanTake(number))
-                block.Arguments[0].Load(new[] { new CodeBlock(BlockKind.Number, "10") });
+            // range(10), or a for-each's get_enemies(): the loop comes with the one value it is made for.
+            if (block.Kind != BlockKind.For && block.Kind != BlockKind.ForEach || block.Arguments[0].Blocks.Count != 0) return;
+            var fill = block.Kind == BlockKind.For ? BlockKind.Number : BlockKind.GetEnemies;
+            var value = palette.FirstOrDefault(item => item.view.BaseKind == fill).view;
+            if (value && (IsAvailable?.Invoke(fill) ?? true) && CanTake(value))
+                block.Arguments[0].Load(new[] { new CodeBlock(fill, fill == BlockKind.Number ? "10" : "0") });
         }
-        internal bool IsEnemyVariable(string name) => enemyVariables.Contains(name);
+        internal PythonTreeCompiler.Sort SortOf(string name) => sorts.TryGetValue(name ?? "", out var sort) ? sort : PythonTreeCompiler.Sort.None;
         // False when another declaration already has the new name: the uses wait under the old one. Renamed into it they
         // became that variable's too (enemy_distance backspaced past enemy) and no longer followed their own declaration.
         // ponytail: a name finished on another variable's leaves its uses one edit short; they are retyped by hand.
@@ -250,18 +323,20 @@ namespace CodingGame.BlockCoding
         }
         void SyncVariables()
         {
-            enemyVariables.Clear();
+            // What each name holds as the code assigns it (an enemy, a robot, a list, a list's item), the board's names first:
+            // the members offered after `name.` follow it. A for-each's name is an enemy until its list says otherwise.
+            var assigned = new List<CodeBlock>();
             foreach (var block in program.AllBlocks())
             {
-                if (block.BaseKind != BlockKind.DeclareVariable) continue;
+                if (block.BaseKind != BlockKind.DeclareVariable && block.BaseKind != BlockKind.ForEach) continue;
                 string name;
                 try { name = PythonTreeCompiler.NormalizeIdentifier(block.VariableName); }
                 catch (FormatException) { name = block.RetainedName; }
                 if (string.IsNullOrEmpty(name)) continue;
-                var value = block.Arguments[0].ReadArgument();
-                if (value != null && (value.Kind == BlockKind.NearestEnemy || value.Kind == BlockKind.Variable && enemyVariables.Contains(value.Value))) enemyVariables.Add(name);
-                else enemyVariables.Remove(name);
+                var line = new CodeBlock(block.BaseKind, name, block.Arguments.Count > 0 ? block.Arguments[0].ReadArgument() : null);
+                assigned.Add(line);
             }
+            sorts = PythonTreeCompiler.Sorts(assigned, BoardMode ? null : Shared?.Invoke());
             foreach (var block in program.AllBlocks()) if (block.BaseKind == BlockKind.Variable) block.RefreshVariableOptions();
             variableEmptyHint.SetActive(false);
         }
@@ -317,6 +392,7 @@ namespace CodingGame.BlockCoding
             Initialize(); History = history; quietProblems = true; HideTip();
             try { RestoreHistory(false); if (modeTabs.Length > 0) Enter(false); }
             finally { quietProblems = false; }
+            ShowDefAtTopLeft();
         }
         // refreshText: an undo in the Python tab shows the restored code (LoadHistory leaves that to Enter and the record).
         void RestoreHistory(bool refreshText = true)
@@ -365,7 +441,7 @@ namespace CodingGame.BlockCoding
         List<CodeBlock> CompilePreview(out string source)
         {
             var blocks = program.Read();
-            source = PythonTreeCompiler.Compile(functionName.text, blocks);
+            source = BoardMode ? PythonTreeCompiler.CompileBoard(blocks, out _) : PythonTreeCompiler.Compile(functionName.text, blocks, Shared?.Invoke());
             pythonPreview.text = source;
             return blocks;
         }
@@ -390,14 +466,17 @@ namespace CodingGame.BlockCoding
             quietProblems = true; HideTip(); // a message of the code that was there goes with it
             try { Changed(); if (modeTabs.Length > 0) Enter(false); }
             finally { quietProblems = false; }
+            ShowDefAtTopLeft();
         }
         internal CommandBlockView CreateBlock(CodeBlock data, Transform parent)
         {
             if (data.Kind == BlockKind.Attack) data = new CodeBlock(BlockKind.Shot, data.Value, data.Arguments.ToArray());
             // is_dead() and type are a variable's members only (typed after `enemy.`), like distance( and hp.
-            if ((data.Kind == BlockKind.IsDead || data.Kind == BlockKind.EnemyTypeOf) && data.Arguments.FirstOrDefault()?.Kind != BlockKind.Variable)
-                throw new FormatException(data.Kind == BlockKind.IsDead ? "is_dead()는 변수 뒤에 점을 찍어 씁니다. 예: enemy.is_dead()" : "type은 변수 뒤에 점을 찍어 씁니다. 예: enemy.type");
-            bool variable = data.Kind == BlockKind.Variable || data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp || data.Kind == BlockKind.IsDead || data.Kind == BlockKind.EnemyTypeOf;
+            bool member = data.Kind is BlockKind.IsDead or BlockKind.EnemyTypeOf or BlockKind.Shield or BlockKind.Front or BlockKind.Top or BlockKind.Size or BlockKind.Reflecting or BlockKind.Left or BlockKind.Right or
+                BlockKind.WeakPoint or BlockKind.Role or BlockKind.Pop;
+            if (member && data.Arguments.FirstOrDefault()?.Kind != BlockKind.Variable)
+                throw new FormatException(PythonTreeCompiler.Label(data.Kind) + "는 변수 뒤에 점을 찍어 씁니다. 예: enemy." + PythonTreeCompiler.Label(data.Kind));
+            bool variable = member || data.Kind == BlockKind.Variable || data.Kind == BlockKind.Distance || data.Kind == BlockKind.Hp;
             var template = variable ? variablePrefab : palette.FirstOrDefault(item => item.view.BaseKind == data.Kind).view;
             if (!template) throw new FormatException("블록 프리팹이 연결되지 않았습니다: " + data.Kind);
             var view = Instantiate(template, parent);
@@ -421,6 +500,8 @@ namespace CodingGame.BlockCoding
                 ghostOffsets.Add(TopLeft(dragLayer, block.Rect) - sourceDragTopLeft);
                 var copy = block.Copy(dragLayer);
                 copy.SetGhostAppearance();
+                // As large as the block it lifts (the code area may be zoomed); a palette block's copy stays the palette's size.
+                copy.Rect.localScale *= block.Rect.lossyScale.x / dragLayer.lossyScale.x;
                 copy.Rect.anchorMin = copy.Rect.anchorMax = copy.Rect.pivot = new Vector2(0, 1);
                 copy.Rect.sizeDelta = new Vector2(copy.preferredWidth, copy.preferredHeight);
                 LayoutRebuilder.ForceRebuildLayoutImmediate(copy.Rect);
@@ -479,6 +560,7 @@ namespace CodingGame.BlockCoding
             if (functionName && (sizedFunctionName != functionName.text ||
                 ((RectTransform)functionName.transform.parent).rect.width != sizedTitleWidth)) RefreshFunctionNameSize();
             if (Dragged && dragEvent != null) UpdateSnapPreview(dragEvent);
+            if (defBlock) LayoutDef();
         }
         void UpdateBodyPreview(PointerEventData e)
         {
@@ -547,10 +629,11 @@ namespace CodingGame.BlockCoding
         float LandingHeight()
         {
             float height = 0;
-            for (int i = 0; i < dragging.Count; i++)
+            // The landing copies, placed blocks: a palette C block is one line, its copy an open C.
+            for (int i = 0; i < landing.Count; i++)
             {
-                height += dragging[i].preferredHeight;
-                if (i > 0 && PythonTreeCompiler.IsBranch(dragging[i].Kind)) height -= dragging[i - 1].FooterOverlap;
+                height += landing[i].preferredHeight;
+                if (i > 0 && PythonTreeCompiler.IsBranch(landing[i].Kind)) height -= landing[i - 1].FooterOverlap;
             }
             return height;
         }

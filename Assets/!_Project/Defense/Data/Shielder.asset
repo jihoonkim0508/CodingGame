@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54b331f6175a49043999eb0bbda985bf, type: 3}
+  m_Name: Shielder
+  m_EditorClassIdentifier: Assembly-CSharp::CodingGame.Defense.EnemyDefinition
+  displayName: "\uBCF4\uD638\uB9C9\uBCD1"
+  description: "\uBA87 \uCD08\uB9C8\uB2E4 \uC8FC\uBCC0 \uC801\uC5D0\uAC8C \uCCB4\uB825\uBCF4\uB2E4
+    \uBA3C\uC800 \uD53C\uD574\uB97C \uBC1B\uB294 \uBCF4\uD638\uB9C9\uC744 \uC50C\uC6C1\uB2C8\uB2E4.
+    break_shield()\uB85C \uAE68\uC138\uC694."
+  stats:
+    type: 4
+    health: 30
+    speed: 1.5
+    damage: 6
+    attackInterval: 1.2
+    leakDamage: 1
+    abilityInterval: 3
+    abilityRadius: 2.5
+    abilityAmount: 12
+    segmentCap: 8
+    reflectOn: 2
+    reflectOff: 3
+  prefab: {fileID: 8292641712839652615, guid: 74307be1d12e4744db0e8332d124e870, type: 3}
+  icon: {fileID: 2800000, guid: d43eb5503b508144e9051738a58c5fe6, type: 3}

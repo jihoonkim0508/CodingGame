@@ -43,7 +43,7 @@ static class RangedFocusCheck
             Waves = new[] { new[] {
                 new SpawnGroup { Enemy = new EnemySpec { type = EnemyType.Normal, health = 50, speed = 1 }, Count = 2, Interval = 2 },
                 new SpawnGroup { Enemy = new EnemySpec { type = EnemyType.Tank, health = 100000, speed = 1 }, Count = 1, Interval = 1, Delay = 4 } } } });
-        var bot = sim.Place(new RobotSpec { role = RobotRole.Shooter, range = 10, damage = 20, interval = .5f, projectileSpeed = 100 }, (int)RobotRole.Shooter, new Vector2(0, 2), out _);
+        var bot = sim.Place(new RobotSpec { role = RobotRole.Ranged, range = 10, damage = 20, interval = .5f, projectileSpeed = 100 }, (int)RobotRole.Ranged, new Vector2(0, 2), out _);
         sim.ApplyProgram(bot.Id, "ranged", TutorialAnswers.Parse(code));
         sim.Start();
         var run = new Run();

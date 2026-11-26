@@ -22,7 +22,7 @@ static class RetryCheck
     {
         var sim = new DefenseSimulation(Setup());
         // Out of range of the road, so both enemies of wave 1 reach the core; nothing carries into wave 2.
-        var shooter = sim.Place(Spec(RobotRole.Shooter), (int)RobotRole.Shooter, new Vector2(8, 9.5f), out var error);
+        var shooter = sim.Place(Spec(RobotRole.Ranged), (int)RobotRole.Ranged, new Vector2(8, 9.5f), out var error);
         Assert(shooter != null, "shooter placed: " + error);
         sim.Start(); RunWave(sim); sim.ClaimRewards();
         Assert(sim.WaveIndex == 1 && sim.UpcomingWave.Sum(g => g.Count) == 3 && sim.BaseHealth == 5, "wave 1's two enemies leaked; wave 2 has only its own 3");
@@ -39,7 +39,7 @@ static class RetryCheck
         Assert(retry.Phase == BattlePhase.Ready && bot.Position == shooter.Position && bot.Level == 2 && bot.DefinitionIndex == shooter.DefinitionIndex, "robot back where it stood, same level");
         Assert(bot.Program != null && bot.Program.Source == shooter.Program.Source, "robot keeps its code");
         Assert(retry.Coins == 70 && retry.BaseHealth == checkpoint.BaseHealth && retry.Kills == checkpoint.Kills && retry.WaveLeaks == 0, "coins, core and counts as the wave began");
-        Assert(retry.UpcomingWave.Sum(g => g.Count) == 3 && retry.RobotAvailable(RobotRole.Shooter) == 2, "the wave's enemies and robot stock restored");
+        Assert(retry.UpcomingWave.Sum(g => g.Count) == 3 && retry.RobotAvailable(RobotRole.Ranged) == 2, "the wave's enemies and robot stock restored");
         Assert(retry.StartError() == null, "restored wave can start");
         retry.RemoveRobot(bot.Id);
         Assert(retry.Coins == 120, "recall refunds the restored upgrade");
@@ -59,7 +59,7 @@ static class RetryCheck
             new SpawnGroup { Count = boss, Interval = .2f, Boss = true, Enemy = new EnemySpec { health = 90, speed = 1 } } };
         var setup = Setup(); setup.Waves[0] = Groups(2, 1);
         var sim = new DefenseSimulation(setup);
-        sim.Place(Spec(RobotRole.Shooter), (int)RobotRole.Shooter, new Vector2(8, 9.5f), out _);
+        sim.Place(Spec(RobotRole.Ranged), (int)RobotRole.Ranged, new Vector2(8, 9.5f), out _);
         sim.Start(); sim.Advance(.1);
         Assert(sim.Phase == BattlePhase.Running && sim.Spawned == 1, "one minion out, boss waiting");
         Assert(sim.SetWaveGroups(2, 0, Groups(2, 3)) && sim.CurrentWave[1].Count == 3, "boss edit lands mid-wave");
@@ -73,7 +73,7 @@ static class RetryCheck
         var setup = Setup(2); setup.Stage = stage; setup.BaseHealth = core;
         var sim = new DefenseSimulation(setup);
         // Out of range, so all 4 enemies of the last wave walk the whole 20-unit road (about 20 s).
-        sim.Place(Spec(RobotRole.Shooter), (int)RobotRole.Shooter, new Vector2(8, 9.5f), out _);
+        sim.Place(Spec(RobotRole.Ranged), (int)RobotRole.Ranged, new Vector2(8, 9.5f), out _);
         sim.Start();
         // Past this fixture's old 1.1 s limit the wave still runs with its enemies on the road.
         for (int i = 0; i < 180; i++) sim.Advance(1.0 / 60);

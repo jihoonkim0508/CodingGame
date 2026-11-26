@@ -17,7 +17,7 @@ static class MeleeCheck
         ActionProfiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(r => new RobotSpec { role = r, damage = 20, interval = .5f, range = 3 }).ToArray(),
         Routes = routes, Waves = new[] { wave } });
     static RobotState Warrior(DefenseSimulation sim, float x, float y)
-        => sim.Place(new RobotSpec { role = RobotRole.Warrior, range = 3, damage = 20, interval = .5f }, (int)RobotRole.Warrior, new Vector2(x, y), out _);
+        => sim.Place(new RobotSpec { role = RobotRole.Melee, range = 3, damage = 20, interval = .5f }, (int)RobotRole.Melee, new Vector2(x, y), out _);
     static CodeBlock Slash() => new CodeBlock(BlockKind.Slash);
     static CodeBlock Loop(int times, params CodeBlock[] body) { var loop = new CodeBlock(BlockKind.For, "0", N(times.ToString())); loop.Body.AddRange(body); return loop; }
 
@@ -92,7 +92,7 @@ static class MeleeCheck
                 Progression = FixtureProgression.Create(), Min = new Vector2(-50, -50), Max = new Vector2(50, 50), BaseHealth = 100,
                 ActionProfiles = Enum.GetValues(typeof(RobotRole)).Cast<RobotRole>().Select(r => new RobotSpec { role = r, damage = 7, interval = 1.6f, range = 3.6f }).ToArray(),
                 Routes = new[] { new Route(new[] { new Vector2(7, 0), new Vector2(-20, 0) }, .75f) }, Waves = new[] { new[] { demo } } });
-            bot = sim.Place(new RobotSpec { role = RobotRole.Warrior, range = 3.6f, damage = 7, interval = 1.6f }, (int)RobotRole.Warrior, new Vector2(0, 1.8f), out var error);
+            bot = sim.Place(new RobotSpec { role = RobotRole.Melee, range = 3.6f, damage = 7, interval = 1.6f }, (int)RobotRole.Melee, new Vector2(0, 1.8f), out var error);
             Assert(bot != null, "the demo warrior stands 1.8 off the road: " + error);
             sim.ApplyProgram(bot.Id, "demo", CodingGame.Defense.Editor.TutorialAnswers.Parse(guarded
                 ? "while True:\n    enemy = get_nearest_enemy()\n    if enemy.distance(get_my_pos()) <= my_attack_range():\n        slash()"

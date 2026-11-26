@@ -38,7 +38,7 @@ namespace CodingGame.Defense
             if (rules == null || progression == null || permissions == null) throw new ArgumentException("캠페인 규칙·보급 설정 누락");
             rules.Validate(); progression.Validate();
             if (baseHealth < 1 || robotLimit < 1 || robots == null || enemies == null || stages == null || stages.Length == 0 ||
-                robots.Length != 6 || robots.Any(r => !r || !r.prefab) || robots.Select(r => r.stats.role).Distinct().Count() != 6 ||
+                robots.Length != Rules.RoleCount || robots.Any(r => !r || !r.prefab) || robots.Select(r => r.stats.role).Distinct().Count() != Rules.RoleCount ||
                 enemies.Length == 0 || enemies.Any(e => !e || !e.prefab)) throw new ArgumentException("캠페인 참조·기본 수치 확인 필요");
             foreach (var r in robots) r.stats.Validate();
             foreach (var e in enemies) e.stats.Validate();
